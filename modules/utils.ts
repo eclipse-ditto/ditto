@@ -34,7 +34,7 @@ export function ready() {
 /**
  * Adds a table to a table element
  * @param {HTMLTableElement} table tbody element the row is added to
- * @param {String} key first column text of the row. Acts as id of the row
+ * @param {string} key first column text of the row. Acts as id of the row
  * @param {boolean} selected if true, the new row will be marked as selected
  * @param {boolean} clipBoardValue add a clipboard button at the last column of the row
  * @param {array} columnValues texts for additional columns of the row
@@ -61,7 +61,7 @@ export const addTableRow = function(table: HTMLTableElement, key: string, select
 /**
  * Adds a checkbox as a firs column of a row
  * @param {HTMLTableRowElement} row target row
- * @param {String} id an id for the checkbox element
+ * @param {string} id an id for the checkbox element
  * @param {boolean} checked check the checkbox
  * @param {boolean} disabled callback for the onchange event of the checkbox
  * @param {function} onToggle callback for the onchange event of the checkbox
@@ -84,12 +84,12 @@ export function addCheckboxToRow(row: HTMLTableRowElement, id: string, checked: 
 /**
  * Adds a cell to the row including a tooltip
  * @param {HTMLTableRowElement} row target row
- * @param {String} cellContent content of new cell
- * @param {String} cellTooltip tooltip for new cell
+ * @param {string} cellContent content of new cell
+ * @param {string} cellTooltip tooltip for new cell
  * @param {Number} position optional, default -1 (add to the end)
  * @return {HTMLElement} created cell element
  */
-export function addCellToRow(row, cellContent, cellTooltip = null, position = -1) {
+export function addCellToRow(row, cellContent, cellTooltip: string = null, position = -1) {
   const cell = row.insertCell(position);
   cell.textContent = cellContent;
   cell.setAttribute('data-bs-toggle', 'tooltip');
@@ -127,9 +127,9 @@ export function getRowClipboardAction(iconClassMain: string, iconClassFeedback: 
 /**
  * Adds a header cell to the given table row
  * @param {HTMLTableRowElement} row target row
- * @param {String} label label for the header cell
+ * @param {string} label label for the header cell
  */
-export function insertHeaderCell(row, label) {
+export function insertHeaderCell(row, label: string) {
   const th = document.createElement('th');
   th.textContent = label;
   row.appendChild(th);
@@ -149,7 +149,22 @@ export function setOptions(target: HTMLSelectElement, options: string[]) {
   });
 }
 
-export function addDropDownEntries(target: HTMLUListElement, labels: Array<String>) {
+/**
+ * Create a list of option elements for select element
+ * @param {HTMLSelectElement} target target element (select)
+ * @param {array} options Array of strings to be filled as options
+ */
+export function setOptionsWithText(target: HTMLSelectElement, options: any[]) {
+  target.textContent = '';
+  options.forEach((o) => {
+    const option = document.createElement('option');
+    option.value = o.key;
+    option.text = o.text;
+    target.appendChild(option);
+  });
+}
+
+export function addDropDownEntries(target: HTMLUListElement, labels: Array<string>) {
   labels.forEach((label) => {
     addDropDownEntry(target, label);
   })
@@ -158,11 +173,11 @@ export function addDropDownEntries(target: HTMLUListElement, labels: Array<Strin
 /**
  * Add a drop down items or header to Bootstrap dropdown
  * @param {HTMLElement} target target element
- * @param {String} label label of items for the drop down
- * @param {String} value (optional) additional data tag for the drop down item
+ * @param {string} label label of items for the drop down
+ * @param {string} value (optional) additional data tag for the drop down item
  * @param {boolean} isHeader (optional) true to add a header line
  */
-export function addDropDownEntry(target: HTMLUListElement, label: String, isHeader: boolean = false, value?: String) {
+export function addDropDownEntry(target: HTMLUListElement, label: string, isHeader: boolean = false, value?: string) {
   const li = document.createElement('li');
   li.innerHTML = isHeader ?
     `<h6 class="dropdown-header" data-value='${value}'>${sanitizeHTML(label)}</h6>` :
@@ -174,12 +189,11 @@ export function addDropDownEntry(target: HTMLUListElement, label: String, isHead
  * Add a tab pane in the UI. tab header and tab contens are added
  * @param {HTMLElement} tabItemsNode root node for the tabs
  * @param {HTMLElement} tabContentsNode root node for the tab contents
- * @param {String} title name of the new tab
+ * @param {string} title name of the new tab
  * @param {String} contentHTML tab content for the new tab
- * @param {String} toolTip (optional) toolip on the tab item
- * @return {String} id of the tabpane content node
+ * @param {string} toolTip (optional) toolip on the tab item
  */
-export function addTab(tabItemsNode, tabContentsNode, title, contentHTML, toolTip = null) {
+export function addTab(tabItemsNode, tabContentsNode, title: string, contentHTML, toolTip: string = null) {
   const id = 'tab' + Math.random().toString(36).replace('0.', '');
 
   const li = document.createElement('li');
@@ -218,20 +232,44 @@ export function getAllElementsById(domObjects: object, searchRoot: DocumentFragm
 
  * @param unsafeString the string to sanitize.
  */
-export function sanitizeHTML(unsafeString: String) {
+export function sanitizeHTML(unsafeString: string) {
   return DOMPurify.sanitize(unsafeString);
 }
 
 /**
- * Show an error toast
- * @param {String} message Message for toast
- * @param {String} header Header for toast
- * @param {String} status Status text for toas
+ * Show an info toast
+ * @param {string} message Message for toast
+ * @param {string} header Header for toast
  */
-export function showError(message, header = 'Error', status = '') {
+export function showInfoToast(message: string, header: string = 'Info') {
   const domToast = document.createElement('div');
   domToast.classList.add('toast');
-  domToast.innerHTML = `<div class="toast-header alert-danger">
+  domToast.innerHTML = `<div class="toast-header toast-header-info">
+  <i class="bi me-2 bi-info-circle-fill"></i>
+  <strong class="me-auto">${sanitizeHTML(header)}</strong>
+  <small>${status}</small>
+  <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+  </div>
+  <div class="toast-body">${sanitizeHTML(message)}</div>`;
+
+  dom.toastContainer.appendChild(domToast);
+  domToast.addEventListener("hidden.bs.toast", () => {
+    domToast.remove();
+  });
+  const bsToast = new Toast(domToast);
+  bsToast.show();
+}
+
+/**
+ * Show an error toast
+ * @param {string} message Message for toast
+ * @param {string} header Header for toast
+ * @param {string} status Status text for toas
+ */
+export function showError(message: string, header: string = 'Error', status: string = '') {
+  const domToast = document.createElement('div');
+  domToast.classList.add('toast');
+  domToast.innerHTML = `<div class="toast-header toast-header-warn alert-danger">
   <i class="bi me-2 bi-exclamation-triangle-fill"></i>
   <strong class="me-auto">${sanitizeHTML(header)}</strong>
   <small>${status}</small>
@@ -249,9 +287,9 @@ export function showError(message, header = 'Error', status = '') {
 
 /**
  * Error object for user errors
- * @param {String} message Message that was displayed to the user in an error toast
+ * @param {string} message Message that was displayed to the user in an error toast
  */
-function UserException(message) {
+function UserException(message: string) {
   this.message = message;
   this.name = 'UserException';
 }
@@ -260,10 +298,10 @@ function UserException(message) {
  * User assertion. If the condition is false, a message is displayed to the user and execution breaks by throwing
  * an error.
  * @param {boolean} condition If false, an error is shown to the user
- * @param {String} message Message to be shown to the user
+ * @param {string} message Message to be shown to the user
  * @param {HTMLElement} validatedElement Optional element that was validated
  */
-export function assert(condition, message, validatedElement = null) {
+export function assert(condition, message: string, validatedElement = null) {
   if (validatedElement) {
     validatedElement.classList.remove('is-invalid');
   }
@@ -280,11 +318,11 @@ export function assert(condition, message, validatedElement = null) {
 
 /**
  * Simple Date format that makes ISO string more readable and cuts off the milliseconds
- * @param {String} dateISOString to format
+ * @param {string} dateISOString to format
  * @param {boolean} withMilliseconds don t cut off milliseconds if true
- * @return {String} formatted date
+ * @return {string} formatted date
  */
-export function formatDate(dateISOString, withMilliseconds = false) {
+export function formatDate(dateISOString: string, withMilliseconds = false): string {
   if (withMilliseconds) {
     return dateISOString.replace('T', ' ').replace('Z', '').replace('.', ' ');
   } else {
@@ -296,11 +334,11 @@ let modalConfirm;
 
 /**
  * Like from bootbox or bootprompt
- * @param {String} message confirm message
- * @param {String} action button text
+ * @param {string} message confirm message
+ * @param {string} action button text
  * @param {function} callback true if confirmed
  */
-export function confirm(message, action, callback) {
+export function confirm(message: string, action: string, callback) {
   modalConfirm = modalConfirm ?? new Modal('#modalConfirm');
   dom.modalBodyConfirm.textContent = message;
   dom.buttonConfirmed.innerText = action;
@@ -310,13 +348,13 @@ export function confirm(message, action, callback) {
 
 /**
  * Creates and configures an ace editor
- * @param {String} domId id of the dom element for the ace editor
+ * @param {string} domId id of the dom element for the ace editor
  * @param {*} sessionMode session mode of the ace editor
  * @param {*} readOnly sets the editor to read only and removes the line numbers
  * @param {*} wrap sets the editor wrap option.
  * @return {*} created ace editor
  */
-export function createAceEditor(domId, sessionMode, readOnly = false, wrap = false) {
+export function createAceEditor(domId: string, sessionMode, readOnly = false, wrap = false) {
   const result = ace.edit(domId);
   result.setOption('wrap', wrap);
   result.setOption('useWorker', false);
@@ -331,12 +369,12 @@ export function createAceEditor(domId, sessionMode, readOnly = false, wrap = fal
 
 /**
  * Creates a autocomplete input field
- * @param {String} selector selector for the input field
+ * @param {string} selector selector for the input field
  * @param {function} src src
- * @param {String} placeHolder placeholder for input field
+ * @param {string} placeHolder placeholder for input field
  * @return {Object} autocomplete instance
  */
-export function createAutoComplete(selector, src, placeHolder) {
+export function createAutoComplete(selector: string, src, placeHolder: string) {
   // eslint-disable-next-line new-cap
   return new autoComplete({
     selector: selector,

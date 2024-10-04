@@ -1,0 +1,54 @@
+# Copyright (c) 2024 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+version: '3.7'
+networks:
+  test:
+    name: ${DOCKER_NETWORK:-test}
+
+services:
+  oauth:
+    image: ghcr.io/navikt/mock-oauth2-server:2.1.6
+    networks:
+      - test
+    ports:
+      - "9900:9900"
+    expose:
+      - "9900"
+    volumes:
+      - ./app/login.html:/app/login.html
+    environment:
+      PORT: 9900
+      LOG_LEVEL: DEBUG
+      JSON_CONFIG: |
+          {
+            "interactiveLogin": true,
+            "httpServer": "NettyWrapper",
+            "loginPagePath": "/app/login.html",
+            "staticAssetsPath": "/app/static",
+            "tokenCallbacks": [
+              {
+                "issuerId": "fake",
+                "tokenExpiry": 300,
+                "requestMappings": [
+                  {
+                    "requestParam": "scope",
+                    "match": "scope1",
+                    "claims": {
+                      "sub": "subByScope",
+                      "aud": [
+                        "audByScope"
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          }

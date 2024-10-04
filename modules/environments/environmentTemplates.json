@@ -2,36 +2,182 @@
   "local_ditto": {
     "api_uri": "http://localhost:8080",
     "ditto_version": 3,
-    "bearer": null,
-    "bearerDevOps": null,
-    "defaultUsernamePassword": "ditto:ditto",
-    "defaultDittoPreAuthenticatedUsername": null,
-    "defaultUsernamePasswordDevOps": "devops:foobar",
-    "mainAuth": "basic",
-    "devopsAuth": "basic"
+    "disablePolicies": false,
+    "disableConnections": false,
+    "disableOperations": false,
+    "authSettings": {
+      "main": {
+        "method": "basic",
+        "oidc": {
+          "enabled": false
+        },
+        "basic": {
+          "enabled": true,
+          "defaultUsernamePassword": "ditto:ditto"
+        },
+        "bearer": {
+          "enabled": true
+        },
+        "pre": {
+          "enabled": false,
+          "defaultDittoPreAuthenticatedUsername": null
+        }
+      },
+      "devops": {
+        "method": "basic",
+        "oidc": {
+          "enabled": false
+        },
+        "basic": {
+          "enabled": true,
+          "defaultUsernamePassword": "devops:foobar"
+        },
+        "bearer": {
+          "enabled": true
+        }
+      },
+      "oidc": {
+      }
+    }
   },
   "local_ditto_ide": {
     "api_uri": "http://localhost:8080",
     "ditto_version": 3,
-    "bearer": null,
-    "bearerDevOps": null,
-    "defaultUsernamePassword": null,
-    "defaultDittoPreAuthenticatedUsername": "pre:ditto",
-    "defaultUsernamePasswordDevOps": "devops:foobar",
-    "mainAuth": "pre",
-    "devopsAuth": "basic"
+    "disablePolicies": false,
+    "disableConnections": false,
+    "disableOperations": false,
+    "authSettings": {
+      "main": {
+        "method": "pre",
+        "oidc": {
+          "enabled": false
+        },
+        "basic": {
+          "enabled": true,
+          "defaultUsernamePassword": null
+        },
+        "bearer": {
+          "enabled": true
+        },
+        "pre": {
+          "enabled": false,
+          "defaultDittoPreAuthenticatedUsername": "pre:ditto"
+        }
+      },
+      "devops": {
+        "method": "basic",
+        "oidc": {
+          "enabled": false
+        },
+        "basic": {
+          "enabled": true,
+          "defaultUsernamePassword": "devops:foobar"
+        },
+        "bearer": {
+          "enabled": true
+        }
+      },
+      "oidc": {
+      }
+    }
   },
   "ditto_sandbox": {
     "api_uri": "https://ditto.eclipseprojects.io",
     "ditto_version": 3,
-    "bearer": null,
-    "bearerDevOps": null,
-    "defaultUsernamePassword": "ditto:ditto",
-    "defaultDittoPreAuthenticatedUsername": null,
-    "defaultUsernamePasswordDevOps": null,
-    "mainAuth": "basic",
-    "devopsAuth": null,
+    "disablePolicies": false,
     "disableConnections": true,
-    "disableOperations": true  
+    "disableOperations": true,
+    "authSettings": {
+      "main": {
+        "method": "basic",
+        "oidc": {
+          "enabled": true,
+          "defaultProvider": "fake"
+        },
+        "basic": {
+          "enabled": true,
+          "defaultUsernamePassword": "ditto:ditto"
+        },
+        "bearer": {
+          "enabled": true
+        },
+        "pre": {
+          "enabled": false,
+          "defaultDittoPreAuthenticatedUsername": null
+        }
+      },
+      "devops": {
+        "method": "basic",
+        "oidc": {
+          "enabled": false,
+          "defaultProvider": null
+        },
+        "basic": {
+          "enabled": false,
+          "defaultUsernamePassword": null
+        },
+        "bearer": {
+          "enabled": false
+        }
+      },
+      "oidc": {
+      }
+    }
+  },
+  "oidc_example": {
+    "api_uri": "http://localhost:8080",
+    "ditto_version": 3,
+    "disablePolicies": false,
+    "disableConnections": false,
+    "disableOperations": false,
+    "authSettings": {
+      "main": {
+        "method": "oidc",
+        "oidc": {
+          "enabled": true,
+          "defaultProvider": "fake",
+          "autoSso": true
+        },
+        "basic": {
+          "enabled": false,
+          "defaultUsernamePassword": null
+        },
+        "bearer": {
+          "enabled": true
+        },
+        "pre": {
+          "enabled": false,
+          "defaultDittoPreAuthenticatedUsername": null
+        }
+      },
+      "devops": {
+        "method": "oidc",
+        "oidc": {
+          "enabled": true,
+          "defaultProvider": "fake",
+          "autoSso": true
+        },
+        "basic": {
+          "enabled": false,
+          "defaultUsernamePassword": null
+        },
+        "bearer": {
+          "enabled": true
+        }
+      },
+      "oidc": {
+        "providers": {
+          "fake": {
+            "displayName": "Fake IDP to test",
+            "extractBearerTokenFrom": "access_token",
+            "authority": "http://localhost:9900/fake",
+            "client_id": "some-client-id",
+            "redirect_uri": "http://localhost:8000",
+            "response_type": "code",
+            "scope": "openid"
+          }
+        }
+      }
+    }
   }
 }
