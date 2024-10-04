@@ -357,18 +357,18 @@ spec:
             {{- if .Values.things.extraEnv }}
               {{- toYaml .Values.things.extraEnv | nindent 12 }}
             {{- end }}
-            {{- if .Values.serviceAccount.useAwsIamRole }}
+            - name: MONGO_DB_USE_AWS_IAM_ROLE
+              value: "{{ printf "%t" .Values.dbconfig.things.useAwsIamRole }}"
+            {{- if .Values.dbconfig.things.useAwsIamRole }}
             - name: MONGO_DB_AWS_REGION
-              value: "{{ .Values.serviceAccount.awsRegion }}"
+              value: "{{ .Values.dbconfig.things.awsRegion }}"
             - name: MONGO_DB_AWS_ROLE_ARN
-              value: "{{ .Values.serviceAccount.awsRoleArn }}"
+              value: "{{ .Values.dbconfig.things.awsRoleArn }}"
             - name: AWS_WEB_IDENTITY_TOKEN_FILE
               value: "/var/run/secrets/eks.amazonaws.com/serviceaccount/token"
             - name: MONGO_DB_AWS_SESSION_NAME
-              value: "{{ .Values.serviceAccount.awsSessionName }}"
+              value: "{{ .Values.dbconfig.things.awsSessionName }}"
             {{- end }}
-            - name: MONGO_DB_USE_AWS_IAM_ROLE
-              value: "{{ printf "%t" .Values.serviceAccount.useAwsIamRole }}"
           ports:
             - name: remoting
               containerPort: {{ .Values.pekko.remoting.port }}

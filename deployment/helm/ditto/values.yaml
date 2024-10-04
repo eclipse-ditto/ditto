@@ -19,20 +19,14 @@ serviceAccount:
   # name is the name of the service account to use
   #  If not set and create is true, a name is generated using the fullname template
   name:
-  # useAwsIamRole specifies whether to use an AWS IAM Role for Service Accounts (IRSA).
+  # assumeAwsIamRole specifies whether to assume an AWS IAM Role for Service Accounts (IRSA).
   # Set to true to use IRSA, which allows the pod to assume an IAM role.
   # When set to true, ensure that awsRoleArn is specified.
-  useAwsIamRole: false
-  # awsRegion
-  awsRegion: ""
-  # awsRoleArn is the Amazon Resource Name (ARN) of the IAM role to be assumed by the service account.
-  # This is required if useAwsIamRole is set to true.
+  assumeAwsIamRole: false
+  # assumedAwsRoleArn is the Amazon Resource Name (ARN) of the IAM role to be assumed by the service account.
+  # This is required if assumeAwsIamRole is set to true.
   # Example: arn:aws:iam::<account-id>:role/<role-name>
-  awsRoleArn: ""
-  # awsSessionName is the name of the session when assuming the AWS role.
-  # This can be used to identify the session in logs or IAM policies.
-  # Default is "dittoSession".
-  awsSessionName: "dittoSession"
+  assumedAwsRoleArn: ""
 
 rbac:
   # enabled controls whether RBAC resources will be created
@@ -222,18 +216,66 @@ dbconfig:
   policies:
     uri: mongodb://#{PLACEHOLDER_MONGODB_HOSTNAME}#:27017/ditto
     ssl: false
+    # useAwsIamRole specifies whether to use an AWS IAM Role for Service Accounts (IRSA) which the pod assumes.
+    useAwsIamRole: false
+    # awsRegion defines the AWS region - if this is an empty string, the AWS SDK will attempt to identify the
+    #  region automatically based on the environment and eventually EC2 instances
+    awsRegion: ""
+    # awsRoleArn is the Amazon Resource Name (ARN) of the IAM role to be assumed by the pod.
+    #  This is required if useAwsIamRole is set to true.
+    #  Example: arn:aws:iam::<account-id>:role/<role-name>
+    awsRoleArn: ""
+    # awsSessionName is the name of the session when assuming the AWS role.
+    #  This can be used to identify the session in logs or IAM policies.
+    awsSessionName: "dittoSession"
   # things the MongoDB configuration for Ditto "things" service
   things:
     uri: mongodb://#{PLACEHOLDER_MONGODB_HOSTNAME}#:27017/ditto
     ssl: false
+    # useAwsIamRole specifies whether to use an AWS IAM Role for Service Accounts (IRSA) which the pod assumes.
+    useAwsIamRole: false
+    # awsRegion defines the AWS region - if this is an empty string, the AWS SDK will attempt to identify the
+    #  region automatically based on the environment and eventually EC2 instances
+    awsRegion: ""
+    # awsRoleArn is the Amazon Resource Name (ARN) of the IAM role to be assumed by the pod.
+    #  This is required if useAwsIamRole is set to true.
+    #  Example: arn:aws:iam::<account-id>:role/<role-name>
+    awsRoleArn: ""
+    # awsSessionName is the name of the session when assuming the AWS role.
+    #  This can be used to identify the session in logs or IAM policies.
+    awsSessionName: "dittoSession"
   # connectivity the MongoDB configuration for Ditto "connectivity" service
   connectivity:
     uri: mongodb://#{PLACEHOLDER_MONGODB_HOSTNAME}#:27017/ditto
     ssl: false
+    # useAwsIamRole specifies whether to use an AWS IAM Role for Service Accounts (IRSA) which the pod assumes.
+    useAwsIamRole: false
+    # awsRegion defines the AWS region - if this is an empty string, the AWS SDK will attempt to identify the
+    #  region automatically based on the environment and eventually EC2 instances
+    awsRegion: ""
+    # awsRoleArn is the Amazon Resource Name (ARN) of the IAM role to be assumed by the pod.
+    #  This is required if useAwsIamRole is set to true.
+    #  Example: arn:aws:iam::<account-id>:role/<role-name>
+    awsRoleArn: ""
+    # awsSessionName is the name of the session when assuming the AWS role.
+    #  This can be used to identify the session in logs or IAM policies.
+    awsSessionName: "dittoSession"
   # thingsSearch the MongoDB configuration for Ditto "things-search" service
   thingsSearch:
     uri: mongodb://#{PLACEHOLDER_MONGODB_HOSTNAME}#:27017/ditto
     ssl: false
+    # useAwsIamRole specifies whether to use an AWS IAM Role for Service Accounts (IRSA) which the pod assumes.
+    useAwsIamRole: false
+    # awsRegion defines the AWS region - if this is an empty string, the AWS SDK will attempt to identify the
+    #  region automatically based on the environment and eventually EC2 instances
+    awsRegion: ""
+    # awsRoleArn is the Amazon Resource Name (ARN) of the IAM role to be assumed by the pod.
+    #  This is required if useAwsIamRole is set to true.
+    #  Example: arn:aws:iam::<account-id>:role/<role-name>
+    awsRoleArn: ""
+    # awsSessionName is the name of the session when assuming the AWS role.
+    #  This can be used to identify the session in logs or IAM policies.
+    awsSessionName: "dittoSession"
   ## If following property is set, an existing secret will be used to retrieve the mongodb connectionUris from.
   # uriSecret: my-uri-secret
 
@@ -279,9 +321,9 @@ ingress:
     # namespace for ingress controller, managed by helm, should not be created manually
     namespace: ingress-nginx
     # Ingress-NGINX version. Check Supported Versions table from https://github.com/kubernetes/ingress-nginx to match k8s version.
-    nginxIngressVersion: "v1.9.0"
+    nginxIngressVersion: "v1.11.2"
     # Nginx Version. Check Supported Versions table from https://github.com/kubernetes/ingress-nginx to match k8s version.
-    nginxVersion: "1.21.6"
+    nginxVersion: "1.25.5"
     # Pod topology spread constraints for nginx-ingress controller
     # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
     topologySpreadConstraints:
@@ -1897,7 +1939,7 @@ nginx:
     # repository for the nginx docker image
     repository: docker.io/nginx
     # tag for the nginx docker image
-    tag: 1.26
+    tag: 1.27
     # pullPolicy for the nginx docker image
     pullPolicy: IfNotPresent
   # extraEnv to add arbitrary environment variables to nginx container

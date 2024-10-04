@@ -23,6 +23,9 @@ entries:
       - title: Release Notes
         output: web
         folderitems:
+          - title: 3.6.0
+            url: /release_notes_360.html
+            output: web
           - title: 3.5.12
             url: /release_notes_3512.html
             output: web
@@ -62,29 +65,29 @@ entries:
           - title: 3.5.0
             url: /release_notes_350.html
             output: web
-          - title: 3.4.5
-            url: /release_notes_345.html
-            output: web
-          - title: 3.4.4
-            url: /release_notes_344.html
-            output: web
-          - title: 3.4.3
-            url: /release_notes_343.html
-            output: web
-          - title: 3.4.2
-            url: /release_notes_342.html
-            output: web
-          - title: 3.4.1
-            url: /release_notes_341.html
-            output: web
-          - title: 3.4.0
-            url: /release_notes_340.html
-            output: web
 
             subfolders:
               - title: Archive
                 output: web
                 subfolderitems:
+                  - title: 3.4.5
+                    url: /release_notes_345.html
+                    output: web
+                  - title: 3.4.4
+                    url: /release_notes_344.html
+                    output: web
+                  - title: 3.4.3
+                    url: /release_notes_343.html
+                    output: web
+                  - title: 3.4.2
+                    url: /release_notes_342.html
+                    output: web
+                  - title: 3.4.1
+                    url: /release_notes_341.html
+                    output: web
+                  - title: 3.4.0
+                    url: /release_notes_340.html
+                    output: web
                   - title: 3.3.7
                     url: /release_notes_337.html
                     output: web

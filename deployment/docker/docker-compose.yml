@@ -240,7 +240,7 @@ services:
         max-size: 10m
         
   nginx:
-    image: docker.io/nginx:1.26-alpine
+    image: docker.io/nginx:1.27-alpine
     deploy:
       resources:
         limits:

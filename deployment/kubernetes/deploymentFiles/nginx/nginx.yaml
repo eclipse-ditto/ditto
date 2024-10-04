@@ -44,7 +44,7 @@ spec:
               done
       containers:
       - name: nginx
-        image: docker.io/nginx:1.26-alpine
+        image: docker.io/nginx:1.27-alpine
         volumeMounts:
         - name: nginx-conf
           mountPath: /etc/nginx/nginx.conf
