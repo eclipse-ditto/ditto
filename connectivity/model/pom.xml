@@ -124,7 +124,6 @@
                     <parameter>
                         <excludes>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
-                            <exclude>org.eclipse.ditto.connectivity.model.Connection#toJson(org.eclipse.ditto.base.model.json.JsonSchemaVersion,org.eclipse.ditto.json.JsonFieldSelector)</exclude>
                         </excludes>
                     </parameter>
                 </configuration>
