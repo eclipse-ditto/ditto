@@ -133,6 +133,45 @@ type Environment = {
   recentPolicyIds?: string[],
 }
 
+const DEFAULT_AUTH_SETTINGS: AuthSettings = {
+  main: {
+    method: AuthMethod.basic,
+    oidc: {
+      enabled: false,
+      defaultProvider: null,
+      autoSso: false
+    },
+    basic: {
+      enabled: true,
+      defaultUsernamePassword: "ditto:ditto"
+    },
+    bearer: {
+      enabled: true
+    },
+    pre: {
+      enabled: false,
+      defaultDittoPreAuthenticatedUsername: null
+    }
+  },
+  devops: {
+    method: AuthMethod.basic,
+    oidc: {
+      enabled: false,
+      defaultProvider: null,
+      autoSso: false
+    },
+    basic: {
+      enabled: true,
+      defaultUsernamePassword: "devops:foobar"
+    },
+    bearer: {
+      enabled: false
+    }
+  },
+  "oidc": {
+  }
+}
+
 let environments: Record<string, Environment>;
 let selectedEnvName: string;
 
@@ -158,6 +197,7 @@ document.getElementById('environmentsHTML').innerHTML = environmentsHTML;
 
 function Environment(env: Environment): void {
   Object.assign(this, env);
+  this.authSettings || (this.authSettings = DEFAULT_AUTH_SETTINGS); 
   this.authSettings.main.oidc.provider = env.authSettings?.main?.oidc?.defaultProvider;
   fillMainUsernamePassword(env.authSettings?.main?.basic?.defaultUsernamePassword);
   this.authSettings.main.pre.dittoPreAuthenticatedUsername = env.authSettings?.main?.pre?.defaultDittoPreAuthenticatedUsername;
