@@ -292,7 +292,6 @@ spec:
             - name: MONGO_DB_AWS_SESSION_NAME
               value: "{{ .Values.dbconfig.policies.awsSessionName }}"
             {{- end }}
-
           ports:
             - name: http
               containerPort: 8080

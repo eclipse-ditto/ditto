@@ -80,7 +80,7 @@
 
         <jsr305.version>3.0.2</jsr305.version>
 
-        <rhino.version>1.7.15</rhino.version>
+        <rhino.version>1.7.14</rhino.version>
         <!--
             be aware that connectivity mapping has a direct dependency on files inside this library.
             when updating this version, you should also check if the used paths and files still exist
