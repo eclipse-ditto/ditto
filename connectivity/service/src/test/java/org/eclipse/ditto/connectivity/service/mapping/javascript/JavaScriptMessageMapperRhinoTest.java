@@ -30,7 +30,9 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.assertj.core.api.AutoCloseableSoftAssertions;
+import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.common.DittoConstants;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -73,8 +75,6 @@ import org.junit.Test;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Tests the {@link JavaScriptMessageMapperRhino} by initializing different mapping templates and ensuring that they
@@ -165,6 +165,7 @@ public final class JavaScriptMessageMapperRhinoTest {
             "    // Insert your mapping logic here\n" +
             "    let headers = {};\n" +
             "    headers['correlation-id'] = dittoHeaders['correlation-id'];\n" +
+            "    headers['requested-acks'] = dittoHeaders['requested-acks'];\n" +
             "    let textPayload = `Thing ID was: ${namespace}:${name}`;\n" +
             "    let bytePayload = null;\n" +
             "    let contentType = \"" + CONTENT_TYPE_PLAIN + "\";\n" +
@@ -1179,7 +1180,9 @@ public final class JavaScriptMessageMapperRhinoTest {
                 .setAttributes(Attributes.newBuilder().set("foo", "bar").build())
                 .build();
         final CreateThing createThing =
-                CreateThing.of(newThing, null, DittoHeaders.newBuilder().correlationId(correlationId).build());
+                CreateThing.of(newThing, null, DittoHeaders.newBuilder()
+                        .acknowledgementRequest(AcknowledgementRequest.parseAcknowledgementRequest("foo"))
+                        .correlationId(correlationId).build());
         final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(createThing);
 
         final long startTs = System.nanoTime();
@@ -1192,6 +1195,7 @@ public final class JavaScriptMessageMapperRhinoTest {
 
             assertThat(rawMessage.findContentType()).contains(CONTENT_TYPE_PLAIN);
             assertThat(rawMessage.findHeader(HEADER_CORRELATION_ID)).contains(correlationId);
+            assertThat(rawMessage.findHeader("requested-acks")).contains("[\"foo\"]");
             assertThat(rawMessage.isTextMessage()).isTrue();
             assertThat(rawMessage.getTextPayload()).contains("Thing ID was: " + thingId);
         });
