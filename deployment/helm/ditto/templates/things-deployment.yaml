@@ -163,34 +163,48 @@ spec:
                 {{- end }}
                 '-Dditto.things.wot.to-thing-description.json-template={{ .Values.things.config.wot.tdJsonTemplate | replace "\n" "" | replace "\\\"" "\"" }}'
                 {{- range $dynConfIdx, $dynamicWotTmValidationConfig := .Values.things.config.wot.tmValidation.dynamicConfig }}
-                {{- if or (gt (len $dynamicWotTmValidationConfig.validationContext.dittoHeadersPatterns) 0) (gt (len $dynamicWotTmValidationConfig.validationContext.thingDefinitionPatterns) 0) (gt (len $dynamicWotTmValidationConfig.validationContext.featureDefinitionPatterns) 0)  }}
-                  {{- range $dhpIdx, $dittoHeadersPatterns := $dynamicWotTmValidationConfig.validationContext.dittoHeadersPatterns }}
-                  {{- range $dhpKey, $dhpVal := $dittoHeadersPatterns }}
+                  {{- if $dynamicWotTmValidationConfig.validationContext.dittoHeadersPatterns }}
+                    {{- if gt (len $dynamicWotTmValidationConfig.validationContext.dittoHeadersPatterns) 0 }}
+                        {{- range $dhpIdx, $dittoHeadersPatterns := $dynamicWotTmValidationConfig.validationContext.dittoHeadersPatterns }}
+                          {{- range $dhpKey, $dhpVal := $dittoHeadersPatterns }}
                 "{{ printf "%s%d%s%d%s%s=%v" "-Dditto.things.wot.tm-model-validation.dynamic-configuration." $dynConfIdx ".validation-context.ditto-headers-patterns." $dhpIdx "." $dhpKey $dhpVal }}"
+                          {{- end }}
+                        {{- end }}
+                    {{- end }}
                   {{- end }}
-                  {{- end }}
-                  {{- range $tdpIdx, $thingDefinitionPattern := $dynamicWotTmValidationConfig.validationContext.thingDefinitionPatterns }}
+                  {{- if $dynamicWotTmValidationConfig.validationContext.thingDefinitionPatterns }}
+                    {{- if gt (len $dynamicWotTmValidationConfig.validationContext.thingDefinitionPatterns) 0 }}
+                      {{- range $tdpIdx, $thingDefinitionPattern := $dynamicWotTmValidationConfig.validationContext.thingDefinitionPatterns }}
                 "{{ printf "%s%d%s%d=%v" "-Dditto.things.wot.tm-model-validation.dynamic-configuration." $dynConfIdx ".validation-context.thing-definition-patterns." $tdpIdx $thingDefinitionPattern }}"
+                      {{- end }}
+                    {{- end }}
                   {{- end }}
-                  {{- range $fdpIdx, $featureDefinitionPattern := $dynamicWotTmValidationConfig.validationContext.featureDefinitionPatterns }}
+                  {{- if $dynamicWotTmValidationConfig.validationContext.featureDefinitionPatterns }}
+                    {{- if gt (len $dynamicWotTmValidationConfig.validationContext.featureDefinitionPatterns) 0 }}
+                      {{- range $fdpIdx, $featureDefinitionPattern := $dynamicWotTmValidationConfig.validationContext.featureDefinitionPatterns }}
                 "{{ printf "%s%d%s%d=%v" "-Dditto.things.wot.tm-model-validation.dynamic-configuration." $dynConfIdx ".validation-context.feature-definition-patterns." $fdpIdx $featureDefinitionPattern }}"
+                      {{- end }}
+                    {{- end }}
                   {{- end }}
                   {{- range $configOverridesKey, $configOverridesValue := $dynamicWotTmValidationConfig.configOverrides }}
                     {{- if or (eq (kindOf $configOverridesValue) "map") (eq (kindOf $configOverridesValue) "slice") }}
-                    {{- range $nested1ConfigOverridesKey, $nested1ConfigOverridesValue := $configOverridesValue }}
-                      {{- if or (eq (kindOf $nested1ConfigOverridesValue) "map") (eq (kindOf $nested1ConfigOverridesValue) "slice") }}
-                      {{- range $nested2ConfigOverridesKey, $nested2ConfigOverridesValue := $nested1ConfigOverridesValue }}
+                      {{- range $nested1ConfigOverridesKey, $nested1ConfigOverridesValue := $configOverridesValue }}
+                        {{- if or (eq (kindOf $nested1ConfigOverridesValue) "map") (eq (kindOf $nested1ConfigOverridesValue) "slice") }}
+                          {{- range $nested2ConfigOverridesKey, $nested2ConfigOverridesValue := $nested1ConfigOverridesValue }}
+                            {{- if not (kindIs "invalid" $nested2ConfigOverridesValue) }}
                 "{{ printf "%s%d%s%s%s%s%s%s=%v" "-Dditto.things.wot.tm-model-validation.dynamic-configuration." $dynConfIdx ".config-overrides." $configOverridesKey "." $nested1ConfigOverridesKey "." $nested2ConfigOverridesKey $nested2ConfigOverridesValue }}"
-                      {{- end }}
-                      {{- else }}
+                            {{- end }}
+                          {{- end }}
+                        {{- else }}
+                          {{- if not (kindIs "invalid" $nested1ConfigOverridesValue) }}
                 "{{ printf "%s%d%s%s%s%s=%v" "-Dditto.things.wot.tm-model-validation.dynamic-configuration." $dynConfIdx ".config-overrides." $configOverridesKey "." $nested1ConfigOverridesKey $nested1ConfigOverridesValue }}"
+                          {{- end }}
+                        {{- end }}
                       {{- end }}
-                    {{- end }}
                     {{- else }}
                 "{{ printf "%s%d%s%s=%v" "-Dditto.things.wot.tm-model-validation.dynamic-configuration." $dynConfIdx ".config-overrides." $configOverridesKey $configOverridesValue }}"
                     {{- end }}
                   {{- end }}
-                {{- end }}
                 {{- end }}
                 {{ join " " .Values.things.systemProps }}
             - name: MONGO_DB_SSL_ENABLED

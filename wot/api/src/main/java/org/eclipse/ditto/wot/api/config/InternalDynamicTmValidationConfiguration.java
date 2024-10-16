@@ -43,29 +43,33 @@ final class InternalDynamicTmValidationConfiguration {
 
     InternalDynamicTmValidationConfiguration(final Config config) {
         final Config validationContext = config.getConfig(CONFIG_KEY_VALIDATION_CONTEXT);
-        final List<Map<String, Pattern>> parsedDittoHeadersPatterns = validationContext
-                .getConfigList(CONFIG_KEY_DITTO_HEADERS_PATTERNS)
-                .stream()
-                .map(c -> c.entrySet()
-                        .stream()
-                        .map(e -> new AbstractMap.SimpleEntry<>(
-                                        e.getKey(),
-                                        Pattern.compile(e.getValue().unwrapped().toString())
+
+        final List<Map<String, Pattern>> parsedDittoHeadersPatterns =
+                validationContext.hasPath(CONFIG_KEY_DITTO_HEADERS_PATTERNS) ?
+                        validationContext.getConfigList(CONFIG_KEY_DITTO_HEADERS_PATTERNS)
+                                .stream()
+                                .map(c -> c.entrySet()
+                                        .stream()
+                                        .map(e -> new AbstractMap.SimpleEntry<>(
+                                                        e.getKey(),
+                                                        Pattern.compile(e.getValue().unwrapped().toString())
+                                                )
+                                        )
+                                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))
                                 )
-                        )
-                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))
-                )
-                .toList();
-        final List<Pattern> thingDefinitionPatterns = validationContext
-                .getStringList(CONFIG_KEY_THING_DEFINITION_PATTERNS)
-                .stream()
-                .map(Pattern::compile)
-                .toList();
-        final List<Pattern> featureDefinitionPatterns = validationContext
-                .getStringList(CONFIG_KEY_FEATURE_DEFINITION_PATTERNS)
-                .stream()
-                .map(Pattern::compile)
-                .toList();
+                                .toList() : List.of();
+        final List<Pattern> thingDefinitionPatterns =
+                validationContext.hasPath(CONFIG_KEY_THING_DEFINITION_PATTERNS) ?
+                        validationContext.getStringList(CONFIG_KEY_THING_DEFINITION_PATTERNS)
+                                .stream()
+                                .map(Pattern::compile)
+                                .toList() : List.of();
+        final List<Pattern> featureDefinitionPatterns =
+                validationContext.hasPath(CONFIG_KEY_FEATURE_DEFINITION_PATTERNS) ?
+                        validationContext.getStringList(CONFIG_KEY_FEATURE_DEFINITION_PATTERNS)
+                                .stream()
+                                .map(Pattern::compile)
+                                .toList() : List.of();
 
         dynamicValidationContextConfiguration = new DynamicValidationContextConfiguration(
                 parsedDittoHeadersPatterns,
@@ -102,7 +106,8 @@ final class InternalDynamicTmValidationConfiguration {
                             // OR
                             .anyMatch(pattern -> pattern.matcher(validationContext.featureDefinition().toString())
                                     .matches());
-            if (!dynamicValidationContextConfiguration.featureDefinitionPatterns().isEmpty() && !featureDefinitionMatches) {
+            if (!dynamicValidationContextConfiguration.featureDefinitionPatterns().isEmpty() &&
+                    !featureDefinitionMatches) {
                 return Optional.empty();
             }
 
