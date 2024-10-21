@@ -26,6 +26,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 import javax.net.ssl.SSLContext;
 
 import org.bson.Document;
+import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.internal.utils.persistence.mongo.auth.AwsAuthenticationHelper;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
@@ -49,6 +50,7 @@ import com.mongodb.reactivestreams.client.ClientSession;
 import com.mongodb.reactivestreams.client.ListDatabasesPublisher;
 import com.mongodb.reactivestreams.client.MongoClient;
 import com.mongodb.reactivestreams.client.MongoClients;
+import com.mongodb.reactivestreams.client.MongoCluster;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 
@@ -123,6 +125,56 @@ public final class MongoClientWrapper implements DittoMongoClient {
     @Override
     public DittoMongoClientSettings getDittoSettings() {
         return dittoMongoClientSettings;
+    }
+
+    @Override
+    public CodecRegistry getCodecRegistry() {
+        return mongoClient.getCodecRegistry();
+    }
+
+    @Override
+    public ReadPreference getReadPreference() {
+        return mongoClient.getReadPreference();
+    }
+
+    @Override
+    public WriteConcern getWriteConcern() {
+        return mongoClient.getWriteConcern();
+    }
+
+    @Override
+    public ReadConcern getReadConcern() {
+        return mongoClient.getReadConcern();
+    }
+
+    @Override
+    public Long getTimeout(final TimeUnit timeUnit) {
+        return mongoClient.getTimeout(timeUnit);
+    }
+
+    @Override
+    public MongoCluster withCodecRegistry(final CodecRegistry codecRegistry) {
+        return mongoClient.withCodecRegistry(codecRegistry);
+    }
+
+    @Override
+    public MongoCluster withReadPreference(final ReadPreference readPreference) {
+        return mongoClient.withReadPreference(readPreference);
+    }
+
+    @Override
+    public MongoCluster withWriteConcern(final WriteConcern writeConcern) {
+        return mongoClient.withWriteConcern(writeConcern);
+    }
+
+    @Override
+    public MongoCluster withReadConcern(final ReadConcern readConcern) {
+        return mongoClient.withReadConcern(readConcern);
+    }
+
+    @Override
+    public MongoCluster withTimeout(final long l, final TimeUnit timeUnit) {
+        return mongoClient.withTimeout(l, timeUnit);
     }
 
     @Override
