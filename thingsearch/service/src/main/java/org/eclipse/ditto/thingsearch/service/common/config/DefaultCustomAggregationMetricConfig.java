@@ -17,7 +17,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -51,16 +51,26 @@ public final class DefaultCustomAggregationMetricConfig implements CustomAggrega
         scrapeInterval = configWithFallback.getDuration(CustomSearchMetricConfigValue.SCRAPE_INTERVAL.getConfigPath());
         namespaces = Collections.unmodifiableList(new ArrayList<>(
                 configWithFallback.getStringList(CustomSearchMetricConfigValue.NAMESPACES.getConfigPath())));
-        groupBy = Collections.unmodifiableMap(new HashMap<>(
+        groupBy = Collections.unmodifiableMap(new LinkedHashMap<>(
                 configWithFallback.getObject(CustomSearchMetricConfigValue.GROUP_BY.getConfigPath()).unwrapped()
                         .entrySet()
                         .stream()
-                        .collect(Collectors.toMap(Map.Entry::getKey, e -> String.valueOf(e.getValue())))));
-        tags = Collections.unmodifiableMap(new HashMap<>(
+                        .collect(Collectors.toMap(Map.Entry::getKey, e -> String.valueOf(e.getValue()),
+                                (u, v) -> {
+                                    throw new IllegalStateException(String.format("Duplicate key %s", u));
+                                },
+                                LinkedHashMap::new))
+        ));
+        tags = Collections.unmodifiableMap(new LinkedHashMap<>(
                 configWithFallback.getObject(CustomSearchMetricConfigValue.TAGS.getConfigPath()).unwrapped()
                         .entrySet()
                         .stream()
-                        .collect(Collectors.toMap(Map.Entry::getKey, e -> String.valueOf(e.getValue())))));
+                        .collect(Collectors.toMap(Map.Entry::getKey, e -> String.valueOf(e.getValue()),
+                                (u, v) -> {
+                                    throw new IllegalStateException(String.format("Duplicate key %s", u));
+                                },
+                                LinkedHashMap::new))
+        ));
         filterConfigs =
                 Collections.unmodifiableList(new ArrayList<>(
                         configWithFallback.getObject(CustomSearchMetricConfigValue.FILTERS.getConfigPath())
@@ -223,14 +233,18 @@ public final class DefaultCustomAggregationMetricConfig implements CustomAggrega
                             .unwrapped()
                             .entrySet()
                             .stream()
-                            .collect(Collectors.toMap(Map.Entry::getKey,
-                                    e -> String.valueOf(e.getValue()))));
+                            .collect(Collectors.toMap(Map.Entry::getKey, e -> String.valueOf(e.getValue()),
+                                    (u, v) -> {
+                                        throw new IllegalStateException(String.format("Duplicate key %s", u));
+                                    },
+                                    LinkedHashMap::new))
+            );
         }
 
         private DefaultFilterConfig(final String filterName, final String filter, final Map<String, String> inlinePlaceholderValues) {
             this.filterName = filterName;
             this.filter = filter;
-            this.inlinePlaceholderValues = Collections.unmodifiableMap(new HashMap<>(inlinePlaceholderValues));
+            this.inlinePlaceholderValues = Collections.unmodifiableMap(new LinkedHashMap<>(inlinePlaceholderValues));
         }
 
         public static FilterConfig of(final String name, final Config config) {

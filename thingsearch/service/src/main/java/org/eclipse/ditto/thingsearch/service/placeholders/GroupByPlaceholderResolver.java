@@ -38,7 +38,7 @@ public final class GroupByPlaceholderResolver implements PlaceholderResolver<Map
 
     @Override
     public List<String> resolveValues(final Map<String, String> placeholderSource, final String name) {
-        return Optional.ofNullable(placeholderSource.get(name)).map(e1 -> List.of(e1)).orElse(List.of());
+        return Optional.ofNullable(placeholderSource.get(name)).map(List::of).orElse(List.of());
     }
 
     @Override
