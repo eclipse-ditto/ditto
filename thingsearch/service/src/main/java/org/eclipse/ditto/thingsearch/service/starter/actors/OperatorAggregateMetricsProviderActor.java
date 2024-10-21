@@ -18,6 +18,7 @@ import java.time.Duration;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -84,7 +85,7 @@ public final class OperatorAggregateMetricsProviderActor extends AbstractActorWi
         this.thingsAggregatorActorSingletonProxy = initializeAggregationThingsMetricsActor(searchConfig);
         this.customSearchMetricConfigMap = searchConfig.getOperatorMetricsConfig().getCustomAggregationMetricConfigs();
         this.metricsGauges = new HashMap<>();
-        this.inlinePlaceholderResolvers = new HashMap<>();
+        this.inlinePlaceholderResolvers = new LinkedHashMap<>();
         this.customSearchMetricsGauge = KamonGauge.newGauge("custom-aggregation-metrics-count-of-instruments");
         this.customSearchMetricConfigMap.forEach((metricName, customSearchMetricConfig) -> {
             initializeCustomMetricTimer(metricName, customSearchMetricConfig,
@@ -272,7 +273,7 @@ public final class OperatorAggregateMetricsProviderActor extends AbstractActorWi
         return value.startsWith("{{") && value.endsWith("}}");
     }
 
-    private final static class TimestampedGauge {
+    private static final class TimestampedGauge {
 
         private final Gauge gauge;
         private final Long timestamp;

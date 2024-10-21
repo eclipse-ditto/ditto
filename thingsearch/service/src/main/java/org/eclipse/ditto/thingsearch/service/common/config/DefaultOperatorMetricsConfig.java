@@ -158,7 +158,10 @@ public final class DefaultOperatorMetricsConfig implements OperatorMetricsConfig
         @Override
         public BinaryOperator<Map<String, CustomMetricConfig>> combiner() {
             return (left, right) -> Stream.concat(left.entrySet().stream(), right.entrySet().stream())
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (u, v) -> {
+                                throw new IllegalStateException(String.format("Duplicate key %s", u));
+                            },
+                            LinkedHashMap::new));
         }
 
         @Override
@@ -193,7 +196,10 @@ public final class DefaultOperatorMetricsConfig implements OperatorMetricsConfig
         @Override
         public BinaryOperator<Map<String, CustomAggregationMetricConfig>> combiner() {
             return (left, right) -> Stream.concat(left.entrySet().stream(), right.entrySet().stream())
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (u, v) -> {
+                                throw new IllegalStateException(String.format("Duplicate key %s", u));
+                            },
+                            LinkedHashMap::new));
         }
 
         @Override
