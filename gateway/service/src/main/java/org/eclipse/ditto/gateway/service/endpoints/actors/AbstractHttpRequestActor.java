@@ -81,6 +81,7 @@ import org.eclipse.ditto.edge.service.acknowledgements.things.ThingCommandRespon
 import org.eclipse.ditto.edge.service.acknowledgements.things.ThingLiveCommandAckRequestSetter;
 import org.eclipse.ditto.edge.service.acknowledgements.things.ThingModifyCommandAckRequestSetter;
 import org.eclipse.ditto.gateway.api.GatewayServiceUnavailableException;
+import org.eclipse.ditto.gateway.service.endpoints.routes.checkpermissions.CheckPermissions;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.DefaultUserInformation;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.Whoami;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiResponse;
@@ -236,6 +237,16 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
                     }
                 })
                 .match(Whoami.class, this::handleWhoami)
+                .match(CheckPermissions.class, command -> {
+                    ActorRef checkPermissionsActor = getContext().actorOf(
+                            CheckPermissionsActor.props(proxyActor, getSelf(), getReceiveTimeout(command, commandConfig)),
+                            CheckPermissionsActor.ACTOR_NAME
+                    );
+
+                    getContext().become(getResponseAwaitingBehavior());
+
+                    checkPermissionsActor.tell(command, getSelf());
+                })
                 .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
                 .match(ReceiveTimeout.class,
                         receiveTimeout -> {

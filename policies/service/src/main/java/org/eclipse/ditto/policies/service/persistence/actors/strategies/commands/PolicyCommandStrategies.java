@@ -40,6 +40,8 @@ public final class PolicyCommandStrategies
 
     private PolicyCommandStrategies(final PolicyConfig policyConfig, final ActorSystem system) {
         super(Command.class);
+        // checkPermissionsStrategy
+        addStrategy(new PolicyCheckPermissionsStrategy(policyConfig));
 
         // Policy level
         addStrategy(new PolicyConflictStrategy(policyConfig));

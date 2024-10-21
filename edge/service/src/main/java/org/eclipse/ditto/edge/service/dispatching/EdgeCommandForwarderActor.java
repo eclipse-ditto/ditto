@@ -41,6 +41,7 @@ import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
 import org.eclipse.ditto.policies.model.PolicyConstants;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
+import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
@@ -144,6 +145,7 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                 )
                 .match(RetrieveThings.class, this::forwardToThingsAggregatorProxy)
                 .match(SudoRetrieveThings.class, this::forwardToThingsAggregatorProxy)
+                .match(SudoRetrieveThing.class, this::handleSudoRetrieveThing)
                 .match(PolicyCommand.class, this::forwardToPolicies)
                 .match(RetrieveAllConnectionIds.class, this::forwardToConnectivityPubSub)
                 .match(ConnectivityCommand.class, this::forwardToConnectivity)
@@ -290,6 +292,25 @@ public class EdgeCommandForwarderActor extends AbstractActor {
         // by retrying a query several times if it took long
         pubSubMediator.tell(DistPubSubAccess.send(ThingsSearchConstants.SEARCH_ACTOR_PATH, command), getSender());
     }
+
+    private void handleSudoRetrieveThing(final SudoRetrieveThing srt) {
+        log.withCorrelationId(srt)
+                .info("Got '{}' message. Retrieving requested Thing '{}'",
+                        SudoRetrieveThing.class.getSimpleName(), srt.getEntityId());
+
+        final ActorRef sender = getSender();
+
+        final CompletionStage<Signal<?>> signalTransformationCs = applySignalTransformation(srt, sender);
+
+        scheduleTask(srt, () -> signalTransformationCs.thenAccept(transformed -> {
+            log.withCorrelationId(transformed)
+                    .info("Forwarding SudoRetrieveThing with ID '{}' to 'things' shard region",
+                            transformed instanceof WithEntityId withEntityId ? withEntityId.getEntityId() : null);
+
+            shardRegions.things().tell(transformed, sender);
+        }));
+    }
+
 
     private void handleUnknownSignal(final Signal<?> signal) {
         applySignalTransformation(signal, sender())
