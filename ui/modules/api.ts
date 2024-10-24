@@ -299,7 +299,8 @@ export function setAuthHeader(forDevOps: boolean) {
         authHeaderKey = 'Authorization';
         authHeaderValue = 'Basic ' + window.btoa(devopsUserPass);
       } else {
-        showError('DevOps Username/password missing')
+        showError('DevOps Username/password missing');
+        document.getElementById('authorize').click();
       }
     } else if (devopsAuthMethod === AuthMethod.bearer) {
       let devopsToken = devopsBearerToken();
@@ -307,7 +308,8 @@ export function setAuthHeader(forDevOps: boolean) {
         authHeaderKey = 'Authorization';
         authHeaderValue = 'Bearer ' + devopsToken;
       } else {
-        showError('DevOps Bearer token missing')
+        showError('DevOps Bearer token missing');
+        document.getElementById('authorize').click();
       }
     } else if (devopsAuthMethod === AuthMethod.oidc) {
       let devopsOidcToken = devopsOidcBearerToken();
@@ -315,7 +317,8 @@ export function setAuthHeader(forDevOps: boolean) {
         authHeaderKey = 'Authorization';
         authHeaderValue = 'Bearer ' + devopsOidcToken;
       } else {
-        showError('DevOps SSO (Bearer) token missing')
+        showError('DevOps SSO (Bearer) token missing');
+        document.getElementById('authorize').click();
       }
     } else {
       authHeaderKey = 'Authorization';
@@ -329,14 +332,16 @@ export function setAuthHeader(forDevOps: boolean) {
         authHeaderKey = 'Authorization';
         authHeaderValue = 'Basic ' + window.btoa(mainUserPass);
       } else {
-        showError('Username/password missing')
+        showError('Username/password missing');
+        document.getElementById('authorize').click();
       }
     } else if (mainAuthMethod === AuthMethod.pre) {
       if (environment.authSettings.main.pre.dittoPreAuthenticatedUsername) {
         authHeaderKey = 'x-ditto-pre-authenticated';
         authHeaderValue = environment.authSettings.main.pre.dittoPreAuthenticatedUsername;
       } else {
-        showError('Pre-Authenticated username missing')
+        showError('Pre-Authenticated username missing');
+        document.getElementById('authorize').click();
       }
     } else if (mainAuthMethod === AuthMethod.bearer) {
       let mainToken = mainBearerToken();
@@ -344,7 +349,8 @@ export function setAuthHeader(forDevOps: boolean) {
         authHeaderKey = 'Authorization';
         authHeaderValue = 'Bearer ' + mainToken;
       } else {
-        showError('Bearer token missing')
+        showError('Bearer token missing');
+        document.getElementById('authorize').click();
       }
     } else if (mainAuthMethod === AuthMethod.oidc) {
       let mainOidcToken = mainOidcBearerToken();
@@ -352,7 +358,8 @@ export function setAuthHeader(forDevOps: boolean) {
         authHeaderKey = 'Authorization';
         authHeaderValue = 'Bearer ' + mainOidcToken;
       } else {
-        showError('SSO (Bearer) token missing')
+        showError('SSO (Bearer) token missing');
+        document.getElementById('authorize').click();
       }
     } else {
       authHeaderKey = 'Authorization';
