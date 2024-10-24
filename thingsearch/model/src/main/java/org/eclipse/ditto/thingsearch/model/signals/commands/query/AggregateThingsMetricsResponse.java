@@ -15,9 +15,12 @@
 package org.eclipse.ditto.thingsearch.model.signals.commands.query;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -38,6 +41,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.MultipleAggregationFilterMatchingException;
 
 /**
  * A response to an {@link AggregateThingsMetrics} command.
@@ -197,11 +201,13 @@ public final class AggregateThingsMetricsResponse extends AbstractCommandRespons
     }
 
     /**
-     * Returns the values for each filter defined in the metric
+     * Returns the values for the single matched filter defined in the metric.
      *
-     * @return the result of the aggregation.
+     * @return the result of the aggregation, a single filter name with its count or an empty optional if no filter
+     * provided a count greater 0.
+     * @throws MultipleAggregationFilterMatchingException in case multiple filters matched at the same time
      */
-    public Map<String, Long> getResult() {
+    public Optional<Map.Entry<String, Long>> getResult() {
         return extractFiltersResults(aggregation, filterNames);
     }
 
@@ -233,19 +239,38 @@ public final class AggregateThingsMetricsResponse extends AbstractCommandRespons
 
     @Override
     public String toString() {
-        return "AggregateThingsMetricsResponse{" +
+        return getClass().getSimpleName() + "[" +
                 "metricName='" + metricName + '\'' +
                 ", dittoHeaders=" + dittoHeaders +
                 ", filterNames=" + filterNames +
                 ", aggregation=" + aggregation +
-                '}';
+                "]";
     }
 
-    private Map<String, Long> extractFiltersResults(final JsonObject aggregation, final Set<String> filterNames) {
-        return filterNames.stream().filter(aggregation::contains).collect(Collectors.toMap(key ->
-                key, key -> aggregation.getValue(JsonPointer.of(key))
-                .orElseThrow(getJsonMissingFieldExceptionSupplier(key))
-                .asLong()));
+    private Optional<Map.Entry<String, Long>> extractFiltersResults(final JsonObject aggregation,
+            final Set<String> filterNames) {
+        final Map<String, Long> filterValues = filterNames.stream()
+                .filter(aggregation::contains)
+                .collect(
+                        Collectors.toMap(Function.identity(),
+                                key -> aggregation.getValue(JsonPointer.of(key))
+                                        .orElseThrow(getJsonMissingFieldExceptionSupplier(key))
+                                        .asLong()
+                        )
+                );
+        final List<Map.Entry<String, Long>> filtersWithValueAboveZero = filterValues.entrySet()
+                .stream()
+                .filter(filterWithValue -> filterWithValue.getValue() > 0)
+                .collect(Collectors.toList());
+
+        if (filtersWithValueAboveZero.size() > 1) {
+            throw MultipleAggregationFilterMatchingException.newBuilder()
+                    .message("Multiple filters matched: " + filtersWithValueAboveZero)
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        } else {
+            return filtersWithValueAboveZero.stream().findAny();
+        }
     }
 
     private static Supplier<RuntimeException> getJsonMissingFieldExceptionSupplier(final String field) {
