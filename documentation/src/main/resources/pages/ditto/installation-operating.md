@@ -29,6 +29,67 @@ the following environment variables in order to configure the connection to the 
 * `PEKKO_PERSISTENCE_MONGO_JOURNAL_WRITE_CONCERN`: Configure Pekko Persistence MongoDB journal write concern
 * `PEKKO_PERSISTENCE_MONGO_SNAPS_WRITE_CONCERN`: Configure Pekko Persistence MongoDB snapshot write concern
 
+#### Passwordless authentication at MongoDB via AWS IAM
+
+Starting with Ditto `3.6.0`, it is possible to [set up authentication with AWS IAM](https://www.mongodb.com/docs/atlas/security/aws-iam-authentication/).
+
+To enable this:
+1. configure your Kubernetes serviceaccount with the role ARN via annotation `eks.amazonaws.com/role-arn`
+2. configure Ditto's services to assume that role during MongoDB authentication
+   1. either via environment variables: 
+      * `MONGO_DB_USE_AWS_IAM_ROLE`: boolean configuring whether to use AWS IAM roles for authentication with MongoDB
+      * `MONGO_DB_AWS_REGION`: string specifying the AWS region
+      * `MONGO_DB_AWS_ROLE_ARN`: string specifying the ARN of the AWS IAM Role to be assumed for MongoDB authentication
+      * `MONGO_DB_AWS_SESSION_NAME`: string the AWS session name to be used when assuming the IAM role
+   2. or - when using the Helm chart - via `values.yaml`
+      * below `serviceAccount` key in order to annotate the k8s serviceaccount with the role ARN to assume
+      * below `dbconfig` key for each individual Ditto service
+
+#### MongoDB tuning
+
+This section contains known aspects when/how to tune Ditto working with MongoDB.
+
+##### Background aggregation queries
+
+Ditto runs several "background" queries against MongoDB (e.g. in order to clean up data in the background, 
+depending on the current load to the DB) using `aggregate`.  
+This mainly is done on the "snapshot" collections, e.g. `things_snaps`, `policies_snaps`, `connections_snaps`.  
+
+###### MongoDB 5
+
+In MongoDB 5, the default settings of Ditto work just fine - the MongoDB `aggregate` queries run quick enough and do
+not cause much disk read operations.
+
+###### MongoDB 6
+
+In MongoDB 6 however, the `aggregate` queries Ditto does to the snapshot collections drastically slowed down with much
+data in the snapshot stores.  
+If you encounter poor query performance and e.g. a lot of additional "disk read IOPS", you are also affected by this
+issue. In that case, there are options in Ditto to enable creation of additional indexes which speed up the aggregation 
+queries to a comparable level than with MongoDB 5.
+
+The following environment variables can be enabled to create those indexes:
+
+* `MONGODB_READ_JOURNAL_SHOULD_CREATE_ADDITIONAL_SNAPSHOT_AGGREGATION_INDEX_PID_ID`: `true`
+* `MONGODB_READ_JOURNAL_SHOULD_CREATE_ADDITIONAL_SNAPSHOT_AGGREGATION_INDEX_PID_SN`: `true`
+* `MONGODB_READ_JOURNAL_SHOULD_CREATE_ADDITIONAL_SNAPSHOT_AGGREGATION_INDEX_PID_SN_ID`: `true`
+
+They are also configurable via Helm values, e.g. for the `things` service:
+```yaml
+things:
+  config:
+    # holds configuration regarding the MongoReadJournal and e.g. the aggregation queries which are performed in it
+    readJournal:
+      # indexes contains configuration about additional indexes to create
+      indexes:
+        # whether to create the "pid"+"_id" compound index on the snapshot collection
+        createSnapshotAggregationIndexPidId: true
+        # whether to create the "pid"+"sn" compound index on the snapshot collection
+        createSnapshotAggregationIndexPidSn: true
+        # whether to create the "pid"+"sn"+"_id" compound index on the snapshot collection
+        createSnapshotAggregationIndexPidSnId: true
+```
+
 ### Ditto configuration
 
 Each of Ditto's microservice has many options for configuration, e.g. timeouts, cache sizes, etc.
@@ -536,9 +597,105 @@ In order to add custom metrics via System properties, the following example show
 Ditto will perform a [count things operation](basic-search.html#search-count-queries) each `5m` (5 minutes), providing
 a gauge named `all_produced_and_not_installed_devices` with the count of the query, adding the tag `company="acme-corp"`.
 
-In Prometheus format this would look like:
+In Prometheus format, this would look like:
 ```
 all_produced_and_not_installed_devices{company="acme-corp"} 42.0
+```
+
+### Operator defined custom aggregation based metrics
+Starting with Ditto 3.6.0, the "custom metrics" functionality is extended to support custom aggregation metrics.  
+This is configured via the [search](architecture-services-things-search.html) service configuration.
+
+> :warning: **Abstain of defining grouping by fields that have a high cardinality, as this will lead to a high number of metrics and
+may overload the Prometheus server!**
+
+Now you can augment the statistic about "Things" managed in Ditto
+fulfilling a certain condition with tags with either predefined values,
+values retrieved from the things or values which are defined based on the matching filter. 
+This is fulfilled by using hardcoded values or placeholders in the tags configuration.
+The supported placeholder types are `inline` and `group-by` placeholders.
+[Function expressions](basic-placeholders.html#function-expressions) are also supported
+to manipulate the values of the placeholders before they are used in the tags.
+
+This would be an example search service configuration snippet for e.g. providing a metric named
+`online_devices` defining a query on the values of a `ConnectionStatus` feature:
+```hocon
+ditto {
+  search {
+    operator-metrics {
+      enabled = true
+      scrape-interval = 30m
+      custom-metrics {
+        ...
+      }
+      custom-aggregation-metrics {
+        online_status {
+          enabled = true
+          scrape-interval = 20m # override scrape interval, run every 20 minutes
+          namespaces = [
+            "org.eclipse.ditto"
+          ]
+          group-by {
+            "location" = "attributes/Info/location"
+            "isGateway" = "attributes/Info/gateway"
+          }
+          tags {
+            "online" = "{%raw%}{{ inline:online_placeholder }}{%endraw%}"
+            "health" = "{%raw%}{{ inline:health }}{%endraw%}"
+            "hardcoded-tag" = "hardcoded_value"
+            "location" = "{%raw%}{{ group-by:location | fn:default('missing location') }}{%endraw%}"
+            "isGateway" = "{%raw%}{{ group-by:isGateway }}{%endraw%}"
+          }
+          filters {
+            online_filter {
+              filter = "gt(features/ConnectionStatus/properties/status/readyUntil,time:now)"
+              inline-placeholder-values  {
+                "online_placeholder" = true
+                "health" = "good"
+              }
+            }
+            offline_filter {
+              filter = "lt(features/ConnectionStatus/properties/status/readyUntil,time:now)"
+              inline-placeholder-values = {
+                "online_placeholder" = false
+                "health" = "bad"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+To add custom metrics via System properties, the following example shows how the above metric can be configured:
+```
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.enabled=true
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.scrape-interval=20m
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.namespaces.0=org.eclipse.ditto
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.tags.online="{%raw%}{{online_placeholder}}{%endraw%}"
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.tags.location="{%raw%}{{attributes/Info/location}}{%endraw%}"
+
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.filters.online-filter.filter=gt(features/ConnectionStatus/properties/status/readyUntil/,time:now)
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.filters.online-filter.inline-placeholder-values.online_placeholder=true
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.filters.online-filter.fields.0=attributes/Info/location
+
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.filters.offline-filter.filter=lt(features/ConnectionStatus/properties/status/readyUntil/,time:now)
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.filters.offline-filter.inline-placeholder-values.online_placeholder=false
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.filters.offline-filter.fields.0=attributes/Info/location
+
+```
+
+Ditto will perform an [aggregation operation](https://www.mongodb.com/docs/manual/aggregation/) over the search db collection every `20m` (20 minutes), providing
+a gauge named `online_devices` with the value of devices that match the filter. 
+The tags `online` and `location` will be added.
+Their values will be resolved from the placeholders `{%raw%}{{online_placeholder}}{%endraw%}` and `{%raw%}{{attributes/Info/location}}{%endraw%}` respectively.
+
+In Prometheus format, this would look like:
+```
+online_status{location="Berlin",online="false"} 6.0
+online_status{location="Immenstaad",online="true"} 8.0
 ```
 
 ## Tracing

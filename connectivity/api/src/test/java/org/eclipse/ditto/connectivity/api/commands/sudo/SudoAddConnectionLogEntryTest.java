@@ -15,9 +15,6 @@ package org.eclipse.ditto.connectivity.api.commands.sudo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Instant;
 
@@ -68,11 +65,6 @@ public final class SudoAddConnectionLogEntryTest {
                         "Facere culpa et cum doloribus. Voluptas alias magni voluptatum.")
                 .entityId(ThingId.generateRandom())
                 .build();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(SudoAddConnectionLogEntry.class, areImmutable(), provided(LogEntry.class).isAlsoImmutable());
     }
 
     @Test

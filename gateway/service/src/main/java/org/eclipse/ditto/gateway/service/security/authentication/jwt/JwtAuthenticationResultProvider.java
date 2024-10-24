@@ -16,14 +16,15 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.concurrent.CompletionStage;
 
+import javax.annotation.Nullable;
+
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
 
 import com.typesafe.config.Config;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Responsible for extraction of an {@link org.eclipse.ditto.gateway.service.security.authentication.AuthenticationResult} out of a
@@ -46,17 +47,19 @@ public interface JwtAuthenticationResultProvider extends DittoExtensionPoint {
      * Loads the implementation of {@code JwtAuthenticationResultProvider} which is configured for the {@code ActorSystem}.
      *
      * @param actorSystem the actorSystem in which the {@code JwtAuthenticationResultProvider} should be loaded.
-     * @param config the configuration for this extension.
+     * @param extensionConfig the configuration for this extension.
+     * @param suffix the optional suffix of the extension.
      * @return the {@code JwtAuthenticationResultProvider} implementation.
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      * @since 3.0.0
      */
-    static JwtAuthenticationResultProvider get(final ActorSystem actorSystem, final Config config) {
+    static JwtAuthenticationResultProvider get(final ActorSystem actorSystem, final Config extensionConfig,
+            @Nullable final String suffix) {
         checkNotNull(actorSystem, "actorSystem");
-        checkNotNull(config, "config");
-        final var extensionIdConfig = ExtensionId.computeConfig(config);
+        checkNotNull(extensionConfig, "config");
+        final var extensionIdConfig = ExtensionId.computeConfig(extensionConfig, suffix);
         return DittoExtensionIds.get(actorSystem)
-                .computeIfAbsent(extensionIdConfig, ExtensionId::new)
+                .computeIfAbsent(extensionIdConfig, cfg -> new ExtensionId(suffix, cfg))
                 .get(actorSystem);
     }
 
@@ -64,17 +67,30 @@ public interface JwtAuthenticationResultProvider extends DittoExtensionPoint {
 
         private static final String CONFIG_KEY = "jwt-authentication-result-provider";
 
-        private ExtensionId(final ExtensionIdConfig<JwtAuthenticationResultProvider> extensionIdConfig) {
+        @Nullable private final String suffix;
+
+        private ExtensionId(@Nullable final String suffix,
+                final ExtensionIdConfig<JwtAuthenticationResultProvider> extensionIdConfig) {
             super(extensionIdConfig);
+            this.suffix = suffix;
         }
 
-        static ExtensionIdConfig<JwtAuthenticationResultProvider> computeConfig(final Config config) {
-            return ExtensionIdConfig.of(JwtAuthenticationResultProvider.class,config, CONFIG_KEY);
+        static ExtensionIdConfig<JwtAuthenticationResultProvider> computeConfig(final Config config,
+                @Nullable final String suffix) {
+            return ExtensionIdConfig.of(JwtAuthenticationResultProvider.class, config, buildConfigKey(suffix));
         }
 
         @Override
         protected String getConfigKey() {
-            return CONFIG_KEY;
+            return buildConfigKey(suffix);
+        }
+
+        static String buildConfigKey(@Nullable final String suffix) {
+            if (suffix != null) {
+                return CONFIG_KEY + "-" + suffix;
+            } else {
+                return CONFIG_KEY;
+            }
         }
 
     }

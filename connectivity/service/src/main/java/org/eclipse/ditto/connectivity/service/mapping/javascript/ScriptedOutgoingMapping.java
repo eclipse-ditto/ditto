@@ -32,6 +32,12 @@ import org.eclipse.ditto.connectivity.api.ExternalMessageBuilder;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.model.MessageMappingFailedException;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonArrayBuilder;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.JsonifiableAdaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
@@ -112,13 +118,16 @@ public final class ScriptedOutgoingMapping implements MappingFunction<Adaptable,
         final Object bytePayload = result.get(EXTERNAL_MESSAGE_BYTE_PAYLOAD);
         final Object mappingHeaders = result.get(EXTERNAL_MESSAGE_HEADERS);
 
-        final Map<String, String> headers;
-        if (mappingHeaders != null && !(mappingHeaders instanceof Undefined)) {
-            headers = new HashMap<>();
+        final Map<String, String> headers = new HashMap<>();
+        if (mappingHeaders instanceof NativeObject nativeHeaders) {
+            toJsonObject(nativeHeaders)
+                    .stream()
+                    .forEach(header ->
+                        headers.put(header.getKeyName(), header.getValue().formatAsString())
+                    );
+        } else if (mappingHeaders != null && !(mappingHeaders instanceof Undefined)) {
             final Map<?,?> jsHeaders = (Map<?,?>) mappingHeaders;
             jsHeaders.forEach((key, value) -> headers.put(String.valueOf(key), String.valueOf(value)));
-        } else {
-            headers = Collections.emptyMap();
         }
 
         final ExternalMessageBuilder messageBuilder =
@@ -144,6 +153,44 @@ public final class ScriptedOutgoingMapping implements MappingFunction<Adaptable,
         return messageBuilder.build();
     }
 
+    @SuppressWarnings("unchecked")
+    private static JsonObject toJsonObject(final NativeObject nativeObject) {
+        final JsonObjectBuilder objectBuilder = JsonObject.newBuilder();
+        nativeObject.forEach((key, value) -> {
+            try {
+                if (value instanceof String) {
+                    objectBuilder.set(key.toString(), JsonFactory.readFrom(value.toString()));
+                } else if (value instanceof NativeArray nativeArray) {
+                    objectBuilder.set(key.toString(), toJsonArray(nativeArray));
+                } else if (value instanceof NativeObject nativeSubObject) {
+                    objectBuilder.set(key.toString(), toJsonObject(nativeSubObject));
+                }
+            } catch (final JsonParseException e) {
+                objectBuilder.set(key.toString(), value.toString());
+            }
+        });
+        return objectBuilder.build();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static JsonArray toJsonArray(final NativeArray nativeArray) {
+        final JsonArrayBuilder arrayBuilder = JsonArray.newBuilder();
+        nativeArray.forEach(item -> {
+            switch (item) {
+                case NativeObject nativeObject -> arrayBuilder.add(toJsonObject(nativeObject));
+                case NativeArray nativeSubArray -> arrayBuilder.add(toJsonArray(nativeSubArray));
+                default -> {
+                    try {
+                        arrayBuilder.add(JsonFactory.readFrom(item.toString()));
+                    } catch (final JsonParseException e) {
+                        arrayBuilder.add(item.toString());
+                    }
+                }
+            }
+        });
+        return arrayBuilder.build();
+    }
+
     private static Optional<ByteBuffer> convertToByteBuffer(final Object obj) {
         if (obj instanceof NativeArrayBuffer nativeArrayBuffer) {
             return Optional.of(ByteBuffer.wrap(nativeArrayBuffer.getBuffer()));
@@ -165,7 +212,7 @@ public final class ScriptedOutgoingMapping implements MappingFunction<Adaptable,
                     }
                 }
             } catch (final ClassNotFoundException | NoSuchMethodException | SecurityException
-                    | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+                           | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
                 throw new IllegalStateException("Could not retrieve array values", e);
             }
         } else if (obj instanceof List<?>) {

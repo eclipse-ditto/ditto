@@ -16,8 +16,6 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.junit.Test;
@@ -31,11 +29,6 @@ public final class EnumValueValidatorTest {
 
     private static final DittoHeaderDefinition KNOWN_HEADER_DEFINITION =
             DittoHeaderDefinition.LIVE_CHANNEL_TIMEOUT_STRATEGY;
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(EnumValueValidator.class, areImmutable());
-    }
 
     @Test
     public void tryToAcceptNullDefinition() {

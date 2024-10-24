@@ -13,15 +13,16 @@
 package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq;
 
 import javax.annotation.Nullable;
-
-import org.eclipse.ditto.connectivity.service.messaging.internal.AbstractWithOrigin;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
+import javax.annotation.concurrent.Immutable;
 
 import org.apache.pekko.actor.ActorRef;
+import org.eclipse.ditto.connectivity.service.messaging.internal.AbstractWithOrigin;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
 
 /**
  * Message type to indicate that an MQTT client connected to a broker.
  */
+@Immutable
 final class MqttClientConnected extends AbstractWithOrigin implements ClientConnected {
 
     private MqttClientConnected(@Nullable final ActorRef origin) {

@@ -14,9 +14,8 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -32,10 +31,11 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureDesir
 import org.eclipse.ditto.things.model.signals.events.FeatureDesiredPropertyCreated;
 import org.eclipse.ditto.things.model.signals.events.FeatureDesiredPropertyModified;
 import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
-
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.typesafe.config.ConfigFactory;
 
 /**
  * Unit test for {@link ModifyFeatureDesiredPropertyStrategy}.
@@ -57,12 +57,8 @@ public final class ModifyFeatureDesiredPropertyStrategyTest extends AbstractComm
 
     @Before
     public void setUp() {
-        underTest = new ModifyFeatureDesiredPropertyStrategy();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ModifyFeatureDesiredPropertyStrategy.class, areImmutable());
+        final ActorSystem system = ActorSystem.create("test", ConfigFactory.load("test"));
+        underTest = new ModifyFeatureDesiredPropertyStrategy(system);
     }
 
     @Test
@@ -98,7 +94,7 @@ public final class ModifyFeatureDesiredPropertyStrategyTest extends AbstractComm
                 ModifyFeatureDesiredProperty.of(context.getState(), featureId, propertyPointer, newPropertyValue,
                         DittoHeaders.empty());
 
-        assertModificationResult(underTest, THING_V2.removeFeatureDesiredProperties(featureId), command,
+        assertStagedModificationResult(underTest, THING_V2.removeFeatureDesiredProperties(featureId), command,
                 FeatureDesiredPropertyCreated.class,
                 ETagTestUtils.modifyFeatureDesiredPropertyResponse(context.getState(), command.getFeatureId(),
                         command.getDesiredPropertyPointer(), command.getDesiredPropertyValue(), command.getDittoHeaders(), true));
@@ -111,7 +107,7 @@ public final class ModifyFeatureDesiredPropertyStrategyTest extends AbstractComm
                 ModifyFeatureDesiredProperty.of(context.getState(), featureId, propertyPointer, newPropertyValue,
                         DittoHeaders.empty());
 
-        assertModificationResult(underTest, THING_V2, command,
+        assertStagedModificationResult(underTest, THING_V2, command,
                 FeatureDesiredPropertyModified.class,
                 ETagTestUtils.modifyFeatureDesiredPropertyResponse(context.getState(), command.getFeatureId(),
                         command.getDesiredPropertyPointer(), command.getDesiredPropertyValue(), command.getDittoHeaders(), false));
@@ -129,7 +125,7 @@ public final class ModifyFeatureDesiredPropertyStrategyTest extends AbstractComm
                                 .build());
 
         final FeatureDesiredPropertyModified event =
-                assertModificationResult(underTest, THING_V2, command,
+                assertStagedModificationResult(underTest, THING_V2, command,
                         FeatureDesiredPropertyModified.class,
                         ETagTestUtils.modifyFeatureDesiredPropertyResponse(context.getState(), command.getFeatureId(),
                                 command.getDesiredPropertyPointer(), command.getDesiredPropertyValue(), command.getDittoHeaders(),
@@ -163,7 +159,7 @@ public final class ModifyFeatureDesiredPropertyStrategyTest extends AbstractComm
                                 .build());
 
         final FeatureDesiredPropertyModified event =
-                assertModificationResult(underTest, THING_V2, command,
+                assertStagedModificationResult(underTest, THING_V2, command,
                         FeatureDesiredPropertyModified.class,
                         ETagTestUtils.modifyFeatureDesiredPropertyResponse(context.getState(), command.getFeatureId(),
                                 command.getDesiredPropertyPointer(), command.getDesiredPropertyValue(), command.getDittoHeaders(),

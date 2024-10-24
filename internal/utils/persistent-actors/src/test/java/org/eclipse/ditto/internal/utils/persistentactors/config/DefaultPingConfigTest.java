@@ -12,10 +12,6 @@
  */
 package org.eclipse.ditto.internal.utils.persistentactors.config;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
@@ -41,13 +37,6 @@ public final class DefaultPingConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         pingTestConf = ConfigFactory.load("ping-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultPingConfig.class,
-                areImmutable(),
-                provided(RateConfig.class).isAlsoImmutable());
     }
 
     @Test

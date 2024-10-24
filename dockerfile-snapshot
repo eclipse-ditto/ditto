@@ -9,7 +9,7 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 
-FROM docker.io/eclipse-temurin:17-jdk
+FROM docker.io/eclipse-temurin:21-jdk
 
 # Http port
 EXPOSE 8080
@@ -22,8 +22,8 @@ RUN set -x \
     && apt-get install -y tini \
     && mkdir -p $DITTO_HOME \
     && mkdir -p $DITTO_LOGS \
-    && groupadd --system --gid 1000 ditto \
-    && useradd --no-log-init --system --home-dir $DITTO_HOME --shell /bin/sh --gid ditto --uid 1000 ditto \
+    && groupadd --system --gid 1005 ditto \
+    && useradd --no-log-init --system --home-dir $DITTO_HOME --shell /bin/sh --gid ditto --uid 1005 ditto \
     && chown -R ditto:ditto $DITTO_HOME $DITTO_LOGS \
     && rm -rf /var/lib/apt/lists/*
 

@@ -13,8 +13,6 @@
 package org.eclipse.ditto.base.model.acks;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.text.MessageFormat;
 
@@ -41,11 +39,6 @@ public final class AcknowledgementRequestParseExceptionTest {
 
     @Rule
     public final TestName testName = new TestName();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(AcknowledgementRequestParseException.class, areImmutable());
-    }
 
     @Test
     public void causeMessageIsRegardedInMessage() {

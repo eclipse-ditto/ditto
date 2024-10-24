@@ -13,20 +13,22 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonPointer;
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
-import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteAttribute;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteAttributeResponse;
 import org.eclipse.ditto.things.model.signals.events.AttributeDeleted;
@@ -36,13 +38,15 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
  * This strategy handles the {@link DeleteAttribute} command.
  */
 @Immutable
-final class DeleteAttributeStrategy extends AbstractThingCommandStrategy<DeleteAttribute> {
+final class DeleteAttributeStrategy extends AbstractThingModifyCommandStrategy<DeleteAttribute> {
 
     /**
      * Constructs a new {@code DeleteAttributeStrategy} object.
+     *
+     * @param actorSystem the actor system to use for loading the WoT extension.
      */
-    DeleteAttributeStrategy() {
-        super(DeleteAttribute.class);
+    DeleteAttributeStrategy(final ActorSystem actorSystem) {
+        super(DeleteAttribute.class, actorSystem);
     }
 
     @Override
@@ -63,17 +67,36 @@ final class DeleteAttributeStrategy extends AbstractThingCommandStrategy<DeleteA
                                 command.getDittoHeaders()), command));
     }
 
+    @Override
+    protected CompletionStage<DeleteAttribute> performWotValidation(final DeleteAttribute command,
+            @Nullable final Thing previousThing,
+            @Nullable final Thing previewThing
+    ) {
+        return wotThingModelValidator.validateThingScopedDeletion(
+                Optional.ofNullable(previousThing)
+                        .flatMap(Thing::getDefinition)
+                        .orElse(null),
+                command.getResourcePath(),
+                command.getDittoHeaders()
+        ).thenApply(aVoid -> command);
+    }
+
     private Result<ThingEvent<?>> getDeleteAttributeResult(final Context<ThingId> context, final long nextRevision,
             final DeleteAttribute command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
         final ThingId thingId = context.getState();
         final JsonPointer attrPointer = command.getAttributePointer();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                DeleteAttributeResponse.of(thingId, attrPointer, dittoHeaders), thing);
 
-        return ResultFactory.newMutationResult(command,
-                AttributeDeleted.of(thingId, attrPointer, nextRevision, getEventTimestamp(), dittoHeaders, metadata),
-                response);
+        final CompletionStage<DeleteAttribute> validatedStage = buildValidatedStage(command, thing);
+        final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(deleteAttribute ->
+                AttributeDeleted.of(thingId, attrPointer, nextRevision, getEventTimestamp(), dittoHeaders, metadata)
+        );
+        final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(deleteAttribute ->
+                appendETagHeaderIfProvided(deleteAttribute,
+                        DeleteAttributeResponse.of(thingId, attrPointer, dittoHeaders), thing)
+        );
+
+        return ResultFactory.newMutationResult(command, eventStage, responseStage);
     }
 
 

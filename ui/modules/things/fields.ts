@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-import {Modal} from 'bootstrap';
+import { Modal } from 'bootstrap';
 
 import * as Environments from '../environments/environments.js';
 import * as Utils from '../utils.js';
@@ -29,9 +29,9 @@ document.getElementById('fieldsHTML').innerHTML = fieldsHTML;
 
 /**
  * Create a Ditto search query parameter from the active fields
- * @return {String} The fields query parameter for Ditto search
+ * @return {string} The fields query parameter for Ditto search
  */
-export function getQueryParameter() {
+export function getQueryParameter(): string {
   if (!Environments.current().fieldList) {
     Environments.current().fieldList = [];
   }
@@ -43,9 +43,9 @@ export function getQueryParameter() {
 let bsFieldsModal = null;
 /**
  * Set the fieldpath value
- * @param {String} fieldPath new value for the fieldpath
+ * @param {string} fieldPath new value for the fieldpath
  */
-export function proposeNewField(fieldPath) {
+export function proposeNewField(fieldPath: string) {
   dom.fieldPath.value = fieldPath;
   dom.fieldLabel.value = null;
   if (!bsFieldsModal) {
@@ -68,8 +68,8 @@ export async function ready() {
     }
   });
 
-  dom.fieldsModal.addEventListener('hide.bs.modal', () => {
-    Environments.environmentsJsonChanged();
+  dom.fieldsModal.addEventListener('hide.bs.modal', async() => {
+    await Environments.environmentsJsonChanged(false);
   });
 
   document.getElementById('fieldUpdate').onclick = () => {
@@ -78,7 +78,7 @@ export async function ready() {
     const otherFields = Environments.current().fieldList.filter((elem, i) => i != theFieldIndex);
     const mapped = otherFields.map((field) => field.path);
     const cond = mapped.includes(selectedField.path);
-    console.log(cond);
+    // console.log(cond);
     Utils.assert(!Environments.current().fieldList
         .filter((elem, i) => i != theFieldIndex)
         .map((field) => field.path)
@@ -136,9 +136,9 @@ export async function ready() {
 
 /**
  * Selects or de-selects the field for editing
- * @param {integer} fieldIndex index in fieldlist of field to toggle
+ * @param {number} fieldIndex index in fieldlist of field to toggle
  */
-function toggleFieldSelection(fieldIndex) {
+function toggleFieldSelection(fieldIndex: number) {
   if (theFieldIndex === fieldIndex) {
     theFieldIndex = -1;
     dom.fieldPath.value = null;
@@ -155,7 +155,7 @@ function toggleFieldSelection(fieldIndex) {
  * Callback on environment change. Initializes all UI components for fields
  */
 function onEnvironmentChanged() {
-  if (!Environments.current()['fieldList']) {
+  if (!Environments.current().fieldList) {
     Environments.current().fieldList = [];
   }
   updateFieldList();
@@ -165,14 +165,14 @@ function onEnvironmentChanged() {
  * (Re-)Initializes the fieldlist in the UI
  */
 function updateFieldList() {
-  dom.fieldList.innerHTML = '';
+  dom.fieldList.textContent = '';
   theFieldIndex = -1;
   Environments.current().fieldList.forEach((field, i) => {
     const fieldSelected = dom.fieldPath.value === field.path;
     const row = dom.fieldList.insertRow();
-    Utils.addCheckboxToRow(row, i, field.active, false, toggleFieldActiveEventHandler);
-    row.insertCell(-1).innerHTML = field.path;
-    row.insertCell(-1).innerHTML = field['label'] ? field.label : null;
+    Utils.addCheckboxToRow(row, String(i), field.active, false, toggleFieldActiveEventHandler);
+    row.insertCell(-1).textContent = field.path;
+    row.insertCell(-1).textContent = field['label'] ? field.label : null;
     if (fieldSelected) {
       theFieldIndex = i;
       row.classList.add('table-active');

@@ -59,10 +59,16 @@ tbody {
     display: inline;
 }
 
-.toast-header {
+.toast-header-warn {
     color: #842029;
     background-color: #f8d7da;
     border-color: #f5c2c7;
+}
+
+.toast-header-info {
+    color: #842029;
+    background-color: #ebd7f8;
+    border-color: #fbfbfb;
 }
 
 textarea {

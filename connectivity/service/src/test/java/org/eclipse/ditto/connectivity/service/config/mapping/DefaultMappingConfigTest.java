@@ -12,12 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.config.mapping;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import org.assertj.core.api.JUnitSoftAssertions;
-import org.eclipse.ditto.connectivity.service.config.javascript.JavaScriptConfig;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,13 +35,6 @@ public final class DefaultMappingConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         mappingTestConfig = ConfigFactory.load("mapping-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultMappingConfig.class,
-                areImmutable(),
-                provided(JavaScriptConfig.class).isAlsoImmutable());
     }
 
     @Test

@@ -24,6 +24,18 @@ import java.util.function.Function;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.apache.pekko.http.javadsl.model.HttpHeader;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.http.javadsl.server.AllDirectives;
+import org.apache.pekko.http.javadsl.server.ExceptionHandler;
+import org.apache.pekko.http.javadsl.server.PathMatchers;
+import org.apache.pekko.http.javadsl.server.RejectionHandler;
+import org.apache.pekko.http.javadsl.server.RequestContext;
+import org.apache.pekko.http.javadsl.server.Route;
+import org.apache.pekko.http.javadsl.server.directives.RouteAdapter;
+import org.apache.pekko.http.scaladsl.server.RouteResult;
+import org.apache.pekko.japi.pf.PFBuilder;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -58,18 +70,6 @@ import org.eclipse.ditto.internal.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 
-import org.apache.pekko.http.javadsl.model.HttpHeader;
-import org.apache.pekko.http.javadsl.model.HttpRequest;
-import org.apache.pekko.http.javadsl.model.HttpResponse;
-import org.apache.pekko.http.javadsl.server.AllDirectives;
-import org.apache.pekko.http.javadsl.server.ExceptionHandler;
-import org.apache.pekko.http.javadsl.server.PathMatchers;
-import org.apache.pekko.http.javadsl.server.RejectionHandler;
-import org.apache.pekko.http.javadsl.server.RequestContext;
-import org.apache.pekko.http.javadsl.server.Route;
-import org.apache.pekko.http.javadsl.server.directives.RouteAdapter;
-import org.apache.pekko.http.scaladsl.server.RouteResult;
-import org.apache.pekko.japi.pf.PFBuilder;
 import scala.Function1;
 import scala.compat.java8.FutureConverters;
 import scala.concurrent.Future;
@@ -170,8 +170,8 @@ public final class RootRoute extends AllDirectives {
                                         api(ctx, correlationId, queryParameters), // /api
                                         ws(ctx, correlationId, queryParameters), // /ws
                                         ownStatusRoute.buildStatusRoute(), // /status
-                                        overallStatusRoute.buildOverallStatusRoute(), // /overall
-                                        devopsRoute.buildDevOpsRoute(ctx, queryParameters) // /devops
+                                        overallStatusRoute.buildOverallStatusRoute(correlationId), // /overall
+                                        devopsRoute.buildDevOpsRoute(ctx, correlationId, queryParameters) // /devops
                                 )
                         )
                 )

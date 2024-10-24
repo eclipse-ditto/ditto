@@ -10,11 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.base.service.config.supervision;
-
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Duration;
 
@@ -29,7 +25,7 @@ import com.typesafe.config.ConfigFactory;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link DefaultLocalAskTimeoutConfigTest}.
+ * Unit test for {@link DefaultLocalAskTimeoutConfig}.
  */
 public class DefaultLocalAskTimeoutConfigTest {
 
@@ -41,12 +37,6 @@ public class DefaultLocalAskTimeoutConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         supervisorLocalAskTimeoutConfig = ConfigFactory.load("local-ask-timout-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultLocalAskTimeoutConfig.class,
-                areImmutable());
     }
 
     @Test

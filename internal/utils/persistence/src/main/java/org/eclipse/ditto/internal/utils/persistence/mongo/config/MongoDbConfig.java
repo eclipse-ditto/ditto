@@ -78,6 +78,13 @@ public interface MongoDbConfig {
     MonitoringConfig getMonitoringConfig();
 
     /**
+     * Returns the configuration settings of the MongoReadJournal.
+     *
+     * @return the MongoReadJournal config.
+     */
+    MongoReadJournalConfig getReadJournalConfig();
+
+    /**
      * An enumeration of known value paths and associated default values of the MongoDbConfig.
      */
     enum MongoDbConfigValue implements KnownConfigValue {
@@ -159,6 +166,36 @@ public interface MongoDbConfig {
         boolean isRetryWrites();
 
         /**
+         * Indicates whether to use AWS IAM role for authentication.
+         *
+         * @return {@code true} if IAM role should be used, {@code false} otherwise.
+         */
+        boolean isUseAwsIamRole();
+
+        /**
+         * Retrieves the AWS region used for IAM authentication.
+         * If this is an empty string, the AWS SDK will attempt to identify the region automatically based on the
+         * environment and eventually EC2 instances.
+         *
+         * @return the AWS region as a String.
+         */
+        String awsRegion();
+
+        /**
+         * Retrieves the AWS IAM Role ARN to be assumed for authentication.
+         *
+         * @return the aws role ARN as a String.
+         */
+        String awsRoleArn();
+
+        /**
+         * Retrieves the AWS session name to be used when assuming the IAM role.
+         *
+         * @return the aws session name as a String.
+         */
+        String awsSessionName();
+
+        /**
          * Gets the extra options to add to the configured MongoDB {@code uri}.
          *
          * @return the extra options.
@@ -195,6 +232,26 @@ public interface MongoDbConfig {
              * Determines the "retryWrites" setting used for MongoDB connections.
              */
             RETRY_WRITES("retryWrites", true),
+
+            /**
+             * Determines whether IAM role should be used for authentication.
+             */
+            USE_AWS_IAM_ROLE("useAwsIamRole", false),
+
+            /**
+             * Specifies the region to use in AWS IAM based MongoDB authentication.
+             */
+            AWS_REGION("awsRegion", ""),
+
+            /**
+             * Specifies the ARN of the AWS IAM Role to be assumed for MongoDB authentication.
+             */
+            AWS_ROLE_ARN("awsRoleArn", ""),
+
+            /**
+             * Specifies the AWS session name to be used when assuming the IAM role.
+             */
+            AWS_SESSION_NAME("awsSessionName", "dittoSession"),
 
             /**
              * The extra options to add to the configured MongoDB {@code uri}.

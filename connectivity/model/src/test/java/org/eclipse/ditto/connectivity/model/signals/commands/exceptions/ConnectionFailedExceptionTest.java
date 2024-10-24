@@ -13,8 +13,6 @@
 package org.eclipse.ditto.connectivity.model.signals.commands.exceptions;
 
 import static org.eclipse.ditto.base.model.assertions.DittoBaseAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.signals.commands.TestConstants;
@@ -25,12 +23,6 @@ import org.junit.Test;
  * Tests {@link ConnectionFailedException}.
  */
 public final class ConnectionFailedExceptionTest {
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ConnectionFailedException.class, areImmutable());
-    }
 
     @Test
     public void checkToJsonFromJson() {

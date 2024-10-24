@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.Executor;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationChain;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationFailureAggregator;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationFailureAggregators;
@@ -27,13 +28,12 @@ import org.eclipse.ditto.gateway.service.security.authentication.preauth.PreAuth
 import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
 import org.eclipse.ditto.gateway.service.util.config.security.AuthenticationConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.mongodb.lang.Nullable;
 import com.typesafe.config.Config;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Ditto's default factory for building authentication directives.
@@ -45,6 +45,7 @@ public final class DittoGatewayAuthenticationDirectiveFactory implements Gateway
 
     private final AuthenticationConfig authConfig;
     private final Executor authenticationDispatcher;
+    private final Config dittoExtensionConfig;
     @Nullable private GatewayAuthenticationDirective gatewayHttpAuthenticationDirective;
     @Nullable private GatewayAuthenticationDirective gatewayWsAuthenticationDirective;
 
@@ -52,6 +53,7 @@ public final class DittoGatewayAuthenticationDirectiveFactory implements Gateway
         authConfig = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()))
                 .getAuthenticationConfig();
         authenticationDispatcher = actorSystem.dispatchers().lookup(AUTHENTICATION_DISPATCHER_NAME);
+        dittoExtensionConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
     }
 
     @Override
@@ -60,10 +62,12 @@ public final class DittoGatewayAuthenticationDirectiveFactory implements Gateway
 
         if (null == gatewayHttpAuthenticationDirective) {
             final JwtAuthenticationProvider jwtHttpAuthenticationProvider =
-                    JwtAuthenticationProvider.newInstance(jwtAuthenticationFactory.newJwtAuthenticationResultProvider(
-                                    "ditto.gateway.authentication.oauth"
+                    JwtAuthenticationProvider.newInstance(
+                            jwtAuthenticationFactory.newJwtAuthenticationResultProvider(
+                                    dittoExtensionConfig, null
                             ),
-                            jwtAuthenticationFactory.getJwtValidator());
+                            jwtAuthenticationFactory.getJwtValidator()
+                    );
             gatewayHttpAuthenticationDirective =
                     generateGatewayAuthenticationDirective(authConfig, jwtHttpAuthenticationProvider,
                             authenticationDispatcher);
@@ -79,9 +83,10 @@ public final class DittoGatewayAuthenticationDirectiveFactory implements Gateway
             final JwtAuthenticationProvider jwtWsAuthenticationProvider =
                     JwtAuthenticationProvider.newWsInstance(
                             jwtAuthenticationFactory.newJwtAuthenticationResultProvider(
-                                    "ditto.gateway.authentication.oauth"
+                                    dittoExtensionConfig, null
                             ),
-                            jwtAuthenticationFactory.getJwtValidator());
+                            jwtAuthenticationFactory.getJwtValidator()
+                    );
             gatewayWsAuthenticationDirective =
                     generateGatewayAuthenticationDirective(authConfig, jwtWsAuthenticationProvider,
                             authenticationDispatcher);

@@ -39,6 +39,10 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
      */
     static final String CONFIG_PATH = "options";
 
+    private final boolean useAwsIamRole;
+    private final String awsRegion;
+    private final String awsArnRole;
+    private final String awsSessionName;
     private final boolean sslEnabled;
     private final ReadPreference readPreference;
     private final ReadConcern readConcern;
@@ -47,7 +51,11 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
     private final Map<String, Object> extraUriOptions;
 
     private DefaultOptionsConfig(final ScopedConfig config) {
+        useAwsIamRole = config.getBoolean(OptionsConfigValue.USE_AWS_IAM_ROLE.getConfigPath());
+        awsRegion = config.getString(OptionsConfigValue.AWS_REGION.getConfigPath());
+        awsArnRole = config.getString(OptionsConfigValue.AWS_ROLE_ARN.getConfigPath());
         sslEnabled = config.getBoolean(OptionsConfigValue.SSL_ENABLED.getConfigPath());
+        this.awsSessionName = config.getString(OptionsConfigValue.AWS_SESSION_NAME.getConfigPath());
         final var readPreferenceString = config.getString(OptionsConfigValue.READ_PREFERENCE.getConfigPath());
         readPreference = ReadPreference.ofReadPreference(readPreferenceString)
                 .orElseThrow(() -> {
@@ -119,6 +127,24 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
     }
 
     @Override
+    public boolean isUseAwsIamRole() {
+        return useAwsIamRole;
+    }
+
+    @Override
+    public String awsRegion() {
+        return awsRegion;
+    }
+
+    @Override
+    public String awsRoleArn() {
+        return awsArnRole;
+    }
+
+    @Override
+    public String awsSessionName() {return awsSessionName;}
+
+    @Override
     public Map<String, Object> extraUriOptions() {
         return extraUriOptions;
     }
@@ -132,7 +158,12 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
             return false;
         }
         final DefaultOptionsConfig that = (DefaultOptionsConfig) o;
-        return sslEnabled == that.sslEnabled && retryWrites == that.retryWrites &&
+        return useAwsIamRole == that.useAwsIamRole
+                && Objects.equals(awsRegion, that.awsRegion)
+                && Objects.equals(awsArnRole, that.awsArnRole)
+                && Objects.equals(awsSessionName, that.awsSessionName)
+                && sslEnabled == that.sslEnabled
+                && retryWrites == that.retryWrites &&
                 readPreference == that.readPreference &&
                 readConcern == that.readConcern &&
                 Objects.equals(writeConcern, that.writeConcern) &&
@@ -141,13 +172,18 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(sslEnabled, readPreference, readConcern, writeConcern, retryWrites, extraUriOptions);
+        return Objects.hash(useAwsIamRole, awsRegion, awsArnRole, awsArnRole, awsSessionName, sslEnabled,
+                readPreference, readConcern, writeConcern, retryWrites, extraUriOptions);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "sslEnabled=" + sslEnabled +
+                "useAwsIamRole=" + useAwsIamRole +
+                ", awsRegion=" + awsRegion +
+                ", awsArnRole=" + awsArnRole +
+                ", awsSessionName=" + awsSessionName +
+                ", sslEnabled=" + sslEnabled +
                 ", readPreference=" + readPreference +
                 ", readConcern=" + readConcern +
                 ", writeConcern=" + writeConcern +

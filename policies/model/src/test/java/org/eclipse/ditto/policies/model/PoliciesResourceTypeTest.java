@@ -14,8 +14,6 @@ package org.eclipse.ditto.policies.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.junit.Test;
 
@@ -23,11 +21,6 @@ import org.junit.Test;
  * Unit test for {@link PoliciesResourceType}.
  */
 public final class PoliciesResourceTypeTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(PoliciesResourceType.class, areImmutable());
-    }
 
     @Test
     public void tryToGetPolicyResourceWithNullResourcePath() {

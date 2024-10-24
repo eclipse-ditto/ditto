@@ -59,7 +59,7 @@ export async function ready() {
     messageThing();
   };
 
-  dom.buttonThingMessageFavorite.onclick = () => {
+  dom.buttonThingMessageFavorite.onclick = async () => {
     const templateName = dom.inputThingMessageTemplate.value;
     const payload = acePayload.getValue();
     Utils.assert(templateName, 'Please give a name for the template', dom.inputThingMessageTemplate);
@@ -77,7 +77,7 @@ export async function ready() {
       };
       acePayload.session.getUndoManager().markClean();
     }
-    Environments.environmentsJsonChanged('messageTemplates');
+    await Environments.environmentsJsonChanged(false, 'messageTemplates');
   };
 
   dom.ulThingMessageTemplates.addEventListener('click', (event) => {
@@ -138,7 +138,7 @@ function messageThing() {
 }
 
 function onEnvironmentChanged(modifiedField) {
-  Environments.current()['messageTemplates'] = Environments.current()['messageTemplates'] || {};
+  Environments.current().messageTemplates = Environments.current().messageTemplates || {};
 
   if (!modifiedField) {
     clearAllFields();
@@ -153,12 +153,12 @@ function clearAllFields() {
   dom.inputThingMessageTimeout.value = '10';
   acePayload.setValue('');
   aceResponse.setValue('');
-  dom.ulThingMessageTemplates.innerHTML = '';
+  dom.ulThingMessageTemplates.textContent = '';
   dom.buttonThingMessageSend.disabled = Things.theThing === null;
 }
 
 function refillTemplates() {
-  dom.ulThingMessageTemplates.innerHTML = '';
+  dom.ulThingMessageTemplates.textContent = '';
   Utils.addDropDownEntry(dom.ulThingMessageTemplates, 'Saved message templates', true);
   if (Environments.current().messageTemplates['/']) {
     Utils.addDropDownEntries(

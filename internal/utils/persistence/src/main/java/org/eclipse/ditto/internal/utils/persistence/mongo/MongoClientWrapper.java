@@ -26,7 +26,9 @@ import javax.annotation.concurrent.NotThreadSafe;
 import javax.net.ssl.SSLContext;
 
 import org.bson.Document;
+import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.internal.utils.persistence.mongo.auth.AwsAuthenticationHelper;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.reactivestreams.Publisher;
 
@@ -39,7 +41,7 @@ import com.mongodb.ServerAddress;
 import com.mongodb.WriteConcern;
 import com.mongodb.connection.ClusterDescription;
 import com.mongodb.connection.ServerDescription;
-import com.mongodb.connection.netty.NettyStreamFactoryFactory;
+import com.mongodb.connection.TransportSettings;
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.ConnectionPoolListener;
 import com.mongodb.management.JMXConnectionPoolListener;
@@ -48,6 +50,7 @@ import com.mongodb.reactivestreams.client.ClientSession;
 import com.mongodb.reactivestreams.client.ListDatabasesPublisher;
 import com.mongodb.reactivestreams.client.MongoClient;
 import com.mongodb.reactivestreams.client.MongoClients;
+import com.mongodb.reactivestreams.client.MongoCluster;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 
@@ -122,6 +125,56 @@ public final class MongoClientWrapper implements DittoMongoClient {
     @Override
     public DittoMongoClientSettings getDittoSettings() {
         return dittoMongoClientSettings;
+    }
+
+    @Override
+    public CodecRegistry getCodecRegistry() {
+        return mongoClient.getCodecRegistry();
+    }
+
+    @Override
+    public ReadPreference getReadPreference() {
+        return mongoClient.getReadPreference();
+    }
+
+    @Override
+    public WriteConcern getWriteConcern() {
+        return mongoClient.getWriteConcern();
+    }
+
+    @Override
+    public ReadConcern getReadConcern() {
+        return mongoClient.getReadConcern();
+    }
+
+    @Override
+    public Long getTimeout(final TimeUnit timeUnit) {
+        return mongoClient.getTimeout(timeUnit);
+    }
+
+    @Override
+    public MongoCluster withCodecRegistry(final CodecRegistry codecRegistry) {
+        return mongoClient.withCodecRegistry(codecRegistry);
+    }
+
+    @Override
+    public MongoCluster withReadPreference(final ReadPreference readPreference) {
+        return mongoClient.withReadPreference(readPreference);
+    }
+
+    @Override
+    public MongoCluster withWriteConcern(final WriteConcern writeConcern) {
+        return mongoClient.withWriteConcern(writeConcern);
+    }
+
+    @Override
+    public MongoCluster withReadConcern(final ReadConcern readConcern) {
+        return mongoClient.withReadConcern(readConcern);
+    }
+
+    @Override
+    public MongoCluster withTimeout(final long l, final TimeUnit timeUnit) {
+        return mongoClient.withTimeout(l, timeUnit);
     }
 
     @Override
@@ -259,6 +312,10 @@ public final class MongoClientWrapper implements DittoMongoClient {
         @Nullable private ConnectionString connectionString;
         private String defaultDatabaseName;
         private boolean sslEnabled;
+        private boolean isUseAwsIamRole;
+        private String awsRegion;
+        private String awsRoleArn;
+        private String awsSessionName;
         @Nullable private EventLoopGroup eventLoopGroup;
 
         private MongoClientWrapperBuilder() {
@@ -307,12 +364,36 @@ public final class MongoClientWrapper implements DittoMongoClient {
 
             final MongoDbConfig.OptionsConfig optionsConfig = mongoDbConfig.getOptionsConfig();
             builder.enableSsl(optionsConfig.isSslEnabled());
+            builder.useAwsIamRole(optionsConfig.isUseAwsIamRole());
+            builder.awsRegion(optionsConfig.awsRegion());
+            builder.awsRoleArn(optionsConfig.awsRoleArn());
+            builder.awsSessionName(optionsConfig.awsSessionName());
             builder.setReadPreference(optionsConfig.readPreference().getMongoReadPreference());
             builder.setReadConcern(optionsConfig.readConcern().getMongoReadConcern());
             builder.setWriteConcern(optionsConfig.writeConcern());
             builder.setRetryWrites(optionsConfig.isRetryWrites());
 
             return builder;
+        }
+
+        public MongoClientWrapperBuilder useAwsIamRole(final boolean useAwsIamRole) {
+            this.isUseAwsIamRole = useAwsIamRole;
+            return this;
+        }
+
+        public MongoClientWrapperBuilder awsRegion(final String awsRegion) {
+            this.awsRegion = awsRegion;
+            return this;
+        }
+
+        public MongoClientWrapperBuilder awsRoleArn(final String awsRoleArn) {
+            this.awsRoleArn = awsRoleArn;
+            return this;
+        }
+
+        private MongoClientWrapperBuilder awsSessionName(final String awsSessionName) {
+            this.awsSessionName = awsSessionName;
+            return this;
         }
 
         @Override
@@ -440,6 +521,11 @@ public final class MongoClientWrapper implements DittoMongoClient {
         public MongoClientWrapper build() {
             buildAndApplySslSettings();
 
+            if (isUseAwsIamRole) {
+                mongoClientSettingsBuilder.credential(
+                        AwsAuthenticationHelper.provideAwsIamBasedMongoCredential(awsRegion, awsRoleArn, awsSessionName)
+                );
+            }
             return new MongoClientWrapper(mongoClientSettingsBuilder.build(), defaultDatabaseName,
                     dittoMongoClientSettingsBuilder.build(), eventLoopGroup);
         }
@@ -448,7 +534,7 @@ public final class MongoClientWrapper implements DittoMongoClient {
             if (sslEnabled) {
                 eventLoopGroup = new NioEventLoopGroup();
                 mongoClientSettingsBuilder
-                        .streamFactoryFactory(NettyStreamFactoryFactory.builder().eventLoopGroup(eventLoopGroup).build())
+                        .transportSettings(TransportSettings.nettyBuilder().eventLoopGroup(eventLoopGroup).build())
                         .applyToSslSettings(builder -> builder
                                 .context(tryToCreateAndInitSslContext())
                                 .enabled(sslEnabled));
@@ -475,7 +561,5 @@ public final class MongoClientWrapper implements DittoMongoClient {
             result.init(null, null, null);
             return result;
         }
-
     }
-
 }

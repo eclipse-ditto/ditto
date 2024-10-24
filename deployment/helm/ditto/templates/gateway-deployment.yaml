@@ -64,7 +64,7 @@ spec:
           image: busybox
           securityContext:
             runAsUser: 0
-          command: [ "sh", "-c", "chown -R 1000:1000 /var/log/ditto && echo 'changed ownership of /var/log/ditto to 1000:1000'" ]
+          command: [ "sh", "-c", "chown -R 1005:1005 /var/log/ditto && echo 'changed ownership of /var/log/ditto to 1005:1005'" ]
           volumeMounts:
             - name: ditto-log-files-directory
               mountPath: /var/log/ditto
@@ -106,6 +106,10 @@ spec:
             {{- if .Values.global.logging.logstash.enabled }}
             - name: DITTO_LOGGING_LOGSTASH_SERVER
               value: "{{ .Values.global.logging.logstash.endpoint }}"
+            - name: LOGSTASH_WRITE_BUFFER_SIZE
+              value: "{{ .Values.global.logging.logstash.writeBufferSize }}"
+            - name: LOGSTASH_RING_BUFFER_SIZE
+              value: "{{ .Values.global.logging.logstash.ringBufferSize }}"
             {{- end }}
             - name: POD_LABEL_SELECTOR
               value: "app.kubernetes.io/name=%s"
@@ -149,6 +153,12 @@ spec:
                 "{{ printf "%s%s%s%d=%s" "-Dditto.gateway.authentication.devops.oauth.openid-connect-issuers." $key ".auth-subjects." $index $subject }}"
                 {{- end }}
                 {{- end }}
+                {{- range $index, $oauthSubject := .Values.gateway.config.authentication.devops.oauthSubjects }}
+                "{{ printf "%s%d=%s" "-Dditto.gateway.authentication.devops.devops-oauth2-subjects." $index $oauthSubject }}"
+                {{- end }}
+                {{- range $index, $oauthSubject := .Values.gateway.config.authentication.devops.statusOauthSubjects }}
+                "{{ printf "%s%d=%s" "-Dditto.gateway.authentication.devops.status-oauth2-subjects." $index $oauthSubject }}"
+                {{- end }}
                 {{ join " " .Values.gateway.systemProps }}
             - name: CLUSTER_BS_REQUIRED_CONTACTS
               value: "{{ .Values.global.cluster.requiredContactPoints }}"
@@ -191,10 +201,6 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.gateway.config.authentication.devops.existingSecret | default ( printf "%s-gateway-secret" ( include "ditto.fullname" . )) }}
                   key: devops-password
-            {{- range $index, $oauthSubject := .Values.gateway.config.authentication.devops.oauthSubjects }}
-            - name: DEVOPS_OAUTH2_SUBJECTS.{{ $index }}
-              value: "{{ $oauthSubject }}"
-            {{- end }}
             - name: DEVOPS_STATUS_SECURED
               value: "{{ .Values.gateway.config.authentication.devops.statusSecured }}"
             - name: STATUS_AUTHENTICATION_METHOD
@@ -204,10 +210,6 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.gateway.config.authentication.devops.existingSecret | default ( printf "%s-gateway-secret" ( include "ditto.fullname" . )) }}
                   key: status-password
-            {{- range $index, $oauthSubject := .Values.gateway.config.authentication.devops.statusOauthSubjects }}
-            - name: STATUS_OAUTH2_SUBJECTS.{{ $index }}
-              value: "{{ $oauthSubject }}"
-            {{- end }}
             - name: WS_SUBSCRIBER_BACKPRESSURE
               value: "{{ .Values.gateway.config.websocket.subscriber.backpressureQueueSize }}"
             - name: WS_PUBLISHER_BACKPRESSURE
@@ -274,6 +276,11 @@ spec:
             - name: ditto-log-files-directory
               mountPath: /var/log/ditto
             {{- end }}
+            {{- if .Values.gateway.extraVolumeMounts }}
+              {{- toYaml .Values.gateway.extraVolumeMounts | nindent 12 }}
+            {{- end }}
+            - name: ditto-heap-dumps
+              mountPath: /opt/ditto/dumps
           resources:
             requests:
               cpu: {{ mulf .Values.gateway.resources.cpu 1000 }}m
@@ -320,4 +327,9 @@ spec:
             path: /var/log/ditto
             type: DirectoryOrCreate
         {{- end }}
+        {{- if .Values.gateway.extraVolumes }}
+          {{- toYaml .Values.gateway.extraVolumes | nindent 8 }}
+        {{- end}}
+        - name: ditto-heap-dumps
+          emptyDir: {}
 {{- end }}

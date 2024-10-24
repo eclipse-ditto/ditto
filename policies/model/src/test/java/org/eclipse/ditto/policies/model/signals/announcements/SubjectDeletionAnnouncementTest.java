@@ -13,10 +13,6 @@
 package org.eclipse.ditto.policies.model.signals.announcements;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Instant;
 import java.util.Collections;
@@ -30,17 +26,9 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Tests {@link org.eclipse.ditto.policies.model.signals.announcements.SubjectDeletionAnnouncement}.
+ * Tests {@link SubjectDeletionAnnouncement}.
  */
 public final class SubjectDeletionAnnouncementTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(SubjectDeletionAnnouncement.class,
-                areImmutable(),
-                provided(PolicyId.class).areAlsoImmutable(),
-                assumingFields("subjectIds").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

@@ -10,12 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.connectivity.service.config.mapping;
-
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
@@ -40,13 +35,6 @@ public class DefaultMapperLimitsConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         mapperLimitsTestConfig = ConfigFactory.load("mapper-limits-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultMapperLimitsConfig.class,
-                areImmutable(),
-                provided(MapperLimitsConfig.class).isAlsoImmutable());
     }
 
     @Test

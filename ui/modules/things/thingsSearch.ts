@@ -20,13 +20,16 @@ import { JSONPath } from 'jsonpath-plus';
 
 import * as API from '../api.js';
 import * as Environments from '../environments/environments.js';
-
 import * as Utils from '../utils.js';
+import { sanitizeHTML } from '../utils.js';
 import * as Fields from './fields.js';
 import * as Things from './things.js';
 import * as ThingsSSE from './thingsSSE.js';
 
-let lastSearch = '';
+export class ThingsSearchGlobalVars {
+  public static lastSearch = '';
+}
+
 let theSearchCursor;
 
 const dom = {
@@ -75,15 +78,22 @@ function onThingsTableClicked(event) {
 
 /**
  * Tests if the search filter is an RQL. If yes, things search is called otherwise just things get
- * @param {String} filter search filter string containing an RQL or a thingId
+ * @param {string} filter search filter string containing an RQL or a thingId
+ * @param rqlFilterCallback a callback to invoke when the passed `filter` was a valid RQL statement
  */
-export function searchTriggered(filter: string) {
-  lastSearch = filter;
+export function searchTriggered(filter: string, rqlFilterCallback: () => void) {
+  ThingsSearchGlobalVars.lastSearch = filter;
   const regex = /^(eq\(|ne\(|gt\(|ge\(|lt\(|le\(|in\(|like\(|ilike\(|exists\(|and\(|or\(|not\().*/;
   if (filter === '' || regex.test(filter)) {
     searchThings(filter);
+    rqlFilterCallback();
   } else {
     getThings([filter]);
+  }
+  let urlSearchParams = new URLSearchParams(window.location.search);
+  if (urlSearchParams.get('filter') !== filter) {
+    urlSearchParams.set('filter', filter);
+    window.history.replaceState(null, null, `${window.location.pathname}?${urlSearchParams}`);
   }
 }
 
@@ -91,10 +101,10 @@ export function searchTriggered(filter: string) {
  * Gets the list of pinned things
  */
 export function pinnedTriggered() {
-  lastSearch = 'pinned';
+  ThingsSearchGlobalVars.lastSearch = 'pinned';
   dom.searchFilterEdit.value = null;
   dom.favIcon.classList.replace('bi-star-fill', 'bi-star');
-  getThings(Environments.current()['pinnedThings']);
+  getThings(Environments.current().pinnedThings);
 }
 
 /**
@@ -102,10 +112,10 @@ export function pinnedTriggered() {
  * If the user used pinned things last time, the pinned things are reloaded
  */
 export function performLastSearch() {
-  if (lastSearch === 'pinned') {
+  if (ThingsSearchGlobalVars.lastSearch === 'pinned') {
     pinnedTriggered();
   } else {
-    searchTriggered(lastSearch);
+    searchTriggered(ThingsSearchGlobalVars.lastSearch, () => null);
   }
 }
 
@@ -114,15 +124,15 @@ export function performLastSearch() {
  * @param {Array} thingIds Array of thingIds
  */
 export function getThings(thingIds) {
-  dom.searchFilterCount.innerHTML = '';
-  dom.thingsTableBody.innerHTML = '';
+  dom.searchFilterCount.textContent = '';
+  dom.thingsTableBody.textContent = '';
   const fieldsQueryParameter = Fields.getQueryParameter();
   if (thingIds.length > 0) {
     API.callDittoREST('GET',
         `/things?${fieldsQueryParameter}&ids=${thingIds}&option=sort(%2BthingId)`)
         .then((thingJsonArray) => {
           fillThingsTable(thingJsonArray);
-          dom.searchFilterCount.innerHTML = '#: ' + thingJsonArray.length;
+          dom.searchFilterCount.textContent = '#: ' + thingJsonArray.length;
           notifyAll(thingIds, fieldsQueryParameter);
         })
         .catch((error) => {
@@ -137,9 +147,9 @@ export function getThings(thingIds) {
 
 function resetAndClearViews(retainThing = false) {
   theSearchCursor = null;
-  dom.searchFilterCount.innerHTML = '';
-  dom.thingsTableHead.innerHTML = '';
-  dom.thingsTableBody.innerHTML = '';
+  dom.searchFilterCount.textContent = '';
+  dom.thingsTableHead.textContent = '';
+  dom.thingsTableBody.textContent = '';
   if (!retainThing) {
     Things.setTheThing(null);
   }
@@ -147,17 +157,17 @@ function resetAndClearViews(retainThing = false) {
 
 /**
  * Calls Ditto search API to perform a count and adds the count to the UI.
- * @param {String} filter Ditto search filter (rql)
+ * @param {string} filter Ditto search filter (rql)
  */
 function countThings(filter: string) {
-  dom.searchFilterCount.innerHTML = '';
+  dom.searchFilterCount.textContent = '';
   const namespaces = Environments.current().searchNamespaces
   API.callDittoREST('GET',
     '/search/things/count' +
     ((filter && filter !== '') ? '?filter=' + encodeURIComponent(filter) : '') +
     ((namespaces && namespaces !== '') ? '&namespaces=' + namespaces : ''), null, null
   ).then((countResult) => {
-    dom.searchFilterCount.innerHTML = '#: ' + countResult;
+    dom.searchFilterCount.textContent = '#: ' + countResult;
   }).catch((error) => {
     notifyAll();
   });
@@ -165,7 +175,7 @@ function countThings(filter: string) {
 
 /**
  * Calls Ditto search api and fills UI with the result
- * @param {String} filter Ditto search filter (rql)
+ * @param {string} filter Ditto search filter (rql)
  * @param {boolean} isMore (optional) use cursor from previous search for additional pages
  */
 function searchThings(filter: string, isMore = false) {
@@ -210,7 +220,7 @@ function searchThings(filter: string, isMore = false) {
 
   function addMoreToThingList() {
     const moreCell = dom.thingsTableBody.insertRow().insertCell(-1);
-    moreCell.innerHTML = 'load more...';
+    moreCell.textContent = 'load more...';
     moreCell.colSpan = dom.thingsTableBody.rows[0].childElementCount;
     moreCell.style.textAlign = 'center';
     moreCell.style.cursor = 'pointer';
@@ -248,7 +258,7 @@ function fillThingsTable(thingsList: any[]) {
   }
 
   function fillHeaderRow() {
-    dom.thingsTableHead.innerHTML = '';
+    dom.thingsTableHead.textContent = '';
     // Utils.addCheckboxToRow(dom.thingsTableHead, 'checkboxHead', false, null);
     Utils.insertHeaderCell(dom.thingsTableHead, '');
     Utils.insertHeaderCell(dom.thingsTableHead, 'Thing ID');
@@ -297,7 +307,7 @@ function fillThingsTable(thingsList: any[]) {
   }
 }
 
-function togglePinnedThing(evt) {
+async function togglePinnedThing(evt) {
   if (evt.target.checked) {
     Environments.current().pinnedThings.push(this.id);
   } else {
@@ -306,7 +316,7 @@ function togglePinnedThing(evt) {
       Environments.current().pinnedThings.splice(index, 1);
     }
   }
-  Environments.environmentsJsonChanged('pinnedThings');
+  await Environments.environmentsJsonChanged(false, 'pinnedThings');
 }
 
 function onThingChanged(thingJson) {
@@ -326,7 +336,7 @@ export function updateTableRow(thingUpdateJson) {
         path: path,
       });
       if (elem.length !== 0) {
-        cell.innerHTML = elem[0];
+        cell.innerHTML = sanitizeHTML(elem[0]);
       }
     }
   });

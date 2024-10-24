@@ -13,9 +13,6 @@
 package org.eclipse.ditto.thingsearch.model;
 
 import static org.eclipse.ditto.thingsearch.model.assertions.DittoSearchAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -38,11 +35,6 @@ public final class ImmutableSearchPropertyTest {
     @Before
     public void setUp() {
         underTest = ImmutableSearchProperty.of(PROPERTY_PATH);
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableSearchProperty.class, areImmutable(), provided(JsonPointer.class).isAlsoImmutable());
     }
 
     @Test

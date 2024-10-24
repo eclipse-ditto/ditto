@@ -12,10 +12,7 @@
  */
 package org.eclipse.ditto.internal.utils.health.mongo;
 
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import org.junit.Test;
-import org.mutabilitydetector.unittesting.MutabilityAssert;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -23,13 +20,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Unit test for {@link CurrentMongoStatus}.
  */
 public final class CurrentMongoStatusTest {
-
-
-    @Test
-    public void assertImmutability() {
-        MutabilityAssert.assertInstancesOf(CurrentMongoStatus.class, areImmutable());
-    }
-
 
     @Test
     public void testHashCodeAndEquals() {

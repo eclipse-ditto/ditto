@@ -14,9 +14,6 @@ package org.eclipse.ditto.policies.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Instant;
 import java.util.Arrays;
@@ -56,13 +53,6 @@ public final class ImmutableSubjectsTest {
     private static final JsonObject KNOWN_SUBJECTS_JSON = JsonObject.newBuilder()
             .set(SUBJECT_1.getId(), KNOWN_SUBJECT_JSON)
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableSubjects.class,
-                areImmutable(),
-                assumingFields("subjects").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

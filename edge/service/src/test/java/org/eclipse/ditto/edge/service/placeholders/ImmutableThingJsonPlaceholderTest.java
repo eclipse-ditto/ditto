@@ -20,8 +20,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.FeatureProperties;
 import org.eclipse.ditto.things.model.Thing;
 import org.junit.Test;
-import org.mutabilitydetector.unittesting.MutabilityAssert;
-import org.mutabilitydetector.unittesting.MutabilityMatchers;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
@@ -54,11 +52,6 @@ public class ImmutableThingJsonPlaceholderTest {
             )
             .build();
     private static final ThingJsonPlaceholder UNDER_TEST = ImmutableThingJsonPlaceholder.INSTANCE;
-
-    @Test
-    public void assertImmutability() {
-        MutabilityAssert.assertInstancesOf(ImmutableThingJsonPlaceholder.class, MutabilityMatchers.areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

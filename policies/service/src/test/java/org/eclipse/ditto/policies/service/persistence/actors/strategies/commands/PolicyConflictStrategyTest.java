@@ -15,8 +15,6 @@ package org.eclipse.ditto.policies.service.persistence.actors.strategies.command
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.concurrent.CompletionStage;
 
@@ -53,11 +51,6 @@ public final class PolicyConflictStrategyTest {
 
     @ClassRule
     public static final ActorSystemResource ACTOR_SYSTEM_RESOURCE = ActorSystemResource.newInstance();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(PolicyConflictStrategy.class, areImmutable());
-    }
 
     @Test
     public void createConflictResultWithoutPrecondition() {

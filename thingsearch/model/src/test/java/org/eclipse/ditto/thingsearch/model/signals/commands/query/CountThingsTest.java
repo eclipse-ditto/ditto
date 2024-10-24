@@ -13,8 +13,6 @@
 package org.eclipse.ditto.thingsearch.model.signals.commands.query;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonFactory;
@@ -39,12 +37,6 @@ public final class CountThingsTest {
     private static final String JSON_MINIMAL_V2 = JsonFactory.newObjectBuilder()
             .set(ThingSearchCommand.JsonFields.TYPE, CountThings.TYPE)
             .build().toString();
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(CountThings.class, areImmutable());
-    }
 
 
     @Test

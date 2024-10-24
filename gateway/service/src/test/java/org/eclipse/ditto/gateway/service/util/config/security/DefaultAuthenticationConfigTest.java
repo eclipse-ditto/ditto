@@ -12,12 +12,8 @@
  */
 package org.eclipse.ditto.gateway.service.util.config.security;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import org.assertj.core.api.JUnitSoftAssertions;
-import org.eclipse.ditto.base.service.config.http.HttpProxyConfig;
+import org.eclipse.ditto.internal.utils.http.config.HttpProxyConfig;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,13 +36,6 @@ public final class DefaultAuthenticationConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         authenticationTestConf = ConfigFactory.load("authentication-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultAuthenticationConfig.class,
-                areImmutable(),
-                provided(HttpProxyConfig.class, DefaultOAuthConfig.class, DefaultDevOpsConfig.class).areAlsoImmutable());
     }
 
     @Test

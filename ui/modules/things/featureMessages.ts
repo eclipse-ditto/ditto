@@ -64,7 +64,7 @@ export async function ready() {
     messageFeature();
   };
 
-  dom.buttonMessageFavorite.onclick = () => {
+  dom.buttonMessageFavorite.onclick = async () => {
     const templateName = dom.inputMessageTemplate.value;
     const featureId = theFeatureId;
     const payload = acePayload.getValue();
@@ -84,7 +84,7 @@ export async function ready() {
       };
       acePayload.session.getUndoManager().markClean();
     }
-    Environments.environmentsJsonChanged('messageTemplates');
+    await Environments.environmentsJsonChanged(false, 'messageTemplates');
   };
 
   dom.ulMessageTemplates.addEventListener('click', (event) => {
@@ -146,7 +146,7 @@ function messageFeature() {
 }
 
 function onEnvironmentChanged(modifiedField) {
-  Environments.current()['messageTemplates'] = Environments.current()['messageTemplates'] || {};
+  Environments.current().messageTemplates = Environments.current().messageTemplates || {};
 
   if (!modifiedField) {
     clearAllFields();
@@ -163,12 +163,12 @@ function clearAllFields() {
   dom.inputMessageTimeout.value = '10';
   acePayload.setValue('');
   aceResponse.setValue('');
-  dom.ulMessageTemplates.innerHTML = '';
+  dom.ulMessageTemplates.textContent = '';
   dom.buttonMessageSend.disabled = !theFeatureId || theFeatureId === '';
 }
 
 function refillTemplates() {
-  dom.ulMessageTemplates.innerHTML = '';
+  dom.ulMessageTemplates.textContent = '';
   Utils.addDropDownEntry(dom.ulMessageTemplates, 'Saved message templates', true);
   if (theFeatureId && Environments.current().messageTemplates[theFeatureId]) {
     Utils.addDropDownEntries(

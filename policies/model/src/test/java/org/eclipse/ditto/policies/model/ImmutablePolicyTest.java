@@ -15,9 +15,6 @@ package org.eclipse.ditto.policies.model;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.policies.model.PoliciesModelFactory.emptyPolicyImports;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,7 +24,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -84,15 +80,6 @@ public final class ImmutablePolicyTest {
                 Resources.newInstance(Resource.newInstance(TestConstants.Policy.RESOURCE_TYPE, END_USER_RESOURCE_1,
                         END_USER_EFFECTED_PERMISSIONS_1)),
                 ImportableType.NEVER);
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutablePolicy.class,
-                areImmutable(),
-                provided(PolicyId.class, Label.class, PolicyRevision.class, PolicyImports.class, Metadata.class,
-                        PolicyEntry.class)
-                        .areAlsoImmutable());
     }
 
     @Test

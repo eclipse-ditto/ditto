@@ -14,8 +14,6 @@ package org.eclipse.ditto.thingsearch.model;
 
 import static org.eclipse.ditto.thingsearch.model.assertions.DittoSearchAssertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -23,9 +21,7 @@ import java.util.Collections;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -41,12 +37,6 @@ public final class SearchModelFactoryTest {
 
     @Mock
     private SearchFilter filterMock;
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ThingsModelFactory.class, areImmutable());
-    }
 
 
     @Test

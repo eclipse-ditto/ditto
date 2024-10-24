@@ -6726,82 +6726,9 @@ paths:
               type: object
               properties:
                 filter:
-                  description: |-
-
-                    #### Filter predicates:
-
-                    * ```eq({property},{value})```  (i.e. equal to the given value)
-
-                    * ```ne({property},{value})```  (i.e. not equal to the given value)
-
-                    * ```gt({property},{value})```  (i.e. greater than the given value)
-
-                    * ```ge({property},{value})```  (i.e. equal to the given value or greater than it)
-
-                    * ```lt({property},{value})```  (i.e. lower than the given value or equal to it)
-
-                    * ```le({property},{value})```  (i.e. lower than the given value)
-
-                    * ```in({property},{value},{value},...)```  (i.e. contains at least one of the values listed)
-
-                    * ```like({property},{value})```  (i.e. contains values similar to the expressions listed)
-
-                    * ```ilike({property},{value})```  (i.e. contains values similar and case insensitive to the expressions listed)
-
-                    * ```exists({property})```  (i.e. all things in which the given path exists)
-
-
-                    Note: When using filter operations, only things with the specified properties are returned.
-                    For example, the filter `ne(attributes/owner, "SID123")` will only return things that do have
-                    the `owner` attribute.
-
-
-                    #### Logical operations:
-
-
-                    * ```and({query},{query},...)```
-
-                    * ```or({query},{query},...)```
-
-                    * ```not({query})```
-
-
-                    #### Examples:
-
-                    * ```eq(attributes/location,"kitchen")```
-
-                    * ```ge(thingId,"myThing1")```
-
-                    * ```gt(_created,"2020-08-05T12:17")```
-
-                    * ```exists(features/featureId)```
-
-                    * ```and(eq(attributes/location,"kitchen"),eq(attributes/color,"red"))```
-
-                    * ```or(eq(attributes/location,"kitchen"),eq(attributes/location,"living-room"))```
-
-                    * ```like(attributes/key1,"known-chars-at-start*")```
-
-                    * ```like(attributes/key1,"*known-chars-at-end")```
-
-                    * ```like(attributes/key1,"*known-chars-in-between*")```
-
-                    * ```like(attributes/key1,"just-som?-char?-unkn?wn")```
-
-                    The `like` filters with the wildcard `*` at the beginning can slow down your search request.
-                  type: string
+                  $ref: '#/components/schemas/SearchFilterProperty'
                 namespaces:
-                  description: |-
-                    A comma-separated list of namespaces. This list is used to limit the query to things in the given namespaces
-                    only.
-
-
-                    #### Examples:
-
-                    * `?namespaces=com.example.namespace`
-
-                    * `?namespaces=com.example.namespace1,com.example.namespace2`
-                  type: string
+                  $ref: '#/components/schemas/NamespaceProperty'
                 fields:
                   description: |-
                     Contains a comma-separated list of fields to be included in the returned
@@ -7046,9 +6973,9 @@ paths:
               type: object
               properties:
                 filter:
-                  $ref: '#/paths/~1api~12~1search~1things/post/requestBody/content/application~1x-www-form-urlencoded/schema/properties/filter'
+                  $ref: '#/components/schemas/SearchFilterProperty'
                 namespaces:
-                  $ref: '#/paths/~1api~12~1search~1things/post/requestBody/content/application~1x-www-form-urlencoded/schema/properties/namespaces'
+                  $ref: '#/components/schemas/NamespaceProperty'
             encoding:
               filter:
                 style: form
@@ -10703,6 +10630,83 @@ components:
           properties:
             type:
               type: string
+    SearchFilterProperty:
+      description: |-
+
+        #### Filter predicates:
+
+        * ```eq({property},{value})```  (i.e. equal to the given value)
+
+        * ```ne({property},{value})```  (i.e. not equal to the given value)
+
+        * ```gt({property},{value})```  (i.e. greater than the given value)
+
+        * ```ge({property},{value})```  (i.e. equal to the given value or greater than it)
+
+        * ```lt({property},{value})```  (i.e. lower than the given value or equal to it)
+
+        * ```le({property},{value})```  (i.e. lower than the given value)
+
+        * ```in({property},{value},{value},...)```  (i.e. contains at least one of the values listed)
+
+        * ```like({property},{value})```  (i.e. contains values similar to the expressions listed)
+
+        * ```ilike({property},{value})```  (i.e. contains values similar and case insensitive to the expressions listed)
+
+        * ```exists({property})```  (i.e. all things in which the given path exists)
+
+
+        Note: When using filter operations, only things with the specified properties are returned.
+        For example, the filter `ne(attributes/owner, "SID123")` will only return things that do have
+        the `owner` attribute.
+
+
+        #### Logical operations:
+
+
+        * ```and({query},{query},...)```
+
+        * ```or({query},{query},...)```
+
+        * ```not({query})```
+
+
+        #### Examples:
+
+        * ```eq(attributes/location,"kitchen")```
+
+        * ```ge(thingId,"myThing1")```
+
+        * ```gt(_created,"2020-08-05T12:17")```
+
+        * ```exists(features/featureId)```
+
+        * ```and(eq(attributes/location,"kitchen"),eq(attributes/color,"red"))```
+
+        * ```or(eq(attributes/location,"kitchen"),eq(attributes/location,"living-room"))```
+
+        * ```like(attributes/key1,"known-chars-at-start*")```
+
+        * ```like(attributes/key1,"*known-chars-at-end")```
+
+        * ```like(attributes/key1,"*known-chars-in-between*")```
+
+        * ```like(attributes/key1,"just-som?-char?-unkn?wn")```
+
+        The `like` filters with the wildcard `*` at the beginning can slow down your search request.
+      type: string
+    NamespaceProperty:
+      description: |-
+        A comma-separated list of namespaces. This list is used to limit the query to things in the given namespaces
+        only.
+
+
+        #### Examples:
+
+        * `?namespaces=com.example.namespace`
+
+        * `?namespaces=com.example.namespace1,com.example.namespace2`
+      type: string
   securitySchemes:
     NginxBasic:
       type: http

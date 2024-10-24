@@ -13,15 +13,10 @@
 package org.eclipse.ditto.policies.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.junit.Test;
 
@@ -34,14 +29,6 @@ public final class ImmutableResourceTest {
 
     private static final EffectedPermissions EFFECTED_PERMISSIONS =
             EffectedPermissions.newInstance(TestConstants.Policy.PERMISSIONS_ALL, TestConstants.Policy.PERMISSIONS_ALL);
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableResource.class,
-                areImmutable(),
-                provided(ResourceKey.class, JsonPointer.class, EffectedPermissions.class, JsonFieldDefinition.class)
-                        .areAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

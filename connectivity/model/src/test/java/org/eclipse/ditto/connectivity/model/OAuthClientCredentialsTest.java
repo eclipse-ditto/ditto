@@ -13,26 +13,19 @@
 package org.eclipse.ditto.connectivity.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Tests {@link org.eclipse.ditto.connectivity.model.OAuthClientCredentials}.
+ * Tests {@link OAuthClientCredentials}.
  */
 public final class OAuthClientCredentialsTest {
 
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(OAuthClientCredentials.class).verify();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(OAuthClientCredentials.class, areImmutable());
     }
 
     @Test

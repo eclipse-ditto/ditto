@@ -79,7 +79,7 @@ public interface ThingsSearchPersistence {
      * @return an {@link Source} which emits the IDs.
      * @throws NullPointerException if {@code query} is {@code null}.
      */
-    Source<ResultList<TimestampedThingId>, NotUsed> findAll(Query query, List<String> authorizationSubjectIds,
+    Source<ResultList<TimestampedThingId>, NotUsed> findAll(Query query, @Nullable List<String> authorizationSubjectIds,
             @Nullable Set<String> namespaces);
 
     /**

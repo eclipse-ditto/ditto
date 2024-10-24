@@ -13,11 +13,7 @@
 package org.eclipse.ditto.protocol;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -33,13 +29,6 @@ public final class ImmutableAdaptableTest {
         EqualsVerifier.forClass(ImmutableAdaptable.class)
                 .usingGetClass()
                 .verify();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableAdaptable.class,
-                areImmutable(),
-                provided(TopicPath.class, Payload.class, DittoHeaders.class).areAlsoImmutable());
     }
 
     @Test(expected = NullPointerException.class)

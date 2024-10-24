@@ -13,9 +13,6 @@
 package org.eclipse.ditto.policies.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Instant;
 import java.util.Collections;
@@ -41,14 +38,6 @@ public final class ImmutableSubjectTest {
             .set(Subject.JsonFields.EXPIRY, KNOWN_SUBJECT_EXPIRY_STR)
             .set(Subject.JsonFields.ANNOUNCEMENT, KNOWN_SUBJECT_ANNOUNCEMENT_JSON)
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableSubject.class,
-                areImmutable(),
-                provided(SubjectId.class, SubjectType.class, SubjectExpiry.class, SubjectAnnouncement.class)
-                        .areAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

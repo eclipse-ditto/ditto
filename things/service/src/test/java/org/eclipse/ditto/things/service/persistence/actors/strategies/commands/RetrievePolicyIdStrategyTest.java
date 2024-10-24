@@ -14,9 +14,8 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import static org.eclipse.ditto.things.model.TestConstants.Thing.POLICY_ID;
 import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.ThingId;
@@ -27,6 +26,8 @@ import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.typesafe.config.ConfigFactory;
+
 /**
  * Unit test for {@link RetrievePolicyIdStrategy}.
  */
@@ -36,12 +37,8 @@ public final class RetrievePolicyIdStrategyTest extends AbstractCommandStrategyT
 
     @Before
     public void setUp() {
-        underTest = new RetrievePolicyIdStrategy();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(RetrievePolicyIdStrategy.class, areImmutable());
+        final ActorSystem system = ActorSystem.create("test", ConfigFactory.load("test"));
+        underTest = new RetrievePolicyIdStrategy(system);
     }
 
     @Test

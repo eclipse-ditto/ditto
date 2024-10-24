@@ -13,8 +13,6 @@
 package org.eclipse.ditto.base.model.exceptions;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.net.URI;
 
@@ -25,7 +23,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.junit.Test;
 
 /**
- * Tests {@link org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException}.
+ * Tests {@link InvalidRqlExpressionException}.
  */
 public final class InvalidRqlExpressionExceptionTest {
 
@@ -45,11 +43,6 @@ public final class InvalidRqlExpressionExceptionTest {
             .set(DittoRuntimeException.JsonFields.HREF,
                     INVALID_FILTER_EXCEPTION.getHref().map(URI::toString).orElse(null), JsonField.isValueNonNull())
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(InvalidRqlExpressionException.class, areImmutable());
-    }
 
     @Test
     public void toJsonReturnsExpected() {

@@ -13,8 +13,6 @@
 package org.eclipse.ditto.connectivity.model.signals.commands.query;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -50,12 +48,6 @@ public final class RetrieveAllConnectionIdsResponseTest {
         EqualsVerifier.forClass(RetrieveAllConnectionIdsResponse.class)
                 .usingGetClass()
                 .verify();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(RetrieveAllConnectionIdsResponse.class,
-                areImmutable());
     }
 
     @Test

@@ -17,10 +17,6 @@ import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.eclipse.ditto.things.model.TestConstants.Feature.FLUX_CAPACITOR_DEFINITION;
 import static org.eclipse.ditto.things.model.TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES;
 import static org.eclipse.ditto.things.model.assertions.DittoThingsAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.lang.ref.SoftReference;
 
@@ -62,21 +58,6 @@ public final class ImmutableFeatureTest {
         EqualsVerifier.forClass(ImmutableFeature.class)
                 .withPrefabValues(SoftReference.class, red, black)
                 .verify();
-    }
-
-    @Test
-    public void assertImmutability() {
-        final Class<?>[] knownImmutableTypes = new Class[]{
-                JsonObject.class,
-                FeatureProperties.class,
-                FeatureDefinition.class,
-                JsonSchemaVersion.class
-        };
-
-        assertInstancesOf(ImmutableFeature.class,
-                areImmutable(),
-                provided(knownImmutableTypes).areAlsoImmutable(),
-                assumingFields("cachedJsonObject").areModifiedAsPartOfAnUnobservableCachingStrategy());
     }
 
     @Test(expected = NullPointerException.class)

@@ -15,8 +15,6 @@ package org.eclipse.ditto.base.model.headers;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
@@ -24,7 +22,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Unit test for {@link org.eclipse.ditto.base.model.headers.BooleanValueValidator}.
+ * Unit test for {@link BooleanValueValidator}.
  */
 public final class BooleanValueValidatorTest {
 
@@ -35,11 +33,6 @@ public final class BooleanValueValidatorTest {
     @Before
     public void setUp() {
         underTest = BooleanValueValidator.getInstance();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(BooleanValueValidator.class, areImmutable());
     }
 
     @Test

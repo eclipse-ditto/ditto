@@ -63,7 +63,7 @@ spec:
           image: busybox
           securityContext:
             runAsUser: 0
-          command: [ "sh", "-c", "chown -R 1000:1000 /var/log/ditto && echo 'changed ownership of /var/log/ditto to 1000:1000'" ]
+          command: [ "sh", "-c", "chown -R 1005:1005 /var/log/ditto && echo 'changed ownership of /var/log/ditto to 1005:1005'" ]
           volumeMounts:
             - name: ditto-log-files-directory
               mountPath: /var/log/ditto
@@ -105,6 +105,10 @@ spec:
             {{- if .Values.global.logging.logstash.enabled }}
             - name: DITTO_LOGGING_LOGSTASH_SERVER
               value: "{{ .Values.global.logging.logstash.endpoint }}"
+            - name: LOGSTASH_WRITE_BUFFER_SIZE
+              value: "{{ .Values.global.logging.logstash.writeBufferSize }}"
+            - name: LOGSTASH_RING_BUFFER_SIZE
+              value: "{{ .Values.global.logging.logstash.ringBufferSize }}"
             {{- end }}
             - name: POD_LABEL_SELECTOR
               value: "app.kubernetes.io/name=%s"
@@ -235,8 +239,28 @@ spec:
               value: "{{ .Values.policies.config.cleanup.timerThreshold }}"
             - name: CLEANUP_CREDITS_PER_BATCH
               value: "{{ .Values.policies.config.cleanup.creditsPerBatch }}"
+            - name: CLEANUP_READS_PER_QUERY
+              value: "{{ .Values.policies.config.cleanup.readsPerQuery }}"
+            - name: CLEANUP_WRITES_PER_CREDIT
+              value: "{{ .Values.policies.config.cleanup.writesPerCredit }}"
             - name: CLEANUP_DELETE_FINAL_DELETED_SNAPSHOT
               value: "{{ .Values.policies.config.cleanup.deleteFinalDeletedSnapshot }}"
+            - name: MONGODB_READ_JOURNAL_SHOULD_CREATE_ADDITIONAL_SNAPSHOT_AGGREGATION_INDEX_PID_ID
+              value: "{{ .Values.policies.config.readJournal.indexes.createSnapshotAggregationIndexPidId }}"
+            - name: MONGODB_READ_JOURNAL_SHOULD_CREATE_ADDITIONAL_SNAPSHOT_AGGREGATION_INDEX_PID_SN
+              value: "{{ .Values.policies.config.readJournal.indexes.createSnapshotAggregationIndexPidSn }}"
+            - name: MONGODB_READ_JOURNAL_SHOULD_CREATE_ADDITIONAL_SNAPSHOT_AGGREGATION_INDEX_PID_SN_ID
+              value: "{{ .Values.policies.config.readJournal.indexes.createSnapshotAggregationIndexPidSnId }}"
+            - name: MONGODB_READ_JOURNAL_HINT_NAME_FILTER_PIDS_THAT_DOESNT_CONTAIN_TAG_IN_NEWEST_ENTRY
+              value: {{ .Values.policies.config.readJournal.hints.filterPidsThatDoesntContainTagInNewestEntry | default "null" | quote }}
+            - name: MONGODB_READ_JOURNAL_HINT_NAME_LIST_LATEST_JOURNAL_ENTRIES
+              value: {{ .Values.policies.config.readJournal.hints.listLatestJournalEntries | default "null" | quote }}
+            - name: MONGODB_READ_JOURNAL_HINT_NAME_LIST_NEWEST_ACTIVE_SNAPSHOT_BY_BATCH_PID_ID
+              value: {{ .Values.policies.config.readJournal.hints.listNewestActiveSnapshotsByBatchPidId | default "null" | quote }}
+            - name: MONGODB_READ_JOURNAL_HINT_NAME_LIST_NEWEST_ACTIVE_SNAPSHOT_BY_BATCH_PID
+              value: {{ .Values.policies.config.readJournal.hints.listNewestActiveSnapshotsByBatchPid | default "null" | quote }}
+            - name: MONGODB_READ_JOURNAL_HINT_NAME_LIST_NEWEST_ACTIVE_SNAPSHOT_BY_BATCH_ID
+              value: {{ .Values.policies.config.readJournal.hints.listNewestActiveSnapshotsByBatchId | default "null" | quote }}
             - name: POLICIES_PERSISTENCE_PING_RATE_FREQUENCY
               value: "{{ .Values.policies.config.persistence.pingRate.frequency }}"
             - name: POLICIES_PERSISTENCE_PING_RATE_ENTITIES
@@ -245,9 +269,30 @@ spec:
               value: "{{ .Values.policies.config.persistence.snapshots.interval }}"
             - name: POLICY_SNAPSHOT_THRESHOLD
               value: "{{ .Values.policies.config.persistence.snapshots.threshold }}"
+            - name: DITTO_POLICIES_ENFORCER_CACHE_ENABLED
+              value: "{{ .Values.policies.config.policiesEnforcer.cache.enabled }}"
+            - name: DITTO_POLICIES_ENFORCER_CACHE_MAX_SIZE
+              value: "{{ .Values.policies.config.policiesEnforcer.cache.maxSize }}"
+            - name: DITTO_POLICIES_ENFORCER_CACHE_EXPIRE_AFTER_WRITE
+              value: "{{ .Values.policies.config.policiesEnforcer.cache.expireAfterWrite }}"
+            - name: DITTO_POLICIES_ENFORCER_CACHE_EXPIRE_AFTER_ACCESS
+              value: "{{ .Values.policies.config.policiesEnforcer.cache.expireAfterAccess }}"
             {{- if .Values.policies.extraEnv }}
               {{- toYaml .Values.policies.extraEnv | nindent 12 }}
             {{- end }}
+            - name: MONGO_DB_USE_AWS_IAM_ROLE
+              value: "{{ printf "%t" .Values.dbconfig.policies.useAwsIamRole }}"
+            {{- if .Values.dbconfig.policies.useAwsIamRole }}
+            - name: MONGO_DB_AWS_REGION
+              value: "{{ .Values.dbconfig.policies.awsRegion }}"
+            - name: MONGO_DB_AWS_ROLE_ARN
+              value: "{{ .Values.dbconfig.policies.awsRoleArn }}"
+            - name: AWS_WEB_IDENTITY_TOKEN_FILE
+              value: "/var/run/secrets/eks.amazonaws.com/serviceaccount/token"
+            - name: MONGO_DB_AWS_SESSION_NAME
+              value: "{{ .Values.dbconfig.policies.awsSessionName }}"
+            {{- end }}
+
           ports:
             - name: http
               containerPort: 8080
@@ -291,6 +336,11 @@ spec:
             - name: ditto-log-files-directory
               mountPath: /var/log/ditto
             {{- end }}
+            {{- if .Values.policies.extraVolumeMounts }}
+              {{- toYaml .Values.policies.extraVolumeMounts | nindent 12 }}
+            {{- end }}
+            - name: ditto-heap-dumps
+              mountPath: /opt/ditto/dumps
           resources:
             requests:
               cpu: {{ mulf .Values.policies.resources.cpu 1000 }}m
@@ -337,4 +387,9 @@ spec:
             path: /var/log/ditto
             type: DirectoryOrCreate
         {{- end }}
+        {{- if .Values.policies.extraVolumes }}
+          {{- toYaml .Values.policies.extraVolumes | nindent 8 }}
+        {{- end}}
+        - name: ditto-heap-dumps
+          emptyDir: {}
 {{- end }}

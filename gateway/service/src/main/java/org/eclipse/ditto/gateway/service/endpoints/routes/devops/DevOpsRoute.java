@@ -99,12 +99,14 @@ public final class DevOpsRoute extends AbstractRoute {
      * @return the {@code /devops} route.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public Route buildDevOpsRoute(final RequestContext ctx, final Map<String, String> queryParameters) {
+    public Route buildDevOpsRoute(final RequestContext ctx, final String correlationId,
+            final Map<String, String> queryParameters) {
         checkNotNull(ctx, "ctx");
         checkNotNull(queryParameters, "queryParameters");
 
         return rawPathPrefix(PathMatchers.slash().concat(PATH_DEVOPS), () ->  // /devops
                 devOpsAuthenticationDirective.authenticateDevOps(DevOpsOAuth2AuthenticationDirective.REALM_DEVOPS,
+                        DittoHeaders.newBuilder().correlationId(correlationId).build(),
                         concat(
                                 rawPathPrefix(PathMatchers.slash().concat(PATH_LOGGING),
                                         () -> // /devops/logging

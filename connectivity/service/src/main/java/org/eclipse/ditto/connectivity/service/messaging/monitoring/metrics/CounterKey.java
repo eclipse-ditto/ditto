@@ -18,6 +18,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.MetricDirection;
@@ -26,6 +27,7 @@ import org.eclipse.ditto.connectivity.model.MetricType;
 /**
  * Identifies a counter by connection id, metric direction, metric type and address.
  */
+@Immutable
 public final class CounterKey {
 
     private final ConnectionId connectionId;

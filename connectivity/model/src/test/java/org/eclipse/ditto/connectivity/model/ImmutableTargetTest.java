@@ -13,9 +13,6 @@
 package org.eclipse.ditto.connectivity.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
@@ -82,16 +79,6 @@ public final class ImmutableTargetTest {
         EqualsVerifier.forClass(ImmutableTarget.class)
                 .usingGetClass()
                 .verify();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableTarget.class, areImmutable(),
-                provided(AuthorizationContext.class,
-                        FilteredTopic.class,
-                        HeaderMapping.class,
-                        AcknowledgementLabel.class,
-                        PayloadMapping.class).areAlsoImmutable());
     }
 
     @Test

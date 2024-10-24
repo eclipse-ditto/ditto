@@ -20,6 +20,7 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.gateway.api.GatewayJwtIssuerNotSupportedException;
 import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
@@ -33,30 +34,40 @@ import org.eclipse.ditto.policies.model.SubjectId;
 
 import com.typesafe.config.Config;
 
-import org.apache.pekko.actor.ActorSystem;
-
 /**
  * Implementation of {@link JwtAuthorizationSubjectsProvider} for Google JWTs.
  */
 @Immutable
 public final class DittoJwtAuthorizationSubjectsProvider implements JwtAuthorizationSubjectsProvider {
 
+    private static final String EXTENSION_CONFIG_KEY_ROLE = "role";
+
     private final JwtSubjectIssuersConfig jwtSubjectIssuersConfig;
 
     @SuppressWarnings("unused") //Loaded via reflection by PekkoExtension.
     public DittoJwtAuthorizationSubjectsProvider(final ActorSystem actorSystem, final Config extensionConfig) {
-        this(jwtSubjectIssuersConfig(actorSystem));
+        this(jwtSubjectIssuersConfig(actorSystem, extensionConfig));
     }
 
     private DittoJwtAuthorizationSubjectsProvider(final JwtSubjectIssuersConfig jwtSubjectIssuersConfig) {
         this.jwtSubjectIssuersConfig = checkNotNull(jwtSubjectIssuersConfig);
     }
 
-    private static JwtSubjectIssuersConfig jwtSubjectIssuersConfig(final ActorSystem actorSystem) {
+    private static JwtSubjectIssuersConfig jwtSubjectIssuersConfig(final ActorSystem actorSystem,
+            final Config extensionConfig) {
         final DefaultScopedConfig dittoScoped = DefaultScopedConfig.dittoScoped(actorSystem.settings().config());
-        final OAuthConfig oAuthConfig = DittoGatewayConfig.of(dittoScoped)
-                .getAuthenticationConfig()
-                .getOAuthConfig();
+        var role = extensionConfig.getString(EXTENSION_CONFIG_KEY_ROLE);
+        final OAuthConfig oAuthConfig;
+        if (role.equals("devops")) {
+            oAuthConfig = DittoGatewayConfig.of(dittoScoped)
+                    .getAuthenticationConfig()
+                    .getDevOpsConfig()
+                    .getOAuthConfig();
+        } else {
+            oAuthConfig = DittoGatewayConfig.of(dittoScoped)
+                    .getAuthenticationConfig()
+                    .getOAuthConfig();
+        }
         return JwtSubjectIssuersConfig.fromOAuthConfig(oAuthConfig);
     }
 

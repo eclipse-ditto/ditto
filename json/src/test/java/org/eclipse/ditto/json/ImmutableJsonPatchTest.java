@@ -15,9 +15,6 @@ package org.eclipse.ditto.json;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.json.JsonPatch.Operation.ADD;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.junit.Test;
 
@@ -31,13 +28,6 @@ public final class ImmutableJsonPatchTest {
     private static final JsonPatch.Operation OPERATION = ADD;
     private static final JsonPointer PATH = JsonFactory.newPointer("new");
     private static final JsonValue VALUE = JsonFactory.newValue(2);
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableJsonPatch.class,
-                areImmutable(),
-                provided(JsonPointer.class, JsonValue.class).areAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

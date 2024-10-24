@@ -14,7 +14,6 @@ package org.eclipse.ditto.connectivity.service;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -29,16 +28,12 @@ import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.Enforcement;
 import org.eclipse.ditto.connectivity.model.EnforcementFilter;
 import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
-import org.eclipse.ditto.placeholders.Placeholder;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Test;
-import org.mutabilitydetector.unittesting.AllowedReason;
-import org.mutabilitydetector.unittesting.MutabilityAssert;
-import org.mutabilitydetector.unittesting.MutabilityMatchers;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -46,14 +41,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Tests {@link SignalEnforcementFilter}.
  */
 public class SignalEnforcementFilterTest {
-
-    @Test
-    public void assertImmutability() {
-        MutabilityAssert.assertInstancesOf(SignalEnforcementFilter.class, MutabilityMatchers.areImmutable(),
-                AllowedReason.provided(Enforcement.class, Placeholder.class).areAlsoImmutable(),
-                assumingFields("filterPlaceholders").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements()
-        );
-    }
 
     @Test
     public void testHashCodeAndEquals() {

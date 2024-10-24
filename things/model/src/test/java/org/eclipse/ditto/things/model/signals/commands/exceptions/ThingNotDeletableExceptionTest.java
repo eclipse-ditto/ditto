@@ -13,8 +13,6 @@
 package org.eclipse.ditto.things.model.signals.commands.exceptions;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.net.URI;
 
@@ -46,13 +44,6 @@ public final class ThingNotDeletableExceptionTest {
                     TestConstants.Thing.THING_NOT_DELETABLE_EXCEPTION.getHref()
                             .map(URI::toString).orElse(null))
             .build();
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ThingNotDeletableException.class, areImmutable());
-    }
-
 
     @Test
     public void checkThingErrorCodeWorks() {

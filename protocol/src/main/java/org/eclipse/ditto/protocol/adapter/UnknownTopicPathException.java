@@ -17,6 +17,7 @@ import java.text.MessageFormat;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
@@ -32,6 +33,7 @@ import org.eclipse.ditto.protocol.TopicPath;
 /**
  * Thrown if a {@link org.eclipse.ditto.protocol.TopicPath} is not supported.
  */
+@Immutable
 @JsonParsableException(errorCode = UnknownTopicPathException.ERROR_CODE)
 public final class UnknownTopicPathException extends DittoRuntimeException implements ProtocolAdapterException {
 

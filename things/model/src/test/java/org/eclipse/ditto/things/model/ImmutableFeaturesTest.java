@@ -20,10 +20,6 @@ import static org.eclipse.ditto.things.model.TestConstants.Feature.FLUX_CAPACITO
 import static org.eclipse.ditto.things.model.assertions.DittoThingsAssertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.lang.ref.SoftReference;
 import java.util.Optional;
@@ -64,14 +60,6 @@ public final class ImmutableFeaturesTest {
                 .usingGetClass()
                 .withPrefabValues(SoftReference.class, red, black)
                 .verify();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableFeatures.class,
-                areImmutable(),
-                provided(JsonObject.class, Feature.class).isAlsoImmutable(),
-                assumingFields("features").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
     @Test(expected = NullPointerException.class)

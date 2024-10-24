@@ -13,8 +13,18 @@
  */
 
 import { EventSourcePolyfill } from 'event-source-polyfill';
+import {
+  devopsBearerToken,
+  devopsOidcBearerToken,
+  devopsUsernamePassword,
+  mainBearerToken,
+  mainOidcBearerToken,
+  mainUsernamePassword
+} from './environments/authorization';
 import * as Environments from './environments/environments.js';
+import { AuthMethod } from './environments/environments.js';
 import * as Utils from './utils.js';
+import { showError } from './utils.js';
 
 
 const config = {
@@ -278,31 +288,82 @@ let authHeaderValue;
  * Activates authorization header for api calls
  * @param {boolean} forDevOps if true, the credentials for the dev ops api will be used.
  */
-export function setAuthHeader(forDevOps) {
+export function setAuthHeader(forDevOps: boolean) {
+  authHeaderValue = undefined;
+  let environment = Environments.current();
   if (forDevOps) {
-    if (Environments.current().devopsAuth === 'basic') {
-      authHeaderKey = 'Authorization';
-      authHeaderValue = 'Basic ' + window.btoa(Environments.current().usernamePasswordDevOps);
-    } else if (Environments.current().devopsAuth === 'bearer') {
-      authHeaderKey = 'Authorization';
-      authHeaderValue ='Bearer ' + Environments.current().bearerDevOps;
+    let devopsAuthMethod = environment.authSettings?.devops?.method;
+    if (devopsAuthMethod === AuthMethod.basic) {
+      let devopsUserPass = devopsUsernamePassword();
+      if (devopsUserPass) {
+        authHeaderKey = 'Authorization';
+        authHeaderValue = 'Basic ' + window.btoa(devopsUserPass);
+      } else {
+        showError('DevOps Username/password missing');
+        document.getElementById('authorize').click();
+      }
+    } else if (devopsAuthMethod === AuthMethod.bearer) {
+      let devopsToken = devopsBearerToken();
+      if (devopsToken) {
+        authHeaderKey = 'Authorization';
+        authHeaderValue = 'Bearer ' + devopsToken;
+      } else {
+        showError('DevOps Bearer token missing');
+        document.getElementById('authorize').click();
+      }
+    } else if (devopsAuthMethod === AuthMethod.oidc) {
+      let devopsOidcToken = devopsOidcBearerToken();
+      if (devopsOidcToken) {
+        authHeaderKey = 'Authorization';
+        authHeaderValue = 'Bearer ' + devopsOidcToken;
+      } else {
+        showError('DevOps SSO (Bearer) token missing');
+        document.getElementById('authorize').click();
+      }
     } else {
-      authHeaderKey = 'Basic';
-      authHeaderValue = '';
+      authHeaderKey = 'Authorization';
+      authHeaderValue = 'Basic';
     }
   } else {
-    if (Environments.current().mainAuth === 'basic') {
-      authHeaderKey = 'Authorization';
-      authHeaderValue = 'Basic ' + window.btoa(Environments.current().usernamePassword);
-    } else if (Environments.current().mainAuth === 'pre') {
-      authHeaderKey = 'x-ditto-pre-authenticated';
-      authHeaderValue = Environments.current().dittoPreAuthenticatedUsername;
-    } else if (Environments.current().mainAuth === 'bearer') {
-      authHeaderKey = 'Authorization';
-      authHeaderValue ='Bearer ' + Environments.current().bearer;
+    let mainAuthMethod = environment.authSettings?.main?.method;
+    if (mainAuthMethod === AuthMethod.basic) {
+      let mainUserPass = mainUsernamePassword();
+      if (mainUserPass) {
+        authHeaderKey = 'Authorization';
+        authHeaderValue = 'Basic ' + window.btoa(mainUserPass);
+      } else {
+        showError('Username/password missing');
+        document.getElementById('authorize').click();
+      }
+    } else if (mainAuthMethod === AuthMethod.pre) {
+      if (environment.authSettings.main.pre.dittoPreAuthenticatedUsername) {
+        authHeaderKey = 'x-ditto-pre-authenticated';
+        authHeaderValue = environment.authSettings.main.pre.dittoPreAuthenticatedUsername;
+      } else {
+        showError('Pre-Authenticated username missing');
+        document.getElementById('authorize').click();
+      }
+    } else if (mainAuthMethod === AuthMethod.bearer) {
+      let mainToken = mainBearerToken();
+      if (mainToken) {
+        authHeaderKey = 'Authorization';
+        authHeaderValue = 'Bearer ' + mainToken;
+      } else {
+        showError('Bearer token missing');
+        document.getElementById('authorize').click();
+      }
+    } else if (mainAuthMethod === AuthMethod.oidc) {
+      let mainOidcToken = mainOidcBearerToken();
+      if (mainOidcToken) {
+        authHeaderKey = 'Authorization';
+        authHeaderValue = 'Bearer ' + mainOidcToken;
+      } else {
+        showError('SSO (Bearer) token missing');
+        document.getElementById('authorize').click();
+      }
     } else {
-      authHeaderKey = 'Basic';
-      authHeaderValue = '';
+      authHeaderKey = 'Authorization';
+      authHeaderValue = 'Basic';
     }
   }
 }
@@ -325,8 +386,8 @@ function showDittoError(dittoErr, response) {
 
 /**
  * Calls the Ditto api
- * @param {String} method 'POST', 'GET', 'DELETE', etc.
- * @param {String} path of the Ditto call (e.g. '/things')
+ * @param {string} method 'POST', 'GET', 'DELETE', etc.
+ * @param {string} path of the Ditto call (e.g. '/things')
  * @param {Object} body payload for the api call
  * @param {Object} additionalHeaders object with additional header fields
  * @param {boolean} returnHeaders request full response instead of json content
@@ -334,69 +395,77 @@ function showDittoError(dittoErr, response) {
  * @param {boolean} returnErrorJson default: false. Set true to return the response of a failed HTTP call as JSON
  * @return {Object} result as json object
  */
-export async function callDittoREST(method,
-                                    path,
+export async function callDittoREST(method: string,
+                                    path: string,
                                     body = null,
                                     additionalHeaders = null,
                                     returnHeaders = false,
                                     devOps = false,
                                     returnErrorJson = false): Promise<any> {
-  let response;
-  const contentType = method === 'PATCH' ? 'application/merge-patch+json' : 'application/json';
-  try {
-    response = await fetch(Environments.current().api_uri + (devOps ? '' : '/api/2') + path, {
-      method: method,
-      headers: {
-        'Content-Type': contentType,
-        [authHeaderKey]: authHeaderValue,
-        ...additionalHeaders,
-      },
-      ...(method !== 'GET' && method !== 'DELETE' && body !== undefined) && {body: JSON.stringify(body)},
-    });
-  } catch (err) {
-    Utils.showError(err);
-    throw err;
-  }
-  if (!response.ok) {
-    if (returnErrorJson) {
+  if (authHeaderValue) {
+    let response;
+    const contentType = method === 'PATCH' ? 'application/merge-patch+json' : 'application/json';
+    try {
+      response = await fetch(Environments.current().api_uri + (devOps ? '' : '/api/2') + path, {
+        method: method,
+        headers: {
+          'Content-Type': contentType,
+          [authHeaderKey]: authHeaderValue,
+          ...additionalHeaders,
+        },
+        ...(method !== 'GET' && method !== 'DELETE' && body !== undefined) && {body: JSON.stringify(body)},
+      });
+    } catch (err) {
+      Utils.showError(err);
+      throw err;
+    }
+    if (!response.ok) {
+      if (returnErrorJson) {
+        if (returnHeaders) {
+          return response;
+        } else {
+          return response.json().then((dittoErr) => {
+            showDittoError(dittoErr, response);
+            return dittoErr;
+          });
+        }
+      } else {
+        response.json()
+          .then((dittoErr) => {
+            showDittoError(dittoErr, response);
+          })
+          .catch((err) => {
+            Utils.showError('No error details from Ditto', response.statusText, response.status);
+          });
+        throw new Error('An error occurred: ' + response.status);
+      }
+    }
+    if (response.status !== 204) {
       if (returnHeaders) {
         return response;
       } else {
-        return response.json().then((dittoErr) => {
-          showDittoError(dittoErr, response);
-          return dittoErr;
-        });
+        return response.json();
       }
     } else {
-      response.json()
-        .then((dittoErr) => {
-          showDittoError(dittoErr, response);
-        })
-        .catch((err) => {
-          Utils.showError('No error details from Ditto', response.statusText, response.status);
-        });
-      throw new Error('An error occurred: ' + response.status);
-    }
-  }
-  if (response.status !== 204) {
-    if (returnHeaders) {
-      return response;
-    } else {
-      return response.json();
+      return null;
     }
   } else {
-    return null;
+    throw new Error("Authentication missing");
   }
 }
 
 export function getEventSource(thingIds, urlParams) {
-  return new EventSourcePolyfill(
+  if (authHeaderValue) {
+    return new EventSourcePolyfill(
       `${Environments.current().api_uri}/api/2/things?ids=${thingIds}${urlParams ? '&' + urlParams : ''}`, {
         headers: {
           [authHeaderKey]: authHeaderValue,
         },
       },
-  );
+    );
+  } else {
+    throw new Error("Authentication missing");
+  }
 }
 
 /**
@@ -409,7 +478,6 @@ export function getEventSource(thingIds, urlParams) {
  * @return {*} promise to the result
  */
 export async function callConnectionsAPI(operation, successCallback, connectionId = '', connectionJson = null, command = null) {
-  Utils.assert((env() !== 'things' || Environments.current().solutionId), 'No solutionId configured in environment');
   const params = config[env()][operation];
   let response;
   let body;
@@ -424,19 +492,23 @@ export async function callConnectionsAPI(operation, successCallback, connectionI
     body = command;
   }
 
-  try {
-    response = await fetch(Environments.current().api_uri + params.path.replace('{{solutionId}}',
-        Environments.current().solutionId).replace('{{connectionId}}', connectionId), {
-      method: params.method,
-      headers: {
-        'Content-Type': operation === 'connectionCommand' ? 'text/plain' : 'application/json',
-        [authHeaderKey]: authHeaderValue,
-      },
-      ...(body) && {body: body},
-    });
-  } catch (err) {
-    Utils.showError(err);
-    throw err;
+  if (authHeaderValue) {
+    try {
+      response = await fetch(Environments.current().api_uri + params.path
+        .replace('{{connectionId}}', connectionId), {
+        method: params.method,
+        headers: {
+          'Content-Type': operation === 'connectionCommand' ? 'text/plain' : 'application/json',
+          [authHeaderKey]: authHeaderValue,
+        },
+        ...(body) && {body: body},
+      });
+    } catch (err) {
+      Utils.showError(err);
+      throw err;
+    }
+  } else {
+    throw new Error("Authentication missing");
   }
 
   if (!response.ok) {
@@ -479,9 +551,7 @@ export async function callConnectionsAPI(operation, successCallback, connectionI
 }
 
 export function env() {
-  if (Environments.current().api_uri.startsWith('https://things')) {
-    return 'things';
-  } else if (Environments.current().ditto_version === '2') {
+  if (Environments.current().ditto_version === 2) {
     return 'ditto_2';
   } else {
     return 'ditto_3';

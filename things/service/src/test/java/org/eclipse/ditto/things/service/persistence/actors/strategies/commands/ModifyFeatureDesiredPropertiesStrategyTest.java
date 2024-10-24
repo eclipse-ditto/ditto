@@ -14,9 +14,8 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.common.DittoSystemProperties;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -36,6 +35,8 @@ import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.typesafe.config.ConfigFactory;
 
 /**
  * Unit test for {@link ModifyFeatureDesiredPropertiesStrategy}.
@@ -58,12 +59,8 @@ public final class ModifyFeatureDesiredPropertiesStrategyTest extends AbstractCo
 
     @Before
     public void setUp() {
-        underTest = new ModifyFeatureDesiredPropertiesStrategy();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ModifyFeatureDesiredPropertiesStrategy.class, areImmutable());
+        final ActorSystem system = ActorSystem.create("test", ConfigFactory.load("test"));
+        underTest = new ModifyFeatureDesiredPropertiesStrategy(system);
     }
 
     @Test
@@ -100,7 +97,7 @@ public final class ModifyFeatureDesiredPropertiesStrategyTest extends AbstractCo
                 ModifyFeatureDesiredProperties.of(context.getState(), featureId, modifiedFeatureDesiredProperties,
                         DittoHeaders.empty());
 
-        assertModificationResult(underTest, THING_V2.setFeature(featureWithoutProperties), command,
+        assertStagedModificationResult(underTest, THING_V2.setFeature(featureWithoutProperties), command,
                 FeatureDesiredPropertiesCreated.class,
                 ETagTestUtils.modifyFeatureDesiredPropertiesResponse(context.getState(), command.getFeatureId(),
                         command.getDesiredProperties(), command.getDittoHeaders(), true));
@@ -113,7 +110,7 @@ public final class ModifyFeatureDesiredPropertiesStrategyTest extends AbstractCo
                 ModifyFeatureDesiredProperties.of(context.getState(), featureId, modifiedFeatureDesiredProperties,
                         DittoHeaders.empty());
 
-        assertModificationResult(underTest, THING_V2, command,
+        assertStagedModificationResult(underTest, THING_V2, command,
                 FeatureDesiredPropertiesModified.class,
                 ETagTestUtils.modifyFeatureDesiredPropertiesResponse(context.getState(), command.getFeatureId(),
                         modifiedFeatureDesiredProperties, command.getDittoHeaders(), false));

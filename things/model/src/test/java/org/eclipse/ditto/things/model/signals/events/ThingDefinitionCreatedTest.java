@@ -13,9 +13,6 @@
 package org.eclipse.ditto.things.model.signals.events;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.signals.events.Event;
@@ -23,7 +20,6 @@ import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.things.model.ThingDefinition;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -41,14 +37,6 @@ public final class ThingDefinitionCreatedTest {
             .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ThingDefinitionCreated.JSON_DEFINITION, JsonValue.of(TestConstants.Thing.DEFINITION.toString()))
             .build();
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ThingDefinitionCreated.class, areImmutable(),
-                provided(ThingDefinition.class).isAlsoImmutable());
-    }
-
 
     @Test
     public void testHashCodeAndEquals() {

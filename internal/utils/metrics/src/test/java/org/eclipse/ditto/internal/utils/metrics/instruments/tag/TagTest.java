@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Contributors to the Eclipse Foundation
+ * Copyright (c) 2024 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -15,8 +15,6 @@ package org.eclipse.ditto.internal.utils.metrics.instruments.tag;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.junit.Test;
 
@@ -29,11 +27,6 @@ public final class TagTest {
 
     private static final String METRICS_TAG_KEY = "myKey";
     private static final String METRICS_TAG_VALUE = "myValue";
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(Tag.class, areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

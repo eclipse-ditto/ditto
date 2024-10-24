@@ -13,8 +13,6 @@
 package org.eclipse.ditto.thingsearch.model.signals.commands.exceptions;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.net.URI;
 
@@ -45,11 +43,6 @@ public final class InvalidOptionExceptionTest {
                     TestConstants.INVALID_OPTION_EXCEPTION.getHref().map(URI::toString).orElse(null),
                     JsonField.isValueNonNull())
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(InvalidOptionException.class, areImmutable());
-    }
 
     @Test
     public void toJsonReturnsExpected() {

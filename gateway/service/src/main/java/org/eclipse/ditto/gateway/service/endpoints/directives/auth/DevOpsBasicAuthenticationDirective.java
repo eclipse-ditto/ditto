@@ -20,20 +20,21 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.function.Function;
 
-import org.eclipse.ditto.gateway.service.util.config.security.DevOpsConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import org.apache.pekko.http.javadsl.server.Directives;
 import org.apache.pekko.http.javadsl.server.Route;
 import org.apache.pekko.http.javadsl.server.directives.SecurityDirectives;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.gateway.service.util.config.security.DevOpsConfig;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 
 /**
  * Custom Pekko Http directive performing basic auth for a defined {@link #USER_DEVOPS devops user}.
  */
 public final class DevOpsBasicAuthenticationDirective implements DevopsAuthenticationDirective {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(DevOpsBasicAuthenticationDirective.class);
+    private static final ThreadSafeDittoLogger LOGGER =
+            DittoLoggerFactory.getThreadSafeLogger(DevOpsBasicAuthenticationDirective.class);
 
     private static final String USER_DEVOPS = "devops";
 
@@ -65,15 +66,9 @@ public final class DevOpsBasicAuthenticationDirective implements DevopsAuthentic
         return new DevOpsBasicAuthenticationDirective(devOpsConfig.getPassword(), devOpsConfig.getStatusPassword());
     }
 
-    /**
-     * Authenticates the devops resources with the chosen authentication method.
-     *
-     * @param realm the realm to apply.
-     * @param inner the inner route, which will be performed on successful authentication.
-     * @return the inner route wrapped with authentication.
-     */
-    public Route authenticateDevOps(final String realm, final Route inner) {
-        LOGGER.debug("DevOps basic authentication is enabled for {}.", realm);
+    @Override
+    public Route authenticateDevOps(final String realm, final DittoHeaders dittoHeaders, final Route inner) {
+        LOGGER.withCorrelationId(dittoHeaders).debug("DevOps basic authentication is enabled for {}.", realm);
         return Directives.authenticateBasic(realm, new BasicAuthenticator(passwords), userName -> inner);
     }
 

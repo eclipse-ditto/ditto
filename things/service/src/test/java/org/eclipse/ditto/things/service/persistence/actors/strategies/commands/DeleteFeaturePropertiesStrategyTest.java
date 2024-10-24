@@ -15,9 +15,8 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 import static org.eclipse.ditto.things.model.TestConstants.Feature.FLUX_CAPACITOR;
 import static org.eclipse.ditto.things.model.TestConstants.Feature.FLUX_CAPACITOR_ID;
 import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
@@ -29,6 +28,8 @@ import org.eclipse.ditto.things.model.signals.events.FeaturePropertiesDeleted;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.typesafe.config.ConfigFactory;
+
 /**
  * Unit test for {@link DeleteFeaturePropertiesStrategy}.
  */
@@ -38,12 +39,8 @@ public final class DeleteFeaturePropertiesStrategyTest extends AbstractCommandSt
 
     @Before
     public void setUp() {
-        underTest = new DeleteFeaturePropertiesStrategy();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DeleteFeaturePropertiesStrategy.class, areImmutable());
+        final ActorSystem system = ActorSystem.create("test", ConfigFactory.load("test"));
+        underTest = new DeleteFeaturePropertiesStrategy(system);
     }
 
     @Test
@@ -53,7 +50,7 @@ public final class DeleteFeaturePropertiesStrategyTest extends AbstractCommandSt
         final DeleteFeatureProperties command =
                 DeleteFeatureProperties.of(context.getState(), featureId, DittoHeaders.empty());
 
-        assertModificationResult(underTest, THING_V2, command,
+        assertStagedModificationResult(underTest, THING_V2, command,
                 FeaturePropertiesDeleted.class,
                 DeleteFeaturePropertiesResponse.of(context.getState(), featureId, command.getDittoHeaders()));
     }

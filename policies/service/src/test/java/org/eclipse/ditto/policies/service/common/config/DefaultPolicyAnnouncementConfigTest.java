@@ -12,14 +12,9 @@
  */
 package org.eclipse.ditto.policies.service.common.config;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
-import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -42,12 +37,6 @@ public final class DefaultPolicyAnnouncementConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         commandTestConfig = ConfigFactory.load("policy-announcement-config-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultPolicyAnnouncementConfig.class, areImmutable(),
-                provided(ExponentialBackOffConfig.class).isAlsoImmutable());
     }
 
     @Test

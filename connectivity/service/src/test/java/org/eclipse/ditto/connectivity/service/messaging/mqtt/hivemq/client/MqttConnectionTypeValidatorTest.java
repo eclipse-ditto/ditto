@@ -14,8 +14,6 @@ package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.connectivity.model.Connection;
@@ -34,11 +32,6 @@ import org.mockito.Mockito;
 public final class MqttConnectionTypeValidatorTest {
 
     public static final class GeneralFunctionalityTest {
-
-        @Test
-        public void assertImmutability() {
-            assertInstancesOf(MqttConnectionTypeValidator.class, areImmutable());
-        }
 
         @Test
         public void assertThatMqttConnectionTypeWithNullConnectionThrowsException() {

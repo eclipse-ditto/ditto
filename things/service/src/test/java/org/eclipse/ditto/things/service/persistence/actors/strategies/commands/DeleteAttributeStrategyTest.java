@@ -13,9 +13,8 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
@@ -31,6 +30,8 @@ import org.eclipse.ditto.things.model.signals.events.AttributeDeleted;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.typesafe.config.ConfigFactory;
+
 /**
  * Unit test for {@link DeleteAttributeStrategy}.
  */
@@ -40,12 +41,8 @@ public final class DeleteAttributeStrategyTest extends AbstractCommandStrategyTe
 
     @Before
     public void setUp() {
-        underTest = new DeleteAttributeStrategy();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DeleteAttributeStrategy.class, areImmutable());
+        final ActorSystem system = ActorSystem.create("test", ConfigFactory.load("test"));
+        underTest = new DeleteAttributeStrategy(system);
     }
 
     @Test
@@ -54,7 +51,7 @@ public final class DeleteAttributeStrategyTest extends AbstractCommandStrategyTe
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final DeleteAttribute command = DeleteAttribute.of(context.getState(), attrPointer, DittoHeaders.empty());
 
-        assertModificationResult(underTest, THING_V2, command,
+        assertStagedModificationResult(underTest, THING_V2, command,
                 AttributeDeleted.class,
                 DeleteAttributeResponse.of(context.getState(),
                         attrPointer, command.getDittoHeaders()));

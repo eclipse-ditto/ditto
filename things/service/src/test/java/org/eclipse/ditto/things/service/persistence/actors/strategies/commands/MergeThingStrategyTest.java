@@ -15,11 +15,10 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.UUID;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.json.JsonObject;
@@ -36,6 +35,8 @@ import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.typesafe.config.ConfigFactory;
+
 /**
  * Unit test for {@link MergeThingStrategy}.
  */
@@ -45,12 +46,8 @@ public final class MergeThingStrategyTest extends AbstractCommandStrategyTest {
 
     @Before
     public void setUp() {
-        underTest = new MergeThingStrategy();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(MergeThingStrategy.class, areImmutable());
+        final ActorSystem system = ActorSystem.create("test", ConfigFactory.load("test"));
+        underTest = new MergeThingStrategy(system);
     }
 
     @Test
@@ -73,7 +70,7 @@ public final class MergeThingStrategyTest extends AbstractCommandStrategyTest {
         final MergeThing mergeThing = MergeThing.of(thingId, path, thingJson, DittoHeaders.empty());
         final MergeThingResponse expectedCommandResponse =
                 ETagTestUtils.mergeThingResponse(existing, path, mergeThing.getDittoHeaders());
-        assertModificationResult(underTest, existing, mergeThing, ThingMerged.class, expectedCommandResponse);
+        assertStagedModificationResult(underTest, existing, mergeThing, ThingMerged.class, expectedCommandResponse);
     }
 
     @Test

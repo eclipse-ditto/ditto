@@ -31,7 +31,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 /**
- * Java representation for a List of {@link org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatcher}.
+ * Java representation for a List of {@link EntityTagMatcher}.
  */
 @Immutable
 public final class EntityTagMatchers implements Iterable<EntityTagMatcher> {

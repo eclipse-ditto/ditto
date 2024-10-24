@@ -19,26 +19,22 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.Done;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.javadsl.BroadcastHub;
+import org.apache.pekko.stream.javadsl.RestartSource;
+import org.apache.pekko.stream.javadsl.Source;
 import org.bson.Document;
 import org.eclipse.ditto.internal.utils.pekko.streaming.TimestampPersistence;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.mongodb.MongoCommandException;
 import com.mongodb.client.model.CreateCollectionOptions;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
-
-import org.apache.pekko.Done;
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.japi.Pair;
-import org.apache.pekko.japi.pf.PFBuilder;
-import org.apache.pekko.stream.Attributes;
-import org.apache.pekko.stream.Materializer;
-import org.apache.pekko.stream.javadsl.BroadcastHub;
-import org.apache.pekko.stream.javadsl.RestartSource;
-import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * MongoDB implementation of {@link TimestampPersistence}.
@@ -187,21 +183,13 @@ public final class MongoTimestampPersistence implements TimestampPersistence {
                 .sizeInBytes(cappedCollectionSizeInBytes)
                 .maxDocuments(1);
 
-        return Source.lazySource(
-                () -> Source.fromPublisher(database.createCollection(collectionName, collectionOptions)))
-                .mapMaterializedValue(whatever -> NotUsed.getInstance())
-                .map(nullValue -> Done.done())
-                .withAttributes(Attributes.inputBuffer(1, 1))
-                .recoverWithRetries(1, new PFBuilder<Throwable, Source<Done, NotUsed>>()
-                        .match(MongoCommandException.class,
-                                MongoTimestampPersistence::isCollectionAlreadyExistsError,
-                                error -> Source.single(Done.done()))
-                        .build());
-
-    }
-
-    private static boolean isCollectionAlreadyExistsError(final MongoCommandException error) {
-        return error.getErrorCode() == COLLECTION_ALREADY_EXISTS_ERROR_CODE;
+        return Source.fromPublisher(database.listCollectionNames())
+                .filter(name -> name.equals(collectionName))
+                .map(name -> Done.done())
+                .orElse(
+                        Source.fromPublisher(database.createCollection(collectionName, collectionOptions))
+                                .map(aVoid -> Done.done())
+                );
     }
 
 }

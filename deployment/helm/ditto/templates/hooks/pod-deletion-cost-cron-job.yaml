@@ -38,10 +38,18 @@ spec:
           {{- if .Values.rbac.enabled }}
           serviceAccountName: {{ template "ditto.serviceAccountName" . }}
           {{- end }}
+          {{- with .Values.global.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           restartPolicy: Never
           containers:
             - name: {{ .Chart.Name }}-pod-deletion-cost-cronjob
-              image: "public.ecr.aws/h0h9t7p1/alpine-bash-curl-jq:latest"
+              securityContext:
+                runAsUser: {{ .Values.global.podDeletionCostPatching.user }}
+                runAsGroup: {{  .Values.global.podDeletionCostPatching.group }}
+              image: {{ printf "%s:%s" .Values.global.podDeletionCostPatching.image.repository ( default .Values.global.podDeletionCostPatching.image.tag "latest" ) }}
+              imagePullPolicy: {{ .Values.global.podDeletionCostPatching.image.pullPolicy }}
               command:
                 - /bin/sh
                 - -c

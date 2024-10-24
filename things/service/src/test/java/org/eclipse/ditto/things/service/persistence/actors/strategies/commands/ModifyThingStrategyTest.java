@@ -13,11 +13,10 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Instant;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.Thing;
@@ -29,6 +28,8 @@ import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.typesafe.config.ConfigFactory;
+
 /**
  * Unit test for {@link ModifyThingStrategy}.
  */
@@ -39,12 +40,8 @@ public final class ModifyThingStrategyTest extends AbstractCommandStrategyTest {
 
     @Before
     public void setUp() {
-        underTest = new ModifyThingStrategy();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ModifyThingStrategy.class, areImmutable());
+        final ActorSystem system = ActorSystem.create("test", ConfigFactory.load("test"));
+        underTest = new ModifyThingStrategy(system);
     }
 
     @Test
@@ -64,7 +61,7 @@ public final class ModifyThingStrategyTest extends AbstractCommandStrategyTest {
 
         final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, DittoHeaders.empty());
 
-        assertModificationResult(underTest, existing, modifyThing,
+        assertStagedModificationResult(underTest, existing, modifyThing,
                 ThingModified.class, ETagTestUtils.modifyThingResponse(existing, thing, modifyThing.getDittoHeaders(), false));
     }
 

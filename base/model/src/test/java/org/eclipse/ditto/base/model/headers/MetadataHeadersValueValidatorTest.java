@@ -15,8 +15,6 @@ package org.eclipse.ditto.base.model.headers;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.base.model.headers.metadata.MetadataHeader;
@@ -29,14 +27,9 @@ import org.eclipse.ditto.json.JsonValue;
 import org.junit.Test;
 
 /**
- * Unit test for {@link org.eclipse.ditto.base.model.headers.MetadataHeadersValueValidator}.
+ * Unit test for {@link MetadataHeadersValueValidator}.
  */
 public final class MetadataHeadersValueValidatorTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(MetadataHeadersValueValidator.class, areImmutable());
-    }
 
     @Test
     public void validateValidMetadataHeadersCharSequence() {

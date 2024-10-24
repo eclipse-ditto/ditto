@@ -19,6 +19,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 
 import com.typesafe.config.Config;
@@ -28,7 +30,8 @@ import com.typesafe.config.ConfigRenderOptions;
 /**
  * This class is the default implementation of Pekko's {@link org.apache.pekko.cluster.ddata.Replicator} config.
  */
-class DefaultPekkoReplicatorConfig implements PekkoReplicatorConfig {
+@Immutable
+final class DefaultPekkoReplicatorConfig implements PekkoReplicatorConfig {
 
     private static final String CONFIG_PATH = "pekko-distributed-data";
 

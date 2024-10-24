@@ -12,11 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.mapping;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import org.junit.Test;
-import org.mutabilitydetector.unittesting.AllowedReason;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -24,12 +20,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Unit test for {@link DefaultMessageMapperConfiguration}.
  */
 public final class DefaultMessageMapperConfigurationTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultMessageMapperConfiguration.class, areImmutable(),
-                AllowedReason.provided(MergedJsonObjectMap.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

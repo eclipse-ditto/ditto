@@ -13,6 +13,7 @@
 package org.eclipse.ditto.base.model.entity.id;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
@@ -22,6 +23,7 @@ import org.eclipse.ditto.base.model.entity.type.EntityType;
  * Uses Reflection to find all EntityIds annotated with {@link org.eclipse.ditto.base.model.entity.id.TypedEntityId} and
  * expects one static method which accepts a {@link CharSequence} and returns something which is a subtype of itself.
  */
+@Immutable
 final class EntityIds {
 
     @Nullable private static EntityIds instance = null;

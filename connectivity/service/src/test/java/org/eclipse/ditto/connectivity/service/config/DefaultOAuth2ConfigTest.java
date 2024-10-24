@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.service.config;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
@@ -37,11 +34,6 @@ public final class DefaultOAuth2ConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         config = ConfigFactory.load("oauth2-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultOAuth2Config.class, areImmutable());
     }
 
     @Test

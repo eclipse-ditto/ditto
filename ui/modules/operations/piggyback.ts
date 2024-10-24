@@ -16,10 +16,10 @@
 /* eslint-disable require-jsdoc */
 import * as API from '../api.js';
 import * as Utils from '../utils.js';
+import { TabHandler } from '../utils/tabHandler.js';
 import piggybackHTML from './piggyback.html';
 import piggybackPlaceholders from './piggybackPlaceholders.json';
 import * as Templates from './templates.js';
-import {TabHandler} from '../utils/tabHandler.js';
 
 const EDITOR_INVALID_JSON_MNSSAGE = 'Invalid json!'
 const HEADER_IS_REQUIRED_MESSAGE = 'Headers field is required!';
@@ -205,7 +205,7 @@ function hasEditorError(editorSession) {
 
 async function submitPiggybackCommand() {
     if (isCommandValid()) {
-        dom.responseStatus.innerHTML = REQUEST_IN_PROGRESS_MESSAGE;
+        dom.responseStatus.textContent = REQUEST_IN_PROGRESS_MESSAGE;
         aceResponse.setValue('', -1);
         let path = buildPath(
             dom.serviceSelector.value,
@@ -228,19 +228,19 @@ async function submitPiggybackCommand() {
             } catch (err) {
                 onRequestDone();
                 aceResponse.setValue(err.message, -1);
-                dom.responseStatus.innerHTML = REQUEST_ERROR_MESSAGE;
+                dom.responseStatus.textContent = REQUEST_ERROR_MESSAGE;
             }
         });
         promise.then((result: any) => {
             onRequestDone();
             result.json().then(resultJson => {
                 aceResponse.setValue(Utils.stringifyPretty(resultJson), -1);
-                dom.responseStatus.innerHTML = result.status;
+                dom.responseStatus.textContent = result.status;
             });
         }).catch(err => {
             onRequestDone();
             aceResponse.setValue(err.message, -1);
-            dom.responseStatus.innerHTML = REQUEST_ERROR_MESSAGE;
+            dom.responseStatus.textContent = REQUEST_ERROR_MESSAGE;
         });
 
     }

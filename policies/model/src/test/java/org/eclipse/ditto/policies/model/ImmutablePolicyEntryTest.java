@@ -13,9 +13,6 @@
 package org.eclipse.ditto.policies.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -23,7 +20,6 @@ import java.util.Collections;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.junit.Test;
 
@@ -35,13 +31,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ImmutablePolicyEntryTest {
 
     private static final Label LABEL_END_USER = Label.of("EndUser");
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutablePolicyEntry.class,
-                areImmutable(),
-                provided(Label.class, Subjects.class, Resources.class, JsonFieldDefinition.class).areAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

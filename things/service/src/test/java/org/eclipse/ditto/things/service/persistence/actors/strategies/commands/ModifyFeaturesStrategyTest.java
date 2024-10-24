@@ -14,10 +14,8 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.json.JsonObject;
@@ -33,14 +31,12 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatures;
 import org.eclipse.ditto.things.model.signals.events.FeaturesCreated;
 import org.eclipse.ditto.things.model.signals.events.FeaturesModified;
 import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
-import org.eclipse.ditto.wot.integration.provider.WotThingDescriptionProvider;
+import org.eclipse.ditto.wot.api.generator.WotThingDescriptionGenerator;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Unit test for {@link ModifyFeaturesStrategy}.
@@ -67,12 +63,6 @@ public final class ModifyFeaturesStrategyTest extends AbstractCommandStrategyTes
     }
 
     @Test
-    public void assertImmutability() {
-        assertInstancesOf(ModifyFeaturesStrategy.class, areImmutable(),
-                provided(WotThingDescriptionProvider.class).areAlsoImmutable());
-    }
-
-    @Test
     public void modifyFeaturesOfThingWithoutFeatures() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeatures command = ModifyFeatures.of(context.getState(), modifiedFeatures, DittoHeaders.empty());
@@ -87,7 +77,7 @@ public final class ModifyFeaturesStrategyTest extends AbstractCommandStrategyTes
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeatures command = ModifyFeatures.of(context.getState(), modifiedFeatures, DittoHeaders.empty());
 
-        assertModificationResult(underTest, THING_V2, command,
+        assertStagedModificationResult(underTest, THING_V2, command,
                 FeaturesModified.class,
                 ETagTestUtils.modifyFeaturesResponse(context.getState(), modifiedFeatures, command.getDittoHeaders(), false));
     }

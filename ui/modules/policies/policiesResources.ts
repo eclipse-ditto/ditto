@@ -12,12 +12,12 @@
  */
 
 import * as ace from 'ace-builds/src-noconflict/ace';
-import * as Utils from '../utils.js';
 import * as API from '../api.js';
+import * as Utils from '../utils.js';
+import { CrudOperation, CrudToolbar } from '../utils/crudToolbar.js';
 import * as Policies from './policies.js';
 import * as PolicyEntries from './policiesEntries.js';
 import resourceTemplates from './resourceTemplates.json';
-import { CrudOperation, CrudToolbar } from '../utils/crudToolbar.js';
 
 let selectedResource: string;
 
@@ -138,7 +138,7 @@ function onEditToggleResource(event: CustomEvent) {
 function onEntryChanged(entryLabel: string) {
   selectedResource = null;
 
-  dom.tbodyPolicyResources.innerHTML = '';
+  dom.tbodyPolicyResources.textContent = '';
   dom.crudResource.idValue = null;
   resourceEditor.setValue('');
   dom.crudResource.editDisabled = (entryLabel === null);

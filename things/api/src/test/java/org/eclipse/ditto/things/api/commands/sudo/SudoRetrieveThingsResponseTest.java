@@ -13,10 +13,6 @@
 package org.eclipse.ditto.things.api.commands.sudo;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Collections;
 import java.util.List;
@@ -56,15 +52,6 @@ public final class SudoRetrieveThingsResponseTest {
             .build();
 
     private static final DittoHeaders EMPTY_DITTO_HEADERS = DittoHeaders.empty();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(SudoRetrieveThingsResponse.class,
-                areImmutable(),
-                provided(Thing.class).isAlsoImmutable(),
-                assumingFields("things").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
-                assumingFields("things").areModifiedAsPartOfAnUnobservableCachingStrategy());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

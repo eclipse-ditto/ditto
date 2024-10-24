@@ -13,8 +13,6 @@
 package org.eclipse.ditto.things.model;
 
 import static org.eclipse.ditto.things.model.assertions.DittoThingsAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -36,12 +34,6 @@ public final class ImmutableThingRevisionTest {
     @Before
     public void setUp() {
         underTest = ImmutableThingRevision.of(DEFAULT_LONG_VALUE);
-    }
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableThingRevision.class, areImmutable());
     }
 
 

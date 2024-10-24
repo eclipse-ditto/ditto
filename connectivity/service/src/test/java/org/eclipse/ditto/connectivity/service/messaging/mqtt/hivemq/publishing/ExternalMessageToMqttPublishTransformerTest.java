@@ -13,8 +13,6 @@
 package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publishing;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.nio.ByteBuffer;
 import java.util.Optional;
@@ -98,11 +96,6 @@ public final class ExternalMessageToMqttPublishTransformerTest {
         Mockito.when(genericTarget.getQos()).thenReturn(Optional.of(MQTT_QOS_FALL_BACK.getCode()));
 
         mqttPublishTarget = MqttPublishTarget.tryNewInstance(genericTarget).get();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ExternalMessageToMqttPublishTransformer.class, areImmutable());
     }
 
     @Test

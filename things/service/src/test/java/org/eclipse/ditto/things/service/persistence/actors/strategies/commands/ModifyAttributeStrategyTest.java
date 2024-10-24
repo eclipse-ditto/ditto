@@ -13,9 +13,8 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.json.JsonFactory;
@@ -29,6 +28,8 @@ import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.typesafe.config.ConfigFactory;
 
 /**
  * Unit test for {@link ModifyAttributeStrategy}.
@@ -48,12 +49,8 @@ public final class ModifyAttributeStrategyTest extends AbstractCommandStrategyTe
 
     @Before
     public void setUp() {
-        underTest = new ModifyAttributeStrategy();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ModifyAttributeStrategy.class, areImmutable());
+        final ActorSystem system = ActorSystem.create("test", ConfigFactory.load("test"));
+        underTest = new ModifyAttributeStrategy(system);
     }
 
     @Test
@@ -62,7 +59,7 @@ public final class ModifyAttributeStrategyTest extends AbstractCommandStrategyTe
         final ModifyAttribute command =
                 ModifyAttribute.of(context.getState(), attributePointer, attributeValue, DittoHeaders.empty());
 
-        assertModificationResult(underTest, THING_V2.removeAttributes(), command,
+        assertStagedModificationResult(underTest, THING_V2.removeAttributes(), command,
                 AttributeCreated.class,
                 ETagTestUtils.modifyAttributeResponse(context.getState(), attributePointer, attributeValue,
                         command.getDittoHeaders(), true));
@@ -74,7 +71,7 @@ public final class ModifyAttributeStrategyTest extends AbstractCommandStrategyTe
         final ModifyAttribute command =
                 ModifyAttribute.of(context.getState(), attributePointer, attributeValue, DittoHeaders.empty());
 
-        assertModificationResult(underTest, THING_V2, command,
+        assertStagedModificationResult(underTest, THING_V2, command,
                 AttributeCreated.class,
                 ETagTestUtils.modifyAttributeResponse(context.getState(), attributePointer, attributeValue,
                         command.getDittoHeaders(), true));
@@ -90,7 +87,7 @@ public final class ModifyAttributeStrategyTest extends AbstractCommandStrategyTe
                 ModifyAttribute.of(context.getState(), existingAttributePointer, newAttributeValue,
                         DittoHeaders.empty());
 
-        assertModificationResult(underTest, THING_V2, command,
+        assertStagedModificationResult(underTest, THING_V2, command,
                 AttributeModified.class,
                 ETagTestUtils.modifyAttributeResponse(context.getState(), existingAttributePointer, newAttributeValue,
                         command.getDittoHeaders(), false));

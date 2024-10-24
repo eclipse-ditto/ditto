@@ -14,6 +14,8 @@ package org.eclipse.ditto.internal.utils.cluster;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.assertj.core.api.AutoCloseableSoftAssertions;
@@ -21,16 +23,15 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.base.model.signals.JsonParsableRegistry;
 import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
+import org.eclipse.ditto.internal.utils.health.StatusInfo;
 import org.eclipse.ditto.internal.utils.pekko.PingCommand;
 import org.eclipse.ditto.internal.utils.pekko.PingCommandResponse;
 import org.eclipse.ditto.internal.utils.pekko.SimpleCommand;
 import org.eclipse.ditto.internal.utils.pekko.SimpleCommandResponse;
 import org.eclipse.ditto.internal.utils.pekko.streaming.StreamAck;
-import org.eclipse.ditto.internal.utils.health.StatusInfo;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.junit.Test;
-import org.mutabilitydetector.internal.com.google.common.collect.Sets;
 
 public final class MappingStrategiesBuilderTest {
 
@@ -46,7 +47,7 @@ public final class MappingStrategiesBuilderTest {
         final JsonParsableRegistry<? extends Jsonifiable> registry = new JsonParsableRegistry() {
             @Override
             public Set<String> getTypes() {
-                return Sets.newHashSet(types);
+                return new HashSet<>(Arrays.asList(types));
             }
 
             @Override

@@ -13,8 +13,6 @@
 package org.eclipse.ditto.base.model.signals.events.streaming;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.UUID;
 
@@ -29,11 +27,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Tests {@link StreamingSubscriptionComplete}.
  */
 public final class StreamingSubscriptionCompleteTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(StreamingSubscriptionComplete.class, areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

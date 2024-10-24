@@ -13,8 +13,6 @@
 package org.eclipse.ditto.internal.utils.persistentactors.cleanup;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Duration;
 
@@ -31,12 +29,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class DefaultCleanupConfigTest {
 
     private static final Config CONFIG = ConfigFactory.load("cleanup-test");
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultCleanupConfig.class, areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

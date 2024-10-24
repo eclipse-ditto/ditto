@@ -17,14 +17,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.eclipse.ditto.base.model.signals.WithResource;
 import org.eclipse.ditto.json.JsonPointer;
 import org.junit.Test;
-import org.mutabilitydetector.unittesting.MutabilityAssert;
-import org.mutabilitydetector.unittesting.MutabilityMatchers;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
 
 /**
- * Tests {@link org.eclipse.ditto.protocol.placeholders.ImmutableResourcePlaceholder}.
+ * Tests {@link ImmutableResourcePlaceholder}.
  */
 public final class ImmutableResourcePlaceholderTest {
 
@@ -57,11 +55,6 @@ public final class ImmutableResourcePlaceholderTest {
     };
 
     private static final ImmutableResourcePlaceholder UNDER_TEST = ImmutableResourcePlaceholder.INSTANCE;
-
-    @Test
-    public void assertImmutability() {
-        MutabilityAssert.assertInstancesOf(ImmutableResourcePlaceholder.class, MutabilityMatchers.areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

@@ -16,9 +16,12 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Objects;
 
+import javax.annotation.concurrent.Immutable;
+
 /**
  * Represents a Public Key ID with an issuer.
  */
+@Immutable
 public final class PublicKeyIdWithIssuer {
     private final String keyId;
     private final String issuer;

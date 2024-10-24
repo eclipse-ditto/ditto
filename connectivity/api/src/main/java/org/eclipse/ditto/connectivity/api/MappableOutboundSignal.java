@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.Signal;
@@ -33,6 +34,7 @@ import org.eclipse.ditto.json.JsonObject;
  * Represent an outbound signal that is ready to be mapped with the given {@link org.eclipse.ditto.connectivity.model.PayloadMapping}.
  * This class is used to group targets that have the same payload mapping defined.
  */
+@Immutable
 final class MappableOutboundSignal implements OutboundSignal.Mappable {
 
     private final OutboundSignal delegate;

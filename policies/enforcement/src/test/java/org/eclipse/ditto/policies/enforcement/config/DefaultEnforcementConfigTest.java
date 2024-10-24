@@ -12,10 +12,6 @@
  */
 package org.eclipse.ditto.policies.enforcement.config;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
@@ -30,7 +26,7 @@ import com.typesafe.config.ConfigFactory;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.policies.enforcement.config.DefaultEnforcementConfig}.
+ * Unit test for {@link DefaultEnforcementConfig}.
  */
 public final class DefaultEnforcementConfigTest {
 
@@ -42,12 +38,6 @@ public final class DefaultEnforcementConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         enforcementTestConf = ConfigFactory.load("enforcement-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultEnforcementConfig.class, areImmutable(),
-                provided(EntityCreationConfig.class).areAlsoImmutable());
     }
 
     @Test

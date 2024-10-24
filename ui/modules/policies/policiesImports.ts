@@ -11,12 +11,10 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
-import * as ace from 'ace-builds/src-noconflict/ace';
-import * as Utils from '../utils.js';
 import * as API from '../api.js';
-import * as Policies from './policies.js';
-import * as PolicyEntries from './policiesEntries.js';
+import * as Utils from '../utils.js';
 import { CrudOperation, CrudToolbar } from '../utils/crudToolbar.js';
+import * as Policies from './policies.js';
 
 
 let selectedImport: string;
@@ -110,33 +108,33 @@ function setExplicitCheckboxesDisabledState(disabled: boolean) {
     .forEach((e: HTMLInputElement) => e.disabled = disabled);
 }
 
-function onPolicyChanged(policy: Policies.Policy) {
-  dom.tbodyPolicyImports.innerHTML = '';
+async function onPolicyChanged(policy: Policies.Policy) {
+  dom.tbodyPolicyImports.textContent = '';
   dom.crudImport.idValue = null;
   dom.crudImport.editDisabled = (policy === null);
   
   if (policy) {
     let policyHasImport = false;
-    Object.keys(policy.imports).forEach((key) => {
+    for (const key of Object.keys(policy.imports)) {
       const row = Utils.addTableRow(dom.tbodyPolicyImports, key, key === selectedImport);
       Utils.addActionToRow(row, 'bi-arrow-up-right-square', getNavigatePolicyAction(key), 'Open policy');
       if (key === selectedImport) {
-        setImport(key);
+        await setImport(key);
         policyHasImport = true;
       }
-    });
+    }
     if (!policyHasImport) {
       selectedImport = null;
-      setImport(null);
+      await setImport(null);
     }
   } else {
-    setImport(null);
+    await setImport(null);
   }
 
-  function getNavigatePolicyAction(policyId: String) {
+  function getNavigatePolicyAction(policyId: string) {
     return (evt: Event) => {
-      API.callDittoREST('GET', '/policies/' + policyId).then((targetPolicy: Policies.Policy) => {
-        Policies.setThePolicy(targetPolicy);
+      API.callDittoREST('GET', '/policies/' + policyId).then(async (targetPolicy: Policies.Policy) => {
+        await Policies.setThePolicy(targetPolicy);
       })
     }
   }
@@ -145,7 +143,7 @@ function onPolicyChanged(policy: Policies.Policy) {
 async function setImport(importedPolicyId: string) {
 
   dom.crudImport.idValue = importedPolicyId;
-  dom.tbodyPolicyImportEntries.innerHTML = '';
+  dom.tbodyPolicyImportEntries.textContent = '';
 
   if (importedPolicyId) {
     const importedPolicy: Policies.Policy = await API.callDittoREST('GET', '/policies/' + importedPolicyId)
@@ -164,7 +162,7 @@ async function setImport(importedPolicyId: string) {
     const isImplicit = importedPolicy.entries[entry].importable === 'implicit';
     return isImported || isImplicit;
   }
-};
+}
 
 
 

@@ -13,9 +13,6 @@
 package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.List;
 
@@ -34,13 +31,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Unit test for {@link GenericMqttSubAck}.
  */
 public final class GenericMqttSubAckTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(GenericMqttSubAck.class,
-                areImmutable(),
-                assumingFields("genericMqttSubAckStatuses").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

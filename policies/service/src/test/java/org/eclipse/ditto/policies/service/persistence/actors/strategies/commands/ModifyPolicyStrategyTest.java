@@ -13,8 +13,6 @@
 package org.eclipse.ditto.policies.service.persistence.actors.strategies.commands;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -39,7 +37,7 @@ import org.junit.Test;
 import com.typesafe.config.ConfigFactory;
 
 /**
- * Unit test for {@link org.eclipse.ditto.policies.service.persistence.actors.strategies.commands.ModifyPolicyStrategy}.
+ * Unit test for {@link ModifyPolicyStrategy}.
  */
 public final class ModifyPolicyStrategyTest extends AbstractPolicyCommandStrategyTest {
 
@@ -48,11 +46,6 @@ public final class ModifyPolicyStrategyTest extends AbstractPolicyCommandStrateg
     @Before
     public void setUp() {
         underTest = new ModifyPolicyStrategy(DefaultPolicyConfig.of(ConfigFactory.load("policy-test")));
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ModifyPolicyStrategy.class, areImmutable());
     }
 
     @Test

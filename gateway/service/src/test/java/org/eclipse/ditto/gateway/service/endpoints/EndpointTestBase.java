@@ -47,7 +47,6 @@ import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.base.service.config.http.DefaultHttpProxyConfig;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RootRouteExceptionHandler;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationFactory;
@@ -72,10 +71,12 @@ import org.eclipse.ditto.gateway.service.util.config.streaming.StreamingConfig;
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.internal.utils.cache.config.DefaultCacheConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.health.StatusInfo;
 import org.eclipse.ditto.internal.utils.health.cluster.ClusterStatus;
 import org.eclipse.ditto.internal.utils.http.DefaultHttpClientFacade;
 import org.eclipse.ditto.internal.utils.http.HttpClientFacade;
+import org.eclipse.ditto.internal.utils.http.config.DefaultHttpProxyConfig;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.internal.utils.protocol.config.DefaultProtocolConfig;
 import org.eclipse.ditto.internal.utils.protocol.config.ProtocolConfig;
@@ -127,9 +128,10 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
 
     @BeforeClass
     public static void initTestFixture() {
-        final var dittoScopedConfig = DefaultScopedConfig.dittoScoped(createTestConfig());
+        final Config testConfig = createTestConfig();
+        final var dittoScopedConfig = DefaultScopedConfig.dittoScoped(testConfig);
         final var gatewayScopedConfig = DefaultScopedConfig.newInstance(dittoScopedConfig, "gateway");
-        final var actorSystem = ActorSystem.create(EndpointTestBase.class.getSimpleName(), createTestConfig());
+        final var actorSystem = ActorSystem.create(EndpointTestBase.class.getSimpleName(), testConfig);
         httpConfig = GatewayHttpConfig.of(gatewayScopedConfig);
         healthCheckConfig = DefaultHealthCheckConfig.of(gatewayScopedConfig);
         commandConfig = DefaultCommandConfig.of(gatewayScopedConfig);
@@ -144,7 +146,8 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
         httpClientFacade =
                 DefaultHttpClientFacade.getInstance(actorSystem,
                         DefaultHttpProxyConfig.ofProxy(DefaultScopedConfig.empty("/")));
-        authorizationSubjectsProvider = JwtAuthorizationSubjectsProvider.get(actorSystem, ConfigFactory.empty());
+        authorizationSubjectsProvider = JwtAuthorizationSubjectsProvider.get(actorSystem,
+                ScopedConfig.dittoExtension(testConfig));
         jwtAuthenticationFactory = JwtAuthenticationFactory.newInstance(authConfig.getOAuthConfig(),
                 cacheConfig,
                 httpClientFacade,

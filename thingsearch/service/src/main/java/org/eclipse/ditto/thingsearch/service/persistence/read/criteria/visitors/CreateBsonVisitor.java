@@ -42,9 +42,9 @@ public class CreateBsonVisitor implements CriteriaVisitor<Bson> {
     private static final TimePlaceholder TIME_PLACEHOLDER = TimePlaceholder.getInstance();
 
     @Nullable
-    private final List<String> authorizationSubjectIds;
+    protected final List<String> authorizationSubjectIds;
 
-    private CreateBsonVisitor(@Nullable final List<String> authorizationSubjectIds) {
+    CreateBsonVisitor(@Nullable final List<String> authorizationSubjectIds) {
         this.authorizationSubjectIds = authorizationSubjectIds;
     }
 

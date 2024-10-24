@@ -16,14 +16,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Optional;
 import java.util.UUID;
 
-import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
@@ -55,13 +51,6 @@ public final class MatchingValidationResultTest {
     }
 
     @Test
-    public void assertImmutabilityForSuccess() {
-        final var success = MatchingValidationResult.success();
-
-        assertInstancesOf(success.getClass(), areImmutable());
-    }
-
-    @Test
     public void getSuccessInstanceReturnsNotNull() {
         assertThat(MatchingValidationResult.success()).isNotNull();
     }
@@ -81,13 +70,6 @@ public final class MatchingValidationResultTest {
                 .isThrownBy(success::asFailureOrThrow)
                 .withMessage("This result is a success and thus cannot be returned as failure.")
                 .withNoCause();
-    }
-
-    @Test
-    public void assertImmutabilityForFailure() {
-        assertInstancesOf(MatchingValidationResult.Failure.class,
-                areImmutable(),
-                provided(Command.class, CommandResponse.class, EntityId.class).areAlsoImmutable());
     }
 
     @Test

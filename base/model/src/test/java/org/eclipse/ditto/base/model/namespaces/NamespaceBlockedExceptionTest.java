@@ -13,8 +13,6 @@
 package org.eclipse.ditto.base.model.namespaces;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonObject;
@@ -24,11 +22,6 @@ import org.junit.Test;
  * Unit test for {@link NamespaceBlockedException}.
  */
 public final class NamespaceBlockedExceptionTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(NamespaceBlockedException.class, areImmutable());
-    }
 
     @Test
     public void serialize() {

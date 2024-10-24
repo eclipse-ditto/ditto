@@ -50,10 +50,10 @@ export async function ready() {
 
 /**
  * Load thing from Ditto and update all UI components
- * @param {String} thingId ThingId
+ * @param {string} thingId ThingId
  * @param {function} successCallback callback function that is called after refresh is finished
  */
-export function refreshThing(thingId, successCallback = null) {
+export function refreshThing(thingId: string, successCallback = null) {
   console.assert(thingId && thingId !== '', 'thingId expected');
   API.callDittoREST('GET',
       `/things/${thingId}?` +

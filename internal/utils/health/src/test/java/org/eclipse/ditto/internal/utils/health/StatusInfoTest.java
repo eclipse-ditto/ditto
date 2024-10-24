@@ -13,8 +13,6 @@
 package org.eclipse.ditto.internal.utils.health;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -29,7 +27,6 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.junit.Test;
-import org.mutabilitydetector.unittesting.MutabilityAssert;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -96,20 +93,11 @@ public final class StatusInfoTest {
             .build();
 
     @Test
-    public void assertImmutability() {
-        MutabilityAssert.assertInstancesOf(StatusInfo.class, areImmutable(),
-                provided(StatusInfo.class, StatusDetailMessage.class)
-                        .areAlsoImmutable());
-    }
-
-
-    @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(StatusInfo.class)
                 .withPrefabValues(StatusInfo.class, KNOWN_STATUS_INFO, KNOWN_COMPOSITE_COMPOSITE_STATUS_INFO)
                 .verify();
     }
-
 
     @Test
     public void toJsonReturnsExpected() {

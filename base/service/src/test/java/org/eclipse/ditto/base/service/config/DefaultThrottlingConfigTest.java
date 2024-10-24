@@ -13,8 +13,6 @@
 package org.eclipse.ditto.base.service.config;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Duration;
 
@@ -34,11 +32,6 @@ public final class DefaultThrottlingConfigTest {
 
     @Rule
     public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultThrottlingConfig.class, areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

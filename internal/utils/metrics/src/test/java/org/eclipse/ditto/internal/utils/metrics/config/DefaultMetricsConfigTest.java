@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2024 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -11,9 +11,6 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.internal.utils.metrics.config;
-
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.internal.utils.metrics.config.MetricsConfig.MetricsConfigValue;
@@ -39,11 +36,6 @@ public final class DefaultMetricsConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         metricsTestConf = ConfigFactory.load("metrics-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultMetricsConfig.class, areImmutable());
     }
 
     @Test

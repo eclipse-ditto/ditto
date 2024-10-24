@@ -13,10 +13,6 @@
 package org.eclipse.ditto.base.api.common.purge;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.List;
 import java.util.UUID;
@@ -58,13 +54,6 @@ public final class PurgeEntitiesTest {
     @Before
     public void setUp() {
         underTest = PurgeEntities.of(ENTITY_TYPE, ENTITY_IDS, HEADERS);
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(PurgeEntities.class, areImmutable(),
-                provided(EntityType.class).isAlsoImmutable(),
-                assumingFields("entityIds").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
     @Test

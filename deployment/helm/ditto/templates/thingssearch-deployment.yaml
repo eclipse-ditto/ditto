@@ -63,7 +63,7 @@ spec:
           image: busybox
           securityContext:
             runAsUser: 0
-          command: [ "sh", "-c", "chown -R 1000:1000 /var/log/ditto && echo 'changed ownership of /var/log/ditto to 1000:1000'" ]
+          command: [ "sh", "-c", "chown -R 1005:1005 /var/log/ditto && echo 'changed ownership of /var/log/ditto to 1005:1005'" ]
           volumeMounts:
             - name: ditto-log-files-directory
               mountPath: /var/log/ditto
@@ -105,6 +105,10 @@ spec:
             {{- if .Values.global.logging.logstash.enabled }}
             - name: DITTO_LOGGING_LOGSTASH_SERVER
               value: "{{ .Values.global.logging.logstash.endpoint }}"
+            - name: LOGSTASH_WRITE_BUFFER_SIZE
+              value: "{{ .Values.global.logging.logstash.writeBufferSize }}"
+            - name: LOGSTASH_RING_BUFFER_SIZE
+              value: "{{ .Values.global.logging.logstash.ringBufferSize }}"
             {{- end }}
             - name: POD_LABEL_SELECTOR
               value: "app.kubernetes.io/name=%s"
@@ -250,14 +254,20 @@ spec:
               value: "{{ .Values.thingsSearch.config.updater.backgroundSync.throttle.throughput }}"
             - name: BACKGROUND_SYCN_THROTTLE_PERIOD
               value: "{{ .Values.thingsSearch.config.updater.backgroundSync.throttle.period }}"
-            - name: DITTO_POLICIES_ENFORCER_CACHE_MAX_SIZE
-              value: "{{ .Values.thingsSearch.config.updater.stream.policiesEnforcer.cache.maxSize }}"
-            - name: DITTO_POLICIES_ENFORCER_CACHE_EXPIRE_AFTER_WRITE
-              value: "{{ .Values.thingsSearch.config.updater.stream.policiesEnforcer.cache.expireAfterWrite }}"
-            - name: DITTO_POLICIES_ENFORCER_CACHE_EXPIRE_AFTER_ACCESS
-              value: "{{ .Values.thingsSearch.config.updater.stream.policiesEnforcer.cache.expireAfterAccess }}"
             {{- if .Values.thingsSearch.extraEnv }}
               {{- toYaml .Values.thingsSearch.extraEnv | nindent 12 }}
+            {{- end }}
+            - name: MONGO_DB_USE_AWS_IAM_ROLE
+              value: "{{ printf "%t" .Values.dbconfig.thingsSearch.useAwsIamRole }}"
+            {{- if .Values.dbconfig.thingsSearch.useAwsIamRole }}
+            - name: MONGO_DB_AWS_REGION
+              value: "{{ .Values.dbconfig.thingsSearch.awsRegion }}"
+            - name: MONGO_DB_AWS_ROLE_ARN
+              value: "{{ .Values.dbconfig.thingsSearch.awsRoleArn }}"
+            - name: AWS_WEB_IDENTITY_TOKEN_FILE
+              value: "/var/run/secrets/eks.amazonaws.com/serviceaccount/token"
+            - name: MONGO_DB_AWS_SESSION_NAME
+              value: "{{ .Values.dbconfig.thingsSearch.awsSessionName }}"
             {{- end }}
           ports:
             - name: remoting
@@ -299,6 +309,11 @@ spec:
             - name: ditto-log-files-directory
               mountPath: /var/log/ditto
             {{- end }}
+            {{- if .Values.thingsSearch.extraVolumeMounts }}
+              {{- toYaml .Values.thingsSearch.extraVolumeMounts | nindent 12 }}
+            {{- end }}
+            - name: ditto-heap-dumps
+              mountPath: /opt/ditto/dumps
           resources:
             requests:
               cpu: {{ mulf .Values.thingsSearch.resources.cpu 1000 }}m
@@ -345,4 +360,9 @@ spec:
             path: /var/log/ditto
             type: DirectoryOrCreate
         {{- end }}
+        {{- if .Values.thingsSearch.extraVolumes }}
+          {{- toYaml .Values.thingsSearch.extraVolumes | nindent 8 }}
+        {{- end}}
+        - name: ditto-heap-dumps
+          emptyDir: {}
 {{- end }}

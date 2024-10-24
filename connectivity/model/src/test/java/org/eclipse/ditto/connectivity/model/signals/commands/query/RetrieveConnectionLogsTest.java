@@ -10,17 +10,12 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.connectivity.model.signals.commands.query;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.connectivity.model.signals.commands.TestConstants;
 import org.eclipse.ditto.json.JsonObject;
@@ -59,13 +54,6 @@ public class RetrieveConnectionLogsTest {
         EqualsVerifier.forClass(RetrieveConnectionLogs.class)
                 .usingGetClass()
                 .verify();
-    }
-
-    @Test
-    public void testImmutability() {
-        assertInstancesOf(RetrieveConnectionLogs.class,
-                areImmutable(),
-                provided(ConnectionId.class).isAlsoImmutable());
     }
 
 }

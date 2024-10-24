@@ -20,7 +20,9 @@ import java.util.Optional;
 import java.util.Set;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
@@ -38,11 +40,10 @@ import org.eclipse.ditto.policies.model.signals.events.SubjectDeleted;
 import org.eclipse.ditto.policies.model.signals.events.SubjectsDeletedPartially;
 import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 
-import org.apache.pekko.actor.ActorSystem;
-
 /**
  * This strategy handles the {@link DeactivateTokenIntegration} command.
  */
+@Immutable
 final class DeactivateTokenIntegrationStrategy
         extends AbstractPolicyActionCommandStrategy<DeactivateTokenIntegration> {
 

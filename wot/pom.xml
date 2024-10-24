@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright (c) 2022 Contributors to the Eclipse Foundation
+  ~ Copyright (c) 2024 Contributors to the Eclipse Foundation
   ~
   ~ See the NOTICE file(s) distributed with this work for additional
   ~ information regarding copyright ownership.
@@ -15,6 +15,7 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <parent>
         <artifactId>ditto-bom</artifactId>
         <groupId>org.eclipse.ditto</groupId>
@@ -27,8 +28,10 @@
     <name>Eclipse Ditto :: WoT</name>
 
     <modules>
+        <module>api</module>
         <module>model</module>
         <module>integration</module>
+        <module>validation</module>
     </modules>
 
     <dependencies>
@@ -58,11 +61,6 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.mutabilitydetector</groupId>
-            <artifactId>MutabilityDetector</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

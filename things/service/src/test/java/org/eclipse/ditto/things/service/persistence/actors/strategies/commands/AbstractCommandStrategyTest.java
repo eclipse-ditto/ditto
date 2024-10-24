@@ -39,6 +39,7 @@ import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrateg
 import org.eclipse.ditto.internal.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultVisitor;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
@@ -62,6 +63,10 @@ public abstract class AbstractCommandStrategyTest {
 
     @ClassRule
     public static final ActorSystemResource ACTOR_SYSTEM_RESOURCE = ActorSystemResource.newInstance();
+
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
 
     @BeforeClass
     public static void initTestConstants() {
@@ -97,6 +102,19 @@ public abstract class AbstractCommandStrategyTest {
         final Result<ThingEvent<?>> result = applyStrategy(underTest, context, thing, command);
 
         return assertModificationResult(result, expectedEventClass, expectedCommandResponse, becomeDeleted);
+    }
+
+    protected static <C extends Command<?>, T extends ThingModifiedEvent<?>> T assertStagedModificationResult(
+            final CommandStrategy<C, Thing, ThingId, ThingEvent<?>> underTest,
+            @Nullable final Thing thing,
+            final C command,
+            final Class<T> expectedEventClass,
+            final CommandResponse<?> expectedCommandResponse) {
+
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final Result<ThingEvent<?>> result = applyStrategy(underTest, context, thing, command);
+
+        return assertStagedModificationResult(result, expectedEventClass, expectedCommandResponse, false);
     }
 
     protected static <C extends Command<?>, T extends ThingModifiedEvent<?>> T assertStagedModificationResult(

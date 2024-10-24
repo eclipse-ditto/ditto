@@ -13,14 +13,13 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.TestConstants;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttributes;
 import org.eclipse.ditto.things.model.signals.events.AttributesCreated;
 import org.eclipse.ditto.things.model.signals.events.AttributesModified;
@@ -28,6 +27,8 @@ import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.typesafe.config.ConfigFactory;
 
 /**
  * Unit test for {@link ModifyAttributesStrategy}.
@@ -47,12 +48,8 @@ public final class ModifyAttributesStrategyTest extends AbstractCommandStrategyT
 
     @Before
     public void setUp() {
-        underTest = new ModifyAttributesStrategy();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ModifyAttributesStrategy.class, areImmutable());
+        final ActorSystem system = ActorSystem.create("test", ConfigFactory.load("test"));
+        underTest = new ModifyAttributesStrategy(system);
     }
 
     @Test
@@ -61,7 +58,7 @@ public final class ModifyAttributesStrategyTest extends AbstractCommandStrategyT
         final ModifyAttributes command =
                 ModifyAttributes.of(context.getState(), modifiedAttributes, DittoHeaders.empty());
 
-        assertModificationResult(underTest, THING_V2.removeAttributes(), command,
+        assertStagedModificationResult(underTest, THING_V2.removeAttributes(), command,
                 AttributesCreated.class,
                 ETagTestUtils.modifyAttributeResponse(context.getState(), modifiedAttributes, command.getDittoHeaders(), true));
     }
@@ -72,7 +69,7 @@ public final class ModifyAttributesStrategyTest extends AbstractCommandStrategyT
         final ModifyAttributes command =
                 ModifyAttributes.of(context.getState(), modifiedAttributes, DittoHeaders.empty());
 
-        assertModificationResult(underTest, THING_V2, command,
+        assertStagedModificationResult(underTest, THING_V2, command,
                 AttributesModified.class,
                 ETagTestUtils.modifyAttributeResponse(context.getState(), modifiedAttributes, command.getDittoHeaders(), false));
     }

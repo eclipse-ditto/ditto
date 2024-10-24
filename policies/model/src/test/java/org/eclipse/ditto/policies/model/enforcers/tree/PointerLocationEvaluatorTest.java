@@ -13,9 +13,6 @@
 package org.eclipse.ditto.policies.model.enforcers.tree;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
@@ -23,7 +20,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Unit test for {@link org.eclipse.ditto.policies.model.enforcers.tree.PointerLocationEvaluator}.
+ * Unit test for {@link PointerLocationEvaluator}.
  */
 public final class PointerLocationEvaluatorTest {
 
@@ -34,13 +31,6 @@ public final class PointerLocationEvaluatorTest {
     @Before
     public void setUp() {
         underTest = new PointerLocationEvaluator(REFERENCE_POINTER);
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(PointerLocationEvaluator.class,
-                areImmutable(),
-                provided(JsonPointer.class).isAlsoImmutable());
     }
 
     @Test

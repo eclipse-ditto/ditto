@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.internal.utils.protocol.config;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -38,11 +35,6 @@ public final class DefaultProtocolConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         protocolTestConfig = ConfigFactory.load("protocol-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultProtocolConfig.class, areImmutable());
     }
 
     @Test

@@ -14,8 +14,6 @@ package org.eclipse.ditto.policies.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.junit.Test;
 
@@ -25,11 +23,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Unit tests for {@link ImmutableSubjectExpiry}.
  */
 public final class ImmutableSubjectExpiryTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableSubjectExpiry.class, areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

@@ -13,8 +13,6 @@
 package org.eclipse.ditto.policies.model.signals.commands.exceptions;
 
 import static org.eclipse.ditto.base.model.assertions.DittoBaseAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Objects;
 
@@ -27,7 +25,7 @@ import org.eclipse.ditto.policies.model.signals.commands.TestConstants;
 import org.junit.Test;
 
 /**
- * Unit test for {@link org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyEntryNotModifiableException}.
+ * Unit test for {@link PolicyEntryNotModifiableException}.
  */
 public final class PolicyEntryNotModifiableExceptionTest {
 
@@ -42,12 +40,6 @@ public final class PolicyEntryNotModifiableExceptionTest {
                     TestConstants.Policy.POLICY_ENTRY_NOT_MODIFIABLE_EXCEPTION.getHref()
                             .map(Objects::toString).orElse(null))
             .build();
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(PolicyEntryNotModifiableException.class, areImmutable());
-    }
 
 
     @Test

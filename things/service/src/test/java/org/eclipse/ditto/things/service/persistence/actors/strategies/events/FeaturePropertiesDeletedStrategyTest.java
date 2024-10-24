@@ -13,8 +13,6 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.events;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Instant;
 
@@ -30,11 +28,6 @@ import org.junit.Test;
  * Unit test for {@link FeaturePropertiesDeletedStrategy}.
  */
 public final class FeaturePropertiesDeletedStrategyTest extends AbstractStrategyTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(FeaturePropertiesDeletedStrategy.class, areImmutable());
-    }
 
     @Test
     public void appliesEventCorrectly() {

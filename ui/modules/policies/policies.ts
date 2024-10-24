@@ -111,7 +111,7 @@ function onThingChanged(thing) {
 }
 
 function refreshWhoAmI() {
-  dom.tbodyWhoami.innerHTML = '';
+  dom.tbodyWhoami.textContent = '';
   API.callDittoREST('GET', '/whoami')
       .then((whoamiResult) => {
         whoamiResult.subjects.forEach((subject) => {
@@ -121,37 +121,37 @@ function refreshWhoAmI() {
       })
       .catch((error) => {
       });
-};
+}
 
 export function refreshPolicy(policyId) {
   API.callDittoREST('GET', '/policies/' + policyId)
       .then((policy) => setThePolicy(policy))
       .catch(() => setThePolicy(null));
-};
+}
 
-export function setThePolicy(policy: Policy) {
+export async function setThePolicy(policy: Policy) {
   thePolicy = policy;
   
   if (thePolicy) {
-    updateRecentPolicies(thePolicy.policyId);
+    await updateRecentPolicies(thePolicy.policyId);
   } else {
     dom.inputPolicyId.value = null;
   }
   observable.notifyAll(thePolicy);
-};
+}
 
 
-function refreshAll(otherEnvironment: boolean) {
+async function refreshAll(otherEnvironment: boolean) {
   refreshWhoAmI();
   if (otherEnvironment) {
-    setThePolicy(null);
+    await setThePolicy(null);
   }
   if (dom.inputPolicyId.value) {
     refreshPolicy(dom.inputPolicyId.value);
   }
 }
 
-export function updateRecentPolicies(policyId: String) {
+export async function updateRecentPolicies(policyId: string) {
   const oldIndex = Environments.current().recentPolicyIds.indexOf(policyId);
   if (oldIndex >= 0) {
     Environments.current().recentPolicyIds.splice(oldIndex,1);
@@ -161,12 +161,12 @@ export function updateRecentPolicies(policyId: String) {
     Environments.current().recentPolicyIds.pop();
   }
 
-  Environments.environmentsJsonChanged('recentPolicyIds');
+  await Environments.environmentsJsonChanged(false, 'recentPolicyIds');
 }
 
-function onEnvironmentChanged(modifiedField: String) {
-  Environments.current()['recentPolicyIds'] = Environments.current()['recentPolicyIds'] || [];
-  dom.tbodyRecentPolicies.innerHTML = '';
+function onEnvironmentChanged(modifiedField: string) {
+  Environments.current().recentPolicyIds = Environments.current().recentPolicyIds || [];
+  dom.tbodyRecentPolicies.textContent = '';
   Environments.current().recentPolicyIds.forEach(entry => {
     Utils.addTableRow(dom.tbodyRecentPolicies, entry, thePolicy && thePolicy.policyId === entry, entry);
   });

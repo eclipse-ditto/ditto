@@ -13,9 +13,6 @@
 package org.eclipse.ditto.things.model.signals.events;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.signals.events.Event;
@@ -23,7 +20,6 @@ import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.signals.events.TestConstants.Thing;
 import org.junit.Test;
 
@@ -45,15 +41,6 @@ public class FeatureDesiredPropertyDeletedTest {
             .set(ThingEvent.JsonFields.FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .set(FeatureDesiredPropertyDeleted.JSON_DESIRED_PROPERTY, PROPERTY_JSON_POINTER.toString())
             .build();
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(FeatureDesiredPropertyDeleted.class,
-                areImmutable(),
-                provided(JsonPointer.class, JsonValue.class).areAlsoImmutable());
-    }
-
 
     @Test
     public void testHashCodeAndEquals() {

@@ -14,6 +14,8 @@ package org.eclipse.ditto.internal.utils.persistence.mongo.config;
 
 import java.util.Objects;
 
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
@@ -22,6 +24,7 @@ import com.typesafe.config.Config;
 /**
  * This class is the default implementation of {@link IndexInitializationConfig}.
  */
+@Immutable
 public final class DefaultIndexInitializationConfig implements IndexInitializationConfig {
 
     private static final String CONFIG_PATH = "index-initialization";

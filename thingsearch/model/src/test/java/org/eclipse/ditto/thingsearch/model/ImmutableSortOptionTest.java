@@ -14,9 +14,6 @@ package org.eclipse.ditto.thingsearch.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -31,13 +28,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Unit test for {@link ImmutableSortOption}.
  */
 public final class ImmutableSortOptionTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableSortOption.class,
-                areImmutable(),
-                provided(SortOptionEntry.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

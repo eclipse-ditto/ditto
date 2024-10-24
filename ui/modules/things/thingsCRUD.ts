@@ -124,7 +124,7 @@ function onThingChanged(thingJson) {
   updateThingJsonEditor();
 
   function updateThingDetailsTable() {
-    dom.tbodyThingDetails.innerHTML = '';
+    dom.tbodyThingDetails.textContent = '';
     if (thingJson) {
       Utils.addTableRow(dom.tbodyThingDetails, 'thingId', false, thingJson.thingId, thingJson.thingId);
       Utils.addTableRow(dom.tbodyThingDetails, 'policyId', false, thingJson.policyId, thingJson.policyId);

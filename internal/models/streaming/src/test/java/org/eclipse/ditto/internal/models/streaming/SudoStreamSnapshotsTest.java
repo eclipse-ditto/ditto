@@ -13,20 +13,14 @@
 package org.eclipse.ditto.internal.models.streaming;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.List;
 
-import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.base.model.signals.commands.GlobalCommandRegistry;
-import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
 import org.junit.Test;
 
@@ -38,13 +32,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class SudoStreamSnapshotsTest {
 
     private static final EntityType THING_TYPE = EntityType.of("thing");
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(SudoStreamSnapshots.class, areImmutable(),
-                provided(EntityId.class, JsonArray.class).areAlsoImmutable(),
-                assumingFields("namespaces").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

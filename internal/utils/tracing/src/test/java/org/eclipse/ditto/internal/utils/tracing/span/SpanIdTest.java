@@ -15,8 +15,6 @@ package org.eclipse.ditto.internal.utils.tracing.span;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.UUID;
 
@@ -31,11 +29,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class SpanIdTest {
 
     private static final String KNOWN_SPAN_IDENTIFIER = String.valueOf(UUID.randomUUID());
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(SpanId.class, areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

@@ -16,7 +16,7 @@
 /* eslint-disable require-jsdoc */
 import * as API from '../api.js';
 import * as Utils from '../utils.js';
-import {TabHandler} from '../utils/tabHandler.js';
+import { TabHandler } from '../utils/tabHandler.js';
 import connectionsHTML from './connections.html';
 
 const observers = [];
@@ -57,7 +57,7 @@ export function setConnection(connection, isNewConnection = false) {
 }
 
 export function loadConnections() {
-  dom.tbodyConnections.innerHTML = '';
+  dom.tbodyConnections.textContent = '';
   let connectionSelected = false;
   API.callConnectionsAPI('listConnections', (connections) => {
     connections.forEach((connection) => {
@@ -66,15 +66,15 @@ export function loadConnections() {
       row.id = id;
       if (API.env() === 'ditto_2') {
         API.callConnectionsAPI('retrieveConnection', (dittoConnection) => {
-          row.insertCell(0).innerHTML = dittoConnection.name;
+          row.insertCell(0).textContent = dittoConnection.name;
         },
         id);
       } else {
-        row.insertCell(0).innerHTML = connection.name ? connection.name : id;
+        row.insertCell(0).textContent = connection.name ? connection.name : id;
       }
       API.callConnectionsAPI('retrieveStatus', (status) => {
-        row.insertCell(-1).innerHTML = status.liveStatus;
-        row.insertCell(-1).innerHTML = status.recoveryStatus;
+        row.insertCell(-1).textContent = status.liveStatus;
+        row.insertCell(-1).textContent = status.recoveryStatus;
       },
       id);
       if (id === selectedConnectionId) {

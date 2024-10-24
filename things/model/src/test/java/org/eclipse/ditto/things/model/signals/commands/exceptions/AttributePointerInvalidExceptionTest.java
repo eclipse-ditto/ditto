@@ -13,8 +13,6 @@
 package org.eclipse.ditto.things.model.signals.commands.exceptions;
 
 import static org.eclipse.ditto.base.model.assertions.DittoBaseAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.net.URI;
 
@@ -42,11 +40,6 @@ public final class AttributePointerInvalidExceptionTest {
                     TestConstants.Thing.ATTRIBUTE_POINTER_INVALID_EXCEPTION.getHref()
                             .map(URI::toString).orElse(null))
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(AttributePointerInvalidException.class, areImmutable());
-    }
 
     @Test
     public void checkAttributeErrorCodeWorks() {

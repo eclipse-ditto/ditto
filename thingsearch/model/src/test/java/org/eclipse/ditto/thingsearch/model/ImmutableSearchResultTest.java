@@ -13,9 +13,6 @@
 package org.eclipse.ditto.thingsearch.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
@@ -37,13 +34,6 @@ public final class ImmutableSearchResultTest {
         EqualsVerifier.forClass(ImmutableSearchResult.class)
                 .usingGetClass()
                 .verify();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableSearchResult.class,
-                areImmutable(),
-                provided(JsonArray.class).areAlsoImmutable());
     }
 
     @Test

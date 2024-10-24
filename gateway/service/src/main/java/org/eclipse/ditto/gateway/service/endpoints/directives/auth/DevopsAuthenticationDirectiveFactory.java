@@ -16,6 +16,8 @@ import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenti
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationProvider;
 import org.eclipse.ditto.gateway.service.util.config.security.DevOpsConfig;
 
+import com.typesafe.config.Config;
+
 public final class DevopsAuthenticationDirectiveFactory {
 
     private final JwtAuthenticationProvider jwtAuthenticationProvider;
@@ -29,13 +31,15 @@ public final class DevopsAuthenticationDirectiveFactory {
     }
 
     public static DevopsAuthenticationDirectiveFactory newInstance(
-            final JwtAuthenticationFactory jwtAuthenticationFactory, final DevOpsConfig devOpsConfig) {
+            final JwtAuthenticationFactory jwtAuthenticationFactory, final DevOpsConfig devOpsConfig,
+            final Config dittoExtensionConfig) {
 
         final JwtAuthenticationProvider jwtAuthenticationProvider = JwtAuthenticationProvider.newInstance(
                 jwtAuthenticationFactory.newJwtAuthenticationResultProvider(
-                        "ditto.gateway.authentication.devops.oauth"
+                        dittoExtensionConfig, "devops"
                 ),
-                jwtAuthenticationFactory.getJwtValidator());
+                jwtAuthenticationFactory.getJwtValidator()
+        );
         return new DevopsAuthenticationDirectiveFactory(jwtAuthenticationProvider, devOpsConfig);
     }
 
@@ -43,15 +47,10 @@ public final class DevopsAuthenticationDirectiveFactory {
         if (!devOpsConfig.isSecured() || !devOpsConfig.isStatusSecured()) {
             return DevOpsInsecureAuthenticationDirective.getInstance();
         }
-        switch (devOpsConfig.getStatusAuthenticationMethod()) {
-            case BASIC:
-                return DevOpsBasicAuthenticationDirective.status(devOpsConfig);
-            case OAUTH2:
-                return DevOpsOAuth2AuthenticationDirective.status(devOpsConfig, jwtAuthenticationProvider);
-            default:
-                throw new IllegalStateException(
-                        "Unknown devops authentication method: " + devOpsConfig.getStatusAuthenticationMethod());
-        }
+        return switch (devOpsConfig.getStatusAuthenticationMethod()) {
+            case BASIC -> DevOpsBasicAuthenticationDirective.status(devOpsConfig);
+            case OAUTH2 -> DevOpsOAuth2AuthenticationDirective.status(devOpsConfig, jwtAuthenticationProvider);
+        };
 
     }
 
@@ -59,14 +58,9 @@ public final class DevopsAuthenticationDirectiveFactory {
         if (!devOpsConfig.isSecured()) {
             return DevOpsInsecureAuthenticationDirective.getInstance();
         }
-        switch (devOpsConfig.getDevopsAuthenticationMethod()) {
-            case BASIC:
-                return DevOpsBasicAuthenticationDirective.devops(devOpsConfig);
-            case OAUTH2:
-                return DevOpsOAuth2AuthenticationDirective.devops(devOpsConfig, jwtAuthenticationProvider);
-            default:
-                throw new IllegalStateException(
-                        "Unknown devops authentication method: " + devOpsConfig.getStatusAuthenticationMethod());
-        }
+        return switch (devOpsConfig.getDevopsAuthenticationMethod()) {
+            case BASIC -> DevOpsBasicAuthenticationDirective.devops(devOpsConfig);
+            case OAUTH2 -> DevOpsOAuth2AuthenticationDirective.devops(devOpsConfig, jwtAuthenticationProvider);
+        };
     }
 }

@@ -125,10 +125,10 @@ function onFeaturesTableClick(event) {
 
 /**
  * Triggers a feature update in Ditto according to UI contents
- * @param {String} method Either PUT to update the feature or DELETE to delete the feature
+ * @param {string} method Either PUT to update the feature or DELETE to delete the feature
  * @param {boolean} isNewFeature indicates if a new feature should be created. (default: false)
  */
-function updateFeature(method, isNewFeature = false) {
+function updateFeature(method: string, isNewFeature = false) {
   Utils.assert(Things.theThing, 'No Thing selected');
   Utils.assert(dom.crudFeature.idValue, 'No Feature selected');
 
@@ -197,9 +197,9 @@ function updateFeatureEditors(featureJson) {
 /**
  * Initializes all UI components for the given single feature of the given thing, if no thing is given the UI is cleared
  * @param {Object} thing thing the feature values are taken from
- * @param {String} featureId FeatureId to be refreshed
+ * @param {string} featureId FeatureId to be refreshed
  */
-function refreshFeature(thing, featureId = null) {
+function refreshFeature(thing, featureId: string = null) {
   if (!dom.crudFeature.isEditing) {
     if (thing && thing['features'] && featureId) {
       dom.crudFeature.idValue = featureId;
@@ -219,7 +219,7 @@ function refreshFeature(thing, featureId = null) {
 function onThingChanged(thing) {
   dom.crudFeature.editDisabled = (thing === null);
   // Update features table
-  dom.tbodyFeatures.innerHTML = '';
+  dom.tbodyFeatures.textContent = '';
   let count = 0;
   let thingHasFeature = false;
   if (thing && thing.features) {

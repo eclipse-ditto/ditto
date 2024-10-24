@@ -25,6 +25,7 @@ metadata:
   {{- with .Values.ingress.ws.annotations }}
     {{- toYaml . | nindent 4 }}
   {{- end }}
+  {{ tpl .Values.ingress.api.kubernetesAuthAnnotations . | nindent 4}}
 spec:
   ingressClassName: {{ .Values.ingress.className }}
   defaultBackend:

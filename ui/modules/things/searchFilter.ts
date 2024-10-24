@@ -57,16 +57,17 @@ export async function ready() {
   autoCompleteJS = Utils.createAutoComplete('#searchFilterEdit', createFilterList, 'Search for Things...');
   autoCompleteJS.input.addEventListener('selection', (event) => {
     const selection = event.detail.selection.value;
-    fillSearchFilterEdit(selection.rql);
+    fillSearchFilterEditAndSearch(selection.rql);
   });
 
   dom.searchThings.onclick = () => {
-    fillHistory(dom.searchFilterEdit.value);
-    ThingsSearch.searchTriggered(dom.searchFilterEdit.value);
+    ThingsSearch.searchTriggered(dom.searchFilterEdit.value, () => fillHistory(dom.searchFilterEdit.value));
   };
 
-  dom.searchFavorite.onclick = () => {
-    if (toggleFilterFavorite(dom.searchFilterEdit.value)) {
+  dom.searchFavorite.onclick = async (e) => {
+    e.preventDefault();
+    let isValidQuery = await toggleFilterFavorite(dom.searchFilterEdit.value);
+    if (isValidQuery) {
       dom.favIcon.classList.toggle('bi-star');
       dom.favIcon.classList.toggle('bi-star-fill');
     }
@@ -74,8 +75,7 @@ export async function ready() {
 
   dom.searchFilterEdit.onkeyup = (event) => {
     if ((event.key === 'Enter' || event.code === 13) && dom.searchFilterEdit.value.indexOf(FILTER_PLACEHOLDER) < 0) {
-      fillHistory(dom.searchFilterEdit.value);
-      ThingsSearch.searchTriggered(dom.searchFilterEdit.value);
+      ThingsSearch.searchTriggered(dom.searchFilterEdit.value, () => fillHistory(dom.searchFilterEdit.value));
     } else {
       clearTimeout(keyStrokeTimeout);
       keyStrokeTimeout = setTimeout(checkIfFavorite, 1000);
@@ -93,21 +93,25 @@ export async function ready() {
  * Callback to initialize searchFilters if the environment changed
  */
 function onEnvironmentChanged() {
-  if (!Environments.current()['filterList']) {
+  if (!Environments.current().filterList) {
     Environments.current().filterList = [];
   }
-  if (!Environments.current()['pinnedThings']) {
+  if (!Environments.current().pinnedThings) {
     Environments.current().pinnedThings = [];
   }
 }
 
-function fillSearchFilterEdit(fillString) {
+export function fillSearchFilterEdit(fillString: string) {
   dom.searchFilterEdit.value = fillString;
+}
+
+export function fillSearchFilterEditAndSearch(fillString: string) {
+  fillSearchFilterEdit(fillString);
 
   checkIfFavorite();
   const filterEditNeeded = Utils.checkAndMarkInInput(dom.searchFilterEdit, FILTER_PLACEHOLDER);
   if (!filterEditNeeded) {
-    ThingsSearch.searchTriggered(dom.searchFilterEdit.value);
+    ThingsSearch.searchTriggered(dom.searchFilterEdit.value, () => null);
   }
 }
 
@@ -178,10 +182,10 @@ async function createFilterList(query) {
 
 /**
  * Adds or removes the given filter from the list of search filters
- * @param {String} filter filter
+ * @param {string} filter filter
  * @return {boolean} true if the filter was toggled
  */
-function toggleFilterFavorite(filter) {
+async function toggleFilterFavorite(filter: string): Promise<boolean> {
   if (!filter || filter === '') {
     return false;
   }
@@ -191,7 +195,7 @@ function toggleFilterFavorite(filter) {
   } else {
     Environments.current().filterList.push(filter);
   }
-  Environments.environmentsJsonChanged('filterList');
+  await Environments.environmentsJsonChanged(false, 'filterList');
   return true;
 }
 

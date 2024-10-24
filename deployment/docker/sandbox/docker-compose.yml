@@ -12,7 +12,7 @@ version: '3.4'
 
 services:
   mongodb:
-    image: docker.io/mongo:6.0
+    image: docker.io/mongo:7.0
     deploy:
       resources:
         limits:
@@ -226,7 +226,7 @@ services:
 #       - ./nodered/flows-ditto.json:/data/flows-ditto.json:rw
 
   nginx:
-    image: docker.io/nginx:1.26-alpine
+    image: docker.io/nginx:1.27-alpine
     deploy:
       resources:
         limits:

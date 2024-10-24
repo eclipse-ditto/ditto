@@ -63,7 +63,7 @@ spec:
           image: busybox
           securityContext:
             runAsUser: 0
-          command: [ "sh", "-c", "chown -R 1000:1000 /var/log/ditto && echo 'changed ownership of /var/log/ditto to 1000:1000'" ]
+          command: [ "sh", "-c", "chown -R 1005:1005 /var/log/ditto && echo 'changed ownership of /var/log/ditto to 1005:1005'" ]
           volumeMounts:
             - name: ditto-log-files-directory
               mountPath: /var/log/ditto
@@ -105,6 +105,10 @@ spec:
             {{- if .Values.global.logging.logstash.enabled }}
             - name: DITTO_LOGGING_LOGSTASH_SERVER
               value: "{{ .Values.global.logging.logstash.endpoint }}"
+            - name: LOGSTASH_WRITE_BUFFER_SIZE
+              value: "{{ .Values.global.logging.logstash.writeBufferSize }}"
+            - name: LOGSTASH_RING_BUFFER_SIZE
+              value: "{{ .Values.global.logging.logstash.ringBufferSize }}"
             {{- end }}
             - name: POD_LABEL_SELECTOR
               value: "app.kubernetes.io/name=%s"
@@ -217,8 +221,28 @@ spec:
               value: "{{ .Values.connectivity.config.cleanup.timerThreshold }}"
             - name: CLEANUP_CREDITS_PER_BATCH
               value: "{{ .Values.connectivity.config.cleanup.creditsPerBatch }}"
+            - name: CLEANUP_READS_PER_QUERY
+              value: "{{ .Values.connectivity.config.cleanup.readsPerQuery }}"
+            - name: CLEANUP_WRITES_PER_CREDIT
+              value: "{{ .Values.connectivity.config.cleanup.writesPerCredit }}"
             - name: CLEANUP_DELETE_FINAL_DELETED_SNAPSHOT
               value: "{{ .Values.connectivity.config.cleanup.deleteFinalDeletedSnapshot }}"
+            - name: MONGODB_READ_JOURNAL_SHOULD_CREATE_ADDITIONAL_SNAPSHOT_AGGREGATION_INDEX_PID_ID
+              value: "{{ .Values.connectivity.config.readJournal.indexes.createSnapshotAggregationIndexPidId }}"
+            - name: MONGODB_READ_JOURNAL_SHOULD_CREATE_ADDITIONAL_SNAPSHOT_AGGREGATION_INDEX_PID_SN
+              value: "{{ .Values.connectivity.config.readJournal.indexes.createSnapshotAggregationIndexPidSn }}"
+            - name: MONGODB_READ_JOURNAL_SHOULD_CREATE_ADDITIONAL_SNAPSHOT_AGGREGATION_INDEX_PID_SN_ID
+              value: "{{ .Values.connectivity.config.readJournal.indexes.createSnapshotAggregationIndexPidSnId }}"
+            - name: MONGODB_READ_JOURNAL_HINT_NAME_FILTER_PIDS_THAT_DOESNT_CONTAIN_TAG_IN_NEWEST_ENTRY
+              value: {{ .Values.connectivity.config.readJournal.hints.filterPidsThatDoesntContainTagInNewestEntry | default "null" | quote }}
+            - name: MONGODB_READ_JOURNAL_HINT_NAME_LIST_LATEST_JOURNAL_ENTRIES
+              value: {{ .Values.connectivity.config.readJournal.hints.listLatestJournalEntries | default "null" | quote }}
+            - name: MONGODB_READ_JOURNAL_HINT_NAME_LIST_NEWEST_ACTIVE_SNAPSHOT_BY_BATCH_PID_ID
+              value: {{ .Values.connectivity.config.readJournal.hints.listNewestActiveSnapshotsByBatchPidId | default "null" | quote }}
+            - name: MONGODB_READ_JOURNAL_HINT_NAME_LIST_NEWEST_ACTIVE_SNAPSHOT_BY_BATCH_PID
+              value: {{ .Values.connectivity.config.readJournal.hints.listNewestActiveSnapshotsByBatchPid | default "null" | quote }}
+            - name: MONGODB_READ_JOURNAL_HINT_NAME_LIST_NEWEST_ACTIVE_SNAPSHOT_BY_BATCH_ID
+              value: {{ .Values.connectivity.config.readJournal.hints.listNewestActiveSnapshotsByBatchId | default "null" | quote }}
             - name: CONNECTION_SNAPSHOT_INTERVAL
               value: "{{ .Values.connectivity.config.persistence.snapshots.interval }}"
             - name: CONNECTION_SNAPSHOT_THRESHOLD
@@ -264,6 +288,19 @@ spec:
             {{- if .Values.connectivity.extraEnv }}
               {{- toYaml .Values.connectivity.extraEnv | nindent 12 }}
             {{- end }}
+            - name: MONGO_DB_USE_AWS_IAM_ROLE
+              value: "{{ printf "%t" .Values.dbconfig.connectivity.useAwsIamRole }}"
+            {{- if .Values.dbconfig.connectivity.useAwsIamRole }}
+            - name: MONGO_DB_AWS_REGION
+              value: "{{ .Values.dbconfig.connectivity.awsRegion }}"
+            - name: MONGO_DB_AWS_ROLE_ARN
+              value: "{{ .Values.dbconfig.connectivity.awsRoleArn }}"
+            - name: AWS_WEB_IDENTITY_TOKEN_FILE
+              value: "/var/run/secrets/eks.amazonaws.com/serviceaccount/token"
+            - name: MONGO_DB_AWS_SESSION_NAME
+              value: "{{ .Values.dbconfig.connectivity.awsSessionName }}"
+            {{- end }}
+
           ports:
             - name: remoting
               containerPort: {{ .Values.pekko.remoting.port }}
@@ -304,6 +341,11 @@ spec:
             - name: ditto-log-files-directory
               mountPath: /var/log/ditto
             {{- end }}
+            {{- if .Values.connectivity.extraVolumeMounts }}
+              {{- toYaml .Values.connectivity.extraVolumeMounts | nindent 12 }}
+            {{- end }}
+            - name: ditto-heap-dumps
+              mountPath: /opt/ditto/dumps
           resources:
             requests:
               cpu: {{ mulf .Values.connectivity.resources.cpu 1000 }}m
@@ -350,4 +392,9 @@ spec:
             path: /var/log/ditto
             type: DirectoryOrCreate
         {{- end }}
+        {{- if .Values.connectivity.extraVolumes }}
+          {{- toYaml .Values.connectivity.extraVolumes | nindent 8 }}
+        {{- end}}
+        - name: ditto-heap-dumps
+          emptyDir: {}
 {{- end }}

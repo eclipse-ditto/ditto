@@ -15,8 +15,6 @@ package org.eclipse.ditto.base.model.acks;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -37,11 +35,6 @@ public final class AcknowledgementLabelsTest {
     public static final class GeneralFunctionalityTest {
 
         private static final String KNOWN_LABEL_VALUE = "PROCESSING-DONE";
-
-        @Test
-        public void assertImmutability() {
-            assertInstancesOf(AcknowledgementLabels.class, areImmutable());
-        }
 
         @Test
         public void tryToGetNewLabelForNull() {

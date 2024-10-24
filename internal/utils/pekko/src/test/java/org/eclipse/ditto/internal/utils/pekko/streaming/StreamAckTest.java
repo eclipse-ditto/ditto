@@ -13,8 +13,6 @@
 package org.eclipse.ditto.internal.utils.pekko.streaming;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonValue;
@@ -30,12 +28,7 @@ public class StreamAckTest {
     private static final String KNOWN_ELEMENT_ID = "knownElementId";
 
     @Test
-    public void assertImmutability() {
-        assertInstancesOf(StreamAck.class, areImmutable());
-    }
-
-    @Test
-    public void equalsAndHashcode() throws Exception {
+    public void equalsAndHashcode() {
         EqualsVerifier.forClass(StreamAck.class).verify();
     }
 

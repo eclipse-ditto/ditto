@@ -14,8 +14,6 @@ package org.eclipse.ditto.messages.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -78,11 +76,6 @@ public final class ImmutableMessageHeadersTest {
     private static final String TIMESTAMP = "2017-09-22T09:47:23+01:00";
     private static final HttpStatus HTTP_STATUS = HttpStatus.OK;
     private static final String CONTENT_TYPE = "application/json";
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableMessageHeaders.class, areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

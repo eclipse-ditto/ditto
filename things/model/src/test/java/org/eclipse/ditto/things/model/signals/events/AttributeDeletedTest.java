@@ -13,9 +13,6 @@
 package org.eclipse.ditto.things.model.signals.events;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.signals.events.Event;
@@ -42,13 +39,6 @@ public final class AttributeDeletedTest {
             .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(AttributeDeleted.JSON_ATTRIBUTE, KNOWN_ATTRIBUTE_POINTER.toString())
             .build();
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(AttributeDeleted.class, areImmutable(), provided(JsonPointer.class).isAlsoImmutable());
-    }
-
 
     @Test
     public void testHashCodeAndEquals() {

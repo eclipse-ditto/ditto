@@ -79,10 +79,10 @@ function onAttributeTableClick(event) {
 
 /**
  * Creates a onclick handler function
- * @param {String} method PUT or DELETE
+ * @param {string} method PUT or DELETE
  * @param {boolean} isNewAttribute if a new attribute is created. default = false
  */
-function updateAttribute(method, isNewAttribute = false) {
+function updateAttribute(method: string, isNewAttribute = false) {
   const attributeValue = JSON.parse(attributeEditor.getValue());
   API.callDittoREST(
       method,
@@ -110,7 +110,9 @@ function refreshAttribute(thing, attributePath = null) {
 
   if (thing) {
     dom.crudAttribute.idValue = attributePath;
-    attributeEditor.setValue(Utils.stringifyPretty(thing.attributes[attributePath]), -1);
+    if (thing.attributes) {
+      attributeEditor.setValue(Utils.stringifyPretty(thing.attributes[attributePath]), -1);
+    }
   } else {
     dom.crudAttribute.idValue = null;
     attributeEditor.setValue('');
@@ -120,7 +122,7 @@ function refreshAttribute(thing, attributePath = null) {
 function onThingChanged(thing) {
   dom.crudAttribute.editDisabled = (thing === null);
 
-  dom.tbodyAttributes.innerHTML = '';
+  dom.tbodyAttributes.textContent = '';
   let count = 0;
   let thingHasAttribute = false;
   if (thing && thing.attributes) {
@@ -143,9 +145,9 @@ function onThingChanged(thing) {
 /**
  * checks if the attribute is an array or json and returns a parsed string
  * @param {object} attribute
- * @return {String} parsed json for objects or toString for json values
+ * @return {string} parsed json for objects or toString for json values
  */
-function attributeToString(attribute) {
+function attributeToString(attribute): string {
   return typeof attribute === 'object' ?
       JSON.stringify(attribute) :
       attribute.toString();
@@ -153,10 +155,10 @@ function attributeToString(attribute) {
 
 /**
  * Converts a String into a json value for a Ditto attribute
- * @param {String} attribute Ditto attribute as a String
+ * @param {string} attribute Ditto attribute as a String
  * @return {Object} object in case it could be parsed, else the orignal String
  */
-function attributeFromString(attribute) {
+function attributeFromString(attribute: string) {
   try {
     return JSON.parse(attribute);
   } catch (err) {
@@ -180,8 +182,10 @@ function onEditToggle(event) {
   } else {
     enableDisableEditor();
     refreshAttribute(Things.theThing, dom.crudAttribute.idValue)
-    attributeEditor.setValue(
-      Utils.stringifyPretty(Things.theThing.attributes[dom.crudAttribute.idValue]), -1);
+    if (Things.theThing.attributes) {
+      attributeEditor.setValue(
+        Utils.stringifyPretty(Things.theThing.attributes[dom.crudAttribute.idValue]), -1);
+    }
   }
 
   function enableDisableEditor() {

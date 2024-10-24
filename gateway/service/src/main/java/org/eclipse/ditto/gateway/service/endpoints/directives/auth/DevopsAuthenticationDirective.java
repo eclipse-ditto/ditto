@@ -13,6 +13,7 @@
 package org.eclipse.ditto.gateway.service.endpoints.directives.auth;
 
 import org.apache.pekko.http.javadsl.server.Route;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 
 
 /**
@@ -21,6 +22,14 @@ import org.apache.pekko.http.javadsl.server.Route;
 @FunctionalInterface
 public interface DevopsAuthenticationDirective {
 
-    Route authenticateDevOps(final String realm, final Route inner);
+    /**
+     * Authenticates the devops resources with the chosen authentication method.
+     *
+     * @param realm the realm to apply.
+     * @param dittoHeaders the DittoHeaders to use for logging.
+     * @param inner the inner route, which will be performed on successful authentication.
+     * @return the inner route wrapped with authentication.
+     */
+    Route authenticateDevOps(String realm, DittoHeaders dittoHeaders, Route inner);
 
 }

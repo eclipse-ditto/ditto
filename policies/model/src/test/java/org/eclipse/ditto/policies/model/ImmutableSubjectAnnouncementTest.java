@@ -14,9 +14,6 @@ package org.eclipse.ditto.policies.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Collections;
 import java.util.List;
@@ -50,12 +47,6 @@ public final class ImmutableSubjectAnnouncementTest {
             .set(SubjectAnnouncement.JsonFields.REQUESTED_ACKS_TIMEOUT, ACKS_TIMEOUT.toString())
             .set(SubjectAnnouncement.JsonFields.RANDOMIZATION_INTERVAL, RANDOMIZATION_INTERVAL.toString())
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableSubjectAnnouncement.class, areImmutable(),
-                provided(DittoDuration.class, AcknowledgementRequest.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

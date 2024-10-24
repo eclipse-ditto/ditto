@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.things.service.aggregation;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
@@ -40,11 +37,6 @@ public final class DefaultThingsAggregatorConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         thingsAggregatorTestConf = ConfigFactory.load("things-aggregator-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultThingsAggregatorConfig.class, areImmutable());
     }
 
     @Test

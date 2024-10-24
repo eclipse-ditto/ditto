@@ -13,9 +13,6 @@
 package org.eclipse.ditto.connectivity.service.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Duration;
 
@@ -41,14 +38,6 @@ public class DefaultKafkaConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         kafkaTestConf = ConfigFactory.load("kafka-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultKafkaConfig.class,
-                areImmutable(),
-                provided(KafkaConsumerConfig.class, KafkaProducerConfig.class,
-                        KafkaCommitterConfig.class).areAlsoImmutable());
     }
 
     @Test

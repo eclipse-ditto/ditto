@@ -14,9 +14,6 @@ package org.eclipse.ditto.internal.utils.config.raw;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.internal.utils.config.raw.SecretsAsConfigSupplier.SECRETS_CONFIG_PATH;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.io.File;
 import java.net.URISyntaxException;
@@ -24,7 +21,10 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import org.junit.*;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.contrib.java.lang.system.EnvironmentVariables;
 
 import com.typesafe.config.Config;
@@ -54,13 +54,6 @@ public final class SecretsAsConfigSupplierTest {
     @Before
     public void setSecretsDirPathEnvironmentVariable() {
         environmentVariables.set(SecretsAsConfigSupplier.SECRETS_DIR_PATH_ENV_VARIABLE_NAME, secretsDirPath.toString());
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(SecretsAsConfigSupplier.class,
-                areImmutable(),
-                provided(Path.class, Config.class).areAlsoImmutable());
     }
 
     @Test
