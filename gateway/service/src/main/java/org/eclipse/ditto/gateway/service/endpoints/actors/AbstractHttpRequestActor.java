@@ -237,16 +237,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
                     }
                 })
                 .match(Whoami.class, this::handleWhoami)
-                .match(CheckPermissions.class, command -> {
-                    ActorRef checkPermissionsActor = getContext().actorOf(
-                            CheckPermissionsActor.props(proxyActor, getSelf(), getReceiveTimeout(command, commandConfig)),
-                            CheckPermissionsActor.ACTOR_NAME
-                    );
-
-                    getContext().become(getResponseAwaitingBehavior());
-
-                    checkPermissionsActor.tell(command, getSelf());
-                })
+                .match(CheckPermissions.class, this::handleCheckPermissions)
                 .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
                 .match(ReceiveTimeout.class,
                         receiveTimeout -> {
@@ -355,6 +346,15 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
                 logger.debug("Setting responseLocationUri=<{}> from request <{}>", responseLocationUri, httpRequest);
             }
         }
+    }
+
+    private void handleCheckPermissions(final CheckPermissions command) {
+        final ActorRef checkPermissionsActor = getContext().actorOf(
+                CheckPermissionsActor.props(proxyActor, getSelf(), getReceiveTimeout(command, commandConfig)),
+                CheckPermissionsActor.ACTOR_NAME
+        );
+        getContext().become(getResponseAwaitingBehavior());
+        checkPermissionsActor.tell(command, getSelf());
     }
 
     private void handleWhoami(final Whoami command) {

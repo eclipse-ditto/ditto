@@ -39,18 +39,24 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 
 /**
- * Response on a {@link CheckPermissions} command.
+ * Response for a {@link CheckPermissions} command in the Eclipse Ditto framework.
+ *
+ * This class encapsulates the response for permission checks that are carried out
+ * when a CheckPermissions command is issued. The response includes the results of
+ * the permission checks for various resources.
+ *
+ * The {@link CheckPermissionsResponse} is immutable and provides methods to
+ * construct the response, parse it from JSON, and serialize it back to JSON.
  *
  * @since 3.7.0
  */
 @Immutable
 @JsonParsableCommandResponse(type = CheckPermissionsResponse.TYPE)
-public final class CheckPermissionsResponse extends CommonCommandResponse<CheckPermissionsResponse> implements
-        WithEntity<CheckPermissionsResponse> {
-
+public final class CheckPermissionsResponse extends CommonCommandResponse<CheckPermissionsResponse>
+        implements WithEntity<CheckPermissionsResponse> {
 
     /**
-     * The type of the response.
+     * The type identifier for the response.
      */
     public static final String TYPE = TYPE_PREFIX + CheckPermissions.NAME;
 
@@ -70,6 +76,13 @@ public final class CheckPermissionsResponse extends CommonCommandResponse<CheckP
 
     private final JsonObject permissionResults;
 
+    /**
+     * Constructor to create a new {@code CheckPermissionsResponse}.
+     *
+     * @param permissionResults the permission results to include in the response.
+     * @param httpStatus the HTTP status associated with the response.
+     * @param dittoHeaders headers of the response.
+     */
     private CheckPermissionsResponse(final JsonObject permissionResults,
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
@@ -82,9 +95,9 @@ public final class CheckPermissionsResponse extends CommonCommandResponse<CheckP
     /**
      * Build a new {@code CheckPermissionsResponse}.
      *
-     * @param permissionResults the permission results to respond with.
+     * @param permissionResults the permission results map to respond with.
      * @param dittoHeaders the headers for the response.
-     * @return the response.
+     * @return a new instance of {@link CheckPermissionsResponse}.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static CheckPermissionsResponse of(final Map<String, Boolean> permissionResults,
@@ -97,16 +110,16 @@ public final class CheckPermissionsResponse extends CommonCommandResponse<CheckP
     }
 
     /**
-     * Creates a response to a CheckPermissions command from a JSON object.
+     * Create a {@code CheckPermissionsResponse} from a JSON object.
      *
-     * @param jsonObject the JSON object from which the response is to be created.
+     * @param jsonObject the JSON object representing the response.
      * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
+     * @return a new instance of {@link CheckPermissionsResponse}.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
-     * format.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the passed in {@code jsonObject} was not in the expected
-     * format.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed-in {@code jsonObject}
+     *         was not in the expected format.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if any expected fields were missing in the
+     *         passed-in {@code jsonObject}.
      */
     public static CheckPermissionsResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CheckPermissionsResponse(jsonObject.getValueOrThrow(JSON_PERMISSION_RESULTS), HTTP_STATUS,

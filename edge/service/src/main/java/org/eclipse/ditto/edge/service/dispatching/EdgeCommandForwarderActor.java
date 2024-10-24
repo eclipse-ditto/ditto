@@ -39,6 +39,7 @@ import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
+import org.eclipse.ditto.policies.api.commands.sudo.PolicyCheckPermissions;
 import org.eclipse.ditto.policies.model.PolicyConstants;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
@@ -147,6 +148,7 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                 .match(SudoRetrieveThings.class, this::forwardToThingsAggregatorProxy)
                 .match(SudoRetrieveThing.class, this::handleSudoRetrieveThing)
                 .match(PolicyCommand.class, this::forwardToPolicies)
+                .match(PolicyCheckPermissions.class, this::handlePolicyCheckPermissionsCommand)
                 .match(RetrieveAllConnectionIds.class, this::forwardToConnectivityPubSub)
                 .match(ConnectivityCommand.class, this::forwardToConnectivity)
                 .match(ConnectivitySudoCommand.class, this::forwardToConnectivity)
@@ -308,6 +310,24 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                             transformed instanceof WithEntityId withEntityId ? withEntityId.getEntityId() : null);
 
             shardRegions.things().tell(transformed, sender);
+        }));
+    }
+
+    private void handlePolicyCheckPermissionsCommand(final PolicyCheckPermissions policyCommand) {
+        log.withCorrelationId(policyCommand)
+                .info("Received '{}' command. Checking permissions for policy '{}'",
+                        PolicyCheckPermissions.class.getSimpleName(), policyCommand.getEntityId());
+
+        final ActorRef sender = getSender();
+
+        final CompletionStage<Signal<?>> signalTransformationCs = applySignalTransformation(policyCommand, sender);
+
+        scheduleTask(policyCommand, () -> signalTransformationCs.thenAccept(transformed -> {
+            log.withCorrelationId(transformed)
+                    .info("Forwarding PolicyCheckPermissionsCommand with policy ID '{}' to 'policies' shard region",
+                            transformed instanceof WithEntityId withEntityId ? withEntityId.getEntityId() : null);
+
+            shardRegions.policies().tell(transformed, sender);
         }));
     }
 

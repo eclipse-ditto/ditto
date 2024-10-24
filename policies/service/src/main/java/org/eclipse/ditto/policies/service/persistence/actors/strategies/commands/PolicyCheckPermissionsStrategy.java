@@ -29,29 +29,30 @@ import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
-import org.eclipse.ditto.policies.model.signals.commands.query.PolicyCheckPermissionsResponse;
+import org.eclipse.ditto.policies.api.commands.sudo.PolicyCheckPermissionsResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
-import org.eclipse.ditto.policies.model.signals.commands.query.PolicyCheckPermissionsCommand;
+import org.eclipse.ditto.policies.api.commands.sudo.PolicyCheckPermissions;
 
 /**
- * Strategy that handles the {@link org.eclipse.ditto.policies.model.signals.commands.query.PolicyCheckPermissionsCommand}.
+ * Strategy that handles the {@link org.eclipse.ditto.policies.api.commands.sudo.PolicyCheckPermissions}.
  * <p>
  * It checks the provided resource permissions against the specified {@link PolicyId} and
  * returns a {@link Map} where the key is the resource and the value is {@code true} if
  * the permission was granted, otherwise {@code false}.
+ * @since 3.7.0
  */
-public final class PolicyCheckPermissionsStrategy extends AbstractPolicyCommandStrategy<PolicyCheckPermissionsCommand, PolicyEvent<?>> {
+final class PolicyCheckPermissionsStrategy extends AbstractPolicyCommandStrategy<PolicyCheckPermissions, PolicyEvent<?>> {
 
     public PolicyCheckPermissionsStrategy(final PolicyConfig policyConfig) {
-        super(PolicyCheckPermissionsCommand.class, policyConfig);
+        super(PolicyCheckPermissions.class, policyConfig);
     }
 
     @Override
     protected Result<PolicyEvent<?>> doApply(final Context<PolicyId> context,
             @Nullable final Policy entity,
             final long nextRevision,
-            final PolicyCheckPermissionsCommand command,
+            final PolicyCheckPermissions command,
             @Nullable final Metadata metadata) {
 
         final PolicyId policyId = command.getEntityId();
@@ -88,13 +89,13 @@ public final class PolicyCheckPermissionsStrategy extends AbstractPolicyCommandS
     }
 
     @Override
-    public Optional<EntityTag> previousEntityTag(final PolicyCheckPermissionsCommand command,
+    public Optional<EntityTag> previousEntityTag(final PolicyCheckPermissions command,
             @Nullable final Policy previousEntity) {
         return Optional.empty();
     }
 
     @Override
-    public Optional<EntityTag> nextEntityTag(final PolicyCheckPermissionsCommand command, @Nullable final Policy newEntity) {
+    public Optional<EntityTag> nextEntityTag(final PolicyCheckPermissions command, @Nullable final Policy newEntity) {
         return Optional.empty();
     }
 }

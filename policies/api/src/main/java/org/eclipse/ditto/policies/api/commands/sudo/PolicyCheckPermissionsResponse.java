@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 2024 Contributors to the Eclipse Foundation
  *
@@ -11,7 +10,8 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.model.signals.commands.query;
+
+package org.eclipse.ditto.policies.api.commands.sudo;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
@@ -38,19 +38,30 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.PolicyId;
 
 /**
- * Response to an {@link PolicyCheckPermissionsCommand}.
+ * Response for a {@link PolicyCheckPermissions} command in the Ditto framework.
  * <p>
- * This class holds the results of the permission checks for each resource. The result is
- * a {@link Map} with the resource identifier as the key and {@code true}/{@code false} as
- * the value, indicating whether the requested permission was granted or denied.
+ * This class encapsulates the results of permission checks performed on various resources within a policy.
+ * The response contains a map of resource identifiers and corresponding boolean values indicating whether
+ * each permission was granted or denied.
+ * <p>
+ * This response is immutable and provides methods to build, parse from JSON, and convert permission results
+ * to and from a map format.
+ *
+ * @since 3.7.0
  */
 @Immutable
 @JsonParsableCommandResponse(type = PolicyCheckPermissionsResponse.TYPE)
 public final class PolicyCheckPermissionsResponse extends AbstractCommandResponse<PolicyCheckPermissionsResponse>
-        implements PolicyQueryCommandResponse<PolicyCheckPermissionsResponse> {
+        implements PolicySudoQueryCommandResponse<PolicyCheckPermissionsResponse> {
 
+    /**
+     * The type of this response.
+     */
     public static final String TYPE = "policyCheckPermissionsResponse";
 
+    /**
+     * The key for the permission results field in the JSON response.
+     */
     public static final String PERMISSIONS_RESULTS = "permissionsResults";
 
     private static final HttpStatus HTTP_STATUS = HttpStatus.OK;
@@ -66,12 +77,12 @@ public final class PolicyCheckPermissionsResponse extends AbstractCommandRespons
     }
 
     /**
-     * Creates a response for {@link PolicyCheckPermissionsCommand}.
+     * Creates a response for a {@link PolicyCheckPermissions} command.
      *
-     * @param policyId the ID of the policy being enforced.
-     * @param permissionResults the results of permission checks.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return a new {@code EnforcePolicyResponse}.
+     * @param policyId the ID of the policy being checked.
+     * @param permissionResults the results of the permission checks.
+     * @param dittoHeaders the headers associated with the command.
+     * @return a new {@link PolicyCheckPermissionsResponse}.
      */
     public static PolicyCheckPermissionsResponse of(final PolicyId policyId,
             final Map<String, Boolean> permissionResults,
@@ -80,6 +91,13 @@ public final class PolicyCheckPermissionsResponse extends AbstractCommandRespons
         return new PolicyCheckPermissionsResponse(policyId, fromMap(permissionResults), HTTP_STATUS, dittoHeaders);
     }
 
+    /**
+     * Creates a response from a JSON object.
+     *
+     * @param jsonObject the JSON object to parse the response from.
+     * @param dittoHeaders the headers associated with the command.
+     * @return a new {@link PolicyCheckPermissionsResponse}.
+     */
     public static PolicyCheckPermissionsResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         final String extractedPolicyId = jsonObject.getValueOrThrow(JsonFieldDefinition.ofString("policyId"));
@@ -89,13 +107,18 @@ public final class PolicyCheckPermissionsResponse extends AbstractCommandRespons
                 dittoHeaders);
     }
 
+    /**
+     * Returns the results of the permission checks.
+     *
+     * @return the permission results as a {@link JsonObject}.
+     */
     public JsonObject getPermissionsResults() {
         return permissionsResults;
     }
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
-            final Predicate<JsonField> thePredicate) {
+            final Predicate<JsonField> predicate) {
         jsonObjectBuilder.set("policyId", policyId.toString());
         jsonObjectBuilder.set(PERMISSIONS_RESULTS, JsonFactory.newObject(permissionsResults.toString()));
     }
@@ -139,11 +162,6 @@ public final class PolicyCheckPermissionsResponse extends AbstractCommandRespons
     }
 
     @Override
-    public PolicyId getEntityId() {
-        return policyId;
-    }
-
-    @Override
     public JsonValue getEntity(final JsonSchemaVersion schemaVersion) {
         return permissionsResults;
     }
@@ -153,7 +171,13 @@ public final class PolicyCheckPermissionsResponse extends AbstractCommandRespons
         return JsonPointer.of("/permissionResults");
     }
 
-    public static Map<String, Boolean> toMap(JsonObject jsonObject) {
+    /**
+     * Converts a {@link JsonObject} to a map of permission results.
+     *
+     * @param jsonObject the JSON object to convert.
+     * @return a map of permission results.
+     */
+    public static Map<String, Boolean> toMap(final JsonObject jsonObject) {
         final JsonObject permissionsResultsJsonObject =
                 jsonObject.getValueOrThrow(JsonFieldDefinition.ofJsonObject(PERMISSIONS_RESULTS));
 
@@ -165,8 +189,13 @@ public final class PolicyCheckPermissionsResponse extends AbstractCommandRespons
                 ));
     }
 
-
-    public static JsonObject fromMap(Map<String, Boolean> map) {
+    /**
+     * Converts a map of permission results to a {@link JsonObject}.
+     *
+     * @param map the map of permission results.
+     * @return a {@link JsonObject} representing the permission results.
+     */
+    public static JsonObject fromMap(final Map<String, Boolean> map) {
         final JsonObjectBuilder resultsJson = JsonFactory.newObjectBuilder();
 
         map.forEach((key, result) -> resultsJson.set(key, JsonFactory.newValue(result)));

@@ -18,7 +18,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 
-import java.util.Map;
+import java.util.LinkedHashMap;
 import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -50,18 +50,18 @@ public final class CheckPermissions extends CommonCommand<CheckPermissions> {
      */
     public static final String TYPE = TYPE_PREFIX + CheckPermissions.NAME;
 
-    private final Map<String, ImmutablePermissionCheck> permissionChecks;
+    private final LinkedHashMap<String, ImmutablePermissionCheck> permissionChecks;
 
     /**
      * Constructs a new {@code CheckPermissionsCommand} object.
      *
      * @param dittoHeaders the headers of the command.
-     * @param permissionChecks a map of permission checks to be performed.
+     * @param permissionChecks a linked hash map of permission checks to be performed.
      */
     private CheckPermissions(final DittoHeaders dittoHeaders,
-            final Map<String, ImmutablePermissionCheck> permissionChecks) {
+            final LinkedHashMap<String, ImmutablePermissionCheck> permissionChecks) {
         super(TYPE, Category.QUERY, dittoHeaders);
-        this.permissionChecks = Map.copyOf(permissionChecks);
+        this.permissionChecks = new LinkedHashMap<>(permissionChecks);
     }
 
     /**
@@ -72,7 +72,7 @@ public final class CheckPermissions extends CommonCommand<CheckPermissions> {
      * @return a new {@code CheckPermissionsCommand}.
      */
     public static CheckPermissions of(final DittoHeaders headers,
-            final Map<String, ImmutablePermissionCheck> permissionChecks) {
+            final LinkedHashMap<String, ImmutablePermissionCheck> permissionChecks) {
         return new CheckPermissions(headers, permissionChecks);
     }
 
@@ -84,21 +84,22 @@ public final class CheckPermissions extends CommonCommand<CheckPermissions> {
      * @return a new {@code CheckPermissionsCommand}.
      */
     public static CheckPermissions fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        final Map<String, ImmutablePermissionCheck> permissionChecks = jsonObject.stream()
+        final LinkedHashMap<String, ImmutablePermissionCheck> permissionChecks = jsonObject.stream()
                 .collect(Collectors.toMap(
                         entry -> String.valueOf(entry.getKey()),
-                        entry -> ImmutablePermissionCheck.fromJson(entry.getValue().asObject())
+                        entry -> ImmutablePermissionCheck.fromJson(entry.getValue().asObject()),
+                        (oldValue, newValue) -> oldValue,
+                        LinkedHashMap::new
                 ));
         return new CheckPermissions(dittoHeaders, permissionChecks);
     }
 
-
     /**
      * Returns the permission checks contained in this command.
      *
-     * @return a map of permission checks.
+     * @return a linked hash map of permission checks.
      */
-    public Map<String, ImmutablePermissionCheck> getPermissionChecks() {
+    public LinkedHashMap<String, ImmutablePermissionCheck> getPermissionChecks() {
         return permissionChecks;
     }
 
@@ -115,7 +116,6 @@ public final class CheckPermissions extends CommonCommand<CheckPermissions> {
         return new CheckPermissions(dittoHeaders, permissionChecks);
     }
 
-
     @Override
     public boolean equals(final Object obj) {
         if (this == obj) {
@@ -128,7 +128,6 @@ public final class CheckPermissions extends CommonCommand<CheckPermissions> {
         return Objects.equals(permissionChecks, that.permissionChecks) && super.equals(that);
     }
 
-
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), permissionChecks);
@@ -139,4 +138,3 @@ public final class CheckPermissions extends CommonCommand<CheckPermissions> {
         return "CheckPermissionsCommand[" + super.toString() + ", permissionChecks=" + permissionChecks + "]";
     }
 }
-
