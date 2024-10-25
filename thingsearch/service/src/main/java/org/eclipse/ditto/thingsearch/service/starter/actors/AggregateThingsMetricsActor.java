@@ -110,7 +110,7 @@ public final class AggregateThingsMetricsActor extends AbstractActor {
         final Flow<T, T, NotUsed> logAndFinishPersistenceSegmentFlow =
                 Flow.fromFunction(result -> {
                     log.withCorrelationId(dittoHeaders)
-                            .info("aggregation element: {}", result);
+                            .debug("aggregation element: {}", result);
                     return result;
                 });
         return source.via(logAndFinishPersistenceSegmentFlow);

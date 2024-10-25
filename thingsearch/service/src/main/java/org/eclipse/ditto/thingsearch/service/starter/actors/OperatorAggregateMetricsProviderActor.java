@@ -47,6 +47,7 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.PlaceholderResolver;
+import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.MultipleAggregationFilterMatchingException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.AggregateThingsMetrics;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.AggregateThingsMetricsResponse;
 import org.eclipse.ditto.thingsearch.service.common.config.CustomAggregationMetricConfig;
@@ -154,12 +155,24 @@ public final class OperatorAggregateMetricsProviderActor extends AbstractActorWi
 
 
     private void handleAggregateThingsResponse(final AggregateThingsMetricsResponse response) {
-        log.withCorrelationId(response).debug("Received aggregate things response: {} thread: {}",
-                response, Thread.currentThread().getName());
         final String metricName = response.getMetricName();
-        // record by filter name and tags
-        response.getResult().forEach((filterName, value) -> {
-            resolveTags(filterName, customSearchMetricConfigMap.get(metricName), response);
+        final Optional<Map.Entry<String, Long>> result;
+        try {
+            result = response.getResult();
+            log.withCorrelationId(response)
+                    .debug("Received aggregate things response for metric name <{}>: {}, " +
+                                    "extracted result: <{}> - in thread: {}",
+                            metricName, response, result, Thread.currentThread().getName());
+        } catch (final MultipleAggregationFilterMatchingException e) {
+            log.withCorrelationId(response)
+                    .warning("Could not gather metrics for metric name <{}> from aggregate " +
+                            "things response: {} as multiple filters were matching at the same time: <{}>",
+                            metricName, response, e.getMessage());
+            return;
+        }
+        result.ifPresent(entry -> {
+            final String filterName = entry.getKey();
+            final Long value = entry.getValue();
             final CustomAggregationMetricConfig customAggregationMetricConfig =
                     customSearchMetricConfigMap.get(metricName);
             final TagSet tagSet = resolveTags(filterName, customAggregationMetricConfig, response);
