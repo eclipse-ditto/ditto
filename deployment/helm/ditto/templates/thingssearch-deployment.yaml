@@ -44,6 +44,7 @@ spec:
         prometheus.io/port: "{{ .Values.global.prometheus.port }}"
         {{- end }}
         checksum/mongodb-config: {{ include (print $.Template.BasePath "/mongodb-secret.yaml") . | sha256sum }}
+        checksum/config: {{ include (print $.Template.BasePath "/thingssearch-configmap.yaml") . | sha256sum }}
         {{- with .Values.thingsSearch.additionalAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -139,28 +140,6 @@ spec:
                 {{ .Values.global.pekkoOptions }}
                 {{- if .Values.global.logging.customConfigFile.enabled }}
                 -Dlogback.configurationFile=/opt/ditto/{{ .Values.global.logging.customConfigFile.fileName }}
-                {{- end }}
-                {{- if .Values.thingsSearch.config.indexedFieldsLimiting.enabled }}
-                -Dditto.extensions.caching-signal-enrichment-facade-provider=org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchIndexingSignalEnrichmentFacadeProvider
-                {{- range $index, $value := .Values.thingsSearch.config.indexedFieldsLimiting.items }}
-                "{{ printf "%s%d%s=%s" "-Dditto.search.namespace-indexed-fields." $index ".namespace-pattern" $value.namespacePattern }}"
-                {{- range $fieldIndex, $indexedField := $value.indexedFields }}
-                "{{ printf "%s%d%s%d=%s" "-Dditto.search.namespace-indexed-fields." $index ".indexed-fields." $fieldIndex $indexedField }}"
-                {{- end }}
-                {{- end }}
-                {{- end }}
-                {{- range $key, $value := .Values.thingsSearch.config.operatorMetrics.customMetrics }}
-                "{{ printf "%s%s%s=%t" "-Dditto.search.operator-metrics.custom-metrics." $key ".enabled" $value.enabled }}"
-                {{- if $value.scrapeInterval }}
-                "{{ printf "%s%s%s=%s" "-Dditto.search.operator-metrics.custom-metrics." $key ".scrape-interval" $value.scrapeInterval }}"
-                {{- end }}
-                {{- range $index, $namespace := $value.namespaces }}
-                "{{ printf "%s%s%s%d=%s" "-Dditto.search.operator-metrics.custom-metrics." $key ".namespaces." $index $namespace }}"
-                {{- end }}
-                "{{ printf "%s%s%s=%s" "-Dditto.search.operator-metrics.custom-metrics." $key ".filter" $value.filter }}"
-                {{- range $tagKey, $tagValue := $value.tags }}
-                "{{ printf "%s%s%s%s=%s" "-Dditto.search.operator-metrics.custom-metrics." $key ".tags." $tagKey $tagValue }}"
-                {{- end }}
                 {{- end }}
                 {{ join " " .Values.thingsSearch.systemProps }}
             - name: MONGO_DB_SSL_ENABLED
@@ -264,6 +243,8 @@ spec:
               value: "{{ .Values.dbconfig.thingsSearch.awsRegion }}"
             - name: MONGO_DB_AWS_ROLE_ARN
               value: "{{ .Values.dbconfig.thingsSearch.awsRoleArn }}"
+            - name: AWS_ROLE_ARN
+              value: "{{ .Values.dbconfig.thingsSearch.awsRoleArn }}"
             - name: AWS_WEB_IDENTITY_TOKEN_FILE
               value: "/var/run/secrets/eks.amazonaws.com/serviceaccount/token"
             - name: MONGO_DB_AWS_SESSION_NAME
@@ -300,6 +281,9 @@ spec:
             successThreshold: {{ .Values.thingsSearch.livenessProbe.successThreshold }}
             failureThreshold: {{ .Values.thingsSearch.livenessProbe.failureThreshold }}
           volumeMounts:
+            - name: search-extension-conf
+              mountPath: /opt/ditto/search-extension.conf
+              subPath: search-extension.conf
             {{- if .Values.global.logging.customConfigFile.enabled }}
             - name: ditto-custom-log-config
               mountPath: /opt/ditto/{{ .Values.global.logging.customConfigFile.fileName }}
@@ -349,6 +333,9 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       volumes:
+        - name: search-extension-conf
+          configMap:
+            name: {{ .Release.Name }}-service-config-search-extension-conf
         {{- if .Values.global.logging.customConfigFile.enabled }}
         - name: ditto-custom-log-config
           configMap:

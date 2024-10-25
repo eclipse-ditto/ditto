@@ -1070,6 +1070,12 @@ things:
     wot:
       # tdBasePrefix is the base to use where the Ditto endpoint is located in order to be injected into TDs:
       tdBasePrefix: "http://localhost:8080"
+      # cache contains the configuration for the things model cache
+      cache:
+        # modelCacheSize configures the amount of TMs to hold in the cache
+        modelCacheSize: 1000
+        # expireAfterAccess configures how long a single TM should remain cached after its last access
+        expireAfterAccess: 1d
       # tdJsonTemplate contains a json template added to generated TDs, e.g. containing security information:
       tdJsonTemplate: >-
         {
@@ -1393,6 +1399,23 @@ thingsSearch:
       #   filter: "eq(attributes/awesome,true)"
       #   tags:
       #     foo: bar
+      customAggregationMetrics:
+      # ditto_my_agg_awesome_things:
+      #   enabled: true
+      #   scrapeInterval: 5m
+      #   namespaces:
+      #     - "org.eclipse.ditto"
+      #   groupBy:
+      #     "location": "attributes/Info/location"
+      #   tags:
+      #     "online": "{{ inline:online_placeholder }}"
+      #     "hardcoded-tag": "value"
+      #     "location": "{{ group-by:location | fn:default('missing location') }}"
+      #   filters:
+      #     online_filter:
+      #       filter: "gt(features/ConnectionStatus/properties/status/readyUntil,time:now)"
+      #       inlinePlaceholderValues:
+      #         online_placeholder: true
 
 
 ## ----------------------------------------------------------------------------
