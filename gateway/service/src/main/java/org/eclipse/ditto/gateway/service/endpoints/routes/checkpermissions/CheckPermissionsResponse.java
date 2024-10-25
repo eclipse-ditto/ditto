@@ -30,7 +30,6 @@ import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.base.model.signals.commands.WithEntity;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -40,11 +39,9 @@ import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Response for a {@link CheckPermissions} command in the Eclipse Ditto framework.
- *
  * This class encapsulates the response for permission checks that are carried out
  * when a CheckPermissions command is issued. The response includes the results of
  * the permission checks for various resources.
- *
  * The {@link CheckPermissionsResponse} is immutable and provides methods to
  * construct the response, parse it from JSON, and serialize it back to JSON.
  *
@@ -64,15 +61,6 @@ public final class CheckPermissionsResponse extends CommonCommandResponse<CheckP
             JsonFieldDefinition.ofJsonObject("permissionResults");
 
     private static final HttpStatus HTTP_STATUS = HttpStatus.OK;
-
-    private static final CommandResponseJsonDeserializer<CheckPermissionsResponse> JSON_DESERIALIZER =
-            CommandResponseJsonDeserializer.newInstance(TYPE,
-                    context -> {
-                        final var jsonObject = context.getJsonObject();
-                        return new CheckPermissionsResponse(jsonObject.getValueOrThrow(JSON_PERMISSION_RESULTS),
-                                context.getDeserializedHttpStatus(),
-                                context.getDittoHeaders());
-                    });
 
     private final JsonObject permissionResults;
 

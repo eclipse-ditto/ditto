@@ -11,7 +11,7 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.policies.model;
-import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEmpty;
+
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Collections;
@@ -32,68 +32,63 @@ import org.eclipse.ditto.json.JsonValue;
 
 /**
  * An immutable implementation of {@link ResourcePermissions}.
+ * This class encapsulates a resource's key and its associated permissions.
+ * @since 3.7.0
  */
 @Immutable
 final class ImmutableResourcePermissions implements ResourcePermissions {
 
-    private final String resourceType;
-    private final String resourcePath;
+    private final ResourceKey resourceKey;
     private final List<String> permissions;
 
-    private ImmutableResourcePermissions(final String resourceType, final String resourcePath, final List<String> permissions) {
-        this.resourceType = resourceType;
-        this.resourcePath = resourcePath;
+    private static final JsonFieldDefinition<String> RESOURCE_KEY_FIELD =
+            JsonFactory.newStringFieldDefinition("resourceKey");
+    private static final JsonFieldDefinition<JsonArray> PERMISSIONS_FIELD =
+            JsonFactory.newJsonArrayFieldDefinition("hasPermissions");
+
+
+    private ImmutableResourcePermissions(final ResourceKey resourceKey, final List<String> permissions) {
+        this.resourceKey = checkNotNull(resourceKey, "resourceKey");
         this.permissions = Collections.unmodifiableList(permissions);
     }
 
     /**
-     * Returns a new instance of {@code ImmutableResourcePermission} based on the provided {@code resourceType},
-     * {@code resourcePath}, and {@code permissions}.
+     * Returns a new instance of {@code ImmutableResourcePermissions} based on the provided {@code resourceKey}
+     * and {@code permissions}.
      *
-     * @param resourceType the type of the resource.
-     * @param resourcePath the path of the resource (as a String).
-     * @param permissions the permissions associated with this ResourcePermission.
-     * @return a new ResourcePermission.
+     * @param resourceKey the key of the resource, containing resourceType and resourcePath.
+     * @param permissions the permissions associated with this resource.
+     * @return a new {@code ImmutableResourcePermissions}.
      * @throws NullPointerException if any argument is {@code null}.
-     * @throws IllegalArgumentException if {@code resourceType} or {@code resourcePath} is empty.
      */
-    public static ImmutableResourcePermissions newInstance(final String resourceType, final String resourcePath,
-            final List<String> permissions) {
+    public static ImmutableResourcePermissions newInstance(final ResourceKey resourceKey, final List<String> permissions) {
         return new ImmutableResourcePermissions(
-                argumentNotEmpty(resourceType, "resourceType"),
-                argumentNotEmpty(resourcePath, "resourcePath"),
+                checkNotNull(resourceKey, "resourceKey"),
                 checkNotNull(permissions, "permissions")
         );
     }
 
     /**
-     * Creates an {@code ImmutableResourcePermission} instance from the given JSON object without creating a {@code ResourceKey}.
-     * The resourceKey will be created later by the actor using the provided attributes.
+     * Creates an {@code ImmutableResourcePermissions} instance from the given JSON object using {@code resourceKey}.
+     * The resourceKey is constructed from resourceType and resourcePath inside the JSON.
      *
      * @param jsonObject the JSON object containing the resource permission data.
-     * @return an {@code ImmutableResourcePermission} instance.
+     * @return an {@code ImmutableResourcePermissions} instance.
      * @throws DittoJsonException if the JSON object is not valid or missing required fields.
      */
     public static ImmutableResourcePermissions fromJson(final JsonObject jsonObject) {
-        final String resourceType = jsonObject.getValueOrThrow(JsonFieldDefinition.ofString("resourceType"));
-
-        final String resourcePath = jsonObject.getValueOrThrow(JsonFieldDefinition.ofString("resourcePath"));
-
-        final List<String> permissions = jsonObject.getValueOrThrow(JsonFactory.newJsonArrayFieldDefinition("hasPermissions"))
+        final String resourceKeyField = jsonObject.getValueOrThrow(RESOURCE_KEY_FIELD);
+        final ResourceKey resourceKey = ResourceKey.newInstance(resourceKeyField);
+        final List<String> permissions = jsonObject.getValueOrThrow(PERMISSIONS_FIELD)
                 .stream().map(JsonValue::asString)
                 .collect(Collectors.toList());
 
-        return newInstance(resourceType, resourcePath, permissions);
+        return newInstance(resourceKey, permissions);
     }
 
     @Override
-    public String getResourceType() {
-        return resourceType;
-    }
-
-    @Override
-    public String getResourcePath() {
-        return resourcePath;
+    public ResourceKey getResourceKey() {
+        return resourceKey;
     }
 
     @Override
@@ -104,9 +99,8 @@ final class ImmutableResourcePermissions implements ResourcePermissions {
     @Override
     public JsonObject toJson() {
         JsonObjectBuilder jsonBuilder = JsonFactory.newObjectBuilder();
-        jsonBuilder.set("resourceType", resourceType);
-        jsonBuilder.set("resourcePath", resourcePath);
-        jsonBuilder.set("hasPermissions", JsonArray.of(permissions));
+        jsonBuilder.set(RESOURCE_KEY_FIELD, resourceKey.toString());
+        jsonBuilder.set(PERMISSIONS_FIELD, JsonArray.of(permissions));
         return jsonBuilder.build();
     }
 
@@ -119,19 +113,18 @@ final class ImmutableResourcePermissions implements ResourcePermissions {
             return false;
         }
         final ImmutableResourcePermissions that = (ImmutableResourcePermissions) o;
-        return Objects.equals(resourceType, that.resourceType) &&
-                Objects.equals(resourcePath, that.resourcePath) &&
+        return Objects.equals(resourceKey, that.resourceKey) &&
                 Objects.equals(permissions, that.permissions);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(resourceType, resourcePath, permissions);
+        return Objects.hash(resourceKey, permissions);
     }
 
     @Override
     @Nonnull
     public String toString() {
-        return "ResourcePermission [resourceType=" + resourceType + ", resourcePath=" + resourcePath + ", permissions=" + permissions + "]";
+        return "ResourcePermissions [resourceKey=" + resourceKey + ", permissions=" + permissions + "]";
     }
 }

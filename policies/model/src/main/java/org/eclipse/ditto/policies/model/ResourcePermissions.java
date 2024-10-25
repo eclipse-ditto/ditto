@@ -12,29 +12,23 @@
  */
 package org.eclipse.ditto.policies.model;
 
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonObject;
 
 import java.util.List;
 
 /**
  * Represents the permissions associated with a resource.
+ * @since 3.7.0
  */
-public interface ResourcePermissions {
-
-
-    /**
-     * Gets the type of the resource.
-     *
-     * @return the resource type.
-     */
-    String getResourceType();
+public interface ResourcePermissions extends Jsonifiable<JsonObject> {
 
     /**
-     * Gets the path of the resource.
+     * Gets the key of the resource, which contains both type and path information.
      *
-     * @return the resource path as a JsonPointer.
+     * @return the resource key.
      */
-    String getResourcePath();
+    ResourceKey getResourceKey();
 
     /**
      * Gets the permissions associated with the resource.
@@ -42,11 +36,4 @@ public interface ResourcePermissions {
      * @return the set of permissions.
      */
     List<String> getPermissions();
-
-    /**
-     * Converts the ResourcePermissions instance to a JsonObject.
-     *
-     * @return the JsonObject representation of the resource permissions.
-     */
-    JsonObject toJson();
 }

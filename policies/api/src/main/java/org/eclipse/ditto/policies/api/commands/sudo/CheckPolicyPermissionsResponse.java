@@ -38,7 +38,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.PolicyId;
 
 /**
- * Response for a {@link PolicyCheckPermissions} command in the Ditto framework.
+ * Response for a {@link CheckPolicyPermissions} command in the Ditto framework.
  * <p>
  * This class encapsulates the results of permission checks performed on various resources within a policy.
  * The response contains a map of resource identifiers and corresponding boolean values indicating whether
@@ -50,26 +50,32 @@ import org.eclipse.ditto.policies.model.PolicyId;
  * @since 3.7.0
  */
 @Immutable
-@JsonParsableCommandResponse(type = PolicyCheckPermissionsResponse.TYPE)
-public final class PolicyCheckPermissionsResponse extends AbstractCommandResponse<PolicyCheckPermissionsResponse>
-        implements PolicySudoQueryCommandResponse<PolicyCheckPermissionsResponse> {
+@JsonParsableCommandResponse(type = CheckPolicyPermissionsResponse.TYPE)
+public final class CheckPolicyPermissionsResponse extends AbstractCommandResponse<CheckPolicyPermissionsResponse>
+        implements PolicySudoQueryCommandResponse<CheckPolicyPermissionsResponse> {
 
     /**
      * The type of this response.
      */
-    public static final String TYPE = "policyCheckPermissionsResponse";
+    public static final String TYPE = "checkPolicyPermissionsResponse";
 
     /**
      * The key for the permission results field in the JSON response.
      */
-    public static final String PERMISSIONS_RESULTS = "permissionsResults";
+    private static final String PERMISSIONS_RESULTS = "permissionsResults";
+
+    private static final JsonFieldDefinition<JsonObject> PERMISSIONS_RESULTS_FIELD =
+            JsonFactory.newJsonObjectFieldDefinition("permissionsResults");
+
+    private static final JsonFieldDefinition<String> POLICY_ID_FIELD =
+            JsonFactory.newStringFieldDefinition("policyId");
 
     private static final HttpStatus HTTP_STATUS = HttpStatus.OK;
 
     private final PolicyId policyId;
     private final JsonObject permissionsResults;
 
-    private PolicyCheckPermissionsResponse(final PolicyId policyId, final JsonObject permissionResults,
+    private CheckPolicyPermissionsResponse(final PolicyId policyId, final JsonObject permissionResults,
             final HttpStatus statusCode, final DittoHeaders dittoHeaders) {
         super(TYPE, statusCode, dittoHeaders);
         this.policyId = checkNotNull(policyId, "policyId");
@@ -77,18 +83,18 @@ public final class PolicyCheckPermissionsResponse extends AbstractCommandRespons
     }
 
     /**
-     * Creates a response for a {@link PolicyCheckPermissions} command.
+     * Creates a response for a {@link CheckPolicyPermissions} command.
      *
      * @param policyId the ID of the policy being checked.
      * @param permissionResults the results of the permission checks.
      * @param dittoHeaders the headers associated with the command.
-     * @return a new {@link PolicyCheckPermissionsResponse}.
+     * @return a new {@link CheckPolicyPermissionsResponse}.
      */
-    public static PolicyCheckPermissionsResponse of(final PolicyId policyId,
+    public static CheckPolicyPermissionsResponse of(final PolicyId policyId,
             final Map<String, Boolean> permissionResults,
             final DittoHeaders dittoHeaders) {
 
-        return new PolicyCheckPermissionsResponse(policyId, fromMap(permissionResults), HTTP_STATUS, dittoHeaders);
+        return new CheckPolicyPermissionsResponse(policyId, fromMap(permissionResults), HTTP_STATUS, dittoHeaders);
     }
 
     /**
@@ -96,14 +102,14 @@ public final class PolicyCheckPermissionsResponse extends AbstractCommandRespons
      *
      * @param jsonObject the JSON object to parse the response from.
      * @param dittoHeaders the headers associated with the command.
-     * @return a new {@link PolicyCheckPermissionsResponse}.
+     * @return a new {@link CheckPolicyPermissionsResponse}.
      */
-    public static PolicyCheckPermissionsResponse fromJson(final JsonObject jsonObject,
+    public static CheckPolicyPermissionsResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        final String extractedPolicyId = jsonObject.getValueOrThrow(JsonFieldDefinition.ofString("policyId"));
+        final String extractedPolicyId = jsonObject.getValueOrThrow(POLICY_ID_FIELD);
         final PolicyId policyId = PolicyId.of(extractedPolicyId);
-        return new PolicyCheckPermissionsResponse(policyId,
-                jsonObject.getValueOrThrow(JsonFieldDefinition.ofJsonObject(PERMISSIONS_RESULTS)), HTTP_STATUS,
+        return new CheckPolicyPermissionsResponse(policyId,
+                jsonObject.getValueOrThrow(PERMISSIONS_RESULTS_FIELD), HTTP_STATUS,
                 dittoHeaders);
     }
 
@@ -119,8 +125,8 @@ public final class PolicyCheckPermissionsResponse extends AbstractCommandRespons
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> predicate) {
-        jsonObjectBuilder.set("policyId", policyId.toString());
-        jsonObjectBuilder.set(PERMISSIONS_RESULTS, JsonFactory.newObject(permissionsResults.toString()));
+        jsonObjectBuilder.set(POLICY_ID_FIELD, policyId.toString());
+        jsonObjectBuilder.set(PERMISSIONS_RESULTS_FIELD, permissionsResults);
     }
 
     @Override
@@ -128,10 +134,10 @@ public final class PolicyCheckPermissionsResponse extends AbstractCommandRespons
         if (this == other) {
             return true;
         }
-        if (!(other instanceof PolicyCheckPermissionsResponse)) {
+        if (!(other instanceof CheckPolicyPermissionsResponse)) {
             return false;
         }
-        final PolicyCheckPermissionsResponse that = (PolicyCheckPermissionsResponse) other;
+        final CheckPolicyPermissionsResponse that = (CheckPolicyPermissionsResponse) other;
         return Objects.equals(policyId, that.policyId) &&
                 Objects.equals(permissionsResults, that.permissionsResults) &&
                 super.equals(that);
@@ -144,20 +150,20 @@ public final class PolicyCheckPermissionsResponse extends AbstractCommandRespons
 
     @Override
     public String toString() {
-        return "PolicyCheckPermissionsResponse{" +
+        return "PolicyCheckPermissionsResponse[" +
                 "policyId=" + policyId +
                 ", permissionResults=" + permissionsResults +
-                '}';
+                ']';
     }
 
     @Override
-    public PolicyCheckPermissionsResponse setEntity(final JsonValue entity) {
+    public CheckPolicyPermissionsResponse setEntity(final JsonValue entity) {
         checkNotNull(entity, "entity");
         return of(policyId, toMap(entity.asObject()), getDittoHeaders());
     }
 
     @Override
-    public PolicyCheckPermissionsResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
+    public CheckPolicyPermissionsResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(policyId, toMap(permissionsResults), dittoHeaders);
     }
 

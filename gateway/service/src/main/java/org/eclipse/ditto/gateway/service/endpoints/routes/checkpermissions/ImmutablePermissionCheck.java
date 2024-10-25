@@ -13,9 +13,12 @@
 package org.eclipse.ditto.gateway.service.endpoints.routes.checkpermissions;
 
 import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.policies.model.PoliciesResourceType;
+import org.eclipse.ditto.policies.model.ResourceKey;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -35,45 +38,46 @@ import java.util.List;
 @Immutable
 public final class ImmutablePermissionCheck {
 
-    private final String resource;
+    private final ResourceKey resourceKey;
     private final String entityId;
     private final Boolean isPolicyResource;
     private final List<String> hasPermissions;
 
-    /**
-     * Constant defining a policy resource path.
-     */
-    public static final String POLICY_RESOURCE = "policy:/";
+    private static final JsonFieldDefinition<String> RESOURCE_KEY_FIELD = JsonFactory.newStringFieldDefinition("resource");
+    private static final JsonFieldDefinition<String> ENTITY_ID_FIELD = JsonFactory.newStringFieldDefinition("entityId");
+    private static final JsonFieldDefinition<JsonArray> PERMISSIONS_FIELD = JsonFactory.newJsonArrayFieldDefinition("hasPermissions");
 
-    private ImmutablePermissionCheck(final String resource, final String entityId, Boolean isPolicyResource,
+
+    private ImmutablePermissionCheck(final ResourceKey resourceKey, final String entityId,
             final List<String> hasPermissions) {
-        this.resource = resource;
+
+        this.resourceKey = resourceKey;
         this.entityId = entityId;
-        this.isPolicyResource = resource.contains(POLICY_RESOURCE);
+        this.isPolicyResource = PoliciesResourceType.POLICY.equals(resourceKey.getResourceType());
         this.hasPermissions = List.copyOf(hasPermissions);
     }
 
     /**
      * Creates an {@code ImmutablePermissionCheck} instance.
      *
-     * @param resource the resource for which permissions are being checked.
+     * @param resourceKey the resourceKey for which permissions are being checked.
      * @param entityId the entity ID associated with the resource.
      * @param hasPermissions the list of permissions being checked.
      * @return a new {@link ImmutablePermissionCheck} instance.
      */
-    public static ImmutablePermissionCheck of(final String resource, final String entityId,
+    public static ImmutablePermissionCheck of(final ResourceKey resourceKey, final String entityId,
             final List<String> hasPermissions) {
 
-        return new ImmutablePermissionCheck(resource, entityId, resource.contains(POLICY_RESOURCE), hasPermissions);
+        return new ImmutablePermissionCheck(resourceKey, entityId, hasPermissions);
     }
 
     /**
      * Returns the resource for which permissions are being checked.
      *
-     * @return the resource string.
+     * @return the resourceKey ResourceKey.
      */
-    public String getResource() {
-        return resource;
+    public ResourceKey getResourceKey() {
+        return resourceKey;
     }
 
     /**
@@ -110,7 +114,7 @@ public final class ImmutablePermissionCheck {
      */
     public JsonObject toJson() {
         return JsonFactory.newObjectBuilder()
-                .set("resource", resource)
+                .set("resourceKey", resourceKey.toString())
                 .set("entityId", entityId)
                 .set("isPolicyResource", isPolicyResource)
                 .set("hasPermissions", hasPermissions.toString())
@@ -124,14 +128,13 @@ public final class ImmutablePermissionCheck {
      * @return the parsed {@link ImmutablePermissionCheck}.
      */
     public static ImmutablePermissionCheck fromJson(final JsonObject jsonObject) {
-        final String resource = jsonObject.getValueOrThrow(JsonFactory.newStringFieldDefinition("resource"));
-        final String entityId = jsonObject.getValueOrThrow(JsonFactory.newStringFieldDefinition("entityId"));
-        final JsonArray permissionsArray =
-                jsonObject.getValueOrThrow(JsonFactory.newJsonArrayFieldDefinition("hasPermissions"));
+        final ResourceKey resourceKey = ResourceKey.newInstance(jsonObject.getValueOrThrow(RESOURCE_KEY_FIELD));
+        final String entityId = jsonObject.getValueOrThrow(ENTITY_ID_FIELD);
+        final JsonArray permissionsArray = jsonObject.getValueOrThrow(PERMISSIONS_FIELD);
         final List<String> permissions = permissionsArray.stream()
                 .map(JsonValue::asString)
                 .toList();
 
-        return ImmutablePermissionCheck.of(resource, entityId, permissions);
+        return ImmutablePermissionCheck.of(resourceKey, entityId, permissions);
     }
 }

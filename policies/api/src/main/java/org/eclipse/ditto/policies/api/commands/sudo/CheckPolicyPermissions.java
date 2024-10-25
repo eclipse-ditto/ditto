@@ -15,6 +15,7 @@ package org.eclipse.ditto.policies.api.commands.sudo;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -53,77 +54,77 @@ import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
  * @since 3.7.0
  */
 @Immutable
-@JsonParsableCommand(typePrefix = PolicySudoCommand.TYPE_PREFIX, name = PolicyCheckPermissions.NAME)
-public final class PolicyCheckPermissions extends AbstractCommand<PolicyCheckPermissions>
-        implements PolicySudoCommand<PolicyCheckPermissions>, SignalWithEntityId<PolicyCheckPermissions> {
+@JsonParsableCommand(typePrefix = PolicySudoCommand.TYPE_PREFIX, name = CheckPolicyPermissions.NAME)
+public final class CheckPolicyPermissions extends AbstractCommand<CheckPolicyPermissions>
+        implements PolicySudoCommand<CheckPolicyPermissions>, SignalWithEntityId<CheckPolicyPermissions> {
 
     /**
      * The name of this command type.
      */
-    public static final String NAME = "policyCheckPermissionCommand";
+    public static final String NAME = "checkPolicyPermissions";
 
     /**
      * The key for the permissions map field in the JSON object.
      */
-    public static final String PERMISSIONS_MAP = "permissionsMap";
+    private static final String PERMISSIONS_MAP = "permissionsMap";
 
     /**
      * The type identifier for this command.
      */
-    public static final String TYPE = TYPE_PREFIX + NAME;
+    private static final String TYPE = TYPE_PREFIX + CheckPolicyPermissions.NAME;
 
     private final PolicyId policyId;
     private final Map<String, ResourcePermissions> permissionsMap;
 
     /**
-     * Private constructor for creating an instance of {@code PolicyCheckPermissions}.
+     * Private constructor for creating an instance of {@code CheckPolicyPermissions}.
      *
      * @param policyId the ID of the policy being checked.
      * @param permissionsMap the map of resources and permissions to check.
      * @param dittoHeaders the headers of the command.
      */
-    private PolicyCheckPermissions(final PolicyId policyId,
+    private CheckPolicyPermissions(final PolicyId policyId,
             final Map<String, ResourcePermissions> permissionsMap,
             final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.policyId = checkNotNull(policyId, "policy ID");
-        this.permissionsMap = checkNotNull(permissionsMap, "permissions map");
+        this.permissionsMap = Collections.unmodifiableMap(checkNotNull(permissionsMap, "permissions map"));
     }
 
     /**
-     * Factory method to create a {@code PolicyCheckPermissions} command.
+     * Factory method to create a {@code CheckPolicyPermissions} command.
      *
      * @param policyId the ID of the policy being checked.
      * @param permissionsMap the map of resources and permissions to check.
      * @param dittoHeaders the headers of the command.
-     * @return a new {@link PolicyCheckPermissions} command.
+     * @return a new {@link CheckPolicyPermissions} command.
      */
-    public static PolicyCheckPermissions of(final PolicyId policyId,
+    public static CheckPolicyPermissions of(final PolicyId policyId,
             final Map<String, ResourcePermissions> permissionsMap,
             final DittoHeaders dittoHeaders) {
-        return new PolicyCheckPermissions(policyId, permissionsMap, dittoHeaders);
+        return new CheckPolicyPermissions(policyId, permissionsMap, dittoHeaders);
     }
 
     /**
-     * Creates a {@code PolicyCheckPermissions} command from a JSON string.
+     * Creates a {@code CheckPolicyPermissions} command from a JSON string.
      *
      * @param jsonString the JSON string to parse the command from.
      * @param dittoHeaders the headers of the command.
-     * @return a new {@link PolicyCheckPermissions} command.
+     * @return a new {@link CheckPolicyPermissions} command.
      */
-    public static PolicyCheckPermissions fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
+    public static CheckPolicyPermissions fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
     }
 
     /**
-     * Creates a {@code PolicyCheckPermissions} command from a {@link JsonObject}.
+     * Creates a {@code CheckPolicyPermissions} command from a {@link JsonObject}.
      *
      * @param jsonObject the JSON object to parse the command from.
      * @param dittoHeaders the headers of the command.
-     * @return a new {@link PolicyCheckPermissions} command.
+     * @return a new {@link CheckPolicyPermissions} command.
      */
-    public static PolicyCheckPermissions fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<PolicyCheckPermissions>(TYPE, jsonObject).deserialize(() -> {
+    public static CheckPolicyPermissions fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new CommandJsonDeserializer<CheckPolicyPermissions>(TYPE, jsonObject).deserialize(() -> {
             final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyCommand.JsonFields.JSON_POLICY_ID);
             final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final JsonObject permissionsJsonObject =
@@ -186,7 +187,7 @@ public final class PolicyCheckPermissions extends AbstractCommand<PolicyCheckPer
     }
 
     @Override
-    public PolicyCheckPermissions setDittoHeaders(final DittoHeaders dittoHeaders) {
+    public CheckPolicyPermissions setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(policyId, permissionsMap, dittoHeaders);
     }
 
@@ -198,14 +199,14 @@ public final class PolicyCheckPermissions extends AbstractCommand<PolicyCheckPer
         if (obj == null || getClass() != obj.getClass()) {
             return false;
         }
-        final PolicyCheckPermissions that = (PolicyCheckPermissions) obj;
+        final CheckPolicyPermissions that = (CheckPolicyPermissions) obj;
         return that.canEqual(this) && Objects.equals(policyId, that.policyId) &&
                 Objects.equals(permissionsMap, that.permissionsMap) && super.equals(that);
     }
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return other instanceof PolicyCheckPermissions;
+        return other instanceof CheckPolicyPermissions;
     }
 
     @Override

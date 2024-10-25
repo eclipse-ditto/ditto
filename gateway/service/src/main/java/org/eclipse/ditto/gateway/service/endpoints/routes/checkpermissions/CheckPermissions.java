@@ -15,6 +15,7 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.checkpermissions;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableCommand;
 import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 
@@ -50,6 +51,10 @@ public final class CheckPermissions extends CommonCommand<CheckPermissions> {
      */
     public static final String TYPE = TYPE_PREFIX + CheckPermissions.NAME;
 
+    private static final JsonFieldDefinition<JsonObject> PERMISSION_CHECKS_FIELD = JsonFactory.newJsonObjectFieldDefinition(
+            "permissionChecks"
+    );
+
     private final LinkedHashMap<String, ImmutablePermissionCheck> permissionChecks;
 
     /**
@@ -71,8 +76,8 @@ public final class CheckPermissions extends CommonCommand<CheckPermissions> {
      * @param permissionChecks the permission checks to be included in the command.
      * @return a new {@code CheckPermissionsCommand}.
      */
-    public static CheckPermissions of(final DittoHeaders headers,
-            final LinkedHashMap<String, ImmutablePermissionCheck> permissionChecks) {
+    public static CheckPermissions of(final LinkedHashMap<String, ImmutablePermissionCheck> permissionChecks,
+            final DittoHeaders headers) {
         return new CheckPermissions(headers, permissionChecks);
     }
 
@@ -108,7 +113,7 @@ public final class CheckPermissions extends CommonCommand<CheckPermissions> {
             final Predicate<JsonField> predicate) {
         JsonObjectBuilder permissionChecksBuilder = JsonFactory.newObjectBuilder();
         permissionChecks.forEach((key, permissionCheck) -> permissionChecksBuilder.set(key, permissionCheck.toJson()));
-        jsonObjectBuilder.set("permissionChecks", permissionChecksBuilder.build(), predicate);
+        jsonObjectBuilder.set(PERMISSION_CHECKS_FIELD, permissionChecksBuilder.build(), predicate);
     }
 
     @Override
