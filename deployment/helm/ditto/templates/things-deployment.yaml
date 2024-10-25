@@ -44,6 +44,7 @@ spec:
         prometheus.io/port: "{{ .Values.global.prometheus.port }}"
         {{- end }}
         checksum/mongodb-config: {{ include (print $.Template.BasePath "/mongodb-secret.yaml") . | sha256sum }}
+        checksum/config: {{ include (print $.Template.BasePath "/things-configmap.yaml") . | sha256sum }}
         {{- with .Values.things.additionalAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -139,72 +140,6 @@ spec:
                 {{ .Values.global.pekkoOptions }}
                 {{- if .Values.global.logging.customConfigFile.enabled }}
                 -Dlogback.configurationFile=/opt/ditto/{{ .Values.global.logging.customConfigFile.fileName }}
-                {{- end }}
-                {{- range $index, $header := .Values.things.config.persistence.events.historicalHeadersToPersist }}
-                "{{ printf "%s%d=%s" "-Dditto.things.thing.event.historical-headers-to-persist." $index $header }}"
-                {{- end }}
-                {{- range $grantIdx, $grant := .Values.things.config.entityCreation.grants }}
-                "{{ printf "%s%d%s=%s" "-Dditto.entity-creation.grant." $grantIdx ".resource-types.0" "thing" }}"
-                {{- range $namespaceIdx, $namespace := $grant.namespaces }}
-                "{{ printf "%s%d%s%d=%s" "-Dditto.entity-creation.grant." $grantIdx ".namespaces." $namespaceIdx $namespace }}"
-                {{- end }}
-                {{- range $subjectIdx, $subject := $grant.authSubjects }}
-                "{{ printf "%s%d%s%d=%s" "-Dditto.entity-creation.grant." $grantIdx ".auth-subjects." $subjectIdx $subject }}"
-                {{- end }}
-                {{- end }}
-                {{- range $revokeIdx, $revoke := .Values.things.config.entityCreation.revokes }}
-                "{{ printf "%s%d%s=%s" "-Dditto.entity-creation.revoke." $revokeIdx ".resource-types.0" "thing" }}"
-                {{- range $namespaceIdx, $namespace := $revoke.namespaces }}
-                "{{ printf "%s%d%s%d=%s" "-Dditto.entity-creation.revoke." $revokeIdx ".namespaces." $namespaceIdx $namespace }}"
-                {{- end }}
-                {{- range $subjectIdx, $subject := $revoke.authSubjects }}
-                "{{ printf "%s%d%s%d=%s" "-Dditto.entity-creation.revoke." $revokeIdx ".auth-subjects." $subjectIdx $subject }}"
-                {{- end }}
-                {{- end }}
-                '-Dditto.things.wot.to-thing-description.json-template={{ .Values.things.config.wot.tdJsonTemplate | replace "\n" "" | replace "\\\"" "\"" }}'
-                {{- range $dynConfIdx, $dynamicWotTmValidationConfig := .Values.things.config.wot.tmValidation.dynamicConfig }}
-                  {{- if $dynamicWotTmValidationConfig.validationContext.dittoHeadersPatterns }}
-                    {{- if gt (len $dynamicWotTmValidationConfig.validationContext.dittoHeadersPatterns) 0 }}
-                        {{- range $dhpIdx, $dittoHeadersPatterns := $dynamicWotTmValidationConfig.validationContext.dittoHeadersPatterns }}
-                          {{- range $dhpKey, $dhpVal := $dittoHeadersPatterns }}
-                "{{ printf "%s%d%s%d%s%s=%v" "-Dditto.things.wot.tm-model-validation.dynamic-configuration." $dynConfIdx ".validation-context.ditto-headers-patterns." $dhpIdx "." $dhpKey $dhpVal }}"
-                          {{- end }}
-                        {{- end }}
-                    {{- end }}
-                  {{- end }}
-                  {{- if $dynamicWotTmValidationConfig.validationContext.thingDefinitionPatterns }}
-                    {{- if gt (len $dynamicWotTmValidationConfig.validationContext.thingDefinitionPatterns) 0 }}
-                      {{- range $tdpIdx, $thingDefinitionPattern := $dynamicWotTmValidationConfig.validationContext.thingDefinitionPatterns }}
-                "{{ printf "%s%d%s%d=%v" "-Dditto.things.wot.tm-model-validation.dynamic-configuration." $dynConfIdx ".validation-context.thing-definition-patterns." $tdpIdx $thingDefinitionPattern }}"
-                      {{- end }}
-                    {{- end }}
-                  {{- end }}
-                  {{- if $dynamicWotTmValidationConfig.validationContext.featureDefinitionPatterns }}
-                    {{- if gt (len $dynamicWotTmValidationConfig.validationContext.featureDefinitionPatterns) 0 }}
-                      {{- range $fdpIdx, $featureDefinitionPattern := $dynamicWotTmValidationConfig.validationContext.featureDefinitionPatterns }}
-                "{{ printf "%s%d%s%d=%v" "-Dditto.things.wot.tm-model-validation.dynamic-configuration." $dynConfIdx ".validation-context.feature-definition-patterns." $fdpIdx $featureDefinitionPattern }}"
-                      {{- end }}
-                    {{- end }}
-                  {{- end }}
-                  {{- range $configOverridesKey, $configOverridesValue := $dynamicWotTmValidationConfig.configOverrides }}
-                    {{- if or (eq (kindOf $configOverridesValue) "map") (eq (kindOf $configOverridesValue) "slice") }}
-                      {{- range $nested1ConfigOverridesKey, $nested1ConfigOverridesValue := $configOverridesValue }}
-                        {{- if or (eq (kindOf $nested1ConfigOverridesValue) "map") (eq (kindOf $nested1ConfigOverridesValue) "slice") }}
-                          {{- range $nested2ConfigOverridesKey, $nested2ConfigOverridesValue := $nested1ConfigOverridesValue }}
-                            {{- if not (kindIs "invalid" $nested2ConfigOverridesValue) }}
-                "{{ printf "%s%d%s%s%s%s%s%s=%v" "-Dditto.things.wot.tm-model-validation.dynamic-configuration." $dynConfIdx ".config-overrides." $configOverridesKey "." $nested1ConfigOverridesKey "." $nested2ConfigOverridesKey $nested2ConfigOverridesValue }}"
-                            {{- end }}
-                          {{- end }}
-                        {{- else }}
-                          {{- if not (kindIs "invalid" $nested1ConfigOverridesValue) }}
-                "{{ printf "%s%d%s%s%s%s=%v" "-Dditto.things.wot.tm-model-validation.dynamic-configuration." $dynConfIdx ".config-overrides." $configOverridesKey "." $nested1ConfigOverridesKey $nested1ConfigOverridesValue }}"
-                          {{- end }}
-                        {{- end }}
-                      {{- end }}
-                    {{- else }}
-                "{{ printf "%s%d%s%s=%v" "-Dditto.things.wot.tm-model-validation.dynamic-configuration." $dynConfIdx ".config-overrides." $configOverridesKey $configOverridesValue }}"
-                    {{- end }}
-                  {{- end }}
                 {{- end }}
                 {{ join " " .Values.things.systemProps }}
             - name: MONGO_DB_SSL_ENABLED
@@ -320,6 +255,10 @@ spec:
               value: "{{ .Values.things.config.policiesEnforcer.cache.expireAfterAccess }}"
             - name: THINGS_WOT_TO_THING_DESCRIPTION_BASE_PREFIX
               value: "{{ .Values.things.config.wot.tdBasePrefix }}"
+            - name: THINGS_WOT_THING_MODEL_CACHE_SIZE
+              value: "{{ .Values.things.config.wot.cache.modelCacheSize }}"
+            - name: THINGS_WOT_THING_MODEL_CACHE_EXPIRE_AFTER_ACCESS
+              value: "{{ .Values.things.config.wot.cache.expireAfterAccess }}"
             - name: THINGS_WOT_TM_MODEL_VALIDATION_ENABLED
               value: "{{ .Values.things.config.wot.tmValidation.enabled }}"
             - name: THINGS_WOT_TM_MODEL_VALIDATION_LOG_WARNING_INSTEAD_OF_FAILING_API_CALLS
@@ -378,6 +317,8 @@ spec:
               value: "{{ .Values.dbconfig.things.awsRegion }}"
             - name: MONGO_DB_AWS_ROLE_ARN
               value: "{{ .Values.dbconfig.things.awsRoleArn }}"
+            - name: AWS_ROLE_ARN
+              value: "{{ .Values.dbconfig.things.awsRoleArn }}"
             - name: AWS_WEB_IDENTITY_TOKEN_FILE
               value: "/var/run/secrets/eks.amazonaws.com/serviceaccount/token"
             - name: MONGO_DB_AWS_SESSION_NAME
@@ -414,6 +355,9 @@ spec:
             successThreshold: {{ .Values.things.livenessProbe.successThreshold }}
             failureThreshold: {{ .Values.things.livenessProbe.failureThreshold }}
           volumeMounts:
+            - name: things-extension-conf
+              mountPath: /opt/ditto/things-extension.conf
+              subPath: things-extension.conf
             {{- if .Values.global.logging.customConfigFile.enabled }}
             - name: ditto-custom-log-config
               mountPath: /opt/ditto/{{ .Values.global.logging.customConfigFile.fileName }}
@@ -463,6 +407,9 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       volumes:
+        - name: things-extension-conf
+          configMap:
+            name: {{ .Release.Name }}-service-config-things-extension-conf
         {{- if .Values.global.logging.customConfigFile.enabled }}
         - name: ditto-custom-log-config
           configMap:
