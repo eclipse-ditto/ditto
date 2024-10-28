@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.routes.checkpermissions;
 
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
@@ -36,11 +37,11 @@ import java.util.List;
  * @since 3.7.0
  */
 @Immutable
-public final class ImmutablePermissionCheck {
+public final class ImmutablePermissionCheck implements Jsonifiable<JsonObject> {
 
     private final ResourceKey resourceKey;
     private final String entityId;
-    private final Boolean isPolicyResource;
+    private final boolean isPolicyResource;
     private final List<String> hasPermissions;
 
     private static final JsonFieldDefinition<String> RESOURCE_KEY_FIELD = JsonFactory.newStringFieldDefinition("resource");
@@ -85,7 +86,7 @@ public final class ImmutablePermissionCheck {
      *
      * @return {@code true} if the resource is a policy, {@code false} otherwise.
      */
-    public Boolean isPolicyResource() {
+    public boolean isPolicyResource() {
         return isPolicyResource;
     }
 
@@ -112,6 +113,7 @@ public final class ImmutablePermissionCheck {
      *
      * @return the JSON representation of the permission check.
      */
+    @Override
     public JsonObject toJson() {
         return JsonFactory.newObjectBuilder()
                 .set("resourceKey", resourceKey.toString())

@@ -55,7 +55,10 @@ public final class CheckPermissionsResponse extends CommonCommandResponse<CheckP
     /**
      * The type identifier for the response.
      */
-    public static final String TYPE = TYPE_PREFIX + CheckPermissions.NAME;
+    public static final String TYPE = TYPE_PREFIX + CheckPermissionsResponse.NAME;
+
+    static final String NAME = "checkPermissionsResponse";
+
 
     private static final JsonFieldDefinition<JsonObject> JSON_PERMISSION_RESULTS =
             JsonFieldDefinition.ofJsonObject("permissionResults");

@@ -19,7 +19,9 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -55,7 +57,7 @@ public final class CheckPermissions extends CommonCommand<CheckPermissions> {
             "permissionChecks"
     );
 
-    private final LinkedHashMap<String, ImmutablePermissionCheck> permissionChecks;
+    private final Map<String, ImmutablePermissionCheck> permissionChecks;
 
     /**
      * Constructs a new {@code CheckPermissionsCommand} object.
@@ -64,9 +66,9 @@ public final class CheckPermissions extends CommonCommand<CheckPermissions> {
      * @param permissionChecks a linked hash map of permission checks to be performed.
      */
     private CheckPermissions(final DittoHeaders dittoHeaders,
-            final LinkedHashMap<String, ImmutablePermissionCheck> permissionChecks) {
+            final Map<String, ImmutablePermissionCheck> permissionChecks) {
         super(TYPE, Category.QUERY, dittoHeaders);
-        this.permissionChecks = new LinkedHashMap<>(permissionChecks);
+        this.permissionChecks = Collections.unmodifiableMap(new LinkedHashMap<>(permissionChecks));
     }
 
     /**
@@ -76,7 +78,7 @@ public final class CheckPermissions extends CommonCommand<CheckPermissions> {
      * @param permissionChecks the permission checks to be included in the command.
      * @return a new {@code CheckPermissionsCommand}.
      */
-    public static CheckPermissions of(final LinkedHashMap<String, ImmutablePermissionCheck> permissionChecks,
+    public static CheckPermissions of(final Map<String, ImmutablePermissionCheck> permissionChecks,
             final DittoHeaders headers) {
         return new CheckPermissions(headers, permissionChecks);
     }
@@ -104,7 +106,7 @@ public final class CheckPermissions extends CommonCommand<CheckPermissions> {
      *
      * @return a linked hash map of permission checks.
      */
-    public LinkedHashMap<String, ImmutablePermissionCheck> getPermissionChecks() {
+    public Map<String, ImmutablePermissionCheck> getPermissionChecks() {
         return permissionChecks;
     }
 

@@ -146,9 +146,9 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                 )
                 .match(RetrieveThings.class, this::forwardToThingsAggregatorProxy)
                 .match(SudoRetrieveThings.class, this::forwardToThingsAggregatorProxy)
-                .match(SudoRetrieveThing.class, this::handleSudoRetrieveThing)
+                .match(SudoRetrieveThing.class, this::forwardToThings)
                 .match(PolicyCommand.class, this::forwardToPolicies)
-                .match(CheckPolicyPermissions.class, this::handlePolicyCheckPermissionsCommand)
+                .match(CheckPolicyPermissions.class, this::forwardToPolicies)
                 .match(RetrieveAllConnectionIds.class, this::forwardToConnectivityPubSub)
                 .match(ConnectivityCommand.class, this::forwardToConnectivity)
                 .match(ConnectivitySudoCommand.class, this::forwardToConnectivity)
@@ -293,42 +293,6 @@ public class EdgeCommandForwarderActor extends AbstractActor {
         // don't use "ask with retry" as the search could take some time and we don't want to stress the search
         // by retrying a query several times if it took long
         pubSubMediator.tell(DistPubSubAccess.send(ThingsSearchConstants.SEARCH_ACTOR_PATH, command), getSender());
-    }
-
-    private void handleSudoRetrieveThing(final SudoRetrieveThing srt) {
-        log.withCorrelationId(srt)
-                .info("Got '{}' message. Retrieving requested Thing '{}'",
-                        SudoRetrieveThing.class.getSimpleName(), srt.getEntityId());
-
-        final ActorRef sender = getSender();
-
-        final CompletionStage<Signal<?>> signalTransformationCs = applySignalTransformation(srt, sender);
-
-        scheduleTask(srt, () -> signalTransformationCs.thenAccept(transformed -> {
-            log.withCorrelationId(transformed)
-                    .info("Forwarding SudoRetrieveThing with ID '{}' to 'things' shard region",
-                            transformed instanceof WithEntityId withEntityId ? withEntityId.getEntityId() : null);
-
-            shardRegions.things().tell(transformed, sender);
-        }));
-    }
-
-    private void handlePolicyCheckPermissionsCommand(final CheckPolicyPermissions policyCommand) {
-        log.withCorrelationId(policyCommand)
-                .info("Received '{}' command. Checking permissions for policy '{}'",
-                        CheckPolicyPermissions.class.getSimpleName(), policyCommand.getEntityId());
-
-        final ActorRef sender = getSender();
-
-        final CompletionStage<Signal<?>> signalTransformationCs = applySignalTransformation(policyCommand, sender);
-
-        scheduleTask(policyCommand, () -> signalTransformationCs.thenAccept(transformed -> {
-            log.withCorrelationId(transformed)
-                    .info("Forwarding PolicyCheckPermissionsCommand with policy ID '{}' to 'policies' shard region",
-                            transformed instanceof WithEntityId withEntityId ? withEntityId.getEntityId() : null);
-
-            shardRegions.policies().tell(transformed, sender);
-        }));
     }
 
 

@@ -24,17 +24,18 @@ import org.eclipse.ditto.policies.model.PolicyId;
  *
  * @since 3.7.0
  */
-public class PermissionCheckWrapper {
+public final class PermissionCheckWrapper {
     private final ImmutablePermissionCheck permissionCheck;
-    private PolicyId policyId;
+    private final PolicyId policyId;
 
     /**
      * Constructor to initialize the wrapper with a given {@link ImmutablePermissionCheck}.
      *
      * @param permissionCheck the permission check to wrap.
      */
-    public PermissionCheckWrapper(ImmutablePermissionCheck permissionCheck) {
+    public PermissionCheckWrapper(final ImmutablePermissionCheck permissionCheck, final PolicyId policyId) {
         this.permissionCheck = permissionCheck;
+        this.policyId = policyId;
     }
 
     /**
@@ -46,14 +47,6 @@ public class PermissionCheckWrapper {
         return permissionCheck;
     }
 
-    /**
-     * Sets the {@link PolicyId} associated with this permission check.
-     *
-     * @param policyId the policy ID to set.
-     */
-    public void setPolicyId(PolicyId policyId) {
-        this.policyId = policyId;
-    }
 
     /**
      * Retrieves the {@link PolicyId} associated with this permission check.

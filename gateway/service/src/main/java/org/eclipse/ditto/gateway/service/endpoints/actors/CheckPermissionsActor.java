@@ -17,13 +17,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
 import org.apache.pekko.actor.AbstractActor;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.ReceiveTimeout;
 import org.apache.pekko.japi.pf.ReceiveBuilder;
 import org.apache.pekko.pattern.Patterns;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
@@ -36,12 +36,11 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.checkpermissions.Permi
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.model.ResourceKey;
-import org.eclipse.ditto.policies.model.ResourcePermissionFactory;
-import org.eclipse.ditto.policies.model.ResourcePermissions;
 import org.eclipse.ditto.policies.api.commands.sudo.CheckPolicyPermissions;
 import org.eclipse.ditto.policies.api.commands.sudo.CheckPolicyPermissionsResponse;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.ResourcePermissionFactory;
+import org.eclipse.ditto.policies.model.ResourcePermissions;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.things.model.Thing;
@@ -85,6 +84,7 @@ final class CheckPermissionsActor extends AbstractActor {
         this.edgeCommandForwarder = edgeCommandForwarder;
         this.sender = sender;
         this.defaultAskTimeout = defaultTimeout;
+        getContext().setReceiveTimeout(defaultTimeout);
     }
 
     /**
@@ -104,8 +104,14 @@ final class CheckPermissionsActor extends AbstractActor {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(CheckPermissions.class, this::handleCheckPermissions)
+                .match(ReceiveTimeout.class, receiveTimeout -> this.handleReceiveTimeout())
                 .matchAny(msg -> logger.warn("Unknown message: <{}>", msg))
                 .build();
+    }
+
+    private void handleReceiveTimeout() {
+        logger.warn("CheckPermissionsActor timed out. Shutting down due to inactivity.");
+        getContext().stop(getSelf());
     }
 
     /**
@@ -116,18 +122,38 @@ final class CheckPermissionsActor extends AbstractActor {
      */
     private void handleCheckPermissions(final CheckPermissions command) {
         final Map<String, Boolean> permissionResults = initializePermissionResults(command);
-        final Map<String, Map<String, PermissionCheckWrapper>> groupedByEntityId =
+        final Map<String, Map<String, ImmutablePermissionCheck>> groupedByEntityId =
                 groupByEntityAndPolicyResource(command);
 
-        CompletableFuture<Void> allPolicyRetrievals = CompletableFuture.allOf(
-                groupedByEntityId.keySet().stream()
-                        .map(entityId -> retrieveOrSetPolicyId(entityId, groupedByEntityId.get(entityId), command))
-                        .toArray(CompletableFuture[]::new)
-        );
+        CompletableFuture<Map<String, Map<String, PermissionCheckWrapper>>> allPolicyRetrievals =
+                groupedByEntityId.entrySet().stream()
+                        .reduce(
+                                CompletableFuture.completedFuture(new LinkedHashMap<>()),
+                                (future, entry) -> future.thenCompose(resultMap ->
+                                        retrieveOrSetPolicyId(entry.getKey(), entry.getValue(), command)
+                                                .thenApply(retrieved -> {
+                                                    resultMap.put(entry.getKey(), retrieved);
+                                                    return resultMap;
+                                                })
+                                ),
+                                (f1, f2) -> f1.thenCombine(f2, (map1, map2) -> {
+                                    map1.putAll(map2);
+                                    return map1;
+                                })
+                        );
 
-        allPolicyRetrievals.thenRun(
-                        () -> handlePolicyRetrievalCompletion(command, permissionResults, groupedByEntityId))
-                .exceptionally(ex -> handleFailure(ex, command));
+        allPolicyRetrievals
+                .thenCompose(enrichedGroupedByEntityId ->
+                        handlePolicyRetrievalCompletion(command, permissionResults, enrichedGroupedByEntityId)
+                ).exceptionally(ex -> handleFailure(ex, command))
+                .whenComplete((result, throwable) -> stopSelf());
+    }
+
+
+    private void stopSelf() {
+        final var context = getContext();
+        context.cancelReceiveTimeout();
+        context.stop(getSelf());
     }
 
     /**
@@ -151,65 +177,68 @@ final class CheckPermissionsActor extends AbstractActor {
      * @param command the {@link CheckPermissions} command.
      * @return a map grouped by entity ID, containing permission check wrappers.
      */
-    private Map<String, Map<String, PermissionCheckWrapper>> groupByEntityAndPolicyResource(
+    private Map<String, Map<String, ImmutablePermissionCheck>> groupByEntityAndPolicyResource(
             final CheckPermissions command) {
         return command.getPermissionChecks().entrySet().stream()
                 .collect(Collectors.groupingBy(
                         entry -> entry.getValue().getEntityId(),
                         Collectors.toMap(
                                 Map.Entry::getKey,
-                                entry -> new PermissionCheckWrapper(entry.getValue())
+                                entry -> entry.getValue()
                         )
                 ));
     }
 
-    /**
-     * Retrieves or sets the {@link PolicyId} for a given entity.
-     * <p>
-     * If the entity is a policy resource, it directly sets the {@link PolicyId} for the corresponding wrappers.
-     * If the entity is not a policy resource, it retrieves the {@link PolicyId} from the entity using the
-     *
-     * @param entityId the ID of the entity for which the {@link PolicyId} is being retrieved or set.
-     * @param wrappers the wrappers containing the permission checks for the entity.
-     * @param command the {@link CheckPermissions} command containing the headers for the request.
-     * @return a {@link CompletableFuture} that completes when the {@link PolicyId} is set for all wrappers.
-     */
-    private CompletableFuture<Void> retrieveOrSetPolicyId(final String entityId,
-            final Map<String, PermissionCheckWrapper> wrappers,
+    private CompletableFuture<Map<String, PermissionCheckWrapper>> retrieveOrSetPolicyId(
+            final String entityId,
+            final Map<String, ImmutablePermissionCheck> permissionCheckMap,
             CheckPermissions command) {
-        if (wrappers.values().stream().findFirst().get().getPermissionCheck().isPolicyResource()) {
-            wrappers.values().forEach(wrapper -> wrapper.setPolicyId(PolicyId.of(entityId)));
-            return CompletableFuture.completedFuture(null);
-        } else {
-            return retrievePolicyIdForEntity(entityId, false, command.getDittoHeaders())
-                    .thenAccept(policyId -> wrappers.values().forEach(wrapper -> wrapper.setPolicyId(policyId)))
-                    .toCompletableFuture();
+
+        if (permissionCheckMap.values().stream().findFirst().get().isPolicyResource()) {
+            return CompletableFuture.completedFuture(
+                    permissionCheckMap.entrySet().stream()
+                            .collect(Collectors.toMap(
+                                    Map.Entry::getKey,
+                                    entry -> new PermissionCheckWrapper(entry.getValue(), PolicyId.of(entityId))
+                            ))
+            );
         }
+
+        return retrievePolicyIdForEntity(entityId, command.getDittoHeaders())
+                .thenApply(policyId ->
+                        permissionCheckMap.entrySet().stream()
+                                .collect(Collectors.toMap(
+                                        (Map.Entry<String, ImmutablePermissionCheck> entry) -> entry.getKey(),
+                                        entry -> new PermissionCheckWrapper(entry.getValue(), policyId)
+                                ))
+                ).toCompletableFuture();
+
     }
+
 
     /**
      * Handles the completion of policy retrieval by checking the permissions for each policy.
      *
      * @param command the {@link CheckPermissions} command.
      * @param permissionResults the map to store the permission check results.
-     * @param groupedByEntityId the permission checks grouped by entity ID.
+     * @param enrichedGroupedByEntityId the permission checks grouped by entity ID and enriched with policyId.
      */
-    private void handlePolicyRetrievalCompletion(final CheckPermissions command,
+    private CompletionStage<Void> handlePolicyRetrievalCompletion(final CheckPermissions command,
             final Map<String, Boolean> permissionResults,
-            Map<String, Map<String, PermissionCheckWrapper>> groupedByEntityId) {
-        // Aggregate permissions by PolicyId and Resource
+            final Map<String, Map<String, PermissionCheckWrapper>> enrichedGroupedByEntityId) {
         final Map<PolicyId, Map<String, ResourcePermissions>> aggregatedPermissions =
-                groupPermissionsByPolicyId(groupedByEntityId);
+                groupPermissionsByPolicyId(enrichedGroupedByEntityId);
 
-        List<CompletionStage<Void>> permissionCheckFutures = aggregatedPermissions.entrySet().stream()
+        final List<CompletionStage<Void>> permissionCheckFutures = aggregatedPermissions.entrySet().stream()
                 .map(aggregateEntry -> checkPermissionsForPolicy(aggregateEntry, command, permissionResults))
                 .toList();
 
-        CompletableFuture.allOf(permissionCheckFutures.toArray(new CompletableFuture[0])).thenRun(() -> {
-            final CheckPermissionsResponse response =
-                    CheckPermissionsResponse.of(permissionResults, command.getDittoHeaders());
-            sender.tell(response, getSelf());
-        }).exceptionally(ex -> handleFailure(ex, command));
+        return CompletableFuture.allOf(permissionCheckFutures.toArray(new CompletableFuture[0]))
+                .thenRun(() -> {
+                    final CheckPermissionsResponse response =
+                            CheckPermissionsResponse.of(permissionResults, command.getDittoHeaders());
+                    sender.tell(response, getSelf());
+                }).exceptionally(ex -> handleFailure(ex, command));
     }
 
     /**
@@ -243,16 +272,13 @@ final class CheckPermissionsActor extends AbstractActor {
             final Map.Entry<PolicyId, Map<String, ResourcePermissions>> aggregateEntry,
             final CheckPermissions command,
             final Map<String, Boolean> permissionResults) {
-        CheckPolicyPermissions policyCommand = CheckPolicyPermissions.of(
+        final CheckPolicyPermissions policyCommand = CheckPolicyPermissions.of(
                 aggregateEntry.getKey(), aggregateEntry.getValue(), command.getDittoHeaders());
 
 
         return Patterns.ask(edgeCommandForwarder, policyCommand, defaultAskTimeout)
                 .thenAccept(result -> processPolicyCommandResult(result, aggregateEntry.getValue(), permissionResults))
                 .exceptionally(ex -> {
-                    logError(ex, aggregateEntry.getKey().toString(), aggregateEntry.getValue().toString(),
-                            command.getDittoHeaders());
-
                     throw DittoInternalErrorException.newBuilder()
                             .dittoHeaders(command.getDittoHeaders())
                             .cause(ex)
@@ -297,21 +323,20 @@ final class CheckPermissionsActor extends AbstractActor {
      * @param command the {@link CheckPermissions} command containing permission checks.
      * @return null, as the error is propagated via an exception and response is sent.
      */
-    private Void handleFailure(Throwable ex, CheckPermissions command) {
-        logError(ex, command.getPermissionChecks(), command.getDittoHeaders());
+    private Void handleFailure(final Throwable ex, final CheckPermissions command) {
+        logWarn(ex, command.getPermissionChecks(), command.getDittoHeaders());
 
         final DittoInternalErrorException errorResponse = DittoInternalErrorException.newBuilder()
                 .dittoHeaders(command.getDittoHeaders())
                 .cause(ex)
-                .message("Internal error while processing permission checks for command: " + command)
                 .build();
         sender.tell(errorResponse, getSelf());
-        throw new CompletionException(ex);
+        return null;
     }
 
 
     /**
-     * Logs an error message when a permission check fails for a given request.
+     * Logs a warn message when a permission check fails for a given request.
      * <p>
      * This method logs the failure of a permission check operation using a {@code logger} with correlation ID
      * extracted from the provided {@code DittoHeaders}. The logged message includes the details of the failed
@@ -322,23 +347,10 @@ final class CheckPermissionsActor extends AbstractActor {
      * @param permissionChecks the map containing the permission checks that failed.
      * @param headers the {@code DittoHeaders} associated with the command, used for logging context.
      */
-    private void logError(Throwable ex, LinkedHashMap<String, ImmutablePermissionCheck> permissionChecks,
+    private void logWarn(final Throwable ex, final Map<String, ImmutablePermissionCheck> permissionChecks,
             DittoHeaders headers) {
         logger.withCorrelationId(headers)
                 .warn("Permission check failed for request: {}. Error: {}", permissionChecks, ex.getMessage());
-    }
-
-    /**
-     * Logs an error related to a failed permission check.
-     *
-     * @param ex the exception that occurred.
-     * @param entityId the ID of the entity being checked.
-     * @param resource the resource being checked.
-     */
-    private void logError(Throwable ex, String entityId, String resource, final DittoHeaders dittoHeaders) {
-        logger.withCorrelationId(dittoHeaders)
-                .warn("Permission check failed for entityId: {} and resource: {}. Error: {}", entityId, resource,
-                        ex.getMessage());
     }
 
     /**
@@ -350,68 +362,37 @@ final class CheckPermissionsActor extends AbstractActor {
      * @param check the {@link ImmutablePermissionCheck} containing the permission data.
      * @return the constructed {@link ResourcePermissions}.
      */
-    private ResourcePermissions createResourcePermissions(ImmutablePermissionCheck check) {
-        ResourceKey resourceKey = check.getResourceKey();
-        List<String> permissions = check.getHasPermissions();
-
-        return ResourcePermissionFactory.newInstance(resourceKey, permissions);
+    private ResourcePermissions createResourcePermissions(final ImmutablePermissionCheck check) {
+        return ResourcePermissionFactory.newInstance(check.getResourceKey(), check.getHasPermissions());
     }
 
-    /**
-     * Retrieves the {@link PolicyId} for a given entity by sending a {@link SudoRetrieveThing} command.
-     * <p>
-     * If the entity is a policy resource, it immediately creates a {@link PolicyId} from the entity ID.
-     * Otherwise, it retrieves the {@link PolicyId} using the Ditto Things API by sending a {@link SudoRetrieveThing} command.
-     * <p>
-     * If an unexpected response type is received a {@link DittoRuntimeException}
-     * or a {@link DittoInternalErrorException} will be thrown to indicate an internal processing error.
-     * <p>
-     * For cases where the response is a {@link DittoRuntimeException}, the exception is rethrown directly.
-     * If the response is not of the expected type or if the {@link PolicyId} is absent, an {@link IllegalArgumentException}
-     * wrapped inside a {@link DittoInternalErrorException} is thrown, ensuring proper error handling.
-     *
-     * @param entityId the ID of the entity for which the {@link PolicyId} is being retrieved.
-     * @param isPolicyResource flag indicating whether the entity is a policy resource.
-     * @param headers the {@link DittoHeaders} associated with the request.
-     * @return a {@link CompletionStage} that completes with the {@link PolicyId} once the operation is finished.
-     * @throws DittoRuntimeException if an unexpected response is received, or the {@link PolicyId} is missing in the response.
-     * @throws DittoInternalErrorException if an unexpected response type is encountered, or if the {@link PolicyId} is missing.
-     */
-    private CompletionStage<PolicyId> retrievePolicyIdForEntity(String entityId, boolean isPolicyResource,
-            DittoHeaders headers) {
-        if (isPolicyResource) {
-            return CompletableFuture.completedFuture(PolicyId.of(entityId));
-        } else {
-            final SudoRetrieveThing retrieveThing = SudoRetrieveThing.of(
-                    ThingId.of(entityId),
-                    JsonFieldSelector.newInstance(Thing.JsonFields.POLICY_ID.getPointer()),
-                    headers);
+    private CompletionStage<PolicyId> retrievePolicyIdForEntity(final String entityId, DittoHeaders headers) {
+        final SudoRetrieveThing retrieveThing = SudoRetrieveThing.of(
+                ThingId.of(entityId),
+                JsonFieldSelector.newInstance(Thing.JsonFields.POLICY_ID.getPointer()),
+                headers);
 
-            return Patterns.ask(edgeCommandForwarder, retrieveThing, defaultAskTimeout)
-                    .thenApply(result -> {
-                        if (result instanceof SudoRetrieveThingResponse thingResponse) {
-                            return thingResponse.getThing().getPolicyId().orElse(null);
-                        } else if (result instanceof DittoRuntimeException) {
-                            throw (DittoRuntimeException) result;
-                        } else {
-                            throw DittoInternalErrorException.newBuilder()
-                                    .dittoHeaders(headers)
-                                    .cause(new IllegalArgumentException(
-                                            "Unexpected response type: " + result.getClass().getSimpleName()))
-                                    .build();
-                        }
-                    }).handle((policyId, throwable) -> {
-                        if (throwable != null) {
-                            logError(throwable, entityId, "retrievePolicyIdForEntity", headers);
-                            sender.tell(DittoInternalErrorException.newBuilder()
-                                    .dittoHeaders(headers)
-                                    .cause(throwable)
-                                    .message("Unexpected error while handling the entity: " + entityId)
-                                    .build(), getSelf());
-                            throw new CompletionException(throwable);
-                        }
-                        return policyId;
-                    });
-        }
+        return Patterns.ask(edgeCommandForwarder, retrieveThing, defaultAskTimeout)
+                .handle((result, throwable) -> {
+                    if (throwable != null) {
+                        throw DittoInternalErrorException.newBuilder()
+                                .dittoHeaders(headers)
+                                .cause(throwable)
+                                .message("Unexpected error while handling the entity: " + entityId)
+                                .build();
+                    }
+                    if (result instanceof SudoRetrieveThingResponse thingResponse) {
+                        return thingResponse.getThing().getPolicyId().orElse(null);
+                    } else if (result instanceof DittoRuntimeException) {
+                        throw (DittoRuntimeException) result;
+                    } else {
+                        throw DittoInternalErrorException.newBuilder()
+                                .dittoHeaders(headers)
+                                .cause(new IllegalArgumentException(
+                                        "Unexpected response type: " + result.getClass().getSimpleName()))
+                                .build();
+                    }
+                });
+
     }
 }
