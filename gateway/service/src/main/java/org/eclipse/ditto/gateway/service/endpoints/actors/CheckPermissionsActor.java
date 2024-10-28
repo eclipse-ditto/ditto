@@ -252,10 +252,10 @@ final class CheckPermissionsActor extends AbstractActor {
         return groupedByEntityId.values().stream()
                 .flatMap(map -> map.entrySet().stream())
                 .collect(Collectors.groupingBy(
-                        entry -> entry.getValue().getPolicyId(),
+                        entry -> entry.getValue().policyId(),
                         Collectors.toMap(
                                 Map.Entry::getKey,
-                                entry -> createResourcePermissions(entry.getValue().getPermissionCheck())
+                                entry -> createResourcePermissions(entry.getValue().permissionCheck())
                         )
                 ));
     }

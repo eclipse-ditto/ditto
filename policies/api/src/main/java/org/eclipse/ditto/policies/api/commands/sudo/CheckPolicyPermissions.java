@@ -71,7 +71,7 @@ public final class CheckPolicyPermissions extends AbstractCommand<CheckPolicyPer
     /**
      * The type identifier for this command.
      */
-    private static final String TYPE = TYPE_PREFIX + CheckPolicyPermissions.NAME;
+    public static final String TYPE = TYPE_PREFIX + CheckPolicyPermissions.NAME;
 
     private final PolicyId policyId;
     private final Map<String, ResourcePermissions> permissionsMap;

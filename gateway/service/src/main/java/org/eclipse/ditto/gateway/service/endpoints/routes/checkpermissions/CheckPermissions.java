@@ -142,6 +142,6 @@ public final class CheckPermissions extends CommonCommand<CheckPermissions> {
 
     @Override
     public String toString() {
-        return "CheckPermissionsCommand[" + super.toString() + ", permissionChecks=" + permissionChecks + "]";
+        return getClass().getSimpleName() + "[" + super.toString() + ", permissionChecks=" + permissionChecks + "]";
     }
 }

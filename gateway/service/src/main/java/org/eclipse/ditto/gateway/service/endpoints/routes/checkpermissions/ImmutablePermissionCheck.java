@@ -12,18 +12,19 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.routes.checkpermissions;
 
-import org.eclipse.ditto.base.model.json.Jsonifiable;
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.policies.model.PoliciesResourceType;
-import org.eclipse.ditto.policies.model.ResourceKey;
+import java.util.List;
+import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import java.util.List;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.policies.model.PoliciesResourceType;
+import org.eclipse.ditto.policies.model.ResourceKey;
 
 /**
  * Immutable model representing a permission check for a resource and entity.
@@ -39,22 +40,24 @@ import java.util.List;
 @Immutable
 public final class ImmutablePermissionCheck implements Jsonifiable<JsonObject> {
 
-    private final ResourceKey resourceKey;
+    private final ResourceKey resource;
     private final String entityId;
     private final boolean isPolicyResource;
     private final List<String> hasPermissions;
 
-    private static final JsonFieldDefinition<String> RESOURCE_KEY_FIELD = JsonFactory.newStringFieldDefinition("resource");
+    private static final JsonFieldDefinition<String> RESOURCE_KEY_FIELD =
+            JsonFactory.newStringFieldDefinition("resource");
     private static final JsonFieldDefinition<String> ENTITY_ID_FIELD = JsonFactory.newStringFieldDefinition("entityId");
-    private static final JsonFieldDefinition<JsonArray> PERMISSIONS_FIELD = JsonFactory.newJsonArrayFieldDefinition("hasPermissions");
+    private static final JsonFieldDefinition<JsonArray> PERMISSIONS_FIELD =
+            JsonFactory.newJsonArrayFieldDefinition("hasPermissions");
 
 
-    private ImmutablePermissionCheck(final ResourceKey resourceKey, final String entityId,
+    private ImmutablePermissionCheck(final ResourceKey resource, final String entityId,
             final List<String> hasPermissions) {
 
-        this.resourceKey = resourceKey;
+        this.resource = resource;
         this.entityId = entityId;
-        this.isPolicyResource = PoliciesResourceType.POLICY.equals(resourceKey.getResourceType());
+        this.isPolicyResource = PoliciesResourceType.POLICY.equals(resource.getResourceType());
         this.hasPermissions = List.copyOf(hasPermissions);
     }
 
@@ -75,10 +78,10 @@ public final class ImmutablePermissionCheck implements Jsonifiable<JsonObject> {
     /**
      * Returns the resource for which permissions are being checked.
      *
-     * @return the resourceKey ResourceKey.
+     * @return the resource ResourceKey.
      */
     public ResourceKey getResourceKey() {
-        return resourceKey;
+        return resource;
     }
 
     /**
@@ -115,11 +118,13 @@ public final class ImmutablePermissionCheck implements Jsonifiable<JsonObject> {
      */
     @Override
     public JsonObject toJson() {
-        return JsonFactory.newObjectBuilder()
-                .set("resourceKey", resourceKey.toString())
+        return JsonObject.newBuilder()
+                .set("resource", resource.toString())
                 .set("entityId", entityId)
                 .set("isPolicyResource", isPolicyResource)
-                .set("hasPermissions", hasPermissions.toString())
+                .set("hasPermissions", JsonFactory.newArrayBuilder()
+                        .addAll(hasPermissions.stream().map(JsonFactory::newValue).toList())
+                        .build())
                 .build();
     }
 
@@ -138,5 +143,32 @@ public final class ImmutablePermissionCheck implements Jsonifiable<JsonObject> {
                 .toList();
 
         return ImmutablePermissionCheck.of(resourceKey, entityId, permissions);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ImmutablePermissionCheck that = (ImmutablePermissionCheck) o;
+        return isPolicyResource == that.isPolicyResource &&
+                Objects.equals(resource, that.resource) &&
+                Objects.equals(entityId, that.entityId) &&
+                Objects.equals(hasPermissions, that.hasPermissions);
+    }
+
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(resource, entityId, isPolicyResource, hasPermissions);
+    }
+
+    @Override
+    public String toString() {
+        return "ImmutablePermissionCheck{" +
+                "resourceKey=" + resource +
+                ", entityId='" + entityId + '\'' +
+                ", isPolicyResource=" + isPolicyResource +
+                ", hasPermissions=" + hasPermissions +
+                '}';
     }
 }
