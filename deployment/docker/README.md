@@ -14,7 +14,7 @@ For a "single instance" setup on a local machine you need at least:
 
 The nginx's configuration is located in the `nginx.conf` file and contains a "Basic authentication" 
 for accessing the HTTP and WebSocket API. The users for this sample authentication are configured 
-in the `nginx.httpasswd` file also located in this directory.
+in the `nginx.htpasswd` file also located in this directory.
 
 In order to add a new entry to this file, use the "openssl passwd" tool to create a hashed password:
 ```bash
@@ -23,7 +23,7 @@ openssl passwd -quiet
  Verifying - Password: <enter password>
 ```
 
-Append the printed hash in the `nginx.httpasswd` file placing the username who shall receive this 
+Append the printed hash in the `nginx.htpasswd` file placing the username who shall receive this 
 password in front like this:
 ```
 ditto:A6BgmB8IEtPTs
