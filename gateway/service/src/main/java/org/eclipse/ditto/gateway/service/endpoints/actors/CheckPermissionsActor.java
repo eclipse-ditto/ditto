@@ -14,6 +14,7 @@ package org.eclipse.ditto.gateway.service.endpoints.actors;
 
 import java.time.Duration;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -67,10 +68,6 @@ final class CheckPermissionsActor extends AbstractActor {
     private final ActorRef sender;
     private final Duration defaultAskTimeout;
 
-    /**
-     * The actor name for this class.
-     */
-    public static final String ACTOR_NAME = "checkPermissionsActor";
 
     /**
      * Constructor to initialize the actor.
@@ -121,7 +118,7 @@ final class CheckPermissionsActor extends AbstractActor {
      * @param command the {@link CheckPermissions} message to handle.
      */
     private void handleCheckPermissions(final CheckPermissions command) {
-        final Map<String, Boolean> permissionResults = initializePermissionResults(command);
+        final List<String> permissionOrder = new LinkedList<>(command.getPermissionChecks().keySet());
         final Map<String, Map<String, ImmutablePermissionCheck>> groupedByEntityId =
                 groupByEntityAndPolicyResource(command);
 
@@ -144,7 +141,7 @@ final class CheckPermissionsActor extends AbstractActor {
 
         allPolicyRetrievals
                 .thenCompose(enrichedGroupedByEntityId ->
-                        handlePolicyRetrievalCompletion(command, permissionResults, enrichedGroupedByEntityId)
+                        handlePolicyRetrievalCompletion(command, permissionOrder, enrichedGroupedByEntityId)
                 ).exceptionally(ex -> handleFailure(ex, command))
                 .whenComplete((result, throwable) -> stopSelf());
     }
@@ -192,7 +189,7 @@ final class CheckPermissionsActor extends AbstractActor {
     private CompletableFuture<Map<String, PermissionCheckWrapper>> retrieveOrSetPolicyId(
             final String entityId,
             final Map<String, ImmutablePermissionCheck> permissionCheckMap,
-            CheckPermissions command) {
+            final CheckPermissions command) {
 
         if (permissionCheckMap.values().stream().findFirst().get().isPolicyResource()) {
             return CompletableFuture.completedFuture(
@@ -220,26 +217,39 @@ final class CheckPermissionsActor extends AbstractActor {
      * Handles the completion of policy retrieval by checking the permissions for each policy.
      *
      * @param command the {@link CheckPermissions} command.
-     * @param permissionResults the map to store the permission check results.
+     * @param permissionOrder the list of permissions which retains the order.
      * @param enrichedGroupedByEntityId the permission checks grouped by entity ID and enriched with policyId.
      */
-    private CompletionStage<Void> handlePolicyRetrievalCompletion(final CheckPermissions command,
-            final Map<String, Boolean> permissionResults,
+    private CompletionStage<Void> handlePolicyRetrievalCompletion(
+            final CheckPermissions command,
+            final List<String> permissionOrder,
             final Map<String, Map<String, PermissionCheckWrapper>> enrichedGroupedByEntityId) {
         final Map<PolicyId, Map<String, ResourcePermissions>> aggregatedPermissions =
                 groupPermissionsByPolicyId(enrichedGroupedByEntityId);
 
-        final List<CompletionStage<Void>> permissionCheckFutures = aggregatedPermissions.entrySet().stream()
-                .map(aggregateEntry -> checkPermissionsForPolicy(aggregateEntry, command, permissionResults))
+        final List<CompletableFuture<Map<String, Boolean>>> permissionCheckFutures = aggregatedPermissions.entrySet().stream()
+                .map(aggregateEntry -> checkPermissionsForPolicy(aggregateEntry, command).toCompletableFuture())
                 .toList();
 
         return CompletableFuture.allOf(permissionCheckFutures.toArray(new CompletableFuture[0]))
-                .thenRun(() -> {
-                    final CheckPermissionsResponse response =
-                            CheckPermissionsResponse.of(permissionResults, command.getDittoHeaders());
+                .thenApply(value ->
+                        permissionCheckFutures.stream()
+                                .map(CompletableFuture::join)
+                                .flatMap(map -> map.entrySet().stream())
+                                .collect(Collectors.toMap(
+                                        Map.Entry::getKey,
+                                        Map.Entry::getValue,
+                                        Boolean::logicalOr,
+                                        () -> permissionOrder.stream()
+                                                .collect(Collectors.toMap(key -> key, key -> false, (v1, v2) -> v1, LinkedHashMap::new))
+                                ))
+                )
+                .thenAccept(aggregatedResults -> {
+                    CheckPermissionsResponse response = CheckPermissionsResponse.of(aggregatedResults, command.getDittoHeaders());
                     sender.tell(response, getSelf());
                 }).exceptionally(ex -> handleFailure(ex, command));
     }
+
 
     /**
      * Groups permission checks by policy ID, aggregating the results.
@@ -260,24 +270,15 @@ final class CheckPermissionsActor extends AbstractActor {
                 ));
     }
 
-    /**
-     * Checks permissions for a given policy and aggregates the results.
-     *
-     * @param aggregateEntry the entry containing the policy ID and resource permissions.
-     * @param command the {@link CheckPermissions} command.
-     * @param permissionResults the map to store the permission check results.
-     * @return a {@link CompletionStage} representing the result of the permission check.
-     */
-    private CompletionStage<Void> checkPermissionsForPolicy(
+    private CompletionStage<Map<String, Boolean>> checkPermissionsForPolicy(
             final Map.Entry<PolicyId, Map<String, ResourcePermissions>> aggregateEntry,
-            final CheckPermissions command,
-            final Map<String, Boolean> permissionResults) {
+            final CheckPermissions command) {
+
         final CheckPolicyPermissions policyCommand = CheckPolicyPermissions.of(
                 aggregateEntry.getKey(), aggregateEntry.getValue(), command.getDittoHeaders());
 
-
         return Patterns.ask(edgeCommandForwarder, policyCommand, defaultAskTimeout)
-                .thenAccept(result -> processPolicyCommandResult(result, aggregateEntry.getValue(), permissionResults))
+                .thenApply(result -> processPolicyCommandResult(result, aggregateEntry.getValue()))
                 .exceptionally(ex -> {
                     throw DittoInternalErrorException.newBuilder()
                             .dittoHeaders(command.getDittoHeaders())
@@ -287,32 +288,14 @@ final class CheckPermissionsActor extends AbstractActor {
                 });
     }
 
-    /**
-     * Processes the result of a policy command by updating the permission results.
-     *
-     * @param result the result of the policy command.
-     * @param resourcePermissions the resource permissions to check.
-     * @param permissionResults the map to store the permission check results.
-     */
-    private void processPolicyCommandResult(final Object result,
-            final Map<String, ResourcePermissions> resourcePermissions,
-            final Map<String, Boolean> permissionResults) {
+    private Map<String, Boolean> processPolicyCommandResult(final Object result,
+            final Map<String, ResourcePermissions> resourcePermissions) {
         if (result instanceof CheckPolicyPermissionsResponse response) {
-            permissionResults.putAll(CheckPolicyPermissionsResponse.toMap(response.getPermissionsResults()));
+            return CheckPolicyPermissionsResponse.toMap(response.getPermissionsResults());
         } else {
-            setPermissionCheckFailure(resourcePermissions, permissionResults);
+            return resourcePermissions.keySet().stream()
+                    .collect(Collectors.toMap(key -> key, key -> false));
         }
-    }
-
-    /**
-     * Marks the permission check as failed by setting all results for the given resources to {@code false}.
-     *
-     * @param resourcePermissions the map of resource permissions that failed.
-     * @param permissionResults the map of permission results where the failure should be reflected.
-     */
-    private void setPermissionCheckFailure(Map<String, ResourcePermissions> resourcePermissions,
-            Map<String, Boolean> permissionResults) {
-        resourcePermissions.forEach((key, value) -> permissionResults.put(key, false));
     }
 
     /**

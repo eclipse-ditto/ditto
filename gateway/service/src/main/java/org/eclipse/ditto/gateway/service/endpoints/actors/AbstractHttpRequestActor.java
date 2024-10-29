@@ -350,8 +350,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
 
     private void handleCheckPermissions(final CheckPermissions command) {
         final ActorRef checkPermissionsActor = getContext().actorOf(
-                CheckPermissionsActor.props(proxyActor, getSelf(), getReceiveTimeout(command, commandConfig)),
-                CheckPermissionsActor.ACTOR_NAME
+                CheckPermissionsActor.props(proxyActor, getSelf(), getReceiveTimeout(command, commandConfig))
         );
         getContext().become(getResponseAwaitingBehavior());
         checkPermissionsActor.tell(command, getSelf());
