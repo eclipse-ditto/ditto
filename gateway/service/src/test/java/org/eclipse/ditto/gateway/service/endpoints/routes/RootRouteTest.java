@@ -43,6 +43,7 @@ import org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirectiveFactory;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DittoGatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.GatewayAuthenticationDirectiveFactory;
+import org.eclipse.ditto.gateway.service.endpoints.routes.checkpermissions.CheckPermissionsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.cloudevents.CloudEventsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.connections.ConnectionsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.devops.DevOpsRoute;
@@ -162,6 +163,7 @@ public final class RootRouteTest extends EndpointTestBase {
                 .thingsRoute(new ThingsRoute(routeBaseProperties, messageConfig, claimMessageConfig))
                 .thingSearchRoute(new ThingSearchRoute(routeBaseProperties))
                 .whoamiRoute(new WhoamiRoute(routeBaseProperties))
+                .checkPermissionsRoute(new CheckPermissionsRoute(routeBaseProperties))
                 .cloudEventsRoute(new CloudEventsRoute(routeBaseProperties, cloudEventsConfig))
                 .websocketRoute(WebSocketRoute.getInstance(routeBaseProperties.getActorSystem(),
                         routeBaseProperties.getProxyActor(),
