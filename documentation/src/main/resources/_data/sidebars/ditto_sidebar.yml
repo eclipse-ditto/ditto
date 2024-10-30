@@ -307,7 +307,7 @@ entries:
             output: web
             subfolders:
               - title: Checking Permissions for Resources
-                url: /check-permissions.html
+                url: /basic-auth-checkpermissions.html
                 output: web
           - title: Messages
             url: /basic-messages.html

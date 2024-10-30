@@ -139,29 +139,6 @@ This maps to the following HTTP API endpoints:
 * `/policies/{policyId}/entries/{entryLabel-1}/resources`: accessing the resources of a single `Policy` entry with the
   label `{entryLabel-1}`
 
-#### `/checkPermissions` in API 2
-The checkPermissions endpoint verifies permissions for specified entities on various resources, ensuring they have the necessary access rights as defined in the policies.
-
-```json
-{
-    "lamp_reader": {
-        "resource": "thing:/features/lamp/properties/on",
-        "entityId": "org.eclipse.ditto:some-thing-1",
-        "hasPermissions": [
-            "READ"
-        ]
-    },
-    "lamp_toggler": {
-        "resource": "message:/features/lamp/inbox/toggle",
-        "entityId": "org.eclipse.ditto:some-thing-1",
-        "hasPermissions": [
-            "WRITE"
-        ]
-    }
-}
-```
-The response will confirm if each entity has the requested permissions.
-
 #### `/connections` in API 2
 
 The base endpoint for accessing and working with `Connections`.

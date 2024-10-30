@@ -10466,7 +10466,7 @@ components:
           entityId: "org.eclipse.ditto:some-thing-1"
           hasPermissions: [ "READ" ]
         lamp_toggler:
-          resource: "message:/features/lamp/inbox/toggle"
+          resource: "message:/features/lamp/inbox/message/toggle"
           entityId: "org.eclipse.ditto:some-thing-1"
           hasPermissions: [ "WRITE" ]
     PermissionEntityCheck:
@@ -10475,14 +10475,16 @@ components:
       properties:
         resource:
           type: string
-          description: "Resource path the permission check applies to."
+          pattern: "^(thing|message|policy):(/[a-zA-Z0-9._-]+)*$"
+          description: "Resource key to be checked, beginning with 'thing:', 'message:', or 'policy:', followed by the specific resource path. This defines the scope of the permission request."
         entityId:
           type: string
-          description: "ThingId of the entity performing the action."
+        description: "ID of the entity performing the action, which could be a ThingId or PolicyId, depending on the resource context."
         hasPermissions:
           type: array
           items:
             type: string
+            enum: [ "READ", "WRITE" ]
           description: "Required permissions on the resource."
     PermissionCheckResponse:
       type: object

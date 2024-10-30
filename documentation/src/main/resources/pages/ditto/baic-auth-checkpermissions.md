@@ -2,10 +2,10 @@
 title: Checking Permissions for Resources  
 keywords: permissions, authorization, resources, policy, checkPermissions  
 tags: [model]  
-permalink: check-permissions.html  
+permalink: basic-auth-checkpermissions.html  
 ---
 
-The `/checkPermissions` endpoint allows clients to validate permissions for various entities and resources.
+The `/checkPermissions` endpoint allows clients to validate permissions for specified entities on various resources, verifying access rights as defined in Ditto's policies.
 
 ## Overview
 
@@ -18,24 +18,31 @@ Submit a `POST` request with a JSON payload specifying entities, resources, and 
 
 ```json
 {
-  "entity_name": {
-    "resource": "resource_path",
-    "entityId": "thingId",
-    "hasPermissions": ["READ", "WRITE"]
-  }
+    "entity_name": {
+        "resource": "thing:/features/lamp/properties/on",
+        "entityId": "org.eclipse.ditto:some-thing-1",
+        "hasPermissions": ["READ"]
+    },
+    "another_entity": {
+        "resource": "message:/features/lamp/inbox/message/toggle",
+        "entityId": "org.eclipse.ditto:some-thing-2",
+        "hasPermissions": ["WRITE"]
+    }
 }
 ```
-- entity_name: Name representing the entity.
-- resource: Path of the target resource (e.g., thing:/features/light/properties/on).
-- entityId: Unique identifier for the entity (thingId).
-- hasPermissions: List of permissions required (READ, WRITE).
-- 
+## Fields
+- entity_name: Identifier for the entity performing the action.
+- resource: Path of the target resource, starting with thing:, message:, or policy: followed by a valid resource path.
+- entityId: Unique identifier for the entity, such as a thingId or policyId, depending on the resource.
+- hasPermissions: Array of required permissions, such as READ or WRITE.
+
 ## Response Structure
 The response indicates permission status for each entity and resource, returning a JSON object mapping entities to true (authorized) or false (unauthorized) values.
 
 ```json
 {
-  "entity_name": true
+  "entity_name": true,
+  "another_entity": false
 }
 ```
 This endpoint is especially useful for applications requiring quick permission validation for multiple entities across various resources.
