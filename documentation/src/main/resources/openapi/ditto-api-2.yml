@@ -10466,7 +10466,7 @@ components:
           entityId: "org.eclipse.ditto:some-thing-1"
           hasPermissions: [ "READ" ]
         lamp_toggler:
-          resource: "message:/features/lamp/inbox/message/toggle"
+          resource: "message:/features/lamp/inbox/messages/toggle"
           entityId: "org.eclipse.ditto:some-thing-1"
           hasPermissions: [ "WRITE" ]
     PermissionEntityCheck:

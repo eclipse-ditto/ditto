@@ -24,7 +24,7 @@ Submit a `POST` request with a JSON payload specifying entities, resources, and 
         "hasPermissions": ["READ"]
     },
     "another_entity": {
-        "resource": "message:/features/lamp/inbox/message/toggle",
+        "resource": "message:/features/lamp/inbox/messages/toggle",
         "entityId": "org.eclipse.ditto:some-thing-2",
         "hasPermissions": ["WRITE"]
     }
