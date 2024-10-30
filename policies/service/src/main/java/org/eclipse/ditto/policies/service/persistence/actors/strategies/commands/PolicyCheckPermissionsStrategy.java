@@ -23,19 +23,19 @@ import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.policies.api.commands.sudo.CheckPolicyPermissions;
+import org.eclipse.ditto.policies.api.commands.sudo.CheckPolicyPermissionsResponse;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
-import org.eclipse.ditto.policies.api.commands.sudo.CheckPolicyPermissionsResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
-import org.eclipse.ditto.policies.api.commands.sudo.CheckPolicyPermissions;
 
 /**
- * Strategy that handles the {@link org.eclipse.ditto.policies.api.commands.sudo.CheckPolicyPermissions}.
+ * Strategy that handles the {@link CheckPolicyPermissions}.
  * <p>
  * It checks the provided resource permissions against the specified {@link PolicyId} and
  * returns a {@link Map} where the key is the resource and the value is {@code true} if

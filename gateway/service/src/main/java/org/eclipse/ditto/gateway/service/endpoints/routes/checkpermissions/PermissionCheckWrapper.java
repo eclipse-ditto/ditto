@@ -16,34 +16,14 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.checkpermissions;
 import org.eclipse.ditto.policies.model.PolicyId;
 
 /**
- * Wrapper class for handling permission checks along with the associated {@link org.eclipse.ditto.policies.model.PolicyId}.
+ * Wrapper class for handling permission checks along with the associated {@link PolicyId}.
  * <p>
- * This class wraps an {@link org.eclipse.ditto.gateway.service.endpoints.routes.checkpermissions.ImmutablePermissionCheck} and provides an additional field to hold
- * the {@link org.eclipse.ditto.policies.model.PolicyId} that is associated with the permission check. The {@link PermissionCheckWrapper}
+ * This class wraps an {@link ImmutablePermissionCheck} and provides an additional field to hold
+ * the {@link PolicyId} that is associated with the permission check. The {@link PermissionCheckWrapper}
  * allows for flexible management of both the permission check and its related policy.
  *
+ * @param permissionCheck the {@link ImmutablePermissionCheck} contained within this wrapper
+ * @param policyId the {@link PolicyId} associated with this permission check
  * @since 3.7.0
  */
-public record PermissionCheckWrapper(ImmutablePermissionCheck permissionCheck, PolicyId policyId) {
-
-    /**
-     * Retrieves the {@link org.eclipse.ditto.gateway.service.endpoints.routes.checkpermissions.ImmutablePermissionCheck} contained within this wrapper.
-     *
-     * @return the wrapped permission check.
-     */
-    @Override
-    public ImmutablePermissionCheck permissionCheck() {
-        return permissionCheck;
-    }
-
-
-    /**
-     * Retrieves the {@link org.eclipse.ditto.policies.model.PolicyId} associated with this permission check.
-     *
-     * @return the associated policy ID, or {@code null} if not set.
-     */
-    @Override
-    public PolicyId policyId() {
-        return policyId;
-    }
-}
+public record PermissionCheckWrapper(ImmutablePermissionCheck permissionCheck, PolicyId policyId) {}

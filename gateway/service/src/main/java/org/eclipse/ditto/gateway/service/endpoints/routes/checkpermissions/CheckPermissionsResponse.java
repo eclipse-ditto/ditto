@@ -28,6 +28,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.api.common.CommonCommandResponse;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.WithEntity;
@@ -61,7 +62,7 @@ public final class CheckPermissionsResponse extends CommonCommandResponse<CheckP
 
 
     private static final JsonFieldDefinition<JsonObject> JSON_PERMISSION_RESULTS =
-            JsonFieldDefinition.ofJsonObject("permissionResults");
+            JsonFieldDefinition.ofJsonObject("permissionResults", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private static final HttpStatus HTTP_STATUS = HttpStatus.OK;
 
@@ -120,8 +121,10 @@ public final class CheckPermissionsResponse extends CommonCommandResponse<CheckP
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
             final JsonSchemaVersion schemaVersion,
-            final Predicate<JsonField> predicate) {
-        jsonObjectBuilder.set(JSON_PERMISSION_RESULTS, permissionResults);
+            final Predicate<JsonField> predicate)
+    {
+        final Predicate<JsonField> extendedPredicate = schemaVersion.and(predicate);
+        jsonObjectBuilder.set(JSON_PERMISSION_RESULTS, permissionResults, extendedPredicate);
     }
 
     @Override
@@ -131,8 +134,7 @@ public final class CheckPermissionsResponse extends CommonCommandResponse<CheckP
 
     @Override
     public boolean equals(@Nullable final Object o) {
-        if (super.equals(o) && o instanceof CheckPermissionsResponse) {
-            final CheckPermissionsResponse that = (CheckPermissionsResponse) o;
+        if (super.equals(o) && o instanceof CheckPermissionsResponse that) {
             return Objects.equals(permissionResults, that.permissionResults);
         }
         return false;
@@ -146,7 +148,7 @@ public final class CheckPermissionsResponse extends CommonCommandResponse<CheckP
     @Override
     @Nonnull
     public String toString() {
-        return getClass().getSimpleName() + " [" +
+        return getClass().getSimpleName() + "[" +
                 super.toString() +
                 "permissionResults=" + permissionResults +
                 "]";

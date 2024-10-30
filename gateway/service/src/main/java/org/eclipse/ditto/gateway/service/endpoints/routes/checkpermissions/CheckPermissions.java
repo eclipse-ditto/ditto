@@ -12,13 +12,6 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.routes.checkpermissions;
 
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.JsonParsableCommand;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -26,11 +19,18 @@ import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.base.api.common.CommonCommand;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommand;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonFactory;
-
-import javax.annotation.concurrent.Immutable;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 
 /**
  * Command to check multiple permissions for different resources in a single request.
@@ -54,7 +54,7 @@ public final class CheckPermissions extends CommonCommand<CheckPermissions> {
     public static final String TYPE = TYPE_PREFIX + CheckPermissions.NAME;
 
     private static final JsonFieldDefinition<JsonObject> PERMISSION_CHECKS_FIELD = JsonFactory.newJsonObjectFieldDefinition(
-            "permissionChecks"
+            "permissionChecks", FieldType.REGULAR, JsonSchemaVersion.V_2
     );
 
     private final Map<String, ImmutablePermissionCheck> permissionChecks;
@@ -112,10 +112,12 @@ public final class CheckPermissions extends CommonCommand<CheckPermissions> {
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
-            final Predicate<JsonField> predicate) {
-        JsonObjectBuilder permissionChecksBuilder = JsonFactory.newObjectBuilder();
+            final Predicate<JsonField> predicate)
+    {
+        final Predicate<JsonField> extendedPredicate = schemaVersion.and(predicate);
+        final JsonObjectBuilder permissionChecksBuilder = JsonFactory.newObjectBuilder();
         permissionChecks.forEach((key, permissionCheck) -> permissionChecksBuilder.set(key, permissionCheck.toJson()));
-        jsonObjectBuilder.set(PERMISSION_CHECKS_FIELD, permissionChecksBuilder.build(), predicate);
+        jsonObjectBuilder.set(PERMISSION_CHECKS_FIELD, permissionChecksBuilder.build(), extendedPredicate);
     }
 
     @Override

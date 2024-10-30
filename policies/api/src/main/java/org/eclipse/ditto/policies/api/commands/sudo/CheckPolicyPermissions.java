@@ -132,8 +132,8 @@ public final class CheckPolicyPermissions extends AbstractCommand<CheckPolicyPer
             final Map<String, ResourcePermissions> permissionsMap = permissionsJsonObject.getKeys()
                     .stream()
                     .collect(Collectors.toMap(
-                            key -> key.toString(),
-                            key -> ResourcePermissionFactory.fromJson(permissionsJsonObject.getValue(key).get()
+                            Object::toString,
+                            key -> ResourcePermissionFactory.fromJson(permissionsJsonObject.getValue(key).orElseThrow()
                                     .asObject())
                     ));
 
@@ -166,13 +166,11 @@ public final class CheckPolicyPermissions extends AbstractCommand<CheckPolicyPer
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
-            final Predicate<JsonField> thePredicate) {
+            final Predicate<JsonField> thePredicate)
+    {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-
         final JsonObjectBuilder permissionsJson = JsonFactory.newObjectBuilder();
-        permissionsMap.forEach((key, resourcePermissions) -> {
-            permissionsJson.set(key, resourcePermissions.toJson());
-        });
+        permissionsMap.forEach((key, resourcePermissions) -> permissionsJson.set(key, resourcePermissions.toJson()));
 
         jsonObjectBuilder.set(PolicyCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         final JsonFieldDefinition<JsonObject> permissionsField =

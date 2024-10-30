@@ -13,10 +13,11 @@
 package org.eclipse.ditto.gateway.service.endpoints.actors;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
@@ -76,6 +77,7 @@ final class CheckPermissionsActor extends AbstractActor {
      * @param sender the actor reference to the original sender.
      * @param defaultTimeout the default timeout for async operations.
      */
+    @SuppressWarnings("unused")
     private CheckPermissionsActor(final ActorRef edgeCommandForwarder, final ActorRef sender,
             final Duration defaultTimeout) {
         this.edgeCommandForwarder = edgeCommandForwarder;
@@ -101,14 +103,14 @@ final class CheckPermissionsActor extends AbstractActor {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(CheckPermissions.class, this::handleCheckPermissions)
-                .match(ReceiveTimeout.class, receiveTimeout -> this.handleReceiveTimeout())
+                .match(ReceiveTimeout.class, this::handleReceiveTimeout)
                 .matchAny(msg -> logger.warn("Unknown message: <{}>", msg))
                 .build();
     }
 
-    private void handleReceiveTimeout() {
-        logger.warn("CheckPermissionsActor timed out. Shutting down due to inactivity.");
-        getContext().stop(getSelf());
+    private void handleReceiveTimeout(final ReceiveTimeout receiveTimeout) {
+        logger.warn("CheckPermissionsActor timed out: {}. Shutting down due to inactivity.", receiveTimeout);
+        stopSelf();
     }
 
     /**
@@ -118,11 +120,11 @@ final class CheckPermissionsActor extends AbstractActor {
      * @param command the {@link CheckPermissions} message to handle.
      */
     private void handleCheckPermissions(final CheckPermissions command) {
-        final List<String> permissionOrder = new LinkedList<>(command.getPermissionChecks().keySet());
+        final List<String> permissionOrder = new ArrayList<>(command.getPermissionChecks().keySet());
         final Map<String, Map<String, ImmutablePermissionCheck>> groupedByEntityId =
                 groupByEntityAndPolicyResource(command);
 
-        CompletableFuture<Map<String, Map<String, PermissionCheckWrapper>>> allPolicyRetrievals =
+        final CompletableFuture<Map<String, Map<String, PermissionCheckWrapper>>> allPolicyRetrievals =
                 groupedByEntityId.entrySet().stream()
                         .reduce(
                                 CompletableFuture.completedFuture(new LinkedHashMap<>()),
@@ -142,8 +144,13 @@ final class CheckPermissionsActor extends AbstractActor {
         allPolicyRetrievals
                 .thenCompose(enrichedGroupedByEntityId ->
                         handlePolicyRetrievalCompletion(command, permissionOrder, enrichedGroupedByEntityId)
-                ).exceptionally(ex -> handleFailure(ex, command))
-                .whenComplete((result, throwable) -> stopSelf());
+                )
+                .whenComplete((result, throwable) -> {
+                    if (null != throwable) {
+                        handleFailure(throwable, command);
+                    }
+                    stopSelf();
+                });
     }
 
 
@@ -151,21 +158,6 @@ final class CheckPermissionsActor extends AbstractActor {
         final var context = getContext();
         context.cancelReceiveTimeout();
         context.stop(getSelf());
-    }
-
-    /**
-     * Initializes the permission results map with 'false' for each permission check.
-     *
-     * @param command the {@link CheckPermissions} command containing the permission checks.
-     * @return a map with the permission check results, initialized to {@code false}.
-     */
-    private Map<String, Boolean> initializePermissionResults(final CheckPermissions command) {
-        return command.getPermissionChecks().keySet().stream()
-                .collect(Collectors.toMap(
-                        check -> check,
-                        check -> false,
-                        (oldValue, newValue) -> oldValue,
-                        LinkedHashMap::new));
     }
 
     /**
@@ -181,7 +173,7 @@ final class CheckPermissionsActor extends AbstractActor {
                         entry -> entry.getValue().getEntityId(),
                         Collectors.toMap(
                                 Map.Entry::getKey,
-                                entry -> entry.getValue()
+                                Map.Entry::getValue
                         )
                 ));
     }
@@ -191,7 +183,8 @@ final class CheckPermissionsActor extends AbstractActor {
             final Map<String, ImmutablePermissionCheck> permissionCheckMap,
             final CheckPermissions command) {
 
-        if (permissionCheckMap.values().stream().findFirst().get().isPolicyResource()) {
+        final Optional<ImmutablePermissionCheck> first = permissionCheckMap.values().stream().findFirst();
+        if (first.isPresent() && first.get().isPolicyResource()) {
             return CompletableFuture.completedFuture(
                     permissionCheckMap.entrySet().stream()
                             .collect(Collectors.toMap(
@@ -205,7 +198,7 @@ final class CheckPermissionsActor extends AbstractActor {
                 .thenApply(policyId ->
                         permissionCheckMap.entrySet().stream()
                                 .collect(Collectors.toMap(
-                                        (Map.Entry<String, ImmutablePermissionCheck> entry) -> entry.getKey(),
+                                        Map.Entry::getKey,
                                         entry -> new PermissionCheckWrapper(entry.getValue(), policyId)
                                 ))
                 ).toCompletableFuture();
@@ -227,10 +220,12 @@ final class CheckPermissionsActor extends AbstractActor {
         final Map<PolicyId, Map<String, ResourcePermissions>> aggregatedPermissions =
                 groupPermissionsByPolicyId(enrichedGroupedByEntityId);
 
-        final List<CompletableFuture<Map<String, Boolean>>> permissionCheckFutures = aggregatedPermissions.entrySet().stream()
-                .map(aggregateEntry -> checkPermissionsForPolicy(aggregateEntry, command).toCompletableFuture())
-                .toList();
+        final List<CompletableFuture<Map<String, Boolean>>> permissionCheckFutures =
+                aggregatedPermissions.entrySet().stream()
+                        .map(aggregateEntry -> checkPermissionsForPolicy(aggregateEntry, command).toCompletableFuture())
+                        .toList();
 
+        final ActorRef self = getSelf();
         return CompletableFuture.allOf(permissionCheckFutures.toArray(new CompletableFuture[0]))
                 .thenApply(value ->
                         permissionCheckFutures.stream()
@@ -241,13 +236,15 @@ final class CheckPermissionsActor extends AbstractActor {
                                         Map.Entry::getValue,
                                         Boolean::logicalOr,
                                         () -> permissionOrder.stream()
-                                                .collect(Collectors.toMap(key -> key, key -> false, (v1, v2) -> v1, LinkedHashMap::new))
+                                                .collect(Collectors.toMap(key -> key, key -> false, (v1, v2) -> v1,
+                                                        LinkedHashMap::new))
                                 ))
                 )
                 .thenAccept(aggregatedResults -> {
-                    CheckPermissionsResponse response = CheckPermissionsResponse.of(aggregatedResults, command.getDittoHeaders());
-                    sender.tell(response, getSelf());
-                }).exceptionally(ex -> handleFailure(ex, command));
+                    final CheckPermissionsResponse response = CheckPermissionsResponse.of(aggregatedResults,
+                            command.getDittoHeaders());
+                    sender.tell(response, self);
+                });
     }
 
 
@@ -304,9 +301,8 @@ final class CheckPermissionsActor extends AbstractActor {
      *
      * @param ex the exception that occurred during the permission check.
      * @param command the {@link CheckPermissions} command containing permission checks.
-     * @return null, as the error is propagated via an exception and response is sent.
      */
-    private Void handleFailure(final Throwable ex, final CheckPermissions command) {
+    private void handleFailure(final Throwable ex, final CheckPermissions command) {
         logWarn(ex, command.getPermissionChecks(), command.getDittoHeaders());
 
         final DittoInternalErrorException errorResponse = DittoInternalErrorException.newBuilder()
@@ -314,7 +310,6 @@ final class CheckPermissionsActor extends AbstractActor {
                 .cause(ex)
                 .build();
         sender.tell(errorResponse, getSelf());
-        return null;
     }
 
 
@@ -331,7 +326,7 @@ final class CheckPermissionsActor extends AbstractActor {
      * @param headers the {@code DittoHeaders} associated with the command, used for logging context.
      */
     private void logWarn(final Throwable ex, final Map<String, ImmutablePermissionCheck> permissionChecks,
-            DittoHeaders headers) {
+            final DittoHeaders headers) {
         logger.withCorrelationId(headers)
                 .warn("Permission check failed for request: {}. Error: {}", permissionChecks, ex.getMessage());
     }
@@ -364,17 +359,16 @@ final class CheckPermissionsActor extends AbstractActor {
                                 .message("Unexpected error while handling the entity: " + entityId)
                                 .build();
                     }
-                    if (result instanceof SudoRetrieveThingResponse thingResponse) {
-                        return thingResponse.getThing().getPolicyId().orElse(null);
-                    } else if (result instanceof DittoRuntimeException) {
-                        throw (DittoRuntimeException) result;
-                    } else {
-                        throw DittoInternalErrorException.newBuilder()
+                    return switch (result) {
+                        case SudoRetrieveThingResponse thingResponse ->
+                                thingResponse.getThing().getPolicyId().orElse(null);
+                        case DittoRuntimeException dre -> throw dre;
+                        default -> throw DittoInternalErrorException.newBuilder()
                                 .dittoHeaders(headers)
                                 .cause(new IllegalArgumentException(
                                         "Unexpected response type: " + result.getClass().getSimpleName()))
                                 .build();
-                    }
+                    };
                 });
 
     }

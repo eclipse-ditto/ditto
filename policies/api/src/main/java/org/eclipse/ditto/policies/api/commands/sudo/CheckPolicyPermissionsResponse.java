@@ -25,6 +25,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
@@ -57,7 +58,7 @@ public final class CheckPolicyPermissionsResponse extends AbstractCommandRespons
     /**
      * The type of this response.
      */
-    public static final String TYPE = "checkPolicyPermissionsResponse";
+    public static final String TYPE = TYPE_PREFIX + CheckPolicyPermissions.NAME;
 
     /**
      * The key for the permission results field in the JSON response.
@@ -65,10 +66,10 @@ public final class CheckPolicyPermissionsResponse extends AbstractCommandRespons
     private static final String PERMISSIONS_RESULTS = "permissionsResults";
 
     private static final JsonFieldDefinition<JsonObject> PERMISSIONS_RESULTS_FIELD =
-            JsonFactory.newJsonObjectFieldDefinition("permissionsResults");
+            JsonFactory.newJsonObjectFieldDefinition("permissionsResults", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private static final JsonFieldDefinition<String> POLICY_ID_FIELD =
-            JsonFactory.newStringFieldDefinition("policyId");
+            JsonFactory.newStringFieldDefinition("policyId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private static final HttpStatus HTTP_STATUS = HttpStatus.OK;
 
@@ -124,9 +125,11 @@ public final class CheckPolicyPermissionsResponse extends AbstractCommandRespons
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
-            final Predicate<JsonField> predicate) {
-        jsonObjectBuilder.set(POLICY_ID_FIELD, policyId.toString());
-        jsonObjectBuilder.set(PERMISSIONS_RESULTS_FIELD, permissionsResults);
+            final Predicate<JsonField> predicate)
+    {
+        final Predicate<JsonField> extendedPredicate = schemaVersion.and(predicate);
+        jsonObjectBuilder.set(POLICY_ID_FIELD, policyId.toString(), extendedPredicate);
+        jsonObjectBuilder.set(PERMISSIONS_RESULTS_FIELD, permissionsResults, extendedPredicate);
     }
 
     @Override
@@ -134,10 +137,9 @@ public final class CheckPolicyPermissionsResponse extends AbstractCommandRespons
         if (this == other) {
             return true;
         }
-        if (!(other instanceof CheckPolicyPermissionsResponse)) {
+        if (!(other instanceof final CheckPolicyPermissionsResponse that)) {
             return false;
         }
-        final CheckPolicyPermissionsResponse that = (CheckPolicyPermissionsResponse) other;
         return Objects.equals(policyId, that.policyId) &&
                 Objects.equals(permissionsResults, that.permissionsResults) &&
                 super.equals(that);
@@ -150,8 +152,9 @@ public final class CheckPolicyPermissionsResponse extends AbstractCommandRespons
 
     @Override
     public String toString() {
-        return "PolicyCheckPermissionsResponse[" +
-                "policyId=" + policyId +
+        return getClass().getSimpleName() + " [" +
+                super.toString() +
+                ", policyId=" + policyId +
                 ", permissionResults=" + permissionsResults +
                 ']';
     }
@@ -190,8 +193,8 @@ public final class CheckPolicyPermissionsResponse extends AbstractCommandRespons
         return permissionsResultsJsonObject.getKeys()
                 .stream()
                 .collect(Collectors.toMap(
-                        key -> key.toString(),
-                        key -> permissionsResultsJsonObject.getValue(key).get().asBoolean()
+                        Object::toString,
+                        key -> permissionsResultsJsonObject.getValue(key).orElseThrow().asBoolean()
                 ));
     }
 

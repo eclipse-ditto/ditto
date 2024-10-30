@@ -146,10 +146,10 @@ public final class ImmutablePermissionCheck implements Jsonifiable<JsonObject> {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        ImmutablePermissionCheck that = (ImmutablePermissionCheck) o;
+        final ImmutablePermissionCheck that = (ImmutablePermissionCheck) o;
         return isPolicyResource == that.isPolicyResource &&
                 Objects.equals(resource, that.resource) &&
                 Objects.equals(entityId, that.entityId) &&
@@ -164,11 +164,11 @@ public final class ImmutablePermissionCheck implements Jsonifiable<JsonObject> {
 
     @Override
     public String toString() {
-        return "ImmutablePermissionCheck{" +
+        return getClass().getSimpleName() + "[" +
                 "resourceKey=" + resource +
                 ", entityId='" + entityId + '\'' +
                 ", isPolicyResource=" + isPolicyResource +
                 ", hasPermissions=" + hasPermissions +
-                '}';
+                ']';
     }
 }
