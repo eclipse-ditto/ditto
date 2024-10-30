@@ -28,7 +28,8 @@ managed.
 
 In the HTTP API, some endpoints are static and can be seen as the "schema" of Ditto. They are in sync with the JSON
 representation of the model classes, e.g. [Thing](basic-thing.html#model-specification) for the layout of the `/things`
-endpoint and [Policy](basic-policy.html) for the layout of the `/policies` endpoint.
+endpoint and [Policy](basic-policy.html) for the layout of the `/policies` endpoint, and `/checkPermissions` for verifying 
+access rights of entities on specific resources based on defined policies.
 
 ### API version 2
 
@@ -137,6 +138,29 @@ This maps to the following HTTP API endpoints:
   label `{entryLabel-1}`
 * `/policies/{policyId}/entries/{entryLabel-1}/resources`: accessing the resources of a single `Policy` entry with the
   label `{entryLabel-1}`
+
+#### `/checkPermissions` in API 2
+The checkPermissions endpoint verifies permissions for specified entities on various resources, ensuring they have the necessary access rights as defined in the policies.
+
+```json
+{
+    "lamp_reader": {
+        "resource": "thing:/features/lamp/properties/on",
+        "entityId": "org.eclipse.ditto:some-thing-1",
+        "hasPermissions": [
+            "READ"
+        ]
+    },
+    "lamp_toggler": {
+        "resource": "message:/features/lamp/inbox/toggle",
+        "entityId": "org.eclipse.ditto:some-thing-1",
+        "hasPermissions": [
+            "WRITE"
+        ]
+    }
+}
+```
+The response will confirm if each entity has the requested permissions.
 
 #### `/connections` in API 2
 

@@ -138,6 +138,12 @@ paths:
     $ref: "./paths/whoami/index.yml"
 
   ###
+  ### Check Permissions
+  ###
+  '/api/2/checkPermissions':
+    $ref: "./paths/checkPermissions/index.yml"
+
+  ###
   ### Things-Search
   ###
   /api/2/search/things:
