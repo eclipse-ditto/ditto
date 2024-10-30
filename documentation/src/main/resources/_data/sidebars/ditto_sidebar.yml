@@ -305,6 +305,10 @@ entries:
           - title: Authentication and Authorization
             url: /basic-auth.html
             output: web
+            subfolders:
+              - title: Checking Permissions for Resources
+                url: /check-permissions.html
+                output: web
           - title: Messages
             url: /basic-messages.html
             output: web
