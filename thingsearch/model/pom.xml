@@ -106,6 +106,7 @@
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                             <!--<exclude></exclude>-->
                             <exclude>org.eclipse.ditto.thingsearch.model.signals.commands.query.CountThings#of(java.lang.String,java.util.Set,org.eclipse.ditto.base.model.headers.DittoHeaders)</exclude>
+                            <exclude>org.eclipse.ditto.thingsearch.model.signals.commands.query.AggregateThingsMetricsResponse#getResult()</exclude>
                         </excludes>
                     </parameter>
                 </configuration>
