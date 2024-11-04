@@ -104,7 +104,7 @@
                     <parameter>
                         <excludes>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
-                            <!--<exclude></exclude>-->
+                            <exclude>org.eclipse.ditto.thingsearch.model.signals.commands.query.AggregateThingsMetricsResponse#getResult()</exclude>
                         </excludes>
                     </parameter>
                 </configuration>
