@@ -44,6 +44,7 @@ spec:
         prometheus.io/port: "{{ .Values.global.prometheus.port }}"
         {{- end }}
         checksum/mongodb-config: {{ include (print $.Template.BasePath "/mongodb-secret.yaml") . | sha256sum }}
+        checksum/config: {{ include (print $.Template.BasePath "/connectivity-configmap.yaml") . | sha256sum }}
         {{- with .Values.connectivity.additionalAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -139,9 +140,6 @@ spec:
                 {{ .Values.global.pekkoOptions }}
                 {{- if .Values.global.logging.customConfigFile.enabled }}
                 -Dlogback.configurationFile=/opt/ditto/{{ .Values.global.logging.customConfigFile.fileName }}
-                {{- end }}
-                {{- range $index, $header := .Values.connectivity.config.persistence.events.historicalHeadersToPersist }}
-                "{{ printf "%s%d=%s" "-Dditto.connectivity.connection.event.historical-headers-to-persist." $index $header }}"
                 {{- end }}
                 {{ join " " .Values.connectivity.systemProps }}
             - name: MONGO_DB_SSL_ENABLED
@@ -295,12 +293,13 @@ spec:
               value: "{{ .Values.dbconfig.connectivity.awsRegion }}"
             - name: MONGO_DB_AWS_ROLE_ARN
               value: "{{ .Values.dbconfig.connectivity.awsRoleArn }}"
+            - name: AWS_ROLE_ARN
+              value: "{{ .Values.dbconfig.connectivity.awsRoleArn }}"
             - name: AWS_WEB_IDENTITY_TOKEN_FILE
               value: "/var/run/secrets/eks.amazonaws.com/serviceaccount/token"
             - name: MONGO_DB_AWS_SESSION_NAME
               value: "{{ .Values.dbconfig.connectivity.awsSessionName }}"
             {{- end }}
-
           ports:
             - name: remoting
               containerPort: {{ .Values.pekko.remoting.port }}
@@ -332,6 +331,9 @@ spec:
             successThreshold: {{ .Values.connectivity.livenessProbe.successThreshold }}
             failureThreshold: {{ .Values.connectivity.livenessProbe.failureThreshold }}
           volumeMounts:
+            - name: connectivity-extension-conf
+              mountPath: /opt/ditto/connectivity-extension.conf
+              subPath: connectivity-extension.conf
             {{- if .Values.global.logging.customConfigFile.enabled }}
             - name: ditto-custom-log-config
               mountPath: /opt/ditto/{{ .Values.global.logging.customConfigFile.fileName }}
@@ -381,6 +383,9 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       volumes:
+        - name: connectivity-extension-conf
+          configMap:
+            name: {{ .Release.Name }}-service-config-connectivity-extension-conf
         {{- if .Values.global.logging.customConfigFile.enabled }}
         - name: ditto-custom-log-config
           configMap:

@@ -44,7 +44,7 @@ spec:
         prometheus.io/port: "{{ .Values.global.prometheus.port }}"
         {{- end }}
         checksum/password-config: {{ include (print $.Template.BasePath "/gateway-secret.yaml") . | sha256sum }}
-        checksum/mongodb-config: {{ include (print $.Template.BasePath "/mongodb-secret.yaml") . | sha256sum }}
+        checksum/config: {{ include (print $.Template.BasePath "/gateway-configmap.yaml") . | sha256sum }}
         {{- with .Values.gateway.additionalAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -140,24 +140,6 @@ spec:
                 {{ .Values.global.pekkoOptions }}
                 {{- if .Values.global.logging.customConfigFile.enabled }}
                 -Dlogback.configurationFile=/opt/ditto/{{ .Values.global.logging.customConfigFile.fileName }}
-                {{- end }}
-                {{- range $key, $value := .Values.gateway.config.authentication.oauth.openidConnectIssuers }}
-                "{{ printf "%s%s%s=%s" "-Dditto.gateway.authentication.oauth.openid-connect-issuers." $key ".issuer" $value.issuer }}"
-                {{- range $index, $subject := $value.authSubjects }}
-                "{{ printf "%s%s%s%d=%s" "-Dditto.gateway.authentication.oauth.openid-connect-issuers." $key ".auth-subjects." $index $subject }}"
-                {{- end }}
-                {{- end }}
-                {{- range $key, $value := .Values.gateway.config.authentication.devops.oauth.openidConnectIssuers }}
-                "{{ printf "%s%s%s=%s" "-Dditto.gateway.authentication.devops.oauth.openid-connect-issuers." $key ".issuer" $value.issuer }}"
-                {{- range $index, $subject := $value.authSubjects }}
-                "{{ printf "%s%s%s%d=%s" "-Dditto.gateway.authentication.devops.oauth.openid-connect-issuers." $key ".auth-subjects." $index $subject }}"
-                {{- end }}
-                {{- end }}
-                {{- range $index, $oauthSubject := .Values.gateway.config.authentication.devops.oauthSubjects }}
-                "{{ printf "%s%d=%s" "-Dditto.gateway.authentication.devops.devops-oauth2-subjects." $index $oauthSubject }}"
-                {{- end }}
-                {{- range $index, $oauthSubject := .Values.gateway.config.authentication.devops.statusOauthSubjects }}
-                "{{ printf "%s%d=%s" "-Dditto.gateway.authentication.devops.status-oauth2-subjects." $index $oauthSubject }}"
                 {{- end }}
                 {{ join " " .Values.gateway.systemProps }}
             - name: CLUSTER_BS_REQUIRED_CONTACTS
@@ -267,6 +249,9 @@ spec:
             successThreshold: {{ .Values.gateway.livenessProbe.successThreshold }}
             failureThreshold: {{ .Values.gateway.livenessProbe.failureThreshold }}
           volumeMounts:
+            - name: gateway-extension-conf
+              mountPath: /opt/ditto/gateway-extension.conf
+              subPath: gateway-extension.conf
             {{- if .Values.global.logging.customConfigFile.enabled }}
             - name: ditto-custom-log-config
               mountPath: /opt/ditto/{{ .Values.global.logging.customConfigFile.fileName }}
@@ -316,6 +301,9 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       volumes:
+        - name: gateway-extension-conf
+          configMap:
+            name: {{ .Release.Name }}-service-config-gateway-extension-conf
         {{- if .Values.global.logging.customConfigFile.enabled }}
         - name: ditto-custom-log-config
           configMap:

@@ -44,6 +44,7 @@ spec:
         prometheus.io/port: "{{ .Values.global.prometheus.port }}"
         {{- end }}
         checksum/mongodb-config: {{ include (print $.Template.BasePath "/mongodb-secret.yaml") . | sha256sum }}
+        checksum/config: {{ include (print $.Template.BasePath "/policies-configmap.yaml") . | sha256sum }}
         {{- with .Values.policies.additionalAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -139,27 +140,6 @@ spec:
                 {{- .Values.global.pekkoOptions }}
                 {{- if .Values.global.logging.customConfigFile.enabled }}
                 -Dlogback.configurationFile=/opt/ditto/{{ .Values.global.logging.customConfigFile.fileName }}
-                {{- end }}
-                {{- range $index, $header := .Values.policies.config.persistence.events.historicalHeadersToPersist }}
-                "{{ printf "%s%d=%s" "-Dditto.policies.policy.event.historical-headers-to-persist." $index $header }}"
-                {{- end }}
-                {{- range $grantIdx, $grant := .Values.policies.config.entityCreation.grants }}
-                "{{ printf "%s%d%s=%s" "-Dditto.entity-creation.grant." $grantIdx ".resource-types.0" "policy" }}"
-                {{- range $namespaceIdx, $namespace := $grant.namespaces }}
-                "{{ printf "%s%d%s%d=%s" "-Dditto.entity-creation.grant." $grantIdx ".namespaces." $namespaceIdx $namespace }}"
-                {{- end }}
-                {{- range $subjectIdx, $subject := $grant.authSubjects }}
-                "{{ printf "%s%d%s%d=%s" "-Dditto.entity-creation.grant." $grantIdx ".auth-subjects." $subjectIdx $subject }}"
-                {{- end }}
-                {{- end }}
-                {{- range $revokeIdx, $revoke := .Values.policies.config.entityCreation.revokes }}
-                "{{ printf "%s%d%s=%s" "-Dditto.entity-creation.revoke." $revokeIdx ".resource-types.0" "policy" }}"
-                {{- range $namespaceIdx, $namespace := $revoke.namespaces }}
-                "{{ printf "%s%d%s%d=%s" "-Dditto.entity-creation.revoke." $revokeIdx ".namespaces." $namespaceIdx $namespace }}"
-                {{- end }}
-                {{- range $subjectIdx, $subject := $revoke.authSubjects }}
-                "{{ printf "%s%d%s%d=%s" "-Dditto.entity-creation.revoke." $revokeIdx ".auth-subjects." $subjectIdx $subject }}"
-                {{- end }}
                 {{- end }}
                 {{ join " " .Values.policies.systemProps }}
             - name: MONGO_DB_SSL_ENABLED
@@ -287,12 +267,13 @@ spec:
               value: "{{ .Values.dbconfig.policies.awsRegion }}"
             - name: MONGO_DB_AWS_ROLE_ARN
               value: "{{ .Values.dbconfig.policies.awsRoleArn }}"
+            - name: AWS_ROLE_ARN
+              value: "{{ .Values.dbconfig.policies.awsRoleArn }}"
             - name: AWS_WEB_IDENTITY_TOKEN_FILE
               value: "/var/run/secrets/eks.amazonaws.com/serviceaccount/token"
             - name: MONGO_DB_AWS_SESSION_NAME
               value: "{{ .Values.dbconfig.policies.awsSessionName }}"
             {{- end }}
-
           ports:
             - name: http
               containerPort: 8080
@@ -327,6 +308,9 @@ spec:
             successThreshold: {{ .Values.policies.livenessProbe.successThreshold }}
             failureThreshold: {{ .Values.policies.livenessProbe.failureThreshold }}
           volumeMounts:
+            - name: policies-extension-conf
+              mountPath: /opt/ditto/policies-extension.conf
+              subPath: policies-extension.conf
             {{- if .Values.global.logging.customConfigFile.enabled }}
             - name: ditto-custom-log-config
               mountPath: /opt/ditto/{{ .Values.global.logging.customConfigFile.fileName }}
@@ -376,6 +360,9 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       volumes:
+        - name: policies-extension-conf
+          configMap:
+            name: {{ .Release.Name }}-service-config-policies-extension-conf
         {{- if .Values.global.logging.customConfigFile.enabled }}
         - name: ditto-custom-log-config
           configMap:
