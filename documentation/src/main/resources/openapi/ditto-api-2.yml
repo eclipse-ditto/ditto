@@ -6567,6 +6567,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
+  /api/2/checkPermissions:
+    post:
+      summary: "Check Permissions for Resources"
+      description: "An endpoint to verify permissions on specified resources."
+      tags:
+        - Policies
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PermissionCheckRequest'
+      responses:
+        '200':
+          description: "Permissions check result"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermissionCheckResponse'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
   /api/2/search/things:
     get:
       summary: Search for things
@@ -10430,6 +10455,45 @@ components:
         - security
         - securityDefinitions
       additionalProperties: true
+    PermissionCheckRequest:
+      type: object
+      description: "Request to check permissions for various entities and resources."
+      additionalProperties:
+        $ref: '#/components/schemas/PermissionEntityCheck'
+      example:
+        lamp_reader:
+          resource: "thing:/features/lamp/properties/on"
+          entityId: "org.eclipse.ditto:some-thing-1"
+          hasPermissions: [ "READ" ]
+        lamp_toggler:
+          resource: "message:/features/lamp/inbox/messages/toggle"
+          entityId: "org.eclipse.ditto:some-thing-1"
+          hasPermissions: [ "WRITE" ]
+    PermissionEntityCheck:
+      type: object
+      description: "Details for a specific permission check request."
+      properties:
+        resource:
+          type: string
+          pattern: "^(thing|message|policy):(/[a-zA-Z0-9._-]+)*$"
+          description: "Resource key to be checked, beginning with 'thing:', 'message:', or 'policy:', followed by the specific resource path. This defines the scope of the permission request."
+        entityId:
+          type: string
+        description: "ID of the entity performing the action, which could be a ThingId or PolicyId, depending on the resource context."
+        hasPermissions:
+          type: array
+          items:
+            type: string
+            enum: [ "READ", "WRITE" ]
+          description: "Required permissions on the resource."
+    PermissionCheckResponse:
+      type: object
+      description: "Response with permission check results for each entity."
+      additionalProperties:
+        type: boolean
+      example:
+        lamp_reader: true
+        lamp_toggler: false
     TextUnauthorizeError:
       type: string
       example: The supplied authentication is invalid

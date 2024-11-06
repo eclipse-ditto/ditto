@@ -51,6 +51,7 @@ import org.eclipse.ditto.gateway.service.endpoints.directives.RequestResultLoggi
 import org.eclipse.ditto.gateway.service.endpoints.directives.RequestTimeoutHandlingDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.RequestTracingDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.GatewayAuthenticationDirective;
+import org.eclipse.ditto.gateway.service.endpoints.routes.checkpermissions.CheckPermissionsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.cloudevents.CloudEventsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.connections.ConnectionsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.devops.DevOpsRoute;
@@ -95,6 +96,7 @@ public final class RootRoute extends AllDirectives {
     private final WebSocketRouteBuilder websocketRouteBuilder;
     private final StatsRoute statsRoute;
     private final WhoamiRoute whoamiRoute;
+    private final CheckPermissionsRoute checkPermissionsRoute;
     private final CloudEventsRoute cloudEventsRoute;
 
     private final CustomApiRoutesProvider customApiRoutesProvider;
@@ -126,6 +128,7 @@ public final class RootRoute extends AllDirectives {
         websocketRouteBuilder = builder.websocketRouteBuilder;
         statsRoute = builder.statsRoute;
         whoamiRoute = builder.whoamiRoute;
+        checkPermissionsRoute = builder.checkPermissionsRoute;
         cloudEventsRoute = builder.cloudEventsRoute;
         customApiRoutesProvider = builder.customApiRoutesProvider;
         routeBaseProperties = builder.routeBaseProperties;
@@ -322,6 +325,8 @@ public final class RootRoute extends AllDirectives {
                 thingSearchRoute.buildSearchRoute(ctx, dittoHeaders),
                 // /api/{apiVersion}/whoami
                 whoamiRoute.buildWhoamiRoute(ctx, dittoHeaders),
+                // /api/{apiVersion}/checkPermissions
+                checkPermissionsRoute.buildCheckPermissionsRoute(ctx, dittoHeaders),
                 // /api/{apiVersion}/cloudevents
                 cloudEventsRoute.buildCloudEventsRoute(ctx, dittoHeaders)
         ).orElse(customApiSubRoutes);
@@ -440,6 +445,7 @@ public final class RootRoute extends AllDirectives {
         private WebSocketRouteBuilder websocketRouteBuilder;
         private StatsRoute statsRoute;
         private WhoamiRoute whoamiRoute;
+        private CheckPermissionsRoute checkPermissionsRoute;
         private CloudEventsRoute cloudEventsRoute;
 
         private CustomApiRoutesProvider customApiRoutesProvider;
@@ -528,6 +534,12 @@ public final class RootRoute extends AllDirectives {
         @Override
         public RootRouteBuilder whoamiRoute(final WhoamiRoute route) {
             whoamiRoute = route;
+            return this;
+        }
+
+        @Override
+        public RootRouteBuilder checkPermissionsRoute(final CheckPermissionsRoute route) {
+            checkPermissionsRoute = route;
             return this;
         }
 

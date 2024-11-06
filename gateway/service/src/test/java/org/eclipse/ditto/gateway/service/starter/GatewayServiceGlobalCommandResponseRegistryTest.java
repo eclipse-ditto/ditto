@@ -23,6 +23,7 @@ import org.eclipse.ditto.connectivity.api.commands.sudo.SudoRetrieveConnectionId
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityErrorResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnectionResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionResponse;
+import org.eclipse.ditto.gateway.service.endpoints.routes.checkpermissions.CheckPermissionsResponse;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiResponse;
 import org.eclipse.ditto.gateway.service.streaming.signals.StreamingAck;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealthResponse;
@@ -69,6 +70,7 @@ public final class GatewayServiceGlobalCommandResponseRegistryTest extends Globa
                 PurgeEntitiesResponse.class,
                 StreamingAck.class,
                 WhoamiResponse.class,
+                CheckPermissionsResponse.class,
                 Acknowledgement.class,
                 ModifySplitBrainResolverResponse.class,
                 CleanupPersistenceResponse.class

@@ -40,7 +40,6 @@ public final class PolicyCommandStrategies
 
     private PolicyCommandStrategies(final PolicyConfig policyConfig, final ActorSystem system) {
         super(Command.class);
-
         // Policy level
         addStrategy(new PolicyConflictStrategy(policyConfig));
         addStrategy(new ModifyPolicyStrategy(policyConfig));
@@ -84,6 +83,9 @@ public final class PolicyCommandStrategies
         addStrategy(new SudoRetrievePolicyStrategy(policyConfig));
         addStrategy(new SudoRetrievePolicyRevisionStrategy(policyConfig));
         addStrategy(new SudoDeleteExpiredSubjectStrategy(policyConfig));
+
+        // checkPermissionsStrategy
+        addStrategy(new PolicyCheckPermissionsStrategy(policyConfig));
     }
 
     /**

@@ -28,7 +28,8 @@ managed.
 
 In the HTTP API, some endpoints are static and can be seen as the "schema" of Ditto. They are in sync with the JSON
 representation of the model classes, e.g. [Thing](basic-thing.html#model-specification) for the layout of the `/things`
-endpoint and [Policy](basic-policy.html) for the layout of the `/policies` endpoint.
+endpoint and [Policy](basic-policy.html) for the layout of the `/policies` endpoint, and `/checkPermissions` for verifying 
+access rights of entities on specific resources based on defined policies.
 
 ### API version 2
 

@@ -37,6 +37,7 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.CustomApiRoutesProvide
 import org.eclipse.ditto.gateway.service.endpoints.routes.HttpBindFlowProvider;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RootRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
+import org.eclipse.ditto.gateway.service.endpoints.routes.checkpermissions.CheckPermissionsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.cloudevents.CloudEventsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.connections.ConnectionsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.devops.DevOpsRoute;
@@ -265,6 +266,7 @@ public final class GatewayRootActor extends DittoRootActor {
                 .connectionsRoute(new ConnectionsRoute(routeBaseProperties, devopsAuthenticationDirective))
                 .thingSearchRoute(new ThingSearchRoute(routeBaseProperties))
                 .whoamiRoute(new WhoamiRoute(routeBaseProperties))
+                .checkPermissionsRoute(new CheckPermissionsRoute(routeBaseProperties))
                 .cloudEventsRoute(new CloudEventsRoute(routeBaseProperties, gatewayConfig.getCloudEventsConfig()))
                 .websocketRoute(WebSocketRoute.getInstance(actorSystem, streamingActor, streamingConfig, materializer)
                         .withSignalEnrichmentProvider(signalEnrichmentProvider)
