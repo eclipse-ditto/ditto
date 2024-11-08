@@ -60,6 +60,9 @@ public final class TraceInformationGenerator implements Function<String, TraceIn
             "/(?<entityType>{0}))(/(?<entityId>$|.*?))?(/(?<subEntityType>$|.*?))?(/(?<subEntityId>$|.*?))?($|/.*)";
     private static final String PATHS_EXACT_LENGTH_GROUP = "exact";
     private static final Set<String> PATHS_EXACT = Set.of(
+            "api/2/whoami",
+            "api/2/checkPermissions",
+            "api/2/cloudevents",
             "ws/2",
             "health",
             "status",
@@ -139,7 +142,10 @@ public final class TraceInformationGenerator implements Function<String, TraceIn
             final var pathToShorten = matcher.group(PATHS_TO_SHORTEN_GROUP);
             if (null != pathToShorten) {
                 final var messageMatcher = MESSAGE_PATTERN.matcher(normalizedPath);
-                if (messageMatcher.matches()) {
+                if (pathToShorten.equals(path)) {
+                    traceUri = URI.create(path);
+                    sanitizedUri = traceUri;
+                } else if (messageMatcher.matches()) {
                     traceUri = URI.create(pathToShorten + MESSAGES_PATH_SUFFIX);
                     sanitizedUri = traceUri;
                 } else {
