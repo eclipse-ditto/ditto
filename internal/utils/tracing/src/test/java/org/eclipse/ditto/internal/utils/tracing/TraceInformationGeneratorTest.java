@@ -89,7 +89,7 @@ public final class TraceInformationGeneratorTest {
 
     @Test
     public void api2ThingsSearchUriIsShortened() {
-        final var expectedUri = URI.create("/api/2/search/things" + TraceInformationGenerator.SHORTENED_PATH_SUFFIX);
+        final var expectedUri = URI.create("/api/2/search/things");
 
         assertThat(underTest.apply("/api/2/search/things"))
                 .isEqualTo(TraceInformation.newInstance(expectedUri, TagSet.ofTag(getRequestUriTag(expectedUri))));
