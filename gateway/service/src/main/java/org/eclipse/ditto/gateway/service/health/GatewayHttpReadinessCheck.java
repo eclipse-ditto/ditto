@@ -36,7 +36,7 @@ public final class GatewayHttpReadinessCheck implements Supplier<CompletionStage
      */
     public static final String READINESS_ASK_MESSAGE_RESPONSE = "ready";
 
-    private static final Duration TIMEOUT = Duration.ofSeconds(30);
+    private static final Duration TIMEOUT = Duration.ofSeconds(2);
 
     private final ActorSelection rootActor;
 
@@ -47,6 +47,6 @@ public final class GatewayHttpReadinessCheck implements Supplier<CompletionStage
     @Override
     public CompletionStage<Boolean> get() {
         return Patterns.ask(rootActor, READINESS_ASK_MESSAGE, TIMEOUT)
-                .handle((answer, throwable) -> answer.equals(READINESS_ASK_MESSAGE_RESPONSE));
+                .handle((answer, throwable) -> READINESS_ASK_MESSAGE_RESPONSE.equals(answer));
     }
 }
