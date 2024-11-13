@@ -66,7 +66,7 @@
         <pjfanning-pekko-rabbitmq.version>7.0.0</pjfanning-pekko-rabbitmq.version>
         <amqp-client.version>5.18.0</amqp-client.version>
         <reactive-streams.version>1.0.4</reactive-streams.version>
-        <netty-bom.version>4.1.112.Final</netty-bom.version>
+        <netty-bom.version>4.1.115.Final</netty-bom.version>
         <cloudevents.version>2.5.0</cloudevents.version>
 
         <slf4j.version>2.0.16</slf4j.version>
@@ -76,7 +76,7 @@
         <janino.version>3.1.12</janino.version>
 
         <!-- ### Metrics and Tracing -->
-        <kamon.version>2.7.3</kamon.version>
+        <kamon.version>2.7.5</kamon.version>
 
         <jsr305.version>3.0.2</jsr305.version>
 
