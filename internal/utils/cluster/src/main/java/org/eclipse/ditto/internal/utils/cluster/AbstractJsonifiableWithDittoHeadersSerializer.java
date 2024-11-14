@@ -33,6 +33,7 @@ import org.apache.pekko.serialization.ByteBufferSerializer;
 import org.apache.pekko.serialization.SerializerWithStringManifest;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
@@ -210,7 +211,11 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
             final DittoHeaders dittoHeaders,
             final StartedSpan startedSpan
     ) {
-        final var dittoHeadersWithSpanContext = DittoHeaders.of(startedSpan.propagateContext(dittoHeaders));
+        final var dittoHeadersWithSpanContext = DittoHeaders.of(startedSpan.propagateContext(
+                dittoHeaders.toBuilder()
+                        .removeHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey())
+                        .build()
+        ));
         return dittoHeadersWithSpanContext.toJson();
     }
 
@@ -330,7 +335,11 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
                 beforeDeserializeInstant
         );
         final var result =
-                deserializeJson(payload, manifest, DittoHeaders.of(startedSpan.propagateContext(dittoHeaders)));
+                deserializeJson(payload, manifest, DittoHeaders.of(startedSpan.propagateContext(
+                        dittoHeaders.toBuilder()
+                                .removeHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey())
+                                .build()
+                )));
         try {
             return result;
         } finally {

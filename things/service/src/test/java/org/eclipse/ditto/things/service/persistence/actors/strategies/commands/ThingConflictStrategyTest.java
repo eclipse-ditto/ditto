@@ -18,6 +18,8 @@ import static org.mockito.Mockito.doAnswer;
 
 import java.util.concurrent.CompletionStage;
 
+import javax.annotation.Nullable;
+
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -30,6 +32,7 @@ import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrateg
 import org.eclipse.ditto.internal.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultVisitor;
+import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
@@ -62,7 +65,7 @@ public final class ThingConflictStrategyTest {
                 mockLoggingAdapter(), ACTOR_SYSTEM_RESOURCE.getActorSystem());
         final CreateThing command = CreateThing.of(thing, null, DittoHeaders.empty());
         final Result<ThingEvent<?>> result = underTest.apply(context, thing, 26L, command);
-        result.accept(new ExpectErrorVisitor(ThingConflictException.class));
+        result.accept(new ExpectErrorVisitor(ThingConflictException.class), null);
     }
 
     @Test
@@ -77,7 +80,7 @@ public final class ThingConflictStrategyTest {
                 .ifNoneMatch(EntityTagMatchers.fromStrings("*"))
                 .build());
         final Result<ThingEvent<?>> result = underTest.apply(context, thing, 26L, command);
-        result.accept(new ExpectErrorVisitor(ThingPreconditionFailedException.class));
+        result.accept(new ExpectErrorVisitor(ThingPreconditionFailedException.class), null);
     }
 
     private static DittoDiagnosticLoggingAdapter mockLoggingAdapter() {
@@ -97,14 +100,14 @@ public final class ThingConflictStrategyTest {
         @Override
         public void onMutation(final Command<?> command, final ThingEvent<?> event,
                 final WithDittoHeaders response, final boolean becomeCreated,
-                final boolean becomeDeleted) {
+                final boolean becomeDeleted, final StartedSpan startedSpan) {
             throw new AssertionError("Expect error, got mutation: " + event);
         }
 
         @Override
         public void onStagedMutation(final Command<?> command, final CompletionStage<ThingEvent<?>> event,
                 final CompletionStage<WithDittoHeaders> response, final boolean becomeCreated,
-                final boolean becomeDeleted) {
+                final boolean becomeDeleted, @Nullable final StartedSpan startedSpan) {
             throw new AssertionError("Expect error, got mutation: " + event);
         }
 
@@ -114,7 +117,8 @@ public final class ThingConflictStrategyTest {
         }
 
         @Override
-        public void onStagedQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response) {
+        public void onStagedQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response,
+                @Nullable final StartedSpan startedSpan) {
             throw new AssertionError("Expect error, got query: " + response);
         }
 

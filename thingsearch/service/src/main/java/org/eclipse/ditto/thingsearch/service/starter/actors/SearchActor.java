@@ -45,9 +45,9 @@ import org.apache.pekko.stream.javadsl.StreamRefs;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
@@ -62,6 +62,7 @@ import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonObject;
@@ -118,7 +119,6 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
     private static final String QUERY_PARSING_SEGMENT_NAME = "query_parsing";
     private static final String DATABASE_ACCESS_SEGMENT_NAME = "database_access";
     private static final String QUERY_TYPE_TAG = "query_type";
-    private static final String API_VERSION_TAG = "api_version";
 
     private static final Map<String, ThreadSafeDittoLogger> NAMESPACE_INSPECTION_LOGGERS = new HashMap<>();
 
@@ -297,20 +297,27 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
             final ActorRef sender) {
 
         final var dittoHeaders = countCommand.getDittoHeaders();
-        final JsonSchemaVersion version = countCommand.getImplementedSchemaVersion();
         final var queryType = "count";
-        final StartedTimer countTimer = startNewTimer(version, queryType, countCommand);
+        final SpanWithTimer spanWithTimer = startNewTimer(queryType, countCommand);
+        final StartedTimer countTimer = spanWithTimer.startedTimer;
         final StartedTimer queryParsingTimer = countTimer.startNewSegment(QUERY_PARSING_SEGMENT_NAME);
 
+        @SuppressWarnings("unchecked")
+        final T tracedCountCommand = (T) countCommand.setDittoHeaders(
+                DittoHeaders.of(spanWithTimer.startedSpan.propagateContext(dittoHeaders.toBuilder()
+                        .removeHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey())
+                        .build()
+                )));
+
         final Source<CountThingsResponse, ?> countThingsResponseSource =
-                createQuerySource(queryParseFunction, countCommand)
+                createQuerySource(queryParseFunction, tracedCountCommand)
                         .flatMapConcat(query -> {
                             stopTimer(queryParsingTimer);
                             final StartedTimer databaseAccessTimer =
                                     countTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME);
 
                             final Source<Long, NotUsed> countResultSource =
-                                    DittoJsonException.wrapJsonRuntimeException(query, countCommand.getDittoHeaders(),
+                                    DittoJsonException.wrapJsonRuntimeException(query, tracedCountCommand.getDittoHeaders(),
                                             (theQuery, headers) -> isSudo
                                                     ? searchPersistence.sudoCount(theQuery)
                                                     : searchPersistence.count(theQuery,
@@ -327,7 +334,7 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
                         });
 
         final Source<Object, ?> replySourceWithErrorHandling =
-                countThingsResponseSource.via(stopTimerAndHandleError(countTimer, countCommand));
+                countThingsResponseSource.via(stopTimerAndHandleError(countTimer, tracedCountCommand));
 
         final var replyFuture =
                 replySourceWithErrorHandling.runWith(Sink.head(), SystemMaterializer.get(getSystem()).materializer());
@@ -339,28 +346,34 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
             final ThreadSafeDittoLoggingAdapter l) {
 
         final var queryType = "query"; // same as queryThings
-        final var searchTimer =
-                startNewTimer(streamThings.getImplementedSchemaVersion(), queryType, streamThings);
+        final SpanWithTimer spanWithTimer = startNewTimer(queryType, streamThings);
+        final var searchTimer = spanWithTimer.startedTimer;
         final var queryParsingTimer = searchTimer.startNewSegment(QUERY_PARSING_SEGMENT_NAME);
         final var namespaces = streamThings.getNamespaces().orElse(null);
 
+        final StreamThings tracedStreamThings = streamThings.setDittoHeaders(
+                DittoHeaders.of(spanWithTimer.startedSpan.propagateContext(streamThings.getDittoHeaders().toBuilder()
+                        .removeHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey())
+                        .build()
+                )));
+
         final Source<SourceRef<String>, NotUsed> thingIdSourceRefSource =
-                ThingsSearchCursor.extractCursor(streamThings).flatMapConcat(cursor -> {
+                ThingsSearchCursor.extractCursor(tracedStreamThings).flatMapConcat(cursor -> {
                     cursor.ifPresent(c -> c.logCursorCorrelationId(l));
 
-                    return createQuerySource(queryParser::parse, streamThings).map(parsedQuery -> {
+                    return createQuerySource(queryParser::parse, tracedStreamThings).map(parsedQuery -> {
                         final var query =
                                 ThingsSearchCursor.adjust(cursor, parsedQuery, queryParser.getCriteriaFactory());
                         stopTimer(queryParsingTimer);
                         searchTimer.startNewSegment(
                                 DATABASE_ACCESS_SEGMENT_NAME); // segment stopped by stopTimerAndHandleError
                         final List<String> subjectIds =
-                                streamThings.getDittoHeaders()
+                                tracedStreamThings.getDittoHeaders()
                                         .getAuthorizationContext()
                                         .getAuthorizationSubjectIds();
 
                         final Source<ThingId, NotUsed> findAllUnlimitedResult =
-                                DittoJsonException.wrapJsonRuntimeException(query, streamThings.getDittoHeaders(),
+                                DittoJsonException.wrapJsonRuntimeException(query, tracedStreamThings.getDittoHeaders(),
                                         (theQuery, headers) ->
                                                 searchPersistence.findAllUnlimited(theQuery, subjectIds, namespaces)
                                 );
@@ -374,7 +387,7 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
 
         final Source<Object, NotUsed> replySourceWithErrorHandling =
                 thingIdSourceRefSource.via(streamKillSwitch.flow())
-                        .via(stopTimerAndHandleError(searchTimer, streamThings));
+                        .via(stopTimerAndHandleError(searchTimer, tracedStreamThings));
 
         final var replyFuture =
                 replySourceWithErrorHandling.runWith(Sink.head(), SystemMaterializer.get(getSystem()).materializer());
@@ -453,19 +466,25 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
         l.debug("Starting to process QueryThings command: {}", queryThings);
 
         final var queryType = "query";
-        final var searchTimer =
-                startNewTimer(queryThings.getImplementedSchemaVersion(), queryType, queryThings);
+        final SpanWithTimer spanWithTimer = startNewTimer(queryType, queryThings);
+        final var searchTimer = spanWithTimer.startedTimer;
         final var queryParsingTimer = searchTimer.startNewSegment(QUERY_PARSING_SEGMENT_NAME);
         final var namespaces = queryThings.getNamespaces().orElse(null);
 
+        final QueryThings tracedQueryThings = queryThings.setDittoHeaders(
+                DittoHeaders.of(spanWithTimer.startedSpan.propagateContext(queryThings.getDittoHeaders().toBuilder()
+                        .removeHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey())
+                        .build()
+                )));
+
         final Source<QueryThingsResponse, ?> queryThingsResponseSource =
-                ThingsSearchCursor.extractCursor(queryThings, getSystem()).flatMapConcat(cursor -> {
+                ThingsSearchCursor.extractCursor(tracedQueryThings, getSystem()).flatMapConcat(cursor -> {
                     cursor.ifPresent(c -> c.logCursorCorrelationId(l));
-                    final QueryThings command = ThingsSearchCursor.adjust(cursor, queryThings);
+                    final QueryThings command = ThingsSearchCursor.adjust(cursor, tracedQueryThings);
                     final var dittoHeaders = command.getDittoHeaders();
                     l.info("Processing QueryThings command with namespaces <{}> and filter: <{}>",
-                            queryThings.getNamespaces(), queryThings.getFilter());
-                    l.debug("Processing QueryThings command: <{}>", queryThings);
+                            tracedQueryThings.getNamespaces(), tracedQueryThings.getFilter());
+                    l.debug("Processing QueryThings command: <{}>", tracedQueryThings);
 
                     return createQuerySource(queryParser::parse, command)
                             .flatMapConcat(parsedQuery -> {
@@ -477,7 +496,7 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
                                 final StartedTimer databaseAccessTimer =
                                         searchTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME);
 
-                                final boolean isSudo = queryThings.getDittoHeaders()
+                                final boolean isSudo = tracedQueryThings.getDittoHeaders()
                                         .isSudo();
 
                                 final List<String> subjectIds = isSudo ? null
@@ -499,7 +518,7 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
                 });
 
         final Source<Object, ?> replySourceWithErrorHandling =
-                queryThingsResponseSource.via(stopTimerAndHandleError(searchTimer, queryThings));
+                queryThingsResponseSource.via(stopTimerAndHandleError(searchTimer, tracedQueryThings));
 
         final var replyFuture =
                 replySourceWithErrorHandling.runWith(Sink.head(), SystemMaterializer.get(getSystem()).materializer());
@@ -561,15 +580,15 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
         }
     }
 
-    private static StartedTimer startNewTimer(final JsonSchemaVersion version, final String queryType,
+    private static SpanWithTimer startNewTimer(final String queryType,
             final WithDittoHeaders withDittoHeaders) {
         final StartedTimer startedTimer = DittoMetrics.timer(TRACING_THINGS_SEARCH)
                 .tag(QUERY_TYPE_TAG, queryType)
-                .tag(API_VERSION_TAG, version.toString())
                 .start();
-        DittoTracing.newStartedSpanByTimer(withDittoHeaders.getDittoHeaders(), startedTimer);
+        final StartedSpan startedSpan =
+                DittoTracing.newStartedSpanByTimer(withDittoHeaders.getDittoHeaders(), startedTimer);
 
-        return startedTimer;
+        return new SpanWithTimer(startedSpan, startedTimer);
     }
 
     private static void stopTimer(final StartedTimer timer) {
@@ -579,5 +598,7 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
             // it is okay if the timer was stopped.
         }
     }
+
+    private record SpanWithTimer(StartedSpan startedSpan, StartedTimer startedTimer) {}
 
 }

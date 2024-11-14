@@ -36,6 +36,8 @@ import org.eclipse.ditto.internal.utils.cache.CacheFactory;
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
@@ -124,18 +126,29 @@ public class DittoCachingSignalEnrichmentFacade implements CachingSignalEnrichme
         final DittoHeadersBuilder<?, ?> dittoHeadersBuilder = DittoHeaders.newBuilder();
         if (!events.isEmpty()) {
             dittoHeadersBuilder.correlationId(
-                    events.get(events.size() - 1)
-                            .getDittoHeaders()
+                    events.getLast().getDittoHeaders()
                             .getCorrelationId()
                             .orElseGet(() -> UUID.randomUUID().toString())
                             + "-enrichment"
             );
         }
+
         if (atRevisionNumber > 0) {
             dittoHeadersBuilder
                     .putHeader(DittoHeaderDefinition.AT_HISTORICAL_REVISION.getKey(), String.valueOf(atRevisionNumber));
         }
-        return dittoHeadersBuilder.build();
+
+        final var startedSpan = DittoTracing.newPreparedSpan(
+                        dittoHeadersBuilder.build(),
+                        SpanOperationName.of("caching_enrichment_facade_retrieve_thing")
+                )
+                .start();
+
+        return DittoHeaders.of(startedSpan.propagateContext(
+                dittoHeadersBuilder
+                        .removeHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey())
+                        .build()
+        ));
     }
 
     @Override

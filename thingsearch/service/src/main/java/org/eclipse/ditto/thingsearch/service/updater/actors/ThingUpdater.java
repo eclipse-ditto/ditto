@@ -59,6 +59,7 @@ import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdap
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.things.model.ThingId;
@@ -544,10 +545,15 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
                 .tag(ConsistencyLag.TAG_SHOULD_ACK, Boolean.toString(shouldAcknowledge))
                 .onExpiration(t -> l.warning("Timer measuring consistency lag timed out for event <{}>", thingEvent))
                 .start();
-        DittoTracing.newStartedSpanByTimer(thingEvent.getDittoHeaders(), startedTimer);
+        final StartedSpan startedSpan = DittoTracing.newStartedSpanByTimer(thingEvent.getDittoHeaders(), startedTimer);
         ConsistencyLag.startS1InUpdater(startedTimer);
-        final var metadata = exportMetadataWithSender(shouldAcknowledge, thingEvent, getAckRecipient(
-                thingEvent.getDittoHeaders()), startedTimer, data)
+        final var tracedEvent = thingEvent.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(
+                thingEvent.getDittoHeaders().toBuilder()
+                        .removeHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey())
+                        .build()
+        )));
+        final var metadata = exportMetadataWithSender(shouldAcknowledge, tracedEvent, getAckRecipient(
+                tracedEvent.getDittoHeaders()), startedTimer, data)
                 .withUpdateReason(UpdateReason.THING_UPDATE);
 
         return Optional.of(metadata);

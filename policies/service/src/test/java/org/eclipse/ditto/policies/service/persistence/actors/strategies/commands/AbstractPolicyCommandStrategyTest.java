@@ -42,6 +42,7 @@ import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrateg
 import org.eclipse.ditto.internal.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultVisitor;
+import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
@@ -110,10 +111,10 @@ public abstract class AbstractPolicyCommandStrategyTest {
         final ArgumentCaptor<T> event = ArgumentCaptor.forClass(expectedEventClass);
         final ArgumentCaptor<R> response = ArgumentCaptor.forClass(expectedResponseClass);
         final Dummy<T> mock = Dummy.mock();
-        result.accept(cast(mock));
+        result.accept(cast(mock), null);
 
         verify(mock).onMutation(any(), event.capture(), response.capture(),
-                anyBoolean(), eq(false));
+                anyBoolean(), eq(false), eq(null));
         assertThat(event.getValue()).isInstanceOf(expectedEventClass);
         assertThat(response.getValue()).isInstanceOf(expectedResponseClass);
 
@@ -148,7 +149,7 @@ public abstract class AbstractPolicyCommandStrategyTest {
             final DittoRuntimeException expectedException) {
 
         final Dummy<?> mock = Dummy.mock();
-        applyStrategy(underTest, getDefaultContext(), policy, command).accept(cast(mock));
+        applyStrategy(underTest, getDefaultContext(), policy, command).accept(cast(mock), null);
         verify(mock).onError(eq(expectedException), eq(command));
     }
 
@@ -160,7 +161,8 @@ public abstract class AbstractPolicyCommandStrategyTest {
 
         final Dummy<?> mock = Dummy.mock();
         assertThatException()
-                .isThrownBy(() -> applyStrategy(underTest, getDefaultContext(), policy, command).accept(cast(mock)))
+                .isThrownBy(() -> applyStrategy(underTest, getDefaultContext(), policy, command).accept(cast(mock),
+                        null))
                 .isEqualTo(expectedException);
     }
 
@@ -173,9 +175,10 @@ public abstract class AbstractPolicyCommandStrategyTest {
 
         final Dummy<T> mock = Dummy.mock();
 
-        result.accept(cast(mock));
+        result.accept(cast(mock), null);
 
-        verify(mock).onMutation(any(), event.capture(), eq(expectedResponse), anyBoolean(), eq(becomeDeleted));
+        verify(mock).onMutation(any(), event.capture(), eq(expectedResponse), anyBoolean(), eq(becomeDeleted),
+                eq(null));
         assertThat(event.getValue()).isInstanceOf(eventClazz);
         return event.getValue();
     }
@@ -196,7 +199,8 @@ public abstract class AbstractPolicyCommandStrategyTest {
             public void onMutation(final Command<?> command, final E event,
                     final WithDittoHeaders response,
                     final boolean becomeCreated,
-                    final boolean becomeDeleted) {
+                    final boolean becomeDeleted,
+                    @Nullable final StartedSpan startedSpan) {
 
                 box.add(event);
             }
@@ -205,7 +209,8 @@ public abstract class AbstractPolicyCommandStrategyTest {
             public void onStagedMutation(final Command<?> command, final CompletionStage<E> event,
                     final CompletionStage<WithDittoHeaders> response,
                     final boolean becomeCreated,
-                    final boolean becomeDeleted) {
+                    final boolean becomeDeleted,
+                    @Nullable final StartedSpan startedSpan) {
 
                 box.add(event.toCompletableFuture().join());
             }
@@ -216,7 +221,8 @@ public abstract class AbstractPolicyCommandStrategyTest {
             }
 
             @Override
-            public void onStagedQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response) {
+            public void onStagedQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response,
+                    @Nullable final StartedSpan startedSpan) {
                 throw new AssertionError("Expect mutation result, got query response: " + response);
             }
 
@@ -224,7 +230,7 @@ public abstract class AbstractPolicyCommandStrategyTest {
             public void onError(final DittoRuntimeException error, final Command<?> errorCausingCommand) {
                 throw new AssertionError("Expect mutation result, got error: " + error);
             }
-        });
+        }, null);
         return box.get(0);
     }
 

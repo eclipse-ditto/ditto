@@ -37,6 +37,21 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.actor.SupervisorStrategy;
+import org.apache.pekko.cluster.Cluster;
+import org.apache.pekko.cluster.routing.ClusterRouterPool;
+import org.apache.pekko.cluster.routing.ClusterRouterPoolSettings;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.persistence.RecoveryCompleted;
+import org.apache.pekko.routing.Broadcast;
+import org.apache.pekko.routing.ConsistentHashingPool;
+import org.apache.pekko.routing.ConsistentHashingRouter;
+import org.apache.pekko.routing.Pool;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -108,14 +123,14 @@ import org.eclipse.ditto.connectivity.service.messaging.validation.CustomConnect
 import org.eclipse.ditto.connectivity.service.messaging.validation.DittoConnectivityCommandValidator;
 import org.eclipse.ditto.connectivity.service.util.ConnectionPubSub;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
-import org.eclipse.ditto.internal.utils.pekko.PingCommand;
-import org.eclipse.ditto.internal.utils.pekko.logging.CommonMdcEntryKey;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.internal.utils.pekko.PingCommand;
+import org.eclipse.ditto.internal.utils.pekko.logging.CommonMdcEntryKey;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
@@ -124,26 +139,11 @@ import org.eclipse.ditto.internal.utils.persistentactors.EmptyEvent;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
+import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateSubscription;
 
 import com.typesafe.config.Config;
-
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.actor.Status;
-import org.apache.pekko.actor.SupervisorStrategy;
-import org.apache.pekko.cluster.Cluster;
-import org.apache.pekko.cluster.routing.ClusterRouterPool;
-import org.apache.pekko.cluster.routing.ClusterRouterPoolSettings;
-import org.apache.pekko.japi.pf.ReceiveBuilder;
-import org.apache.pekko.pattern.Patterns;
-import org.apache.pekko.persistence.RecoveryCompleted;
-import org.apache.pekko.routing.Broadcast;
-import org.apache.pekko.routing.ConsistentHashingPool;
-import org.apache.pekko.routing.ConsistentHashingRouter;
-import org.apache.pekko.routing.Pool;
 
 /**
  * Handles {@code *Connection} commands and manages the persistence of connection. The actual connection handling to the
@@ -572,22 +572,29 @@ public final class ConnectionPersistenceActor
 
     @Override
     public void onMutation(final Command<?> command, final ConnectivityEvent<?> event,
-            final WithDittoHeaders response, final boolean becomeCreated, final boolean becomeDeleted) {
+            final WithDittoHeaders response, final boolean becomeCreated, final boolean becomeDeleted,
+            @Nullable final StartedSpan startedSpan) {
         if (command instanceof StagedCommand stagedCommand) {
             interpretStagedCommand(stagedCommand.withSenderUnlessDefined(getSender()));
+            if (startedSpan != null) {
+                startedSpan.finish();
+            }
         } else {
-            super.onMutation(command, event, response, becomeCreated, becomeDeleted);
+            super.onMutation(command, event, response, becomeCreated, becomeDeleted, startedSpan);
         }
     }
 
     @Override
     public void onStagedMutation(final Command<?> command, final CompletionStage<ConnectivityEvent<?>> event,
             final CompletionStage<WithDittoHeaders> response, final boolean becomeCreated,
-            final boolean becomeDeleted) {
+            final boolean becomeDeleted, @Nullable final StartedSpan startedSpan) {
         if (command instanceof StagedCommand stagedCommand) {
             interpretStagedCommand(stagedCommand.withSenderUnlessDefined(getSender()));
+            if (startedSpan != null) {
+                startedSpan.finish();
+            }
         } else {
-            super.onStagedMutation(command, event, response, becomeCreated, becomeDeleted);
+            super.onStagedMutation(command, event, response, becomeCreated, becomeDeleted, startedSpan);
         }
     }
 
