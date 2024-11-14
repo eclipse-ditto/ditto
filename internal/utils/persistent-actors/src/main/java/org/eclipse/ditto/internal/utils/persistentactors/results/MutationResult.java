@@ -20,6 +20,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 
 /**
  * Result that demands persistence of a mutation event.
@@ -52,11 +53,11 @@ public final class MutationResult<E extends Event<?>> implements Result<E> {
     }
 
     @Override
-    public void accept(final ResultVisitor<E> visitor) {
+    public void accept(final ResultVisitor<E> visitor, @Nullable final StartedSpan startedSpan) {
         if (eventToPersistStage != null && responseStage != null) {
-            visitor.onStagedMutation(command, eventToPersistStage, responseStage, becomeCreated, becomeDeleted);
+            visitor.onStagedMutation(command, eventToPersistStage, responseStage, becomeCreated, becomeDeleted, startedSpan);
         } else {
-            visitor.onMutation(command, eventToPersist, response, becomeCreated, becomeDeleted);
+            visitor.onMutation(command, eventToPersist, response, becomeCreated, becomeDeleted, startedSpan);
         }
     }
 

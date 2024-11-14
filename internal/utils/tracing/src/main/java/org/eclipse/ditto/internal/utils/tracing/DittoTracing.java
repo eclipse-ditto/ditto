@@ -112,7 +112,7 @@ public final class DittoTracing {
      * Resets DittoTracing to uninitialized state.
      * This is the inverse function of {@link DittoTracing#init(TracingConfig)}.
      */
-    static void reset() {
+    public static void reset() {
         final var instance = getInstance();
         instance.stateHolder.set(new UninitializedState(instance.stateHolder::set));
     }

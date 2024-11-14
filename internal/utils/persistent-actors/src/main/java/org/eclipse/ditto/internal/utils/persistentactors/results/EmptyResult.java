@@ -15,7 +15,10 @@ package org.eclipse.ditto.internal.utils.persistentactors.results;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 
 /**
  * Result without content.
@@ -38,8 +41,11 @@ public final class EmptyResult<E extends Event<?>> implements Result<E> {
     }
 
     @Override
-    public void accept(final ResultVisitor<E> visitor) {
+    public void accept(final ResultVisitor<E> visitor, @Nullable final StartedSpan startedSpan) {
         visitor.onEmpty();
+        if (startedSpan != null) {
+            startedSpan.finish();
+        }
     }
 
     @Override

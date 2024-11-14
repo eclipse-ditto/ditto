@@ -22,19 +22,20 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.pattern.Patterns;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
-
-import org.apache.pekko.actor.ActorSelection;
-import org.apache.pekko.pattern.Patterns;
 
 /**
  * Retrieve fixed parts of things by asking an actor.
@@ -71,16 +72,29 @@ public final class ByRoundTripSignalEnrichmentFacade implements SignalEnrichment
         final DittoHeadersBuilder<?, ?> dittoHeadersBuilder = dittoHeaders.toBuilder()
                 .channel(null)
                 .putHeader(DittoHeaderDefinition.DITTO_RETRIEVE_DELETED.getKey(), Boolean.TRUE.toString());
+
         if (dittoHeaders.getCorrelationId().isEmpty()) {
             dittoHeadersBuilder.correlationId(Optional.ofNullable(concernedSignal)
                     .map(Signal::getDittoHeaders)
                     .flatMap(DittoHeaders::getCorrelationId)
                     .orElseGet(() -> UUID.randomUUID().toString()) + "-enrichment");
         }
-        final DittoHeaders headersWithoutChannel = dittoHeadersBuilder.build();
+
+        final var startedSpan = DittoTracing.newPreparedSpan(
+                        dittoHeaders,
+                        SpanOperationName.of("retrieve_partial_thing")
+                )
+                .start();
+        if (null != jsonFieldSelector) {
+            startedSpan.tag("fields", jsonFieldSelector.toString());
+        }
 
         final RetrieveThing command =
-                RetrieveThing.getBuilder(thingId, headersWithoutChannel)
+                RetrieveThing.getBuilder(thingId, DittoHeaders.of(startedSpan.propagateContext(
+                                dittoHeadersBuilder
+                                        .removeHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey())
+                                        .build()
+                        )))
                         .withSelectedFields(jsonFieldSelector)
                         .build();
 

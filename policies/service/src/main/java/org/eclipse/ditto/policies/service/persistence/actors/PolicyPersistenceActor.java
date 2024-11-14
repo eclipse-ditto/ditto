@@ -39,6 +39,7 @@ import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceActo
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
+import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
@@ -248,7 +249,7 @@ public final class PolicyPersistenceActor
 
     @Override
     public void onMutation(final Command<?> command, final PolicyEvent<?> event, final WithDittoHeaders response,
-            final boolean becomeCreated, final boolean becomeDeleted) {
+            final boolean becomeCreated, final boolean becomeDeleted, @Nullable final StartedSpan startedSpan) {
 
         final ActorRef sender = getSender();
         persistAndApplyEvent(event, (persistedEvent, resultingEntity) -> {
@@ -261,13 +262,16 @@ public final class PolicyPersistenceActor
             if (becomeCreated) {
                 becomeCreatedHandler();
             }
+            if (startedSpan != null) {
+                startedSpan.finish();
+            }
         });
     }
 
     @Override
     public void onStagedMutation(final Command<?> command, final CompletionStage<PolicyEvent<?>> event,
             final CompletionStage<WithDittoHeaders> response,
-            final boolean becomeCreated, final boolean becomeDeleted) {
+            final boolean becomeCreated, final boolean becomeDeleted, @Nullable final StartedSpan startedSpan) {
 
         final ActorRef sender = getSender();
         persistAndApplyEventAsync(event, (persistedEvent, resultingEntity) -> {
@@ -279,6 +283,9 @@ public final class PolicyPersistenceActor
             }
             if (becomeCreated) {
                 becomeCreatedHandler();
+            }
+            if (startedSpan != null) {
+                startedSpan.finish();
             }
         }, throwable -> {
             final DittoRuntimeException dittoRuntimeException =

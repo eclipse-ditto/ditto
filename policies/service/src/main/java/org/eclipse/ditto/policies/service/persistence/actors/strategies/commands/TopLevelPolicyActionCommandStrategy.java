@@ -35,6 +35,7 @@ import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultVisitor;
+import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
@@ -155,7 +156,7 @@ final class TopLevelPolicyActionCommandStrategy
         final ResultCollectionVisitor visitor = new ResultCollectionVisitor();
         for (final PolicyActionCommand<?> command : commands) {
             strategy.typeCheckAndApply(context, policy, nextRevision, command)
-                    .ifPresent(result -> result.accept(visitor));
+                    .ifPresent(result -> result.accept(visitor, null));
         }
         return visitor;
     }
@@ -177,22 +178,28 @@ final class TopLevelPolicyActionCommandStrategy
         @Override
         public void onMutation(final Command<?> command, final PolicyActionEvent<?> event,
                 final WithDittoHeaders response, final boolean becomeCreated,
-                final boolean becomeDeleted) {
+                final boolean becomeDeleted, @Nullable final StartedSpan startedSpan) {
             if (firstEvent == null) {
                 firstEvent = event;
             } else {
                 otherEvents.add(event);
+            }
+            if (startedSpan != null) {
+                startedSpan.finish();
             }
         }
 
         @Override
         public void onStagedMutation(final Command<?> command, final CompletionStage<PolicyActionEvent<?>> event,
                 final CompletionStage<WithDittoHeaders> response, final boolean becomeCreated,
-                final boolean becomeDeleted) {
+                final boolean becomeDeleted, @Nullable final StartedSpan startedSpan) {
             if (firstEvent == null) {
                 firstEvent = event.toCompletableFuture().join();
             } else {
                 otherEvents.add(event.thenApply(x -> (PolicyActionEvent<?>) x).toCompletableFuture().join());
+            }
+            if (startedSpan != null) {
+                startedSpan.finish();
             }
         }
 
@@ -202,8 +209,12 @@ final class TopLevelPolicyActionCommandStrategy
         }
 
         @Override
-        public void onStagedQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response) {
+        public void onStagedQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response,
+                @Nullable final StartedSpan startedSpan) {
             // do nothing
+            if (startedSpan != null) {
+                startedSpan.finish();
+            }
         }
 
         @Override

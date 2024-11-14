@@ -24,6 +24,9 @@ import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.entity.metadata.MetadataModelFactory;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.DittoTestSystem;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.internal.utils.tracing.config.TracingConfig;
+import org.eclipse.ditto.internal.utils.tracing.filter.AcceptAllTracingFilter;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -34,7 +37,10 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.things.model.signals.events.AttributeModified;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 /**
  * Abstract base test for different {@link SignalEnrichmentFacade} implementations.
@@ -54,6 +60,20 @@ abstract class AbstractSignalEnrichmentFacadeTest {
             MetadataModelFactory.newMetadataBuilder()
                     .set("type", "x attribute")
                     .build());
+
+    @BeforeClass
+    public static void beforeClass() {
+        final TracingConfig tracingConfigMock = Mockito.mock(TracingConfig.class);
+        Mockito.when(tracingConfigMock.isTracingEnabled()).thenReturn(true);
+        Mockito.when(tracingConfigMock.getPropagationChannel()).thenReturn("default");
+        Mockito.when(tracingConfigMock.getTracingFilter()).thenReturn(AcceptAllTracingFilter.getInstance());
+        DittoTracing.init(tracingConfigMock);
+    }
+
+    @AfterClass
+    public static void afterClass() {
+        DittoTracing.reset();
+    }
 
     @Test
     public void success() {

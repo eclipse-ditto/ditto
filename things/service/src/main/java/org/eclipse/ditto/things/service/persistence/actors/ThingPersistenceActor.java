@@ -17,6 +17,10 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.persistence.RecoveryCompleted;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -34,6 +38,7 @@ import org.eclipse.ditto.internal.utils.persistentactors.commands.DefaultContext
 import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
+import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.model.Thing;
@@ -52,11 +57,6 @@ import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
 import org.eclipse.ditto.things.service.common.config.ThingConfig;
 import org.eclipse.ditto.things.service.persistence.actors.strategies.commands.ThingCommandStrategies;
 import org.eclipse.ditto.things.service.persistence.actors.strategies.events.ThingEventStrategies;
-
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.japi.pf.ReceiveBuilder;
-import org.apache.pekko.persistence.RecoveryCompleted;
 
 /**
  * PersistentActor which "knows" the state of a single {@link Thing}.
@@ -125,9 +125,15 @@ public final class ThingPersistenceActor
     }
 
     @Override
-    public void onStagedQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response) {
+    public void onStagedQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response,
+            @Nullable final StartedSpan startedSpan) {
         final ActorRef sender = getSender();
-        response.thenAccept(r -> doOnQuery(command, r, sender));
+        response.thenAccept(r -> {
+            doOnQuery(command, r, sender);
+            if (startedSpan != null) {
+                startedSpan.finish();
+            }
+        });
     }
 
     private void doOnQuery(final Command<?> command, final WithDittoHeaders response, final ActorRef sender) {
