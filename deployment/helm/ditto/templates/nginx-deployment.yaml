@@ -8,6 +8,7 @@
 # http://www.eclipse.org/legal/epl-2.0
 #
 # SPDX-License-Identifier: EPL-2.0
+{{- $name := include "ditto.name" . -}}
 {{- if .Values.nginx.enabled -}}
 ---
 apiVersion: apps/v1
@@ -15,7 +16,7 @@ kind: Deployment
 metadata:
   name: {{ include "ditto.fullname" . }}-nginx
   labels:
-    app.kubernetes.io/name: {{ include "ditto.name" . }}-nginx
+    app.kubernetes.io/name: {{ $name }}-nginx
 {{ include "ditto.labels" . | indent 4 }}
 spec:
   replicas: {{ .Values.nginx.replicaCount }}
@@ -25,12 +26,12 @@ spec:
   {{- end }}
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ include "ditto.name" . }}-nginx
+      app.kubernetes.io/name: {{ $name }}-nginx
       app.kubernetes.io/instance: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: {{ include "ditto.name" . }}-nginx
+        app.kubernetes.io/name: {{ $name }}-nginx
         app.kubernetes.io/instance: {{ .Release.Name }}
         {{- with .Values.nginx.additionalLabels }}
         {{- toYaml . | nindent 8 }}
@@ -62,12 +63,14 @@ spec:
               done
       {{- end }}
       topologySpreadConstraints:
-        - maxSkew: {{ .Values.nginx.topologySpreadConstraints.maxSkew }}
-          topologyKey: {{ .Values.nginx.topologySpreadConstraints.topologyKey }}
-          whenUnsatisfiable: {{ .Values.nginx.topologySpreadConstraints.whenUnsatisfiable }}
+      {{- range .Values.nginx.topologySpreadConstraints }}
+        - maxSkew: {{ .maxSkew }}
+          topologyKey: {{ .topologyKey }}
+          whenUnsatisfiable: {{ .whenUnsatisfiable }}
           labelSelector:
             matchLabels:
-              app.kubernetes.io/name: {{ include "ditto.name" . }}-nginx
+              app.kubernetes.io/name: {{ $name }}-nginx
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}-nginx
           image: "{{ .Values.nginx.image.repository }}:{{ .Values.nginx.image.tag }}"
@@ -92,9 +95,11 @@ spec:
             requests:
               cpu: {{ mulf .Values.nginx.resources.cpu 1000 }}m
               memory: {{ .Values.nginx.resources.memoryMi }}Mi
+              ephemeral-storage: {{ .Values.nginx.resources.ephemeralStorageMi }}Mi
             limits:
               # cpu: # don't limit
               memory: {{ .Values.nginx.resources.memoryMi }}Mi
+              ephemeral-storage: {{ .Values.nginx.resources.ephemeralStorageMi }}Mi
           volumeMounts:
             - name: nginx-conf
               mountPath: /etc/nginx/nginx.conf

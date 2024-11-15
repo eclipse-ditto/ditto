@@ -8,6 +8,7 @@
 # http://www.eclipse.org/legal/epl-2.0
 #
 # SPDX-License-Identifier: EPL-2.0
+{{- $name := include "ditto.name" . -}}
 {{- if .Values.swaggerui.enabled -}}
 ---
 apiVersion: apps/v1
@@ -15,7 +16,7 @@ kind: Deployment
 metadata:
   name: {{ include "ditto.fullname" . }}-swaggerui
   labels:
-    app.kubernetes.io/name: {{ include "ditto.name" . }}-swaggerui
+    app.kubernetes.io/name: {{ $name }}-swaggerui
 {{ include "ditto.labels" . | indent 4 }}
 spec:
   replicas: {{ .Values.swaggerui.replicaCount }}
@@ -25,12 +26,12 @@ spec:
   {{- end }}
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ include "ditto.name" . }}-swaggerui
+      app.kubernetes.io/name: {{ $name }}-swaggerui
       app.kubernetes.io/instance: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: {{ include "ditto.name" . }}-swaggerui
+        app.kubernetes.io/name: {{ $name }}-swaggerui
         app.kubernetes.io/instance: {{ .Release.Name }}
         {{- with .Values.swaggerui.additionalLabels }}
         {{- toYaml . | nindent 8 }}
@@ -79,12 +80,14 @@ spec:
             - name: swagger-ui-init-config
               mountPath: /init-config
       topologySpreadConstraints:
-        - maxSkew: {{ .Values.swaggerui.topologySpreadConstraints.maxSkew }}
-          topologyKey: {{ .Values.swaggerui.topologySpreadConstraints.topologyKey }}
-          whenUnsatisfiable: {{ .Values.swaggerui.topologySpreadConstraints.whenUnsatisfiable }}
+      {{- range .Values.swaggerui.topologySpreadConstraints }}
+        - maxSkew: {{ .maxSkew }}
+          topologyKey: {{ .topologyKey }}
+          whenUnsatisfiable: {{ .whenUnsatisfiable }}
           labelSelector:
             matchLabels:
-              app.kubernetes.io/name: {{ include "ditto.name" . }}-swaggerui
+              app.kubernetes.io/name: {{ $name }}-swaggerui
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}-swaggerui
           image: "{{ .Values.swaggerui.image.repository }}:{{ .Values.swaggerui.image.tag }}"
@@ -103,9 +106,11 @@ spec:
             requests:
               cpu: {{ mulf .Values.swaggerui.resources.cpu 1000 }}m
               memory: {{ .Values.swaggerui.resources.memoryMi }}Mi
+              ephemeral-storage: {{ .Values.swaggerui.resources.ephemeralStorageMi }}Mi
             limits:
               # cpu: # don't limit
               memory: {{ .Values.swaggerui.resources.memoryMi }}Mi
+              ephemeral-storage: {{ .Values.swaggerui.resources.ephemeralStorageMi }}Mi
           volumeMounts:
             - name: swagger-ui-init-config
               mountPath: /usr/share/nginx/html/openapi

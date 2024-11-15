@@ -8,6 +8,7 @@
 # http://www.eclipse.org/legal/epl-2.0
 #
 # SPDX-License-Identifier: EPL-2.0
+{{- $name := include "ditto.name" . -}}
 {{- if .Values.thingsSearch.enabled -}}
 ---
 apiVersion: apps/v1
@@ -15,7 +16,7 @@ kind: Deployment
 metadata:
   name: {{ include "ditto.fullname" . }}-thingssearch
   labels:
-    app.kubernetes.io/name: {{ include "ditto.name" . }}-thingssearch
+    app.kubernetes.io/name: {{ $name }}-thingssearch
 {{ include "ditto.labels" . | indent 4 }}
 spec:
   replicas: {{ .Values.thingsSearch.replicaCount }}
@@ -26,12 +27,12 @@ spec:
   minReadySeconds: {{ .Values.thingsSearch.minReadySeconds }}
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ include "ditto.name" . }}-thingssearch
+      app.kubernetes.io/name: {{ $name }}-thingssearch
       app.kubernetes.io/instance: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: {{ include "ditto.name" . }}-thingssearch
+        app.kubernetes.io/name: {{ $name }}-thingssearch
         app.kubernetes.io/instance: {{ .Release.Name }}
         actorSystemName: {{ .Values.pekko.actorSystemName }}
         {{- with .Values.thingsSearch.additionalLabels }}
@@ -45,6 +46,9 @@ spec:
         {{- end }}
         checksum/mongodb-config: {{ include (print $.Template.BasePath "/mongodb-secret.yaml") . | sha256sum }}
         checksum/config: {{ include (print $.Template.BasePath "/thingssearch-configmap.yaml") . | sha256sum }}
+        {{- with .Values.global.additionalAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
         {{- with .Values.thingsSearch.additionalAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -70,12 +74,14 @@ spec:
               mountPath: /var/log/ditto
         {{- end }}
       topologySpreadConstraints:
-        - maxSkew: {{ .Values.thingsSearch.topologySpreadConstraints.maxSkew }}
-          topologyKey: {{ .Values.thingsSearch.topologySpreadConstraints.topologyKey }}
-          whenUnsatisfiable: {{ .Values.thingsSearch.topologySpreadConstraints.whenUnsatisfiable }}
+      {{- range .Values.thingsSearch.topologySpreadConstraints }}
+        - maxSkew: {{ .maxSkew }}
+          topologyKey: {{ .topologyKey }}
+          whenUnsatisfiable: {{ .whenUnsatisfiable }}
           labelSelector:
             matchLabels:
-              app.kubernetes.io/name: {{ include "ditto.name" . }}-thingssearch
+              app.kubernetes.io/name: {{ $name }}-thingssearch
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}-thingssearch
           image: {{ printf "%s:%s" .Values.thingsSearch.image.repository ( default .Chart.AppVersion ( default .Values.dittoTag .Values.thingsSearch.image.tag ) ) }}
@@ -262,11 +268,19 @@ spec:
               protocol: TCP
               containerPort: {{ .Values.global.prometheus.port }}
             {{- end }}
+          startupProbe:
+            httpGet:
+              port: management
+              path: /ready
+            initialDelaySeconds: {{ .Values.thingsSearch.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.thingsSearch.startupProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.thingsSearch.startupProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.thingsSearch.startupProbe.successThreshold }}
+            failureThreshold: {{ .Values.thingsSearch.startupProbe.failureThreshold }}
           readinessProbe:
             httpGet:
               port: management
               path: /ready
-            initialDelaySeconds: {{ .Values.thingsSearch.readinessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.thingsSearch.readinessProbe.periodSeconds }}
             timeoutSeconds: {{ .Values.thingsSearch.readinessProbe.timeoutSeconds }}
             successThreshold: {{ .Values.thingsSearch.readinessProbe.successThreshold }}
@@ -307,6 +321,7 @@ spec:
               # ref: https://pekko.apache.org/docs/pekko/current/additional/deploying.html#deploying-to-kubernetes
               # cpu: ""
               memory: {{ .Values.thingsSearch.resources.memoryMi }}Mi
+              ephemeral-storage: {{ .Values.thingsSearch.resources.ephemeralStorageMi }}Mi
           {{- if .Values.openshift.enabled }}
           {{- with .Values.openshift.securityContext }}
           securityContext:

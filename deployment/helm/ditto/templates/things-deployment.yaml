@@ -8,6 +8,7 @@
 # http://www.eclipse.org/legal/epl-2.0
 #
 # SPDX-License-Identifier: EPL-2.0
+{{- $name := include "ditto.name" . -}}
 {{- if .Values.things.enabled -}}
 ---
 apiVersion: apps/v1
@@ -15,7 +16,7 @@ kind: Deployment
 metadata:
   name: {{ include "ditto.fullname" . }}-things
   labels:
-    app.kubernetes.io/name: {{ include "ditto.name" . }}-things
+    app.kubernetes.io/name: {{ $name }}-things
 {{ include "ditto.labels" . | indent 4 }}
 spec:
   replicas: {{ .Values.things.replicaCount }}
@@ -26,12 +27,12 @@ spec:
   minReadySeconds: {{ .Values.things.minReadySeconds }}
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ include "ditto.name" . }}-things
+      app.kubernetes.io/name: {{ $name }}-things
       app.kubernetes.io/instance: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: {{ include "ditto.name" . }}-things
+        app.kubernetes.io/name: {{ $name }}-things
         app.kubernetes.io/instance: {{ .Release.Name }}
         actorSystemName: {{ .Values.pekko.actorSystemName }}
         {{- with .Values.things.additionalLabels }}
@@ -45,6 +46,9 @@ spec:
         {{- end }}
         checksum/mongodb-config: {{ include (print $.Template.BasePath "/mongodb-secret.yaml") . | sha256sum }}
         checksum/config: {{ include (print $.Template.BasePath "/things-configmap.yaml") . | sha256sum }}
+        {{- with .Values.global.additionalAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
         {{- with .Values.things.additionalAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -70,12 +74,14 @@ spec:
               mountPath: /var/log/ditto
         {{- end }}
       topologySpreadConstraints:
-        - maxSkew: {{ .Values.things.topologySpreadConstraints.maxSkew }}
-          topologyKey: {{ .Values.things.topologySpreadConstraints.topologyKey }}
-          whenUnsatisfiable: {{ .Values.things.topologySpreadConstraints.whenUnsatisfiable }}
+      {{- range .Values.things.topologySpreadConstraints }}
+        - maxSkew: {{ .maxSkew }}
+          topologyKey: {{ .topologyKey }}
+          whenUnsatisfiable: {{ .whenUnsatisfiable }}
           labelSelector:
             matchLabels:
-              app.kubernetes.io/name: {{ include "ditto.name" . }}-things
+              app.kubernetes.io/name: {{ $name }}-things
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}-things
           image: {{ printf "%s:%s" .Values.things.image.repository ( default .Chart.AppVersion ( default .Values.dittoTag .Values.things.image.tag ) ) }}
@@ -336,11 +342,19 @@ spec:
               protocol: TCP
               containerPort: {{ .Values.global.prometheus.port }}
             {{- end }}
+          startupProbe:
+            httpGet:
+              port: management
+              path: /ready
+            initialDelaySeconds: {{ .Values.things.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.things.startupProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.things.startupProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.things.startupProbe.successThreshold }}
+            failureThreshold: {{ .Values.things.startupProbe.failureThreshold }}
           readinessProbe:
             httpGet:
               port: management
               path: /ready
-            initialDelaySeconds: {{ .Values.things.readinessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.things.readinessProbe.periodSeconds }}
             timeoutSeconds: {{ .Values.things.readinessProbe.timeoutSeconds }}
             successThreshold: {{ .Values.things.readinessProbe.successThreshold }}
@@ -376,11 +390,13 @@ spec:
             requests:
               cpu: {{ mulf .Values.things.resources.cpu 1000 }}m
               memory: {{ .Values.things.resources.memoryMi }}Mi
+              ephemeral-storage: {{ .Values.things.resources.ephemeralStorageMi }}Mi
             limits:
               # ## no cpu limit to avoid CFS scheduler limits
               # ref: https://pekko.apache.org/docs/pekko/current/additional/deploying.html#deploying-to-kubernetes
               # cpu: ""
               memory: {{ .Values.things.resources.memoryMi }}Mi
+              ephemeral-storage: {{ .Values.things.resources.ephemeralStorageMi }}Mi
           {{- if .Values.openshift.enabled }}
           {{- with .Values.openshift.securityContext }}
           securityContext:

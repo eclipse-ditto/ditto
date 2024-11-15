@@ -82,7 +82,6 @@ global:
   #   password: ditto
   # - user: jane
   #   password: janesPw
-
   # existingSecret contains the name of existing secret containing user and password
   #  format: ${user}:${password}, where secret key is ${user} and value is ${password}
   #  example creating secret for users ditto and jane:
@@ -108,15 +107,18 @@ global:
     -Djava.net.preferIPv4Stack=true
   pekkoOptions: >
     -Dpekko.management.cluster.bootstrap.contact-point-discovery.port-name=management
+    -Dpekko.http.client.parsing.max-chunk-size=2m
     -Dpekko.cluster.failure-detector.threshold=15.0
     -Dpekko.cluster.failure-detector.expected-response-after=3s
     -Dpekko.cluster.failure-detector.acceptable-heartbeat-pause=7s
     -Dpekko.persistence.journal-plugin-fallback.recovery-event-timeout=30s
     -Dpekko.persistence.max-concurrent-recoveries=100
     -Dpekko.cluster.sharding.updating-state-timeout=20s
-    -Dpekko.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s
+    -Dpekko.cluster.shutdown-after-unsuccessful-join-seed-nodes=180s
   # timezone defines the timezone to configure the JVM with
   timezone: Europe/Berlin
+  # additionalAnnotations contains additional annotations to apply to the deployment template of Ditto services
+  additionalAnnotations: {}
   # imagePullSecrets will be added to every deployment
   imagePullSecrets: []
   # proxyPart configures a reverse proxy part to be added in front of the Ditto API endpoints:
@@ -318,6 +320,8 @@ ingress:
       cpu: 0.75
       # memoryMi defines the memory in mebibyte (MiB) used as "required" and "limit" in k8s
       memoryMi: 1024
+      # ephemeralStorageMi defines the storage in mebibyte (MiB) used as "required" and "limit" in k8s
+      ephemeralStorageMi: 2048
     # namespace for ingress controller, managed by helm, should not be created manually
     namespace: ingress-nginx
     # Ingress-NGINX version. Check Supported Versions table from https://github.com/kubernetes/ingress-nginx to match k8s version.
@@ -598,6 +602,8 @@ policies:
     cpu: 0.5
     # memoryMi defines the memory in mebibyte (MiB) used as "required" and "limit" in k8s
     memoryMi: 1024
+    # ephemeralStorageMi defines the storage in mebibyte (MiB) used as "required" and "limit" in k8s
+    ephemeralStorageMi: 2048
   # jvm contains JVM specific scaling/tuning configuration of e.g. processors and garbage collector settings
   jvm:
     # activeProcessorCount defines how many processors the JVM should be configured to use
@@ -609,22 +615,29 @@ policies:
     # maxGcPauseMillis configures the used G1 GC "target for the maximum GC pause time"
     #  default (by JVM if not set): 200
     maxGcPauseMillis: 150
-  # readinessProbe configuration for policies
+  # startupProbe configuration for policies
   #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
-  readinessProbe:
-    initialDelaySeconds: 30
+  startupProbe:
+    initialDelaySeconds: 10
     periodSeconds: 10
     timeoutSeconds: 3
     successThreshold: 1
-    failureThreshold: 3
+    failureThreshold: 30
+  # readinessProbe configuration for policies
+  #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
+  readinessProbe:
+    periodSeconds: 5
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 6
   # livenessProbe configuration for policies
   #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
   livenessProbe:
-    initialDelaySeconds: 160
+    initialDelaySeconds: 60
     periodSeconds: 10
     timeoutSeconds: 5
     successThreshold: 1
-    failureThreshold: 4
+    failureThreshold: 6
   # podDisruptionBudget configuration for policies
   #  ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
   podDisruptionBudget:
@@ -647,9 +660,9 @@ policies:
   # Pod topology spread constraints for policies
   # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
   topologySpreadConstraints:
-    maxSkew: 1
-    topologyKey: topology.kubernetes.io/zone
-    whenUnsatisfiable: ScheduleAnyway
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: ScheduleAnyway
   # podMonitor configuration for policies
   podMonitor:
     # enabled configures whether Pod Monitor is enabled, then a resource to scrape policies metrics will be created
@@ -862,6 +875,8 @@ things:
     cpu: 0.5
     # memoryMi defines the memory in mebibyte (MiB) used as "required" and "limit" in k8s
     memoryMi: 1024
+    # ephemeralStorageMi defines the storage in mebibyte (MiB) used as "required" and "limit" in k8s
+    ephemeralStorageMi: 2048
   # jvm contains JVM specific scaling/tuning configuration of e.g. processors and garbage collector settings
   jvm:
     # activeProcessorCount defines how many processors the JVM should be configured to use
@@ -873,22 +888,29 @@ things:
     # maxGcPauseMillis configures the used G1 GC "target for the maximum GC pause time"
     #  default (by JVM if not set): 200
     maxGcPauseMillis: 150
-  # readinessProbe configuration for things
+  # startupProbe configuration for things
   #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
-  readinessProbe:
-    initialDelaySeconds: 30
+  startupProbe:
+    initialDelaySeconds: 10
     periodSeconds: 10
     timeoutSeconds: 3
     successThreshold: 1
-    failureThreshold: 3
+    failureThreshold: 30
+  # readinessProbe configuration for things
+  #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
+  readinessProbe:
+    periodSeconds: 5
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 6
   # livenessProbe configuration for things
   #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
   livenessProbe:
-    initialDelaySeconds: 160
+    initialDelaySeconds: 60
     periodSeconds: 10
     timeoutSeconds: 5
     successThreshold: 1
-    failureThreshold: 4
+    failureThreshold: 6
   # podDisruptionBudget configuration for things
   #  ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
   podDisruptionBudget:
@@ -911,9 +933,9 @@ things:
   # Pod topology spread constraints for things
   # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
   topologySpreadConstraints:
-    maxSkew: 1
-    topologyKey: topology.kubernetes.io/zone
-    whenUnsatisfiable: ScheduleAnyway
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: ScheduleAnyway
   # podMonitor configuration for things
   podMonitor:
     # enabled configures whether Pod Monitor is enabled, then a resource to scrape things metrics will be created
@@ -1231,6 +1253,8 @@ thingsSearch:
     cpu: 0.5
     # memoryMi defines the memory in mebibyte (MiB) used as "required" and "limit" in k8s
     memoryMi: 1024
+    # ephemeralStorageMi defines the storage in mebibyte (MiB) used as "required" and "limit" in k8s
+    ephemeralStorageMi: 2048
   # jvm contains JVM specific scaling/tuning configuration of e.g. processors and garbage collector settings
   jvm:
     # activeProcessorCount defines how many processors the JVM should be configured to use
@@ -1242,22 +1266,29 @@ thingsSearch:
     # maxGcPauseMillis configures the used G1 GC "target for the maximum GC pause time"
     #  default (by JVM if not set): 200
     maxGcPauseMillis: 150
-  # readinessProbe configuration for things-search
+  # startupProbe configuration for policies
   #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
-  readinessProbe:
-    initialDelaySeconds: 30
+  startupProbe:
+    initialDelaySeconds: 10
     periodSeconds: 10
     timeoutSeconds: 3
     successThreshold: 1
-    failureThreshold: 3
+    failureThreshold: 30
+  # readinessProbe configuration for things-search
+  #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
+  readinessProbe:
+    periodSeconds: 5
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 6
   # livenessProbe configuration for things-search
   #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
   livenessProbe:
-    initialDelaySeconds: 160
+    initialDelaySeconds: 60
     periodSeconds: 10
     timeoutSeconds: 5
     successThreshold: 1
-    failureThreshold: 4
+    failureThreshold: 6
   # podDisruptionBudget configuration for things-search
   #  ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
   podDisruptionBudget:
@@ -1280,9 +1311,9 @@ thingsSearch:
   # Pod topology spread constraints for things-search
   # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
   topologySpreadConstraints:
-    maxSkew: 1
-    topologyKey: topology.kubernetes.io/zone
-    whenUnsatisfiable: ScheduleAnyway
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: ScheduleAnyway
   # podMonitor configuration for things-search
   podMonitor:
     # enabled configures whether Pod Monitor is enabled, then a resource to scrape things search metrics will be created
@@ -1471,6 +1502,8 @@ connectivity:
     cpu: 0.5
     # memoryMi defines the memory in mebibyte (MiB) used as "required" and "limit" in k8s
     memoryMi: 1024
+    # ephemeralStorageMi defines the storage in mebibyte (MiB) used as "required" and "limit" in k8s
+    ephemeralStorageMi: 2048
   # jvm contains JVM specific scaling/tuning configuration of e.g. processors and garbage collector settings
   jvm:
     # activeProcessorCount defines how many processors the JVM should be configured to use
@@ -1482,22 +1515,29 @@ connectivity:
     # maxGcPauseMillis configures the used G1 GC "target for the maximum GC pause time"
     #  default (by JVM if not set): 200
     maxGcPauseMillis: 150
-  # readinessProbe configuration for connectivity
+  # startupProbe configuration for connectivity
   #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
-  readinessProbe:
-    initialDelaySeconds: 30
+  startupProbe:
+    initialDelaySeconds: 10
     periodSeconds: 10
     timeoutSeconds: 3
     successThreshold: 1
-    failureThreshold: 3
+    failureThreshold: 30
+  # readinessProbe configuration for connectivity
+  #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
+  readinessProbe:
+    periodSeconds: 5
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 6
   # livenessProbe configuration for connectivity
   #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
   livenessProbe:
-    initialDelaySeconds: 160
+    initialDelaySeconds: 60
     periodSeconds: 10
     timeoutSeconds: 5
     successThreshold: 1
-    failureThreshold: 4
+    failureThreshold: 6
   # podDisruptionBudget configuration for connectivity
   #  ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
   podDisruptionBudget:
@@ -1520,9 +1560,9 @@ connectivity:
   # Pod topology spread constraints for connectivity
   # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
   topologySpreadConstraints:
-    maxSkew: 1
-    topologyKey: topology.kubernetes.io/zone
-    whenUnsatisfiable: ScheduleAnyway
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: ScheduleAnyway
   # podMonitor configuration for connectivity
   podMonitor:
     # enabled configures whether Pod Monitor is enabled, then a resource to scrape connectivity metrics will be created
@@ -1782,6 +1822,8 @@ gateway:
     cpu: 0.5
     # memoryMi defines the memory in mebibyte (MiB) used as "required" and "limit" in k8s
     memoryMi: 1024
+    # ephemeralStorageMi defines the storage in mebibyte (MiB) used as "required" and "limit" in k8s
+    ephemeralStorageMi: 2048
   # jvm contains JVM specific scaling/tuning configuration of e.g. processors and garbage collector settings
   jvm:
     # activeProcessorCount defines how many processors the JVM should be configured to use
@@ -1793,22 +1835,29 @@ gateway:
     # maxGcPauseMillis configures the used G1 GC "target for the maximum GC pause time"
     #  default (by JVM if not set): 200
     maxGcPauseMillis: 150
-  # readinessProbe configuration for gateway
-  # ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
-  readinessProbe:
-    initialDelaySeconds: 30
+  # startupProbe configuration for gateway
+  #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
+  startupProbe:
+    initialDelaySeconds: 10
     periodSeconds: 10
     timeoutSeconds: 3
     successThreshold: 1
-    failureThreshold: 3
+    failureThreshold: 30
+  # readinessProbe configuration for gateway
+  # ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
+  readinessProbe:
+    periodSeconds: 5
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 6
   # livenessProbe configuration for gateway
   #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
   livenessProbe:
-    initialDelaySeconds: 160
+    initialDelaySeconds: 60
     periodSeconds: 10
     timeoutSeconds: 5
     successThreshold: 1
-    failureThreshold: 4
+    failureThreshold: 6
   # service configuration of the k8s service of the gateway
   service:
     # port number configuration for gateway
@@ -1837,9 +1886,9 @@ gateway:
   # Pod topology spread constraints for gateway
   # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
   topologySpreadConstraints:
-    maxSkew: 1
-    topologyKey: topology.kubernetes.io/zone
-    whenUnsatisfiable: ScheduleAnyway
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: ScheduleAnyway
   # podMonitor configuration for gateway
   podMonitor:
     # enabled configures whether Pod Monitor is enabled, then a resource to scrape gateway metrics will be created
@@ -1960,7 +2009,7 @@ nginx:
   additionalAnnotations: {}
   image:
     # repository for the nginx docker image
-    repository: docker.io/nginx
+    repository: public.ecr.aws/nginx/nginx
     # tag for the nginx docker image
     tag: 1.27
     # pullPolicy for the nginx docker image
@@ -1973,6 +2022,8 @@ nginx:
     cpu: 0.2
     # memoryMi defines the memory in mebibyte (MiB) used as "required" and "limit" in k8s
     memoryMi: 64
+    # ephemeralStorageMi defines the storage in mebibyte (MiB) used as "required" and "limit" in k8s
+    ephemeralStorageMi: 64
   # readinessProbe configuration for nginx
   #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
   readinessProbe: {}
@@ -2005,9 +2056,9 @@ nginx:
   # Pod topology spread constraints for nginx
   # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
   topologySpreadConstraints:
-    maxSkew: 1
-    topologyKey: topology.kubernetes.io/zone
-    whenUnsatisfiable: ScheduleAnyway
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: ScheduleAnyway
   # init containers for nginx
   initContainers:
     waitForGateway:
@@ -2057,12 +2108,14 @@ dittoui:
     cpu: 0.1
     # memoryMi defines the memory in mebibyte (MiB) used as "required" and "limit" in k8s
     memoryMi: 64
+    # ephemeralStorageMi defines the storage in mebibyte (MiB) used as "required" and "limit" in k8s
+    ephemeralStorageMi: 64
   # Pod topology spread constraints for Ditto UI
   # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
   topologySpreadConstraints:
-    maxSkew: 1
-    topologyKey: topology.kubernetes.io/zone
-    whenUnsatisfiable: ScheduleAnyway
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: ScheduleAnyway
   # podDisruptionBudget ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
   podDisruptionBudget:
     # enabled controls whether Ditto UI related PodDisruptionBudget should be created
@@ -2109,12 +2162,14 @@ swaggerui:
     cpu: 0.1
     # memoryMi defines the memory in mebibyte (MiB) used as "required" and "limit" in k8s
     memoryMi: 64
+    # ephemeralStorageMi defines the storage in mebibyte (MiB) used as "required" and "limit" in k8s
+    ephemeralStorageMi: 64
   # Pod topology spread constraints for the swagger ui
   # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
   topologySpreadConstraints:
-    maxSkew: 1
-    topologyKey: topology.kubernetes.io/zone
-    whenUnsatisfiable: ScheduleAnyway
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: ScheduleAnyway
   # podDisruptionBudget ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
   podDisruptionBudget:
     # enabled controls whether swagger ui related PodDisruptionBudget should be created

@@ -8,6 +8,7 @@
 # http://www.eclipse.org/legal/epl-2.0
 #
 # SPDX-License-Identifier: EPL-2.0
+{{- $name := include "ditto.name" . -}}
 {{- if .Values.gateway.enabled -}}
 ---
 apiVersion: apps/v1
@@ -15,7 +16,7 @@ kind: Deployment
 metadata:
   name: {{ include "ditto.fullname" . }}-gateway
   labels:
-    app.kubernetes.io/name: {{ include "ditto.name" . }}-gateway
+    app.kubernetes.io/name: {{ $name }}-gateway
 {{ include "ditto.labels" . | indent 4 }}
 spec:
   replicas: {{ .Values.gateway.replicaCount }}
@@ -26,12 +27,12 @@ spec:
   minReadySeconds: {{ .Values.gateway.minReadySeconds }}
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ include "ditto.name" . }}-gateway
+      app.kubernetes.io/name: {{ $name }}-gateway
       app.kubernetes.io/instance: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: {{ include "ditto.name" . }}-gateway
+        app.kubernetes.io/name: {{ $name }}-gateway
         app.kubernetes.io/instance: {{ .Release.Name }}
         actorSystemName: {{ .Values.pekko.actorSystemName }}
         {{- with .Values.gateway.additionalLabels }}
@@ -45,6 +46,9 @@ spec:
         {{- end }}
         checksum/password-config: {{ include (print $.Template.BasePath "/gateway-secret.yaml") . | sha256sum }}
         checksum/config: {{ include (print $.Template.BasePath "/gateway-configmap.yaml") . | sha256sum }}
+        {{- with .Values.global.additionalAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
         {{- with .Values.gateway.additionalAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -70,12 +74,14 @@ spec:
               mountPath: /var/log/ditto
         {{- end }}
       topologySpreadConstraints:
-        - maxSkew: {{ .Values.gateway.topologySpreadConstraints.maxSkew }}
-          topologyKey: {{ .Values.gateway.topologySpreadConstraints.topologyKey }}
-          whenUnsatisfiable: {{ .Values.gateway.topologySpreadConstraints.whenUnsatisfiable }}
+      {{- range .Values.gateway.topologySpreadConstraints }}
+        - maxSkew: {{ .maxSkew }}
+          topologyKey: {{ .topologyKey }}
+          whenUnsatisfiable: {{ .whenUnsatisfiable }}
           labelSelector:
             matchLabels:
-              app.kubernetes.io/name: {{ include "ditto.name" . }}-gateway
+              app.kubernetes.io/name: {{ $name }}-gateway
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}-gateway
           image: {{ printf "%s:%s" .Values.gateway.image.repository ( default .Chart.AppVersion ( default .Values.dittoTag .Values.gateway.image.tag ) ) }}
@@ -230,11 +236,19 @@ spec:
               protocol: TCP
               containerPort: {{ .Values.global.prometheus.port }}
             {{- end }}
+          startupProbe:
+            httpGet:
+              port: management
+              path: /ready
+            initialDelaySeconds: {{ .Values.gateway.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.gateway.startupProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.gateway.startupProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.gateway.startupProbe.successThreshold }}
+            failureThreshold: {{ .Values.gateway.startupProbe.failureThreshold }}
           readinessProbe:
             httpGet:
               port: management
               path: /ready
-            initialDelaySeconds: {{ .Values.gateway.readinessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.gateway.readinessProbe.periodSeconds }}
             timeoutSeconds: {{ .Values.gateway.readinessProbe.timeoutSeconds }}
             successThreshold: {{ .Values.gateway.readinessProbe.successThreshold }}
@@ -270,11 +284,13 @@ spec:
             requests:
               cpu: {{ mulf .Values.gateway.resources.cpu 1000 }}m
               memory: {{ .Values.gateway.resources.memoryMi }}Mi
+              ephemeral-storage: {{ .Values.gateway.resources.ephemeralStorageMi }}Mi
             limits:
               # ## no cpu limit to avoid CFS scheduler limits
               # ref: https://pekko.apache.org/docs/pekko/current/additional/deploying.html#deploying-to-kubernetes
               # cpu: ""
               memory: {{ .Values.gateway.resources.memoryMi }}Mi
+              ephemeral-storage: {{ .Values.gateway.resources.ephemeralStorageMi }}Mi
           {{- if .Values.openshift.enabled }}
           {{- with .Values.openshift.securityContext }}
           securityContext:
