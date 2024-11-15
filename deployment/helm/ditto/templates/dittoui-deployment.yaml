@@ -8,6 +8,7 @@
 # http://www.eclipse.org/legal/epl-2.0
 #
 # SPDX-License-Identifier: EPL-2.0
+{{- $name := include "ditto.name" . -}}
 {{- if .Values.dittoui.enabled -}}
 ---
 apiVersion: apps/v1
@@ -15,7 +16,7 @@ kind: Deployment
 metadata:
   name: {{ include "ditto.fullname" . }}-dittoui
   labels:
-    app.kubernetes.io/name: {{ include "ditto.name" . }}-dittoui
+    app.kubernetes.io/name: {{ $name }}-dittoui
 {{ include "ditto.labels" . | indent 4 }}
 spec:
   replicas: {{ .Values.dittoui.replicaCount }}
@@ -25,12 +26,12 @@ spec:
   {{- end }}
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ include "ditto.name" . }}-dittoui
+      app.kubernetes.io/name: {{ $name }}-dittoui
       app.kubernetes.io/instance: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: {{ include "ditto.name" . }}-dittoui
+        app.kubernetes.io/name: {{ $name }}-dittoui
         app.kubernetes.io/instance: {{ .Release.Name }}
         {{- with .Values.dittoui.additionalLabels }}
         {{- toYaml . | nindent 8 }}
@@ -45,12 +46,14 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       topologySpreadConstraints:
-        - maxSkew: {{ .Values.dittoui.topologySpreadConstraints.maxSkew }}
-          topologyKey: {{ .Values.dittoui.topologySpreadConstraints.topologyKey }}
-          whenUnsatisfiable: {{ .Values.dittoui.topologySpreadConstraints.whenUnsatisfiable }}
+      {{- range .Values.dittoui.topologySpreadConstraints }}
+        - maxSkew: {{ .maxSkew }}
+          topologyKey: {{ .topologyKey }}
+          whenUnsatisfiable: {{ .whenUnsatisfiable }}
           labelSelector:
             matchLabels:
-              app.kubernetes.io/name: {{ include "ditto.name" . }}-dittoui
+              app.kubernetes.io/name: {{ $name }}-dittoui
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}-dittoui
           image: {{ printf "%s:%s" .Values.dittoui.image.repository ( default .Chart.AppVersion ( default .Values.dittoTag .Values.dittoui.image.tag ) ) }}
@@ -67,9 +70,11 @@ spec:
             requests:
               cpu: {{ mulf .Values.dittoui.resources.cpu 1000 }}m
               memory: {{ .Values.dittoui.resources.memoryMi }}Mi
+              ephemeral-storage: {{ .Values.dittoui.resources.ephemeralStorageMi }}Mi
             limits:
               # cpu: # don't limit
               memory: {{ .Values.dittoui.resources.memoryMi }}Mi
+              ephemeral-storage: {{ .Values.dittoui.resources.ephemeralStorageMi }}Mi
           securityContext:
             runAsNonRoot: true
             runAsUser: 101
