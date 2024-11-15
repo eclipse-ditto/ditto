@@ -44,7 +44,7 @@ This was fixed in PR [#1901](https://github.com/eclipse-ditto/ditto/pull/1901).
 #### Ensure consistency when doing signal enrichment
 
 When e.g. a Ditto connection published many events for a single thing in a short time and using
-[signal enrichment](basic-enrichment.hml), it was not guaranteed that the "enriched" data was from the same `revision`
+[signal enrichment](basic-enrichment.html), it was not guaranteed that the "enriched" data was from the same `revision`
 as the published event - leading to inconsistencies for things with high frequent updates.  
 This was reported in issue [#1893](https://github.com/eclipse-ditto/ditto/issues/1893) and fixed in PR 
 [#1904](https://github.com/eclipse-ditto/ditto/pull/1904).
