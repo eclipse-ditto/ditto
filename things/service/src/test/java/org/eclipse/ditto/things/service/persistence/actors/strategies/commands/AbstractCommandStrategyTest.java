@@ -138,7 +138,7 @@ public abstract class AbstractCommandStrategyTest {
             final DittoRuntimeException expectedException) {
 
         final ResultVisitor<ThingEvent<?>> mock = mock(Dummy.class);
-        applyStrategy(underTest, getDefaultContext(), thing, command).accept(mock);
+        applyStrategy(underTest, getDefaultContext(), thing, command).accept(mock, null);
         verify(mock).onError(eq(expectedException), eq(command));
     }
 
@@ -159,7 +159,7 @@ public abstract class AbstractCommandStrategyTest {
 
         final Result<ThingEvent<?>> thingEventResult = applyStrategy(underTest, getDefaultContext(), thing, command);
         final ResultVisitor<ThingEvent<?>> mock = mock(Dummy.class);
-        thingEventResult.accept(mock);
+        thingEventResult.accept(mock, null);
         final ArgumentCaptor<CommandResponse<?>> captor = ArgumentCaptor.forClass(CommandResponse.class);
         verify(mock).onQuery(any(), captor.capture());
         commandResponseAssertions.accept(captor.getValue());
@@ -173,7 +173,7 @@ public abstract class AbstractCommandStrategyTest {
             final DittoRuntimeException expectedResponse) {
 
         final ResultVisitor<ThingEvent<?>> mock = mock(Dummy.class);
-        underTest.unhandled(getDefaultContext(), thing, NEXT_REVISION, command).accept(mock);
+        underTest.unhandled(getDefaultContext(), thing, NEXT_REVISION, command).accept(mock, null);
         verify(mock).onError(eq(expectedResponse), eq(command));
     }
 
@@ -186,9 +186,10 @@ public abstract class AbstractCommandStrategyTest {
 
         final ResultVisitor<ThingEvent<?>> mock = mock(Dummy.class);
 
-        result.accept(mock);
+        result.accept(mock, null);
 
-        verify(mock).onMutation(any(), event.capture(), eq(expectedResponse), anyBoolean(), eq(becomeDeleted));
+        verify(mock).onMutation(any(), event.capture(), eq(expectedResponse), anyBoolean(), eq(becomeDeleted),
+                eq(null));
         assertThat(event.getValue()).isInstanceOf(eventClazz);
         return event.getValue();
     }
@@ -203,9 +204,10 @@ public abstract class AbstractCommandStrategyTest {
 
         final ResultVisitor<ThingEvent<?>> mock = mock(Dummy.class);
 
-        result.accept(mock);
+        result.accept(mock, null);
 
-        verify(mock).onStagedMutation(any(), eventStage.capture(), responseStage.capture(), anyBoolean(), eq(becomeDeleted));
+        verify(mock).onStagedMutation(any(), eventStage.capture(), responseStage.capture(), anyBoolean(), eq(becomeDeleted),
+                eq(null));
         assertThat(eventStage.getValue()).isInstanceOf(CompletionStage.class);
         CompletableFutureAssert.assertThatCompletionStage(eventStage.getValue())
                 .isCompletedWithValueMatching(t -> eventClazz.isAssignableFrom(t.getClass()));
@@ -217,7 +219,7 @@ public abstract class AbstractCommandStrategyTest {
 
     private static void assertInfoResult(final Result<ThingEvent<?>> result, final WithDittoHeaders infoResponse) {
         final ResultVisitor<ThingEvent<?>> mock = mock(Dummy.class);
-        result.accept(mock);
+        result.accept(mock, null);
         verify(mock).onQuery(any(), eq(infoResponse));
     }
 

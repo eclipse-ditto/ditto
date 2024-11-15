@@ -60,7 +60,7 @@ public final class TraceInformationGeneratorTest {
         );
 
         assertThat(traceInformation)
-                .isEqualTo(TraceInformation.newInstance(traceUri, TagSet.ofTag(getRequestUriTag(sanitizedUri))));
+                .isEqualTo(TraceInformation.newInstance(sanitizedUri, TagSet.ofTag(getRequestUriTag(sanitizedUri))));
     }
 
     private static Tag getRequestUriTag(final URI requestUri) {
@@ -76,7 +76,7 @@ public final class TraceInformationGeneratorTest {
                 underTest.apply("/api/2/things/abc:1a4ed3df-308b-462e-9cfc-b78891f18c39/features/Vehicle/definition");
 
         assertThat(traceInformation)
-                .isEqualTo(TraceInformation.newInstance(traceUri, TagSet.ofTag(getRequestUriTag(sanitizedUri))));
+                .isEqualTo(TraceInformation.newInstance(sanitizedUri, TagSet.ofTag(getRequestUriTag(sanitizedUri))));
     }
 
     @Test
@@ -97,7 +97,7 @@ public final class TraceInformationGeneratorTest {
 
     @Test
     public void api2ThingsSearchCountUriIsShortened() {
-        final var expectedUri = URI.create("/api/2/search/things" + TraceInformationGenerator.SHORTENED_PATH_SUFFIX);
+        final var expectedUri = URI.create("/api/2/search/things/count");
 
         assertThat(underTest.apply("/api/2/search/things/count"))
                 .isEqualTo(TraceInformation.newInstance(expectedUri, TagSet.ofTag(getRequestUriTag(expectedUri))));

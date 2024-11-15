@@ -35,6 +35,9 @@ import org.apache.pekko.testkit.TestProbe;
 import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.internal.utils.tracing.config.TracingConfig;
+import org.eclipse.ditto.internal.utils.tracing.filter.AcceptAllTracingFilter;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -64,10 +67,13 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
+import org.mockito.Mockito;
 
 import com.typesafe.config.ConfigFactory;
 
@@ -85,6 +91,19 @@ public final class EnforcementFlowTest {
     private TestPublisher.Probe<Collection<Metadata>> sourceProbe;
     private TestSubscriber.Probe<List<AbstractWriteModel>> sinkProbe;
 
+    @BeforeClass
+    public static void beforeClass() {
+        final TracingConfig tracingConfigMock = Mockito.mock(TracingConfig.class);
+        Mockito.when(tracingConfigMock.isTracingEnabled()).thenReturn(true);
+        Mockito.when(tracingConfigMock.getPropagationChannel()).thenReturn("default");
+        Mockito.when(tracingConfigMock.getTracingFilter()).thenReturn(AcceptAllTracingFilter.getInstance());
+        DittoTracing.init(tracingConfigMock);
+    }
+
+    @AfterClass
+    public static void afterClass() {
+        DittoTracing.reset();
+    }
     @Before
     public void init() {
         system = ActorSystem.create("test", ConfigFactory.load("actors-test.conf"));

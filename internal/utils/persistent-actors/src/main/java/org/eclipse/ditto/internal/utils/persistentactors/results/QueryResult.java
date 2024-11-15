@@ -20,6 +20,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 
 /**
  * Result for query commands.
@@ -50,11 +51,14 @@ public final class QueryResult<E extends Event<?>> implements Result<E> {
     }
 
     @Override
-    public void accept(final ResultVisitor<E> visitor) {
+    public void accept(final ResultVisitor<E> visitor, @Nullable final StartedSpan startedSpan) {
         if (responseStage != null) {
-            visitor.onStagedQuery(command, responseStage);
+            visitor.onStagedQuery(command, responseStage, startedSpan);
         } else {
             visitor.onQuery(command, response);
+            if (startedSpan != null) {
+                startedSpan.finish();
+            }
         }
     }
 

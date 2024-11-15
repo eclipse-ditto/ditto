@@ -15,7 +15,10 @@ package org.eclipse.ditto.internal.utils.persistentactors.results;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 
 /**
  * The result of applying the strategy to the given command.
@@ -26,8 +29,9 @@ public interface Result<E extends Event<?>> {
      * Evaluate the result by a visitor.
      *
      * @param visitor the visitor to evaluate the result, typically the persistent actor itself.
+     * @param startedSpan the tracing span started for the command before applying the strategy.
      */
-    void accept(ResultVisitor<E> visitor);
+    void accept(ResultVisitor<E> visitor, @Nullable StartedSpan startedSpan);
 
     /**
      * Convert the result with a function.

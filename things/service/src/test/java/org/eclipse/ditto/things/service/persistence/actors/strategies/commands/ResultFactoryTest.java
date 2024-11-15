@@ -44,7 +44,7 @@ public final class ResultFactoryTest {
     @Test
     public void notifyQueryResponse() {
         final Result<ThingEvent<?>> result = ResultFactory.newQueryResult(thingQueryCommand, response);
-        result.accept(mock);
+        result.accept(mock, null);
         verify(mock).onQuery(eq(thingQueryCommand), eq(response));
     }
 
@@ -52,7 +52,7 @@ public final class ResultFactoryTest {
     public void notifyException() {
         final Command command = mock(Command.class);
         final Result<ThingEvent<?>> result = ResultFactory.newErrorResult(exception, command);
-        result.accept(this.mock);
+        result.accept(this.mock, null);
         verify(this.mock).onError(eq(exception), eq(command));
     }
 
@@ -76,9 +76,9 @@ public final class ResultFactoryTest {
                 ResultFactory.newMutationResult(thingModifyCommand, thingModifiedEvent, response,
                         becomeCreated,
                         becomeDeleted);
-        result.accept(mock);
+        result.accept(mock, null);
         verify(mock).onMutation(eq(thingModifyCommand), eq(thingModifiedEvent), eq(response), eq(becomeCreated),
-                eq(becomeDeleted));
+                eq(becomeDeleted), eq(null));
     }
 
     interface Dummy extends ResultVisitor<ThingEvent<?>> {

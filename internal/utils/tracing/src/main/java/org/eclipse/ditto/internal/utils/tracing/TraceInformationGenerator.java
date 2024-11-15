@@ -53,7 +53,7 @@ public final class TraceInformationGenerator implements Function<String, TraceIn
     private static final String API_VERSION_GROUP = "apiVersion";
     private static final String API_VERSIONS =
             "(?<" + API_VERSION_GROUP + ">[" + FIRST_API_VERSION + "-" + LATEST_API_VERSION + "])";
-    private static final Set<String> SUB_PATHS_TO_SHORTEN = Set.of("things", "policies", "search/things");
+    private static final Set<String> SUB_PATHS_TO_SHORTEN = Set.of("things", "policies");
     private static final String PATHS_TO_SHORTEN_GROUP = "shorten";
     private static final String PATHS_TO_SHORTEN_REGEX_TEMPLATE = "(?<" + PATHS_TO_SHORTEN_GROUP + ">^/(api)/" +
             API_VERSIONS +
@@ -63,6 +63,8 @@ public final class TraceInformationGenerator implements Function<String, TraceIn
             "api/2/whoami",
             "api/2/checkPermissions",
             "api/2/cloudevents",
+            "api/2/search/things",
+            "api/2/search/things/count",
             "ws/2",
             "health",
             "status",
@@ -149,10 +151,11 @@ public final class TraceInformationGenerator implements Function<String, TraceIn
                     traceUri = URI.create(pathToShorten + MESSAGES_PATH_SUFFIX);
                     sanitizedUri = traceUri;
                 } else {
-                    traceUri = URI.create(pathToShorten + SHORTENED_PATH_SUFFIX);
-                    sanitizedUri = getMatcherValue("subEntityType", matcher)
-                            .map(s -> URI.create(traceUri + "/" + s + SHORTENED_PATH_SUFFIX))
-                            .orElse(traceUri);
+                    traceUri = getMatcherValue("subEntityType", matcher)
+                            .map(s ->
+                                    URI.create(pathToShorten + SHORTENED_PATH_SUFFIX + "/" + s + SHORTENED_PATH_SUFFIX))
+                            .orElseGet(() -> URI.create(pathToShorten + SHORTENED_PATH_SUFFIX));
+                    sanitizedUri = traceUri;
                 }
             } else {
                 final var pathFullLength = matcher.group(PATHS_EXACT_LENGTH_GROUP);

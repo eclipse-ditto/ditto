@@ -16,6 +16,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.Executor;
 
+import javax.annotation.Nullable;
+
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationChain;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationFailureAggregator;
@@ -32,7 +34,6 @@ import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.mongodb.lang.Nullable;
 import com.typesafe.config.Config;
 
 /**

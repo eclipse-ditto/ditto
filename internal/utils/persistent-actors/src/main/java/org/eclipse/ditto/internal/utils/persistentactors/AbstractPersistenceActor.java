@@ -507,7 +507,7 @@ public abstract class AbstractPersistenceActor<
                                             entityWithEvent.revision,
                                             command
                                     ).accept(new HistoricalResultListener(sender,
-                                            entityWithEvent.event.getDittoHeaders()));
+                                            entityWithEvent.event.getDittoHeaders()), null);
                                 } else {
                                     if (!atHistoricalTimestamp.equals(Instant.EPOCH)) {
                                         sender.tell(newHistoryNotAccessibleExceptionBuilder(atHistoricalTimestamp).build(),
@@ -730,31 +730,33 @@ public abstract class AbstractPersistenceActor<
                 .start();
 
         final var tracedCommand =
-                command.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(command.getDittoHeaders())));
+                command.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(
+                        command.getDittoHeaders()
+                                .toBuilder()
+                                .removeHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey())
+                                .build()
+                        )));
 
         accessCounter++;
         Result<E> result;
         try {
             result = strategy.apply(getStrategyContext(), workEntity, getNextRevisionNumber(), (T) tracedCommand);
-            result.accept(this);
+            result.accept(this, startedSpan);
         } catch (final CompletionException | DittoRuntimeException e) {
             final DittoRuntimeException dittoRuntimeException =
                     DittoRuntimeException.asDittoRuntimeException(e, throwable ->
                             DittoInternalErrorException.newBuilder()
                                     .dittoHeaders(tracedCommand.getDittoHeaders())
                                     .build());
-            startedSpan.tagAsFailed(e);
             result = ResultFactory.newErrorResult(dittoRuntimeException, tracedCommand);
-            result.accept(this);
-        } finally {
-            startedSpan.finish();
+            result.accept(this, startedSpan);
         }
         reportSudoCommandDone(tracedCommand);
     }
 
     @Override
     public void onMutation(final Command<?> command, final E event, final WithDittoHeaders response,
-            final boolean becomeCreated, final boolean becomeDeleted) {
+            final boolean becomeCreated, final boolean becomeDeleted, @Nullable final StartedSpan startedSpan) {
 
         final ActorRef sender = getSender();
         persistAndApplyEvent(event, (persistedEvent, resultingEntity) -> {
@@ -767,6 +769,9 @@ public abstract class AbstractPersistenceActor<
             if (becomeCreated) {
                 becomeCreatedHandler();
             }
+            if (startedSpan != null) {
+                startedSpan.finish();
+            }
         });
     }
 
@@ -775,7 +780,8 @@ public abstract class AbstractPersistenceActor<
             final CompletionStage<E> event,
             final CompletionStage<WithDittoHeaders> response,
             final boolean becomeCreated,
-            final boolean becomeDeleted) {
+            final boolean becomeDeleted,
+            @Nullable final StartedSpan startedSpan) {
 
         final ActorRef sender = getSender();
         persistAndApplyEventAsync(event, (persistedEvent, resultingEntity) -> {
@@ -787,6 +793,9 @@ public abstract class AbstractPersistenceActor<
             }
             if (becomeCreated) {
                 becomeCreatedHandler();
+            }
+            if (startedSpan != null) {
+                startedSpan.finish();
             }
         }, throwable -> {
             final DittoRuntimeException dittoRuntimeException =
@@ -810,7 +819,8 @@ public abstract class AbstractPersistenceActor<
     }
 
     @Override
-    public void onStagedQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response) {
+    public void onStagedQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response,
+            @Nullable final StartedSpan startedSpan) {
         if (command.getDittoHeaders().isResponseRequired()) {
             final ActorRef sender = getSender();
             response.whenComplete((r, throwable) -> {
@@ -819,7 +829,14 @@ public abstract class AbstractPersistenceActor<
                 } else {
                     notifySender(sender, r);
                 }
+                if (startedSpan != null) {
+                    startedSpan.finish();
+                }
             });
+        } else {
+            if (startedSpan != null) {
+                startedSpan.finish();
+            }
         }
     }
 
@@ -1125,14 +1142,14 @@ public abstract class AbstractPersistenceActor<
 
         @Override
         public void onMutation(final Command<?> command, final E event, final WithDittoHeaders response,
-                final boolean becomeCreated, final boolean becomeDeleted) {
+                final boolean becomeCreated, final boolean becomeDeleted, @Nullable final StartedSpan startedSpan) {
             throw new UnsupportedOperationException("Mutating historical entity not supported.");
         }
 
         @Override
         public void onStagedMutation(final Command<?> command, final CompletionStage<E> event,
                 final CompletionStage<WithDittoHeaders> response,
-                final boolean becomeCreated, final boolean becomeDeleted) {
+                final boolean becomeCreated, final boolean becomeDeleted, @Nullable final StartedSpan startedSpan) {
             throw new UnsupportedOperationException("Mutating historical entity not supported.");
         }
 
@@ -1155,7 +1172,8 @@ public abstract class AbstractPersistenceActor<
         }
 
         @Override
-        public void onStagedQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response) {
+        public void onStagedQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response,
+                @Nullable final StartedSpan startedSpan) {
             if (command.getDittoHeaders().isResponseRequired()) {
                 response.whenComplete((r, throwable) -> {
                     if (throwable instanceof DittoRuntimeException dittoRuntimeException) {
@@ -1173,6 +1191,9 @@ public abstract class AbstractPersistenceActor<
                             theResponseToSend = r;
                         }
                         notifySender(sender, theResponseToSend);
+                    }
+                    if (startedSpan != null) {
+                        startedSpan.finish();
                     }
                 });
             }

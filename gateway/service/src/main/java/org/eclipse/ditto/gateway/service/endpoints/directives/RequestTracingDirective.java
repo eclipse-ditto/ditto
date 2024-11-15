@@ -30,6 +30,13 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.http.javadsl.model.HttpHeader;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.http.javadsl.model.Uri;
+import org.apache.pekko.http.javadsl.server.Complete;
+import org.apache.pekko.http.javadsl.server.Route;
+import org.apache.pekko.http.javadsl.server.RouteResult;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.common.HttpStatusCodeOutOfRangeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
@@ -42,14 +49,6 @@ import org.eclipse.ditto.internal.utils.tracing.TraceInformationGenerator;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanTagKey;
 import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
-
-import org.apache.pekko.http.javadsl.model.HttpHeader;
-import org.apache.pekko.http.javadsl.model.HttpRequest;
-import org.apache.pekko.http.javadsl.model.HttpResponse;
-import org.apache.pekko.http.javadsl.model.Uri;
-import org.apache.pekko.http.javadsl.server.Complete;
-import org.apache.pekko.http.javadsl.server.Route;
-import org.apache.pekko.http.javadsl.server.RouteResult;
 
 /**
  * Custom Pekko Http directive tracing the request.
@@ -116,13 +115,19 @@ public final class RequestTracingDirective {
 
     private static URI getTraceUri(final HttpRequest httpRequest) {
         final var traceInformationGenerator = TraceInformationGenerator.getInstance();
-        final var traceInformation = traceInformationGenerator.apply(String.valueOf(getRelativeUri(httpRequest)));
+        final var traceInformation = traceInformationGenerator.apply(getRelativeUriPath(httpRequest));
         return traceInformation.getTraceUri();
     }
 
     private static Uri getRelativeUri(final HttpRequest httpRequest) {
         final var uri = httpRequest.getUri();
         return uri.toRelative();
+    }
+
+    private static String getRelativeUriPath(final HttpRequest httpRequest) {
+        final var uri = httpRequest.getUri();
+        final var relativeUri = uri.toRelative();
+        return relativeUri.path();
     }
 
     private static String getRequestMethodName(final HttpRequest httpRequest) {
@@ -246,10 +251,7 @@ public final class RequestTracingDirective {
             @Nullable final CharSequence correlationId
     ) {
         startedSpan.tag(SpanTagKey.REQUEST_METHOD_NAME.getTagForValue(getRequestMethodName(httpRequest)));
-        @Nullable final var relativeRequestUri = tryToGetRelativeRequestUri(httpRequest, correlationId);
-        if (null != relativeRequestUri) {
-            startedSpan.tag(SpanTagKey.REQUEST_URI.getTagForValue(relativeRequestUri));
-        }
+        startedSpan.tag(SpanTagKey.REQUEST_URI.getTagForValue(URI.create(getRelativeUri(httpRequest).toString())));
         @Nullable final var httpStatus = tryToGetResponseHttpStatus(httpResponse, correlationId);
         if (null != httpStatus) {
             startedSpan.tag(SpanTagKey.HTTP_STATUS.getTagForValue(httpStatus));

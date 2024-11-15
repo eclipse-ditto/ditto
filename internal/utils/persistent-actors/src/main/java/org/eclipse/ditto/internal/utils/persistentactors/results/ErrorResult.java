@@ -15,9 +15,12 @@ package org.eclipse.ditto.internal.utils.persistentactors.results;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 
 /**
  * Result signifying an error.
@@ -41,8 +44,11 @@ public final class ErrorResult<E extends Event<?>> implements Result<E> {
     }
 
     @Override
-    public void accept(final ResultVisitor<E> visitor) {
+    public void accept(final ResultVisitor<E> visitor, @Nullable final StartedSpan startedSpan) {
         visitor.onError(dittoRuntimeException, errorCausingCommand);
+        if (startedSpan != null) {
+            startedSpan.tagAsFailed(dittoRuntimeException).finish();
+        }
     }
 
     @Override

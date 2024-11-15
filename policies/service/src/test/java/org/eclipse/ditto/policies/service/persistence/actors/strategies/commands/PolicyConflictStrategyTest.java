@@ -18,6 +18,8 @@ import static org.mockito.Mockito.doAnswer;
 
 import java.util.concurrent.CompletionStage;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
@@ -29,6 +31,7 @@ import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrateg
 import org.eclipse.ditto.internal.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultVisitor;
+import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
@@ -62,7 +65,7 @@ public final class PolicyConflictStrategyTest {
                 mockLoggingAdapter(), ACTOR_SYSTEM_RESOURCE.getActorSystem());
         final CreatePolicy command = CreatePolicy.of(policy, DittoHeaders.empty());
         final Result<PolicyEvent<?>> result = underTest.apply(context, policy, 26L, command);
-        result.accept(new ExpectErrorVisitor(PolicyConflictException.class));
+        result.accept(new ExpectErrorVisitor(PolicyConflictException.class), null);
     }
 
     @Test
@@ -77,7 +80,7 @@ public final class PolicyConflictStrategyTest {
                 .ifNoneMatch(EntityTagMatchers.fromStrings("*"))
                 .build());
         final Result<PolicyEvent<?>> result = underTest.apply(context, policy, 26L, command);
-        result.accept(new ExpectErrorVisitor(PolicyPreconditionFailedException.class));
+        result.accept(new ExpectErrorVisitor(PolicyPreconditionFailedException.class), null);
     }
 
     private static DittoDiagnosticLoggingAdapter mockLoggingAdapter() {
@@ -97,14 +100,14 @@ public final class PolicyConflictStrategyTest {
         @Override
         public void onMutation(final Command<?> command, final PolicyEvent<?> event,
                 final WithDittoHeaders response, final boolean becomeCreated,
-                final boolean becomeDeleted) {
+                final boolean becomeDeleted, final StartedSpan startedSpan) {
             throw new AssertionError("Expect error, got mutation: " + event);
         }
 
         @Override
         public void onStagedMutation(final Command<?> command, final CompletionStage<PolicyEvent<?>> event,
                 final CompletionStage<WithDittoHeaders> response, final boolean becomeCreated,
-                final boolean becomeDeleted) {
+                final boolean becomeDeleted, @Nullable final StartedSpan startedSpan) {
             throw new AssertionError("Expect error, got mutation: " + event);
         }
 
@@ -114,7 +117,8 @@ public final class PolicyConflictStrategyTest {
         }
 
         @Override
-        public void onStagedQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response) {
+        public void onStagedQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response,
+                @Nullable final StartedSpan startedSpan) {
             throw new AssertionError("Expect error, got query: " + response);
         }
 
