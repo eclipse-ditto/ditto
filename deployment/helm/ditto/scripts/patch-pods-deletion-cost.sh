@@ -25,8 +25,9 @@ curl --fail --silent --cacert ${CACERT} -H "Authorization: Bearer ${TOKEN}" \
   "https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_SERVICE_PORT/api/v1/namespaces/${NAMESPACE}/pods" \
   | jq '.items | map(select(.metadata.labels.actorSystemName == "ditto-cluster") | { pod: .metadata.name, ip: .status.podIP, cost: .metadata.annotations."controller.kubernetes.io/pod-deletion-cost"})' \
   > pod_ip_cost.json
-if [ $? -ne 0 ]; then
-  echo "Retrieving current pods curl failed [exit-code: $?]"
+curlExitCode=$?
+if [ $curlExitCode -ne 0 ]; then
+  echo "Retrieving current pods curl failed [exit-code: $curlExitCode]"
   exit 1
 fi
 
@@ -34,8 +35,9 @@ fi
 somePekkoClusterIp=$(jq -r '.[0].ip' pod_ip_cost.json)
 echo "Accessing current Pekko Cluster members from internal ip: $somePekkoClusterIp ..."
 curl --fail --silent -o pekko_cluster_members.json http://$somePekkoClusterIp:7626/cluster/members
-if [ $? -ne 0 ]; then
-  echo "Accessing current Pekko Cluster members curl failed [exit-code: $?]"
+curlExitCode=$?
+if [ $curlExitCode -ne 0 ]; then
+  echo "Accessing current Pekko Cluster members curl failed [exit-code: $curlExitCode]"
   exit 1
 fi
 
@@ -64,8 +66,9 @@ while read pod; do
      curl -X PATCH --silent --output /dev/null --show-error --fail --cacert ${CACERT} -H "Authorization: Bearer ${TOKEN}" -H 'Content-Type: application/merge-patch+json' \
         "https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_SERVICE_PORT/api/v1/namespaces/${NAMESPACE}/pods/${pod}" \
         --data '{"metadata": {"annotations": {"controller.kubernetes.io/pod-deletion-cost": null }}}'
-     if [ $? -ne 0 ]; then
-       echo "Clearing pod-deletion-cost curl failed [exit-code: $?]"
+     curlExitCode=$?
+     if [ $curlExitCode -ne 0 ]; then
+       echo "Clearing pod-deletion-cost curl failed [exit-code: $curlExitCode]"
        exit 1
      fi
   fi
@@ -78,8 +81,9 @@ jq -r '.[] | [.pod, .ip, .cost] | @tsv' new_cost_pod_and_ip.json |
     curl -X PATCH --silent --output /dev/null --show-error --fail --cacert ${CACERT} -H "Authorization: Bearer ${TOKEN}" -H 'Content-Type: application/merge-patch+json' \
        "https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_SERVICE_PORT/api/v1/namespaces/${NAMESPACE}/pods/${pod}" \
        --data '{"metadata": {"annotations": {"controller.kubernetes.io/pod-deletion-cost": '\""$cost"\"' }}}'
-    if [ $? -ne 0 ]; then
-      echo "Patching pod-deletion-cost curl failed [exit-code: $?]"
+    curlExitCode=$?
+    if [ $curlExitCode -ne 0 ]; then
+      echo "Patching pod-deletion-cost curl failed [exit-code: $curlExitCode]"
       exit 1
     fi
   done

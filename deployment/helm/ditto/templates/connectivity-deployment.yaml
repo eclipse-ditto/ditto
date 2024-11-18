@@ -8,6 +8,7 @@
 # http://www.eclipse.org/legal/epl-2.0
 #
 # SPDX-License-Identifier: EPL-2.0
+{{- $name := include "ditto.name" . -}}
 {{- if .Values.connectivity.enabled -}}
 ---
 apiVersion: apps/v1
@@ -15,7 +16,7 @@ kind: Deployment
 metadata:
   name: {{ include "ditto.fullname" . }}-connectivity
   labels:
-    app.kubernetes.io/name: {{ include "ditto.name" . }}-connectivity
+    app.kubernetes.io/name: {{ $name }}-connectivity
 {{ include "ditto.labels" . | indent 4 }}
 spec:
   replicas: {{ .Values.connectivity.replicaCount }}
@@ -26,12 +27,12 @@ spec:
   minReadySeconds: {{ .Values.connectivity.minReadySeconds }}
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ include "ditto.name" . }}-connectivity
+      app.kubernetes.io/name: {{ $name }}-connectivity
       app.kubernetes.io/instance: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: {{ include "ditto.name" . }}-connectivity
+        app.kubernetes.io/name: {{ $name }}-connectivity
         app.kubernetes.io/instance: {{ .Release.Name }}
         actorSystemName: {{ .Values.pekko.actorSystemName }}
         {{- with .Values.connectivity.additionalLabels }}
@@ -45,6 +46,9 @@ spec:
         {{- end }}
         checksum/mongodb-config: {{ include (print $.Template.BasePath "/mongodb-secret.yaml") . | sha256sum }}
         checksum/config: {{ include (print $.Template.BasePath "/connectivity-configmap.yaml") . | sha256sum }}
+        {{- with .Values.global.additionalAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
         {{- with .Values.connectivity.additionalAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -70,12 +74,14 @@ spec:
               mountPath: /var/log/ditto
         {{- end }}
       topologySpreadConstraints:
-        - maxSkew: {{ .Values.connectivity.topologySpreadConstraints.maxSkew }}
-          topologyKey: {{ .Values.connectivity.topologySpreadConstraints.topologyKey }}
-          whenUnsatisfiable: {{ .Values.connectivity.topologySpreadConstraints.whenUnsatisfiable }}
+      {{- range .Values.connectivity.topologySpreadConstraints }}
+        - maxSkew: {{ .maxSkew }}
+          topologyKey: {{ .topologyKey }}
+          whenUnsatisfiable: {{ .whenUnsatisfiable }}
           labelSelector:
             matchLabels:
-              app.kubernetes.io/name: {{ include "ditto.name" . }}-connectivity
+              app.kubernetes.io/name: {{ $name }}-connectivity
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}-connectivity
           image: {{ printf "%s:%s" .Values.connectivity.image.repository ( default .Chart.AppVersion ( default .Values.dittoTag .Values.connectivity.image.tag ) ) }}
@@ -312,11 +318,19 @@ spec:
               protocol: TCP
               containerPort: {{ .Values.global.prometheus.port }}
             {{- end }}
+          startupProbe:
+            httpGet:
+              port: management
+              path: /ready
+            initialDelaySeconds: {{ .Values.connectivity.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.connectivity.startupProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.connectivity.startupProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.connectivity.startupProbe.successThreshold }}
+            failureThreshold: {{ .Values.connectivity.startupProbe.failureThreshold }}
           readinessProbe:
             httpGet:
               port: management
               path: /ready
-            initialDelaySeconds: {{ .Values.connectivity.readinessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.connectivity.readinessProbe.periodSeconds }}
             timeoutSeconds: {{ .Values.connectivity.readinessProbe.timeoutSeconds }}
             successThreshold: {{ .Values.connectivity.readinessProbe.successThreshold }}
@@ -352,11 +366,13 @@ spec:
             requests:
               cpu: {{ mulf .Values.connectivity.resources.cpu 1000 }}m
               memory: {{ .Values.connectivity.resources.memoryMi }}Mi
+              ephemeral-storage: {{ .Values.connectivity.resources.ephemeralStorageMi }}Mi
             limits:
               # ## no cpu limit to avoid CFS scheduler limits
               # ref: https://pekko.apache.org/docs/pekko/current/additional/deploying.html#deploying-to-kubernetes
               # cpu: ""
               memory: {{ .Values.connectivity.resources.memoryMi }}Mi
+              ephemeral-storage: {{ .Values.connectivity.resources.ephemeralStorageMi }}Mi
           {{- if .Values.openshift.enabled }}
           {{- with .Values.openshift.securityContext }}
           securityContext:
