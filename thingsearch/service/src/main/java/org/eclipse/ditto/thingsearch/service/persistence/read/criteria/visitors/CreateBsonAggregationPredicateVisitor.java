@@ -23,7 +23,9 @@ import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 
 import org.bson.BsonArray;
+import org.bson.BsonBoolean;
 import org.bson.BsonDocument;
+import org.bson.BsonDouble;
 import org.bson.BsonInt64;
 import org.bson.BsonString;
 import org.bson.BsonValue;
@@ -194,10 +196,14 @@ public class CreateBsonAggregationPredicateVisitor implements PredicateVisitor<F
             return new BsonInt64((Long) value);
         } else if (value instanceof Integer) {
             return new BsonInt64((Integer) value);
+        } else if (value instanceof Double) {
+            return new BsonDouble((Double) value);
         } else if (value instanceof String) {
             return new BsonString((String) value);
         } else if (value instanceof ArrayList) {
             return new BsonArray((ArrayList) value);
+        } else if (value instanceof Boolean) {
+            return new BsonBoolean((Boolean) value);
         } else  {
             throw new IllegalArgumentException("Unsupported value type: " + value.getClass());
         }
