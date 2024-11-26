@@ -15,10 +15,12 @@ package org.eclipse.ditto.wot.api.generator;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonCollectors;
@@ -28,7 +30,9 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.wot.api.provider.WotThingModelFetcher;
+import org.eclipse.ditto.wot.model.BaseLink;
 import org.eclipse.ditto.wot.model.IRI;
+import org.eclipse.ditto.wot.model.Links;
 import org.eclipse.ditto.wot.model.ThingModel;
 import org.eclipse.ditto.wot.model.WotThingModelRefInvalidException;
 
@@ -73,7 +77,7 @@ final class DefaultWotThingModelExtensionResolver implements WotThingModelExtens
                         return CompletableFuture.completedFuture(thingModel);
                     } else {
                         CompletionStage<ThingModel.Builder> currentStage =
-                                resolveThingModelExtensions(extendedModels.get(0), dittoHeaders) // recurse!
+                                resolveThingModelExtensions(extendedModels.getFirst(), dittoHeaders) // recurse!
                                         .thenApply(extendedModel ->
                                                 mergeThingModelIntoBuilder().apply(tmBuilder, extendedModel)
                                         );
@@ -91,11 +95,50 @@ final class DefaultWotThingModelExtensionResolver implements WotThingModelExtens
 
     private BiFunction<ThingModel.Builder, ThingModel, ThingModel.Builder> mergeThingModelIntoBuilder() {
         return (builder, model) -> {
-            final JsonObject mergedTmObject = JsonFactory.mergeJsonValues(builder.build(), model).asObject();
+            final ThingModel newModel = builder.build();
+            final JsonObject mergedTmObject = JsonFactory.mergeJsonValues(newModel, model).asObject();
             builder.removeAll();
             builder.setAll(mergedTmObject);
+            mergeLinks(model.getLinks(), newModel.getLinks()).ifPresent(builder::setLinks);
             return builder;
         };
+    }
+
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    private static Optional<Links> mergeLinks(final Optional<Links> oldOptionalLinks,
+            final Optional<Links> newOptionalLinks)
+    {
+        return oldOptionalLinks
+                .map(oldLinks -> filterOutTmExtendsLinkFromOldLinks(newOptionalLinks, oldLinks))
+                .map(adjustedOldLinks ->
+                        newOptionalLinks.stream()
+                                .flatMap(newLinks -> Stream.concat(adjustedOldLinks, newLinks.stream()))
+                )
+                .map(Stream::toList)
+                .map(Links::of);
+    }
+
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    private static Stream<BaseLink<?>> filterOutTmExtendsLinkFromOldLinks(final Optional<Links> newOptionalLinks,
+            final Links oldLinks)
+    {
+        return oldLinks.stream()
+                .filter(oldLink -> {
+                    if (isTmExtendsLink(oldLink)) {
+                        return newOptionalLinks.filter(DefaultWotThingModelExtensionResolver::containsTmExtendsLink)
+                                .isEmpty();
+                    } else {
+                        return true;
+                    }
+                });
+    }
+
+    private static boolean containsTmExtendsLink(final Links links) {
+        return links.stream().anyMatch(DefaultWotThingModelExtensionResolver::isTmExtendsLink);
+    }
+
+    private static boolean isTmExtendsLink(final BaseLink<?> link) {
+        return link.getRel().isPresent() && link.getRel().filter(TM_EXTENDS::equals).isPresent();
     }
 
     @Override
