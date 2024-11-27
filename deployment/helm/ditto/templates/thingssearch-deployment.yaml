@@ -316,6 +316,7 @@ spec:
             requests:
               cpu: {{ mulf .Values.thingsSearch.resources.cpu 1000 }}m
               memory: {{ .Values.thingsSearch.resources.memoryMi }}Mi
+              ephemeral-storage: {{ .Values.thingsSearch.resources.ephemeralStorageMi }}Mi
             limits:
               # ## no cpu limit to avoid CFS scheduler limits
               # ref: https://pekko.apache.org/docs/pekko/current/additional/deploying.html#deploying-to-kubernetes
