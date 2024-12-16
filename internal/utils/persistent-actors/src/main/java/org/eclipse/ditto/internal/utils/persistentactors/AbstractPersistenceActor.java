@@ -585,8 +585,6 @@ public abstract class AbstractPersistenceActor<
             E extends EventsourcedEvent<? extends E>,
             S extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField>>(E event, BiConsumer<E, S> handler) {}
 
-    ;
-
     /**
      * Persist an event, modify actor state by the event strategy, then invoke the handler.
      *
