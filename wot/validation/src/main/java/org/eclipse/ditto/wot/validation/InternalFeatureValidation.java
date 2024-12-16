@@ -106,7 +106,6 @@ final class InternalFeatureValidation {
             final Features features,
             final boolean desiredProperties,
             final boolean forbidNonModeledProperties,
-            final JsonPointer resourcePath,
             final ValidationContext context
     ) {
         final CompletableFuture<List<Void>> enforcedPropertiesListFuture;
@@ -119,7 +118,7 @@ final class InternalFeatureValidation {
                                 features.getFeature(entry.getKey()).orElseThrow(),
                                 desiredProperties,
                                 forbidNonModeledProperties,
-                                resourcePath.append(Thing.JsonFields.FEATURES.getPointer())
+                                Thing.JsonFields.FEATURES.getPointer()
                                         .addLeaf(JsonKey.of(entry.getKey()))
                                         .append(desiredProperties ?
                                                 Feature.JsonFields.DESIRED_PROPERTIES.getPointer() :
