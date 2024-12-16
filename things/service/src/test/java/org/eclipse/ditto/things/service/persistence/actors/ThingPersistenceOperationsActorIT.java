@@ -12,6 +12,12 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors;
 
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
@@ -40,10 +46,6 @@ import org.mockito.Mockito;
 
 import com.typesafe.config.Config;
 
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.Props;
-
 /**
  * Tests {@link ThingPersistenceOperationsActor} against a local MongoDB.
  */
@@ -59,6 +61,8 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
     @Before
     public void setup() {
         policyEnforcerProvider = Mockito.mock(PolicyEnforcerProvider.class);
+        Mockito.when(policyEnforcerProvider.getPolicyEnforcer(Mockito.any()))
+                .thenReturn(CompletableFuture.completedStage(Optional.empty()));
     }
 
     @Test
@@ -150,12 +154,7 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
                     }
                 },
                 liveSignalPub,
-                (thingId, mongoReadJournal, distributedPub, searchShardRegionProxy) -> ThingPersistenceActor.props(
-                        thingId,
-                        mongoReadJournal,
-                        distributedPub,
-                        null
-                ),
+                ThingPersistenceActor::props,
                 null,
                 policyEnforcerProvider,
                 Mockito.mock(MongoReadJournal.class));

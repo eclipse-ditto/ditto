@@ -23,9 +23,7 @@ import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultActivityCheckConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultEventConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultSnapshotConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.EventConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.cleanup.CleanupConfig;
 
@@ -43,7 +41,7 @@ public final class DefaultThingConfig implements ThingConfig {
     private final SupervisorConfig supervisorConfig;
     private final ActivityCheckConfig activityCheckConfig;
     private final SnapshotConfig snapshotConfig;
-    private final EventConfig eventConfig;
+    private final ThingEventConfig eventConfig;
     private final CleanupConfig cleanupConfig;
 
     private DefaultThingConfig(final ScopedConfig scopedConfig) {
@@ -51,7 +49,7 @@ public final class DefaultThingConfig implements ThingConfig {
         supervisorConfig = DefaultSupervisorConfig.of(scopedConfig);
         activityCheckConfig = DefaultActivityCheckConfig.of(scopedConfig);
         snapshotConfig = DefaultSnapshotConfig.of(scopedConfig);
-        eventConfig = DefaultEventConfig.of(scopedConfig);
+        eventConfig = DefaultThingEventConfig.of(scopedConfig);
         cleanupConfig = CleanupConfig.of(scopedConfig);
     }
 
@@ -87,7 +85,7 @@ public final class DefaultThingConfig implements ThingConfig {
     }
 
     @Override
-    public EventConfig getEventConfig() {
+    public ThingEventConfig getEventConfig() {
         return eventConfig;
     }
 

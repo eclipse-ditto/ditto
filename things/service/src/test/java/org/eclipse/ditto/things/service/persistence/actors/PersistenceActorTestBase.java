@@ -21,6 +21,13 @@ import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
@@ -61,12 +68,6 @@ import org.slf4j.Logger;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.testkit.TestProbe;
-import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Base test class for testing persistence actors of the things persistence.
@@ -228,12 +229,13 @@ public abstract class PersistenceActorTestBase {
     protected ActorRef createPersistenceActorWithPubSubFor(final ThingId thingId) {
 
         return actorSystem.actorOf(getPropsOfThingPersistenceActor(thingId, Mockito.mock(MongoReadJournal.class),
-                getDistributedPub()));
+                getDistributedPub(), null, policyEnforcerProvider));
     }
 
     private Props getPropsOfThingPersistenceActor(final ThingId thingId, final MongoReadJournal mongoReadJournal,
-            final DistributedPub<ThingEvent<?>> pub) {
-        return ThingPersistenceActor.props(thingId, mongoReadJournal, pub, null);
+            final DistributedPub<ThingEvent<?>> pub, @Nullable final ActorRef searchShardRegionProxy,
+            final PolicyEnforcerProvider policyEnforcerProvider) {
+        return ThingPersistenceActor.props(thingId, mongoReadJournal, pub, searchShardRegionProxy, policyEnforcerProvider);
     }
 
     protected ActorRef createSupervisorActorFor(final ThingId thingId) {
@@ -261,8 +263,7 @@ public abstract class PersistenceActorTestBase {
                             }
                         },
                         liveSignalPub,
-                        (thingId1, mongoReadJournal, pub, searchShardRegionProxy) -> getPropsOfThingPersistenceActor(
-                                thingId1, mongoReadJournal, pub),
+                        this::getPropsOfThingPersistenceActor,
                         null,
                         policyEnforcerProvider,
                         Mockito.mock(MongoReadJournal.class));
