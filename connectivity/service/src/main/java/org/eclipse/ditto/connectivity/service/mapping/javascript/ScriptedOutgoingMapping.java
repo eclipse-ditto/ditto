@@ -42,6 +42,7 @@ import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.JsonifiableAdaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.mozilla.javascript.Callable;
+import org.mozilla.javascript.ConsString;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ContextFactory;
 import org.mozilla.javascript.NativeArray;
@@ -51,6 +52,8 @@ import org.mozilla.javascript.RhinoException;
 import org.mozilla.javascript.Scriptable;
 import org.mozilla.javascript.Undefined;
 import org.mozilla.javascript.typedarrays.NativeArrayBuffer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Mapping function for outgoing messages based on JavaScript.
@@ -63,6 +66,7 @@ public final class ScriptedOutgoingMapping implements MappingFunction<Adaptable,
     private static final String EXTERNAL_MESSAGE_BYTE_PAYLOAD = "bytePayload";
 
     private static final String OUTGOING_FUNCTION_NAME = "mapFromDittoProtocolMsgWrapper";
+    private static final Logger log = LoggerFactory.getLogger(ScriptedOutgoingMapping.class);
 
     @Nullable private final ContextFactory contextFactory;
     @Nullable private final Scriptable scope;
@@ -159,11 +163,24 @@ public final class ScriptedOutgoingMapping implements MappingFunction<Adaptable,
         nativeObject.forEach((key, value) -> {
             try {
                 if (value instanceof String) {
-                    objectBuilder.set(key.toString(), JsonFactory.readFrom(value.toString()));
+                    objectBuilder.set(key.toString(), JsonFactory.newValue(value.toString()));
+                } else if (value instanceof ConsString consString) {
+                    objectBuilder.set(key.toString(), JsonFactory.newValue(consString.toString()));
                 } else if (value instanceof NativeArray nativeArray) {
                     objectBuilder.set(key.toString(), toJsonArray(nativeArray));
                 } else if (value instanceof NativeObject nativeSubObject) {
                     objectBuilder.set(key.toString(), toJsonObject(nativeSubObject));
+                } else if (value instanceof Boolean boolValue) {
+                    objectBuilder.set(key.toString(), JsonFactory.newValue(boolValue));
+                } else if (value instanceof Integer intValue) {
+                    objectBuilder.set(key.toString(), JsonFactory.newValue(intValue));
+                } else if (value instanceof Double doubleValue) {
+                    objectBuilder.set(key.toString(), JsonFactory.newValue(doubleValue));
+                } else {
+                    if (log.isDebugEnabled()){
+                        log.debug("Unsupported type: {}, adding as string: {}", value.getClass().getName(), value);
+                    }
+                    objectBuilder.set(key.toString(), value.toString());
                 }
             } catch (final JsonParseException e) {
                 objectBuilder.set(key.toString(), value.toString());
