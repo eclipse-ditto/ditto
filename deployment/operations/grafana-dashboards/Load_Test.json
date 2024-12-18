@@ -112,7 +112,7 @@
       "pluginVersion": "8.5.6",
       "targets": [
         {
-          "expr": "sum(irate(connectivity_message_mapping_seconds_count{segment=\"overall\"}[5m]) > 0) by (direction) > 0",
+          "expr": "sum(irate(message_mapping_seconds_count{segment=\"overall\"}[5m]) > 0) by (direction) > 0",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{direction}}",
