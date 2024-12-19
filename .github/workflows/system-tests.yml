@@ -133,7 +133,7 @@ jobs:
           if [[ $GITHUB_ACTOR != "nektos/act" ]]; then
             echo "HOST_M2_REPO=$HOME/.m2" >> $GITHUB_ENV
           fi
-          echo "UPLOAD_TEST_ARTEFACT_NAME=system-test-results-${{ env.DITTO_BRANCH }}-${{ github.run_number }}" | sed 's/\//-/g' >> $GITHUB_ENV
+          echo "DITTO_BRANCH_NO_SLASH=${{ env.DITTO_BRANCH }}" | sed 's/\//-/g' >> $GITHUB_ENV
 
       - name: Debug maven repo
         run: |
@@ -359,8 +359,8 @@ jobs:
         if:  env.GITHUB_ACTOR != 'nektos/act'
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ env.UPLOAD_TEST_ARTEFACT_NAME }}
-          path: 'ditto-testing/**/target/failsafe-reports/**/*.xml'
+          name: system-test-results-${{ env.DITTO_BRANCH_NO_SLASH }}-${{ github.run_number }}
+          path: 'ditto-testing/system*/**/target/failsafe-reports/**/*.xml'
           
       - name: Upload services logs
         if:  env.GITHUB_ACTOR != 'nektos/act'
@@ -372,14 +372,14 @@ jobs:
       - name: List Test Result files
         if: always()
         run: |
-          ls -lah ./**/target/failsafe-reports/*IT.xml
+          ls -lah ./system*/**/target/failsafe-reports/*IT.xml
         working-directory: ditto-testing
 
       - name: Publish Test Results
         uses: dorny/test-reporter@v1
         with:
-          name: Test Results | ${{ env.DITTO_BRANCH }} ${{ github.run_number }}
-          path: ./**/target/failsafe-reports/*IT.xml
+          name: Test Results | ${{ env.DITTO_BRANCH_NO_SLASH }} ${{ github.run_number }}
+          path: ./system*/**/target/failsafe-reports/*IT.xml
           reporter: java-junit
           working-directory: ditto-testing
         
