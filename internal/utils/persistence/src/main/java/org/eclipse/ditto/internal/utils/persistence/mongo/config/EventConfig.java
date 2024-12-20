@@ -36,7 +36,7 @@ public interface EventConfig {
 
     /**
      * An enumeration of the known config path expressions and their associated default values for
-     * {@code SnapshotConfig}.
+     * {@code EventConfig}.
      */
     enum EventConfigValue implements KnownConfigValue {
 
@@ -65,7 +65,6 @@ public interface EventConfig {
         public String getConfigPath() {
             return path;
         }
-
-        }
+    }
 
 }

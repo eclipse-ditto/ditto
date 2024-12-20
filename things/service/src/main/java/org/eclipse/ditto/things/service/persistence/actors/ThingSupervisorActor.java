@@ -408,7 +408,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     protected Props getPersistenceActorProps(final ThingId entityId) {
         assert thingPersistenceActorPropsFactory != null;
         return thingPersistenceActorPropsFactory.props(entityId, mongoReadJournal, distributedPubThingEventsForTwin,
-                searchShardRegionProxy);
+                searchShardRegionProxy, policyEnforcerProvider);
     }
 
     @Override
