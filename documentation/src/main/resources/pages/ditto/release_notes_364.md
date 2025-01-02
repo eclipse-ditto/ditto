@@ -3,7 +3,7 @@ title: Release notes 3.6.4
 tags: [release_notes]
 published: true
 keywords: release notes, announcements, changelog
-summary: "Version 3.6.4 of Eclipse Ditto, released on 03.12.2025"
+summary: "Version 3.6.4 of Eclipse Ditto, released on 03.01.2025"
 permalink: release_notes_364.html
 ---
 
