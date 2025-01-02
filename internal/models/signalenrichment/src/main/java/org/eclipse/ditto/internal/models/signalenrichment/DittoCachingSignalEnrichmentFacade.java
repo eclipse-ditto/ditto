@@ -458,11 +458,11 @@ public class DittoCachingSignalEnrichmentFacade implements CachingSignalEnrichme
     }
 
     private static <T> T getLast(final List<T> list) {
-        return list.get(list.size() - 1);
+        return list.getLast();
     }
 
     private static <T> T getFirst(final List<T> list) {
-        return list.get(0);
+        return list.getFirst();
     }
 
     private CompletionStage<JsonObject> handleNextExpectedThingEvents(final SignalEnrichmentCacheKey cacheKey,

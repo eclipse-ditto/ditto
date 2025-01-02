@@ -50,7 +50,7 @@ import com.typesafe.config.ConfigFactory;
  */
 abstract class AbstractCachingSignalEnrichmentFacadeTest extends AbstractSignalEnrichmentFacadeTest {
 
-    private static final String ISSUER_PREFIX = "test:";
+    protected static final String ISSUER_PREFIX = "test:";
     private static final String CACHE_CONFIG_KEY = "my-cache";
     private static final String CACHE_CONFIG = CACHE_CONFIG_KEY + """
             {
