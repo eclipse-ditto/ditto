@@ -22,6 +22,14 @@ import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.things.model.Attributes;
+import org.eclipse.ditto.things.model.Feature;
+import org.eclipse.ditto.things.model.FeatureProperties;
+import org.eclipse.ditto.things.model.Features;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
@@ -73,6 +81,101 @@ public final class ModifyToCreateThingTransformerTest {
         final CreateThing createThing = (CreateThing) result;
         assertThat(createThing.getEntityId().toString()).hasToString(thingId.toString());
         assertThat(createThing.getThing()).isEqualTo(ThingsModelFactory.newThing(mergeThing.getValue().asObject()));
+        assertThat(createThing.getDittoHeaders()).isSameAs(mergeThing.getDittoHeaders());
+        verify(existenceChecker).checkExistence(mergeThing);
+    }
+
+    @Test
+    public void mergeThingWithNullsBecomesCreateThingRemovingNullsWhenNotYetExisting() {
+        final var thingId = ThingId.generateRandom();
+        final var attributes = Attributes.newBuilder()
+                .set("one", 1)
+                .set("oops_null", JsonValue.nullLiteral())
+                .set("null_value", "null")
+                .build();
+        final var mergeThing = MergeThing.withThing(thingId, Thing.newBuilder()
+                        .setId(thingId)
+                        .setAttributes(attributes)
+                        .build(),
+                DittoHeaders.of(Map.of("foo", "bar")));
+        when(existenceChecker.checkExistence(mergeThing)).thenReturn(CompletableFuture.completedFuture(false));
+
+        final Signal<?> result = underTest.apply(mergeThing).toCompletableFuture().join();
+
+        assertThat(result).isInstanceOf(CreateThing.class);
+        final CreateThing createThing = (CreateThing) result;
+        assertThat(createThing.getEntityId().toString()).hasToString(thingId.toString());
+        final Thing thingWithoutNullValues = ThingsModelFactory.newThingBuilder(mergeThing.getValue().asObject())
+                .removeAttribute(JsonPointer.of("oops_null"))
+                .build();
+        assertThat(createThing.getThing()).isEqualTo(thingWithoutNullValues);
+        assertThat(createThing.getDittoHeaders()).isSameAs(mergeThing.getDittoHeaders());
+        verify(existenceChecker).checkExistence(mergeThing);
+    }
+
+    @Test
+    public void mergeThingWithNestedNullsInFeaturesBecomesCreateThingRemovingNullsWhenNotYetExisting() {
+        final var thingId = ThingId.generateRandom();
+        final var attributes = Attributes.newBuilder()
+                .set("one", 1)
+                .set("oops_null", JsonValue.nullLiteral())
+                .set("null_value", "null")
+                .build();
+        final var features = Features.newBuilder()
+                .set(Feature.newBuilder()
+                        .properties(FeatureProperties.newBuilder()
+                                .set("some_property", "123")
+                                .set("some_property_null", JsonValue.nullLiteral())
+                                .set("some_object", JsonObject.newBuilder()
+                                        .set("some_nested_int", 123)
+                                        .set("some_nested_null", JsonValue.nullLiteral())
+                                        .build()
+                                )
+                                .build()
+                        )
+                        .withId("feature1")
+                        .build()
+                )
+                .set(Feature.newBuilder()
+                        .desiredProperties(FeatureProperties.newBuilder()
+                                .set("some_desired_property", "123")
+                                .set("some_desired_property_null", JsonValue.nullLiteral())
+                                .set("some_desired_array", JsonArray.newBuilder()
+                                        .add(JsonObject.newBuilder()
+                                                .set("some_desired_array_nested_int", 123)
+                                                .set("some_desired_array_nested_null", JsonValue.nullLiteral())
+                                                .build())
+                                        .build()
+                                )
+                                .build()
+                        )
+                        .withId("feature2")
+                        .build()
+                )
+                .build();
+        final var mergeThing = MergeThing.withThing(thingId, Thing.newBuilder()
+                        .setId(thingId)
+                        .setAttributes(attributes)
+                        .setFeatures(features)
+                        .build(),
+                DittoHeaders.of(Map.of("foo", "bar")));
+        when(existenceChecker.checkExistence(mergeThing)).thenReturn(CompletableFuture.completedFuture(false));
+
+        final Signal<?> result = underTest.apply(mergeThing).toCompletableFuture().join();
+
+        assertThat(result).isInstanceOf(CreateThing.class);
+        final CreateThing createThing = (CreateThing) result;
+        assertThat(createThing.getEntityId().toString()).hasToString(thingId.toString());
+        final Thing thingWithoutNullValues = ThingsModelFactory.newThingBuilder(mergeThing.getValue().asObject())
+                .removeAttribute(JsonPointer.of("oops_null"))
+                .removeFeatureProperty("feature1", JsonPointer.of("some_property_null"))
+                .removeFeatureProperty("feature1", JsonPointer.of("some_object/some_nested_null"))
+                .removeFeatureDesiredProperty("feature2", JsonPointer.of("some_desired_property_null"))
+                .setFeatureDesiredProperty("feature2", JsonPointer.of("some_desired_array"),
+                                JsonArray.of(JsonObject.newBuilder().set("some_desired_array_nested_int", 123).build())
+                )
+                .build();
+        assertThat(createThing.getThing()).isEqualTo(thingWithoutNullValues);
         assertThat(createThing.getDittoHeaders()).isSameAs(mergeThing.getDittoHeaders());
         verify(existenceChecker).checkExistence(mergeThing);
     }
