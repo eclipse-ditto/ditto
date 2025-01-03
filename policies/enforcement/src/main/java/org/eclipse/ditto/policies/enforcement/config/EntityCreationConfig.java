@@ -21,7 +21,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 /**
- * Provides configuration settings for Concierge entity creation behaviour.
+ * Provides configuration settings for entity creation behaviour.
  */
 @Immutable
 public interface EntityCreationConfig {
