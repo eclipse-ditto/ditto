@@ -77,7 +77,6 @@ ditto {
                 "{{$thingDefinitionPattern}}"
               {{- end }}
               ]
-            }
             {{- end }}
             {{- end }}
             {{- if $dynamicWotTmValidationConfig.validationContext.featureDefinitionPatterns }}
@@ -87,9 +86,9 @@ ditto {
                 "{{$featureDefinitionPattern}}"
               {{- end }}
               ]
+            {{- end }}
+            {{- end }}
             }
-            {{- end }}
-            {{- end }}
             config-overrides {
             {{- range $configOverridesKey, $configOverridesValue := $dynamicWotTmValidationConfig.configOverrides }}
             {{- if or (eq (kindOf $configOverridesValue) "map") (eq (kindOf $configOverridesValue) "slice") }}
