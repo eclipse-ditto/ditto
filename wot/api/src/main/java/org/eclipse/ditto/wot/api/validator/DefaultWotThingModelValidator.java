@@ -52,6 +52,7 @@ import org.eclipse.ditto.wot.validation.config.TmValidationConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.slf4j.spi.LoggingEventBuilder;
 
 /**
  * Default Ditto specific implementation of {@link WotThingModelValidator}.
@@ -580,16 +581,14 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
     ) {
         return (aVoid, throwable) -> {
             if (throwable != null) {
+                final Throwable cause =
+                        (throwable instanceof CompletionException ce) ? ce.getCause() : throwable;
                 if (validationConfig.logWarningInsteadOfFailingApiCalls()) {
-                    context.dittoHeaders().getCorrelationId().ifPresent(cId -> MDC.put("correlation-id", cId));
-                    log.warn("WoT based validation in <{}()> failed for <TD {}>/<FD {}> due to: <{}>", loggingHintSource,
-                            context.thingDefinition(), context.featureDefinition(), throwable.getMessage(), throwable
-                    );
-                    context.dittoHeaders().getCorrelationId().ifPresent(cId -> MDC.remove("correlation-id"));
+                    // only log a warning, but do not fail the API call
+                    logValidationWarning(true, context, loggingHintSource, cause);
                     return null;
                 } else {
-                    final Throwable cause =
-                            (throwable instanceof CompletionException ce) ? ce.getCause() : throwable;
+                    logValidationWarning(false, context, loggingHintSource, cause);
                     if (cause instanceof RuntimeException re) {
                         throw re;
                     } else {
@@ -600,6 +599,23 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                 return aVoid;
             }
         };
+    }
+
+    private static void logValidationWarning(final boolean logAsWarning,
+            final ValidationContext context,
+            final String loggingHintSource,
+            final Throwable throwable
+    ) {
+        final DittoHeaders dittoHeaders = context.dittoHeaders();
+        dittoHeaders.getCorrelationId().ifPresent(cId -> MDC.put("correlation-id", cId));
+        dittoHeaders.getTraceParent().ifPresent(traceParent -> MDC.put("traceparent-trace-id", traceParent));
+        final LoggingEventBuilder logBuilder = logAsWarning ? log.atWarn() : log.atInfo();
+        logBuilder.log("WoT based validation of Thing <{}> in <{}()> failed for <TD {}>/<FD {}> due to: <{}>",
+                context.thingId(), loggingHintSource, context.thingDefinition(), context.featureDefinition(),
+                throwable.getMessage()
+        );
+        dittoHeaders.getCorrelationId().ifPresent(cId -> MDC.remove("correlation-id"));
+        dittoHeaders.getTraceParent().ifPresent(traceParent -> MDC.remove("traceparent-trace-id"));
     }
 
     private CompletionStage<Void> fetchResolveAndValidateWith(@Nullable final DefinitionIdentifier definitionIdentifier,
