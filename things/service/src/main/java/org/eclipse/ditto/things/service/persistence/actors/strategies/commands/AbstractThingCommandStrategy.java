@@ -95,7 +95,8 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
             final long nextRevision, final C command) {
 
         final var dittoHeaders = command.getDittoHeaders();
-        final var dittoHeadersBuilder = dittoHeaders.toBuilder();
+        final var dittoHeadersBuilder = dittoHeaders.toBuilder()
+                .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), context.getState().toString());
         final var loggerWithCorrelationId = context.getLog().withCorrelationId(command);
         final var thingConditionFailed = dittoHeaders.getCondition()
                 .flatMap(condition -> ThingConditionValidator.validate(command, condition, entity));
