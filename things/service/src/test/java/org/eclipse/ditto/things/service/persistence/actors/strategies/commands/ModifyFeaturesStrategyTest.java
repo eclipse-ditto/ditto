@@ -16,7 +16,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 
 import org.apache.pekko.actor.ActorSystem;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.Feature;
@@ -31,7 +30,6 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatures;
 import org.eclipse.ditto.things.model.signals.events.FeaturesCreated;
 import org.eclipse.ditto.things.model.signals.events.FeaturesModified;
 import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
-import org.eclipse.ditto.wot.api.generator.WotThingDescriptionGenerator;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -65,7 +63,7 @@ public final class ModifyFeaturesStrategyTest extends AbstractCommandStrategyTes
     @Test
     public void modifyFeaturesOfThingWithoutFeatures() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final ModifyFeatures command = ModifyFeatures.of(context.getState(), modifiedFeatures, DittoHeaders.empty());
+        final ModifyFeatures command = ModifyFeatures.of(context.getState(), modifiedFeatures, provideHeaders(context));
 
         assertStagedModificationResult(underTest, THING_V2.removeFeatures(), command,
                 FeaturesCreated.class,
@@ -75,7 +73,7 @@ public final class ModifyFeaturesStrategyTest extends AbstractCommandStrategyTes
     @Test
     public void modifyExistingFeatures() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final ModifyFeatures command = ModifyFeatures.of(context.getState(), modifiedFeatures, DittoHeaders.empty());
+        final ModifyFeatures command = ModifyFeatures.of(context.getState(), modifiedFeatures, provideHeaders(context));
 
         assertStagedModificationResult(underTest, THING_V2, command,
                 FeaturesModified.class,
@@ -106,10 +104,10 @@ public final class ModifyFeaturesStrategyTest extends AbstractCommandStrategyTes
                 .build();
 
         // creating the Thing should be possible as we are below the limit:
-        CreateThing.of(thing, null, DittoHeaders.empty());
+        CreateThing.of(thing, null, provideHeaders(context));
 
         final ModifyFeatures command =
-                ModifyFeatures.of(thingId, Features.newBuilder().set(feature).build(), DittoHeaders.empty());
+                ModifyFeatures.of(thingId, Features.newBuilder().set(feature).build(), provideHeaders(context));
 
         // but modifying the features which would cause the Thing to exceed the limit should not be allowed:
         assertThatThrownBy(() -> underTest.doApply(context, thing, NEXT_REVISION, command, null))

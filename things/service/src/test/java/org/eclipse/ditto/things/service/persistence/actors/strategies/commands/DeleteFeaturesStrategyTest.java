@@ -16,7 +16,6 @@ import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteFeatures;
@@ -43,7 +42,7 @@ public final class DeleteFeaturesStrategyTest extends AbstractCommandStrategyTes
     @Test
     public void successfullyDeleteFeaturesFromThing() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final DeleteFeatures command = DeleteFeatures.of(context.getState(), DittoHeaders.empty());
+        final DeleteFeatures command = DeleteFeatures.of(context.getState(), provideHeaders(context));
 
         assertStagedModificationResult(underTest, THING_V2, command,
                 FeaturesDeleted.class,
@@ -53,7 +52,7 @@ public final class DeleteFeaturesStrategyTest extends AbstractCommandStrategyTes
     @Test
     public void deleteFeaturesFromThingWithoutFeatures() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final DeleteFeatures command = DeleteFeatures.of(context.getState(), DittoHeaders.empty());
+        final DeleteFeatures command = DeleteFeatures.of(context.getState(), provideHeaders(context));
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featuresNotFound(context.getState(), command.getDittoHeaders());
 

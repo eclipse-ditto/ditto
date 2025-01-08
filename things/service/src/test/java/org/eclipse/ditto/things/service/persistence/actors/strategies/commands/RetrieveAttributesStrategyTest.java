@@ -17,7 +17,6 @@ import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -46,10 +45,10 @@ public final class RetrieveAttributesStrategyTest extends AbstractCommandStrateg
     @Test
     public void retrieveAttributesWithoutSelectedFields() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final RetrieveAttributes command = RetrieveAttributes.of(context.getState(), DittoHeaders.empty());
+        final RetrieveAttributes command = RetrieveAttributes.of(context.getState(), provideHeaders(context));
         final RetrieveAttributesResponse expectedResponse =
                 ETagTestUtils.retrieveAttributesResponse(context.getState(), ATTRIBUTES,
-                        ATTRIBUTES.toJson(command.getImplementedSchemaVersion()), DittoHeaders.empty());
+                        ATTRIBUTES.toJson(command.getImplementedSchemaVersion()), provideHeaders(context));
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
     }
@@ -59,10 +58,10 @@ public final class RetrieveAttributesStrategyTest extends AbstractCommandStrateg
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final JsonFieldSelector selectedFields = JsonFactory.newFieldSelector("maker");
         final RetrieveAttributes command =
-                RetrieveAttributes.of(context.getState(), selectedFields, DittoHeaders.empty());
+                RetrieveAttributes.of(context.getState(), selectedFields, provideHeaders(context));
         final RetrieveAttributesResponse expectedResponse =
                 ETagTestUtils.retrieveAttributesResponse(context.getState(), ATTRIBUTES,
-                        ATTRIBUTES.toJson(command.getImplementedSchemaVersion(), selectedFields), DittoHeaders.empty());
+                        ATTRIBUTES.toJson(command.getImplementedSchemaVersion(), selectedFields), provideHeaders(context));
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
     }
@@ -70,9 +69,9 @@ public final class RetrieveAttributesStrategyTest extends AbstractCommandStrateg
     @Test
     public void retrieveAttributesFromThingWithoutAttributes() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final RetrieveAttributes command = RetrieveAttributes.of(context.getState(), DittoHeaders.empty());
+        final RetrieveAttributes command = RetrieveAttributes.of(context.getState(), provideHeaders(context));
         final DittoRuntimeException expectedException =
-                ExceptionFactory.attributesNotFound(context.getState(), DittoHeaders.empty());
+                ExceptionFactory.attributesNotFound(context.getState(), provideHeaders(context));
 
         assertErrorResult(underTest, THING_V2.removeAttributes(), command, expectedException);
     }

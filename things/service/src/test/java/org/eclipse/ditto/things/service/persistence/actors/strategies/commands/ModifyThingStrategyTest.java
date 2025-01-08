@@ -17,7 +17,6 @@ import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 import java.time.Instant;
 
 import org.apache.pekko.actor.ActorSystem;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
@@ -59,7 +58,7 @@ public final class ModifyThingStrategyTest extends AbstractCommandStrategyTest {
                 .setCreated(MODIFIED)
                 .build();
 
-        final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, DittoHeaders.empty());
+        final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, provideHeaders(context));
 
         assertStagedModificationResult(underTest, existing, modifyThing,
                 ThingModified.class, ETagTestUtils.modifyThingResponse(existing, thing, modifyThing.getDittoHeaders(), false));

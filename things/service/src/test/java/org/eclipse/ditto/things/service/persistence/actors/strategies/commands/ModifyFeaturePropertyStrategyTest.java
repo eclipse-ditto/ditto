@@ -66,7 +66,7 @@ public final class ModifyFeaturePropertyStrategyTest extends AbstractCommandStra
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeatureProperty command =
                 ModifyFeatureProperty.of(context.getState(), featureId, propertyPointer, newPropertyValue,
-                        DittoHeaders.empty());
+                        provideHeaders(context));
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featureNotFound(context.getState(), command.getFeatureId(),
                         command.getDittoHeaders());
@@ -79,7 +79,7 @@ public final class ModifyFeaturePropertyStrategyTest extends AbstractCommandStra
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeatureProperty command =
                 ModifyFeatureProperty.of(context.getState(), featureId, propertyPointer, newPropertyValue,
-                        DittoHeaders.empty());
+                        provideHeaders(context));
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featureNotFound(context.getState(), command.getFeatureId(),
                         command.getDittoHeaders());
@@ -92,7 +92,7 @@ public final class ModifyFeaturePropertyStrategyTest extends AbstractCommandStra
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeatureProperty command =
                 ModifyFeatureProperty.of(context.getState(), featureId, propertyPointer, newPropertyValue,
-                        DittoHeaders.empty());
+                        provideHeaders(context));
 
         assertStagedModificationResult(underTest, THING_V2.removeFeatureProperties(featureId), command,
                 FeaturePropertyCreated.class,
@@ -105,7 +105,7 @@ public final class ModifyFeaturePropertyStrategyTest extends AbstractCommandStra
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeatureProperty command =
                 ModifyFeatureProperty.of(context.getState(), featureId, propertyPointer, newPropertyValue,
-                        DittoHeaders.empty());
+                        provideHeaders(context));
 
         assertStagedModificationResult(underTest, THING_V2, command,
                 FeaturePropertyModified.class,
@@ -118,7 +118,7 @@ public final class ModifyFeaturePropertyStrategyTest extends AbstractCommandStra
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeatureProperty command =
                 ModifyFeatureProperty.of(context.getState(), featureId, propertyPointer, newPropertyValue,
-                        DittoHeaders.newBuilder()
+                        provideHeaders(context).toBuilder()
                                 .putMetadata(MetadataHeaderKey.of(JsonPointer.of("meta")), JsonObject.newBuilder()
                                         .set("description", "bumlux")
                                         .build())

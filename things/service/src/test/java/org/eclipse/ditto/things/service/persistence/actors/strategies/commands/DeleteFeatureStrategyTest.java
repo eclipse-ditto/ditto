@@ -16,7 +16,6 @@ import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.TestConstants;
 import org.eclipse.ditto.things.model.ThingId;
@@ -52,8 +51,7 @@ public final class DeleteFeatureStrategyTest extends AbstractCommandStrategyTest
     @Test
     public void successfullyDeleteFeatureFromThing() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final DeleteFeature command = DeleteFeature.of(context.getState(), featureId, DittoHeaders.newBuilder()
-                .build());
+        final DeleteFeature command = DeleteFeature.of(context.getState(), featureId, provideHeaders(context));
 
         assertStagedModificationResult(underTest, THING_V2, command, FeatureDeleted.class,
                 DeleteFeatureResponse.of(context.getState(), command.getFeatureId(), command.getDittoHeaders()));
@@ -62,7 +60,7 @@ public final class DeleteFeatureStrategyTest extends AbstractCommandStrategyTest
     @Test
     public void deleteFeatureFromThingWithoutFeatures() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final DeleteFeature command = DeleteFeature.of(context.getState(), featureId, DittoHeaders.empty());
+        final DeleteFeature command = DeleteFeature.of(context.getState(), featureId, provideHeaders(context));
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featureNotFound(context.getState(), command.getFeatureId(),
                         command.getDittoHeaders());
@@ -73,7 +71,7 @@ public final class DeleteFeatureStrategyTest extends AbstractCommandStrategyTest
     @Test
     public void deleteFeatureFromThingWithoutThatFeature() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final DeleteFeature command = DeleteFeature.of(context.getState(), "myFeature", DittoHeaders.empty());
+        final DeleteFeature command = DeleteFeature.of(context.getState(), "myFeature", provideHeaders(context));
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featureNotFound(context.getState(), command.getFeatureId(),
                         command.getDittoHeaders());

@@ -30,7 +30,6 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccess
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
-import org.eclipse.ditto.wot.api.generator.WotThingDescriptionGenerator;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -52,7 +51,7 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
     @Test
     public void isNotDefinedForDeviantThingIds() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final RetrieveThing command = RetrieveThing.of(ThingId.of("org.example", "myThing"), DittoHeaders.empty());
+        final RetrieveThing command = RetrieveThing.of(ThingId.of("org.example", "myThing"), provideHeaders(context));
 
         final boolean defined = underTest.isDefined(context, THING_V2, command);
 
@@ -62,7 +61,7 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
     @Test
     public void isNotDefinedIfContextHasNoThing() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final RetrieveThing command = RetrieveThing.of(context.getState(), DittoHeaders.empty());
+        final RetrieveThing command = RetrieveThing.of(context.getState(), provideHeaders(context));
 
         final boolean defined = underTest.isDefined(context, null, command);
 
@@ -72,7 +71,7 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
     @Test
     public void isDefinedIfContextHasThingAndThingIdsAreEqual() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final RetrieveThing command = RetrieveThing.of(context.getState(), DittoHeaders.empty());
+        final RetrieveThing command = RetrieveThing.of(context.getState(), provideHeaders(context));
 
         final boolean defined = underTest.isDefined(context, THING_V2, command);
 
@@ -82,9 +81,9 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
     @Test
     public void retrieveThingFromContextIfCommandHasNoSnapshotRevisionAndNoSelectedFields() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final RetrieveThing command = RetrieveThing.of(context.getState(), DittoHeaders.empty());
+        final RetrieveThing command = RetrieveThing.of(context.getState(), provideHeaders(context));
         final RetrieveThingResponse expectedResponse =
-                ETagTestUtils.retrieveThingResponse(THING_V2, null, DittoHeaders.empty());
+                ETagTestUtils.retrieveThingResponse(THING_V2, null, provideHeaders(context));
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
     }
@@ -93,11 +92,11 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
     public void retrieveThingFromContextIfCommandHasNoSnapshotRevisionButSelectedFields() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector("/attributes/location");
-        final RetrieveThing command = RetrieveThing.getBuilder(context.getState(), DittoHeaders.empty())
+        final RetrieveThing command = RetrieveThing.getBuilder(context.getState(), provideHeaders(context))
                 .withSelectedFields(fieldSelector)
                 .build();
         final RetrieveThingResponse expectedResponse =
-                ETagTestUtils.retrieveThingResponse(THING_V2, fieldSelector, DittoHeaders.empty());
+                ETagTestUtils.retrieveThingResponse(THING_V2, fieldSelector, provideHeaders(context));
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
     }
@@ -105,7 +104,7 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
     @Test
     public void unhandledReturnsThingNotAccessibleException() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final RetrieveThing command = RetrieveThing.of(context.getState(), DittoHeaders.empty());
+        final RetrieveThing command = RetrieveThing.of(context.getState(), provideHeaders(context));
         final ThingNotAccessibleException expectedException =
                 new ThingNotAccessibleException(command.getEntityId(), command.getDittoHeaders());
 
