@@ -16,8 +16,12 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.PoisonPill;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.test.Retry;
@@ -47,10 +51,6 @@ import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueFactory;
-
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.PoisonPill;
-import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Unit test for the snapshotting functionality of {@link ThingPersistenceActor}.
@@ -101,7 +101,9 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
 
                 final DeleteThing deleteThing = DeleteThing.of(thingId, dittoHeadersV2);
                 underTest.tell(deleteThing, getRef());
-                expectMsgEquals(DeleteThingResponse.of(thingId, dittoHeadersV2));
+                expectMsgEquals(DeleteThingResponse.of(thingId, dittoHeadersV2.toBuilder()
+                        .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), thingId.toString())
+                        .build()));
 
                 final Thing expectedDeletedSnapshot = toDeletedThing(2);
                 assertSnapshots(thingId, Collections.singletonList(expectedDeletedSnapshot));

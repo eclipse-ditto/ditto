@@ -19,7 +19,6 @@ import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -50,7 +49,7 @@ public final class RetrieveFeatureDesiredPropertiesStrategyTest extends Abstract
     public void getProperties() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveFeatureDesiredProperties command =
-                RetrieveFeatureDesiredProperties.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
+                RetrieveFeatureDesiredProperties.of(context.getState(), FLUX_CAPACITOR_ID, provideHeaders(context));
         final RetrieveFeatureDesiredPropertiesResponse expectedResponse =
                 ETagTestUtils.retrieveFeatureDesiredPropertiesResponse(command.getEntityId(), command.getFeatureId(),
                         FLUX_CAPACITOR_PROPERTIES, command.getDittoHeaders());
@@ -62,7 +61,7 @@ public final class RetrieveFeatureDesiredPropertiesStrategyTest extends Abstract
     public void getPropertiesFromThingWithoutFeatures() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveFeatureDesiredProperties command =
-                RetrieveFeatureDesiredProperties.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
+                RetrieveFeatureDesiredProperties.of(context.getState(), FLUX_CAPACITOR_ID, provideHeaders(context));
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featureNotFound(command.getEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());
@@ -74,7 +73,7 @@ public final class RetrieveFeatureDesiredPropertiesStrategyTest extends Abstract
     public void getNonExistingDesiredProperties() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveFeatureDesiredProperties command =
-                RetrieveFeatureDesiredProperties.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
+                RetrieveFeatureDesiredProperties.of(context.getState(), FLUX_CAPACITOR_ID, provideHeaders(context));
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featureDesiredPropertiesNotFound(command.getEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());
@@ -89,7 +88,7 @@ public final class RetrieveFeatureDesiredPropertiesStrategyTest extends Abstract
         final JsonFieldSelector selectedFields = JsonFactory.newFieldSelector("target_year_1");
         final RetrieveFeatureDesiredProperties command =
                 RetrieveFeatureDesiredProperties.of(context.getState(), FLUX_CAPACITOR_ID, selectedFields,
-                        DittoHeaders.empty());
+                        provideHeaders(context));
         final RetrieveFeatureDesiredPropertiesResponse expectedResponse =
                 ETagTestUtils.retrieveFeatureDesiredPropertiesResponse(command.getEntityId(), command.getFeatureId(),
                         FLUX_CAPACITOR_PROPERTIES,
@@ -97,7 +96,7 @@ public final class RetrieveFeatureDesiredPropertiesStrategyTest extends Abstract
                                 .set("target_year_1",
                                         FLUX_CAPACITOR_PROPERTIES.toJson(command.getImplementedSchemaVersion(),
                                                 selectedFields).getValue("target_year_1").get()).build(),
-                        DittoHeaders.empty());
+                        provideHeaders(context));
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
     }

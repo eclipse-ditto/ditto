@@ -16,7 +16,6 @@ import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.FeatureDefinition;
@@ -59,7 +58,7 @@ public final class ModifyFeatureDefinitionStrategyTest extends AbstractCommandSt
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeatureDefinition command =
                 ModifyFeatureDefinition.of(context.getState(), featureId, modifiedFeatureDefinition,
-                        DittoHeaders.empty());
+                        provideHeaders(context));
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featureNotFound(context.getState(), featureId, command.getDittoHeaders());
 
@@ -71,7 +70,7 @@ public final class ModifyFeatureDefinitionStrategyTest extends AbstractCommandSt
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeatureDefinition command =
                 ModifyFeatureDefinition.of(context.getState(), featureId, modifiedFeatureDefinition,
-                        DittoHeaders.empty());
+                        provideHeaders(context));
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featureNotFound(context.getState(), featureId, command.getDittoHeaders());
 
@@ -84,7 +83,7 @@ public final class ModifyFeatureDefinitionStrategyTest extends AbstractCommandSt
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeatureDefinition command =
                 ModifyFeatureDefinition.of(context.getState(), featureId, modifiedFeatureDefinition,
-                        DittoHeaders.empty());
+                        provideHeaders(context));
 
         assertStagedModificationResult(underTest, THING_V2.setFeature(featureWithoutDefinition), command,
                 FeatureDefinitionCreated.class,
@@ -97,7 +96,7 @@ public final class ModifyFeatureDefinitionStrategyTest extends AbstractCommandSt
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeatureDefinition command =
                 ModifyFeatureDefinition.of(context.getState(), featureId, modifiedFeatureDefinition,
-                        DittoHeaders.empty());
+                        provideHeaders(context));
 
         assertStagedModificationResult(underTest, THING_V2, command,
                 FeatureDefinitionModified.class,
