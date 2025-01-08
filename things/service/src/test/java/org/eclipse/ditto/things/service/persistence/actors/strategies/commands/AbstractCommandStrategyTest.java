@@ -28,6 +28,7 @@ import javax.annotation.Nullable;
 import org.assertj.core.api.CompletableFutureAssert;
 import org.eclipse.ditto.base.model.common.DittoSystemProperties;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
@@ -175,6 +176,12 @@ public abstract class AbstractCommandStrategyTest {
         final ResultVisitor<ThingEvent<?>> mock = mock(Dummy.class);
         underTest.unhandled(getDefaultContext(), thing, NEXT_REVISION, command).accept(mock, null);
         verify(mock).onError(eq(expectedResponse), eq(command));
+    }
+
+    protected static DittoHeaders provideHeaders(final CommandStrategy.Context<ThingId> context) {
+        return DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), context.getState().toString())
+                .build();
     }
 
     private static <T extends ThingModifiedEvent<?>> T assertModificationResult(final Result<ThingEvent<?>> result,

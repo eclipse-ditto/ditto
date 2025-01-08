@@ -15,7 +15,6 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 
 import org.apache.pekko.actor.ActorSystem;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThing;
@@ -42,7 +41,7 @@ public final class DeleteThingStrategyTest extends AbstractCommandStrategyTest {
     @Test
     public void successfullyDeleteThing() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final DeleteThing command = DeleteThing.of(context.getState(), DittoHeaders.empty());
+        final DeleteThing command = DeleteThing.of(context.getState(), provideHeaders(context));
 
         assertModificationResult(underTest, THING_V2, command,
                 ThingDeleted.class,

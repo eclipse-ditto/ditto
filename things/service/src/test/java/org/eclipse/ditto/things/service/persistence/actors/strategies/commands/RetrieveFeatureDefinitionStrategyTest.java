@@ -19,7 +19,6 @@ import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureDefinition;
@@ -47,7 +46,7 @@ public final class RetrieveFeatureDefinitionStrategyTest extends AbstractCommand
     public void getDefinition() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveFeatureDefinition command =
-                RetrieveFeatureDefinition.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
+                RetrieveFeatureDefinition.of(context.getState(), FLUX_CAPACITOR_ID, provideHeaders(context));
         final RetrieveFeatureDefinitionResponse expectedResponse =
                 ETagTestUtils.retrieveFeatureDefinitionResponse(command.getEntityId(), command.getFeatureId(),
                         FLUX_CAPACITOR_DEFINITION, command.getDittoHeaders());
@@ -59,7 +58,7 @@ public final class RetrieveFeatureDefinitionStrategyTest extends AbstractCommand
     public void getDefinitionFromThingWithoutFeatures() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveFeatureDefinition command =
-                RetrieveFeatureDefinition.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
+                RetrieveFeatureDefinition.of(context.getState(), FLUX_CAPACITOR_ID, provideHeaders(context));
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featureNotFound(command.getEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());
@@ -71,7 +70,7 @@ public final class RetrieveFeatureDefinitionStrategyTest extends AbstractCommand
     public void getNonExistingDefinition() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveFeatureDefinition command =
-                RetrieveFeatureDefinition.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
+                RetrieveFeatureDefinition.of(context.getState(), FLUX_CAPACITOR_ID, provideHeaders(context));
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featureDefinitionNotFound(command.getEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());

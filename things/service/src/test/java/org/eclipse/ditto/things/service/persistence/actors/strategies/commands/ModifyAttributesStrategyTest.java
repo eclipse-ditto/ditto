@@ -15,7 +15,6 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 
 import org.apache.pekko.actor.ActorSystem;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.TestConstants;
@@ -56,7 +55,7 @@ public final class ModifyAttributesStrategyTest extends AbstractCommandStrategyT
     public void modifyAttributesOfThingWithoutAttributes() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyAttributes command =
-                ModifyAttributes.of(context.getState(), modifiedAttributes, DittoHeaders.empty());
+                ModifyAttributes.of(context.getState(), modifiedAttributes, provideHeaders(context));
 
         assertStagedModificationResult(underTest, THING_V2.removeAttributes(), command,
                 AttributesCreated.class,
@@ -67,7 +66,7 @@ public final class ModifyAttributesStrategyTest extends AbstractCommandStrategyT
     public void modifyAttributesOfThingWithAttributes() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyAttributes command =
-                ModifyAttributes.of(context.getState(), modifiedAttributes, DittoHeaders.empty());
+                ModifyAttributes.of(context.getState(), modifiedAttributes, provideHeaders(context));
 
         assertStagedModificationResult(underTest, THING_V2, command,
                 AttributesModified.class,

@@ -19,8 +19,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
 import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistenceResponse;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
@@ -40,9 +43,6 @@ import org.junit.Test;
 import org.junit.rules.TestWatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Unit test for the cleanup of {@link ThingPersistenceActor}.
@@ -131,7 +131,10 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
                                 modifiedThing, null, dittoHeadersV2);
                 underTest.tell(modifyThingCommand, getRef());
 
-                expectMsgEquals(modifyThingResponse(modifiedThing, dittoHeadersV2));
+                expectMsgEquals(modifyThingResponse(modifiedThing, dittoHeadersV2.toBuilder().putHeader(
+                        DittoHeaderDefinition.ENTITY_ID.getKey(), modifiedThing.getEntityId().get().toString())
+                        .build()
+                ));
 
                 return toEvent(modifyThingCommand, modifiedThing);
             }
@@ -188,7 +191,8 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
 
     private static ModifyThingResponse modifyThingResponse(final Thing modifiedThing,
             final DittoHeaders dittoHeaders) {
-        final DittoHeaders dittoHeadersWithETag = ETagTestUtils.appendETagToDittoHeaders(modifiedThing, dittoHeaders);
+        final DittoHeaders dittoHeadersWithETag = ETagTestUtils.appendEntityIdAndETagToDittoHeaders(
+                modifiedThing.getEntityId().get(), modifiedThing, dittoHeaders);
         return ModifyThingResponse.modified(modifiedThing.getEntityId().get(), dittoHeadersWithETag);
     }
 

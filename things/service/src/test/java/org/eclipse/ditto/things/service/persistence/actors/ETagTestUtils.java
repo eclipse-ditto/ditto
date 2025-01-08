@@ -15,6 +15,7 @@ package org.eclipse.ditto.things.service.persistence.actors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.Revision;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -71,14 +72,16 @@ public final class ETagTestUtils {
 
     public static RetrieveThingResponse retrieveThingResponse(final Thing expectedThing,
             @Nullable final JsonFieldSelector thingFieldSelector, final DittoHeaders dittoHeaders) {
-        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(expectedThing, dittoHeaders);
+        final DittoHeaders dittoHeadersWithETag = appendEntityIdAndETagToDittoHeaders(expectedThing.getEntityId().get(),
+                expectedThing, dittoHeaders);
         return RetrieveThingResponse.of(expectedThing.getEntityId().get(), expectedThing, thingFieldSelector, null,
                 dittoHeadersWithETag);
     }
 
     public static RetrieveThingResponse retrieveThingResponse(final Thing expectedThing,
             final DittoHeaders dittoHeaders) {
-        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(expectedThing, dittoHeaders);
+        final DittoHeaders dittoHeadersWithETag = appendEntityIdAndETagToDittoHeaders(expectedThing.getEntityId().get(),
+                expectedThing, dittoHeaders);
         return RetrieveThingResponse.of(expectedThing.getEntityId().get(),
                 expectedThing.toJsonString(dittoHeaders.getSchemaVersion().get()), dittoHeadersWithETag);
     }
@@ -91,7 +94,8 @@ public final class ETagTestUtils {
                         .orElseGet(() -> ThingRevision.newInstance(1L)))
                 .build();
         final DittoHeaders dittoHeadersWithETag =
-                appendETagToDittoHeaders(modifiedThingWithUpdatedRevision, dittoHeaders);
+                appendEntityIdAndETagToDittoHeaders(currentThing.getEntityId().get(),
+                        modifiedThingWithUpdatedRevision, dittoHeaders);
         return ModifyThingResponse.modified(modifiedThing.getEntityId().get(), dittoHeadersWithETag);
     }
 
@@ -103,14 +107,16 @@ public final class ETagTestUtils {
                         .orElseGet(() -> ThingRevision.newInstance(1L)))
                 .build();
         final DittoHeaders dittoHeadersWithETag =
-                appendETagToDittoHeaders(modifiedThingWithUpdatedRevision, dittoHeaders);
+                appendEntityIdAndETagToDittoHeaders(currentThing.getEntityId().get(),
+                        modifiedThingWithUpdatedRevision, dittoHeaders);
         final ThingId thingId = currentThing.getEntityId().orElseThrow();
         return MergeThingResponse.of(thingId, path, dittoHeadersWithETag);
     }
 
     public static SudoRetrieveThingResponse sudoRetrieveThingResponse(final Thing expectedThing,
             final JsonObject expectedJsonRepresentation, final DittoHeaders dittoHeaders) {
-        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(expectedThing, dittoHeaders);
+        final DittoHeaders dittoHeadersWithETag = appendEntityIdAndETagToDittoHeaders(expectedThing.getEntityId().get(),
+                expectedThing, dittoHeaders);
         return SudoRetrieveThingResponse.of(expectedJsonRepresentation, dittoHeadersWithETag);
     }
 
@@ -118,7 +124,7 @@ public final class ETagTestUtils {
 
     public static ModifyFeaturesResponse modifyFeaturesResponse(final ThingId thingId, final Features modifiedFeatures,
             final DittoHeaders dittoHeaders, final boolean created) {
-        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(modifiedFeatures, dittoHeaders);
+        final DittoHeaders dittoHeadersWithETag = appendEntityIdAndETagToDittoHeaders(thingId, modifiedFeatures, dittoHeaders);
         if (created) {
             return ModifyFeaturesResponse.created(thingId, modifiedFeatures, dittoHeadersWithETag);
         } else {
@@ -129,7 +135,7 @@ public final class ETagTestUtils {
     public static RetrieveFeaturesResponse retrieveFeaturesResponse(final ThingId thingId,
             final Features expectedFeatures,
             final JsonObject expectedJsonRepresentation, final DittoHeaders dittoHeaders) {
-        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(expectedFeatures, dittoHeaders);
+        final DittoHeaders dittoHeadersWithETag = appendEntityIdAndETagToDittoHeaders(thingId, expectedFeatures, dittoHeaders);
         return RetrieveFeaturesResponse.of(thingId, expectedJsonRepresentation, dittoHeadersWithETag);
     }
 
@@ -137,14 +143,14 @@ public final class ETagTestUtils {
 
     public static RetrieveFeatureResponse retrieveFeatureResponse(final ThingId thingId, final Feature expectedFeature,
             final JsonObject expectedJsonRepresentation, final DittoHeaders dittoHeaders) {
-        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(expectedFeature, dittoHeaders);
+        final DittoHeaders dittoHeadersWithETag = appendEntityIdAndETagToDittoHeaders(thingId, expectedFeature, dittoHeaders);
         return RetrieveFeatureResponse.of(thingId, expectedFeature.getId(), expectedJsonRepresentation,
                 dittoHeadersWithETag);
     }
 
     public static ModifyFeatureResponse modifyFeatureResponse(final ThingId thingId, final Feature feature,
             final DittoHeaders dittoHeaders, final boolean created) {
-        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(feature, dittoHeaders);
+        final DittoHeaders dittoHeadersWithETag = appendEntityIdAndETagToDittoHeaders(thingId, feature, dittoHeaders);
         if (created) {
             return ModifyFeatureResponse.created(thingId, feature, dittoHeadersWithETag);
         } else {
@@ -157,7 +163,7 @@ public final class ETagTestUtils {
     public static ModifyFeatureDefinitionResponse modifyFeatureDefinitionResponse(final ThingId thingId,
             final String featureId, final FeatureDefinition definition, final DittoHeaders dittoHeaders,
             final boolean created) {
-        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(definition, dittoHeaders);
+        final DittoHeaders dittoHeadersWithETag = appendEntityIdAndETagToDittoHeaders(thingId, definition, dittoHeaders);
         if (created) {
             return ModifyFeatureDefinitionResponse.created(thingId, featureId, definition, dittoHeadersWithETag);
         } else {
@@ -168,7 +174,7 @@ public final class ETagTestUtils {
     public static RetrieveFeatureDefinitionResponse retrieveFeatureDefinitionResponse(final ThingId thingId,
             final String featureId, final FeatureDefinition expectedFeatureDefinition,
             final DittoHeaders dittoHeaders) {
-        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(expectedFeatureDefinition, dittoHeaders);
+        final DittoHeaders dittoHeadersWithETag = appendEntityIdAndETagToDittoHeaders(thingId, expectedFeatureDefinition, dittoHeaders);
         return RetrieveFeatureDefinitionResponse.of(thingId, featureId, expectedFeatureDefinition,
                 dittoHeadersWithETag);
     }
@@ -178,7 +184,7 @@ public final class ETagTestUtils {
     public static ModifyFeaturePropertiesResponse modifyFeaturePropertiesResponse(final ThingId thingId,
             final String featureId, final FeatureProperties properties, final DittoHeaders dittoHeaders,
             final boolean created) {
-        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(properties, dittoHeaders);
+        final DittoHeaders dittoHeadersWithETag = appendEntityIdAndETagToDittoHeaders(thingId, properties, dittoHeaders);
         if (created) {
             return ModifyFeaturePropertiesResponse.created(thingId, featureId, properties, dittoHeadersWithETag);
         } else {
@@ -189,7 +195,7 @@ public final class ETagTestUtils {
     public static RetrieveFeaturePropertiesResponse retrieveFeaturePropertiesResponse(final ThingId thingId,
             final String featureId, final FeatureProperties featureProperties,
             final DittoHeaders dittoHeaders) {
-        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(featureProperties, dittoHeaders);
+        final DittoHeaders dittoHeadersWithETag = appendEntityIdAndETagToDittoHeaders(thingId, featureProperties, dittoHeaders);
         return RetrieveFeaturePropertiesResponse.of(thingId, featureId, featureProperties,
                 dittoHeadersWithETag);
     }
@@ -198,7 +204,7 @@ public final class ETagTestUtils {
             final String featureId, final FeatureProperties featureProperties,
             final FeatureProperties expectedFeatureProperties,
             final DittoHeaders dittoHeaders) {
-        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(featureProperties, dittoHeaders);
+        final DittoHeaders dittoHeadersWithETag = appendEntityIdAndETagToDittoHeaders(thingId, featureProperties, dittoHeaders);
         return RetrieveFeaturePropertiesResponse.of(thingId, featureId, expectedFeatureProperties,
                 dittoHeadersWithETag);
     }
@@ -208,7 +214,7 @@ public final class ETagTestUtils {
     public static ModifyFeatureDesiredPropertiesResponse modifyFeatureDesiredPropertiesResponse(final ThingId thingId,
             final String featureId, final FeatureProperties properties, final DittoHeaders dittoHeaders,
             final boolean created) {
-        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(properties, dittoHeaders);
+        final DittoHeaders dittoHeadersWithETag = appendEntityIdAndETagToDittoHeaders(thingId, properties, dittoHeaders);
         if (created) {
             return ModifyFeatureDesiredPropertiesResponse.created(thingId, featureId, properties, dittoHeadersWithETag);
         } else {
@@ -220,7 +226,7 @@ public final class ETagTestUtils {
             final ThingId thingId,
             final String featureId, final FeatureProperties featureProperties,
             final DittoHeaders dittoHeaders) {
-        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(featureProperties, dittoHeaders);
+        final DittoHeaders dittoHeadersWithETag = appendEntityIdAndETagToDittoHeaders(thingId, featureProperties, dittoHeaders);
         return RetrieveFeatureDesiredPropertiesResponse.of(thingId, featureId, featureProperties,
                 dittoHeadersWithETag);
     }
@@ -230,7 +236,7 @@ public final class ETagTestUtils {
             final String featureId, final FeatureProperties featureProperties,
             final FeatureProperties expectedFeatureProperties,
             final DittoHeaders dittoHeaders) {
-        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(featureProperties, dittoHeaders);
+        final DittoHeaders dittoHeadersWithETag = appendEntityIdAndETagToDittoHeaders(thingId, featureProperties, dittoHeaders);
         return RetrieveFeatureDesiredPropertiesResponse.of(thingId, featureId, expectedFeatureProperties,
                 dittoHeadersWithETag);
     }
@@ -240,7 +246,7 @@ public final class ETagTestUtils {
     public static ModifyFeaturePropertyResponse modifyFeaturePropertyResponse(final ThingId thingId,
             final String featureId, final JsonPointer propertyPointer, final JsonValue propertyValue,
             final DittoHeaders dittoHeaders, final boolean created) {
-        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(propertyValue, dittoHeaders);
+        final DittoHeaders dittoHeadersWithETag = appendEntityIdAndETagToDittoHeaders(thingId, propertyValue, dittoHeaders);
         if (created) {
             return ModifyFeaturePropertyResponse.created(thingId, featureId, propertyPointer, propertyValue,
                     dittoHeadersWithETag);
@@ -252,7 +258,7 @@ public final class ETagTestUtils {
     public static RetrieveFeaturePropertyResponse retrieveFeaturePropertyResponse(final ThingId thingId,
             final String featureId, final JsonPointer propertyPointer, final JsonValue propertyValue,
             final DittoHeaders dittoHeaders) {
-        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(propertyValue, dittoHeaders);
+        final DittoHeaders dittoHeadersWithETag = appendEntityIdAndETagToDittoHeaders(thingId, propertyValue, dittoHeaders);
         return RetrieveFeaturePropertyResponse.of(thingId, featureId, propertyPointer, propertyValue,
                 dittoHeadersWithETag);
     }
@@ -262,7 +268,7 @@ public final class ETagTestUtils {
     public static ModifyFeatureDesiredPropertyResponse modifyFeatureDesiredPropertyResponse(final ThingId thingId,
             final String featureId, final JsonPointer propertyPointer, final JsonValue propertyValue,
             final DittoHeaders dittoHeaders, final boolean created) {
-        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(propertyValue, dittoHeaders);
+        final DittoHeaders dittoHeadersWithETag = appendEntityIdAndETagToDittoHeaders(thingId, propertyValue, dittoHeaders);
         if (created) {
             return ModifyFeatureDesiredPropertyResponse.created(thingId, featureId, propertyPointer, propertyValue,
                     dittoHeadersWithETag);
@@ -275,7 +281,7 @@ public final class ETagTestUtils {
     public static RetrieveFeatureDesiredPropertyResponse retrieveFeatureDesiredPropertyResponse(final ThingId thingId,
             final String featureId, final JsonPointer propertyPointer, final JsonValue propertyValue,
             final DittoHeaders dittoHeaders) {
-        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(propertyValue, dittoHeaders);
+        final DittoHeaders dittoHeadersWithETag = appendEntityIdAndETagToDittoHeaders(thingId, propertyValue, dittoHeaders);
         return RetrieveFeatureDesiredPropertyResponse.of(thingId, featureId, propertyPointer, propertyValue,
                 dittoHeadersWithETag);
     }
@@ -284,7 +290,7 @@ public final class ETagTestUtils {
 
     public static ModifyAttributesResponse modifyAttributeResponse(final ThingId thingId,
             final Attributes modifiedAttributes, final DittoHeaders dittoHeaders, final boolean created) {
-        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(modifiedAttributes, dittoHeaders);
+        final DittoHeaders dittoHeadersWithETag = appendEntityIdAndETagToDittoHeaders(thingId, modifiedAttributes, dittoHeaders);
         if (created) {
             return ModifyAttributesResponse.created(thingId, modifiedAttributes, dittoHeadersWithETag);
         } else {
@@ -295,7 +301,7 @@ public final class ETagTestUtils {
     public static RetrieveAttributesResponse retrieveAttributesResponse(final ThingId thingId,
             final Attributes expectedAttributes, final JsonObject expectedJsonRepresentation,
             final DittoHeaders dittoHeaders) {
-        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(expectedAttributes, dittoHeaders);
+        final DittoHeaders dittoHeadersWithETag = appendEntityIdAndETagToDittoHeaders(thingId, expectedAttributes, dittoHeaders);
         return RetrieveAttributesResponse.of(thingId, expectedJsonRepresentation, dittoHeadersWithETag);
     }
 
@@ -304,7 +310,7 @@ public final class ETagTestUtils {
     public static ModifyAttributeResponse modifyAttributeResponse(final ThingId thingId,
             final JsonPointer attributePointer, final JsonValue attributeValue, final DittoHeaders dittoHeaders,
             final boolean created) {
-        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(attributeValue, dittoHeaders);
+        final DittoHeaders dittoHeadersWithETag = appendEntityIdAndETagToDittoHeaders(thingId, attributeValue, dittoHeaders);
         if (created) {
             return ModifyAttributeResponse.created(thingId, attributePointer, attributeValue, dittoHeadersWithETag);
         } else {
@@ -314,7 +320,7 @@ public final class ETagTestUtils {
 
     public static RetrieveAttributeResponse retrieveAttributeResponse(final ThingId thingId,
             final JsonPointer attributePointer, final JsonValue attributeValue, final DittoHeaders dittoHeaders) {
-        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(attributeValue, dittoHeaders);
+        final DittoHeaders dittoHeadersWithETag = appendEntityIdAndETagToDittoHeaders(thingId, attributeValue, dittoHeaders);
         return RetrieveAttributeResponse.of(thingId, attributePointer, attributeValue, dittoHeadersWithETag);
     }
 
@@ -322,7 +328,7 @@ public final class ETagTestUtils {
 
     public static ModifyPolicyIdResponse modifyPolicyIdResponse(final ThingId thingId, final PolicyId policyId,
             final DittoHeaders dittoHeaders, final boolean created) {
-        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(policyId, dittoHeaders);
+        final DittoHeaders dittoHeadersWithETag = appendEntityIdAndETagToDittoHeaders(thingId, policyId, dittoHeaders);
         if (created) {
             return ModifyPolicyIdResponse.created(thingId, policyId, dittoHeadersWithETag);
         } else {
@@ -332,7 +338,7 @@ public final class ETagTestUtils {
 
     public static RetrievePolicyIdResponse retrievePolicyIdResponse(final ThingId thingId,
             final PolicyId expectedPolicyId, final DittoHeaders dittoHeaders) {
-        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(expectedPolicyId, dittoHeaders);
+        final DittoHeaders dittoHeadersWithETag = appendEntityIdAndETagToDittoHeaders(thingId, expectedPolicyId, dittoHeaders);
         return RetrievePolicyIdResponse.of(thingId, expectedPolicyId, dittoHeadersWithETag);
     }
 
@@ -341,7 +347,7 @@ public final class ETagTestUtils {
     public static ModifyThingDefinitionResponse modifyThingDefinitionResponse(final ThingId thingId,
             final ThingDefinition definition,
             final DittoHeaders dittoHeaders, final boolean created) {
-        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(definition, dittoHeaders);
+        final DittoHeaders dittoHeadersWithETag = appendEntityIdAndETagToDittoHeaders(thingId, definition, dittoHeaders);
         if (created) {
             return ModifyThingDefinitionResponse.created(thingId, definition, dittoHeadersWithETag);
         } else {
@@ -351,13 +357,18 @@ public final class ETagTestUtils {
 
     public static RetrieveThingDefinitionResponse retrieveDefinitionResponse(final ThingId thingId,
             final ThingDefinition expectedThingDefinition, final DittoHeaders dittoHeaders) {
-        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(expectedThingDefinition, dittoHeaders);
+        final DittoHeaders dittoHeadersWithETag = appendEntityIdAndETagToDittoHeaders(thingId, expectedThingDefinition, dittoHeaders);
         return RetrieveThingDefinitionResponse.of(thingId, expectedThingDefinition, dittoHeadersWithETag);
     }
 
 
-    protected static DittoHeaders appendETagToDittoHeaders(final Object object, final DittoHeaders dittoHeaders) {
-
-        return dittoHeaders.toBuilder().eTag(EntityTag.fromEntity(object).get()).build();
+    protected static DittoHeaders appendEntityIdAndETagToDittoHeaders(final ThingId thingId,
+            final Object object,
+            final DittoHeaders dittoHeaders
+    ) {
+        return dittoHeaders.toBuilder()
+                .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), thingId.toString())
+                .eTag(EntityTag.fromEntity(object).get())
+                .build();
     }
 }

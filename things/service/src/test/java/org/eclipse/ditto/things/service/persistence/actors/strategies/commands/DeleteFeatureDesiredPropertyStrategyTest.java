@@ -18,7 +18,6 @@ import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
@@ -59,7 +58,7 @@ public final class DeleteFeatureDesiredPropertyStrategyTest extends AbstractComm
     public void successfullyDeleteFeatureDesiredPropertyFromThing() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final DeleteFeatureDesiredProperty command =
-                DeleteFeatureDesiredProperty.of(context.getState(), featureId, propertyPointer, DittoHeaders.empty());
+                DeleteFeatureDesiredProperty.of(context.getState(), featureId, propertyPointer, provideHeaders(context));
 
         assertStagedModificationResult(underTest, THING_V2, command,
                 FeatureDesiredPropertyDeleted.class,
@@ -71,7 +70,7 @@ public final class DeleteFeatureDesiredPropertyStrategyTest extends AbstractComm
     public void deleteFeatureDesiredPropertyFromThingWithoutFeatures() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final DeleteFeatureDesiredProperty command =
-                DeleteFeatureDesiredProperty.of(context.getState(), featureId, propertyPointer, DittoHeaders.empty());
+                DeleteFeatureDesiredProperty.of(context.getState(), featureId, propertyPointer, provideHeaders(context));
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featureNotFound(context.getState(), command.getFeatureId(),
                         command.getDittoHeaders());
@@ -83,7 +82,7 @@ public final class DeleteFeatureDesiredPropertyStrategyTest extends AbstractComm
     public void deleteFeatureDesiredPropertyFromThingWithoutThatFeature() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final DeleteFeatureDesiredProperty command =
-                DeleteFeatureDesiredProperty.of(context.getState(), featureId, propertyPointer, DittoHeaders.empty());
+                DeleteFeatureDesiredProperty.of(context.getState(), featureId, propertyPointer, provideHeaders(context));
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featureNotFound(context.getState(), command.getFeatureId(),
                         command.getDittoHeaders());
@@ -96,7 +95,7 @@ public final class DeleteFeatureDesiredPropertyStrategyTest extends AbstractComm
         final Feature feature = FLUX_CAPACITOR.removeDesiredProperties();
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final DeleteFeatureDesiredProperty command =
-                DeleteFeatureDesiredProperty.of(context.getState(), feature.getId(), propertyPointer, DittoHeaders.empty());
+                DeleteFeatureDesiredProperty.of(context.getState(), feature.getId(), propertyPointer, provideHeaders(context));
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featureDesiredPropertyNotFound(context.getState(), command.getFeatureId(),
                         propertyPointer, command.getDittoHeaders());
@@ -109,7 +108,7 @@ public final class DeleteFeatureDesiredPropertyStrategyTest extends AbstractComm
         final Feature feature = FLUX_CAPACITOR.removeDesiredProperty(propertyPointer);
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final DeleteFeatureDesiredProperty command =
-                DeleteFeatureDesiredProperty.of(context.getState(), feature.getId(), propertyPointer, DittoHeaders.empty());
+                DeleteFeatureDesiredProperty.of(context.getState(), feature.getId(), propertyPointer, provideHeaders(context));
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featureDesiredPropertyNotFound(context.getState(), command.getFeatureId(),
                         propertyPointer, command.getDittoHeaders());
