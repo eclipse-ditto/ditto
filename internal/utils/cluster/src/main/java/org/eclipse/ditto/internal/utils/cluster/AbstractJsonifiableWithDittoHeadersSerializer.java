@@ -167,7 +167,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
                 throw new IllegalArgumentException(errorMessage, e);
             } catch (final IOException e) {
                 final var errorMessage = MessageFormat.format(
-                        "Serialization failed with {} on Jsonifiable with string representation <{}>",
+                        "Serialization failed with {0} on Jsonifiable with string representation <{1}>",
                         e.getClass().getName(),
                         jsonObject
                 );
@@ -191,12 +191,10 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
             final Object objectToSerialize
     ) {
         final String spanSerializeName;
-        if (objectToSerialize instanceof WithType withType) {
-            spanSerializeName = withType.getType();
-        } else if (objectToSerialize instanceof DittoRuntimeException dre) {
-            spanSerializeName = dre.getErrorCode();
-        } else {
-            spanSerializeName = objectToSerialize.getClass().getSimpleName();
+        switch (objectToSerialize) {
+            case WithType withType -> spanSerializeName = withType.getType();
+            case DittoRuntimeException dre -> spanSerializeName = dre.getErrorCode();
+            default -> spanSerializeName = objectToSerialize.getClass().getSimpleName();
         }
         final var startInstant = StartInstant.now();
         return DittoTracing.newPreparedSpan(
@@ -363,7 +361,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
                     manifest,
                     serializerName);
             throw JsonParseException.newBuilder()
-                    .message(MessageFormat.format("<{}> is not a valid {} object! (It''s a value.)",
+                    .message(MessageFormat.format("<{0}> is not a valid {1} object! (It''s a value.)",
                             BinaryToHexConverter.createDebugMessageByTryingToConvertToHexString(byteBuffer),
                             serializerName))
                     .build();
