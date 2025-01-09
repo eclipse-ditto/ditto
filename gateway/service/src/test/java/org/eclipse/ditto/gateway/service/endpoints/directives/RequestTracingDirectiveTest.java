@@ -166,7 +166,8 @@ public final class RequestTracingDirectiveTest extends JUnitRouteTest {
                         .containsEntry("foo", fooHeaderValue)
                         .containsKeys(W3C_TRACEPARENT.getKey(), W3C_TRACESTATE.getKey())
                         .containsValue(tracestateHeaderValue)
-                        .containsValue(traceparentHeaderValue));
+                        .doesNotContainValue(traceparentHeaderValue) // it must explicitly contain another trace parent instead
+                );
     }
 
 }
