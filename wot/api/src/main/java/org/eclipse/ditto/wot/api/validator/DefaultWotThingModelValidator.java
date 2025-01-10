@@ -612,7 +612,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
         final LoggingEventBuilder logBuilder = logAsWarning ? log.atWarn() : log.atInfo();
         logBuilder.log("WoT based validation of Thing <{}> in <{}()> failed for <TD {}>/<FD {}> due to: <{}>",
                 context.thingId(), loggingHintSource, context.thingDefinition(), context.featureDefinition(),
-                throwable.getMessage()
+                throwable.toString()
         );
         dittoHeaders.getCorrelationId().ifPresent(cId -> MDC.remove("correlation-id"));
         dittoHeaders.getTraceParent().ifPresent(traceParent -> MDC.remove("traceparent-trace-id"));
