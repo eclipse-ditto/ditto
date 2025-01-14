@@ -22,6 +22,11 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.Done;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.stream.javadsl.Sink;
 import org.eclipse.ditto.base.model.common.CharsetDeterminer;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
@@ -50,12 +55,6 @@ import com.rabbitmq.client.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Delivery;
 import com.rabbitmq.client.Envelope;
-
-import org.apache.pekko.Done;
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.japi.pf.ReceiveBuilder;
-import org.apache.pekko.stream.javadsl.Sink;
 
 
 /**
@@ -135,7 +134,9 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
         final Envelope envelope = delivery.getEnvelope();
         final byte[] body = delivery.getBody();
 
-        var startedSpan = TracingSpans.emptyStartedSpan(SpanOperationName.of("rabbitmq_consume"));
+        var startedSpan = TracingSpans.emptyStartedSpan(
+                SpanOperationName.of("rabbitmq_consume: " + envelope.getExchange())
+        );
         Map<String, String> headers = null;
         try {
             @Nullable final String correlationId = properties.getCorrelationId();
@@ -150,7 +151,11 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
                     .connectionId(connectionId)
                     .correlationId(correlationId)
                     .start();
-            headers = startedSpan.propagateContext(headers);
+            headers = startedSpan.propagateContext(DittoHeaders.of(headers)
+                    .toBuilder()
+                    .removeHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey())
+                    .build()
+            );
 
             final ExternalMessageBuilder externalMessageBuilder =
                     ExternalMessageFactory.newExternalMessageBuilder(headers);
