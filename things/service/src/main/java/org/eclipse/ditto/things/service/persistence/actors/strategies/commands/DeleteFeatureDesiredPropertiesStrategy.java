@@ -13,6 +13,7 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
@@ -68,19 +69,9 @@ final class DeleteFeatureDesiredPropertiesStrategy
             @Nullable final Thing previousThing,
             @Nullable final Thing previewThing
     ) {
-        return wotThingModelValidator.validateFeatureScopedDeletion(
-                Optional.ofNullable(previousThing)
-                        .flatMap(Thing::getDefinition)
-                        .orElse(null),
-                Optional.ofNullable(previousThing)
-                        .flatMap(Thing::getFeatures)
-                        .flatMap(f -> f.getFeature(command.getFeatureId()))
-                        .flatMap(Feature::getDefinition)
-                        .orElse(null),
-                command.getFeatureId(),
-                command.getResourcePath(),
-                command.getDittoHeaders()
-        ).thenApply(aVoid -> command);
+        // it is always ok to delete a feature's desired properties - no need to validate for e.g. required properties,
+        //  as they do not apply for desired properties
+        return CompletableFuture.completedFuture(command);
     }
 
     private Optional<Feature> extractFeature(final DeleteFeatureDesiredProperties command,
