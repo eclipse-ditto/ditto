@@ -24,6 +24,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
+import org.apache.pekko.kafka.ConsumerMessage;
 import org.eclipse.ditto.base.model.common.ByteBufferUtils;
 import org.eclipse.ditto.base.model.common.CharsetDeterminer;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -40,8 +41,6 @@ import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
-
-import org.apache.pekko.kafka.ConsumerMessage;
 
 /**
  * Transforms incoming messages from Apache Kafka to {@link org.eclipse.ditto.connectivity.api.ExternalMessage}.
@@ -108,11 +107,16 @@ final class KafkaMessageTransformer {
         final String correlationId = messageHeaders
                 .getOrDefault(DittoHeaderDefinition.CORRELATION_ID.getKey(), UUID.randomUUID().toString());
 
-        final var startedSpan = DittoTracing.newPreparedSpan(messageHeaders, SpanOperationName.of("kafka_consume"))
-                .correlationId(correlationId)
+        final var startedSpan = DittoTracing.newPreparedSpan(messageHeaders,
+                        SpanOperationName.of("kafka_consume: " + consumerRecord.topic())
+                ).correlationId(correlationId)
                 .connectionId(connectionId)
                 .start();
-        messageHeaders = startedSpan.propagateContext(messageHeaders);
+        messageHeaders = startedSpan.propagateContext(DittoHeaders.of(messageHeaders)
+                .toBuilder()
+                .removeHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey())
+                .build()
+        );
 
         try {
             final String key = consumerRecord.key();
