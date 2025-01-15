@@ -30,6 +30,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.things.model.signals.events.AttributeModified;
 import org.junit.Test;
 
@@ -72,9 +74,6 @@ public final class DittoCachingSignalEnrichmentFacadeTest extends AbstractCachin
                     .set("type", "x attribute")
                     .build());
 
-    private static final JsonFieldSelector SELECTOR_PRE_DEFINED_EXTRA_FIELDS =
-            JsonFieldSelector.newInstance("definition", "attributes/pre", "attributes/pre2");
-
 
     @Override
     protected CachingSignalEnrichmentFacade createCachingSignalEnrichmentFacade(final TestKit kit,
@@ -103,9 +102,10 @@ public final class DittoCachingSignalEnrichmentFacadeTest extends AbstractCachin
                             AuthorizationSubject.newInstance(userId)))
                     .randomCorrelationId()
                     .build();
-            final CompletionStage<JsonObject> askResult =
-                    underTest.retrievePartialThing(thingId, SELECTOR_PRE_DEFINED_EXTRA_FIELDS, headers,
-                            THING_EVENT_PRE_DEFINED_EXTRA_FIELDS);
+            final JsonFieldSelector fieldSelector =
+                    JsonFieldSelector.newInstance("definition", "attributes/pre", "attributes/pre2");
+            final CompletionStage<JsonObject> askResult = underTest.retrievePartialThing(thingId, fieldSelector,
+                    headers, THING_EVENT_PRE_DEFINED_EXTRA_FIELDS);
 
             // THEN: no cache lookup should be done
             kit.expectNoMessage(Duration.ofSeconds(1));
@@ -114,6 +114,51 @@ public final class DittoCachingSignalEnrichmentFacadeTest extends AbstractCachin
             final JsonObject expectedThingJson = EXPECTED_THING_JSON_PRE_DEFINED_EXTRA.toBuilder()
                     .remove("attributes/x")    // x was not asked for in extra fields
                     .remove("attributes/pre2") // we don't have the read grant for this field
+                    .build();
+            softly.assertThat(askResult).isCompletedWithValue(expectedThingJson);
+        });
+    }
+
+    @Test
+    public void enrichedEventWithPreDefinedExtraFieldsAndAdditionalRequestedOnesLeadToPartialCacheLookup() {
+        DittoTestSystem.run(this, kit -> {
+            final SignalEnrichmentFacade underTest =
+                    createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
+            final ThingId thingId = ThingId.generateRandom();
+            final String userId = ISSUER_PREFIX + "user";
+            final DittoHeaders headers = DittoHeaders.newBuilder()
+                    .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                            AuthorizationSubject.newInstance(userId)))
+                    .randomCorrelationId()
+                    .build();
+            final JsonFieldSelector fieldSelector =
+                    JsonFieldSelector.newInstance("definition", "attributes/x", "attributes/unchanged",
+                            "attributes/pre", "attributes/pre2");
+            final CompletionStage<JsonObject> askResult = underTest.retrievePartialThing(thingId, fieldSelector,
+                    headers, THING_EVENT_PRE_DEFINED_EXTRA_FIELDS);
+
+            final JsonFieldSelector askedForFieldSelector =
+                    JsonFieldSelector.newInstance("attributes/x", "attributes/unchanged");
+            // WHEN: Command handler receives expected RetrieveThing and responds with RetrieveThingResponse
+            final RetrieveThing retrieveThing = kit.expectMsgClass(RetrieveThing.class);
+            softly.assertThat(retrieveThing.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds())
+                    .contains(userId);
+            softly.assertThat(retrieveThing.getSelectedFields()).contains(actualSelectedFields(askedForFieldSelector));
+            // WHEN: response is handled so that it is also added to the cache
+            final JsonObject retrievedExtraThing = JsonObject.of("""
+                    {
+                      "_revision": 3,
+                      "attributes": {"x": 42, "unchanged": "foo"}
+                    }
+                    """);
+            kit.reply(RetrieveThingResponse.of(thingId, retrievedExtraThing, headers));
+            askResult.toCompletableFuture().join();
+
+            // AND: the resulting thing JSON includes the with the updated value:
+            final JsonObject expectedThingJson = EXPECTED_THING_JSON_PRE_DEFINED_EXTRA.toBuilder()
+                    .remove("attributes/pre2") // we don't have the read grant for this field
+                    .set(JsonPointer.of("attributes/x"), 42) // we expect the updated value (as part of the modify event)
+                    .set(JsonPointer.of("attributes/unchanged"), "foo") // we expect the updated value (retrieved via cache)
                     .build();
             softly.assertThat(askResult).isCompletedWithValue(expectedThingJson);
         });

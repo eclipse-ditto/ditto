@@ -249,9 +249,10 @@ public class DittoCachingSignalEnrichmentFacade implements CachingSignalEnrichme
             return doRetrievePartialThing(thingId, dittoHeaders, null, cachingParameters)
                     .thenCompose(jsonObject -> filteredPreDefinedExtraFieldsReadGranted
                             .thenApply(preDefinedObject ->
-                                    preDefinedObject.toBuilder()
-                                            .setAll(applyJsonFieldSelector(jsonObject, missingFieldsSelector))
-                                            .build()
+                                    JsonFactory.newObject( // merge
+                                            applyJsonFieldSelector(jsonObject, missingFieldsSelector),
+                                            preDefinedObject
+                                    )
                             )
                     );
         }
