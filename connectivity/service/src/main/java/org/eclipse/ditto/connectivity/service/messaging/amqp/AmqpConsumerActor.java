@@ -37,6 +37,13 @@ import javax.jms.MessageConsumer;
 import javax.jms.MessageListener;
 import javax.jms.TextMessage;
 
+import org.apache.pekko.Done;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.stream.javadsl.Sink;
 import org.apache.qpid.jms.JmsAcknowledgeCallback;
 import org.apache.qpid.jms.JmsMessageConsumer;
 import org.apache.qpid.jms.message.JmsMessage;
@@ -63,19 +70,11 @@ import org.eclipse.ditto.connectivity.service.messaging.backoff.BackOffActor;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProviderFactory;
-import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
 import org.eclipse.ditto.internal.utils.tracing.span.TracingSpans;
-
-import org.apache.pekko.Done;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.actor.Status;
-import org.apache.pekko.japi.pf.ReceiveBuilder;
-import org.apache.pekko.pattern.Patterns;
-import org.apache.pekko.stream.javadsl.Sink;
 
 /**
  * Actor which receives message from an AMQP source and forwards them to a {@code MessageMappingProcessorActor}.
@@ -342,10 +341,11 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
         handleAddressStatus(addressStatus);
     }
 
-    private void handleJmsMessage(final JmsMessage message) {
+    private void handleJmsMessage(final JmsMessage message) throws JMSException {
         Map<String, String> headers = null;
-        String correlationId = null;
-        var startedSpan = TracingSpans.emptyStartedSpan(SpanOperationName.of("amqp_consume"));
+        var startedSpan = TracingSpans.emptyStartedSpan(
+                SpanOperationName.of("amqp_consume: " + message.getJMSDestination())
+        );
         try {
             recordIncomingForRateLimit(message.getJMSMessageID());
             if (logger.isDebugEnabled()) {
@@ -358,12 +358,16 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
                         ackType);
             }
             headers = extractHeadersMapFromJmsMessage(message);
-            correlationId = headers.get(DittoHeaderDefinition.CORRELATION_ID.getKey());
+            final String correlationId = headers.get(DittoHeaderDefinition.CORRELATION_ID.getKey());
             startedSpan = DittoTracing.newPreparedSpan(headers, startedSpan.getOperationName())
                     .correlationId(correlationId)
                     .connectionId(connectionId)
                     .start();
-            headers = startedSpan.propagateContext(headers);
+            headers = startedSpan.propagateContext(DittoHeaders.of(headers)
+                    .toBuilder()
+                    .removeHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey())
+                    .build()
+            );
             final ExternalMessageBuilder builder = ExternalMessageFactory.newExternalMessageBuilder(headers);
             final ExternalMessage externalMessage = extractPayloadFromMessage(message, builder)
                     .withAuthorizationContext(source.getAuthorizationContext())
