@@ -93,7 +93,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
         return provideValidationConfigIfWotValidationEnabled(context)
                 .map(validationConfig -> fetchResolveAndValidateWith(thingDefinition, dittoHeaders, thingModel ->
                         doValidateThing(Optional.ofNullable(thingDefinition).orElseThrow(),
-                                thingModel, thing, resourcePath, context, validationConfig
+                                thingModel, thing, context, validationConfig
                         ).handle(applyLogingErrorOnlyStrategy(validationConfig, context, "validateThing"))
                 ))
                 .orElseGet(DefaultWotThingModelValidator::success);
@@ -109,7 +109,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
         final ValidationContext context = buildValidationContext(dittoHeaders, thingDefinition);
         return provideValidationConfigIfWotValidationEnabled(context)
                 .map(validationConfig ->
-                        doValidateThing(thingDefinition, thingModel, thing, resourcePath, context, validationConfig)
+                        doValidateThing(thingDefinition, thingModel, thing, context, validationConfig)
                                 .handle(applyLogingErrorOnlyStrategy(validationConfig, context, "validateThing"))
                 )
                 .orElseGet(DefaultWotThingModelValidator::success);
@@ -126,9 +126,8 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                         validationConfig.getThingValidationConfig().isEnforceThingDescriptionModification()
                 )
                 .map(validationConfig -> fetchResolveAndValidateWith(thingDefinition, dittoHeaders, thingModel ->
-                        doValidateThing(thingDefinition, thingModel, thing, Thing.JsonFields.DEFINITION.getPointer(),
-                                context, validationConfig
-                        ).handle(applyLogingErrorOnlyStrategy(validationConfig, context, "validateThingDefinitionModification"))
+                        doValidateThing(thingDefinition, thingModel, thing, context, validationConfig)
+                                .handle(applyLogingErrorOnlyStrategy(validationConfig, context, "validateThingDefinitionModification"))
                 ))
                 .orElseGet(DefaultWotThingModelValidator::success);
     }
@@ -608,14 +607,22 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
     ) {
         final DittoHeaders dittoHeaders = context.dittoHeaders();
         dittoHeaders.getCorrelationId().ifPresent(cId -> MDC.put("correlation-id", cId));
-        dittoHeaders.getTraceParent().ifPresent(traceParent -> MDC.put("traceparent-trace-id", traceParent));
+        // positions defined by https://www.w3.org/TR/trace-context/#traceparent-header-field-values to contain the "trace-id"
+        dittoHeaders.getTraceParent().ifPresent(traceParent -> {
+                    MDC.put("traceparent-trace-id", traceParent.substring(3, 35));
+                    MDC.put("traceparent-span-id", traceParent.substring(36, 52));
+                }
+        );
         final LoggingEventBuilder logBuilder = logAsWarning ? log.atWarn() : log.atInfo();
         logBuilder.log("WoT based validation of Thing <{}> in <{}()> failed for <TD {}>/<FD {}> due to: <{}>",
                 context.thingId(), loggingHintSource, context.thingDefinition(), context.featureDefinition(),
                 throwable.toString()
         );
         dittoHeaders.getCorrelationId().ifPresent(cId -> MDC.remove("correlation-id"));
-        dittoHeaders.getTraceParent().ifPresent(traceParent -> MDC.remove("traceparent-trace-id"));
+        dittoHeaders.getTraceParent().ifPresent(traceParent -> {
+            MDC.remove("traceparent-trace-id");
+            MDC.remove("traceparent-span-id");
+        });
     }
 
     private CompletionStage<Void> fetchResolveAndValidateWith(@Nullable final DefinitionIdentifier definitionIdentifier,
@@ -639,7 +646,6 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
     private CompletionStage<Void> doValidateThing(final ThingDefinition thingDefinition,
             final ThingModel thingModel,
             final Thing thing,
-            final JsonPointer resourcePath,
             final ValidationContext context,
             final TmValidationConfig validationConfig
     ) {
@@ -653,7 +659,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
         return firstStage.thenCompose(unused ->
                 doValidateThingAttributes(thingModel,
                         thing.getAttributes().orElse(null),
-                        resourcePath.append(Thing.JsonFields.ATTRIBUTES.getPointer()),
+                        Thing.JsonFields.ATTRIBUTES.getPointer(),
                         context,
                         validationConfig
                 )
@@ -662,7 +668,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                         .thenCompose(subModels ->
                                 doValidateFeatures(subModels,
                                         thing.getFeatures().orElse(null),
-                                        resourcePath,
+                                        JsonPointer.empty(),
                                         context,
                                         validationConfig
                                 )
