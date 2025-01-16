@@ -1069,7 +1069,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         }
     }
 
-    private void replyUnavailableException(final Object message, final ActorRef sender) {
+    protected void replyUnavailableException(final Object message, final ActorRef sender) {
         log.withCorrelationId(message instanceof WithDittoHeaders withDittoHeaders ? withDittoHeaders : null)
                 .warning("Received message during downtime of child actor for Entity with ID <{}>: <{}>", entityId,
                         message);

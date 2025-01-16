@@ -15,15 +15,14 @@ package org.eclipse.ditto.things.service.common.config;
 import java.util.List;
 
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.EventConfig;
 
 /**
- * Extends {@link EventConfig} by providing ThingEvent specific additional configuration.
+ * Provides "thing message" specific configuration.
  */
-public interface ThingEventConfig extends EventConfig {
+public interface ThingMessageConfig {
 
     /**
-     * Contains pre-defined (configured) {@code extraFields} to send along all thing (change) events.
+     * Contains pre-defined (configured) {@code extraFields} to send along all thing (change) messages.
      *
      * @return the pre-defined {@code extraFields} to send along.
      */
@@ -31,19 +30,19 @@ public interface ThingEventConfig extends EventConfig {
 
     /**
      * An enumeration of the known config path expressions and their associated default values for
-     * {@code ThingEventConfig}.
+     * {@code ThingMessageConfig}.
      */
-    enum ThingEventConfigValue implements KnownConfigValue {
+    enum ThingMessageConfigValue implements KnownConfigValue {
 
         /**
-         * The pre-defined (configured) {@code extraFields} to send along all events.
+         * The pre-defined (configured) {@code extraFields} to send along all messages.
          */
         PRE_DEFINED_EXTRA_FIELDS("pre-defined-extra-fields", List.of());
 
         private final String path;
         private final Object defaultValue;
 
-        ThingEventConfigValue(final String thePath, final Object theDefaultValue) {
+        ThingMessageConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }

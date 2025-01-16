@@ -219,9 +219,7 @@ final class LiveSignalEnforcement
         }
     }
 
-    private Signal<?> enforceMessageCommand(final MessageCommand<?, ?> command,
-            final Enforcer enforcer) {
-
+    private Signal<?> enforceMessageCommand(final MessageCommand<?, ?> command, final Enforcer enforcer) {
         if (isAuthorized(command, enforcer)) {
             return publishMessageCommand(command, enforcer);
         } else {
@@ -229,9 +227,7 @@ final class LiveSignalEnforcement
         }
     }
 
-    private Signal<?> publishMessageCommand(final MessageCommand<?, ?> command,
-            final Enforcer enforcer) {
-
+    private Signal<?> publishMessageCommand(final MessageCommand<?, ?> command, final Enforcer enforcer) {
         final ResourceKey resourceKey =
                 ResourceKey.newInstance(MessageCommand.RESOURCE_TYPE, command.getResourcePath());
         final var effectedSubjects = enforcer.getSubjectsWithPermission(resourceKey, Permission.READ);

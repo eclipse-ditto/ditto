@@ -13,14 +13,9 @@
 package org.eclipse.ditto.things.service.persistence.actors;
 
 import java.time.Instant;
-import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.function.Predicate;
-import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
@@ -29,14 +24,12 @@ import org.apache.pekko.actor.Props;
 import org.apache.pekko.japi.pf.ReceiveBuilder;
 import org.apache.pekko.persistence.RecoveryCompleted;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
-import org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException;
-import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.LiveChannelTimeoutStrategy;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
@@ -49,26 +42,9 @@ import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.placeholders.HeadersPlaceholder;
-import org.eclipse.ditto.placeholders.PlaceholderFactory;
-import org.eclipse.ditto.placeholders.TimePlaceholder;
-import org.eclipse.ditto.policies.api.Permission;
+import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
-import org.eclipse.ditto.policies.model.Permissions;
-import org.eclipse.ditto.policies.model.PoliciesResourceType;
-import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.rql.parser.RqlPredicateParser;
-import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
-import org.eclipse.ditto.rql.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingBuilder;
@@ -83,8 +59,10 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
-import org.eclipse.ditto.things.service.common.config.PreDefinedExtraFieldsConfig;
 import org.eclipse.ditto.things.service.common.config.ThingConfig;
+import org.eclipse.ditto.things.service.persistence.actors.enrichment.EnrichSignalWithPreDefinedExtraFields;
+import org.eclipse.ditto.things.service.persistence.actors.enrichment.EnrichSignalWithPreDefinedExtraFieldsResponse;
+import org.eclipse.ditto.things.service.persistence.actors.enrichment.PreDefinedExtraFieldsEnricher;
 import org.eclipse.ditto.things.service.persistence.actors.strategies.commands.ThingCommandStrategies;
 import org.eclipse.ditto.things.service.persistence.actors.strategies.events.ThingEventStrategies;
 
@@ -109,16 +87,14 @@ public final class ThingPersistenceActor
      */
     static final String SNAPSHOT_PLUGIN_ID = "pekko-contrib-mongodb-persistence-things-snapshots";
 
-    private static final TimePlaceholder TIME_PLACEHOLDER = TimePlaceholder.getInstance();
-    private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
-
     private static final AckExtractor<ThingEvent<?>> ACK_EXTRACTOR =
             AckExtractor.of(ThingEvent::getEntityId, ThingEvent::getDittoHeaders);
 
     private final ThingConfig thingConfig;
     private final DistributedPub<ThingEvent<?>> distributedPub;
     @Nullable private final ActorRef searchShardRegionProxy;
-    private final PolicyEnforcerProvider policyEnforcerProvider;
+    private final PreDefinedExtraFieldsEnricher eventPreDefinedExtraFieldsEnricher;
+    private final PreDefinedExtraFieldsEnricher messagePreDefinedExtraFieldsEnricher;
 
     @SuppressWarnings("unused")
     private ThingPersistenceActor(final ThingId thingId,
@@ -134,7 +110,14 @@ public final class ThingPersistenceActor
         thingConfig = thingsConfig.getThingConfig();
         this.distributedPub = distributedPub;
         this.searchShardRegionProxy = searchShardRegionProxy;
-        this.policyEnforcerProvider = policyEnforcerProvider;
+        this.eventPreDefinedExtraFieldsEnricher = new PreDefinedExtraFieldsEnricher(
+                thingConfig.getEventConfig().getPredefinedExtraFieldsConfigs(),
+                policyEnforcerProvider
+        );
+        this.messagePreDefinedExtraFieldsEnricher = new PreDefinedExtraFieldsEnricher(
+                thingConfig.getMessageConfig().getPredefinedExtraFieldsConfigs(),
+                policyEnforcerProvider
+        );
     }
 
     /**
@@ -250,6 +233,14 @@ public final class ThingPersistenceActor
     }
 
     @Override
+    protected Receive matchAnyAfterInitialization() {
+        return ReceiveBuilder.create()
+                .match(EnrichSignalWithPreDefinedExtraFields.class, this::enrichSignalWithPreDefinedExtraFields)
+                .build()
+                .orElse(super.matchAnyAfterInitialization());
+    }
+
+    @Override
     protected Receive matchAnyWhenDeleted() {
         return ReceiveBuilder.create()
                 .match(RetrieveThing.class, this::handleByCommandStrategy)
@@ -284,136 +275,24 @@ public final class ThingPersistenceActor
 
     @Override
     protected void publishEvent(@Nullable final Thing previousEntity, final ThingEvent<?> event) {
-        enrichEventWithPredefinedExtraFields(
-                Optional.ofNullable(previousEntity).flatMap(Thing::getPolicyId).orElse(null), event)
-                .whenComplete((modifiedEvent, ex) -> {
-                    final ThingEvent<?> eventToPublish;
-                    if (ex != null) {
-                        eventToPublish = event;
-                    } else {
-                        eventToPublish = modifiedEvent;
-                    }
-                    distributedPub.publishWithAcks(eventToPublish, entityId, ACK_EXTRACTOR, getSelf());
-                    if (searchShardRegionProxy != null) {
-                        searchShardRegionProxy.tell(eventToPublish, getSelf());
-                    }
-                });
-    }
-
-    private CompletionStage<ThingEvent<?>> enrichEventWithPredefinedExtraFields(@Nullable final PolicyId policyId,
-            final ThingEvent<?> event
-    ) {
-        final List<PreDefinedExtraFieldsConfig> predefinedExtraFieldsConfigs = thingConfig.getEventConfig()
-                .getPredefinedExtraFieldsConfigs();
-        if (null != entity && !predefinedExtraFieldsConfigs.isEmpty()) {
-            final List<PreDefinedExtraFieldsConfig> matchingPreDefinedFieldsConfigs =
-                    predefinedExtraFieldsConfigs.stream()
-                            .filter(conf -> conf
-                                    .getNamespace().stream()
-                                    .anyMatch(pattern -> pattern.matcher(entityId.getNamespace()).matches())
-                            )
-                            .filter(applyPredefinedExtraFieldsCondition(event))
-                            .toList();
-            final JsonFieldSelector combinedPredefinedExtraFields = matchingPreDefinedFieldsConfigs.stream()
-                    .map(PreDefinedExtraFieldsConfig::getExtraFields)
-                    .reduce(JsonFactory.newFieldSelector(List.of()), (a, b) -> {
-                        final Set<JsonPointer> combinedPointerSet = new LinkedHashSet<>(a.getPointers());
-                        combinedPointerSet.addAll(b.getPointers());
-                        return JsonFactory.newFieldSelector(combinedPointerSet);
-                    });
-            return buildPredefinedExtraFieldsHeaderReadGrantObject(policyId, combinedPredefinedExtraFields)
-                    .thenApply(predefinedExtraFieldsHeaderReadGrantObject ->
-                            event.setDittoHeaders(event.getDittoHeaders()
-                                    .toBuilder()
-                                    .putHeader(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS.getKey(),
-                                            buildPredefinedExtraFieldsHeaderList(combinedPredefinedExtraFields)
-                                    )
-                                    .putHeader(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT.getKey(),
-                                            predefinedExtraFieldsHeaderReadGrantObject
-                                    )
-                                    .putHeader(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_OBJECT.getKey(),
-                                            buildPredefinedExtraFieldsHeaderObject(entity,
-                                                    combinedPredefinedExtraFields).toString()
-                                    )
-                                    .build()
-                            )
-                    );
-        } else {
-            return CompletableFuture.completedStage(event);
-        }
-    }
-
-    private Predicate<PreDefinedExtraFieldsConfig> applyPredefinedExtraFieldsCondition(final ThingEvent<?> event) {
-        return conf -> {
-            if (conf.getCondition().isEmpty()) {
-                return true;
-            } else {
-                final String rqlCondition = conf.getCondition().get();
-                try {
-                    final var criteria = QueryFilterCriteriaFactory
-                            .modelBased(RqlPredicateParser.getInstance())
-                            .filterCriteria(rqlCondition, event.getDittoHeaders());
-
-                    final var predicate = ThingPredicateVisitor.apply(
-                            criteria,
-                            PlaceholderFactory.newPlaceholderResolver(TIME_PLACEHOLDER,
-                                    new Object()),
-                            PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER,
-                                    event.getDittoHeaders())
-                    );
-                    return predicate.test(entity);
-                } catch (final InvalidRqlExpressionException e) {
-                    log.warning(e, "Encountered invalid RQL condition <{}> for enriching " +
-                            "predefined extra fields: <{}>", rqlCondition, e.getMessage());
-                    return true;
-                }
-            }
-        };
-    }
-
-    private static String buildPredefinedExtraFieldsHeaderList(final JsonFieldSelector preDefinedExtraFields) {
-        return StreamSupport.stream(preDefinedExtraFields.spliterator(), false)
-                .map(JsonPointer::toString)
-                .map(JsonValue::of)
-                .collect(JsonCollectors.valuesToArray())
-                .toString();
-    }
-
-    private CompletionStage<String> buildPredefinedExtraFieldsHeaderReadGrantObject(@Nullable final PolicyId policyId,
-            final JsonFieldSelector preDefinedExtraFields)
-    {
-        return policyEnforcerProvider.getPolicyEnforcer(policyId)
-                .thenApply(policyEnforcerOpt ->
-                        policyEnforcerOpt.map(policyEnforcer ->
-                                StreamSupport.stream(preDefinedExtraFields.spliterator(), false)
-                                        .map(pointer -> {
-                                            final JsonArray unrestrictedReadSubjects = policyEnforcer.getEnforcer()
-                                                    .getSubjectsWithUnrestrictedPermission(
-                                                            PoliciesResourceType.thingResource(pointer),
-                                                            Permissions.newInstance(Permission.READ)
-                                                    )
-                                                    .stream()
-                                                    .map(AuthorizationSubject::getId)
-                                                    .map(JsonValue::of)
-                                                    .collect(JsonCollectors.valuesToArray());
-                                            return JsonField.newInstance(pointer.toString(), unrestrictedReadSubjects);
-                                        })
-                                        .collect(JsonCollectors.fieldsToObject())
-                                        .toString()
-                        ).orElse("{}")
-                );
-    }
-
-    private static JsonObject buildPredefinedExtraFieldsHeaderObject(
-            final Thing thing,
-            final JsonFieldSelector preDefinedExtraFields
-    ) {
-        final JsonObjectBuilder builder = JsonObject.newBuilder();
-        final JsonObject thingJson = thing.toJson();
-        preDefinedExtraFields.getPointers().forEach(pointer ->
-                thingJson.getValue(pointer).ifPresent(thingValue -> builder.set(pointer, thingValue))
+        final CompletionStage<ThingEvent<?>> stage = eventPreDefinedExtraFieldsEnricher.enrichWithPredefinedExtraFields(
+                entityId,
+                entity,
+                Optional.ofNullable(previousEntity).flatMap(Thing::getPolicyId).orElse(null),
+                event
         );
-        return builder.build();
+        stage.whenComplete((modifiedEvent, ex) -> {
+            final ThingEvent<?> eventToPublish;
+            if (ex != null) {
+                eventToPublish = event;
+            } else {
+                eventToPublish = modifiedEvent;
+            }
+            distributedPub.publishWithAcks(eventToPublish, entityId, ACK_EXTRACTOR, getSelf());
+            if (searchShardRegionProxy != null) {
+                searchShardRegionProxy.tell(eventToPublish, getSelf());
+            }
+        });
     }
 
     @Override
@@ -443,4 +322,32 @@ public final class ThingPersistenceActor
         return thingBuilder.build();
     }
 
+    private void enrichSignalWithPreDefinedExtraFields(
+            final EnrichSignalWithPreDefinedExtraFields enrichSignalWithPreDefinedExtraFields
+    ) {
+        final ActorRef sender = getSender();
+        final Signal<?> signal = enrichSignalWithPreDefinedExtraFields.signal();
+        final CompletionStage<Signal<?>> stage;
+        switch (signal) {
+            case MessageCommand<?, ?> messageCommand ->
+                stage = messagePreDefinedExtraFieldsEnricher.enrichWithPredefinedExtraFields(
+                        entityId,
+                        entity,
+                        Optional.ofNullable(entity).flatMap(Thing::getPolicyId).orElse(null),
+                        messageCommand
+                );
+            case ThingEvent<?> thingEvent ->
+                stage = eventPreDefinedExtraFieldsEnricher.enrichWithPredefinedExtraFields(
+                        entityId,
+                        entity,
+                        Optional.ofNullable(entity).flatMap(Thing::getPolicyId).orElse(null),
+                        thingEvent
+                );
+            default ->
+                stage = CompletableFuture.completedStage(signal);
+        }
+        stage.thenAccept(modifiedSignal ->
+                sender.tell(new EnrichSignalWithPreDefinedExtraFieldsResponse(modifiedSignal), getSelf())
+        );
+    }
 }

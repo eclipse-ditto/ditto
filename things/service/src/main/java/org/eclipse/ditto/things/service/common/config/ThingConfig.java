@@ -37,6 +37,13 @@ public interface ThingConfig extends WithSupervisorConfig, WithActivityCheckConf
     ThingEventConfig getEventConfig();
 
     /**
+     * Returns the config regarding thing messages.
+     *
+     * @return the config.
+     */
+    ThingMessageConfig getMessageConfig();
+
+    /**
      * Get the timeout waiting for responses and acknowledgements during coordinated shutdown.
      *
      * @return The timeout.

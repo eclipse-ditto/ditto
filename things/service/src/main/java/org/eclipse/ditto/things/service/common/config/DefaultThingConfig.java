@@ -42,6 +42,7 @@ public final class DefaultThingConfig implements ThingConfig {
     private final ActivityCheckConfig activityCheckConfig;
     private final SnapshotConfig snapshotConfig;
     private final ThingEventConfig eventConfig;
+    private final ThingMessageConfig messageConfig;
     private final CleanupConfig cleanupConfig;
 
     private DefaultThingConfig(final ScopedConfig scopedConfig) {
@@ -50,6 +51,7 @@ public final class DefaultThingConfig implements ThingConfig {
         activityCheckConfig = DefaultActivityCheckConfig.of(scopedConfig);
         snapshotConfig = DefaultSnapshotConfig.of(scopedConfig);
         eventConfig = DefaultThingEventConfig.of(scopedConfig);
+        messageConfig = DefaultThingMessageConfig.of(scopedConfig);
         cleanupConfig = CleanupConfig.of(scopedConfig);
     }
 
@@ -90,6 +92,11 @@ public final class DefaultThingConfig implements ThingConfig {
     }
 
     @Override
+    public ThingMessageConfig getMessageConfig() {
+        return messageConfig;
+    }
+
+    @Override
     public Duration getShutdownTimeout() {
         return shutdownTimeout;
     }
@@ -113,8 +120,8 @@ public final class DefaultThingConfig implements ThingConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(supervisorConfig, activityCheckConfig, snapshotConfig, eventConfig, cleanupConfig,
-                shutdownTimeout);
+        return Objects.hash(supervisorConfig, activityCheckConfig, snapshotConfig, eventConfig, messageConfig,
+                cleanupConfig, shutdownTimeout);
     }
 
     @Override
@@ -124,6 +131,7 @@ public final class DefaultThingConfig implements ThingConfig {
                 ", activityCheckConfig=" + activityCheckConfig +
                 ", snapshotConfig=" + snapshotConfig +
                 ", eventConfig=" + eventConfig +
+                ", messageConfig=" + messageConfig +
                 ", cleanupConfig=" + cleanupConfig +
                 ", shutdownTimeout=" + shutdownTimeout +
                 "]";
