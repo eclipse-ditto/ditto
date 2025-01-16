@@ -179,8 +179,9 @@ public abstract class AbstractCommandStrategyTest {
     }
 
     protected static DittoHeaders provideHeaders(final CommandStrategy.Context<ThingId> context) {
+        final ThingId thingId = context.getState();
         return DittoHeaders.newBuilder()
-                .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), context.getState().toString())
+                .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), thingId.getEntityType() + ":" + thingId)
                 .build();
     }
 

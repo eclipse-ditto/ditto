@@ -367,7 +367,7 @@ public final class ETagTestUtils {
             final DittoHeaders dittoHeaders
     ) {
         return dittoHeaders.toBuilder()
-                .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), thingId.toString())
+                .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), thingId.getEntityType() + ":" + thingId)
                 .eTag(EntityTag.fromEntity(object).get())
                 .build();
     }

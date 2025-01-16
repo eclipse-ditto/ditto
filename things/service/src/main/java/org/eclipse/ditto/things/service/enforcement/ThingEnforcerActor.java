@@ -200,7 +200,8 @@ public final class ThingEnforcerActor
             return performWotBasedMessageCommandValidation(messageCommand.setDittoHeaders(
                     DittoHeaders.of(startedSpan.propagateContext(messageCommand.getDittoHeaders()))
                             .toBuilder()
-                            .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), entityId.toString())
+                            .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(),
+                                    entityId.getEntityType() + ":" + entityId)
                             .build()
             )).whenComplete((result, error) -> {
                         if (error instanceof DittoRuntimeException dre) {
@@ -243,7 +244,8 @@ public final class ThingEnforcerActor
                 messageCommandResponse.setDittoHeaders(
                         DittoHeaders.of(startedSpan.propagateContext(messageCommandResponse.getDittoHeaders()))
                                 .toBuilder()
-                                .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), entityId.toString())
+                                .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(),
+                                        entityId.getEntityType() + ":" + entityId)
                                 .build()
                 )
         )

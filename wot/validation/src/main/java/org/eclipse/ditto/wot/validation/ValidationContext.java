@@ -54,7 +54,9 @@ public record ValidationContext(
     }
 
     private static Optional<ThingId> extractThingId(final DittoHeaders dittoHeaders) {
-        return Optional.ofNullable(dittoHeaders.get(DittoHeaderDefinition.ENTITY_ID.getKey()))
+        final String nullableEntityId = dittoHeaders.get(DittoHeaderDefinition.ENTITY_ID.getKey());
+        return Optional.ofNullable(nullableEntityId)
+                .map(entityId -> entityId.substring(entityId.indexOf(":") + 1)) // starts with "thing:" - cut that off!
                 .map(ThingId::of);
     }
 }

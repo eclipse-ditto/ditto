@@ -102,7 +102,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 final DeleteThing deleteThing = DeleteThing.of(thingId, dittoHeadersV2);
                 underTest.tell(deleteThing, getRef());
                 expectMsgEquals(DeleteThingResponse.of(thingId, dittoHeadersV2.toBuilder()
-                        .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), thingId.toString())
+                        .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), thingId.getEntityType() + ":" + thingId)
                         .build()));
 
                 final Thing expectedDeletedSnapshot = toDeletedThing(2);
