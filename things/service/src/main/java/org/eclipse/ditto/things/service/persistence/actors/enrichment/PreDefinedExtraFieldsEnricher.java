@@ -12,17 +12,23 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors.enrichment;
 
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
+import java.util.stream.Collector;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.japi.Pair;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
@@ -42,6 +48,7 @@ import org.eclipse.ditto.placeholders.HeadersPlaceholder;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.policies.api.Permission;
+import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.PoliciesResourceType;
@@ -56,8 +63,6 @@ import org.eclipse.ditto.things.service.common.config.PreDefinedExtraFieldsConfi
 /**
  * Encapsulates functionality in order to perform a "pre-defined" {@code extraFields} enrichment via DittoHeaders of
  * fields defined per namespace in the Ditto things configuration.
- *
- * TODO TJ add unit tests
  */
 public final class PreDefinedExtraFieldsEnricher {
 
@@ -91,8 +96,8 @@ public final class PreDefinedExtraFieldsEnricher {
      * @param thing the Thing entity to use for getting extra fields from
      * @param policyId the Policy ID to use for looking up permissions
      * @param withDittoHeaders the object to enrich with pre-defined extraFields (e.g. a Signal)
-     * @return an enriched version of the passed in {@code withDittoHeaders} with pre-defined extraFields
      * @param <T> the type of the signal to enrich
+     * @return an enriched version of the passed in {@code withDittoHeaders} with pre-defined extraFields
      */
     public <T extends DittoHeadersSettable<? extends T>> CompletionStage<T> enrichWithPredefinedExtraFields(
             final ThingId thingId,
@@ -116,7 +121,7 @@ public final class PreDefinedExtraFieldsEnricher {
                         combinedPointerSet.addAll(b.getPointers());
                         return JsonFactory.newFieldSelector(combinedPointerSet);
                     });
-            return buildPredefinedExtraFieldsHeaderReadGrantObject(policyId, combinedPredefinedExtraFields)
+            return buildPredefinedExtraFieldsHeaderReadGrantObject(policyId, combinedPredefinedExtraFields, thing)
                     .thenApply(predefinedExtraFieldsHeaderReadGrantObject ->
                             withDittoHeaders.setDittoHeaders(withDittoHeaders.getDittoHeaders()
                                     .toBuilder()
@@ -179,28 +184,101 @@ public final class PreDefinedExtraFieldsEnricher {
 
     private CompletionStage<String> buildPredefinedExtraFieldsHeaderReadGrantObject(
             @Nullable final PolicyId policyId,
-            final JsonFieldSelector preDefinedExtraFields
+            final JsonFieldSelector preDefinedExtraFields,
+            final Thing thing
     ) {
         return policyEnforcerProvider.getPolicyEnforcer(policyId)
                 .thenApply(policyEnforcerOpt ->
                         policyEnforcerOpt.map(policyEnforcer ->
                                 StreamSupport.stream(preDefinedExtraFields.spliterator(), false)
-                                        .map(pointer -> {
-                                            final JsonArray unrestrictedReadSubjects = policyEnforcer.getEnforcer()
-                                                    .getSubjectsWithUnrestrictedPermission(
+                                        .flatMap(pointer -> {
+                                            final Set<AuthorizationSubject> subjectsWithUnrestrictedPermission =
+                                                    policyEnforcer.getEnforcer().getSubjectsWithUnrestrictedPermission(
                                                             PoliciesResourceType.thingResource(pointer),
                                                             Permissions.newInstance(Permission.READ)
-                                                    )
-                                                    .stream()
-                                                    .map(AuthorizationSubject::getId)
-                                                    .map(JsonValue::of)
-                                                    .collect(JsonCollectors.valuesToArray());
-                                            return JsonField.newInstance(pointer.toString(), unrestrictedReadSubjects);
+                                                    );
+                                            final Set<AuthorizationSubject> subjectsWithPartialPermission =
+                                                    policyEnforcer.getEnforcer().getSubjectsWithPartialPermission(
+                                                            PoliciesResourceType.thingResource(pointer),
+                                                            Permissions.newInstance(Permission.READ)
+                                                    );
+
+                                            final JsonArray unrestrictedReadSubjects =
+                                                    subjectsWithUnrestrictedPermission
+                                                            .stream()
+                                                            .map(AuthorizationSubject::getId)
+                                                            .map(JsonValue::of)
+                                                            .collect(JsonCollectors.valuesToArray());
+                                            final Stream<JsonField> simpleReadGrantStream = Stream.of(
+                                                    JsonField.newInstance(pointer.toString(), unrestrictedReadSubjects)
+                                            );
+
+                                            if (!subjectsWithPartialPermission
+                                                    .equals(subjectsWithUnrestrictedPermission)
+                                            ) {
+                                                // we have subjects with only partial permissions, so need to "traverse" down
+                                                //  in order to find them out and add them to the read grant object ..
+                                                final Set<AuthorizationSubject> partialSubjects =
+                                                        new HashSet<>(subjectsWithPartialPermission);
+                                                partialSubjects.removeAll(subjectsWithUnrestrictedPermission);
+                                                return Stream.concat(simpleReadGrantStream,
+                                                        calculatePartialReadFieldsAndSubjects(preDefinedExtraFields,
+                                                                thing, policyEnforcer, partialSubjects
+                                                        )
+                                                );
+                                            } else {
+                                                return Stream.of(
+                                                        JsonField.newInstance(pointer.toString(), unrestrictedReadSubjects)
+                                                );
+                                            }
                                         })
-                                        .collect(JsonCollectors.fieldsToObject())
+                                        .collect(mergeFieldsAndArrayValuesWithinFields())
                                         .toString()
                         ).orElse("{}")
                 );
+    }
+
+    private static Stream<JsonField> calculatePartialReadFieldsAndSubjects(
+            final JsonFieldSelector preDefinedExtraFields,
+            final Thing thing,
+            final PolicyEnforcer policyEnforcer,
+            final Set<AuthorizationSubject> partialSubjects
+    ) {
+        return partialSubjects.stream()
+                .map(partialReadSubject ->
+                        Pair.create(partialReadSubject, policyEnforcer.getEnforcer()
+                                .buildJsonView(
+                                        buildPredefinedExtraFieldsHeaderObject(thing, preDefinedExtraFields),
+                                        "thing",
+                                        AuthorizationContext.newInstance(
+                                                DittoAuthorizationContextType.UNSPECIFIED,
+                                                partialReadSubject
+                                        ),
+                                        Permission.READ
+                                )
+                        )
+                )
+                .flatMap(pair -> pair.second().stream()
+                        .flatMap(field -> collectFields(pair.first(), field, JsonPointer.empty()))
+                );
+    }
+
+    private static Stream<JsonField> collectFields(final AuthorizationSubject authorizationSubject,
+            final JsonField field,
+            final JsonPointer prefix
+    ) {
+        if (field.getValue().isObject()) {
+            return field.getValue().asObject().stream()
+                    .flatMap(subField ->
+                            collectFields(authorizationSubject, subField, prefix.append(field.getKey().asPointer())) // recurse!
+                    );
+        } else {
+            return Stream.of(
+                    JsonField.newInstance(prefix.addLeaf(field.getKey()),
+                            JsonArray.newBuilder().add(authorizationSubject.getId()).build()
+                    )
+            );
+        }
     }
 
     private static JsonObject buildPredefinedExtraFieldsHeaderObject(
@@ -213,5 +291,32 @@ public final class PreDefinedExtraFieldsEnricher {
                 thingJson.getValue(pointer).ifPresent(thingValue -> builder.set(pointer, thingValue))
         );
         return builder.build();
+    }
+
+    private static Collector<JsonField, JsonObjectBuilder, JsonObject> mergeFieldsAndArrayValuesWithinFields() {
+        return Collector.of(JsonFactory::newObjectBuilder, (builder, field) -> {
+                    final JsonObject preBuiltObject = builder.build();
+                    final JsonField adjustedField;
+                    if (field.getValue().isArray() &&
+                            preBuiltObject.getValue(field.getKey()).filter(JsonValue::isArray).isPresent()) {
+                        final JsonArray existingArray = preBuiltObject.getValue(field.getKey()).orElseThrow().asArray();
+                        final JsonArray missingEntriesArray = field.getValue().asArray().stream()
+                                .filter(Predicate.not(existingArray::contains))
+                                .collect(JsonCollectors.valuesToArray());
+                        final JsonArray mergedArray = existingArray.toBuilder()
+                                .addAll(missingEntriesArray)
+                                .build();
+                        adjustedField = JsonField.newInstance(field.getKey(), mergedArray);
+                    } else {
+                        adjustedField = field;
+                    }
+                    builder.setAll(JsonFactory.newObject(
+                            Stream.of(adjustedField).collect(JsonCollectors.fieldsToObject()),
+                            preBuiltObject
+                    ));
+                },
+                JsonObjectBuilder::setAll,
+                JsonObjectBuilder::build
+        );
     }
 }
