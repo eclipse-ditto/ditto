@@ -15,7 +15,6 @@ package org.eclipse.ditto.internal.models.signalenrichment;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -24,7 +23,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
@@ -42,9 +40,9 @@ import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
 import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
@@ -174,44 +172,13 @@ public class DittoCachingSignalEnrichmentFacade implements CachingSignalEnrichme
             return performPreDefinedExtraFieldsOptimization(
                     thingId, jsonFieldSelector, dittoHeaders, signalHeaders, thingEvents
             );
+        } else {
+            // as second step only return what was originally requested as fields:
+            final var cachingParameters =
+                    new CachingParameters(jsonFieldSelector, thingEvents, true, 0);
+            return doRetrievePartialThing(thingId, dittoHeaders, null, cachingParameters)
+                    .thenApply(jsonObject -> applyJsonFieldSelector(jsonObject, jsonFieldSelector));
         }
-        // as second step only return what was originally requested as fields:
-        final var cachingParameters =
-                new CachingParameters(jsonFieldSelector, thingEvents, true, 0);
-
-        return doRetrievePartialThing(thingId, dittoHeaders, null, cachingParameters)
-                .thenApply(jsonObject -> applyJsonFieldSelector(jsonObject, jsonFieldSelector));
-    }
-
-    /**
-     * Retrieve parts of a thing.
-     *
-     * @param thingId ID of the thing.
-     * @param jsonFieldSelector the selected fields of the thing.
-     * @param dittoHeaders Ditto headers containing authorization information.
-     * @param concernedSignals the Signals which caused that this partial thing retrieval was triggered
-     * (e.g. a {@code ThingEvent})
-     * @param minAcceptableSeqNr minimum sequence number of the concerned signals to not invalidate the cache.
-     * @return future that completes with the parts of a thing or fails with an error.
-     */
-    @SuppressWarnings({"java:S1612", "unused"})
-    public CompletionStage<JsonObject> retrievePartialThing(final EntityId thingId,
-            final JsonFieldSelector jsonFieldSelector,
-            final DittoHeaders dittoHeaders,
-            final Collection<? extends Signal<?>> concernedSignals,
-            final long minAcceptableSeqNr) {
-
-        final List<ThingEvent<?>> thingEvents = concernedSignals.stream()
-                .filter(signal -> signal instanceof ThingEvent && !Signal.isChannelLive(signal))
-                .map(signal -> (ThingEvent<?>) signal)
-                .collect(Collectors.toList());
-
-        // as second step only return what was originally requested as fields:
-        final var cachingParameters =
-                new CachingParameters(jsonFieldSelector, thingEvents, true, minAcceptableSeqNr);
-
-        return doRetrievePartialThing(thingId, dittoHeaders, null, cachingParameters)
-                .thenApply(jsonObject -> applyJsonFieldSelector(jsonObject, jsonFieldSelector));
     }
 
     private CompletionStage<JsonObject> performPreDefinedExtraFieldsOptimization(final ThingId thingId,
@@ -230,14 +197,17 @@ public class DittoCachingSignalEnrichmentFacade implements CachingSignalEnrichme
 
         final JsonObject preDefinedExtraFields =
                 JsonObject.of(signalHeaders.get(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_OBJECT.getKey()));
-        final CompletionStage<JsonObject> filteredPreDefinedExtraFieldsReadGranted =
+        final JsonObject filteredPreDefinedExtraFieldsReadGranted =
                 filterPreDefinedExtraReadGrantedObject(jsonFieldSelector, dittoHeaders, signalHeaders,
                         preDefinedExtraFields);
 
         final boolean allExtraFieldsPresent =
                 allConfiguredPredefinedExtraFields.containsAll(jsonFieldSelector.getPointers());
         if (allExtraFieldsPresent) {
-            return filteredPreDefinedExtraFieldsReadGranted;
+            LOGGER.withCorrelationId(dittoHeaders)
+                    .debug("All asked for extraFields for thing <{}> we present in pre-defined fields, " +
+                            "skipping cache retrieval: <{}>", thingId, jsonFieldSelector);
+            return CompletableFuture.completedStage(filteredPreDefinedExtraFieldsReadGranted);
         } else {
             // optimization to only fetch extra fields which were not pre-defined
             final List<JsonPointer> missingFieldsPointers = new ArrayList<>(jsonFieldSelector.getPointers());
@@ -246,46 +216,51 @@ public class DittoCachingSignalEnrichmentFacade implements CachingSignalEnrichme
             final var cachingParameters =
                     new CachingParameters(missingFieldsSelector, thingEvents, true, 0);
 
+            LOGGER.withCorrelationId(dittoHeaders)
+                    .debug("Fetching non pre-defined extraFields for thing <{}>: <{}>", thingId, missingFieldsPointers);
+
             return doRetrievePartialThing(thingId, dittoHeaders, null, cachingParameters)
-                    .thenCompose(jsonObject -> filteredPreDefinedExtraFieldsReadGranted
-                            .thenApply(preDefinedObject ->
-                                    JsonFactory.newObject( // merge
-                                            applyJsonFieldSelector(jsonObject, missingFieldsSelector),
-                                            preDefinedObject
-                                    )
+                    .thenApply(jsonObject ->
+                            JsonFactory.newObject( // merge
+                                    applyJsonFieldSelector(jsonObject, missingFieldsSelector),
+                                    filteredPreDefinedExtraFieldsReadGranted
                             )
                     );
         }
     }
 
-    private static CompletionStage<JsonObject> filterPreDefinedExtraReadGrantedObject(
+    private static JsonObject filterPreDefinedExtraReadGrantedObject(
             final JsonFieldSelector jsonFieldSelector,
-            final DittoHeaders dittoHeaders, final DittoHeaders signalHeaders, final JsonObject preDefinedExtraFields) {
+            final DittoHeaders dittoHeaders,
+            final DittoHeaders signalHeaders,
+            final JsonObject preDefinedExtraFields
+    ) {
         final JsonObject preDefinedExtraFieldsReadGrant = JsonObject.of(
                 signalHeaders.get(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT.getKey())
         );
         final JsonFieldSelector grantedReadJsonFieldSelector = filterAskedForFieldSelectorToGrantedFields(
-                jsonFieldSelector, preDefinedExtraFieldsReadGrant,
+                jsonFieldSelector,
+                preDefinedExtraFieldsReadGrant,
                 dittoHeaders.getAuthorizationContext().getAuthorizationSubjectIds()
         );
-        return CompletableFuture.completedStage(preDefinedExtraFields.get(grantedReadJsonFieldSelector));
+        return preDefinedExtraFields.get(grantedReadJsonFieldSelector);
     }
 
     private static JsonFieldSelector filterAskedForFieldSelectorToGrantedFields(
             final JsonFieldSelector jsonFieldSelector,
             final JsonObject preDefinedExtraFieldsReadGrant,
-            final List<String> authorizationSubjectIds)
-    {
-        final List<JsonPointer> allowedPointers = StreamSupport.stream(jsonFieldSelector.spliterator(), false)
-                .filter(pointer -> preDefinedExtraFieldsReadGrant.getValue(JsonKey.of(pointer.toString()))
-                        .filter(JsonValue::isArray)
-                        .map(JsonValue::asArray)
-                        .filter(readGrantArray -> readGrantArray.stream()
-                                .filter(JsonValue::isString)
-                                .map(JsonValue::asString)
-                                .anyMatch(authorizationSubjectIds::contains)
-                        ).isPresent()
-                ).toList();
+            final List<String> authorizationSubjectIds
+    ) {
+        final List<JsonValue> authSubjects = authorizationSubjectIds.stream().map(JsonValue::of).toList();
+        final JsonObject scopedPreDefinedExtraFieldsReadGrant = preDefinedExtraFieldsReadGrant.stream()
+                .filter(field -> field.getValue().asArray().stream().anyMatch(authSubjects::contains))
+                .collect(JsonCollectors.fieldsToObject());
+        final List<JsonPointer> allowedPointers = scopedPreDefinedExtraFieldsReadGrant.getKeys().stream()
+                .filter(key -> jsonFieldSelector.getPointers().stream()
+                        .anyMatch(p -> key.toString().startsWith(p.toString()))
+                )
+                .map(key -> JsonPointer.of(key.toString().substring(1)))
+                .toList();
         return JsonFactory.newFieldSelector(allowedPointers);
     }
 

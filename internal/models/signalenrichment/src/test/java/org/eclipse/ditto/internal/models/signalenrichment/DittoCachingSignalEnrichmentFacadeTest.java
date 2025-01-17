@@ -63,12 +63,15 @@ public final class DittoCachingSignalEnrichmentFacadeTest extends AbstractCachin
             4L,
             Instant.EPOCH,
             DittoHeaders.newBuilder()
-                    .putHeader(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS.getKey(),
-                            "[\"/definition\",\"/attributes/pre\",\"/attributes/pre2\"]")
-                    .putHeader(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT.getKey(),
-                            "{\"/definition\":[\"test:user\"],\"/attributes/pre\":[\"test:user\"]}")
-                    .putHeader(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_OBJECT.getKey(),
-                            "{\"definition\":\"some:cool:definition\",\"attributes\":{\"pre\":{\"bar\": [1,2,3]}}}")
+                    .putHeader(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS.getKey(), """
+                            ["/definition","/attributes/pre","/attributes/pre2","/attributes/folder"]
+                            """)
+                    .putHeader(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT.getKey(), """
+                                    {"/definition":["test:user"],"/attributes/pre":["test:user"],"/attributes/folder":["test:user"],"/attributes/folder/public":["test:limited"]}
+                                    """)
+                    .putHeader(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_OBJECT.getKey(), """
+                                    {"definition":"some:cool:definition","attributes":{"pre":{"bar": [1,2,3]},"folder":{"public":"public","private":"private"}}}
+                                    """)
                     .build(),
             MetadataModelFactory.newMetadataBuilder()
                     .set("type", "x attribute")
@@ -157,9 +160,71 @@ public final class DittoCachingSignalEnrichmentFacadeTest extends AbstractCachin
             // AND: the resulting thing JSON includes the with the updated value:
             final JsonObject expectedThingJson = EXPECTED_THING_JSON_PRE_DEFINED_EXTRA.toBuilder()
                     .remove("attributes/pre2") // we don't have the read grant for this field
-                    .set(JsonPointer.of("attributes/x"), 42) // we expect the updated value (as part of the modify event)
-                    .set(JsonPointer.of("attributes/unchanged"), "foo") // we expect the updated value (retrieved via cache)
+                    .set(JsonPointer.of("attributes/x"),
+                            42) // we expect the updated value (as part of the modify event)
+                    .set(JsonPointer.of("attributes/unchanged"),
+                            "foo") // we expect the updated value (retrieved via cache)
                     .build();
+            softly.assertThat(askResult).isCompletedWithValue(expectedThingJson);
+        });
+    }
+
+    @Test
+    public void enrichedEventWithPreDefinedExtraFieldsWithMoreComplexStructure() {
+        DittoTestSystem.run(this, kit -> {
+            final SignalEnrichmentFacade underTest =
+                    createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
+            final ThingId thingId = ThingId.generateRandom();
+            final String userId = ISSUER_PREFIX + "user";
+            final DittoHeaders headers = DittoHeaders.newBuilder()
+                    .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                            AuthorizationSubject.newInstance(userId)))
+                    .randomCorrelationId()
+                    .build();
+            final JsonFieldSelector fieldSelector =
+                    JsonFieldSelector.newInstance("attributes/folder");
+            final CompletionStage<JsonObject> askResult = underTest.retrievePartialThing(thingId, fieldSelector,
+                    headers, THING_EVENT_PRE_DEFINED_EXTRA_FIELDS);
+
+            // THEN: no cache lookup should be done
+            kit.expectNoMessage(Duration.ofSeconds(1));
+            askResult.toCompletableFuture().join();
+            // AND: the resulting thing JSON includes the with the updated value:
+            final JsonObject expectedThingJson = JsonObject.of("""
+            {
+              "attributes": {"folder": {"public": "public", "private": "private"}}
+            }"""
+                    );
+            softly.assertThat(askResult).isCompletedWithValue(expectedThingJson);
+        });
+    }
+
+    @Test
+    public void enrichedEventWithPreDefinedExtraFieldsWithMoreComplexStructureLimitedUser() {
+        DittoTestSystem.run(this, kit -> {
+            final SignalEnrichmentFacade underTest =
+                    createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
+            final ThingId thingId = ThingId.generateRandom();
+            final String userId = ISSUER_PREFIX + "limited";
+            final DittoHeaders headers = DittoHeaders.newBuilder()
+                    .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                            AuthorizationSubject.newInstance(userId)))
+                    .randomCorrelationId()
+                    .build();
+            final JsonFieldSelector fieldSelector =
+                    JsonFieldSelector.newInstance("attributes/folder");
+            final CompletionStage<JsonObject> askResult = underTest.retrievePartialThing(thingId, fieldSelector,
+                    headers, THING_EVENT_PRE_DEFINED_EXTRA_FIELDS);
+
+            // THEN: no cache lookup should be done
+            kit.expectNoMessage(Duration.ofSeconds(1));
+            askResult.toCompletableFuture().join();
+            // AND: the resulting thing JSON includes the with the updated value:
+            final JsonObject expectedThingJson = JsonObject.of("""
+            {
+              "attributes": {"folder": {"public": "public"}}
+            }"""
+                    );
             softly.assertThat(askResult).isCompletedWithValue(expectedThingJson);
         });
     }
