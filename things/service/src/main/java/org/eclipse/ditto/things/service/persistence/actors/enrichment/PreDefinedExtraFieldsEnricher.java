@@ -108,9 +108,12 @@ public final class PreDefinedExtraFieldsEnricher {
         if (null != thing && !preDefinedExtraFieldsConfigs.isEmpty()) {
             final List<PreDefinedExtraFieldsConfig> matchingPreDefinedFieldsConfigs =
                     preDefinedExtraFieldsConfigs.stream()
-                            .filter(conf -> conf
-                                    .getNamespace().stream()
-                                    .anyMatch(pattern -> pattern.matcher(thingId.getNamespace()).matches())
+                            .filter(conf -> conf.getNamespace().isEmpty() ||
+                                    conf.getNamespace()
+                                            .stream()
+                                            .anyMatch(pattern ->
+                                                    pattern.matcher(thingId.getNamespace()).matches()
+                                            )
                             )
                             .filter(applyPredefinedExtraFieldsCondition(thing, withDittoHeaders))
                             .toList();

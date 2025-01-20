@@ -22,7 +22,7 @@ import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 public interface ThingMessageConfig {
 
     /**
-     * Contains pre-defined (configured) {@code extraFields} to send along all thing (change) messages.
+     * Contains pre-defined (configured) {@code extraFields} to send along all thing messages.
      *
      * @return the pre-defined {@code extraFields} to send along.
      */
