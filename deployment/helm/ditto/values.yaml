@@ -1059,6 +1059,27 @@ things:
         interval: 15m
         # the threshold after how many changes to a Thing to do a snapshot
         threshold: 50
+    # event contains configuration related to e.g. publishing of thing events
+    event:
+      # preDefinedExtraFields contains pre-defined (configured) extraFields to send along all thing (change) events
+      preDefinedExtraFields: []
+      # - namespaces:
+      #     - "org.eclipse.ditto*"
+      #   condition: "eq(attributes/foo,'RQL condition')"
+      #   extraFields:
+      #     - "definition"
+      #     - "attributes/serial"
+    # message contains configuration related to distributing thing messages
+    message:
+      # preDefinedExtraFields contains pre-defined (configured) extraFields to send along all thing messages
+      preDefinedExtraFields: []
+      # - namespaces:
+      #     - "namespace1"
+      #     - "namespace2"
+      #   condition: "eq(attributes/foo,'RQL condition')"
+      #   extra-fields:
+      #     - "definition"
+      #     - "attributes/serial"
     # entityCreation by default, Ditto allows anyone to create a new entity (thing in this case) in any namespace.
     #  However, this behavior can be customized, and the ability to create new entities can be restricted:
     entityCreation:
