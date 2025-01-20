@@ -176,6 +176,8 @@ public final class ScriptedOutgoingMapping implements MappingFunction<Adaptable,
                     objectBuilder.set(key.toString(), JsonFactory.newValue(intValue));
                 } else if (value instanceof Double doubleValue) {
                     objectBuilder.set(key.toString(), JsonFactory.newValue(doubleValue));
+                } else if (value == null || value instanceof Undefined) {
+                    objectBuilder.set(key.toString(), JsonFactory.nullLiteral());
                 } else {
                     if (log.isDebugEnabled()){
                         log.debug("Unsupported type: {}, adding as string: {}", value.getClass().getName(), value);
@@ -183,7 +185,11 @@ public final class ScriptedOutgoingMapping implements MappingFunction<Adaptable,
                     objectBuilder.set(key.toString(), value.toString());
                 }
             } catch (final JsonParseException e) {
-                objectBuilder.set(key.toString(), value.toString());
+                if (value != null) {
+                    objectBuilder.set(key.toString(), value.toString());
+                } else {
+                    objectBuilder.set(key.toString(), JsonFactory.nullLiteral());
+                }
             }
         });
         return objectBuilder.build();
