@@ -486,6 +486,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                             DittoHeaders.newBuilder(mappedMessage.getHeaders())
                                     .removeHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey())
                                     .build()
+                                    .asCaseSensitiveMap()
                     ));
 
             final CompletionStage<SendResult> responsesFuture = publishMessage(outboundSource,
