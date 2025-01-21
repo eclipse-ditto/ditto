@@ -306,6 +306,7 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
             supervisor.tell(message, getRef());
 
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
 
             final var firstPublishRead = expectPubsubMessagePublish(message.getEntityId());
             assertThat((CharSequence) ((WithDittoHeaders) firstPublishRead.msg()).getDittoHeaders()
@@ -315,6 +316,7 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
 
             supervisor.tell(message, getRef());
 
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
 
             final var secondPublishRead = expectPubsubMessagePublish(message.getEntityId());
@@ -352,6 +354,7 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
             supervisor.tell(msgCommand, getRef());
 
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
 
             expectPubsubMessagePublish(msgCommand.getEntityId());
         }};
@@ -378,6 +381,7 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
             final MessageCommand<?, ?> msgCommand = featureMessageCommand();
             supervisor.tell(msgCommand, getRef());
 
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
 
             expectPubsubMessagePublish(msgCommand.getEntityId());
