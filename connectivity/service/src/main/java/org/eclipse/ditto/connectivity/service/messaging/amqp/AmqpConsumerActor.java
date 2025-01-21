@@ -367,6 +367,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
                     .toBuilder()
                     .removeHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey())
                     .build()
+                    .asCaseSensitiveMap()
             );
             final ExternalMessageBuilder builder = ExternalMessageFactory.newExternalMessageBuilder(headers);
             final ExternalMessage externalMessage = extractPayloadFromMessage(message, builder)

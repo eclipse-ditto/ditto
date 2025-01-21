@@ -155,6 +155,7 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
                     .toBuilder()
                     .removeHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey())
                     .build()
+                    .asCaseSensitiveMap()
             );
 
             final ExternalMessageBuilder externalMessageBuilder =

@@ -116,6 +116,7 @@ final class KafkaMessageTransformer {
                 .toBuilder()
                 .removeHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey())
                 .build()
+                .asCaseSensitiveMap()
         );
 
         try {
