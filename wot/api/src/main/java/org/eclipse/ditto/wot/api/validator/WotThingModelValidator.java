@@ -14,6 +14,7 @@ package org.eclipse.ditto.wot.api.validator;
 
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -197,7 +198,7 @@ public interface WotThingModelValidator {
      *
      * @param thingDefinition the ThingDefinition to retrieve the WoT TM from
      * @param messageSubject the (Thing) message subject
-     * @param inputPayload the input payload to validate
+     * @param inputPayloadSupplier the supplier of the input payload to validate
      * @param resourcePath the originating path of the command which caused validation
      * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
      * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
@@ -205,7 +206,7 @@ public interface WotThingModelValidator {
      */
     CompletionStage<Void> validateThingActionInput(@Nullable ThingDefinition thingDefinition,
             String messageSubject,
-            @Nullable JsonValue inputPayload,
+            Supplier<JsonValue> inputPayloadSupplier,
             JsonPointer resourcePath,
             DittoHeaders dittoHeaders
     );
@@ -216,7 +217,7 @@ public interface WotThingModelValidator {
      *
      * @param thingDefinition the ThingDefinition to retrieve the WoT TM from
      * @param messageSubject the (Thing) message subject
-     * @param outputPayload the output payload to validate
+     * @param outputPayloadSupplier the supplier of the output payload to validate
      * @param resourcePath the originating path of the command which caused validation
      * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
      * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
@@ -224,7 +225,7 @@ public interface WotThingModelValidator {
      */
     CompletionStage<Void> validateThingActionOutput(@Nullable ThingDefinition thingDefinition,
             String messageSubject,
-            @Nullable JsonValue outputPayload,
+            Supplier<JsonValue> outputPayloadSupplier,
             JsonPointer resourcePath,
             DittoHeaders dittoHeaders
     );
@@ -235,7 +236,7 @@ public interface WotThingModelValidator {
      *
      * @param thingDefinition the ThingDefinition to retrieve the WoT TM from
      * @param messageSubject the (Thing) message subject
-     * @param dataPayload the data payload to validate
+     * @param dataPayloadSupplier the supplier of data payload to validate
      * @param resourcePath the originating path of the command which caused validation
      * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
      * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
@@ -243,7 +244,7 @@ public interface WotThingModelValidator {
      */
     CompletionStage<Void> validateThingEventData(@Nullable ThingDefinition thingDefinition,
             String messageSubject,
-            @Nullable JsonValue dataPayload,
+            Supplier<JsonValue> dataPayloadSupplier,
             JsonPointer resourcePath,
             DittoHeaders dittoHeaders
     );
@@ -459,7 +460,7 @@ public interface WotThingModelValidator {
      * @param featureDefinition the FeatureDefinition to retrieve the WoT TM from
      * @param featureId the ID of the feature to validate the message input payload for
      * @param messageSubject the (Feature) message subject
-     * @param inputPayload the input payload to validate
+     * @param inputPayloadSupplier the supplier of input payload to validate
      * @param resourcePath the originating path of the command which caused validation
      * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
      * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
@@ -469,7 +470,7 @@ public interface WotThingModelValidator {
             @Nullable FeatureDefinition featureDefinition,
             String featureId,
             String messageSubject,
-            @Nullable JsonValue inputPayload,
+            Supplier<JsonValue> inputPayloadSupplier,
             JsonPointer resourcePath,
             DittoHeaders dittoHeaders
     );
@@ -482,7 +483,7 @@ public interface WotThingModelValidator {
      * @param featureDefinition the FeatureDefinition to retrieve the WoT TM from
      * @param featureId the ID of the feature to validate the message output payload for
      * @param messageSubject the (Feature) message subject
-     * @param outputPayload the output payload to validate
+     * @param outputPayloadSupplier the supplier of output payload to validate
      * @param resourcePath the originating path of the command which caused validation
      * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
      * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
@@ -492,7 +493,7 @@ public interface WotThingModelValidator {
             @Nullable FeatureDefinition featureDefinition,
             String featureId,
             String messageSubject,
-            @Nullable JsonValue outputPayload,
+            Supplier<JsonValue> outputPayloadSupplier,
             JsonPointer resourcePath,
             DittoHeaders dittoHeaders
     );
@@ -505,7 +506,7 @@ public interface WotThingModelValidator {
      * @param featureDefinition the FeatureDefinition to retrieve the WoT TM from
      * @param featureId the ID of the feature to validate the message payload for
      * @param messageSubject the (Feature) message subject
-     * @param dataPayload the data payload to validate
+     * @param dataPayloadSupplier the supplier of data payload to validate
      * @param resourcePath the originating path of the command which caused validation
      * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
      * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
@@ -515,7 +516,7 @@ public interface WotThingModelValidator {
             @Nullable FeatureDefinition featureDefinition,
             String featureId,
             String messageSubject,
-            @Nullable JsonValue dataPayload,
+            Supplier<JsonValue> dataPayloadSupplier,
             JsonPointer resourcePath,
             DittoHeaders dittoHeaders
     );
