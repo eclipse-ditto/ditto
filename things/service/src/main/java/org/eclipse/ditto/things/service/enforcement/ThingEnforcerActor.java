@@ -19,6 +19,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -93,6 +94,7 @@ import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 import org.eclipse.ditto.wot.api.validator.WotThingModelValidator;
 import org.eclipse.ditto.wot.integration.DittoWotIntegration;
+import org.eclipse.ditto.wot.validation.WotThingModelPayloadValidationException;
 
 /**
  * Enforcer responsible for enforcing {@link ThingCommand}s and filtering {@link ThingCommandResponse}s utilizing the
@@ -572,29 +574,36 @@ public final class ThingEnforcerActor
     private CompletionStage<MessageCommand<?, ?>> performWotBasedMessageCommandValidation(
             final MessageCommand<?, ?> messageCommand
     ) {
-        if (isJsonMessageContent(messageCommand.getMessage())) {
-            @SuppressWarnings("unchecked") final Message<JsonValue> message =
-                    ((MessageCommand<JsonValue, ?>) messageCommand)
-                            .getMessage();
+        @SuppressWarnings("unchecked") final Message<JsonValue> message =
+                ((MessageCommand<JsonValue, ?>) messageCommand)
+                        .getMessage();
 
-            final MessageDirection messageDirection = message.getDirection();
-            final JsonValue messageCommandPayload = message
-                    .getPayload()
-                    .orElse(null);
-
-            if (messageCommand instanceof SendThingMessage<?> sendThingMessage) {
-                return performWotBasedThingMessageValidation(messageCommand, sendThingMessage, messageDirection,
-                        messageCommandPayload
-                ).thenApply(aVoid -> messageCommand);
-            } else if (messageCommand instanceof SendFeatureMessage<?> sendFeatureMessage) {
-                final String featureId = sendFeatureMessage.getFeatureId();
-                return performWotBasedFeatureMessageValidation(messageCommand, sendFeatureMessage, featureId,
-                        messageDirection, messageCommandPayload
-                ).thenApply(aVoid -> messageCommand);
-
-            } else {
-                return CompletableFuture.completedFuture(messageCommand);
+        // lazily only supply JsonValue if validation is enabled for the message:
+        final Supplier<JsonValue> messageCommandPayloadSupplier = () -> {
+            if (message.getPayload().isPresent() && !isJsonMessageContent(message)) {
+                throw WotThingModelPayloadValidationException
+                                .newBuilder("Could not validate non-JSON message content type <" +
+                                        message.getContentType().orElse("?") + "> for message subject " +
+                                        "<" + message.getSubject() + ">"
+                                )
+                                .dittoHeaders(messageCommand.getDittoHeaders())
+                                .build();
             }
+
+            return message.getPayload().orElse(null);
+        };
+
+        final MessageDirection messageDirection = message.getDirection();
+        if (messageCommand instanceof SendThingMessage<?> sendThingMessage) {
+            return performWotBasedThingMessageValidation(messageCommand, sendThingMessage, messageDirection,
+                    messageCommandPayloadSupplier
+            ).thenApply(aVoid -> messageCommand);
+        } else if (messageCommand instanceof SendFeatureMessage<?> sendFeatureMessage) {
+            final String featureId = sendFeatureMessage.getFeatureId();
+            return performWotBasedFeatureMessageValidation(messageCommand, sendFeatureMessage, featureId,
+                    messageDirection, messageCommandPayloadSupplier
+            ).thenApply(aVoid -> messageCommand);
+
         } else {
             return CompletableFuture.completedFuture(messageCommand);
         }
@@ -603,7 +612,7 @@ public final class ThingEnforcerActor
     private CompletionStage<Void> performWotBasedThingMessageValidation(final MessageCommand<?, ?> messageCommand,
             final SendThingMessage<?> sendThingMessage,
             final MessageDirection messageDirection,
-            @Nullable final JsonValue messageCommandPayload
+            final Supplier<JsonValue> messageCommandPayloadSupplier
     ) {
         return resolveThingDefinition()
                 .thenCompose(optThingDefinition -> {
@@ -611,7 +620,7 @@ public final class ThingEnforcerActor
                         return thingModelValidator.validateThingActionInput(
                                 optThingDefinition.orElse(null),
                                 sendThingMessage.getMessage().getSubject(),
-                                messageCommandPayload,
+                                messageCommandPayloadSupplier,
                                 sendThingMessage.getResourcePath(),
                                 sendThingMessage.getDittoHeaders()
                         );
@@ -619,7 +628,7 @@ public final class ThingEnforcerActor
                         return thingModelValidator.validateThingEventData(
                                 optThingDefinition.orElse(null),
                                 sendThingMessage.getMessage().getSubject(),
-                                messageCommandPayload,
+                                messageCommandPayloadSupplier,
                                 sendThingMessage.getResourcePath(),
                                 sendThingMessage.getDittoHeaders()
                         );
@@ -637,7 +646,7 @@ public final class ThingEnforcerActor
             final SendFeatureMessage<?> sendFeatureMessage,
             final String featureId,
             final MessageDirection messageDirection,
-            @Nullable final JsonValue messageCommandPayload
+            final Supplier<JsonValue> messageCommandPayloadSupplier
     ) {
         return resolveThingAndFeatureDefinition(featureId)
                 .thenCompose(optDefinitionPair -> {
@@ -647,7 +656,7 @@ public final class ThingEnforcerActor
                                 optDefinitionPair.second().orElse(null),
                                 featureId,
                                 sendFeatureMessage.getMessage().getSubject(),
-                                messageCommandPayload,
+                                messageCommandPayloadSupplier,
                                 sendFeatureMessage.getResourcePath(),
                                 sendFeatureMessage.getDittoHeaders()
                         );
@@ -657,7 +666,7 @@ public final class ThingEnforcerActor
                                 optDefinitionPair.second().orElse(null),
                                 featureId,
                                 sendFeatureMessage.getMessage().getSubject(),
-                                messageCommandPayload,
+                                messageCommandPayloadSupplier,
                                 sendFeatureMessage.getResourcePath(),
                                 sendFeatureMessage.getDittoHeaders()
                         );
@@ -674,44 +683,63 @@ public final class ThingEnforcerActor
     private CompletionStage<MessageCommandResponse<?, ?>> performWotBasedMessageCommandResponseValidation(
             final MessageCommandResponse<?, ?> messageCommandResponse
     ) {
-        if (isJsonMessageContent(messageCommandResponse.getMessage())) {
-            @SuppressWarnings("unchecked") final Message<JsonValue> message =
-                    ((MessageCommandResponse<JsonValue, ?>) messageCommandResponse)
-                            .getMessage();
+        @SuppressWarnings("unchecked") final Message<JsonValue> message =
+                ((MessageCommandResponse<JsonValue, ?>) messageCommandResponse)
+                        .getMessage();
 
-            final MessageDirection messageDirection = message.getDirection();
-            final JsonValue messageCommandPayload = message
-                    .getPayload()
-                    .orElse(null);
+        if (message.getPayload().isPresent() && !isJsonMessageContent(message)) {
+            return CompletableFuture.failedFuture(
+                    WotThingModelPayloadValidationException
+                            .newBuilder("Could not validate non-JSON message content type <" +
+                                    message.getContentType().orElse("?") + "> for message response subject " +
+                                    "<" + message.getSubject() + ">"
+                            )
+                            .dittoHeaders(messageCommandResponse.getDittoHeaders())
+                            .build()
+            );
+        }
 
-            if (messageDirection == MessageDirection.TO &&
-                    messageCommandResponse instanceof SendThingMessageResponse<?> sendThingMessageResponse) {
-                return resolveThingDefinition()
-                        .thenCompose(optThingDefinition -> thingModelValidator.validateThingActionOutput(
-                                optThingDefinition.orElse(null),
-                                sendThingMessageResponse.getMessage().getSubject(),
-                                messageCommandPayload,
-                                sendThingMessageResponse.getResourcePath(),
-                                sendThingMessageResponse.getDittoHeaders()
-                        ))
-                        .thenApply(aVoid -> messageCommandResponse);
-            } else if (messageDirection == MessageDirection.TO &&
-                    messageCommandResponse instanceof SendFeatureMessageResponse<?> sendFeatureMessageResponse) {
-                final String featureId = sendFeatureMessageResponse.getFeatureId();
-                return resolveThingAndFeatureDefinition(featureId)
-                        .thenCompose(optDefinitionPair -> thingModelValidator.validateFeatureActionOutput(
-                                optDefinitionPair.first().orElse(null),
-                                optDefinitionPair.second().orElse(null),
-                                featureId,
-                                sendFeatureMessageResponse.getMessage().getSubject(),
-                                messageCommandPayload,
-                                sendFeatureMessageResponse.getResourcePath(),
-                                sendFeatureMessageResponse.getDittoHeaders()
-                        ))
-                        .thenApply(aVoid -> messageCommandResponse);
-            } else {
-                return CompletableFuture.completedFuture(messageCommandResponse);
+        // lazily only supply JsonValue if validation is enabled for the message:
+        final Supplier<JsonValue> messageCommandPayloadSupplier = () -> {
+            if (message.getPayload().isPresent() && !isJsonMessageContent(message)) {
+                throw WotThingModelPayloadValidationException
+                        .newBuilder("Could not validate non-JSON message content type <" +
+                                message.getContentType().orElse("?") + "> for message response subject " +
+                                "<" + message.getSubject() + ">"
+                        )
+                        .dittoHeaders(messageCommandResponse.getDittoHeaders())
+                        .build();
             }
+
+            return message.getPayload().orElse(null);
+        };
+
+        final MessageDirection messageDirection = message.getDirection();
+        if (messageDirection == MessageDirection.TO &&
+                messageCommandResponse instanceof SendThingMessageResponse<?> sendThingMessageResponse) {
+            return resolveThingDefinition()
+                    .thenCompose(optThingDefinition -> thingModelValidator.validateThingActionOutput(
+                            optThingDefinition.orElse(null),
+                            sendThingMessageResponse.getMessage().getSubject(),
+                            messageCommandPayloadSupplier,
+                            sendThingMessageResponse.getResourcePath(),
+                            sendThingMessageResponse.getDittoHeaders()
+                    ))
+                    .thenApply(aVoid -> messageCommandResponse);
+        } else if (messageDirection == MessageDirection.TO &&
+                messageCommandResponse instanceof SendFeatureMessageResponse<?> sendFeatureMessageResponse) {
+            final String featureId = sendFeatureMessageResponse.getFeatureId();
+            return resolveThingAndFeatureDefinition(featureId)
+                    .thenCompose(optDefinitionPair -> thingModelValidator.validateFeatureActionOutput(
+                            optDefinitionPair.first().orElse(null),
+                            optDefinitionPair.second().orElse(null),
+                            featureId,
+                            sendFeatureMessageResponse.getMessage().getSubject(),
+                            messageCommandPayloadSupplier,
+                            sendFeatureMessageResponse.getResourcePath(),
+                            sendFeatureMessageResponse.getDittoHeaders()
+                    ))
+                    .thenApply(aVoid -> messageCommandResponse);
         } else {
             return CompletableFuture.completedFuture(messageCommandResponse);
         }
