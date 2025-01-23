@@ -385,6 +385,86 @@ entities (things/policies) and no-one other:
 
 These system properties would have to be configured for the "things" and "policies" services.
 
+## Configuring pre-defined extra fields
+
+Starting with Ditto 3.7.0, it is possible to configure [enrichment of `extraFields`](basic-enrichment.html) statically 
+via the configuration of the Ditto "things" service.
+
+The benefit of doing this statically is a Ditto internal optimization to reduce internal traffic between Ditto services.  
+By default, Ditto will internally do an additional roundtrip from an "edge" service ("gateway" or "connectivity") to the
+"things" service in order to retrieve configured `extraFields` (of a [managed connection](basic-connections.html#target-topics-and-enrichment) or 
+e.g. a [WebSocket session](httpapi-protocol-bindings-websocket.html#enrichment)).
+
+Those retrieved `extraFields` are additionally cached, so also require some memory as well.
+
+If for a Ditto installation the `extraFields` are known upfront and will not change dynamically, it is possible to configure
+them in the [things.conf](https://github.com/eclipse/ditto/blob/master/things/service/src/main/resources/things.conf).
+
+This configuration is something for power operators of Ditto, needing to reduce resources and improving resiliency by
+reducing internal lookups.
+
+### Pre-defined extra fields configuration
+
+The configuration can be done for:
+* events: Thing Events emitted to subscriber
+* messages: Thing Messages forwarded by Ditto to message subscribers
+
+Available options:
+* `pre-defined-extra-fields`: a list of pre-defined extra fields configurations
+  * `namespaces`: a list of namespaces for which the configuration applies
+    * if this list is empty, the configuration applies to all namespaces
+    * the entries support wildcards (`*` matches any number of characters, `?` matches exactly one character)
+  * `condition`: a [RQL condition](basic-rql.html) to check if the extra fields should be added
+  * `extra-fields`: a list of extra fields (as JsonPointers) to proactively add for all matching `namespaces` and `condition` combinations
+
+Example configuration:
+```hocon
+ditto {
+  things {
+    thing {
+      event {
+        pre-defined-extra-fields = [
+          {
+            namespaces = []
+            condition = "exists(definition)"
+            extra-fields = [
+              "definition"
+            ]
+          },
+          {
+            namespaces = [
+              "org.eclipse.ditto.lamps"
+            ]
+            extra-fields = [
+              "attributes/manufacturer",
+              "attributes/serial"
+            ]
+          }
+        ]
+      }
+
+      message {
+        pre-defined-extra-fields = [
+          {
+            namespaces = []
+            condition = "exists(definition)"
+            extra-fields = [
+              "definition"
+            ]
+          }
+        ]
+    //...
+}
+```
+
+The above example configuration would always proactively send the `definition` of all Things (if it exists) in the published events
+and all messages.  
+If a consumer of events or messages is interested in this `extraField`, this would not lead to an additional internal 
+lookup in Ditto and save an internal roundtrip + caching of the result.
+
+For the namespace `org.eclipse.ditto.lamps` there would even be some defined attributes pre-defined to be available as
+`extraFields` without the need for another internal lookup.
+
 ## Limiting Indexed Fields
 
 The default behavior of Ditto is to index the complete JSON of a thing, which includes all its attributes and features.  This may not be desired behavior for certain use cases:

@@ -14,13 +14,13 @@ package org.eclipse.ditto.things.service.persistence.actors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
-import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.things.model.signals.events.ThingEvent;
-
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.Props;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
 /**
  * Factory of thing-persistence-actor.
@@ -35,8 +35,10 @@ public interface ThingPersistenceActorPropsFactory {
      * @param mongoReadJournal the ReadJournal used for gaining access to historical values of the thing.
      * @param distributedPub the distributed-pub access.
      * @param searchShardRegionProxy the proxy of the shard region of search updaters.
+     * @param policyEnforcerProvider a provider for the used Policy {@code Enforcer} which "guards" the
+     * ThingPersistenceActor for applying access control.
      * @return Props of the thing-persistence-actor.
      */
     Props props(ThingId thingId, MongoReadJournal mongoReadJournal, DistributedPub<ThingEvent<?>> distributedPub,
-            @Nullable ActorRef searchShardRegionProxy);
+            @Nullable ActorRef searchShardRegionProxy, PolicyEnforcerProvider policyEnforcerProvider);
 }
