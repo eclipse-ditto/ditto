@@ -217,14 +217,6 @@ services:
       options:
         max-size: 10m
 
-#  node-red:
-#    image: docker.io/nodered/node-red-docker:latest
-#    volumes:
-#       - /opt/docker-volumes/nodered-data:/data:rw
-#       - ./nodered/settings.js:/data/settings.js:ro
-#       - ./nodered/package.json:/data/package.json:rw
-#       - ./nodered/flows-ditto.json:/data/flows-ditto.json:rw
-
   nginx:
     image: docker.io/nginx:1.27-alpine
     deploy:
