@@ -24,6 +24,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -52,6 +53,7 @@ import org.eclipse.ditto.wot.validation.config.TmValidationConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.slf4j.spi.LoggingEventBuilder;
 
 /**
  * Default Ditto specific implementation of {@link WotThingModelValidator}.
@@ -92,7 +94,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
         return provideValidationConfigIfWotValidationEnabled(context)
                 .map(validationConfig -> fetchResolveAndValidateWith(thingDefinition, dittoHeaders, thingModel ->
                         doValidateThing(Optional.ofNullable(thingDefinition).orElseThrow(),
-                                thingModel, thing, resourcePath, context, validationConfig
+                                thingModel, thing, context, validationConfig
                         ).handle(applyLogingErrorOnlyStrategy(validationConfig, context, "validateThing"))
                 ))
                 .orElseGet(DefaultWotThingModelValidator::success);
@@ -108,7 +110,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
         final ValidationContext context = buildValidationContext(dittoHeaders, thingDefinition);
         return provideValidationConfigIfWotValidationEnabled(context)
                 .map(validationConfig ->
-                        doValidateThing(thingDefinition, thingModel, thing, resourcePath, context, validationConfig)
+                        doValidateThing(thingDefinition, thingModel, thing, context, validationConfig)
                                 .handle(applyLogingErrorOnlyStrategy(validationConfig, context, "validateThing"))
                 )
                 .orElseGet(DefaultWotThingModelValidator::success);
@@ -125,9 +127,8 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                         validationConfig.getThingValidationConfig().isEnforceThingDescriptionModification()
                 )
                 .map(validationConfig -> fetchResolveAndValidateWith(thingDefinition, dittoHeaders, thingModel ->
-                        doValidateThing(thingDefinition, thingModel, thing, Thing.JsonFields.DEFINITION.getPointer(),
-                                context, validationConfig
-                        ).handle(applyLogingErrorOnlyStrategy(validationConfig, context, "validateThingDefinitionModification"))
+                        doValidateThing(thingDefinition, thingModel, thing, context, validationConfig)
+                                .handle(applyLogingErrorOnlyStrategy(validationConfig, context, "validateThingDefinitionModification"))
                 ))
                 .orElseGet(DefaultWotThingModelValidator::success);
     }
@@ -231,7 +232,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
     @Override
     public CompletionStage<Void> validateThingActionInput(@Nullable final ThingDefinition thingDefinition,
             final String messageSubject,
-            @Nullable final JsonValue inputPayload,
+            final Supplier<JsonValue> inputPayloadSupplier,
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
@@ -240,7 +241,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                 .map(validationConfig -> fetchResolveAndValidateWith(thingDefinition, dittoHeaders, thingModel ->
                         selectValidation(validationConfig)
                                 .validateThingActionInput(thingModel,
-                                        messageSubject, inputPayload, resourcePath, context
+                                        messageSubject, inputPayloadSupplier.get(), resourcePath, context
                                 ).handle(applyLogingErrorOnlyStrategy(validationConfig, context, "validateThingActionInput"))
                 ))
                 .orElseGet(DefaultWotThingModelValidator::success);
@@ -249,7 +250,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
     @Override
     public CompletionStage<Void> validateThingActionOutput(@Nullable final ThingDefinition thingDefinition,
             final String messageSubject,
-            @Nullable final JsonValue outputPayload,
+            final Supplier<JsonValue> outputPayloadSupplier,
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
@@ -258,7 +259,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                 .map(validationConfig -> fetchResolveAndValidateWith(thingDefinition, dittoHeaders, thingModel ->
                         selectValidation(validationConfig)
                                 .validateThingActionOutput(thingModel,
-                                        messageSubject, outputPayload, resourcePath, context
+                                        messageSubject, outputPayloadSupplier.get(), resourcePath, context
                                 ).handle(applyLogingErrorOnlyStrategy(validationConfig, context, "validateThingActionOutput"))
                 ))
                 .orElseGet(DefaultWotThingModelValidator::success);
@@ -267,7 +268,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
     @Override
     public CompletionStage<Void> validateThingEventData(@Nullable final ThingDefinition thingDefinition,
             final String messageSubject,
-            @Nullable final JsonValue dataPayload,
+            final Supplier<JsonValue> dataPayloadSupplier,
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
@@ -276,7 +277,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                 .map(validationConfig -> fetchResolveAndValidateWith(thingDefinition, dittoHeaders, thingModel ->
                         selectValidation(validationConfig)
                                 .validateThingEventData(thingModel,
-                                        messageSubject, dataPayload, resourcePath, context
+                                        messageSubject, dataPayloadSupplier.get(), resourcePath, context
                                 ).handle(applyLogingErrorOnlyStrategy(validationConfig, context, "validateThingEventData"))
                 ))
                 .orElseGet(DefaultWotThingModelValidator::success);
@@ -493,7 +494,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
             @Nullable final FeatureDefinition featureDefinition,
             final String featureId,
             final String messageSubject,
-            @Nullable final JsonValue inputPayload,
+            final Supplier<JsonValue> inputPayloadSupplier,
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
@@ -504,7 +505,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                         dittoHeaders, featureThingModel ->
                                 selectValidation(validationConfig)
                                         .validateFeatureActionInput(featureThingModel,
-                                                featureId, messageSubject, inputPayload, resourcePath, context
+                                                featureId, messageSubject, inputPayloadSupplier.get(), resourcePath, context
                                         ).handle(applyLogingErrorOnlyStrategy(validationConfig, context, "validateFeatureActionInput"))
                 ))
                 .orElseGet(DefaultWotThingModelValidator::success);
@@ -515,7 +516,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
             @Nullable final FeatureDefinition featureDefinition,
             final String featureId,
             final String messageSubject,
-            @Nullable final JsonValue inputPayload,
+            final Supplier<JsonValue> inputPayloadSupplier,
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
@@ -526,7 +527,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                         dittoHeaders, featureThingModel ->
                                 selectValidation(validationConfig)
                                         .validateFeatureActionOutput(featureThingModel,
-                                                featureId, messageSubject, inputPayload, resourcePath, context
+                                                featureId, messageSubject, inputPayloadSupplier.get(), resourcePath, context
                                         ).handle(applyLogingErrorOnlyStrategy(validationConfig, context, "validateFeatureActionOutput"))
                 ))
                 .orElseGet(DefaultWotThingModelValidator::success);
@@ -537,7 +538,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
             @Nullable final FeatureDefinition featureDefinition,
             final String featureId,
             final String messageSubject,
-            @Nullable final JsonValue dataPayload,
+            final Supplier<JsonValue> dataPayloadSupplier,
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
@@ -548,7 +549,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                         dittoHeaders, featureThingModel ->
                                 selectValidation(validationConfig)
                                         .validateFeatureEventData(featureThingModel,
-                                                featureId, messageSubject, dataPayload, resourcePath, context
+                                                featureId, messageSubject, dataPayloadSupplier.get(), resourcePath, context
                                         ).handle(applyLogingErrorOnlyStrategy(validationConfig, context, "validateFeatureEventData"))
                 ))
                 .orElseGet(DefaultWotThingModelValidator::success);
@@ -580,16 +581,14 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
     ) {
         return (aVoid, throwable) -> {
             if (throwable != null) {
+                final Throwable cause =
+                        (throwable instanceof CompletionException ce) ? ce.getCause() : throwable;
                 if (validationConfig.logWarningInsteadOfFailingApiCalls()) {
-                    context.dittoHeaders().getCorrelationId().ifPresent(cId -> MDC.put("correlation-id", cId));
-                    log.warn("WoT based validation in <{}()> failed for <TD {}>/<FD {}> due to: <{}>", loggingHintSource,
-                            context.thingDefinition(), context.featureDefinition(), throwable.getMessage(), throwable
-                    );
-                    context.dittoHeaders().getCorrelationId().ifPresent(cId -> MDC.remove("correlation-id"));
+                    // only log a warning, but do not fail the API call
+                    logValidationWarning(true, context, loggingHintSource, cause);
                     return null;
                 } else {
-                    final Throwable cause =
-                            (throwable instanceof CompletionException ce) ? ce.getCause() : throwable;
+                    logValidationWarning(false, context, loggingHintSource, cause);
                     if (cause instanceof RuntimeException re) {
                         throw re;
                     } else {
@@ -600,6 +599,31 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                 return aVoid;
             }
         };
+    }
+
+    private static void logValidationWarning(final boolean logAsWarning,
+            final ValidationContext context,
+            final String loggingHintSource,
+            final Throwable throwable
+    ) {
+        final DittoHeaders dittoHeaders = context.dittoHeaders();
+        dittoHeaders.getCorrelationId().ifPresent(cId -> MDC.put("correlation-id", cId));
+        // positions defined by https://www.w3.org/TR/trace-context/#traceparent-header-field-values to contain the "trace-id"
+        dittoHeaders.getTraceParent().ifPresent(traceParent -> {
+                    MDC.put("traceparent-trace-id", traceParent.substring(3, 35));
+                    MDC.put("traceparent-span-id", traceParent.substring(36, 52));
+                }
+        );
+        final LoggingEventBuilder logBuilder = logAsWarning ? log.atWarn() : log.atInfo();
+        logBuilder.log("WoT based validation of Thing <{}> in <{}()> failed for <TD {}>/<FD {}> due to: <{}>",
+                context.thingId(), loggingHintSource, context.thingDefinition(), context.featureDefinition(),
+                throwable.toString()
+        );
+        dittoHeaders.getCorrelationId().ifPresent(cId -> MDC.remove("correlation-id"));
+        dittoHeaders.getTraceParent().ifPresent(traceParent -> {
+            MDC.remove("traceparent-trace-id");
+            MDC.remove("traceparent-span-id");
+        });
     }
 
     private CompletionStage<Void> fetchResolveAndValidateWith(@Nullable final DefinitionIdentifier definitionIdentifier,
@@ -623,7 +647,6 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
     private CompletionStage<Void> doValidateThing(final ThingDefinition thingDefinition,
             final ThingModel thingModel,
             final Thing thing,
-            final JsonPointer resourcePath,
             final ValidationContext context,
             final TmValidationConfig validationConfig
     ) {
@@ -637,7 +660,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
         return firstStage.thenCompose(unused ->
                 doValidateThingAttributes(thingModel,
                         thing.getAttributes().orElse(null),
-                        resourcePath.append(Thing.JsonFields.ATTRIBUTES.getPointer()),
+                        Thing.JsonFields.ATTRIBUTES.getPointer(),
                         context,
                         validationConfig
                 )
@@ -646,7 +669,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                         .thenCompose(subModels ->
                                 doValidateFeatures(subModels,
                                         thing.getFeatures().orElse(null),
-                                        resourcePath,
+                                        JsonPointer.empty(),
                                         context,
                                         validationConfig
                                 )

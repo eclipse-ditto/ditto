@@ -66,7 +66,7 @@ public final class ModifyFeatureDesiredPropertyStrategyTest extends AbstractComm
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeatureDesiredProperty command =
                 ModifyFeatureDesiredProperty.of(context.getState(), featureId, propertyPointer, newPropertyValue,
-                        DittoHeaders.empty());
+                        provideHeaders(context));
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featureNotFound(context.getState(), command.getFeatureId(),
                         command.getDittoHeaders());
@@ -79,7 +79,7 @@ public final class ModifyFeatureDesiredPropertyStrategyTest extends AbstractComm
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeatureDesiredProperty command =
                 ModifyFeatureDesiredProperty.of(context.getState(), featureId, propertyPointer, newPropertyValue,
-                        DittoHeaders.empty());
+                        provideHeaders(context));
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featureNotFound(context.getState(), command.getFeatureId(),
                         command.getDittoHeaders());
@@ -92,7 +92,7 @@ public final class ModifyFeatureDesiredPropertyStrategyTest extends AbstractComm
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeatureDesiredProperty command =
                 ModifyFeatureDesiredProperty.of(context.getState(), featureId, propertyPointer, newPropertyValue,
-                        DittoHeaders.empty());
+                        provideHeaders(context));
 
         assertStagedModificationResult(underTest, THING_V2.removeFeatureDesiredProperties(featureId), command,
                 FeatureDesiredPropertyCreated.class,
@@ -105,7 +105,7 @@ public final class ModifyFeatureDesiredPropertyStrategyTest extends AbstractComm
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeatureDesiredProperty command =
                 ModifyFeatureDesiredProperty.of(context.getState(), featureId, propertyPointer, newPropertyValue,
-                        DittoHeaders.empty());
+                        provideHeaders(context));
 
         assertStagedModificationResult(underTest, THING_V2, command,
                 FeatureDesiredPropertyModified.class,

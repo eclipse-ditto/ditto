@@ -161,9 +161,16 @@ public final class DefaultCustomAggregationMetricConfig implements CustomAggrega
             });
 
             final Set<String> requiredGroupByPlaceholders = getDeclaredGroupByPlaceholdersExpressions(getTags());
-            if (!requiredGroupByPlaceholders.equals(getGroupBy().keySet())) {
-                throw new IllegalArgumentException("Custom search metric Gauge for metric <"
-                + metricName + "> must have the same groupBy fields as the configured placeholder expressions in tags. Required: " + requiredGroupByPlaceholders + " Configured: " + getGroupBy().keySet());
+            List<String> missing = new ArrayList<>();
+            requiredGroupByPlaceholders.forEach(placeholder -> {
+                if (!getGroupBy().containsKey(placeholder)) {
+                    missing.add(placeholder);
+                }
+            });
+            if (!missing.isEmpty()){
+                throw new IllegalArgumentException("Custom search metric Gauge for metric <" + metricName
+                        + "> must contain in the groupBy fields all of the fields used by placeholder expressions in tags. Missing: "
+                        + missing + " Configured: " + getGroupBy().keySet());
             }
     }
 

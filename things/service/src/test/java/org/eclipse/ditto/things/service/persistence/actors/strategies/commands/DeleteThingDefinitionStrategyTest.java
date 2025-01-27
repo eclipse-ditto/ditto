@@ -15,7 +15,6 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 
 import org.apache.pekko.actor.ActorSystem;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingDefinitionNotAccessibleException;
@@ -43,7 +42,7 @@ public final class DeleteThingDefinitionStrategyTest extends AbstractCommandStra
     @Test
     public void successfullyDeleteDefinitionFromThing() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final DeleteThingDefinition command = DeleteThingDefinition.of(context.getState(), DittoHeaders.empty());
+        final DeleteThingDefinition command = DeleteThingDefinition.of(context.getState(), provideHeaders(context));
 
         assertStagedModificationResult(underTest, THING_V2, command,
                 ThingDefinitionDeleted.class,
@@ -53,7 +52,7 @@ public final class DeleteThingDefinitionStrategyTest extends AbstractCommandStra
     @Test
     public void deleteDefinitionFromThingWithoutDefinition() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final DeleteThingDefinition command = DeleteThingDefinition.of(context.getState(), DittoHeaders.empty());
+        final DeleteThingDefinition command = DeleteThingDefinition.of(context.getState(), provideHeaders(context));
         final ThingDefinitionNotAccessibleException expectedException =
                 ThingDefinitionNotAccessibleException.newBuilder(command.getEntityId())
                         .dittoHeaders(command.getDittoHeaders())

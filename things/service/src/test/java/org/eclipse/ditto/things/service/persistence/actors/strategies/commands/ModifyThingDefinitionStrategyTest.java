@@ -16,7 +16,6 @@ import static org.eclipse.ditto.things.model.TestConstants.Thing.DEFINITION;
 import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 
 import org.apache.pekko.actor.ActorSystem;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThingDefinition;
@@ -45,7 +44,7 @@ public final class ModifyThingDefinitionStrategyTest extends AbstractCommandStra
     public void modifyDefinitionOnThingWithoutDefinition() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyThingDefinition command = ModifyThingDefinition.of(context.getState(), DEFINITION,
-                DittoHeaders.empty());
+                provideHeaders(context));
 
         assertStagedModificationResult(underTest, THING_V2.toBuilder().setDefinition(null).build(), command,
                 ThingDefinitionCreated.class, ETagTestUtils.modifyThingDefinitionResponse(context.getState(), command.getDefinition(),
@@ -56,7 +55,7 @@ public final class ModifyThingDefinitionStrategyTest extends AbstractCommandStra
     public void modifyExistingDefinition() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyThingDefinition command = ModifyThingDefinition.of(context.getState(), DEFINITION,
-                DittoHeaders.empty());
+                provideHeaders(context));
 
         assertStagedModificationResult(underTest, THING_V2, command,
                 ThingDefinitionModified.class, ETagTestUtils.modifyThingDefinitionResponse(context.getState(),

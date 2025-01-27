@@ -18,7 +18,6 @@ import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.ThingId;
@@ -48,7 +47,7 @@ public final class DeleteFeatureDesiredPropertiesStrategyTest extends AbstractCo
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final String featureId = FLUX_CAPACITOR_ID;
         final DeleteFeatureDesiredProperties command =
-                DeleteFeatureDesiredProperties.of(context.getState(), featureId, DittoHeaders.empty());
+                DeleteFeatureDesiredProperties.of(context.getState(), featureId, provideHeaders(context));
 
         assertStagedModificationResult(underTest, THING_V2, command,
                 FeatureDesiredPropertiesDeleted.class,
@@ -59,7 +58,7 @@ public final class DeleteFeatureDesiredPropertiesStrategyTest extends AbstractCo
     public void deleteFeatureDesiredPropertiesFromThingWithoutFeatures() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final DeleteFeatureDesiredProperties command =
-                DeleteFeatureDesiredProperties.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
+                DeleteFeatureDesiredProperties.of(context.getState(), FLUX_CAPACITOR_ID, provideHeaders(context));
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featureNotFound(context.getState(), command.getFeatureId(),
                         command.getDittoHeaders());
@@ -72,7 +71,7 @@ public final class DeleteFeatureDesiredPropertiesStrategyTest extends AbstractCo
         final String featureId = FLUX_CAPACITOR_ID;
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final DeleteFeatureDesiredProperties command =
-                DeleteFeatureDesiredProperties.of(context.getState(), featureId, DittoHeaders.empty());
+                DeleteFeatureDesiredProperties.of(context.getState(), featureId, provideHeaders(context));
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featureNotFound(context.getState(), command.getFeatureId(),
                         command.getDittoHeaders());
@@ -85,7 +84,7 @@ public final class DeleteFeatureDesiredPropertiesStrategyTest extends AbstractCo
         final Feature feature = FLUX_CAPACITOR.removeDesiredProperties();
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final DeleteFeatureDesiredProperties command =
-                DeleteFeatureDesiredProperties.of(context.getState(), feature.getId(), DittoHeaders.empty());
+                DeleteFeatureDesiredProperties.of(context.getState(), feature.getId(), provideHeaders(context));
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featureDesiredPropertiesNotFound(context.getState(), command.getFeatureId(),
                         command.getDittoHeaders());

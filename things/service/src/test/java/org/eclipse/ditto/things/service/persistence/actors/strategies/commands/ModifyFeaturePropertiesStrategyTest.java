@@ -18,7 +18,6 @@ import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.common.DittoSystemProperties;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.Feature;
@@ -68,7 +67,7 @@ public final class ModifyFeaturePropertiesStrategyTest extends AbstractCommandSt
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeatureProperties command =
                 ModifyFeatureProperties.of(context.getState(), featureId, modifiedFeatureProperties,
-                        DittoHeaders.empty());
+                        provideHeaders(context));
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featureNotFound(context.getState(), command.getFeatureId(),
                         command.getDittoHeaders());
@@ -81,7 +80,7 @@ public final class ModifyFeaturePropertiesStrategyTest extends AbstractCommandSt
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeatureProperties command =
                 ModifyFeatureProperties.of(context.getState(), featureId, modifiedFeatureProperties,
-                        DittoHeaders.empty());
+                        provideHeaders(context));
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featureNotFound(context.getState(), command.getFeatureId(),
                         command.getDittoHeaders());
@@ -95,7 +94,7 @@ public final class ModifyFeaturePropertiesStrategyTest extends AbstractCommandSt
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeatureProperties command =
                 ModifyFeatureProperties.of(context.getState(), featureId, modifiedFeatureProperties,
-                        DittoHeaders.empty());
+                        provideHeaders(context));
 
         assertStagedModificationResult(underTest, THING_V2.setFeature(featureWithoutProperties), command,
                 FeaturePropertiesCreated.class,
@@ -108,7 +107,7 @@ public final class ModifyFeaturePropertiesStrategyTest extends AbstractCommandSt
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeatureProperties command =
                 ModifyFeatureProperties.of(context.getState(), featureId, modifiedFeatureProperties,
-                        DittoHeaders.empty());
+                        provideHeaders(context));
 
         assertStagedModificationResult(underTest, THING_V2, command,
                 FeaturePropertiesModified.class,
@@ -140,11 +139,11 @@ public final class ModifyFeaturePropertiesStrategyTest extends AbstractCommandSt
                 .build();
 
         // creating the Thing should be possible as we are below the limit:
-        CreateThing.of(thing, null, DittoHeaders.empty());
+        CreateThing.of(thing, null, provideHeaders(context));
 
         final ModifyFeatureProperties command =
                 ModifyFeatureProperties.of(thingId, feature.getId(), feature.getProperties().get(),
-                        DittoHeaders.empty());
+                        provideHeaders(context));
 
         // but modifying the feature properties which would cause the Thing to exceed the limit should not be allowed:
         assertThatThrownBy(() -> underTest.doApply(context, thing, NEXT_REVISION, command, null))

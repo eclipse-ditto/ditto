@@ -16,7 +16,6 @@ import static org.eclipse.ditto.things.model.TestConstants.Thing.DEFINITION;
 import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 
 import org.apache.pekko.actor.ActorSystem;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingDefinitionNotAccessibleException;
@@ -44,9 +43,9 @@ public final class RetrieveThingDefinitionStrategyTest extends AbstractCommandSt
     @Test
     public void retrieveExistingDefinition() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final RetrieveThingDefinition command = RetrieveThingDefinition.of(context.getState(), DittoHeaders.empty());
+        final RetrieveThingDefinition command = RetrieveThingDefinition.of(context.getState(), provideHeaders(context));
         final RetrieveThingDefinitionResponse expectedResponse =
-                ETagTestUtils.retrieveDefinitionResponse(command.getEntityId(), DEFINITION, DittoHeaders.empty());
+                ETagTestUtils.retrieveDefinitionResponse(command.getEntityId(), DEFINITION, provideHeaders(context));
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
     }
@@ -54,7 +53,7 @@ public final class RetrieveThingDefinitionStrategyTest extends AbstractCommandSt
     @Test
     public void retrieveNonExistingDefinition() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final RetrieveThingDefinition command = RetrieveThingDefinition.of(context.getState(), DittoHeaders.empty());
+        final RetrieveThingDefinition command = RetrieveThingDefinition.of(context.getState(), provideHeaders(context));
         final ThingDefinitionNotAccessibleException expectedException =
                 ThingDefinitionNotAccessibleException.newBuilder(command.getEntityId())
                         .dittoHeaders(command.getDittoHeaders())

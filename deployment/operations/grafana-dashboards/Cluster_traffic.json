@@ -487,7 +487,7 @@
       "pluginVersion": "8.5.6",
       "targets": [
         {
-          "expr": "count(count by (ditto_connection_id) (increase(connectivity_message_mapping_seconds_count[5m]) > 0))",
+          "expr": "count(count by (ditto_connection_id) (increase(message_mapping_seconds_count[5m]) > 0))",
           "format": "time_series",
           "hide": true,
           "interval": "",
@@ -496,7 +496,7 @@
           "refId": "A"
         },
         {
-          "expr": "count by (ditto_connection_type) (count by (instance, ditto_connection_type, ditto_connection_id) (increase (connectivity_message_mapping_seconds_count[5m]) > 0))",
+          "expr": "count by (ditto_connection_type) (count by (instance, ditto_connection_type, ditto_connection_id) (increase (message_mapping_seconds_count[5m]) > 0))",
           "format": "time_series",
           "hide": false,
           "instant": false,
@@ -583,7 +583,7 @@
       "pluginVersion": "8.5.6",
       "targets": [
         {
-          "expr": "sum(irate(connectivity_message_mapping_seconds_count{segment=\"overall\"}[5m]) > 0) by (direction, ditto_connection_type) > 0",
+          "expr": "sum(irate(message_mapping_seconds_count{segment=\"overall\"}[5m]) > 0) by (direction, ditto_connection_type) > 0",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "[{{ditto_connection_type}}] {{direction}}",
@@ -668,7 +668,7 @@
       "pluginVersion": "8.5.6",
       "targets": [
         {
-          "expr": "avg((idelta(connectivity_message_mapping_seconds_sum{segment=\"overall\"}[1m]) / idelta(connectivity_message_mapping_seconds_count{segment=\"overall\"}[1m])) > 0) by (direction)",
+          "expr": "avg((idelta(connectivity_message_mapping_seconds_sum{segment=\"overall\"}[1m]) / idelta(message_mapping_seconds_count{segment=\"overall\"}[1m])) > 0) by (direction)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{direction}}",

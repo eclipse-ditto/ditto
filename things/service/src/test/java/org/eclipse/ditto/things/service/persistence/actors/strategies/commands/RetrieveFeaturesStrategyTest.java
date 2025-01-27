@@ -18,7 +18,6 @@ import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -51,7 +50,7 @@ public final class RetrieveFeaturesStrategyTest extends AbstractCommandStrategyT
     @Test
     public void retrieveFeaturesWithoutSelectedFields() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final RetrieveFeatures command = RetrieveFeatures.of(context.getState(), DittoHeaders.empty());
+        final RetrieveFeatures command = RetrieveFeatures.of(context.getState(), provideHeaders(context));
         final RetrieveFeaturesResponse expectedResponse = ETagTestUtils.retrieveFeaturesResponse(command.getEntityId(), FEATURES,
                 FEATURES.toJson(command.getImplementedSchemaVersion()), command.getDittoHeaders());
 
@@ -63,7 +62,7 @@ public final class RetrieveFeaturesStrategyTest extends AbstractCommandStrategyT
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final JsonFieldSelector selectedFields = JsonFactory.newFieldSelector("maker");
         final RetrieveFeatures command =
-                RetrieveFeatures.of(context.getState(), selectedFields, DittoHeaders.empty());
+                RetrieveFeatures.of(context.getState(), selectedFields, provideHeaders(context));
         final RetrieveFeaturesResponse expectedResponse = ETagTestUtils.retrieveFeaturesResponse(command.getEntityId(), FEATURES,
                 FEATURES.toJson(command.getImplementedSchemaVersion(), selectedFields), command.getDittoHeaders());
 
@@ -73,7 +72,7 @@ public final class RetrieveFeaturesStrategyTest extends AbstractCommandStrategyT
     @Test
     public void retrieveFeaturesFromThingWithoutFeatures() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final RetrieveFeatures command = RetrieveFeatures.of(context.getState(), DittoHeaders.empty());
+        final RetrieveFeatures command = RetrieveFeatures.of(context.getState(), provideHeaders(context));
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featuresNotFound(command.getEntityId(), command.getDittoHeaders());
 
@@ -86,7 +85,7 @@ public final class RetrieveFeaturesStrategyTest extends AbstractCommandStrategyT
         final JsonFieldSelector selectedFields = JsonFactory.newFieldSelector("/f3/properties/location",
                 "/*/properties/target_year_1");
         final RetrieveFeatures command =
-                RetrieveFeatures.of(context.getState(), selectedFields, DittoHeaders.empty());
+                RetrieveFeatures.of(context.getState(), selectedFields, provideHeaders(context));
 
         final FeaturesBuilder featuresBuilder = ThingsModelFactory.newFeaturesBuilder();
         THING_V2.getFeatures().orElseThrow().forEach(featuresBuilder::set);

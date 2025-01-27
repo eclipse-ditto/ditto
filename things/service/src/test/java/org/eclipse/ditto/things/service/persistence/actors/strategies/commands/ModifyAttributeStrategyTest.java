@@ -15,7 +15,6 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 
 import org.apache.pekko.actor.ActorSystem;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
@@ -57,7 +56,7 @@ public final class ModifyAttributeStrategyTest extends AbstractCommandStrategyTe
     public void modifyAttributeOfThingWithoutAttributes() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyAttribute command =
-                ModifyAttribute.of(context.getState(), attributePointer, attributeValue, DittoHeaders.empty());
+                ModifyAttribute.of(context.getState(), attributePointer, attributeValue, provideHeaders(context));
 
         assertStagedModificationResult(underTest, THING_V2.removeAttributes(), command,
                 AttributeCreated.class,
@@ -69,7 +68,7 @@ public final class ModifyAttributeStrategyTest extends AbstractCommandStrategyTe
     public void modifyAttributeOfThingWithoutThatAttribute() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyAttribute command =
-                ModifyAttribute.of(context.getState(), attributePointer, attributeValue, DittoHeaders.empty());
+                ModifyAttribute.of(context.getState(), attributePointer, attributeValue, provideHeaders(context));
 
         assertStagedModificationResult(underTest, THING_V2, command,
                 AttributeCreated.class,
@@ -85,7 +84,7 @@ public final class ModifyAttributeStrategyTest extends AbstractCommandStrategyTe
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyAttribute command =
                 ModifyAttribute.of(context.getState(), existingAttributePointer, newAttributeValue,
-                        DittoHeaders.empty());
+                        provideHeaders(context));
 
         assertStagedModificationResult(underTest, THING_V2, command,
                 AttributeModified.class,

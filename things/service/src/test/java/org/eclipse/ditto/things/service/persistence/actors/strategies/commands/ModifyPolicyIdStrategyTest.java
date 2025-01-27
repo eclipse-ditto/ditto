@@ -16,7 +16,6 @@ import static org.eclipse.ditto.things.model.TestConstants.Thing.POLICY_ID;
 import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 
 import org.apache.pekko.actor.ActorSystem;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyPolicyId;
@@ -43,7 +42,7 @@ public final class ModifyPolicyIdStrategyTest extends AbstractCommandStrategyTes
     @Test
     public void modifyExistingPolicyId() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final ModifyPolicyId command = ModifyPolicyId.of(context.getState(), POLICY_ID, DittoHeaders.empty());
+        final ModifyPolicyId command = ModifyPolicyId.of(context.getState(), POLICY_ID, provideHeaders(context));
 
         assertModificationResult(underTest, THING_V2, command,
                 PolicyIdModified.class, ETagTestUtils.modifyPolicyIdResponse(context.getState(), command.getPolicyEntityId(),

@@ -16,7 +16,6 @@ import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
@@ -47,7 +46,7 @@ public final class RetrieveAttributeStrategyTest extends AbstractCommandStrategy
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final JsonPointer attributePointer = JsonFactory.newPointer("location/latitude");
         final RetrieveAttribute command =
-                RetrieveAttribute.of(context.getState(), attributePointer, DittoHeaders.empty());
+                RetrieveAttribute.of(context.getState(), attributePointer, provideHeaders(context));
         final RetrieveAttributeResponse expectedResponse =
                 ETagTestUtils.retrieveAttributeResponse(command.getEntityId(), command.getAttributePointer(),
                         JsonFactory.newValue(44.673856), command.getDittoHeaders());
@@ -60,7 +59,7 @@ public final class RetrieveAttributeStrategyTest extends AbstractCommandStrategy
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveAttribute command =
                 RetrieveAttribute.of(context.getState(), JsonFactory.newPointer("location/latitude"),
-                        DittoHeaders.empty());
+                        provideHeaders(context));
         final DittoRuntimeException expectedException =
                 ExceptionFactory.attributesNotFound(command.getEntityId(), command.getDittoHeaders());
 
@@ -72,7 +71,7 @@ public final class RetrieveAttributeStrategyTest extends AbstractCommandStrategy
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveAttribute command =
                 RetrieveAttribute.of(context.getState(), JsonFactory.newPointer("location/bar"),
-                        DittoHeaders.empty());
+                        provideHeaders(context));
         final DittoRuntimeException expectedException =
                 ExceptionFactory.attributeNotFound(command.getEntityId(), command.getAttributePointer(),
                         command.getDittoHeaders());

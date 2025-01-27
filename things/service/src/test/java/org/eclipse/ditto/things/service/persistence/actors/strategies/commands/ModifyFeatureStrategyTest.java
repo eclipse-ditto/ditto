@@ -15,7 +15,6 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 
 import org.apache.pekko.actor.ActorSystem;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.TestConstants;
@@ -24,7 +23,6 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeature;
 import org.eclipse.ditto.things.model.signals.events.FeatureCreated;
 import org.eclipse.ditto.things.model.signals.events.FeatureModified;
 import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
-import org.eclipse.ditto.wot.api.generator.WotThingDescriptionGenerator;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -54,7 +52,7 @@ public final class ModifyFeatureStrategyTest extends AbstractCommandStrategyTest
     @Test
     public void modifyFeatureOnThingWithoutFeatures() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final ModifyFeature command = ModifyFeature.of(context.getState(), modifiedFeature, DittoHeaders.empty());
+        final ModifyFeature command = ModifyFeature.of(context.getState(), modifiedFeature, provideHeaders(context));
 
         assertStagedModificationResult(underTest, THING_V2.removeFeatures(), command,
                 FeatureCreated.class,
@@ -64,7 +62,7 @@ public final class ModifyFeatureStrategyTest extends AbstractCommandStrategyTest
     @Test
     public void modifyFeatureOnThingWithoutThatFeature() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final ModifyFeature command = ModifyFeature.of(context.getState(), modifiedFeature, DittoHeaders.empty());
+        final ModifyFeature command = ModifyFeature.of(context.getState(), modifiedFeature, provideHeaders(context));
 
         assertStagedModificationResult(underTest, THING_V2.removeFeature(modifiedFeature.getId()), command,
                 FeatureCreated.class,
@@ -74,7 +72,7 @@ public final class ModifyFeatureStrategyTest extends AbstractCommandStrategyTest
     @Test
     public void modifyExistingFeature() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final ModifyFeature command = ModifyFeature.of(context.getState(), modifiedFeature, DittoHeaders.empty());
+        final ModifyFeature command = ModifyFeature.of(context.getState(), modifiedFeature, provideHeaders(context));
 
         assertStagedModificationResult(underTest, THING_V2, command,
                 FeatureModified.class,

@@ -595,7 +595,10 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 final DeleteThing deleteThing = DeleteThing.of(getIdOrThrow(thing), dittoHeadersV2);
                 underTest.tell(deleteThing, getRef());
-                expectMsgEquals(DeleteThingResponse.of(getIdOrThrow(thing), dittoHeadersV2));
+                final ThingId thingId = thing.getEntityId().get();
+                expectMsgEquals(DeleteThingResponse.of(getIdOrThrow(thing), dittoHeadersV2.toBuilder()
+                        .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), thingId.getEntityType() + ":" + thingId)
+                        .build()));
             }
         };
     }
@@ -620,7 +623,9 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 final DeleteThing deleteThing = DeleteThing.of(thingId, dittoHeadersV2);
                 underTest.tell(deleteThing, getRef());
-                expectMsgEquals(DeleteThingResponse.of(thingId, dittoHeadersV2));
+                expectMsgEquals(DeleteThingResponse.of(thingId, dittoHeadersV2.toBuilder()
+                        .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), thingId.getEntityType() + ":" + thingId)
+                        .build()));
 
                 final Thing minimalThing = Thing.newBuilder()
                         .setId(thingId)
@@ -834,7 +839,9 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 // Delete attribute as authorized subject.
                 final ThingCommand authorizedCommand = DeleteAttribute.of(thingId, attributeKey, dittoHeadersV2);
                 underTest.tell(authorizedCommand, getRef());
-                expectMsgEquals(DeleteAttributeResponse.of(thingId, attributeKey, dittoHeadersV2));
+                expectMsgEquals(DeleteAttributeResponse.of(thingId, attributeKey, dittoHeadersV2.toBuilder()
+                        .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), thingId.getEntityType() + ":" + thingId)
+                        .build()));
             }
         };
     }
@@ -857,7 +864,9 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 assertThingInResponse(createThingResponse.getThingCreated().orElse(null), thing);
 
                 underTest.tell(deleteThingCommand, getRef());
-                expectMsgEquals(DeleteThingResponse.of(thingId, dittoHeadersV2));
+                expectMsgEquals(DeleteThingResponse.of(thingId, dittoHeadersV2.toBuilder()
+                        .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), thingId.getEntityType() + ":" + thingId)
+                        .build()));
 
                 underTest.tell(retrieveThingCommand, getRef());
                 expectMsgClass(ThingNotAccessibleException.class);
@@ -917,7 +926,9 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 final DeleteThing deleteThing = DeleteThing.of(thingId, dittoHeadersV2);
                 underTest.tell(deleteThing, getRef());
-                expectMsgEquals(DeleteThingResponse.of(thingId, dittoHeadersV2));
+                expectMsgEquals(DeleteThingResponse.of(thingId, dittoHeadersV2.toBuilder()
+                        .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), thingId.getEntityType() + ":" + thingId)
+                        .build()));
 
                 // restart actor to recover thing state
                 watch(underTest);

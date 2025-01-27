@@ -30,7 +30,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
-import java.util.stream.IntStream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -65,8 +64,6 @@ import org.eclipse.ditto.wot.model.BaseLink;
 import org.eclipse.ditto.wot.model.DataSchemaType;
 import org.eclipse.ditto.wot.model.DittoWotExtension;
 import org.eclipse.ditto.wot.model.IRI;
-import org.eclipse.ditto.wot.model.IntegerSchema;
-import org.eclipse.ditto.wot.model.NumberSchema;
 import org.eclipse.ditto.wot.model.ObjectSchema;
 import org.eclipse.ditto.wot.model.Properties;
 import org.eclipse.ditto.wot.model.Property;
@@ -87,6 +84,10 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultWotThingSkeletonGenerator.class);
 
     private static final String TM_EXTENDS = "tm:extends";
+
+    private static final int NEUTRAL_ELEMENT_INT = 0;
+    private static final double NEUTRAL_ELEMENT_DOUBLE = 0.0;
+    private static final String NEUTRAL_ELEMENT_STRING = "";
 
     private final WotConfig wotConfig;
     private final WotThingModelResolver thingModelResolver;
@@ -431,18 +432,8 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
                             return Optional.of(objectBuilder.build());
                         }
                         return Optional.of(JsonObject.empty());
-                    } else if (actualSchema instanceof ArraySchema arraySchema) {
+                    } else if (actualSchema instanceof ArraySchema) {
                         final JsonArrayBuilder arrayBuilder = JsonArray.newBuilder();
-                        arraySchema.getItems()
-                                .ifPresent(itemsSchema -> {
-                                    if (itemsSchema instanceof SingleDataSchema singleDataSchema) {
-                                        final int neutralElementCount = arraySchema.getMinItems().orElse(1);
-                                        provideNeutralElementForDataSchema(singleDataSchema)
-                                                .ifPresent(ne -> IntStream.range(0, neutralElementCount)
-                                                        .forEach(i -> arrayBuilder.add(ne))
-                                                );
-                                    }
-                                });
                         return Optional.of(arrayBuilder.build());
                     } else {
                         return provideNeutralElementForDataSchema(actualSchema);
@@ -477,78 +468,27 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
         if (null == type) {
             return Optional.empty();
         } else {
-            switch (type) {
-                case BOOLEAN:
-                    return Optional.of(JsonValue.of(false));
-                case INTEGER:
-                    final IntegerSchema integerSchema = (IntegerSchema) dataSchema;
-                    final int neutralInt = provideNeutralIntElement(integerSchema.getMinimum().orElse(null),
-                            integerSchema.getExclusiveMinimum().orElse(null),
-                            integerSchema.getMaximum().orElse(null),
-                            integerSchema.getExclusiveMaximum().orElse(null));
-                    return Optional.of(JsonValue.of(neutralInt));
-                case NUMBER:
-                    final NumberSchema numberSchema = ((NumberSchema) dataSchema);
-                    final double neutralDouble = provideNeutralDoubleElement(numberSchema.getMinimum().orElse(null),
-                            numberSchema.getExclusiveMinimum().orElse(null),
-                            numberSchema.getMaximum().orElse(null),
-                            numberSchema.getExclusiveMaximum().orElse(null));
-                    return Optional.of(JsonValue.of(neutralDouble));
-                case STRING:
+            return switch (type) {
+                case BOOLEAN -> Optional.of(JsonValue.of(false));
+                case INTEGER -> Optional.of(JsonValue.of(provideNeutralIntElement()));
+                case NUMBER -> Optional.of(JsonValue.of(provideNeutralDoubleElement()));
+                case STRING -> {
                     final String format = dataSchema.getFormat().orElse(null);
-                    return Optional.of(JsonValue.of(provideNeutralStringElement(format)));
-                case OBJECT:
-                    return Optional.of(JsonObject.empty());
-                case ARRAY:
-                    return Optional.of(JsonArray.empty());
-                case NULL:
-                    return Optional.of(JsonValue.nullLiteral());
-                default:
-                    return Optional.empty();
-            }
+                    yield Optional.of(JsonValue.of(provideNeutralStringElement(format)));
+                }
+                case OBJECT -> Optional.of(JsonObject.empty());
+                case ARRAY -> Optional.of(JsonArray.empty());
+                case NULL -> Optional.of(JsonValue.nullLiteral());
+            };
         }
     }
 
-    private static int provideNeutralIntElement(@Nullable final Integer minimum,
-            @Nullable final Integer exclusiveMinimum,
-            @Nullable final Integer maximum,
-            @Nullable final Integer exclusiveMaximum) {
-
-        int result = 0;
-        if (null != minimum && minimum > result) {
-            result = minimum;
-        }
-        if (null != exclusiveMinimum && exclusiveMinimum >= result) {
-            result = exclusiveMinimum + 1;
-        }
-        if (null != maximum && maximum < result) {
-            result = maximum;
-        }
-        if (null != exclusiveMaximum && exclusiveMaximum <= result) {
-            result = exclusiveMaximum - 1;
-        }
-        return result;
+    private static int provideNeutralIntElement() {
+        return NEUTRAL_ELEMENT_INT;
     }
 
-    private static double provideNeutralDoubleElement(@Nullable final Double minimum,
-            @Nullable final Double exclusiveMinimum,
-            @Nullable final Double maximum,
-            @Nullable final Double exclusiveMaximum) {
-
-        double result = 0.0;
-        if (null != minimum && minimum > result) {
-            result = minimum;
-        }
-        if (null != exclusiveMinimum && exclusiveMinimum >= result) {
-            result = exclusiveMinimum + 1;
-        }
-        if (null != maximum && maximum < result) {
-            result = maximum;
-        }
-        if (null != exclusiveMaximum && exclusiveMaximum <= result) {
-            result = exclusiveMaximum - 1;
-        }
-        return result;
+    private static double provideNeutralDoubleElement() {
+        return NEUTRAL_ELEMENT_DOUBLE;
     }
 
     private static String provideNeutralStringElement(@Nullable final String format) {
@@ -556,7 +496,7 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
             case "date-time" -> DateTimeFormatter.ISO_INSTANT.format(Instant.EPOCH);
             case "date" -> DateTimeFormatter.ISO_LOCAL_DATE.withZone( ZoneId.of("UTC")).format(Instant.EPOCH);
             case "time" -> DateTimeFormatter.ISO_OFFSET_TIME.withZone( ZoneId.of("UTC")).format(Instant.EPOCH);
-            case null, default -> "";
+            case null, default -> NEUTRAL_ELEMENT_STRING;
         };
     }
 

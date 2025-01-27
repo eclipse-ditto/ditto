@@ -18,7 +18,6 @@ import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
@@ -50,7 +49,7 @@ public final class RetrieveFeaturePropertyStrategyTest extends AbstractCommandSt
         final JsonPointer propertyPointer = JsonFactory.newPointer("target_year_1");
         final RetrieveFeatureProperty command =
                 RetrieveFeatureProperty.of(context.getState(), FLUX_CAPACITOR_ID, propertyPointer,
-                        DittoHeaders.empty());
+                        provideHeaders(context));
         final RetrieveFeaturePropertyResponse expectedResponse =
                 ETagTestUtils.retrieveFeaturePropertyResponse(command.getEntityId(), command.getFeatureId(),
                         command.getPropertyPointer(), JsonFactory.newValue(1955), command.getDittoHeaders());
@@ -62,7 +61,7 @@ public final class RetrieveFeaturePropertyStrategyTest extends AbstractCommandSt
     public void getPropertyFromThingWithoutFeatures() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveFeatureProperty command = RetrieveFeatureProperty.of(context.getState(), FLUX_CAPACITOR_ID,
-                JsonFactory.newPointer("target_year_1"), DittoHeaders.empty());
+                JsonFactory.newPointer("target_year_1"), provideHeaders(context));
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featureNotFound(command.getEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());
@@ -75,7 +74,7 @@ public final class RetrieveFeaturePropertyStrategyTest extends AbstractCommandSt
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveFeatureProperty command =
                 RetrieveFeatureProperty.of(context.getState(), FLUX_CAPACITOR_ID,
-                        JsonFactory.newPointer("target_year_1"), DittoHeaders.empty());
+                        JsonFactory.newPointer("target_year_1"), provideHeaders(context));
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featurePropertiesNotFound(command.getEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());
@@ -91,7 +90,7 @@ public final class RetrieveFeaturePropertyStrategyTest extends AbstractCommandSt
                 getDefaultContext();
         final RetrieveFeatureProperty command =
                 RetrieveFeatureProperty.of(context.getState(), FLUX_CAPACITOR_ID, propertyPointer,
-                        DittoHeaders.empty());
+                        provideHeaders(context));
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featurePropertyNotFound(command.getEntityId(), command.getFeatureId(),
                         command.getPropertyPointer(), command.getDittoHeaders());

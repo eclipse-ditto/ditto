@@ -118,14 +118,6 @@ jobs:
           cache: 'maven'
           java-version: 21
 
-      - name: Cache local Maven repository
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
       - name: Set env vars dynamically
         run: |
           echo "JAVA_TOOL_OPTIONS=-Duser.home=$HOME" >> $GITHUB_ENV
@@ -133,6 +125,7 @@ jobs:
           if [[ $GITHUB_ACTOR != "nektos/act" ]]; then
             echo "HOST_M2_REPO=$HOME/.m2" >> $GITHUB_ENV
           fi
+          echo "DITTO_BRANCH_NO_SLASH=${{ env.DITTO_BRANCH }}" | sed 's/\//-/g' >> $GITHUB_ENV
 
       - name: Debug maven repo
         run: |
@@ -358,8 +351,8 @@ jobs:
         if:  env.GITHUB_ACTOR != 'nektos/act'
         uses: actions/upload-artifact@v3
         with:
-          name: system-test-results-${{ env.DITTO_BRANCH }}-${{ github.run_number }}
-          path: 'ditto-testing/**/target/failsafe-reports/**/*.xml'
+          name: system-test-results-${{ env.DITTO_BRANCH_NO_SLASH }}-${{ github.run_number }}
+          path: 'ditto-testing/system*/**/target/failsafe-reports/**/*.xml'
           
       - name: Upload services logs
         if:  env.GITHUB_ACTOR != 'nektos/act'
@@ -369,15 +362,16 @@ jobs:
           path: 'ditto-testing/docker/*.log'
 
       - name: List Test Result files
+        if: always()
         run: |
-          ls -lah ./**/target/failsafe-reports/*IT.xml
+          ls -lah ./system*/**/target/failsafe-reports/*IT.xml
         working-directory: ditto-testing
 
       - name: Publish Test Results
         uses: dorny/test-reporter@v1
         with:
-          name: Test Results | ${{ env.DITTO_BRANCH }} ${{ github.run_number }}
-          path: ./**/target/failsafe-reports/*IT.xml
+          name: Test Results | ${{ env.DITTO_BRANCH_NO_SLASH }} ${{ github.run_number }}
+          path: ./system*/**/target/failsafe-reports/*IT.xml
           reporter: java-junit
           working-directory: ditto-testing
         

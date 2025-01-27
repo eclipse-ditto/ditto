@@ -157,29 +157,7 @@ public final class RequestTracingDirective {
             @Nullable final CharSequence correlationId
     ) {
         return mapRequest(
-                req -> {
-                    final Set<String> headerNames = new HashSet<>();
-                    return adjustSpanContextHeadersOfRequest(req, startedSpan.propagateContext(
-                            StreamSupport.stream(httpRequest.getHeaders().spliterator(), false)
-                                    .map(httpHeader -> {
-                                        if (!headerNames.add(httpHeader.name())) {
-                                            throw GatewayDuplicateHeaderException.newBuilder(httpHeader.name())
-                                                    .dittoHeaders(DittoHeaders.newBuilder()
-                                                            .correlationId(correlationId)
-                                                            .build()
-                                                    ).build();
-                                        }
-                                        return httpHeader;
-                                    })
-                                    .collect(Collectors.toMap(HttpHeader::name, HttpHeader::value, (dv1, dv2) -> {
-                                        throw GatewayDuplicateHeaderException.newBuilder()
-                                                .dittoHeaders(DittoHeaders.newBuilder()
-                                                        .correlationId(correlationId)
-                                                        .build()
-                                                ).build();
-                                    }))
-                    ));
-                },
+                req -> adjustSpanContextHeadersOfRequest(req, correlationId, startedSpan),
                 () -> mapRouteResult(
                         routeResult -> tryToHandleRouteResult(routeResult, httpRequest, startedSpan, correlationId),
                         innerRouteSupplier
@@ -189,13 +167,37 @@ public final class RequestTracingDirective {
 
     private static HttpRequest adjustSpanContextHeadersOfRequest(
             final HttpRequest originalRequest,
-            final Map<String, String> spanContextHeaders
+            @Nullable final CharSequence correlationId,
+            final StartedSpan startedSpan
     ) {
+        final Set<String> headerNames = new HashSet<>();
+        final Map<String, String> httpHeaders = StreamSupport.stream(originalRequest.getHeaders().spliterator(), false)
+                .map(httpHeader -> {
+                    if (!headerNames.add(httpHeader.name())) {
+                        throw GatewayDuplicateHeaderException.newBuilder(httpHeader.name())
+                                .dittoHeaders(DittoHeaders.newBuilder()
+                                        .correlationId(correlationId)
+                                        .build()
+                                ).build();
+                    }
+                    return httpHeader;
+                })
+                .filter(httpHeader ->
+                        !DittoHeaderDefinition.W3C_TRACEPARENT.getKey().equals(httpHeader.name())
+                )
+                .collect(Collectors.toMap(HttpHeader::name, HttpHeader::value, (dv1, dv2) -> {
+                    throw GatewayDuplicateHeaderException.newBuilder()
+                            .dittoHeaders(DittoHeaders.newBuilder()
+                                    .correlationId(correlationId)
+                                    .build()
+                            ).build();
+                }));
 
+        final Map<String, String> propagatedHeaders = startedSpan.propagateContext(httpHeaders);
         // Replace W3C tracing headers of original request because from now
         // on the newly started span is the parent of all subsequent spans.
         var result = originalRequest;
-        for (final var w3cTracingHeader : getW3cTracingHeaders(spanContextHeaders)) {
+        for (final var w3cTracingHeader : getW3cTracingHeaders(propagatedHeaders)) {
             result = result.removeHeader(w3cTracingHeader.name()).addHeader(w3cTracingHeader);
         }
         return result;

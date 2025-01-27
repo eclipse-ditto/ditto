@@ -225,7 +225,6 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                     features,
                     false,
                     validationConfig.getFeatureValidationConfig().isForbidNonModeledProperties(),
-                    resourcePath,
                     context
             ).thenApply(aVoid -> null);
         } else {
@@ -239,7 +238,6 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                     features,
                     true,
                     validationConfig.getFeatureValidationConfig().isForbidNonModeledDesiredProperties(),
-                    resourcePath,
                     context
             ).thenApply(aVoid -> null);
         } else {

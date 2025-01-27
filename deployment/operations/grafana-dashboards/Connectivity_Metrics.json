@@ -281,7 +281,7 @@
       "targets": [
         {
           "datasource": "prometheus",
-          "expr": "count by (ditto_connection_type) (count by (instance, ditto_connection_id, ditto_connection_type) (increase(connectivity_message_mapping_seconds_count{instance=~\"$Host\", ditto_connection_type=~\"$ConnectionType\", ditto_connection_id=~\"$Connection\"}[5m]) > 0))",
+          "expr": "count by (ditto_connection_type) (count by (instance, ditto_connection_id, ditto_connection_type) (increase(message_mapping_seconds_count{instance=~\"$Host\", ditto_connection_type=~\"$ConnectionType\", ditto_connection_id=~\"$Connection\"}[5m]) > 0))",
           "format": "time_series",
           "hide": false,
           "interval": "",
@@ -376,7 +376,7 @@
       "targets": [
         {
           "datasource": "prometheus",
-          "expr": "count by (instance, ditto_connection_type) (count by (instance, ditto_connection_id, ditto_connection_type) (increase (connectivity_message_mapping_seconds_count{instance=~\"$Host\", ditto_connection_type=~\"$ConnectionType\", ditto_connection_id=~\"$Connection\"}[5m]) > 0))",
+          "expr": "count by (instance, ditto_connection_type) (count by (instance, ditto_connection_id, ditto_connection_type) (increase (message_mapping_seconds_count{instance=~\"$Host\", ditto_connection_type=~\"$ConnectionType\", ditto_connection_id=~\"$Connection\"}[5m]) > 0))",
           "format": "time_series",
           "hide": false,
           "instant": false,
@@ -1808,7 +1808,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg((idelta(connectivity_message_mapping_seconds_sum{segment=\"overall\", instance=~\"$Host\", ditto_connection_id=~\"$Connection\", ditto_connection_type=~\"$ConnectionType\"}[5m]) / idelta(connectivity_message_mapping_seconds_count{segment=\"overall\", ditto_connection_id=~\"$Connection\", ditto_connection_type=~\"$ConnectionType\"}[5m])) > 0) by (ditto_mapping_success, direction, ditto_connection_type)",
+          "expr": "avg((idelta(connectivity_message_mapping_seconds_sum{segment=\"overall\", instance=~\"$Host\", ditto_connection_id=~\"$Connection\", ditto_connection_type=~\"$ConnectionType\"}[5m]) / idelta(message_mapping_seconds_count{segment=\"overall\", ditto_connection_id=~\"$Connection\", ditto_connection_type=~\"$ConnectionType\"}[5m])) > 0) by (ditto_mapping_success, direction, ditto_connection_type)",
           "format": "time_series",
           "hide": false,
           "intervalFactor": 1,
@@ -1816,7 +1816,7 @@
           "refId": "C"
         },
         {
-          "expr": "avg((idelta(connectivity_message_mapping_seconds_sum{segment=\"overall\", instance=~\"$Host\", ditto_connection_id=~\"$Connection\", ditto_connection_type=~\"$ConnectionType\"}[5m]) / idelta(connectivity_message_mapping_seconds_count{segment=\"overall\", ditto_connection_id=~\"$Connection\", ditto_connection_type=~\"$ConnectionType\"}[5m])) > 0) by (ditto_mapping_success, ditto_connection_type)",
+          "expr": "avg((idelta(connectivity_message_mapping_seconds_sum{segment=\"overall\", instance=~\"$Host\", ditto_connection_id=~\"$Connection\", ditto_connection_type=~\"$ConnectionType\"}[5m]) / idelta(message_mapping_seconds_count{segment=\"overall\", ditto_connection_id=~\"$Connection\", ditto_connection_type=~\"$ConnectionType\"}[5m])) > 0) by (ditto_mapping_success, ditto_connection_type)",
           "format": "time_series",
           "hide": false,
           "intervalFactor": 1,
@@ -1824,7 +1824,7 @@
           "refId": "D"
         },
         {
-          "expr": "avg((idelta(connectivity_message_mapping_seconds_sum{segment=\"overall\", instance=~\"$Host\", ditto_connection_id=~\"$Connection\", ditto_connection_type=~\"$ConnectionType\"}[5m]) / idelta(connectivity_message_mapping_seconds_count{segment=\"overall\", ditto_connection_id=~\"$Connection\", ditto_connection_type=~\"$ConnectionType\"}[5m])) > 0) by (direction, ditto_connection_type)",
+          "expr": "avg((idelta(connectivity_message_mapping_seconds_sum{segment=\"overall\", instance=~\"$Host\", ditto_connection_id=~\"$Connection\", ditto_connection_type=~\"$ConnectionType\"}[5m]) / idelta(message_mapping_seconds_count{segment=\"overall\", ditto_connection_id=~\"$Connection\", ditto_connection_type=~\"$ConnectionType\"}[5m])) > 0) by (direction, ditto_connection_type)",
           "format": "time_series",
           "hide": false,
           "intervalFactor": 1,
@@ -1835,7 +1835,7 @@
           "textEditor": false
         },
         {
-          "expr": "avg((idelta(connectivity_message_mapping_seconds_sum{segment=\"overall\", instance=~\"$Host\", ditto_connection_id=~\"$Connection\", ditto_connection_type=~\"$ConnectionType\"}[5m]) / idelta(connectivity_message_mapping_seconds_count{segment=\"overall\", ditto_connection_id=~\"$Connection\", ditto_connection_type=~\"$ConnectionType\"}[5m])) > 0)",
+          "expr": "avg((idelta(connectivity_message_mapping_seconds_sum{segment=\"overall\", instance=~\"$Host\", ditto_connection_id=~\"$Connection\", ditto_connection_type=~\"$ConnectionType\"}[5m]) / idelta(message_mapping_seconds_count{segment=\"overall\", ditto_connection_id=~\"$Connection\", ditto_connection_type=~\"$ConnectionType\"}[5m])) > 0)",
           "format": "time_series",
           "hide": false,
           "intervalFactor": 1,
@@ -1995,7 +1995,7 @@
         "name": "Host",
         "options": [],
         "query": {
-          "query": "label_values(connectivity_message_mapping_seconds_count, instance)",
+          "query": "label_values(message_mapping_seconds_count, instance)",
           "refId": "prometheus-Host-Variable-Query"
         },
         "refresh": 1,
@@ -2019,14 +2019,14 @@
           ]
         },
         "datasource": "prometheus",
-        "definition": "label_values(connectivity_message_mapping_seconds_count,ditto_connection_id)",
+        "definition": "label_values(message_mapping_seconds_count,ditto_connection_id)",
         "hide": 0,
         "includeAll": true,
         "multi": true,
         "name": "Connection",
         "options": [],
         "query": {
-          "query": "label_values(connectivity_message_mapping_seconds_count,ditto_connection_id)",
+          "query": "label_values(message_mapping_seconds_count,ditto_connection_id)",
           "refId": "prometheus-Connection-Variable-Query"
         },
         "refresh": 1,
@@ -2046,14 +2046,14 @@
           "value": "$__all"
         },
         "datasource": "prometheus",
-        "definition": "label_values(connectivity_message_mapping_seconds_count,ditto_connection_type)",
+        "definition": "label_values(message_mapping_seconds_count,ditto_connection_type)",
         "hide": 0,
         "includeAll": true,
         "multi": false,
         "name": "ConnectionType",
         "options": [],
         "query": {
-          "query": "label_values(connectivity_message_mapping_seconds_count,ditto_connection_type)",
+          "query": "label_values(message_mapping_seconds_count,ditto_connection_type)",
           "refId": "prometheus-ConnectionType-Variable-Query"
         },
         "refresh": 1,

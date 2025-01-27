@@ -21,6 +21,8 @@ import javax.annotation.Nullable;
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
+import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
@@ -65,22 +67,45 @@ public final class ModifyToCreateThingTransformer implements SignalTransformer {
     }
 
     private static Optional<InputParams> calculateInputParams(final Signal<?> signal) {
-        if (signal instanceof ModifyThing modifyThing) {
-            return Optional.of(new InputParams(modifyThing,
-                    modifyThing.getThing(),
-                    modifyThing.getInitialPolicy().orElse(null),
-                    modifyThing.getPolicyIdOrPlaceholder().orElse(null)
-            ));
-        } else if (signal instanceof MergeThing mergeThing && mergeThing.getPath().isEmpty()) {
-            final JsonObject mergeThingObject = mergeThing.getEntity().orElseGet(mergeThing::getValue).asObject();
-            return Optional.of(new InputParams(mergeThing,
-                    ThingsModelFactory.newThing(mergeThingObject),
-                    mergeThing.getInitialPolicy().orElse(null),
-                    mergeThing.getPolicyIdOrPlaceholder().orElse(null)
-            ));
-        } else {
-            return Optional.empty();
+        switch (signal) {
+            case ModifyThing modifyThing -> {
+                return Optional.of(new InputParams(modifyThing,
+                        modifyThing.getThing(),
+                        modifyThing.getInitialPolicy().orElse(null),
+                        modifyThing.getPolicyIdOrPlaceholder().orElse(null)
+                ));
+            }
+            case MergeThing mergeThing when mergeThing.getPath().isEmpty() -> {
+                final JsonObject mergeThingObject = mergeThing.getEntity().orElseGet(mergeThing::getValue).asObject();
+                final JsonObject nullFilteredMergeThingObject = filterOutNullValues(mergeThingObject);
+                return Optional.of(new InputParams(mergeThing,
+                        ThingsModelFactory.newThing(nullFilteredMergeThingObject),
+                        mergeThing.getInitialPolicy().orElse(null),
+                        mergeThing.getPolicyIdOrPlaceholder().orElse(null)
+                ));
+            }
+            default -> {
+                return Optional.empty();
+            }
         }
+    }
+
+    private static JsonObject filterOutNullValues(final JsonObject mergeThingObject) {
+        return mergeThingObject.stream()
+                .filter(entry -> !entry.getValue().isNull())
+                .map(field -> {
+                    if (field.getValue().isObject()) {
+                        return JsonField.newInstance(field.getKey(), filterOutNullValues(field.getValue().asObject()));
+                    } else if (field.getValue().isArray()) {
+                        return JsonField.newInstance(field.getKey(), field.getValue().asArray().stream()
+                                .filter(value -> !value.isNull())
+                                .map(value -> value.isObject() ? filterOutNullValues(value.asObject()) : value)
+                                .collect(JsonCollectors.valuesToArray()));
+                    } else {
+                        return field;
+                    }
+                })
+                .collect(JsonCollectors.fieldsToObject());
     }
 
     private record InputParams(ThingModifyCommand<?> thingModifyCommand, Thing thing,

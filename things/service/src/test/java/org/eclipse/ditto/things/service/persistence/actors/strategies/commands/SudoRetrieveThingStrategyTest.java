@@ -54,7 +54,7 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
     public void isNotDefinedForDeviantThingIds() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final SudoRetrieveThing command =
-                SudoRetrieveThing.of(ThingId.of("org.example", "myThing"), DittoHeaders.empty());
+                SudoRetrieveThing.of(ThingId.of("org.example", "myThing"), provideHeaders(context));
 
         final boolean defined = underTest.isDefined(context, THING_V2, command);
 
@@ -64,7 +64,7 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
     @Test
     public void isNotDefinedIfContextHasNoThing() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final SudoRetrieveThing command = SudoRetrieveThing.of(THING_ID, DittoHeaders.empty());
+        final SudoRetrieveThing command = SudoRetrieveThing.of(THING_ID, provideHeaders(context));
 
         final boolean defined = underTest.isDefined(context, null, command);
 
@@ -74,7 +74,7 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
     @Test
     public void isDefinedIfContextHasThingAndThingIdsAreEqual() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final SudoRetrieveThing command = SudoRetrieveThing.of(context.getState(), DittoHeaders.empty());
+        final SudoRetrieveThing command = SudoRetrieveThing.of(context.getState(), provideHeaders(context));
 
         final boolean defined = underTest.isDefined(context, THING_V2, command);
 
@@ -100,11 +100,11 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
     public void retrieveThingWithoutSelectedFieldsWithOriginalSchemaVersion() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final SudoRetrieveThing command =
-                SudoRetrieveThing.withOriginalSchemaVersion(context.getState(), null, DittoHeaders.empty());
+                SudoRetrieveThing.withOriginalSchemaVersion(context.getState(), null, provideHeaders(context));
         final JsonObject expectedThingJson = THING_V2.toJson(THING_V2.getImplementedSchemaVersion(),
                 FieldType.regularOrSpecial());
         final SudoRetrieveThingResponse expectedResponse =
-                ETagTestUtils.sudoRetrieveThingResponse(THING_V2, expectedThingJson, DittoHeaders.empty());
+                ETagTestUtils.sudoRetrieveThingResponse(THING_V2, expectedThingJson, provideHeaders(context));
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
     }
@@ -157,11 +157,11 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector("/attributes/location");
         final SudoRetrieveThing command =
-                SudoRetrieveThing.of(context.getState(), fieldSelector, DittoHeaders.empty());
+                SudoRetrieveThing.of(context.getState(), fieldSelector, provideHeaders(context));
         final JsonObject expectedThingJson = THING_V2.toJson(THING_V2.getImplementedSchemaVersion(), fieldSelector,
                 FieldType.regularOrSpecial());
         final SudoRetrieveThingResponse expectedResponse =
-                ETagTestUtils.sudoRetrieveThingResponse(THING_V2, expectedThingJson, DittoHeaders.empty());
+                ETagTestUtils.sudoRetrieveThingResponse(THING_V2, expectedThingJson, provideHeaders(context));
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
     }
@@ -169,7 +169,7 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
     @Test
     public void unhandledReturnsThingNotAccessibleException() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final SudoRetrieveThing command = SudoRetrieveThing.of(context.getState(), DittoHeaders.empty());
+        final SudoRetrieveThing command = SudoRetrieveThing.of(context.getState(), provideHeaders(context));
         final ThingNotAccessibleException expectedException =
                 new ThingNotAccessibleException(context.getState(), command.getDittoHeaders());
 

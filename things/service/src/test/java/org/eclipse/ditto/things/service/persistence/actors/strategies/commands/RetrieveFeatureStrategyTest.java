@@ -18,13 +18,11 @@ import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeature;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureResponse;
 import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
-import org.eclipse.ditto.wot.api.generator.WotThingDescriptionGenerator;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -47,7 +45,7 @@ public final class RetrieveFeatureStrategyTest extends AbstractCommandStrategyTe
     public void retrieveExistingFeature() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveFeature command =
-                RetrieveFeature.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
+                RetrieveFeature.of(context.getState(), FLUX_CAPACITOR_ID, provideHeaders(context));
         final RetrieveFeatureResponse expectedResponse =
                 ETagTestUtils.retrieveFeatureResponse(command.getEntityId(), FLUX_CAPACITOR, FLUX_CAPACITOR.toJson(),
                         command.getDittoHeaders());
@@ -59,7 +57,7 @@ public final class RetrieveFeatureStrategyTest extends AbstractCommandStrategyTe
     public void retrieveFeatureFromThingWithoutFeatures() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveFeature command =
-                RetrieveFeature.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
+                RetrieveFeature.of(context.getState(), FLUX_CAPACITOR_ID, provideHeaders(context));
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featureNotFound(command.getEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());
@@ -71,7 +69,7 @@ public final class RetrieveFeatureStrategyTest extends AbstractCommandStrategyTe
     public void retrieveNonExistingFeature() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveFeature command =
-                RetrieveFeature.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
+                RetrieveFeature.of(context.getState(), FLUX_CAPACITOR_ID, provideHeaders(context));
         final DittoRuntimeException expectedException =
                 ExceptionFactory.featureNotFound(command.getEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());

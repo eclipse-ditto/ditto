@@ -75,7 +75,7 @@ public final class OperatorAggregateMetricsProviderActor extends AbstractActorWi
     private static final String METRIC_NAME = "metric-name";
 
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
-    private final ActorRef thingsAggregatorActorSingletonProxy;
+    private final ActorRef aggregateThingsMetricsActorSingletonProxy;
     private final Map<String, CustomAggregationMetricConfig> customSearchMetricConfigMap;
     private final Map<GageIdentifier, TimestampedGauge> metricsGauges;
     private final Gauge customSearchMetricsGauge;
@@ -83,7 +83,7 @@ public final class OperatorAggregateMetricsProviderActor extends AbstractActorWi
 
     @SuppressWarnings("unused")
     private OperatorAggregateMetricsProviderActor(final SearchConfig searchConfig) {
-        this.thingsAggregatorActorSingletonProxy = initializeAggregationThingsMetricsActor(searchConfig);
+        this.aggregateThingsMetricsActorSingletonProxy = initializeAggregationThingsMetricsActor(searchConfig);
         this.customSearchMetricConfigMap = searchConfig.getOperatorMetricsConfig().getCustomAggregationMetricConfigs();
         this.metricsGauges = new HashMap<>();
         this.inlinePlaceholderResolvers = new LinkedHashMap<>();
@@ -150,7 +150,7 @@ public final class OperatorAggregateMetricsProviderActor extends AbstractActorWi
         final AggregateThingsMetrics
                 aggregateThingsMetrics = AggregateThingsMetrics.of(metricName, config.getGroupBy(), namedFilters,
                 Set.of(config.getNamespaces().toArray(new String[0])), dittoHeaders);
-        thingsAggregatorActorSingletonProxy.tell(aggregateThingsMetrics, getSelf());
+        aggregateThingsMetricsActorSingletonProxy.tell(aggregateThingsMetrics, getSelf());
     }
 
 
