@@ -122,7 +122,7 @@ public final class MigrateThingDefinitionTest {
                 .set("patchConditions", JsonFactory.newObjectBuilder()
                         .set("thing:/features/thermostat", "not(exists(/features/thermostat))")
                         .build())
-                .set("initializeProperties", true)
+                .set("initializeMissingPropertiesFromDefaults", true)
                 .build();
 
         final MigrateThingDefinition command = MigrateThingDefinition.fromJson(json, DITTO_HEADERS);
@@ -163,7 +163,7 @@ public final class MigrateThingDefinitionTest {
         Assertions.assertThat(json.getValueOrThrow(JsonFieldDefinition.ofString("thingId"))).isEqualTo(THING_ID.toString());
         Assertions.assertThat(json.getValueOrThrow(JsonFieldDefinition.ofString("thingDefinitionUrl"))).isEqualTo("https://models.example.com/thing-definition-1.0.0.tm.jsonld");
         Assertions.assertThat(json.getValueOrThrow(JsonFieldDefinition.ofJsonObject("migrationPayload"))).isEqualTo(MIGRATION_PAYLOAD);
-        Assertions.assertThat(json.getValueOrThrow(JsonFieldDefinition.ofBoolean("initializeProperties"))).isTrue();
+        Assertions.assertThat(json.getValueOrThrow(JsonFieldDefinition.ofBoolean("initializeMissingPropertiesFromDefaults"))).isTrue();
     }
 
     @Test
