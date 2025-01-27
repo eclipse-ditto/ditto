@@ -107,6 +107,7 @@ public final class ThingCommandStrategies
         addStrategy(new ModifyThingDefinitionStrategy(system));
         addStrategy(new RetrieveThingDefinitionStrategy(system));
         addStrategy(new DeleteThingDefinitionStrategy(system));
+        addStrategy(new MigrateThingDefinitionStrategy(system));
     }
 
     private void addFeaturesStrategies(final ActorSystem system) {
