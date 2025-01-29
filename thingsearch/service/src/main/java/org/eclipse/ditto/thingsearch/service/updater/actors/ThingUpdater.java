@@ -548,10 +548,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         final StartedSpan startedSpan = DittoTracing.newStartedSpanByTimer(thingEvent.getDittoHeaders(), startedTimer);
         ConsistencyLag.startS1InUpdater(startedTimer);
         final var tracedEvent = thingEvent.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(
-                thingEvent.getDittoHeaders().toBuilder()
-                        .removeHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey())
-                        .build()
-        )));
+                thingEvent.getDittoHeaders())));
         final var metadata = exportMetadataWithSender(shouldAcknowledge, tracedEvent, getAckRecipient(
                 tracedEvent.getDittoHeaders()), startedTimer, data)
                 .withUpdateReason(UpdateReason.THING_UPDATE);

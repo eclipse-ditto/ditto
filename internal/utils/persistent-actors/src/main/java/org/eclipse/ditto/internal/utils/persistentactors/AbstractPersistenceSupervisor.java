@@ -908,11 +908,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                     .correlationId(signal.getDittoHeaders().getCorrelationId().orElse(null))
                     .start();
             final var tracedSignal = signal.setDittoHeaders(
-                    DittoHeaders.of(startedSpan.propagateContext(
-                            signal.getDittoHeaders().toBuilder()
-                                    .removeHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey())
-                                    .build()
-                    ))
+                    DittoHeaders.of(startedSpan.propagateContext(signal.getDittoHeaders()))
             );
             final StartedTimer rootTimer = createTimer(tracedSignal);
             final StartedTimer enforcementTimer = rootTimer.startNewSegment(ENFORCEMENT_TIMER_SEGMENT_ENFORCEMENT);

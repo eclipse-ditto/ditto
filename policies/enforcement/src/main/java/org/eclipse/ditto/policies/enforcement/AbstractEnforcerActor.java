@@ -28,7 +28,6 @@ import org.eclipse.ditto.base.api.commands.sudo.SudoCommand;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
@@ -138,11 +137,7 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
                 .start();
         final Optional<String> formerTraceParent = dittoHeaders.getTraceParent();
         final var tracedSignal = signal.setDittoHeaders(
-                DittoHeaders.of(startedSpan.propagateContext(
-                        dittoHeaders.toBuilder()
-                                .removeHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey())
-                                .build()
-                ))
+                DittoHeaders.of(startedSpan.propagateContext(dittoHeaders))
         );
         final ActorRef self = getSelf();
 
