@@ -99,7 +99,7 @@ public final class KamonHttpContextPropagation {
     public Map<String, String> propagateContextToHeaders(final Context context, final Map<String, String> headers) {
         checkNotNull(context, "context");
         final var result = getMutableCopyOfMap(checkNotNull(headers, "headers"));
-        propagation.write(context, result::putIfAbsent);
+        propagation.write(context, result::put); // always put, not only if absent in order to overwrite existing values
         return result;
     }
 

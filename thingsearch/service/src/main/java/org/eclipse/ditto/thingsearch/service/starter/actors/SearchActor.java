@@ -45,7 +45,6 @@ import org.apache.pekko.stream.javadsl.StreamRefs;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
@@ -304,10 +303,7 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
 
         @SuppressWarnings("unchecked")
         final T tracedCountCommand = (T) countCommand.setDittoHeaders(
-                DittoHeaders.of(spanWithTimer.startedSpan.propagateContext(dittoHeaders.toBuilder()
-                        .removeHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey())
-                        .build()
-                )));
+                DittoHeaders.of(spanWithTimer.startedSpan.propagateContext(dittoHeaders)));
 
         final Source<CountThingsResponse, ?> countThingsResponseSource =
                 createQuerySource(queryParseFunction, tracedCountCommand)
@@ -352,10 +348,7 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
         final var namespaces = streamThings.getNamespaces().orElse(null);
 
         final StreamThings tracedStreamThings = streamThings.setDittoHeaders(
-                DittoHeaders.of(spanWithTimer.startedSpan.propagateContext(streamThings.getDittoHeaders().toBuilder()
-                        .removeHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey())
-                        .build()
-                )));
+                DittoHeaders.of(spanWithTimer.startedSpan.propagateContext(streamThings.getDittoHeaders())));
 
         final Source<SourceRef<String>, NotUsed> thingIdSourceRefSource =
                 ThingsSearchCursor.extractCursor(tracedStreamThings).flatMapConcat(cursor -> {
@@ -472,10 +465,7 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
         final var namespaces = queryThings.getNamespaces().orElse(null);
 
         final QueryThings tracedQueryThings = queryThings.setDittoHeaders(
-                DittoHeaders.of(spanWithTimer.startedSpan.propagateContext(queryThings.getDittoHeaders().toBuilder()
-                        .removeHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey())
-                        .build()
-                )));
+                DittoHeaders.of(spanWithTimer.startedSpan.propagateContext(queryThings.getDittoHeaders())));
 
         final Source<QueryThingsResponse, ?> queryThingsResponseSource =
                 ThingsSearchCursor.extractCursor(tracedQueryThings, getSystem()).flatMapConcat(cursor -> {

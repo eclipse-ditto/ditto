@@ -730,12 +730,7 @@ public abstract class AbstractPersistenceActor<
                 .start();
 
         final var tracedCommand =
-                command.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(
-                        command.getDittoHeaders()
-                                .toBuilder()
-                                .removeHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey())
-                                .build()
-                        )));
+                command.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(command.getDittoHeaders())));
 
         accessCounter++;
         Result<E> result;
