@@ -205,7 +205,7 @@ public class DittoCachingSignalEnrichmentFacade implements CachingSignalEnrichme
                 allConfiguredPredefinedExtraFields.containsAll(jsonFieldSelector.getPointers());
         if (allExtraFieldsPresent) {
             LOGGER.withCorrelationId(dittoHeaders)
-                    .debug("All asked for extraFields for thing <{}> we present in pre-defined fields, " +
+                    .debug("All asked for extraFields for thing <{}> were present in pre-defined fields, " +
                             "skipping cache retrieval: <{}>", thingId, jsonFieldSelector);
             return CompletableFuture.completedStage(filteredPreDefinedExtraFieldsReadGranted);
         } else {
