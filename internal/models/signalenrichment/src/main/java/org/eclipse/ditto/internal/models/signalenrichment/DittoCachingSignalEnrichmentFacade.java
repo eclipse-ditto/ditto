@@ -144,11 +144,7 @@ public class DittoCachingSignalEnrichmentFacade implements CachingSignalEnrichme
                 )
                 .start();
 
-        return DittoHeaders.of(startedSpan.propagateContext(
-                dittoHeadersBuilder
-                        .removeHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey())
-                        .build()
-        ));
+        return DittoHeaders.of(startedSpan.propagateContext(dittoHeadersBuilder.build()));
     }
 
     @Override

@@ -363,12 +363,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
                     .correlationId(correlationId)
                     .connectionId(connectionId)
                     .start();
-            headers = startedSpan.propagateContext(DittoHeaders.of(headers)
-                    .toBuilder()
-                    .removeHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey())
-                    .build()
-                    .asCaseSensitiveMap()
-            );
+            headers = startedSpan.propagateContext(headers);
             final ExternalMessageBuilder builder = ExternalMessageFactory.newExternalMessageBuilder(headers);
             final ExternalMessage externalMessage = extractPayloadFromMessage(message, builder)
                     .withAuthorizationContext(source.getAuthorizationContext())

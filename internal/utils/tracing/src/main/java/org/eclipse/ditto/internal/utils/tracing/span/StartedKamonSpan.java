@@ -18,8 +18,10 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
 
@@ -113,11 +115,17 @@ final class StartedKamonSpan implements StartedSpan {
 
     @Override
     public Map<String, String> propagateContext(final Map<String, String> headers) {
-        return httpContextPropagation.propagateContextToHeaders(wrapSpanInContext(), headers);
+        return httpContextPropagation.propagateContextToHeaders(wrapSpanInContext(
+                headers.get(DittoHeaderDefinition.W3C_TRACESTATE.getKey())
+        ), headers);
     }
 
-    private Context wrapSpanInContext() {
-        return Context.of(Span.Key(), span);
+    private Context wrapSpanInContext(@Nullable final String traceStateHeader) {
+        if (traceStateHeader != null) {
+            return Context.of(Span.Key(), span, Context.key("tracestate", ""), traceStateHeader);
+        } else {
+            return Context.of(Span.Key(), span);
+        }
     }
 
     @Override
