@@ -44,6 +44,8 @@ public interface MqttConfig {
      */
     boolean isCleanSession();
 
+    boolean shouldResolveServerAddress();
+
     /**
      * Indicates whether the client should reconnect to enforce a redelivery for a failed acknowledgement.
      *
@@ -135,6 +137,11 @@ public interface MqttConfig {
          * Indicates whether subscriber CONN messages should set clean-session or clean-start flag to true.
          */
         CLEAN_SESSION("clean-session", false),
+
+        /**
+         * Indicates whether the provided connection uri should be resolved in-demand by ditto or on-demand.
+         */
+        SHOULD_RESOLVE_SERVER_ADDRESS("should-resolve-server-address", true),
 
         /**
          * Indicates whether the client should reconnect to enforce a redelivery for a failed acknowledgement.
