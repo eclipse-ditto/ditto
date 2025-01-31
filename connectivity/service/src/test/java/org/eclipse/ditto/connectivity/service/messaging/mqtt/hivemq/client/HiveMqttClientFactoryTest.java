@@ -83,6 +83,7 @@ public final class HiveMqttClientFactoryTest {
         Mockito.when(mqttConnection.getPassword()).thenReturn(Optional.of(PASSWORD));
 
         Mockito.when(mqttConfig.getEventLoopThreads()).thenReturn(EVENT_LOOP_THREAD_NUMBER);
+        Mockito.when(mqttConfig.shouldResolveServerAddress()).thenReturn(Boolean.TRUE);
 
         final var connectionConfig = Mockito.mock(ConnectionConfig.class);
         Mockito.when(connectionConfig.getMqttConfig()).thenReturn(mqttConfig);
@@ -396,4 +397,41 @@ public final class HiveMqttClientFactoryTest {
                 });
     }
 
+    @Test
+    public void getMqttClientWithShouldResolveServerAddressFalseAddressShouldBeUnresolved()
+            throws NoMqttConnectionException {
+        Mockito.when(mqttConfig.shouldResolveServerAddress()).thenReturn(Boolean.FALSE);
+        final var hiveMqttClientProperties = HiveMqttClientProperties.builder()
+                .withMqttConnection(mqttConnection)
+                .withConnectivityConfig(connectivityConfig)
+                .withMqttSpecificConfig(MqttSpecificConfig.fromConnection(mqttConnection, mqttConfig))
+                .withSshTunnelStateSupplier(sshTunnelStateSupplier)
+                .withConnectionLogger(connectionLogger)
+                .withActorUuid(ACTOR_UUID)
+                .withClientConnectedListener(mqttClientConnectedListener)
+                .withClientDisconnectedListener(mqttClientDisconnectedListener)
+                .build();
+
+        final var mqtt3ClientUnderTest = HiveMqttClientFactory.getMqtt3Client(hiveMqttClientProperties,
+                MQTT_CLIENT_IDENTIFIER,
+                ClientRole.CONSUMER_PUBLISHER);
+
+        final var mqtt3ClientConfig = mqtt3ClientUnderTest.getConfig();
+        softly.assertThat(mqtt3ClientConfig.getTransportConfig())
+                .as("transport config")
+                .satisfies(transportConfig -> {
+                    softly.assertThat(transportConfig.getServerAddress().isUnresolved()).isTrue();
+                });
+
+        final var mqtt5ClientUnderTest = HiveMqttClientFactory.getMqtt3Client(hiveMqttClientProperties,
+                MQTT_CLIENT_IDENTIFIER,
+                ClientRole.CONSUMER_PUBLISHER);
+
+        final var mqtt5ClientConfig = mqtt5ClientUnderTest.getConfig();
+        softly.assertThat(mqtt5ClientConfig.getTransportConfig())
+                .as("transport config")
+                .satisfies(transportConfig -> {
+                    softly.assertThat(transportConfig.getServerAddress().isUnresolved()).isTrue();
+                });
+    }
 }

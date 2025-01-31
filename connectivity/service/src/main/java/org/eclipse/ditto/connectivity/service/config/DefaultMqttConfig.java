@@ -42,6 +42,7 @@ final class DefaultMqttConfig implements MqttConfig {
     private final int maxQueueSize;
     private final int eventLoopThreads;
     private final boolean cleanSession;
+    private final boolean shouldResolveServerAddress;
     private final boolean reconnectForRedelivery;
     private final Duration reconnectForRedeliveryDelay;
     private final SessionExpiryInterval sessionExpiryInterval;
@@ -54,6 +55,7 @@ final class DefaultMqttConfig implements MqttConfig {
     private DefaultMqttConfig(final ScopedConfig config) {
         eventLoopThreads = config.getNonNegativeIntOrThrow(MqttConfigValue.EVENT_LOOP_THREADS);
         cleanSession = config.getBoolean(MqttConfigValue.CLEAN_SESSION.getConfigPath());
+        shouldResolveServerAddress = config.getBoolean(MqttConfigValue.SHOULD_RESOLVE_SERVER_ADDRESS.getConfigPath());
         reconnectForRedelivery = config.getBoolean(MqttConfigValue.RECONNECT_FOR_REDELIVERY.getConfigPath());
         reconnectForRedeliveryDelay =
                 config.getNonNegativeDurationOrThrow(MqttConfigValue.RECONNECT_FOR_REDELIVERY_DELAY);
@@ -106,6 +108,11 @@ final class DefaultMqttConfig implements MqttConfig {
     @Override
     public boolean isCleanSession() {
         return cleanSession;
+    }
+
+    @Override
+    public boolean shouldResolveServerAddress() {
+        return shouldResolveServerAddress;
     }
 
     @Override
