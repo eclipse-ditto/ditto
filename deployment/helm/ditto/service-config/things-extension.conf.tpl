@@ -44,6 +44,46 @@ ditto {
           "{{$header}}"
         {{- end }}
         ]
+        pre-defined-extra-fields = [
+        {{- range $index, $extraFieldConfig := .Values.things.config.event.preDefinedExtraFields }}
+          {
+            namespaces = [
+            {{- range $index, $namespace := $extraFieldConfig.namespaces }}
+              "{{$namespace}}"
+            {{- end }}
+            ]
+            {{- if $extraFieldConfig.condition }}
+            condition = "{{$extraFieldConfig.condition}}"
+            {{- end }}
+            extra-fields = [
+            {{- range $index, $extraField := $extraFieldConfig.extraFields }}
+              "{{$extraField}}"
+            {{- end }}
+            ]
+          }
+        {{- end }}
+        ]
+      }
+      message {
+        pre-defined-extra-fields = [
+        {{- range $index, $extraFieldConfig := .Values.things.config.message.preDefinedExtraFields }}
+          {
+            namespaces = [
+            {{- range $index, $namespace := $extraFieldConfig.namespaces }}
+              "{{$namespace}}"
+            {{- end }}
+            ]
+            {{- if $extraFieldConfig.condition }}
+            condition = "{{$extraFieldConfig.condition}}"
+            {{- end }}
+            extra-fields = [
+            {{- range $index, $extraField := $extraFieldConfig.extraFields }}
+              "{{$extraField}}"
+            {{- end }}
+            ]
+          }
+        {{- end }}
+        ]
       }
     }
 

@@ -23,6 +23,13 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.pekko.actor.ActorIdentity;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Identify;
+import org.apache.pekko.testkit.TestActorRef;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
@@ -34,19 +41,14 @@ import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.persistence.actors.ThingSupervisorActor;
+import org.eclipse.ditto.things.service.persistence.actors.enrichment.EnrichSignalWithPreDefinedExtraFields;
+import org.eclipse.ditto.things.service.persistence.actors.enrichment.EnrichSignalWithPreDefinedExtraFieldsResponse;
 import org.junit.After;
 import org.junit.Before;
 import org.mockito.Mockito;
 
 import com.typesafe.config.ConfigFactory;
 
-import org.apache.pekko.actor.ActorIdentity;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.Identify;
-import org.apache.pekko.testkit.TestActorRef;
-import org.apache.pekko.testkit.TestProbe;
-import org.apache.pekko.testkit.javadsl.TestKit;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
@@ -142,6 +144,15 @@ abstract class AbstractThingEnforcementTest {
                         SudoRetrieveThing.class);
         assertThat((CharSequence) sudoRetrieveThing.getEntityId()).isEqualTo(THING_ID);
         thingPersistenceActorProbe.reply(sudoRetrieveThingResponse);
+    }
+
+    protected void expectAndAnswerEnrichSignalWithPreDefinedExtraFields() {
+        final EnrichSignalWithPreDefinedExtraFields enrichSignalWithPreDefinedExtraFields =
+                thingPersistenceActorProbe.expectMsgClass(FiniteDuration.apply(5, TimeUnit.SECONDS),
+                        EnrichSignalWithPreDefinedExtraFields.class);
+        thingPersistenceActorProbe.reply(
+                new EnrichSignalWithPreDefinedExtraFieldsResponse(enrichSignalWithPreDefinedExtraFields.signal())
+        );
     }
 
     protected void expectAndAnswerSudoRetrieveThingWithSpecificTimeout(final Object sudoRetrieveThingResponse,

@@ -18,7 +18,6 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.supervision.WithSupervisorConfig;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.EventConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithSnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.cleanup.WithCleanupConfig;
@@ -35,7 +34,14 @@ public interface ThingConfig extends WithSupervisorConfig, WithActivityCheckConf
      *
      * @return the config.
      */
-    EventConfig getEventConfig();
+    ThingEventConfig getEventConfig();
+
+    /**
+     * Returns the config regarding thing messages.
+     *
+     * @return the config.
+     */
+    ThingMessageConfig getMessageConfig();
 
     /**
      * Get the timeout waiting for responses and acknowledgements during coordinated shutdown.

@@ -157,6 +157,7 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
                         );
                     })
                     .thenCompose(this::performWotBasedSignalValidation)
+                    .thenCompose(this::enrichWithPreDefinedExtraFields)
                     .whenComplete((authorizedSignal, throwable) -> {
                         if (null != authorizedSignal) {
                             startedSpan.mark("enforce_success").finish();
@@ -191,13 +192,24 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
     /**
      * Performs an optional WoT based validation of the already {@code authorizedSignal}.
      *
-     * @param authorizedSignal the signal to validate against a WoT model.
+     * @param signal the signal to validate against a WoT model.
      * @return a CompletionStage finished successfully with the {@code authorizedSignal} when WoT validation was
      * either not applied or passed successfully. In case of a WoT validation error, exceptionally finished with
      * a WoT validation exception.
      */
-    protected CompletionStage<S> performWotBasedSignalValidation(final S authorizedSignal) {
-        return CompletableFuture.completedStage(authorizedSignal);
+    protected CompletionStage<S> performWotBasedSignalValidation(final S signal) {
+        return CompletableFuture.completedStage(signal);
+    }
+
+    /**
+     * Enriches the passed {@code signal} with pre-defined (via configuration) extra fields as DittoHeaders of the
+     * signal.
+     *
+     * @param signal the signal to enrich
+     * @return a CompletionStage finished successfully with the enriched signal
+     */
+    protected CompletionStage<S> enrichWithPreDefinedExtraFields(final S signal) {
+        return CompletableFuture.completedStage(signal);
     }
 
     /**

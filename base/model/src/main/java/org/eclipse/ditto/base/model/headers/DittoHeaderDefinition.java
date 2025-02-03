@@ -527,6 +527,41 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
             JsonObject.class,
             false,
             true,
+            HeaderValueValidators.getJsonObjectValidator()),
+
+    /**
+     * Internal header containing the pre-defined configured {@code extraFields} as list of jsonPointers for the
+     * emitted thing event.
+     *
+     * @since 3.7.0
+     */
+    PRE_DEFINED_EXTRA_FIELDS("ditto-pre-defined-extra-fields",
+            JsonArray.class,
+            false,
+            false,
+            HeaderValueValidators.getJsonArrayValidator()),
+
+    /**
+     * Internal header containing the pre-defined configured {@code extraFields} as keys and the allowed "read subjects"
+     * as array of stings - defining which "auth subjects" are allowed to read which pre-defined extra field.
+     *
+     * @since 3.7.0
+     */
+    PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT("ditto-pre-defined-extra-fields-read-grant",
+            JsonObject.class,
+            false,
+            false,
+            HeaderValueValidators.getJsonObjectValidator()),
+
+    /**
+     * Internal header containing pre-defined {@code extraFields} as JSON object sent along for emitted thing event.
+     *
+     * @since 3.7.0
+     */
+    PRE_DEFINED_EXTRA_FIELDS_OBJECT("ditto-pre-defined-extra-fields-object",
+            JsonObject.class,
+            false,
+            false,
             HeaderValueValidators.getJsonObjectValidator());
 
     /**
