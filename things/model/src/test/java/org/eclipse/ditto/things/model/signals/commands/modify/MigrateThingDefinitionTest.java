@@ -134,19 +134,6 @@ public final class MigrateThingDefinitionTest {
         assertThat(command.isInitializeMissingPropertiesFromDefaults()).isTrue();
     }
 
-    @Test(expected = ThingIdNotExplicitlySettableException.class)
-    public void testEnsureThingIdMismatchThrowsException() {
-        final JsonObject json = JsonFactory.newObjectBuilder()
-                .set("thingId", "another-thing")
-                .set("thingDefinitionUrl", "https://models.example.com/thing-definition-1.0.0.tm.jsonld")
-                .set("migrationPayload", MIGRATION_PAYLOAD)
-                .set("patchConditions", JsonFactory.newObjectBuilder().build())
-                .set("initializeProperties", false)
-                .build();
-
-        MigrateThingDefinition.withThing(THING_ID, json, DITTO_HEADERS);
-    }
-
     @Test
     public void toJsonReturnsExpected() {
         final MigrateThingDefinition command = MigrateThingDefinition.of(

@@ -155,7 +155,7 @@ public final class ThingsRouteTest extends EndpointTestBase {
     }
 
     @Test
-    public void putThingDefinitionSuccessfully() {
+    public void postMigrateThingDefinitionSuccessfully() {
         var thingId = EndpointTestConstants.KNOWN_THING_ID;
         final var body = """
             {

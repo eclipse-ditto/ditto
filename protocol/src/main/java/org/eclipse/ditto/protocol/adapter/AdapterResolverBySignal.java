@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Contributors to the Eclipse Foundation
+ * Copyright (c) 2025 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -46,6 +46,7 @@ import org.eclipse.ditto.protocol.adapter.provider.ThingCommandAdapterProvider;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThingResponse;
+import org.eclipse.ditto.things.model.signals.commands.modify.MigrateThingDefinition;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
@@ -230,6 +231,12 @@ final class AdapterResolverBySignal {
             validateNotLive(command);
             return (Adapter<T>) thingsAdapters.getSearchCommandAdapter();
         }
+
+        if (command instanceof MigrateThingDefinition) {
+            validateNotLive(command);
+            return (Adapter<T>) thingsAdapters.getMigrateDefinitionCommandAdapter();
+        }
+
         if (command instanceof StreamingSubscriptionCommand) {
             validateNotLive(command);
             return (Adapter<T>) streamingSubscriptionCommandAdapter;

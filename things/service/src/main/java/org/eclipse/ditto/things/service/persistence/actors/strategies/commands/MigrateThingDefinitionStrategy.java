@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Contributors to the Eclipse Foundation
+ * Copyright (c) 2024 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -15,18 +15,21 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.japi.Pair;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
@@ -34,6 +37,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.policies.model.ResourceKey;
+import org.eclipse.ditto.rql.model.ParserException;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.rql.query.things.ThingPredicateVisitor;
@@ -42,30 +46,34 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandSizeValidator;
 import org.eclipse.ditto.things.model.signals.commands.ThingResourceMapper;
-import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.SkeletonGenerationFailedException;
+import org.eclipse.ditto.things.model.signals.commands.modify.MergeThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.MigrateThingDefinition;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.things.model.signals.events.ThingMerged;
 
 
 /**
  * Strategy to handle the {@link MigrateThingDefinition} command.
- *
+ * <p>
  * This strategy processes updates to a Thing's definition, applying necessary data migrations
  * and ensuring that defaults are properly initialized when required.
  *
- * Assumptions:
- * - The {@link MigrateThingDefinition} command provides a ThingDefinition URL, which is used
- *   to create a skeleton Thing. The command's payload also includes migration data and patch
- *   conditions for fine-grained updates.
- * - Patch conditions are evaluated using RQL-based expressions to determine which migration
- *   payload entries should be applied.
- * - Skeleton generation extracts and merges Thing definitions and default values separately,
- *   ensuring a clear distinction between structural updates and default settings.
- * - After applying skeleton-based modifications and migration payloads, the changes are merged
- * - Property initialization can be optionally enabled via the command, applying default values
- *   to the updated Thing when set to true.
- * - The resulting Thing undergoes validation to ensure compliance with WoT model constraints
- *   before persisting changes.
+ * <p>Assumptions:</p>
+ * <ul>
+ *   <li>The {@link MigrateThingDefinition} command provides a ThingDefinition URL, which is used
+ *       to create a skeleton Thing. The command's payload also includes migration data and patch
+ *       conditions for fine-grained updates.</li>
+ *   <li>Patch conditions are evaluated using RQL-based expressions to determine which migration
+ *       payload entries should be applied.</li>
+ *   <li>Skeleton generation extracts and merges Thing definitions and default values separately,
+ *       ensuring a clear distinction between structural updates and default settings.</li>
+ *   <li>After applying skeleton-based modifications and migration payloads, the changes are merged.</li>
+ *   <li>Property initialization can be optionally enabled via the command, applying default values
+ *       to the updated Thing when set to true.</li>
+ *   <li>The resulting Thing undergoes validation to ensure compliance with WoT model constraints
+ *       before persisting changes.</li>
+ * </ul>
  */
 @Immutable
 public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCommandStrategy<MigrateThingDefinition> {
@@ -75,8 +83,12 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
 
     private static final TimePlaceholder TIME_PLACEHOLDER = TimePlaceholder.getInstance();
 
-
-    public MigrateThingDefinitionStrategy(final ActorSystem actorSystem) {
+    /**
+     * Constructs a new {@code MigrateThingDefinitionStrategy} object.
+     *
+     * @param actorSystem the actor system to use for loading the WoT extension.
+     */
+    MigrateThingDefinitionStrategy(final ActorSystem actorSystem) {
         super(MigrateThingDefinition.class, actorSystem);
     }
 
@@ -89,13 +101,11 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
 
         final Thing existingThing = getEntityOrThrow(thing);
         final Instant eventTs = getEventTimestamp();
-
-        return handleUpdateDefinition(context, existingThing, eventTs, nextRevision, command, metadata)
-                .toCompletableFuture()
-                .join();
+        return handleMigrateDefinition(context, existingThing, eventTs, nextRevision, command, metadata);
     }
 
-    private CompletionStage<Result<ThingEvent<?>>> handleUpdateDefinition(final Context<ThingId> context,
+    private Result<ThingEvent<?>> handleMigrateDefinition(
+            final Context<ThingId> context,
             final Thing existingThing,
             final Instant eventTs,
             final long nextRevision,
@@ -103,6 +113,7 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
             @Nullable final Metadata metadata) {
 
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
+        final JsonPointer path = JsonPointer.empty();
 
         // 1. Evaluate Patch Conditions and modify the migrationPayload
         final JsonObject adjustedMigrationPayload = evaluatePatchConditions(
@@ -111,38 +122,28 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
                 command.getPatchConditions(),
                 dittoHeaders);
 
-        // 2. Generate Skeleton using definition
-        final CompletionStage<Thing> skeletonStage = generateSkeleton(context, command, dittoHeaders);
+        // 2. Generate Skeleton using definition and apply migration
+        final CompletionStage<Thing> updatedThingStage = generateSkeleton(command, dittoHeaders)
+                .thenApply(skeleton -> mergeSkeletonWithThing(
+                        existingThing, skeleton, command.getThingDefinitionUrl(),
+                        command.isInitializeMissingPropertiesFromDefaults()))
+                .thenApply(mergedThing -> applyMigrationPayload(context,
+                        mergedThing, adjustedMigrationPayload, dittoHeaders, nextRevision, eventTs));
 
-        // 3. Merge Skeleton with Existing Thing and Apply Migration Payload
-        final CompletionStage<Thing> updatedThingStage = skeletonStage.thenApply(skeleton -> {
-            final Thing mergedThing = mergeSkeletonWithThing(existingThing, skeleton, command.getThingDefinitionUrl(), command.isInitializeMissingPropertiesFromDefaults());
-            return applyMigrationPayload(mergedThing, adjustedMigrationPayload, dittoHeaders, nextRevision, eventTs);
-        });
+        // 3. Validate and build event response
+        final CompletionStage<Pair<Thing, MigrateThingDefinition>> validatedStage = updatedThingStage
+                .thenCompose(mergedThing -> buildValidatedStage(command, existingThing, mergedThing)
+                        .thenApply(migrateThingDefinition -> new Pair<>(mergedThing, migrateThingDefinition)));
 
-        // 4. Validate and Build Result
-        return updatedThingStage.thenCompose(updatedThing ->
-                buildValidatedStage(command, existingThing, updatedThing)
-                        .thenCompose(validatedCommand -> {
-                            final MergeThing mergeThingCommand = MergeThing.of(
-                                    command.getEntityId(),
-                                    JsonPointer.empty(),
-                                    updatedThing.toJson(),
-                                    dittoHeaders
-                            );
+        final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(pair -> ThingMerged.of(
+                pair.second().getEntityId(), path, pair.first().toJson(), nextRevision, eventTs, dittoHeaders,
+                metadata));
 
-                            final MergeThingStrategy mergeStrategy = new MergeThingStrategy(context.getActorSystem());
-                            final Result<ThingEvent<?>> mergeResult = mergeStrategy.doApply(
-                                    context,
-                                    existingThing,
-                                    nextRevision,
-                                    mergeThingCommand,
-                                    metadata
-                            );
+        final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(pair ->
+                appendETagHeaderIfProvided(command, MergeThingResponse.of(command.getEntityId(), path, dittoHeaders),
+                        pair.first()));
 
-                            return CompletableFuture.completedFuture(mergeResult);
-                        })
-        );
+        return ResultFactory.newMutationResult(command, eventStage, responseStage);
     }
 
     private JsonObject evaluatePatchConditions(final Thing existingThing,
@@ -151,7 +152,7 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
             final DittoHeaders dittoHeaders) {
         final JsonObjectBuilder adjustedPayloadBuilder = migrationPayload.toBuilder();
 
-        for (Map.Entry<ResourceKey, String> entry : patchConditions.entrySet()) {
+        for (final Map.Entry<ResourceKey, String> entry : patchConditions.entrySet()) {
             final ResourceKey resourceKey = entry.getKey();
             final String conditionExpression = entry.getValue();
 
@@ -165,9 +166,12 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
 
         return adjustedPayloadBuilder.build();
     }
-    public boolean doesMigrationPayloadContainResourceKey(JsonObject migrationPayload, JsonPointer pointer) {
+
+    private static boolean doesMigrationPayloadContainResourceKey(final JsonObject migrationPayload,
+            final JsonPointer pointer) {
         return migrationPayload.getValue(pointer).isPresent();
     }
+
     private boolean evaluateCondition(final Thing existingThing,
             final String conditionExpression,
             final DittoHeaders dittoHeaders) {
@@ -180,12 +184,16 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
                     PlaceholderFactory.newPlaceholderResolver(TIME_PLACEHOLDER, new Object()));
 
             return predicate.test(existingThing);
-        } catch (Exception e) {
-            return false;
+        } catch (final ParserException | IllegalArgumentException e) {
+            throw InvalidRqlExpressionException.newBuilder()
+                    .message(e.getMessage())
+                    .cause(e)
+                    .dittoHeaders(dittoHeaders)
+                    .build();
         }
     }
 
-    private CompletionStage<Thing> generateSkeleton(final Context<ThingId> context,
+    private CompletionStage<Thing> generateSkeleton(
             final MigrateThingDefinition command,
             final DittoHeaders dittoHeaders) {
         return wotThingSkeletonGenerator.provideThingSkeletonForCreation(
@@ -193,25 +201,29 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
                         ThingsModelFactory.newDefinition(command.getThingDefinitionUrl()),
                         dittoHeaders
                 )
-                .thenApply(optionalSkeleton -> optionalSkeleton.orElseThrow());
+                .thenApply(optionalSkeleton -> optionalSkeleton.orElseThrow(() ->
+                        SkeletonGenerationFailedException.newBuilder(command.getEntityId())
+                                .dittoHeaders(command.getDittoHeaders())
+                                .build()
+                ));
     }
 
 
     private Thing extractDefinitions(final Thing thing, final String thingDefinitionUrl) {
         var thingBuilder = ThingsModelFactory.newThingBuilder();
         thingBuilder.setDefinition(ThingsModelFactory.newDefinition(thingDefinitionUrl));
-        thing.getFeatures().orElseGet(null).forEach(feature-> {
+        thing.getFeatures().orElseGet(ThingsModelFactory::emptyFeatures).forEach(feature -> {
             thingBuilder.setFeature(feature.getId(), feature.getDefinition().get(), null);
         });
         return thingBuilder.build();
     }
 
 
-    private Thing extractDefaultValues(Thing thing) {
+    private Thing extractDefaultValues(final Thing thing) {
         var thingBuilder = ThingsModelFactory.newThingBuilder();
-        thingBuilder.setAttributes(thing.getAttributes().get());
-        thing.getFeatures().orElseGet(null).forEach(feature-> {
-            thingBuilder.setFeature(feature.getId(), feature.getProperties().get());
+        thingBuilder.setAttributes(thing.getAttributes().orElse(ThingsModelFactory.emptyAttributes()));
+        thing.getFeatures().orElseGet(ThingsModelFactory::emptyFeatures).forEach(feature -> {
+            thingBuilder.setFeature(feature.getId(), feature.getDefinition().orElse(null), null);
         });
         return thingBuilder.build();
     }
@@ -221,10 +233,10 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
             final String thingDefinitionUrl, final boolean isInitializeProperties) {
 
         // Extract definitions and convert to JSON
-        var fullThingDefinitions = extractDefinitions(skeletonThing, thingDefinitionUrl).toJson();
+        final var fullThingDefinitions = extractDefinitions(skeletonThing, thingDefinitionUrl).toJson();
 
         // Merge the extracted definitions with the existing thing JSON
-        var mergedThingJson = JsonFactory.mergeJsonValues(fullThingDefinitions, existingThing.toJson()).asObject();
+        final var mergedThingJson = JsonFactory.mergeJsonValues(fullThingDefinitions, existingThing.toJson()).asObject();
 
         // If not initializing properties, return the merged result
         if (!isInitializeProperties) {
@@ -236,16 +248,15 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
                 mergedThingJson, extractDefaultValues(skeletonThing).toJson()).asObject());
     }
 
-    private Thing applyMigrationPayload(final Thing thing,
+    private Thing applyMigrationPayload(final Context<ThingId> context, final Thing thing,
             final JsonObject migrationPayload,
             final DittoHeaders dittoHeaders,
             final long nextRevision,
             final Instant eventTs) {
         final JsonObject thingJson = thing.toJson(FieldType.all());
+        final JsonObject mergedJson = JsonFactory.newObject(migrationPayload, thingJson);
 
-        final JsonObject mergePatch = JsonFactory.newObject(JsonPointer.empty(), migrationPayload);
-        final JsonObject mergedJson = JsonFactory.mergeJsonValues(mergePatch, thingJson).asObject();
-
+        context.getLog().debug("Thing updated from migrated JSON: {}", mergedJson);
         ThingCommandSizeValidator.getInstance().ensureValidSize(
                 mergedJson::getUpperBoundForStringSize,
                 () -> mergedJson.toString().length(),
@@ -258,7 +269,8 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
     }
 
     @Override
-    public Optional<EntityTag> previousEntityTag(final MigrateThingDefinition command, @Nullable final Thing previousEntity) {
+    public Optional<EntityTag> previousEntityTag(final MigrateThingDefinition command,
+            @Nullable final Thing previousEntity) {
         return ENTITY_TAG_MAPPER.map(JsonPointer.empty(), previousEntity);
     }
 
@@ -269,7 +281,7 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
 
     @Override
     protected CompletionStage<MigrateThingDefinition> performWotValidation(final MigrateThingDefinition command,
-                                                                           @Nullable final Thing previousThing, @Nullable final Thing previewThing) {
+            @Nullable final Thing previousThing, @Nullable final Thing previewThing) {
         return wotThingModelValidator.validateThing(
                 Optional.ofNullable(previewThing).orElseThrow(),
                 command.getResourcePath(),

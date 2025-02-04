@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Contributors to the Eclipse Foundation
+ * Copyright (c) 2024 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -594,7 +594,7 @@ public final class ThingsRoute extends AbstractRoute {
                                                     final JsonObject updatedJson = addThingId(inputJson, thingId);
 
                                                     final MigrateThingDefinition migrateThingDefinitionCommand =
-                                                            MigrateThingDefinition.withThing(thingId, updatedJson, dittoHeaders);
+                                                            MigrateThingDefinition.fromJson(updatedJson, dittoHeaders);
                                                     return migrateThingDefinitionCommand;
                                                 })
                                 )

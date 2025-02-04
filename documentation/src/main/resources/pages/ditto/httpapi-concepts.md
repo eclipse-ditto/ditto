@@ -106,7 +106,7 @@ The following additional API endpoints are automatically available:
 * `/things/{thingId}/features/lamp/properties/color`: accessing the `color` properties of the feature `lamp` of the
   specific thing
 
-#### `/things` in API 2 - update-definition
+#### `/things` in API 2 - migrateDefinition
 Migrate Thing Definitions
 The endpoint `/things/{thingId}/migrateDefinition`allows migrating the thing definition with a new model, as well as optionally migrating attributes and features.
 

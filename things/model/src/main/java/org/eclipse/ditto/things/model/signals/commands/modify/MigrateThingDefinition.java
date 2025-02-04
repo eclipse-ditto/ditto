@@ -41,7 +41,6 @@ import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandSizeValidator;
-import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingIdNotExplicitlySettableException;
 
 /**
  * Command to update a Thing's definition and apply a migration payload.
@@ -84,13 +83,13 @@ public final class MigrateThingDefinition extends AbstractCommand<MigrateThingDe
     }
 
     /**
-     * Factory method to create a new {@code UpdateThingDefinition} command.
+     * Factory method to create a new {@code MigrateThingDefinition} command.
      *
      * @param thingId the Thing ID.
      * @param thingDefinitionUrl the URL of the new Thing definition.
      * @param migrationPayload the migration payload.
      * @param patchConditions the patch conditions.
-     * @param initializeProperties whether to initialize properties.
+     * @param initializeMissingPropertiesFromDefaults whether to initialize properties.
      * @param dittoHeaders the Ditto headers.
      * @return the created {@link MigrateThingDefinition} command.
      */
@@ -98,24 +97,24 @@ public final class MigrateThingDefinition extends AbstractCommand<MigrateThingDe
             final String thingDefinitionUrl,
             final JsonObject migrationPayload,
             final Map<ResourceKey, String> patchConditions,
-            final Boolean initializeProperties,
+            final Boolean initializeMissingPropertiesFromDefaults,
             final DittoHeaders dittoHeaders) {
         return new MigrateThingDefinition(thingId, thingDefinitionUrl, migrationPayload,
-                patchConditions, initializeProperties, dittoHeaders);
+                patchConditions, initializeMissingPropertiesFromDefaults, dittoHeaders);
     }
 
     /**
-     * Creates a new {@code UpdateThingDefinition} from a JSON object.
+     * Creates a new {@code MigrateThingDefinition} from a JSON object.
      *
      * @param jsonObject the JSON object from which to create the command.
      * @param dittoHeaders the Ditto headers.
-     * @return the created {@code UpdateThingDefinition} command.
+     * @return the created {@code MigrateThingDefinition} command.
      */
     public static MigrateThingDefinition fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         final String thingIdStr = jsonObject.getValueOrThrow(ThingCommand.JsonFields.JSON_THING_ID);
         final String thingDefinitionUrl = jsonObject.getValueOrThrow(JsonFields.JSON_THING_DEFINITION_URL);
-        final JsonObject migrationPayload = jsonObject.getValueOrThrow(JsonFields.JSON_MIGRATION_PAYLOAD).asObject();
-
+        final JsonObject migrationPayload = jsonObject.getValue(JsonFields.JSON_MIGRATION_PAYLOAD)
+                .map(JsonValue::asObject).orElse(JsonFactory.newObject());
         final JsonObject patchConditionsJson = jsonObject.getValue(JsonFields.JSON_PATCH_CONDITIONS)
                 .map(JsonValue::asObject).orElse(JsonFactory.newObject());
         final Map<ResourceKey, String> patchConditions = patchConditionsJson.stream()
@@ -124,7 +123,7 @@ public final class MigrateThingDefinition extends AbstractCommand<MigrateThingDe
                         field -> field.getValue().asString()
                 ));
 
-        final Boolean initializeProperties = jsonObject.getValue(JsonFields.JSON_INITIALIZE_MISSING_PROPERTIES_FROM_DEFAULTS)
+        final Boolean initializeMissingPropertiesFromDefaults = jsonObject.getValue(JsonFields.JSON_INITIALIZE_MISSING_PROPERTIES_FROM_DEFAULTS)
                 .orElse(Boolean.FALSE);
 
         return new MigrateThingDefinition(
@@ -132,20 +131,8 @@ public final class MigrateThingDefinition extends AbstractCommand<MigrateThingDe
                 thingDefinitionUrl,
                 migrationPayload,
                 patchConditions,
-                initializeProperties,
+                initializeMissingPropertiesFromDefaults,
                 dittoHeaders);
-    }
-
-    /**
-     * Creates a command for updating the definition
-     *
-     * @param thingId the thing id.
-     * @param dittoHeaders the ditto headers.
-     * @return the created {@link MigrateThingDefinition} command.
-     */
-    public static MigrateThingDefinition withThing(final ThingId thingId, final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        ensureThingIdMatches(thingId, jsonObject);
-        return fromJson(jsonObject, dittoHeaders);
     }
 
     @Override
@@ -223,19 +210,6 @@ public final class MigrateThingDefinition extends AbstractCommand<MigrateThingDe
         }
     }
 
-
-    /**
-     * Ensures that the thingId is consistent with the id of the thing.
-     *
-     * @throws org.eclipse.ditto.things.model.signals.commands.exceptions.ThingIdNotExplicitlySettableException if ids do not match.
-     */
-    private static void ensureThingIdMatches(final ThingId thingId, final JsonObject jsonObject) {
-        if (!jsonObject.getValueOrThrow(ThingCommand.JsonFields.JSON_THING_ID).equals(thingId.toString())) {
-            throw ThingIdNotExplicitlySettableException.forDittoProtocol().build();
-        }
-    }
-
-
     @Override
     public JsonSchemaVersion[] getSupportedSchemaVersions() {
         return new JsonSchemaVersion[]{JsonSchemaVersion.V_2};
@@ -257,21 +231,21 @@ public final class MigrateThingDefinition extends AbstractCommand<MigrateThingDe
     }
 
     /**
-     * An enumeration of the JSON fields of an {@code UpdateThingDefinition} command.
+     * An enumeration of the JSON fields of an {@code MigrateThingDefinition} command.
      */
     @Immutable
-    static final class JsonFields {
+    public static final class JsonFields {
 
-        static final JsonFieldDefinition<String> JSON_THING_DEFINITION_URL =
+        public static final JsonFieldDefinition<String> JSON_THING_DEFINITION_URL =
                 JsonFactory.newStringFieldDefinition("thingDefinitionUrl", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-        static final JsonFieldDefinition<JsonObject> JSON_MIGRATION_PAYLOAD =
+        public static final JsonFieldDefinition<JsonObject> JSON_MIGRATION_PAYLOAD =
                 JsonFactory.newJsonObjectFieldDefinition("migrationPayload", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-        static final JsonFieldDefinition<JsonObject> JSON_PATCH_CONDITIONS =
+        public static final JsonFieldDefinition<JsonObject> JSON_PATCH_CONDITIONS =
                 JsonFactory.newJsonObjectFieldDefinition("patchConditions", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-        static final JsonFieldDefinition<Boolean> JSON_INITIALIZE_MISSING_PROPERTIES_FROM_DEFAULTS =
+        public static final JsonFieldDefinition<Boolean> JSON_INITIALIZE_MISSING_PROPERTIES_FROM_DEFAULTS =
                 JsonFactory.newBooleanFieldDefinition("initializeMissingPropertiesFromDefaults", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         private JsonFields() {
@@ -300,7 +274,7 @@ public final class MigrateThingDefinition extends AbstractCommand<MigrateThingDe
 
     @Override
     public String toString() {
-        return "UpdateThingDefinition{" +
+        return "MigrateThingDefinition{" +
                 "thingId=" + thingId +
                 ", thingDefinitionUrl='" + thingDefinitionUrl + '\'' +
                 ", migrationPayload=" + migrationPayload +

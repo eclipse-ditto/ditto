@@ -103,6 +103,10 @@ public final class SignalMapperFactory {
         return new ThingSearchSignalMapper<>();
     }
 
+    public static ThingMigrateSignalMapper newThingMigrateSignalMapper() {
+        return new ThingMigrateSignalMapper();
+    }
+
     public static SignalMapper<PolicyModifyCommand<?>> newPolicyModifySignalMapper() {
         return new PolicyModifySignalMapper();
     }
