@@ -414,7 +414,9 @@ public interface TopicPath {
 
         MERGED("merged"),
 
-        DELETED("deleted");
+        DELETED("deleted"),
+
+        MIGRATE("migrate");
 
         private final String name;
 

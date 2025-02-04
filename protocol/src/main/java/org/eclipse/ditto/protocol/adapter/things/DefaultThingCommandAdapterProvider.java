@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2025 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -25,6 +25,7 @@ import org.eclipse.ditto.protocol.adapter.provider.ThingCommandAdapterProvider;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThingResponse;
+import org.eclipse.ditto.things.model.signals.commands.modify.MigrateThingDefinition;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
@@ -49,6 +50,7 @@ public class DefaultThingCommandAdapterProvider implements ThingCommandAdapterPr
     private final ThingQueryCommandResponseAdapter queryCommandResponseAdapter;
     private final ThingModifyCommandResponseAdapter modifyCommandResponseAdapter;
     private final ThingMergeCommandResponseAdapter mergeCommandResponseAdapter;
+    private final ThingMigrateCommandAdapter migrateCommandAdapter;
     private final ThingSearchCommandAdapter searchCommandAdapter;
     private final MessageCommandAdapter messageCommandAdapter;
     private final MessageCommandResponseAdapter messageCommandResponseAdapter;
@@ -70,6 +72,7 @@ public class DefaultThingCommandAdapterProvider implements ThingCommandAdapterPr
         this.queryCommandResponseAdapter = ThingQueryCommandResponseAdapter.of(headerTranslator);
         this.modifyCommandResponseAdapter = ThingModifyCommandResponseAdapter.of(headerTranslator);
         this.mergeCommandResponseAdapter = ThingMergeCommandResponseAdapter.of(headerTranslator);
+        this.migrateCommandAdapter = ThingMigrateCommandAdapter.of(headerTranslator);
         this.searchCommandAdapter = ThingSearchCommandAdapter.of(headerTranslator);
         this.messageCommandAdapter = MessageCommandAdapter.of(headerTranslator);
         this.messageCommandResponseAdapter = MessageCommandResponseAdapter.of(headerTranslator);
@@ -91,6 +94,7 @@ public class DefaultThingCommandAdapterProvider implements ThingCommandAdapterPr
                 queryCommandResponseAdapter,
                 modifyCommandResponseAdapter,
                 mergeCommandResponseAdapter,
+                migrateCommandAdapter,
                 messageCommandAdapter,
                 messageCommandResponseAdapter,
                 thingEventAdapter,
@@ -130,6 +134,11 @@ public class DefaultThingCommandAdapterProvider implements ThingCommandAdapterPr
     @Override
     public Adapter<MergeThing> getMergeCommandAdapter() {
         return mergeCommandAdapter;
+    }
+
+    @Override
+    public Adapter<MigrateThingDefinition> getMigrateDefinitionCommandAdapter() {
+        return migrateCommandAdapter;
     }
 
     @Override

@@ -987,6 +987,92 @@ paths:
             * a string: `"value"` - Currently the definition should follow the pattern: [_a-zA-Z0-9\-]:[_a-zA-Z0-9\-]:[_a-zA-Z0-9\-]
             * an empty string: `""`
             * `null`: the definition will be deleted
+    /api/2/things/{thingId}/migrateDefinition:
+      put:
+        summary: Migrate Thing Definition
+        description: |-
+          Migrate the definition of a Thing with the given `thingId`. The update includes a new definition URL and optional migration payload.
+
+          The operation will merge the provided data into the existing thing. If `initializeProperties` is set to `true`, missing properties will be initialized.
+
+          **Example usage:**
+          ```json
+          {
+            "thingDefinitionUrl": "https://models.example.com/thing-definition-1.0.0.tm.jsonld",
+            "migrationPayload": {
+              "attributes": {
+                "manufacturer": "New Corp",
+                "location": "Berlin, main floor"
+              },
+              "features": {
+                "thermostat": {
+                  "properties": {
+                    "status": {
+                      "temperature": {
+                        "value": 23.5,
+                        "unit": "DEGREE_CELSIUS"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "patchConditions": {
+              "thing:/features/thermostat": "not(exists(/features/thermostat))"
+            },
+            "initializeMissingPropertiesFromDefaults": true
+          }
+          ```
+        tags:
+          - Things
+        parameters:
+          - name: thingId
+            in: path
+            required: true
+            description: The unique identifier of the Thing to update.
+            schema:
+              type: string
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MigrateThingDefinitionRequest'
+        responses:
+          '204':
+            description: The thing definition was successfully updated.
+          '400':
+            description: |-
+              The request could not be completed. Possible reasons:
+                * Invalid JSON request body.
+                * Missing or incorrect values in the request.
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/AdvancedError'
+          '401':
+            description: The request could not be completed due to missing authentication.
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/AdvancedError'
+          '403':
+            description: The caller does not have permission to update the thing definition.
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/AdvancedError'
+          '404':
+            description: The thing with the specified ID was not found.
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/AdvancedError'
+          '412':
+            $ref: '#/components/responses/PreconditionFailed'
+          '424':
+            $ref: '#/components/responses/DependencyFailed'
+
     delete:
       summary: Delete the definition of a specific thing
       description: Deletes the definition of the thing identified by the `thingId`.
@@ -9273,6 +9359,57 @@ components:
       required:
         - thingId
         - policyId
+    MigrateThingDefinitionRequest:
+      type: object
+      description: JSON payload to update the definition of a Thing.
+      properties:
+        thingDefinitionUrl:
+          type: string
+          format: uri
+          description: "The URL of the new Thing definition to be applied."
+          example: "https://models.example.com/thing-definition-1.0.0.tm.jsonld"
+        migrationPayload:
+          type: object
+          description: "Optional migration payload with updates to attributes and features."
+          properties:
+            attributes:
+              type: object
+              additionalProperties: true
+              description: "Attributes to be updated in the thing."
+              example:
+                manufacturer: "New Corp"
+                location: "Berlin, main floor"
+            features:
+              type: object
+              additionalProperties:
+                type: object
+                properties:
+                  properties:
+                    type: object
+                    additionalProperties: true
+              description: "Features to be updated in the thing."
+              example:
+                thermostat:
+                  properties:
+                    status:
+                      temperature:
+                        value: 23.5
+                        unit: "DEGREE_CELSIUS"
+        patchConditions:
+          type: object
+          description: "Optional conditions to apply the migration only if the existing thing matches the specified values."
+          additionalProperties:
+            type: string
+          example:
+            thing:/features/thermostat: "not(exists(/features/thermostat))"
+        initializeMissingPropertiesFromDefaults:
+          type: boolean
+          description: "Flag indicating whether missing properties should be initialized with default values."
+          example: true
+      required:
+        - thingId
+        - thingDefinitionUrl
+        - migrationPayload
     NewPolicy:
       type: object
       description: Policy consisting of policy entries

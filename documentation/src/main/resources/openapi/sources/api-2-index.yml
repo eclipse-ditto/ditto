@@ -60,6 +60,8 @@ paths:
     $ref: "./paths/things/index.yml"
   '/api/2/things/{thingId}':
     $ref: "./paths/things/thing.yml"
+  '/api/2/things/{thingId}/migrateDefinition':
+    $ref: "./paths/things/migrateDefinition.yml"
   '/api/2/things/{thingId}/definition':
     $ref: "./paths/things/definition.yml"
   '/api/2/things/{thingId}/policyId':

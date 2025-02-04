@@ -394,6 +394,12 @@ final class ImmutableTopicPath implements TopicPath {
         }
 
         @Override
+        public CommandsTopicPathBuilder migrate() {
+            action = Action.MIGRATE;
+            return this;
+        }
+
+        @Override
         public TopicPathBuildable subscribe() {
             searchAction = SearchAction.SUBSCRIBE;
             return this;
