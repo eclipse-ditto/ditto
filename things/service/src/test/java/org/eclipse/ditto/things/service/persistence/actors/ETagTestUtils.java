@@ -14,6 +14,7 @@ package org.eclipse.ditto.things.service.persistence.actors;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.entity.Revision;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -58,6 +59,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeaturesRes
 import org.eclipse.ditto.things.model.signals.commands.query.RetrievePolicyIdResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingDefinitionResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
+import org.eclipse.ditto.things.model.signals.commands.modify.MigrateThingDefinitionResponse;
 
 /**
  * Provides methods to get command responses that include the correct eTag header value.
@@ -361,6 +363,19 @@ public final class ETagTestUtils {
         return RetrieveThingDefinitionResponse.of(thingId, expectedThingDefinition, dittoHeadersWithETag);
     }
 
+    public static MigrateThingDefinitionResponse migrateThingDefinitionResponse(final ThingId thingId,
+             final JsonObject patch, final Thing mergeThing, final DittoHeaders dittoHeaders) {
+
+        final DittoHeaders dittoHeadersWithETag = appendEntityIdAndETagToDittoHeaders(thingId, mergeThing, dittoHeaders);
+
+        return MigrateThingDefinitionResponse.newInstance(
+                thingId,
+                patch,
+                MigrateThingDefinitionResponse.MergeStatus.APPLIED,
+                HttpStatus.OK,
+                dittoHeadersWithETag
+        );
+    }
 
     protected static DittoHeaders appendEntityIdAndETagToDittoHeaders(final ThingId thingId,
             final Object object,

@@ -55,6 +55,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingMerged;
+import org.eclipse.ditto.things.model.signals.events.ThingMigrated;
 import org.eclipse.ditto.thingsearch.model.signals.commands.SearchErrorResponse;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
@@ -115,6 +116,10 @@ final class AdapterResolverBySignal {
         if (event instanceof ThingMerged) {
             validateChannel(channel, event, LIVE, TWIN);
             return (Adapter<T>) thingsAdapters.getMergedEventAdapter();
+        }
+        if (event instanceof ThingMigrated) {
+            validateChannel(channel, event, LIVE, TWIN);
+            return (Adapter<T>) thingsAdapters.getMigratedEventAdapter();
         }
         if (event instanceof ThingEvent) {
             validateChannel(channel, event, LIVE, TWIN);

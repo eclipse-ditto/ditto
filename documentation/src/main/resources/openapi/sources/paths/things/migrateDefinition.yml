@@ -19,6 +19,8 @@ post:
     - Patch conditions to ensure consistent updates.
     - Whether properties should be initialized if missing.
 
+    If the `dry-run` query parameter is set to `true`, the request will return the calculated migration result without applying any changes.
+
     ### Example:
     ```json
     {
@@ -50,6 +52,13 @@ post:
     - Things
   parameters:
     - $ref: '../../parameters/thingIdPathParam.yml'
+    - name: dry-run
+      in: query
+      description: If set to `true`, performs a dry-run and returns the migration result without applying changes.
+      required: false
+      schema:
+        type: boolean
+        default: false
   requestBody:
     description: JSON payload containing the new definition URL, migration payload, patch conditions, and initialization flag.
     required: true
@@ -58,8 +67,18 @@ post:
         schema:
           $ref: '../../schemas/things/migrateThingDefinitionRequest.yml'
   responses:
-    '204':
-      description: The thing definition was successfully updated. No content is returned.
+    '200':
+      description: The thing definition was successfully updated, and the updated Thing is returned.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/things/migrateThingDefinitionResponse.yml'
+    '202':
+      description: Dry-run successful. The migration result is returned without applying changes.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/things/migrateThingDefinitionResponse.yml'
     '400':
       description: The request could not be processed due to invalid input.
       content:

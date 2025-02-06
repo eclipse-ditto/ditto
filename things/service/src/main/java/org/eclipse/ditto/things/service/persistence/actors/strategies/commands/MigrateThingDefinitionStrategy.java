@@ -31,9 +31,12 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.policies.model.ResourceKey;
@@ -47,10 +50,10 @@ import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandSizeValidator;
 import org.eclipse.ditto.things.model.signals.commands.ThingResourceMapper;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.SkeletonGenerationFailedException;
-import org.eclipse.ditto.things.model.signals.commands.modify.MergeThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.MigrateThingDefinition;
+import org.eclipse.ditto.things.model.signals.commands.modify.MigrateThingDefinitionResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
-import org.eclipse.ditto.things.model.signals.events.ThingMerged;
+import org.eclipse.ditto.things.model.signals.events.ThingMigrated;
 
 
 /**
@@ -113,6 +116,7 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
             @Nullable final Metadata metadata) {
 
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
+        final boolean isDryRun = dittoHeaders.isDryRun();
         final JsonPointer path = JsonPointer.empty();
 
         // 1. Evaluate Patch Conditions and modify the migrationPayload
@@ -124,8 +128,8 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
 
         // 2. Generate Skeleton using definition and apply migration
         final CompletionStage<Thing> updatedThingStage = generateSkeleton(command, dittoHeaders)
-                .thenApply(skeleton -> mergeSkeletonWithThing(
-                        existingThing, skeleton, command.getThingDefinitionUrl(),
+                .thenApply(skeleton -> resolveSkeletonConflicts(
+                        existingThing, skeleton,
                         command.isInitializeMissingPropertiesFromDefaults()))
                 .thenApply(mergedThing -> applyMigrationPayload(context,
                         mergedThing, adjustedMigrationPayload, dittoHeaders, nextRevision, eventTs));
@@ -135,12 +139,26 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
                 .thenCompose(mergedThing -> buildValidatedStage(command, existingThing, mergedThing)
                         .thenApply(migrateThingDefinition -> new Pair<>(mergedThing, migrateThingDefinition)));
 
-        final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(pair -> ThingMerged.of(
+        // If Dry Run, return a simulated response without applying changes
+        if (isDryRun) {
+            return ResultFactory.newQueryResult(
+                    command,
+                    validatedStage.thenApply(pair ->
+                            MigrateThingDefinitionResponse.dryRun(
+                                    existingThing.getEntityId().get(),
+                                    pair.first().toJson(),
+                                    dittoHeaders))
+            );
+        }
+
+        // 4. Apply migration and generate event
+        final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(pair -> ThingMigrated.of(
                 pair.second().getEntityId(), path, pair.first().toJson(), nextRevision, eventTs, dittoHeaders,
                 metadata));
 
         final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(pair ->
-                appendETagHeaderIfProvided(command, MergeThingResponse.of(command.getEntityId(), path, dittoHeaders),
+                appendETagHeaderIfProvided(command, MigrateThingDefinitionResponse.applied(existingThing.getEntityId().get(),
+                                pair.first().toJson(), dittoHeaders),
                         pair.first()));
 
         return ResultFactory.newMutationResult(command, eventStage, responseStage);
@@ -201,52 +219,109 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
                         ThingsModelFactory.newDefinition(command.getThingDefinitionUrl()),
                         dittoHeaders
                 )
-                .thenApply(optionalSkeleton -> optionalSkeleton.orElseThrow(() ->
-                        SkeletonGenerationFailedException.newBuilder(command.getEntityId())
-                                .dittoHeaders(command.getDittoHeaders())
-                                .build()
-                ));
+                .thenApply(optionalSkeleton -> {
+                    Thing skeleton = optionalSkeleton.orElseThrow(() ->
+                            SkeletonGenerationFailedException.newBuilder(command.getEntityId())
+                                    .dittoHeaders(command.getDittoHeaders())
+                                    .build()
+                    );
+
+                    return skeleton.toBuilder()
+                            .setDefinition(ThingsModelFactory.newDefinition(command.getThingDefinitionUrl()))
+                            .build();
+                });
     }
 
 
-    private Thing extractDefinitions(final Thing thing, final String thingDefinitionUrl) {
+
+    private Thing extractDefinitions(final Thing thing) {
         var thingBuilder = ThingsModelFactory.newThingBuilder();
-        thingBuilder.setDefinition(ThingsModelFactory.newDefinition(thingDefinitionUrl));
-        thing.getFeatures().orElseGet(ThingsModelFactory::emptyFeatures).forEach(feature -> {
-            thingBuilder.setFeature(feature.getId(), feature.getDefinition().get(), null);
-        });
+        thing.getFeatures().orElseGet(ThingsModelFactory::emptyFeatures).forEach(feature ->
+                thingBuilder.setFeature(feature.getId(), feature.getDefinition().get(), null));
         return thingBuilder.build();
     }
 
 
-    private Thing extractDefaultValues(final Thing thing) {
-        var thingBuilder = ThingsModelFactory.newThingBuilder();
-        thingBuilder.setAttributes(thing.getAttributes().orElse(ThingsModelFactory.emptyAttributes()));
-        thing.getFeatures().orElseGet(ThingsModelFactory::emptyFeatures).forEach(feature -> {
-            thingBuilder.setFeature(feature.getId(), feature.getDefinition().orElse(null), null);
-        });
-        return thingBuilder.build();
-    }
+    /**
+     * Resolves conflicts between a skeleton Thing and an existing Thing while optionally initializing properties.
+     * If initialization is disabled, only definitions from the skeleton are extracted. Otherwise, conflicting
+     * fields are removed, and a new Thing is created with the refined values.
+     *
+     * @param existingThing        The existing Thing to compare against.
+     * @param skeletonThing        The skeleton Thing containing default values.
+     * @param isInitializeProperties A flag indicating whether properties should be initialized.
+     * @return A new Thing with conflicts resolved and properties optionally initialized.
+     */
+    private Thing resolveSkeletonConflicts(final Thing existingThing, final Thing skeletonThing,
+            final boolean isInitializeProperties) {
 
-
-    private Thing mergeSkeletonWithThing(final Thing existingThing, final Thing skeletonThing,
-            final String thingDefinitionUrl, final boolean isInitializeProperties) {
-
-        // Extract definitions and convert to JSON
-        final var fullThingDefinitions = extractDefinitions(skeletonThing, thingDefinitionUrl).toJson();
-
-        // Merge the extracted definitions with the existing thing JSON
-        final var mergedThingJson = JsonFactory.mergeJsonValues(fullThingDefinitions, existingThing.toJson()).asObject();
-
-        // If not initializing properties, return the merged result
         if (!isInitializeProperties) {
-            return ThingsModelFactory.newThing(mergedThingJson);
+            return extractDefinitions(skeletonThing);
         }
 
-        // Extract default values and merge them in
-        return ThingsModelFactory.newThing(JsonFactory.mergeJsonValues(
-                mergedThingJson, extractDefaultValues(skeletonThing).toJson()).asObject());
+        final var refinedDefaults = removeConflicts(skeletonThing.toJson(), existingThing.toJson().asObject());
+
+        return ThingsModelFactory.newThing(refinedDefaults);
     }
+
+
+    /**
+     * Removes conflicting fields from the default values by recursively comparing them with existing values.
+     * Fields containing "definition" are always retained. If a field exists in both JSON objects and is a nested
+     * object, the function will recursively filter out conflicting values. If a field does not exist in the
+     * existing values, it is retained from the default values.
+     *
+     * @param defaultValues  The JsonObject containing the default values.
+     * @param existingValues The JsonObject containing the existing values to compare against.
+     * @return A new JsonObject with conflicts removed, preserving necessary fields.
+     */
+    public static JsonObject removeConflicts(final JsonObject defaultValues, final JsonObject existingValues) {
+        final JsonObjectBuilder builder = JsonFactory.newObjectBuilder();
+
+        if (defaultValues.isNull() && existingValues.isNull()) {
+            return JsonFactory.nullObject();
+        }
+
+        for (JsonField field : defaultValues) {
+            final JsonKey key = field.getKey();
+            final JsonValue defaultValue = field.getValue();
+            final Optional<JsonValue> maybeExistingValue = existingValues.getValue(key);
+
+            if (key.toString().contains("definition")) {
+                builder.set(key, defaultValue);
+                continue;
+            }
+
+            if (maybeExistingValue.isPresent()) {
+                JsonValue resolvedValue = resolveConflictingValues(defaultValue, maybeExistingValue.get());
+                if (resolvedValue != null) {
+                    builder.set(key, resolvedValue);
+                }
+            }
+            else {
+                builder.set(field);
+            }
+        }
+
+        return builder.build();
+    }
+
+    /**
+     * Resolves conflicting JsonValue objects by recursively comparing them.
+     * If both values are JsonObjects, it calls {@link #removeConflicts(JsonObject, JsonObject)}
+     * to recursively filter out conflicting values. Otherwise, it returns null,
+     * indicating that the value should not be retained.
+     *
+     * @param defaultValue  The JsonValue from the default values object.
+     * @param existingValue The JsonValue from the existing values object.
+     * @return A filtered JsonObject if both values are objects; otherwise, null.
+     */
+    private static JsonValue resolveConflictingValues(final JsonValue defaultValue, final JsonValue existingValue) {
+        return (defaultValue.isObject() && existingValue.isObject())
+                ? removeConflicts(defaultValue.asObject(), existingValue.asObject())
+                : null;
+    }
+
 
     private Thing applyMigrationPayload(final Context<ThingId> context, final Thing thing,
             final JsonObject migrationPayload,
@@ -255,7 +330,6 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
             final Instant eventTs) {
         final JsonObject thingJson = thing.toJson(FieldType.all());
         final JsonObject mergedJson = JsonFactory.newObject(migrationPayload, thingJson);
-
         context.getLog().debug("Thing updated from migrated JSON: {}", mergedJson);
         ThingCommandSizeValidator.getInstance().ensureValidSize(
                 mergedJson::getUpperBoundForStringSize,

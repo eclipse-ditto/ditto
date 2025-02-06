@@ -34,6 +34,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingMerged;
+import org.eclipse.ditto.things.model.signals.events.ThingMigrated;
 import org.eclipse.ditto.thingsearch.model.signals.commands.SearchErrorResponse;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
@@ -56,6 +57,7 @@ public class DefaultThingCommandAdapterProvider implements ThingCommandAdapterPr
     private final MessageCommandResponseAdapter messageCommandResponseAdapter;
     private final ThingEventAdapter thingEventAdapter;
     private final ThingMergedEventAdapter thingMergedEventAdapter;
+    private final ThingMigratedEventAdapter thingMigratedEventAdapter;
     private final SubscriptionEventAdapter subscriptionEventAdapter;
     private final ThingErrorResponseAdapter errorResponseAdapter;
     private final RetrieveThingsCommandAdapter retrieveThingsCommandAdapter;
@@ -78,6 +80,7 @@ public class DefaultThingCommandAdapterProvider implements ThingCommandAdapterPr
         this.messageCommandResponseAdapter = MessageCommandResponseAdapter.of(headerTranslator);
         this.thingEventAdapter = ThingEventAdapter.of(headerTranslator);
         this.thingMergedEventAdapter = ThingMergedEventAdapter.of(headerTranslator);
+        this.thingMigratedEventAdapter = ThingMigratedEventAdapter.of(headerTranslator);
         this.subscriptionEventAdapter = SubscriptionEventAdapter.of(headerTranslator, errorRegistry);
         this.errorResponseAdapter = ThingErrorResponseAdapter.of(headerTranslator, errorRegistry);
         this.searchErrorResponseAdapter = SearchErrorResponseAdapter.of(headerTranslator, errorRegistry);
@@ -99,6 +102,7 @@ public class DefaultThingCommandAdapterProvider implements ThingCommandAdapterPr
                 messageCommandResponseAdapter,
                 thingEventAdapter,
                 thingMergedEventAdapter,
+                thingMigratedEventAdapter,
                 searchCommandAdapter,
                 subscriptionEventAdapter,
                 errorResponseAdapter,
@@ -119,6 +123,9 @@ public class DefaultThingCommandAdapterProvider implements ThingCommandAdapterPr
     @Override
     public Adapter<ThingMerged> getMergedEventAdapter() {
         return thingMergedEventAdapter;
+    }
+    public Adapter<ThingMigrated> getMigratedEventAdapter() {
+        return thingMigratedEventAdapter;
     }
 
     @Override

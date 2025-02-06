@@ -510,6 +510,12 @@ final class ImmutableTopicPath implements TopicPath {
         }
 
         @Override
+        public EventsTopicPathBuilder migrated() {
+            action = Action.MIGRATED;
+            return this;
+        }
+
+        @Override
         public MessagesTopicPathBuilder subject(final String subject) {
             this.subject = checkNotNull(subject, "subject");
             return this;

@@ -36,6 +36,7 @@ public interface ThingCommandAdapterProvider
         SearchErrorResponseAdapterProvider,
         EventAdapterProvider<ThingEvent<?>>,
         MergeEventAdapterProvider,
+        MigrateEventAdapterProvider,
         SubscriptionEventAdapterProvider<SubscriptionEvent<?>>,
         ThingSearchCommandAdapterProvider<ThingSearchCommand<?>>,
         MigrateDefinitionCommandAdapterProvider,

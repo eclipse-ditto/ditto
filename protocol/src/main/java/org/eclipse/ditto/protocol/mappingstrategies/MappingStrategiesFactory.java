@@ -94,6 +94,10 @@ public final class MappingStrategiesFactory {
         return ThingMergedEventMappingStrategies.getInstance();
     }
 
+    public static ThingMigratedEventMappingStrategies getThingMigratedEventMappingStrategies() {
+        return ThingMigratedEventMappingStrategies.getInstance();
+    }
+
     public static SubscriptionEventMappingStrategies getSubscriptionEventMappingStrategies(
             final ErrorRegistry<?> errorRegistry) {
         return SubscriptionEventMappingStrategies.getInstance(errorRegistry);

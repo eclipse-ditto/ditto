@@ -33,6 +33,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingMerged;
+import org.eclipse.ditto.things.model.signals.events.ThingMigrated;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
 
@@ -69,6 +70,10 @@ public final class SignalMapperFactory {
 
     public static SignalMapper<ThingMerged> newThingMergedEventSignalMapper() {
         return new ThingMergedEventSignalMapper();
+    }
+
+    public static SignalMapper<ThingMigrated> newThingMigratedEventSignalMapper() {
+        return new ThingMigratedEventSignalMapper();
     }
 
     public static SignalMapper<ThingQueryCommand<?>> newThingQuerySignalMapper() {

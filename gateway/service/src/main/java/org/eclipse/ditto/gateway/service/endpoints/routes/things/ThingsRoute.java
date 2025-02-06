@@ -585,24 +585,27 @@ public final class ThingsRoute extends AbstractRoute {
             final ThingId thingId) {
         return rawPathPrefix(PathMatchers.slash().concat(PATH_MIGRATE_DEFINITION), () ->
                 pathEndOrSingleSlash(() ->
-                        // POST /things/<thingId>/migrateDefinition
-                        post(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
-                                        payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                payload -> {
-                                                    final JsonObject inputJson =
-                                                            wrapJsonRuntimeException(() -> JsonFactory.newObject(payload));
-                                                    final JsonObject updatedJson = addThingId(inputJson, thingId);
-
-                                                    final MigrateThingDefinition migrateThingDefinitionCommand =
-                                                            MigrateThingDefinition.fromJson(updatedJson, dittoHeaders);
-                                                    return migrateThingDefinitionCommand;
-                                                })
+                        // POST /things/<thingId>/migrateDefinition?dry-run=false
+                        parameterOptional("dry-run", dryRun ->
+                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                                        payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource, payload -> {
+                                            final JsonObject inputJson =
+                                                    wrapJsonRuntimeException(() -> JsonFactory.newObject(payload));
+                                            final JsonObject updatedJson = addThingIdAndDryRun(inputJson, thingId, isDryRun(dryRun));
+                                            return MigrateThingDefinition.fromJson(updatedJson, dittoHeaders.toBuilder()
+                                                    .putHeader(DittoHeaderDefinition.DRY_RUN.getKey(),dryRun.orElse(Boolean.FALSE.toString()))
+                                                    .build());
+                                        })
                                 )
                         ))
         );
     }
+    private static boolean isDryRun(final Optional<String> dryRun) {
+        return dryRun.map(Boolean::valueOf).orElse(Boolean.FALSE);
+    }
 
-    private static JsonObject addThingId(final JsonObject inputJson, final ThingId thingId) {
+    private static JsonObject addThingIdAndDryRun(final JsonObject inputJson, final ThingId thingId,
+            final boolean dryRun) {
         checkNotNull(inputJson, "inputJson");
         return JsonFactory.newObjectBuilder(inputJson)
                 .set(ThingCommand.JsonFields.JSON_THING_ID, thingId.toString())

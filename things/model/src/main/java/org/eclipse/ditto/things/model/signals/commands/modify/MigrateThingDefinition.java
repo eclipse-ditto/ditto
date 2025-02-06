@@ -64,13 +64,14 @@ public final class MigrateThingDefinition extends AbstractCommand<MigrateThingDe
     private final String thingDefinitionUrl;
     private final JsonObject migrationPayload;
     private final Map<ResourceKey, String> patchConditions;
-    private final Boolean initializeMissingPropertiesFromDefaults;
+    private final boolean initializeMissingPropertiesFromDefaults;
+
 
     private MigrateThingDefinition(final ThingId thingId,
             final String thingDefinitionUrl,
             final JsonObject migrationPayload,
             final Map<ResourceKey, String> patchConditions,
-            final Boolean initializeMissingPropertiesFromDefaults,
+            final boolean initializeMissingPropertiesFromDefaults,
             final DittoHeaders dittoHeaders) {
         super(TYPE, FeatureToggle.checkMergeFeatureEnabled(TYPE, dittoHeaders));
         this.thingId = checkNotNull(thingId, "thingId");
@@ -78,7 +79,7 @@ public final class MigrateThingDefinition extends AbstractCommand<MigrateThingDe
         this.migrationPayload = checkJsonSize(checkNotNull(migrationPayload, "migrationPayload"), dittoHeaders);
         this.patchConditions =
                 Collections.unmodifiableMap(patchConditions != null ? patchConditions : Collections.emptyMap());
-        this.initializeMissingPropertiesFromDefaults = initializeMissingPropertiesFromDefaults != null ? initializeMissingPropertiesFromDefaults : Boolean.FALSE;
+        this.initializeMissingPropertiesFromDefaults = initializeMissingPropertiesFromDefaults;
         checkSchemaVersion();
     }
 
@@ -123,8 +124,8 @@ public final class MigrateThingDefinition extends AbstractCommand<MigrateThingDe
                         field -> field.getValue().asString()
                 ));
 
-        final Boolean initializeMissingPropertiesFromDefaults = jsonObject.getValue(JsonFields.JSON_INITIALIZE_MISSING_PROPERTIES_FROM_DEFAULTS)
-                .orElse(Boolean.FALSE);
+        final boolean initializeMissingPropertiesFromDefaults = jsonObject.getValue(JsonFields.JSON_INITIALIZE_MISSING_PROPERTIES_FROM_DEFAULTS)
+                .orElse(false);
 
         return new MigrateThingDefinition(
                 ThingId.of(thingIdStr),
