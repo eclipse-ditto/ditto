@@ -197,6 +197,10 @@ global:
     user: 1000
     # group defines the group to run the pod-deletion-cost annotation patching job as
     group: 1000
+    # runAsNonRoot defines whether the pod-deletion-cost annotation patching job should run as non-root
+    runAsNonRoot: false
+    # allowPrivilegeEscalation defines whether the pod-deletion-cost annotation patching job should allow privilege escalation
+    allowPrivilegeEscalation: true
     # enabled whether the pod-deletion-cost annotation patching should be enabled
     enabled: true
     # annotations defines k8s annotations to add to corresponding jobs
