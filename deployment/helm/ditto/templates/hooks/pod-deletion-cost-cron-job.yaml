@@ -48,6 +48,8 @@ spec:
               securityContext:
                 runAsUser: {{ .Values.global.podDeletionCostPatching.user }}
                 runAsGroup: {{  .Values.global.podDeletionCostPatching.group }}
+                allowPrivilegeEscalation: {{ .Values.global.podDeletionCostPatching.allowPrivilegeEscalation }}
+                runAsNonRoot: {{ .Values.global.podDeletionCostPatching.runAsNonRoot }}
               image: {{ printf "%s:%s" .Values.global.podDeletionCostPatching.image.repository ( default .Values.global.podDeletionCostPatching.image.tag "latest" ) }}
               imagePullPolicy: {{ .Values.global.podDeletionCostPatching.image.pullPolicy }}
               command:
