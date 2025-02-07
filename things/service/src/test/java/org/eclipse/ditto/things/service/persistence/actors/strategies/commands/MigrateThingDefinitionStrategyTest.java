@@ -13,12 +13,7 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
 
-import java.lang.reflect.Field;
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 
 import com.typesafe.config.ConfigFactory;
 
@@ -37,7 +32,6 @@ import org.eclipse.ditto.things.model.signals.commands.modify.MigrateThingDefini
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingMigrated;
 import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
-import org.eclipse.ditto.wot.api.generator.WotThingSkeletonGenerator;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,46 +44,12 @@ import org.mockito.junit.MockitoJUnitRunner;
 public final class MigrateThingDefinitionStrategyTest extends AbstractCommandStrategyTest {
 
     private MigrateThingDefinitionStrategy underTest;
-    private WotThingSkeletonGenerator mockWotThingSkeletonGenerator;
 
     @Before
     public void setUp() throws Exception {
         final ActorSystem actorSystem = ActorSystem.create("test", ConfigFactory.load("test"));
-
-        mockWotThingSkeletonGenerator = mock(WotThingSkeletonGenerator.class);
-
         underTest = new MigrateThingDefinitionStrategy(actorSystem);
-
-        injectMock(underTest, "wotThingSkeletonGenerator", mockWotThingSkeletonGenerator);
-
-        when(mockWotThingSkeletonGenerator.provideThingSkeletonForCreation(any(ThingId.class), any(), any(DittoHeaders.class)))
-                .thenReturn(CompletableFuture.completedFuture(Optional.of(createMockThingSkeleton())));
     }
-
-    /**
-     * Injects a mock into a private field of the given object.
-     */
-    private void injectMock(Object targetObject, String fieldName, Object mock) throws Exception {
-        Field field = null;
-        Class<?> clazz = targetObject.getClass();
-
-        while (clazz != Object.class) {
-            try {
-                field = clazz.getDeclaredField(fieldName);
-                break;
-            } catch (NoSuchFieldException e) {
-                clazz = clazz.getSuperclass();
-            }
-        }
-
-        if (field == null) {
-            throw new NoSuchFieldException("Field " + fieldName + " not found in class hierarchy.");
-        }
-
-        field.setAccessible(true);
-        field.set(targetObject, mock);
-    }
-
 
     @Test
     public void migrateExistingThing() {
@@ -101,11 +61,11 @@ public final class MigrateThingDefinitionStrategyTest extends AbstractCommandStr
                 .set("attributes", JsonFactory.newObjectBuilder().set("manufacturer", "New Corp").build())
                 .build();
 
-        final String mockThingDefinitionUrl = "http://mock-url-for-test.com/model.json";
+        final String thingDefinitionUrl = "https://eclipse-ditto.github.io/ditto-examples/wot/models/dimmable-colored-lamp-1.0.0.tm.jsonld";
 
         final MigrateThingDefinition command = MigrateThingDefinition.of(
                 thingId,
-                mockThingDefinitionUrl,
+                thingDefinitionUrl,
                 migrationPayload,
                 null,
                 true,
@@ -113,13 +73,7 @@ public final class MigrateThingDefinitionStrategyTest extends AbstractCommandStr
         );
 
         final MigrateThingDefinitionResponse expectedResponse = ETagTestUtils.migrateThingDefinitionResponse(thingId,
-                JsonFactory.newObjectBuilder()
-                        .set("definition", mockThingDefinitionUrl)
-                        .set("attributes", JsonFactory.newObjectBuilder()
-                                .set("manufacturer", "New Corp")
-                                .build())
-                        .build(),
-                createMockThingSkeleton(),
+                meregedThing(thingDefinitionUrl),
                 command.getDittoHeaders());
 
         final Result<ThingEvent<?>> result = underTest.apply(context, existingThing, NEXT_REVISION, command);
@@ -132,13 +86,19 @@ public final class MigrateThingDefinitionStrategyTest extends AbstractCommandStr
         assertStagedModificationResult(result, ThingMigrated.class, expectedResponse, false);
     }
 
-    /**
-     * Creates a mock Thing skeleton to avoid real network calls.
-     */
-    private Thing createMockThingSkeleton() {
+
+    private Thing meregedThing(String thingDefinitionUrl) {
         return ThingsModelFactory.newThingBuilder()
+                .setDefinition(ThingsModelFactory.newDefinition(thingDefinitionUrl))
                 .setAttributes(JsonFactory.newObjectBuilder()
-                        .set("manufacturer", "MockCorp")
+                        .set("manufacturer", "New Corp")
+                        .set("on", false)
+                        .set("color", JsonFactory.newObjectBuilder()
+                                .set("r", 0)
+                                .set("g", 0)
+                                .set("b", 0)
+                                .build())
+                        .set("dimmer-level", 0.0)
                         .build())
                 .setRevision(ThingRevision.newInstance(NEXT_REVISION))
                 .build();

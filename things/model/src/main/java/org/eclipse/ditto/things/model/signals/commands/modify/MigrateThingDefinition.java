@@ -98,7 +98,7 @@ public final class MigrateThingDefinition extends AbstractCommand<MigrateThingDe
             final String thingDefinitionUrl,
             final JsonObject migrationPayload,
             final Map<ResourceKey, String> patchConditions,
-            final Boolean initializeMissingPropertiesFromDefaults,
+            final boolean initializeMissingPropertiesFromDefaults,
             final DittoHeaders dittoHeaders) {
         return new MigrateThingDefinition(thingId, thingDefinitionUrl, migrationPayload,
                 patchConditions, initializeMissingPropertiesFromDefaults, dittoHeaders);
@@ -153,7 +153,7 @@ public final class MigrateThingDefinition extends AbstractCommand<MigrateThingDe
         return patchConditions;
     }
 
-    public Boolean isInitializeMissingPropertiesFromDefaults() {
+    public boolean isInitializeMissingPropertiesFromDefaults() {
         return initializeMissingPropertiesFromDefaults;
     }
 

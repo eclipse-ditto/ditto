@@ -591,7 +591,7 @@ public final class ThingsRoute extends AbstractRoute {
                                         payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource, payload -> {
                                             final JsonObject inputJson =
                                                     wrapJsonRuntimeException(() -> JsonFactory.newObject(payload));
-                                            final JsonObject updatedJson = addThingIdAndDryRun(inputJson, thingId, isDryRun(dryRun));
+                                            final JsonObject updatedJson = addThingIdAndDryRun(inputJson, thingId);
                                             return MigrateThingDefinition.fromJson(updatedJson, dittoHeaders.toBuilder()
                                                     .putHeader(DittoHeaderDefinition.DRY_RUN.getKey(),dryRun.orElse(Boolean.FALSE.toString()))
                                                     .build());
@@ -600,12 +600,8 @@ public final class ThingsRoute extends AbstractRoute {
                         ))
         );
     }
-    private static boolean isDryRun(final Optional<String> dryRun) {
-        return dryRun.map(Boolean::valueOf).orElse(Boolean.FALSE);
-    }
 
-    private static JsonObject addThingIdAndDryRun(final JsonObject inputJson, final ThingId thingId,
-            final boolean dryRun) {
+    private static JsonObject addThingIdAndDryRun(final JsonObject inputJson, final ThingId thingId) {
         checkNotNull(inputJson, "inputJson");
         return JsonFactory.newObjectBuilder(inputJson)
                 .set(ThingCommand.JsonFields.JSON_THING_ID, thingId.toString())

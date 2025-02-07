@@ -49,6 +49,7 @@ import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingDefinition;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
+import org.eclipse.ditto.things.model.signals.commands.modify.MigrateThingDefinitionResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,7 +100,10 @@ final class ReflectionBasedSignalInstantiator {
                 Map.entry(String.class, stringValue),
                 Map.entry(Thing.class, Thing.newBuilder().setId(thingId).build()),
                 Map.entry(ThingDefinition.class, ThingsModelFactory.newDefinition(definitionIdentifier)),
-                Map.entry(ThingId.class, thingId)
+                Map.entry(ThingId.class, thingId),
+                Map.entry(MigrateThingDefinitionResponse.MergeStatus.class, MigrateThingDefinitionResponse.MergeStatus.APPLIED),
+                Map.entry(boolean.class, false)
+
         );
     }
 
