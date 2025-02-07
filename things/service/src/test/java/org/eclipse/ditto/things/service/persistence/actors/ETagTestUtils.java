@@ -364,13 +364,13 @@ public final class ETagTestUtils {
     }
 
     public static MigrateThingDefinitionResponse migrateThingDefinitionResponse(final ThingId thingId,
-              final Thing mergeThing, final DittoHeaders dittoHeaders) {
+            final JsonObject patch, final Thing mergeThing, final DittoHeaders dittoHeaders) {
 
         final DittoHeaders dittoHeadersWithETag = appendEntityIdAndETagToDittoHeaders(thingId, mergeThing, dittoHeaders);
 
         return MigrateThingDefinitionResponse.newInstance(
                 thingId,
-                mergeThing.toJson(),
+                patch,
                 MigrateThingDefinitionResponse.MergeStatus.APPLIED,
                 HttpStatus.OK,
                 dittoHeadersWithETag
