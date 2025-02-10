@@ -120,7 +120,7 @@ public final class ThingMigrated extends AbstractThingEvent<ThingMigrated> imple
 
     @Override
     public Command.Category getCommandCategory() {
-        return Command.Category.MODIFY;
+        return Command.Category.MIGRATE;
     }
 
     @Override
@@ -188,19 +188,6 @@ public final class ThingMigrated extends AbstractThingEvent<ThingMigrated> imple
     @Override
     public JsonPointer getResourcePath() {
         return JsonPointer.empty();
-    }
-
-    /**
-     * An enumeration of the JSON fields of a {@code ThingMigrated} event.
-     */
-    public static final class JsonFields {
-
-        private JsonFields() {
-            throw new AssertionError();
-        }
-
-        public static final JsonFieldDefinition<JsonValue> JSON_VALUE =
-                JsonFactory.newJsonValueFieldDefinition("value", FieldType.REGULAR, JsonSchemaVersion.V_2);
     }
 
 }
