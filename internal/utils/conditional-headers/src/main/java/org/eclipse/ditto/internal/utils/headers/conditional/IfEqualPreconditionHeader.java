@@ -23,6 +23,8 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.Entity;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.IfEqual;
 import org.eclipse.ditto.base.model.json.FieldType;
@@ -51,6 +53,9 @@ import org.eclipse.ditto.json.JsonValue;
 public final class IfEqualPreconditionHeader<C extends Command<?>> implements PreconditionHeader<Entity<?>> {
 
     private static final String IF_EQUAL_KEY = DittoHeaderDefinition.IF_EQUAL.getKey();
+
+    private static final EntityType POLICY_ENTITY_TYPE = EntityType.of("policy");
+    private static final EntityType THING_ENTITY_TYPE = EntityType.of("thing");
 
     private final C command;
     private final IfEqual ifEqual;
@@ -132,14 +137,18 @@ public final class IfEqualPreconditionHeader<C extends Command<?>> implements Pr
 
         return withOptionalEntity.getEntity()
                 .map(newValue -> {
-                    final Predicate<JsonField> fieldPredicate = calculatePredicate(command.getResourcePath());
+                    final Predicate<JsonField> fieldPredicate = calculatePredicate(command.getResourcePath(),
+                            entity.getEntityId().map(EntityId::getEntityType).orElse(null), true);
                     final Optional<JsonValue> previousValue =
                             entity.toJson(JsonSchemaVersion.LATEST, fieldPredicate)
                                     .getValue(command.getResourcePath());
                     final JsonValue adjustedNewValue;
                     if (newValue.isObject()) {
                         adjustedNewValue = newValue.asObject()
-                                .filter(calculatePredicateForNew(command.getResourcePath()));
+                                .filter(calculatePredicateForNew(
+                                        command.getResourcePath(),
+                                        entity.getEntityId().map(EntityId::getEntityType).orElse(null)
+                                ));
                     } else {
                         adjustedNewValue = newValue;
                     }
@@ -154,13 +163,19 @@ public final class IfEqualPreconditionHeader<C extends Command<?>> implements Pr
 
         return withOptionalEntity.getEntity()
                 .map(newValue -> {
-                    final Optional<JsonValue> previousValue = entity.toJson().getValue(command.getResourcePath());
+                    final Predicate<JsonField> fieldPredicate = calculatePredicate(command.getResourcePath(),
+                            entity.getEntityId().map(EntityId::getEntityType).orElse(null), true);
+                    final Optional<JsonValue> previousValue = entity.toJson(JsonSchemaVersion.LATEST, fieldPredicate)
+                            .getValue(command.getResourcePath());
                     if (newValue.isObject()) {
                         final JsonObject newObject;
                         if (command.getResourcePath().isEmpty()) {
                             newObject = newValue.asObject()
                                     .stream()
-                                    .filter(calculatePredicateForNew(command.getResourcePath()))
+                                    .filter(calculatePredicateForNew(
+                                            command.getResourcePath(),
+                                            entity.getEntityId().map(EntityId::getEntityType).orElse(null)
+                                    ))
                                     .collect(JsonCollectors.fieldsToObject());
                         } else {
                             newObject = newValue.asObject();
@@ -240,7 +255,8 @@ public final class IfEqualPreconditionHeader<C extends Command<?>> implements Pr
 
         return withOptionalEntity.getEntity()
                 .map(newValue -> {
-                    final Predicate<JsonField> fieldPredicate = calculatePredicate(command.getResourcePath());
+                    final Predicate<JsonField> fieldPredicate = calculatePredicate(command.getResourcePath(),
+                            entity.getEntityId().map(EntityId::getEntityType).orElse(null), true);
                     final JsonValue oldValue = entity.toJson(JsonSchemaVersion.LATEST, fieldPredicate)
                             .getValue(command.getResourcePath()).orElse(null);
                     if (null == oldValue) {
@@ -259,22 +275,33 @@ public final class IfEqualPreconditionHeader<C extends Command<?>> implements Pr
                 .orElse(command);
     }
 
-    private static Predicate<JsonField> calculatePredicate(final JsonPointer resourcePath) {
+    private static Predicate<JsonField> calculatePredicate(final JsonPointer resourcePath,
+            @Nullable final EntityType entityType,
+            final boolean onlyNonHiddenFields
+    ) {
+        final Predicate<JsonField> start = onlyNonHiddenFields ? FieldType.notHidden() : FieldType.all();
         if (resourcePath.isEmpty()) {
-            return FieldType.notHidden()
-                    .and(Predicate.not(jsonField -> jsonField.getKey().equals(JsonKey.of("thingId"))))
-                    .and(Predicate.not(jsonField -> jsonField.getKey().equals(JsonKey.of("policyId"))));
+            if (THING_ENTITY_TYPE.equals(entityType)) {
+                return start.and(Predicate.not(jsonField -> jsonField.getKey().equals(JsonKey.of("thingId"))));
+            } else if (POLICY_ENTITY_TYPE.equals(entityType)) {
+                return start.and(Predicate.not(jsonField -> jsonField.getKey().equals(JsonKey.of("policyId"))));
+            } else {
+                return start;
+            }
         } else {
-            return FieldType.notHidden();
+            return start;
         }
     }
 
-    private static Predicate<JsonField> calculatePredicateForNew(final JsonPointer resourcePath) {
+    private static Predicate<JsonField> calculatePredicateForNew(final JsonPointer resourcePath,
+            @Nullable final EntityType entityType
+    ) {
         if (resourcePath.isEmpty()) {
-            // filter "special fields" for e.g. on thing level the inline "_policy":
-            return jsonField -> !jsonField.getKeyName().startsWith("_");
+            return calculatePredicate(resourcePath, entityType, false)
+                    // filter "special fields" for e.g. on thing level the inline "_policy":
+                    .and(jsonField -> !jsonField.getKeyName().startsWith("_"));
         } else {
-            return jsonField -> true;
+            return calculatePredicate(resourcePath, entityType, false);
         }
     }
 
