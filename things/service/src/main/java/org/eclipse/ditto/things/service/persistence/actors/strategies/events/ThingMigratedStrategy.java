@@ -38,7 +38,7 @@ final class ThingMigratedStrategy extends AbstractThingEventStrategy<ThingMigrat
     public Thing handle(final ThingMigrated event, @Nullable final Thing thing, final long revision) {
         if (null != thing) {
             final JsonObject jsonObject = thing.toJson(FieldType.all());
-            final JsonObject mergePatch = JsonFactory.newObject(event.getResourcePath(), event.getValue());
+            final JsonObject mergePatch = event.getThing().toJson();
             final JsonObject mergedJson = JsonFactory.mergeJsonValues(mergePatch, jsonObject).asObject();
             return ThingsModelFactory.newThingBuilder(mergedJson)
                     .setRevision(revision)

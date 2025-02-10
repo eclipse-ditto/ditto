@@ -18,7 +18,6 @@ import java.util.HashMap;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonMissingFieldException;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.JsonifiableMapper;
@@ -47,9 +46,7 @@ final class ThingMigratedEventMappingStrategies extends AbstractThingMappingStra
 
     private static ThingMigrated thingMigrated(final Adaptable adaptable) {
         return ThingMigrated.of(
-                thingIdFrom(adaptable),
-                JsonPointer.of(adaptable.getPayload().getPath().toString()),
-                adaptable.getPayload().getValue().orElse(null),
+                thingFrom(adaptable),
                 revisionFrom(adaptable),
                 timestampFrom(adaptable),
                 dittoHeadersFrom(adaptable),

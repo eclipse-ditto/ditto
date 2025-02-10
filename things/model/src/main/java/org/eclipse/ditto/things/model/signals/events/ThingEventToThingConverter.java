@@ -122,16 +122,7 @@ public final class ThingEventToThingConverter {
                 }
         );
         mappers.put(ThingMigrated.class,
-                (te, tb) -> {
-                    final ThingMigrated thingMigrated = (ThingMigrated) te;
-                    final JsonPointer resourcePath = thingMigrated.getResourcePath();
-                    final JsonValue nonNullValue = filterNullValuesInJsonValue(thingMigrated.getValue());
-                    final JsonObject mergedFields = JsonFactory.newObject(resourcePath, nonNullValue);
-                    final JsonObject thingWithoutMergedFields = tb.build().toJson(FieldType.all());
-                    final JsonValue mergedJson = JsonFactory.mergeJsonValues(thingWithoutMergedFields, mergedFields);
-                    return ThingsModelFactory.newThing(mergedJson.asObject());
-                }
-        );
+                (te, tb) -> ((ThingMigrated) te).getThing().toBuilder().setRevision(te.getRevision()).build());
         mappers.put(ThingDeleted.class,
                 (te, tb) -> tb.build());
 

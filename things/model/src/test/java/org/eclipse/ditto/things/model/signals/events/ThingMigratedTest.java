@@ -21,6 +21,7 @@ import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -36,8 +37,7 @@ public final class ThingMigratedTest {
             .set(Event.JsonFields.METADATA, TestConstants.METADATA.toJson())
             .set(EventsourcedEvent.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
             .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID.toString())
-            .set(ThingMigrated.JsonFields.JSON_PATH, TestConstants.Thing.ABSOLUTE_LOCATION_ATTRIBUTE_POINTER.toString())
-            .set(ThingMigrated.JsonFields.JSON_VALUE, TestConstants.Thing.LOCATION_ATTRIBUTE_VALUE)
+            .set(ThingEvent.JsonFields.THING, TestConstants.Thing.THING.toJson())
             .build();
 
     /**
@@ -60,14 +60,12 @@ public final class ThingMigratedTest {
     @Test
     public void toJsonReturnsExpected() {
         final ThingMigrated underTest =
-                ThingMigrated.of(TestConstants.Thing.THING_ID,
-                        TestConstants.Thing.ABSOLUTE_LOCATION_ATTRIBUTE_POINTER,
-                        TestConstants.Thing.LOCATION_ATTRIBUTE_VALUE,
+                ThingMigrated.of(TestConstants.Thing.THING,
                         TestConstants.Thing.REVISION_NUMBER,
                         TestConstants.TIMESTAMP,
                         TestConstants.EMPTY_DITTO_HEADERS,
                         TestConstants.METADATA);
-        final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
+        final JsonObject actualJson = underTest.toJson(FieldType.notHidden());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
@@ -82,8 +80,7 @@ public final class ThingMigratedTest {
 
         assertThat(underTest).isNotNull();
         assertThat((Object) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(underTest.getResourcePath()).isEqualTo(TestConstants.Thing.ABSOLUTE_LOCATION_ATTRIBUTE_POINTER);
-        assertThat(underTest.getValue()).isEqualTo(TestConstants.Thing.LOCATION_ATTRIBUTE_VALUE);
+        assertThat(underTest.getResourcePath()).isEqualTo(JsonPointer.empty());
         assertThat(underTest.getMetadata()).contains(TestConstants.METADATA);
         assertThat(underTest.getRevision()).isEqualTo(TestConstants.Thing.REVISION_NUMBER);
         assertThat(underTest.getTimestamp()).contains(TestConstants.TIMESTAMP);

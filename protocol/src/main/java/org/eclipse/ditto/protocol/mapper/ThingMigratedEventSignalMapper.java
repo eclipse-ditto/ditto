@@ -29,7 +29,7 @@ final class ThingMigratedEventSignalMapper extends AbstractSignalMapper<ThingMig
     void enhancePayloadBuilder(final ThingMigrated signal, final PayloadBuilder payloadBuilder) {
         payloadBuilder.withRevision(signal.getRevision())
                 .withTimestamp(signal.getTimestamp().orElse(null))
-                .withValue(signal.getValue());
+                .withValue(signal.getThing().toJson());
     }
 
     @Override

@@ -73,7 +73,7 @@ public final class MigrateThingDefinition extends AbstractCommand<MigrateThingDe
             final Map<ResourceKey, String> patchConditions,
             final boolean initializeMissingPropertiesFromDefaults,
             final DittoHeaders dittoHeaders) {
-        super(TYPE, FeatureToggle.checkMergeFeatureEnabled(TYPE, dittoHeaders));
+        super(TYPE, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thingId");
         this.thingDefinitionUrl = checkNotNull(thingDefinitionUrl, "thingDefinitionUrl");
         this.migrationPayload = checkJsonSize(checkNotNull(migrationPayload, "migrationPayload"), dittoHeaders);
@@ -185,7 +185,7 @@ public final class MigrateThingDefinition extends AbstractCommand<MigrateThingDe
 
     @Override
     public Category getCategory() {
-        return Category.MODIFY;
+        return Category.MIGRATE;
     }
 
     @Override
