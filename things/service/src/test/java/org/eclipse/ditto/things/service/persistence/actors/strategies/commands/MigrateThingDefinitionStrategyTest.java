@@ -114,6 +114,7 @@ public final class MigrateThingDefinitionStrategyTest extends AbstractCommandStr
 
         final MigrateThingDefinitionResponse expectedResponse = ETagTestUtils.migrateThingDefinitionResponse(thingId,
                 JsonFactory.newObjectBuilder()
+                        .set("thingId", thingId.toString())
                         .set("definition", mockThingDefinitionUrl)
                         .set("attributes", JsonFactory.newObjectBuilder()
                                 .set("manufacturer", "New Corp")
