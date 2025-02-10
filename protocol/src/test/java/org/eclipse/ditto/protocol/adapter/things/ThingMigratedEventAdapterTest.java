@@ -17,8 +17,9 @@ import static org.eclipse.ditto.protocol.TopicPath.Channel.LIVE;
 
 import java.time.Instant;
 
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
@@ -66,12 +67,12 @@ public final class ThingMigratedEventAdapterTest extends LiveTwinTest implements
     @Test
     public void thingMigratedFromAdaptable() {
         final JsonPointer path = TestConstants.THING_POINTER;
-        final JsonValue value = TestConstants.THING.toJson();
+        final JsonObject value = TestConstants.THING.toJson(FieldType.all());
         final long revision = TestConstants.REVISION;
 
         final Instant now = Instant.now();
         final ThingMigrated expected =
-                ThingMigrated.of(TestConstants.THING_ID, path, value,
+                ThingMigrated.of(TestConstants.THING,
                         revision, now, setChannelHeader(TestConstants.DITTO_HEADERS_V_2), null);
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPathMigrated())
@@ -90,7 +91,7 @@ public final class ThingMigratedEventAdapterTest extends LiveTwinTest implements
     @Test
     public void thingMigratedToAdaptable() {
         final JsonPointer path = TestConstants.THING_POINTER;
-        final JsonValue value = TestConstants.THING.toJson();
+        final JsonObject value = TestConstants.THING.toJson();
         final long revision = TestConstants.REVISION;
 
         final Instant now = Instant.now();
@@ -104,7 +105,7 @@ public final class ThingMigratedEventAdapterTest extends LiveTwinTest implements
                 .build();
 
         final ThingMigrated thingMigrated =
-                ThingMigrated.of(TestConstants.THING_ID, path, value,
+                ThingMigrated.of(TestConstants.THING,
                         revision, now, setChannelHeader(TestConstants.DITTO_HEADERS_V_2), null);
         final Adaptable actual = underTest.toAdaptable(thingMigrated, channel);
 
