@@ -349,14 +349,14 @@ jobs:
 
       - name: Upload test results
         if:  env.GITHUB_ACTOR != 'nektos/act'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: system-test-results-${{ env.DITTO_BRANCH_NO_SLASH }}-${{ github.run_number }}
           path: 'ditto-testing/system*/**/target/failsafe-reports/**/*.xml'
           
       - name: Upload services logs
         if:  env.GITHUB_ACTOR != 'nektos/act'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: system-services-logs
           path: 'ditto-testing/docker/*.log'
