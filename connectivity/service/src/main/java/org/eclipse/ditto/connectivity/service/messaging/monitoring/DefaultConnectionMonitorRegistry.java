@@ -184,6 +184,14 @@ public final class DefaultConnectionMonitorRegistry implements ConnectionMonitor
     }
 
     @Override
+    public ConnectionMonitor forResponseOther(final Connection connection) {
+        return DefaultConnectionMonitor.builder(
+                        connectionCounterRegistry.forResponseOther(connection),
+                        connectionLoggerRegistry.forResponseOther(connection))
+                .build();
+    }
+
+    @Override
     public ConnectionMonitor forResponsePublished(final Connection connection) {
         return DefaultConnectionMonitor.builder(
                         connectionCounterRegistry.forResponsePublished(connection),

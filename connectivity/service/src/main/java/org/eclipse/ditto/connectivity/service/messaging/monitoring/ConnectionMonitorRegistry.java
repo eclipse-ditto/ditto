@@ -172,6 +172,15 @@ public interface ConnectionMonitorRegistry<T> {
 
     /**
      * Gets counter for {@link org.eclipse.ditto.connectivity.model.MetricDirection#OUTBOUND}/{@link
+     * org.eclipse.ditto.connectivity.model.MetricType#OTHER} messages for responses.
+     *
+     * @param connection connection
+     * @return the response mapped counter
+     */
+    T forResponseOther(Connection connection);
+
+    /**
+     * Gets counter for {@link org.eclipse.ditto.connectivity.model.MetricDirection#OUTBOUND}/{@link
      * org.eclipse.ditto.connectivity.model.MetricType#PUBLISHED} messages for responses.
      *
      * @param connection connection
