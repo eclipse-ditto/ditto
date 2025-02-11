@@ -63,7 +63,7 @@ public final class ThingMigrated extends AbstractThingEvent<ThingMigrated> imple
                           @Nullable final Instant timestamp,
                           final DittoHeaders dittoHeaders,
                           @Nullable final Metadata metadata) {
-        super(TYPE, thing.getEntityId().orElseThrow(() -> new NullPointerException("Thing has no ID!")), revision, timestamp, dittoHeaders, metadata);
+        super(TYPE, thing.getEntityId().orElseThrow(() -> new IllegalArgumentException("Thing has no ID!")), revision, timestamp, dittoHeaders, metadata);
         this.thing = thing;
         checkSchemaVersion();
     }
@@ -143,11 +143,6 @@ public final class ThingMigrated extends AbstractThingEvent<ThingMigrated> imple
     public ThingMigrated setEntity(final JsonValue entity) {
         return of(ThingsModelFactory.newThing(entity.asObject()), getRevision(), getTimestamp().orElse(null),
                 getDittoHeaders(), getMetadata().orElse(null));
-    }
-
-    @Override
-    public JsonSchemaVersion[] getSupportedSchemaVersions() {
-        return new JsonSchemaVersion[]{JsonSchemaVersion.V_2};
     }
 
     private void checkSchemaVersion() {

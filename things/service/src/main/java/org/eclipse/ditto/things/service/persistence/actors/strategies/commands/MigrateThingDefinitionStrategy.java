@@ -44,6 +44,7 @@ import org.eclipse.ditto.rql.model.ParserException;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.rql.query.things.ThingPredicateVisitor;
+import org.eclipse.ditto.things.model.FeatureDefinition;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
@@ -144,7 +145,7 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
                     command,
                     validatedStage.thenApply(pair ->
                             MigrateThingDefinitionResponse.dryRun(
-                                    existingThing.getEntityId().get(),
+                                    context.getState(),
                                     pair.first().toJson(),
                                     dittoHeaders))
             );
@@ -156,7 +157,7 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
                 metadata));
 
         final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(pair ->
-                appendETagHeaderIfProvided(command, MigrateThingDefinitionResponse.applied(existingThing.getEntityId().get(),
+                appendETagHeaderIfProvided(command, MigrateThingDefinitionResponse.applied(context.getState(),
                                 pair.first().toJson(), dittoHeaders),
                         pair.first()));
 
@@ -235,8 +236,11 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
 
     private Thing extractDefinitions(final Thing thing) {
         var thingBuilder = ThingsModelFactory.newThingBuilder();
-        thing.getFeatures().orElseGet(ThingsModelFactory::emptyFeatures).forEach(feature ->
-                thingBuilder.setFeature(feature.getId(), feature.getDefinition().get(), null));
+        thing.getFeatures().orElseGet(ThingsModelFactory::emptyFeatures).forEach(feature -> {
+            FeatureDefinition featureDefinition = feature.getDefinition().orElse(null);
+            thingBuilder.setFeature(feature.getId(), featureDefinition, null);
+        });
+
         return thingBuilder.build();
     }
 
@@ -291,15 +295,11 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
                 continue;
             }
 
-            if (maybeExistingValue.isPresent()) {
-                JsonValue resolvedValue = resolveConflictingValues(defaultValue, maybeExistingValue.get());
-                if (resolvedValue != null) {
-                    builder.set(key, resolvedValue);
-                }
-            }
-            else {
-                builder.set(field);
-            }
+            maybeExistingValue.flatMap(existingValue -> resolveConflictingValues(defaultValue, existingValue))
+                    .ifPresentOrElse(
+                            resolvedValue -> builder.set(key, resolvedValue),
+                            () -> builder.set(field)
+                    );
         }
 
         return builder.build();
@@ -308,18 +308,19 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
     /**
      * Resolves conflicting JsonValue objects by recursively comparing them.
      * If both values are JsonObjects, it calls {@link #removeConflicts(JsonObject, JsonObject)}
-     * to recursively filter out conflicting values. Otherwise, it returns null,
+     * to recursively filter out conflicting values. Otherwise, it returns an empty Optional,
      * indicating that the value should not be retained.
      *
      * @param defaultValue  The JsonValue from the default values object.
      * @param existingValue The JsonValue from the existing values object.
-     * @return A filtered JsonObject if both values are objects; otherwise, null.
+     * @return An Optional containing a filtered JsonObject if both values are objects; otherwise, an empty Optional.
      */
-    private static JsonValue resolveConflictingValues(final JsonValue defaultValue, final JsonValue existingValue) {
+    private static Optional<JsonValue> resolveConflictingValues(final JsonValue defaultValue, final JsonValue existingValue) {
         return (defaultValue.isObject() && existingValue.isObject())
-                ? removeConflicts(defaultValue.asObject(), existingValue.asObject())
-                : null;
+                ? Optional.of(removeConflicts(defaultValue.asObject(), existingValue.asObject()))
+                : Optional.empty();
     }
+
 
 
     private Thing applyMigrationPayload(final Context<ThingId> context, final Thing thing,
