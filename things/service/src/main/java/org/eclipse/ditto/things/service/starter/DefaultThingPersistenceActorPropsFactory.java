@@ -17,16 +17,16 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEm
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.persistence.actors.ThingPersistenceActor;
 import org.eclipse.ditto.things.service.persistence.actors.ThingPersistenceActorPropsFactory;
-
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.Props;
 
 /**
  * Factory for creating Props of {@link org.eclipse.ditto.things.service.persistence.actors.ThingPersistenceActor}.
@@ -53,9 +53,10 @@ final class DefaultThingPersistenceActorPropsFactory implements ThingPersistence
 
     @Override
     public Props props(final ThingId thingId, final MongoReadJournal mongoReadJournal,
-            final DistributedPub<ThingEvent<?>> distributedPub,
-            @Nullable final ActorRef searchShardRegionProxy) {
+            final DistributedPub<ThingEvent<?>> distributedPub, @Nullable final ActorRef searchShardRegionProxy,
+            final PolicyEnforcerProvider policyEnforcerProvider) {
         argumentNotEmpty(thingId);
-        return ThingPersistenceActor.props(thingId, mongoReadJournal, distributedPub, searchShardRegionProxy);
+        return ThingPersistenceActor.props(thingId, mongoReadJournal, distributedPub, searchShardRegionProxy,
+                policyEnforcerProvider);
     }
 }

@@ -151,12 +151,7 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
                     .connectionId(connectionId)
                     .correlationId(correlationId)
                     .start();
-            headers = startedSpan.propagateContext(DittoHeaders.of(headers)
-                    .toBuilder()
-                    .removeHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey())
-                    .build()
-                    .asCaseSensitiveMap()
-            );
+            headers = startedSpan.propagateContext(headers);
 
             final ExternalMessageBuilder externalMessageBuilder =
                     ExternalMessageFactory.newExternalMessageBuilder(headers);

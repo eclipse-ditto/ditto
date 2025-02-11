@@ -317,7 +317,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
 
         final Props props = ThingPersistenceActor.props(thingIdOfActor, Mockito.mock(MongoReadJournal.class),
-                getDistributedPub(), null);
+                getDistributedPub(), null, policyEnforcerProvider);
         final TestActorRef<ThingPersistenceActor> underTest = TestActorRef.create(actorSystem, props);
         final ThingPersistenceActor thingPersistenceActor = underTest.underlyingActor();
         final PartialFunction<Object, BoxedUnit> receiveCommand = thingPersistenceActor.receiveCommand();
@@ -2054,7 +2054,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 ThingId thingId = getIdOrThrow(thing);
 
                 ActorRef underTest = createSupervisorActorWithCustomPersistenceActor(thingId,
-                        (thingId1, mongoReadJournal, distributedPub, searchShardRegionProxy) -> FailingInCtorActor.props());
+                        (thingId1, mongoReadJournal, distributedPub, searchShardRegionProxy, policyEnforcerProvider) -> FailingInCtorActor.props());
 
                 CreateThing createThing = CreateThing.of(thing, null, dittoHeaders);
                 underTest.tell(createThing, getRef());
@@ -2094,7 +2094,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 ThingId thingId = getIdOrThrow(thing);
 
                 ActorRef underTest = createSupervisorActorWithCustomPersistenceActor(thingId,
-                        (thingId1, mongoReadJournal, distributedPub, searchShardRegionProxy) -> FailingInCtorActor.props());
+                        (thingId1, mongoReadJournal, distributedPub, searchShardRegionProxy, policyEnforcerProvider) -> FailingInCtorActor.props());
 
                 RetrieveThing retrieveThing = RetrieveThing.of(thingId, dittoHeaders);
                 underTest.tell(retrieveThing, getRef());

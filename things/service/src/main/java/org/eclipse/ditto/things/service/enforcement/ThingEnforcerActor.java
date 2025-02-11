@@ -92,6 +92,8 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotCreata
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotModifiableException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
+import org.eclipse.ditto.things.service.persistence.actors.enrichment.EnrichSignalWithPreDefinedExtraFields;
+import org.eclipse.ditto.things.service.persistence.actors.enrichment.EnrichSignalWithPreDefinedExtraFieldsResponse;
 import org.eclipse.ditto.wot.api.validator.WotThingModelValidator;
 import org.eclipse.ditto.wot.integration.DittoWotIntegration;
 import org.eclipse.ditto.wot.validation.WotThingModelPayloadValidationException;
@@ -191,9 +193,9 @@ public final class ThingEnforcerActor
     }
 
     @Override
-    protected CompletionStage<Signal<?>> performWotBasedSignalValidation(final Signal<?> authorizedSignal
+    protected CompletionStage<Signal<?>> performWotBasedSignalValidation(final Signal<?> signal
     ) {
-        if (authorizedSignal instanceof MessageCommand<?, ?> messageCommand) {
+        if (signal instanceof MessageCommand<?, ?> messageCommand) {
             final var startedSpan = DittoTracing.newPreparedSpan(
                             messageCommand.getDittoHeaders(),
                             SpanOperationName.of("enforce_wot_model message")
@@ -214,12 +216,38 @@ public final class ThingEnforcerActor
                         startedSpan.finish();
                     })
                     .thenApply(Function.identity());
-        } else if (authorizedSignal instanceof MessageCommandResponse<?, ?> messageCommandResponse) {
+        } else if (signal instanceof MessageCommandResponse<?, ?> messageCommandResponse) {
             return doPerformWotBasedMessageCommandResponseValidation(messageCommandResponse)
                     .thenApply(Function.identity());
         } else {
-            return super.performWotBasedSignalValidation(authorizedSignal);
+            return super.performWotBasedSignalValidation(signal);
         }
+    }
+
+    @Override
+    protected CompletionStage<Signal<?>> enrichWithPreDefinedExtraFields(final Signal<?> signal) {
+        if (signal instanceof MessageCommand<?, ?> messageCommand) {
+            return enrichSignalWithPredefinedFieldsAtPersistenceActor(messageCommand)
+                    .thenApply(opt -> opt.orElse(signal));
+        } else {
+            return super.enrichWithPreDefinedExtraFields(signal);
+        }
+    }
+
+    private CompletionStage<Optional<Signal<?>>> enrichSignalWithPredefinedFieldsAtPersistenceActor(
+            final Signal<?> signal
+    ) {
+        return Patterns.ask(getContext().getParent(),
+                new EnrichSignalWithPreDefinedExtraFields(signal), DEFAULT_LOCAL_ASK_TIMEOUT
+        ).thenApply(response -> {
+            if (response instanceof EnrichSignalWithPreDefinedExtraFieldsResponse(Signal<?> enrichedSignal)) {
+                return Optional.of(enrichedSignal);
+            } else if (response instanceof ThingNotAccessibleException) {
+                return Optional.empty();
+            } else {
+                throw new IllegalStateException("expected EnrichSignalWithPreDefinedExtraFieldsResponse, got: " + response);
+            }
+        });
     }
 
     @Override
@@ -687,18 +715,6 @@ public final class ThingEnforcerActor
                 ((MessageCommandResponse<JsonValue, ?>) messageCommandResponse)
                         .getMessage();
 
-        if (message.getPayload().isPresent() && !isJsonMessageContent(message)) {
-            return CompletableFuture.failedFuture(
-                    WotThingModelPayloadValidationException
-                            .newBuilder("Could not validate non-JSON message content type <" +
-                                    message.getContentType().orElse("?") + "> for message response subject " +
-                                    "<" + message.getSubject() + ">"
-                            )
-                            .dittoHeaders(messageCommandResponse.getDittoHeaders())
-                            .build()
-            );
-        }
-
         // lazily only supply JsonValue if validation is enabled for the message:
         final Supplier<JsonValue> messageCommandPayloadSupplier = () -> {
             if (message.getPayload().isPresent() && !isJsonMessageContent(message)) {
@@ -714,9 +730,7 @@ public final class ThingEnforcerActor
             return message.getPayload().orElse(null);
         };
 
-        final MessageDirection messageDirection = message.getDirection();
-        if (messageDirection == MessageDirection.TO &&
-                messageCommandResponse instanceof SendThingMessageResponse<?> sendThingMessageResponse) {
+        if (messageCommandResponse instanceof SendThingMessageResponse<?> sendThingMessageResponse) {
             return resolveThingDefinition()
                     .thenCompose(optThingDefinition -> thingModelValidator.validateThingActionOutput(
                             optThingDefinition.orElse(null),
@@ -726,8 +740,7 @@ public final class ThingEnforcerActor
                             sendThingMessageResponse.getDittoHeaders()
                     ))
                     .thenApply(aVoid -> messageCommandResponse);
-        } else if (messageDirection == MessageDirection.TO &&
-                messageCommandResponse instanceof SendFeatureMessageResponse<?> sendFeatureMessageResponse) {
+        } else if (messageCommandResponse instanceof SendFeatureMessageResponse<?> sendFeatureMessageResponse) {
             final String featureId = sendFeatureMessageResponse.getFeatureId();
             return resolveThingAndFeatureDefinition(featureId)
                     .thenCompose(optDefinitionPair -> thingModelValidator.validateFeatureActionOutput(

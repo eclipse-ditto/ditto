@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors;
 
-
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -85,6 +84,7 @@ import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
 import org.eclipse.ditto.things.service.enforcement.ThingEnforcement;
 import org.eclipse.ditto.things.service.enforcement.ThingEnforcerActor;
 import org.eclipse.ditto.things.service.enforcement.ThingPolicyCreated;
+import org.eclipse.ditto.things.service.persistence.actors.enrichment.EnrichSignalWithPreDefinedExtraFields;
 import org.eclipse.ditto.thingsearch.api.ThingsSearchConstants;
 
 /**
@@ -399,6 +399,14 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
         policyCreatedEvent = null;
     }
 
+    private void enrichSignalWithPreDefinedExtraFields(final EnrichSignalWithPreDefinedExtraFields command) {
+        if (null != persistenceActorChild) {
+            persistenceActorChild.forward(command, getContext());
+        } else {
+            replyUnavailableException(command.signal(), getSender());
+        }
+    }
+
     @Override
     protected ThingId getEntityId() throws Exception {
         return ThingId.of(URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8));
@@ -408,7 +416,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     protected Props getPersistenceActorProps(final ThingId entityId) {
         assert thingPersistenceActorPropsFactory != null;
         return thingPersistenceActorPropsFactory.props(entityId, mongoReadJournal, distributedPubThingEventsForTwin,
-                searchShardRegionProxy);
+                searchShardRegionProxy, policyEnforcerProvider);
     }
 
     @Override
@@ -473,7 +481,9 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
                     log.withCorrelationId(msg.dittoHeaders())
                             .info("ThingPolicyCreated msg received: <{}>", msg.policyId());
                     this.policyCreatedEvent = msg;
-                }).match(RollbackCreatedPolicy.class, this::handleRollbackCreatedPolicy)
+                })
+                .match(RollbackCreatedPolicy.class, this::handleRollbackCreatedPolicy)
+                .match(EnrichSignalWithPreDefinedExtraFields.class, this::enrichSignalWithPreDefinedExtraFields)
                 .build()
                 .orElse(super.activeBehaviour(matchProcessNextTwinMessageBehavior, matchAnyBehavior));
     }

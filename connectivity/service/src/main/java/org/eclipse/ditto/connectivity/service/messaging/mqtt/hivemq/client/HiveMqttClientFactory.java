@@ -115,7 +115,8 @@ final class HiveMqttClientFactory {
         final var mqttConfig = hiveMqttClientProperties.getMqttConfig();
 
         return MqttClient.builder()
-                .serverAddress(getInetSocketAddress(getConnectionUri(hiveMqttClientProperties)))
+                .serverAddress(getInetSocketAddress(getConnectionUri(hiveMqttClientProperties),
+                        hiveMqttClientProperties.getMqttConfig().shouldResolveServerAddress()))
                 .executorConfig(getMqttClientExecutorConfig(mqttConfig.getEventLoopThreads()))
                 .sslConfig(getMqttClientSslConfig(hiveMqttClientProperties).orElse(null))
                 .addConnectedListener(getConnectedListener(
@@ -134,8 +135,9 @@ final class HiveMqttClientFactory {
         return sshTunnelState.getURI(hiveMqttClientProperties.getMqttConnection());
     }
 
-    private static InetSocketAddress getInetSocketAddress(final URI connectionUri) {
-        return new InetSocketAddress(connectionUri.getHost(), connectionUri.getPort());
+    private static InetSocketAddress getInetSocketAddress(final URI connectionUri, final boolean shouldResolveServerAddress) {
+        return shouldResolveServerAddress ? new InetSocketAddress(connectionUri.getHost(), connectionUri.getPort()) :
+                InetSocketAddress.createUnresolved(connectionUri.getHost(), connectionUri.getPort());
     }
 
     private static MqttClientExecutorConfig getMqttClientExecutorConfig(final int eventLoopThreadNumber) {

@@ -112,12 +112,7 @@ final class KafkaMessageTransformer {
                 ).correlationId(correlationId)
                 .connectionId(connectionId)
                 .start();
-        messageHeaders = startedSpan.propagateContext(DittoHeaders.of(messageHeaders)
-                .toBuilder()
-                .removeHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey())
-                .build()
-                .asCaseSensitiveMap()
-        );
+        messageHeaders = startedSpan.propagateContext(messageHeaders);
 
         try {
             final String key = consumerRecord.key();

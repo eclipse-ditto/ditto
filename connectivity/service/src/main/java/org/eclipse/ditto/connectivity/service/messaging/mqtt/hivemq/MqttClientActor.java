@@ -74,9 +74,8 @@ import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
 import com.hivemq.client.mqtt.lifecycle.MqttDisconnectSource;
 import com.typesafe.config.Config;
 
-import scala.concurrent.ExecutionContextExecutor;
-
 import io.reactivex.disposables.Disposable;
+import scala.concurrent.ExecutionContextExecutor;
 
 /**
  * Actor for handling connection to an MQTT broker for protocol versions 3 or 5.
@@ -89,6 +88,7 @@ public final class MqttClientActor extends BaseClientActor {
     private final GenericMqttClientFactory genericMqttClientFactory;
     @Nullable private GenericMqttClient genericMqttClient;
     private final AtomicBoolean automaticReconnect;
+    private final RetryTimeoutStrategy retryTimeoutStrategy;
     @Nullable private ActorRef publishingActorRef;
     private final List<ActorRef> mqttConsumerActorRefs;
     @Nullable private Disposable unsolicitedPublishesAutoAckSubscription;
@@ -105,6 +105,8 @@ public final class MqttClientActor extends BaseClientActor {
         final var connectivityConfig = connectivityConfig();
         final var connectionConfig = connectivityConfig.getConnectionConfig();
         mqttConfig = connectionConfig.getMqttConfig();
+        retryTimeoutStrategy = RetryTimeoutStrategy.newDuplicationRetryTimeoutStrategy(
+                mqttConfig.getReconnectBackOffConfig().getTimeoutConfig());
 
         mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection, mqttConfig);
 
@@ -312,7 +314,6 @@ public final class MqttClientActor extends BaseClientActor {
     private GenericMqttClientDisconnectedListener getClientDisconnectedListener() {
         return (context, clientRole) -> {
             final var mqttClientReconnector = context.getReconnector();
-            final var retryTimeoutStrategy = getRetryTimeoutStrategy();
 
             if (0 == mqttClientReconnector.getAttempts()) {
                 retryTimeoutStrategy.reset();
@@ -361,11 +362,6 @@ public final class MqttClientActor extends BaseClientActor {
                 mqttClientReconnector.reconnect(reconnect);
             }
         };
-    }
-
-    private RetryTimeoutStrategy getRetryTimeoutStrategy() {
-        final var reconnectBackOffConfig = mqttConfig.getReconnectBackOffConfig();
-        return RetryTimeoutStrategy.newDuplicationRetryTimeoutStrategy(reconnectBackOffConfig.getTimeoutConfig());
     }
 
     private static boolean isMqttClientInConnectingState(final MqttClientConfig mqttClientConfig) {

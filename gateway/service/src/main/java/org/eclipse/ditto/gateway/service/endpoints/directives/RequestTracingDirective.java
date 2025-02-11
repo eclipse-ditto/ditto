@@ -172,7 +172,7 @@ public final class RequestTracingDirective {
     ) {
         final Set<String> headerNames = new HashSet<>();
         final Map<String, String> httpHeaders = StreamSupport.stream(originalRequest.getHeaders().spliterator(), false)
-                .map(httpHeader -> {
+                .peek(httpHeader -> {
                     if (!headerNames.add(httpHeader.name())) {
                         throw GatewayDuplicateHeaderException.newBuilder(httpHeader.name())
                                 .dittoHeaders(DittoHeaders.newBuilder()
@@ -180,11 +180,7 @@ public final class RequestTracingDirective {
                                         .build()
                                 ).build();
                     }
-                    return httpHeader;
                 })
-                .filter(httpHeader ->
-                        !DittoHeaderDefinition.W3C_TRACEPARENT.getKey().equals(httpHeader.name())
-                )
                 .collect(Collectors.toMap(HttpHeader::name, HttpHeader::value, (dv1, dv2) -> {
                     throw GatewayDuplicateHeaderException.newBuilder()
                             .dittoHeaders(DittoHeaders.newBuilder()

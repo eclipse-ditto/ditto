@@ -41,7 +41,6 @@ import org.apache.pekko.stream.javadsl.Source;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.base.model.signals.commands.Command;
@@ -147,11 +146,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActorWithShutdownB
                 .tag("size", Integer.toString(thingIds.size()))
                 .start();
         final Command<?> tracedCommand = command.setDittoHeaders(
-                DittoHeaders.of(startedSpan.propagateContext(
-                        dittoHeaders.toBuilder()
-                                .removeHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey())
-                                .build()
-                ))
+                DittoHeaders.of(startedSpan.propagateContext(dittoHeaders))
         );
 
         final DistributedPubSubMediator.Publish pubSubMsg =

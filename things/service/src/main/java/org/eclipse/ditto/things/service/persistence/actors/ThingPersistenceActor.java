@@ -13,6 +13,8 @@
 package org.eclipse.ditto.things.service.persistence.actors;
 
 import java.time.Instant;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
@@ -27,6 +29,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.LiveChannelTimeoutStrategy;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
@@ -40,6 +43,8 @@ import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
+import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingBuilder;
@@ -55,6 +60,9 @@ import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandRe
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
 import org.eclipse.ditto.things.service.common.config.ThingConfig;
+import org.eclipse.ditto.things.service.persistence.actors.enrichment.EnrichSignalWithPreDefinedExtraFields;
+import org.eclipse.ditto.things.service.persistence.actors.enrichment.EnrichSignalWithPreDefinedExtraFieldsResponse;
+import org.eclipse.ditto.things.service.persistence.actors.enrichment.PreDefinedExtraFieldsEnricher;
 import org.eclipse.ditto.things.service.persistence.actors.strategies.commands.ThingCommandStrategies;
 import org.eclipse.ditto.things.service.persistence.actors.strategies.events.ThingEventStrategies;
 
@@ -85,12 +93,15 @@ public final class ThingPersistenceActor
     private final ThingConfig thingConfig;
     private final DistributedPub<ThingEvent<?>> distributedPub;
     @Nullable private final ActorRef searchShardRegionProxy;
+    private final PreDefinedExtraFieldsEnricher eventPreDefinedExtraFieldsEnricher;
+    private final PreDefinedExtraFieldsEnricher messagePreDefinedExtraFieldsEnricher;
 
     @SuppressWarnings("unused")
     private ThingPersistenceActor(final ThingId thingId,
             final MongoReadJournal mongoReadJournal,
             final DistributedPub<ThingEvent<?>> distributedPub,
-            @Nullable final ActorRef searchShardRegionProxy) {
+            @Nullable final ActorRef searchShardRegionProxy,
+            final PolicyEnforcerProvider policyEnforcerProvider) {
 
         super(thingId, mongoReadJournal);
         final DittoThingsConfig thingsConfig = DittoThingsConfig.of(
@@ -99,6 +110,14 @@ public final class ThingPersistenceActor
         thingConfig = thingsConfig.getThingConfig();
         this.distributedPub = distributedPub;
         this.searchShardRegionProxy = searchShardRegionProxy;
+        this.eventPreDefinedExtraFieldsEnricher = new PreDefinedExtraFieldsEnricher(
+                thingConfig.getEventConfig().getPredefinedExtraFieldsConfigs(),
+                policyEnforcerProvider
+        );
+        this.messagePreDefinedExtraFieldsEnricher = new PreDefinedExtraFieldsEnricher(
+                thingConfig.getMessageConfig().getPredefinedExtraFieldsConfigs(),
+                policyEnforcerProvider
+        );
     }
 
     /**
@@ -107,15 +126,19 @@ public final class ThingPersistenceActor
      * @param thingId the Thing ID this Actor manages.
      * @param mongoReadJournal the ReadJournal used for gaining access to historical values of the thing.
      * @param distributedPub the distributed-pub access to publish thing events.
+     * @param searchShardRegionProxy the proxy of the shard region of search updaters.
+     * @param policyEnforcerProvider a provider for the used Policy {@code Enforcer} which "guards" the
+     * ThingPersistenceActor for applying access control.
      * @return the Pekko configuration Props object
      */
     public static Props props(final ThingId thingId,
             final MongoReadJournal mongoReadJournal,
             final DistributedPub<ThingEvent<?>> distributedPub,
-            @Nullable final ActorRef searchShardRegionProxy) {
-
+            @Nullable final ActorRef searchShardRegionProxy,
+            final PolicyEnforcerProvider policyEnforcerProvider
+    ) {
         return Props.create(ThingPersistenceActor.class, thingId, mongoReadJournal, distributedPub,
-                searchShardRegionProxy);
+                searchShardRegionProxy, policyEnforcerProvider);
     }
 
     @Override
@@ -210,6 +233,14 @@ public final class ThingPersistenceActor
     }
 
     @Override
+    protected Receive matchAnyAfterInitialization() {
+        return ReceiveBuilder.create()
+                .match(EnrichSignalWithPreDefinedExtraFields.class, this::enrichSignalWithPreDefinedExtraFields)
+                .build()
+                .orElse(super.matchAnyAfterInitialization());
+    }
+
+    @Override
     protected Receive matchAnyWhenDeleted() {
         return ReceiveBuilder.create()
                 .match(RetrieveThing.class, this::handleByCommandStrategy)
@@ -244,10 +275,24 @@ public final class ThingPersistenceActor
 
     @Override
     protected void publishEvent(@Nullable final Thing previousEntity, final ThingEvent<?> event) {
-        distributedPub.publishWithAcks(event, entityId, ACK_EXTRACTOR, getSelf());
-        if (searchShardRegionProxy != null) {
-            searchShardRegionProxy.tell(event, getSelf());
-        }
+        final CompletionStage<ThingEvent<?>> stage = eventPreDefinedExtraFieldsEnricher.enrichWithPredefinedExtraFields(
+                entityId,
+                entity,
+                Optional.ofNullable(previousEntity).flatMap(Thing::getPolicyId).orElse(null),
+                event
+        );
+        stage.whenComplete((modifiedEvent, ex) -> {
+            final ThingEvent<?> eventToPublish;
+            if (ex != null) {
+                eventToPublish = event;
+            } else {
+                eventToPublish = modifiedEvent;
+            }
+            distributedPub.publishWithAcks(eventToPublish, entityId, ACK_EXTRACTOR, getSelf());
+            if (searchShardRegionProxy != null) {
+                searchShardRegionProxy.tell(eventToPublish, getSelf());
+            }
+        });
     }
 
     @Override
@@ -277,4 +322,32 @@ public final class ThingPersistenceActor
         return thingBuilder.build();
     }
 
+    private void enrichSignalWithPreDefinedExtraFields(
+            final EnrichSignalWithPreDefinedExtraFields enrichSignalWithPreDefinedExtraFields
+    ) {
+        final ActorRef sender = getSender();
+        final Signal<?> signal = enrichSignalWithPreDefinedExtraFields.signal();
+        final CompletionStage<Signal<?>> stage;
+        switch (signal) {
+            case MessageCommand<?, ?> messageCommand ->
+                stage = messagePreDefinedExtraFieldsEnricher.enrichWithPredefinedExtraFields(
+                        entityId,
+                        entity,
+                        Optional.ofNullable(entity).flatMap(Thing::getPolicyId).orElse(null),
+                        messageCommand
+                );
+            case ThingEvent<?> thingEvent ->
+                stage = eventPreDefinedExtraFieldsEnricher.enrichWithPredefinedExtraFields(
+                        entityId,
+                        entity,
+                        Optional.ofNullable(entity).flatMap(Thing::getPolicyId).orElse(null),
+                        thingEvent
+                );
+            default ->
+                stage = CompletableFuture.completedStage(signal);
+        }
+        stage.thenAccept(modifiedSignal ->
+                sender.tell(new EnrichSignalWithPreDefinedExtraFieldsResponse(modifiedSignal), getSelf())
+        );
+    }
 }

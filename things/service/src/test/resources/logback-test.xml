@@ -20,7 +20,7 @@
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%date{ISO8601} %-5level [%X{correlation-id}] %logger{20‚} - %msg%n%rEx</pattern>
+            <pattern>%date{ISO8601} %-5level [%X{correlation-id}] %logger{20} - %msg%n%rEx</pattern>
         </encoder>
     </appender>
 

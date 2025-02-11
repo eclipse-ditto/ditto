@@ -482,12 +482,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                     .tag(SpanTagKey.CONNECTION_TARGET.getTagForValue(publishTarget.toString()))
                     .start();
             final var mappedMessageWithTraceContext =
-                    mappedMessage.withHeaders(startedSpan.propagateContext(
-                            DittoHeaders.newBuilder(mappedMessage.getHeaders())
-                                    .removeHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey())
-                                    .build()
-                                    .asCaseSensitiveMap()
-                    ));
+                    mappedMessage.withHeaders(startedSpan.propagateContext(mappedMessage.getHeaders()));
 
             final CompletionStage<SendResult> responsesFuture = publishMessage(outboundSource,
                     autoAckTarget,

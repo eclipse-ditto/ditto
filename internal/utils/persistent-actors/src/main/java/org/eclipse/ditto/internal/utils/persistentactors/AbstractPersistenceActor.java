@@ -585,8 +585,6 @@ public abstract class AbstractPersistenceActor<
             E extends EventsourcedEvent<? extends E>,
             S extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField>>(E event, BiConsumer<E, S> handler) {}
 
-    ;
-
     /**
      * Persist an event, modify actor state by the event strategy, then invoke the handler.
      *
@@ -730,12 +728,7 @@ public abstract class AbstractPersistenceActor<
                 .start();
 
         final var tracedCommand =
-                command.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(
-                        command.getDittoHeaders()
-                                .toBuilder()
-                                .removeHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey())
-                                .build()
-                        )));
+                command.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(command.getDittoHeaders())));
 
         accessCounter++;
         Result<E> result;

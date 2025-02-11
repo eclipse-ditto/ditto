@@ -58,7 +58,7 @@
 
                 <!-- Encoder is required -->
                 <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-                    <customFields>{"appname":"policies","instance_index":"${INSTANCE_INDEX}"</customFields>
+                    <customFields>{"appname":"policies","instance_index":"${INSTANCE_INDEX}"}</customFields>
                 </encoder>
             </appender>
         </then>
