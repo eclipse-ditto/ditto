@@ -687,18 +687,6 @@ public final class ThingEnforcerActor
                 ((MessageCommandResponse<JsonValue, ?>) messageCommandResponse)
                         .getMessage();
 
-        if (message.getPayload().isPresent() && !isJsonMessageContent(message)) {
-            return CompletableFuture.failedFuture(
-                    WotThingModelPayloadValidationException
-                            .newBuilder("Could not validate non-JSON message content type <" +
-                                    message.getContentType().orElse("?") + "> for message response subject " +
-                                    "<" + message.getSubject() + ">"
-                            )
-                            .dittoHeaders(messageCommandResponse.getDittoHeaders())
-                            .build()
-            );
-        }
-
         // lazily only supply JsonValue if validation is enabled for the message:
         final Supplier<JsonValue> messageCommandPayloadSupplier = () -> {
             if (message.getPayload().isPresent() && !isJsonMessageContent(message)) {
@@ -714,9 +702,7 @@ public final class ThingEnforcerActor
             return message.getPayload().orElse(null);
         };
 
-        final MessageDirection messageDirection = message.getDirection();
-        if (messageDirection == MessageDirection.TO &&
-                messageCommandResponse instanceof SendThingMessageResponse<?> sendThingMessageResponse) {
+        if (messageCommandResponse instanceof SendThingMessageResponse<?> sendThingMessageResponse) {
             return resolveThingDefinition()
                     .thenCompose(optThingDefinition -> thingModelValidator.validateThingActionOutput(
                             optThingDefinition.orElse(null),
@@ -726,8 +712,7 @@ public final class ThingEnforcerActor
                             sendThingMessageResponse.getDittoHeaders()
                     ))
                     .thenApply(aVoid -> messageCommandResponse);
-        } else if (messageDirection == MessageDirection.TO &&
-                messageCommandResponse instanceof SendFeatureMessageResponse<?> sendFeatureMessageResponse) {
+        } else if (messageCommandResponse instanceof SendFeatureMessageResponse<?> sendFeatureMessageResponse) {
             final String featureId = sendFeatureMessageResponse.getFeatureId();
             return resolveThingAndFeatureDefinition(featureId)
                     .thenCompose(optDefinitionPair -> thingModelValidator.validateFeatureActionOutput(
