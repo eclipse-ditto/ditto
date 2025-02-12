@@ -131,13 +131,13 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
                 .thenApply(skeleton -> resolveSkeletonConflicts(
                         existingThing, skeleton,
                         command.isInitializeMissingPropertiesFromDefaults()))
-                .thenApply(mergedThing -> applyMigrationPayload(context,
-                        mergedThing, adjustedMigrationPayload, dittoHeaders, nextRevision, eventTs));
+                .thenApply(patchThing -> applyMigrationPayload(context,
+                        patchThing, adjustedMigrationPayload, dittoHeaders, nextRevision, eventTs));
 
         // 3. Validate and build event response
         final CompletionStage<Pair<Thing, MigrateThingDefinition>> validatedStage = updatedThingStage
-                .thenCompose(mergedThing -> buildValidatedStage(command, existingThing, mergedThing)
-                        .thenApply(migrateThingDefinition -> new Pair<>(mergedThing, migrateThingDefinition)));
+                .thenCompose(patchThing -> buildValidatedStage(command, existingThing, buildValidationPreviewThing(existingThing, patchThing, command))
+                        .thenApply(migrateThingDefinition -> new Pair<>(patchThing, migrateThingDefinition)));
 
         // If Dry Run, return a simulated response without applying changes
         if (isDryRun) {
@@ -166,6 +166,18 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
         return ResultFactory.newMutationResult(command, eventStage, responseStage);
     }
 
+    private Thing buildValidationPreviewThing(final Thing existingThing,
+            final Thing patchThing, final MigrateThingDefinition command){
+        var mergedJson = JsonFactory.mergeJsonValues(patchThing.toJson(), existingThing.toJson()).asObject();
+
+        ThingCommandSizeValidator.getInstance().ensureValidSize(
+                mergedJson::getUpperBoundForStringSize,
+                () -> mergedJson.toString().length(),
+                command::getDittoHeaders);
+
+        return ThingsModelFactory.newThingBuilder(mergedJson)
+                .build();
+    }
     private JsonObject evaluatePatchConditions(final Thing existingThing,
             final JsonObject migrationPayload,
             final Map<ResourceKey, String> patchConditions,
@@ -297,11 +309,15 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
                 continue;
             }
 
-            maybeExistingValue.flatMap(existingValue -> resolveConflictingValues(defaultValue, existingValue))
-                    .ifPresentOrElse(
-                            resolvedValue -> builder.set(key, resolvedValue),
-                            () -> builder.set(field)
-                    );
+            if (maybeExistingValue.isPresent()) {
+                Optional<JsonValue> resolvedValue = resolveConflictingValues(defaultValue, maybeExistingValue.get());
+                if (resolvedValue.isPresent()) {
+                    builder.set(key, resolvedValue.get());
+                }
+            }
+            else {
+                builder.set(field);
+            }
         }
 
         return builder.build();
