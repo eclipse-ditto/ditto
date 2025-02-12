@@ -153,7 +153,9 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
 
         // 4. Apply migration and generate event
         final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(pair -> ThingMigrated.of(
-                pair.first(), nextRevision, eventTs, dittoHeaders,
+                pair.first().toBuilder()
+                        .setId(context.getState())
+                        .build(), nextRevision, eventTs, dittoHeaders,
                 metadata));
 
         final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(pair ->
@@ -337,7 +339,6 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
                 () -> dittoHeaders);
 
         return ThingsModelFactory.newThingBuilder(mergedJson)
-                .setId(context.getState())
                 .setModified(eventTs)
                 .setRevision(nextRevision)
                 .build();
