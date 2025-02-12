@@ -132,7 +132,7 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
                         existingThing, skeleton,
                         command.isInitializeMissingPropertiesFromDefaults()))
                 .thenApply(patchThing -> applyMigrationPayload(context,
-                        patchThing, adjustedMigrationPayload, dittoHeaders, nextRevision, eventTs));
+                        patchThing, adjustedMigrationPayload, nextRevision, eventTs));
 
         // 3. Validate and build event response
         final CompletionStage<Pair<Thing, MigrateThingDefinition>> validatedStage = updatedThingStage
@@ -311,12 +311,16 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
 
             if (maybeExistingValue.isPresent()) {
                 Optional<JsonValue> resolvedValue = resolveConflictingValues(defaultValue, maybeExistingValue.get());
-                if (resolvedValue.isPresent()) {
-                    builder.set(key, resolvedValue.get());
-                }
+                resolvedValue.ifPresent(value -> {
+                    if (!isEmptyObject(value)) {
+                        builder.set(key, value);
+                    }
+                });
             }
             else {
-                builder.set(field);
+                if (!isEmptyObject(defaultValue)) {
+                    builder.set(field);
+                }
             }
         }
 
@@ -339,20 +343,17 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
                 : Optional.empty();
     }
 
-
+    private static boolean isEmptyObject(JsonValue value) {
+        return value.isObject() && value.asObject().isEmpty();
+    }
 
     private Thing applyMigrationPayload(final Context<ThingId> context, final Thing thing,
             final JsonObject migrationPayload,
-            final DittoHeaders dittoHeaders,
             final long nextRevision,
             final Instant eventTs) {
         final JsonObject thingJson = thing.toJson(FieldType.all());
         final JsonObject mergedJson = JsonFactory.newObject(migrationPayload, thingJson);
         context.getLog().debug("Thing updated from migrated JSON: {}", mergedJson);
-        ThingCommandSizeValidator.getInstance().ensureValidSize(
-                mergedJson::getUpperBoundForStringSize,
-                () -> mergedJson.toString().length(),
-                () -> dittoHeaders);
 
         return ThingsModelFactory.newThingBuilder(mergedJson)
                 .setModified(eventTs)
