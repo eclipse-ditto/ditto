@@ -10,14 +10,12 @@
 # SPDX-License-Identifier: EPL-2.0
 type: object
 description: JSON payload to migrate the definition of a Thing.
-
 properties:
   thingDefinitionUrl:
     type: string
     format: uri
     description: "The URL of the new Thing definition to be applied."
     example: "https://models.example.com/thing-definition-1.0.0.tm.jsonld"
-
   migrationPayload:
     type: object
     description: "Optional migration payload with updates to attributes and features."
@@ -45,7 +43,6 @@ properties:
                 temperature:
                   value: 23.5
                   unit: "DEGREE_CELSIUS"
-
   patchConditions:
     type: object
     description: "Optional conditions to apply the migration only if the existing thing matches the specified values."
@@ -53,12 +50,10 @@ properties:
       type: string
     example:
       thing:/features/thermostat: "not(exists(/features/thermostat))"
-
   initializeMissingPropertiesFromDefaults:
     type: boolean
     description: "Flag indicating whether missing properties should be initialized with default values."
     example: true
     default: false
-
 required:
   - thingDefinitionUrl

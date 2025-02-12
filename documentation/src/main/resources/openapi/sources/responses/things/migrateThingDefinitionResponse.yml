@@ -10,7 +10,6 @@
 # SPDX-License-Identifier: EPL-2.0
 type: object
 description: Response payload after applying or simulating a migration to a Thing.
-
 properties:
   thingId:
     type: string
@@ -20,21 +19,19 @@ properties:
     description: The patch containing updates to the Thing.
     properties:
       definition:
-        $ref: 'definition.yml'
+        $ref: '../../schemas/things/definition.yml'
       attributes:
-        $ref: 'attributes.yml'
+        $ref: '../../schemas/things/attributes.yml'
       features:
-        $ref: '../features/features.yml'
-
+        $ref: '../../schemas/features/features.yml'
   mergeStatus:
     type: string
     description: |
       Indicates the result of the migration process.
       - `APPLIED`: The migration was successfully applied.
       - `DRY_RUN`: The migration result was calculated but not applied.
-    enum: [APPLIED, DRY_RUN]
+    enum: [ APPLIED, DRY_RUN ]
     example: "APPLIED"
-
 required:
   - thingId
   - patch

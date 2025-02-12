@@ -65,20 +65,20 @@ post:
     content:
       application/json:
         schema:
-          $ref: '../../schemas/things/migrateThingDefinitionRequest.yml'
+          $ref: '../../requests/things/migrateThingDefinitionRequest.yml'
   responses:
     '200':
       description: The thing definition was successfully updated, and the updated Thing is returned.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/things/migrateThingDefinitionResponse.yml'
+            $ref: '../../responses/things/migrateThingDefinitionResponse.yml'
     '202':
       description: Dry-run successful. The migration result is returned without applying changes.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/things/migrateThingDefinitionResponse.yml'
+            $ref: '../../responses/things/migrateThingDefinitionResponse.yml'
     '400':
       description: The request could not be processed due to invalid input.
       content:
