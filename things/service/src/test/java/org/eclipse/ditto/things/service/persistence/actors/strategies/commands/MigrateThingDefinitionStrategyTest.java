@@ -14,8 +14,7 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 
-
-import com.typesafe.config.ConfigFactory;
+import java.util.Collections;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -34,6 +33,8 @@ import org.eclipse.ditto.things.model.signals.events.ThingMigrated;
 import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.typesafe.config.ConfigFactory;
 
 /**
  * Unit test for {@link MigrateThingDefinitionStrategy} with injected mock of WotThingSkeletonGenerator.
@@ -65,7 +66,7 @@ public final class MigrateThingDefinitionStrategyTest extends AbstractCommandStr
                 thingId,
                 thingDefinitionUrl,
                 migrationPayload,
-                null,
+                Collections.emptyMap(),
                 true,
                 DittoHeaders.empty()
         );
