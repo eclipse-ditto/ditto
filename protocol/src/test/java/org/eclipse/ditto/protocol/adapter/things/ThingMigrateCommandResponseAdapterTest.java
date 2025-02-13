@@ -52,9 +52,6 @@ public class ThingMigrateCommandResponseAdapterTest extends LiveTwinTest impleme
     @Test
     public void migrateThingResponseFromAdaptable() {
         final TopicPath topicPath = topicPath(TopicPath.Action.MIGRATE);
-
-
-
         final MigrateThingDefinitionResponse migrateResponse = MigrateThingDefinitionResponse.applied(
                 TestConstants.THING_ID,
                 patch,
@@ -63,7 +60,7 @@ public class ThingMigrateCommandResponseAdapterTest extends LiveTwinTest impleme
 
         final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(JsonPointer.empty())
-                        .withValue(migrateResponse.getEntity().get())
+                        .withValue(migrateResponse.toJson())
                         .withStatus(HttpStatus.OK)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)

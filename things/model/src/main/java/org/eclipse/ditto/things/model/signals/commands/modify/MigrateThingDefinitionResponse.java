@@ -273,7 +273,11 @@ public final class MigrateThingDefinitionResponse extends AbstractCommandRespons
 
     @Override
     public Optional<JsonValue> getEntity(JsonSchemaVersion schemaVersion) {
-        return Optional.of(this.toJson());
+        return Optional.of(JsonObject.newBuilder()
+                .set(JsonFields.JSON_THING_ID, thingId.toString())
+                .set(JsonFields.JSON_PATCH, patch)
+                .set(JsonFields.JSON_MERGE_STATUS, mergeStatus.name())
+                .build());
     }
 
     @Override
