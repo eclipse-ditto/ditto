@@ -168,7 +168,7 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
 
     private Thing buildValidationPreviewThing(final Thing existingThing,
             final Thing patchThing, final MigrateThingDefinition command){
-        var mergedJson = JsonFactory.mergeJsonValues(patchThing.toJson(), existingThing.toJson()).asObject();
+       final var mergedJson = JsonFactory.mergeJsonValues(patchThing.toJson(), existingThing.toJson()).asObject();
 
         ThingCommandSizeValidator.getInstance().ensureValidSize(
                 mergedJson::getUpperBoundForStringSize,
@@ -250,6 +250,7 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
 
     private Thing extractDefinitions(final Thing thing) {
         var thingBuilder = ThingsModelFactory.newThingBuilder();
+        thingBuilder.setDefinition(thing.getDefinition().orElseThrow());
         thing.getFeatures().orElseGet(ThingsModelFactory::emptyFeatures).forEach(feature -> {
             FeatureDefinition featureDefinition = feature.getDefinition().orElse(null);
             thingBuilder.setFeature(feature.getId(), featureDefinition, null);
