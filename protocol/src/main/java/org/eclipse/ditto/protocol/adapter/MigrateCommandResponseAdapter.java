@@ -21,7 +21,7 @@ import java.util.Set;
 /**
  * An {@code Adapter} mixin for merge command responses.
  *
- * @since 2.0.0
+ * @since 3.7.0
  */
 public interface MigrateCommandResponseAdapter extends Adapter<MigrateThingDefinitionResponse> {
 

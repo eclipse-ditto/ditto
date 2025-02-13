@@ -13,15 +13,16 @@
 package org.eclipse.ditto.protocol.mapper;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.Payload;
 import org.eclipse.ditto.protocol.PayloadBuilder;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.TopicPathBuilder;
 import org.eclipse.ditto.protocol.UnknownCommandResponseException;
-import org.eclipse.ditto.things.model.signals.commands.modify.MergeThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.MigrateThingDefinitionResponse;
 
-final class ThingMigrateResponseSignalMapper extends AbstractModifySignalMapper<MigrateThingDefinitionResponse>
+final class ThingMigrateResponseSignalMapper extends AbstractCommandSignalMapper<MigrateThingDefinitionResponse>
         implements ResponseSignalMapper {
 
     @Override
@@ -49,11 +50,25 @@ final class ThingMigrateResponseSignalMapper extends AbstractModifySignalMapper<
     @Override
     void enhancePayloadBuilder(final MigrateThingDefinitionResponse commandResponse, final PayloadBuilder payloadBuilder) {
         payloadBuilder.withStatus(commandResponse.getHttpStatus());
+        commandResponse.getEntity(commandResponse.getImplementedSchemaVersion()).ifPresent(payloadBuilder::withValue);
     }
 
     @Override
-    DittoHeaders enhanceHeaders(final MigrateThingDefinitionResponse signal) {
-        return ProtocolFactory.newHeadersWithJsonMergePatchContentType(signal.getDittoHeaders());
+    public Adaptable mapSignalToAdaptable(final MigrateThingDefinitionResponse signal, final TopicPath.Channel channel) {
+
+        validate(signal, channel);
+
+        final PayloadBuilder payloadBuilder = Payload.newBuilder(signal.getResourcePath());
+
+        enhancePayloadBuilder(signal, payloadBuilder);
+
+        final DittoHeaders dittoHeaders = enhanceHeaders(signal);
+
+        return Adaptable.newBuilder(getTopicPath(signal, channel))
+                .withPayload(payloadBuilder
+                        .build())
+                .withHeaders(dittoHeaders)
+                .build();
     }
 
 }

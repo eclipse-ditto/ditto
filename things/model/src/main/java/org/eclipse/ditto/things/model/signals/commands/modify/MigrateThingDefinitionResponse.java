@@ -15,8 +15,10 @@ package org.eclipse.ditto.things.model.signals.commands.modify;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
@@ -67,7 +69,13 @@ public final class MigrateThingDefinitionResponse extends AbstractCommandRespons
     private final JsonObject patch;
     private final MergeStatus mergeStatus;
 
-    private static final HttpStatus HTTP_STATUS = HttpStatus.OK;
+    private static final Set<HttpStatus> HTTP_STATUSES;
+
+    static {
+        final Set<HttpStatus> httpStatuses = new HashSet<>();
+        Collections.addAll(httpStatuses, HttpStatus.OK, HttpStatus.ACCEPTED);
+        HTTP_STATUSES = Collections.unmodifiableSet(httpStatuses);
+    }
 
     private MigrateThingDefinitionResponse(final ThingId thingId,
             final JsonObject patch,
@@ -128,7 +136,7 @@ public final class MigrateThingDefinitionResponse extends AbstractCommandRespons
     public static MigrateThingDefinitionResponse applied(final ThingId thingId,
             final JsonObject patch,
             final DittoHeaders dittoHeaders) {
-        return newInstance(thingId, patch, MergeStatus.APPLIED, HTTP_STATUS, dittoHeaders);
+        return newInstance(thingId, patch, MergeStatus.APPLIED, HttpStatus.OK, dittoHeaders);
     }
 
     /**
@@ -142,7 +150,7 @@ public final class MigrateThingDefinitionResponse extends AbstractCommandRespons
     public static MigrateThingDefinitionResponse dryRun(final ThingId thingId,
             final JsonObject patch,
             final DittoHeaders dittoHeaders) {
-        return newInstance(thingId, patch, MergeStatus.DRY_RUN, HTTP_STATUS, dittoHeaders);
+        return newInstance(thingId, patch, MergeStatus.DRY_RUN, HttpStatus.ACCEPTED, dittoHeaders);
     }
 
     /**
@@ -163,7 +171,7 @@ public final class MigrateThingDefinitionResponse extends AbstractCommandRespons
 
         return new MigrateThingDefinitionResponse(thingId, patch, mergeStatus,
                 CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
-                        Collections.singleton(HTTP_STATUS),
+                        HTTP_STATUSES,
                         MigrateThingDefinitionResponse.class),
                 dittoHeaders);
     }
@@ -265,11 +273,7 @@ public final class MigrateThingDefinitionResponse extends AbstractCommandRespons
 
     @Override
     public Optional<JsonValue> getEntity(JsonSchemaVersion schemaVersion) {
-        return Optional.of(JsonObject.newBuilder()
-                .set(JsonFields.JSON_THING_ID, thingId.toString())
-                .set(JsonFields.JSON_PATCH, patch)
-                .set(JsonFields.JSON_MERGE_STATUS, mergeStatus.name())
-                .build());
+        return Optional.of(this.toJson());
     }
 
     @Override

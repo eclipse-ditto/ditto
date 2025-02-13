@@ -585,23 +585,20 @@ public final class ThingsRoute extends AbstractRoute {
             final ThingId thingId) {
         return rawPathPrefix(PathMatchers.slash().concat(PATH_MIGRATE_DEFINITION), () ->
                 pathEndOrSingleSlash(() ->
-                        // POST /things/<thingId>/migrateDefinition?dry-run=false
-                        parameterOptional("dry-run", dryRun ->
-                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
-                                        payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource, payload -> {
-                                            final JsonObject inputJson =
-                                                    wrapJsonRuntimeException(() -> JsonFactory.newObject(payload));
-                                            final JsonObject updatedJson = addThingIdAndDryRun(inputJson, thingId);
-                                            return MigrateThingDefinition.fromJson(updatedJson, dittoHeaders.toBuilder()
-                                                    .putHeader(DittoHeaderDefinition.DRY_RUN.getKey(),dryRun.orElse(Boolean.FALSE.toString()))
-                                                    .build());
-                                        })
-                                )
-                        ))
+                        // POST /things/<thingId>/migrateDefinition
+                        ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                                payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource, payload -> {
+                                    final JsonObject inputJson =
+                                            wrapJsonRuntimeException(() -> JsonFactory.newObject(payload));
+                                    final JsonObject updatedJson = addThingId(inputJson, thingId);
+                                    return MigrateThingDefinition.fromJson(updatedJson, dittoHeaders);
+                                })
+                        )
+                )
         );
     }
 
-    private static JsonObject addThingIdAndDryRun(final JsonObject inputJson, final ThingId thingId) {
+    private static JsonObject addThingId(final JsonObject inputJson, final ThingId thingId) {
         checkNotNull(inputJson, "inputJson");
         return JsonFactory.newObjectBuilder(inputJson)
                 .set(ThingCommand.JsonFields.JSON_THING_ID, thingId.toString())

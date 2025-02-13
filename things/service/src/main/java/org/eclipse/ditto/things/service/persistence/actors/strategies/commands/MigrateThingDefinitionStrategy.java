@@ -117,7 +117,7 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
             @Nullable final Metadata metadata) {
 
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final boolean isDryRun = dittoHeaders.isDryRun();
+        final boolean isDryRun = dittoHeaders.isExternalDryRun();
 
         // 1. Evaluate Patch Conditions and modify the migrationPayload
         final JsonObject adjustedMigrationPayload = evaluatePatchConditions(
