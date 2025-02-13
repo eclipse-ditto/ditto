@@ -47,24 +47,25 @@ public final class ThingMigrateCommandMappingStrategies extends AbstractThingMap
     }
 
     private static MigrateThingDefinition migrateThingDefinition(final Adaptable adaptable) {
-        JsonObject payloadObject = adaptable.getPayload()
+        final JsonObject payloadObject = adaptable.getPayload()
                 .getValue()
                 .orElseGet(JsonFactory::newObject)
                 .asObject();
-        ThingId thingId = thingIdFrom(adaptable);
-        String thingDefinitionUrl = payloadObject.getValueOrThrow(MigrateThingDefinition.JsonFields.JSON_THING_DEFINITION_URL);
+        final ThingId thingId = thingIdFrom(adaptable);
+        final String thingDefinitionUrl = payloadObject.getValueOrThrow(MigrateThingDefinition.JsonFields.JSON_THING_DEFINITION_URL);
         final JsonObject migrationPayload = payloadObject.getValue(MigrateThingDefinition.JsonFields.JSON_MIGRATION_PAYLOAD)
                 .map(JsonValue::asObject).orElse(JsonFactory.newObject());
         final JsonObject patchConditionsJson = payloadObject.getValue(MigrateThingDefinition.JsonFields.JSON_PATCH_CONDITIONS)
                 .map(JsonValue::asObject).orElse(JsonFactory.newObject());
-        Map<ResourceKey, String> patchConditions = patchConditionsJson.stream()
+        final Map<ResourceKey, String> patchConditions = patchConditionsJson.stream()
                 .collect(Collectors.toMap(
                         field -> ResourceKey.newInstance(field.getKey()),
                         field -> field.getValue().asString()
                 ));
 
-        Boolean initializeMissingPropertiesFromDefaults = payloadObject.getValue(MigrateThingDefinition.JsonFields.JSON_INITIALIZE_MISSING_PROPERTIES_FROM_DEFAULTS)
-                .map(value -> value.booleanValue()).orElse(false);
+        final boolean initializeMissingPropertiesFromDefaults = payloadObject
+                .getValue(MigrateThingDefinition.JsonFields.JSON_INITIALIZE_MISSING_PROPERTIES_FROM_DEFAULTS)
+                .orElse(false);
 
         return MigrateThingDefinition.of(
                 thingId,

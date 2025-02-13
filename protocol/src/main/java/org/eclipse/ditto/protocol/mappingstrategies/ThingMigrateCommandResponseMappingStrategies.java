@@ -12,18 +12,18 @@
  */
 package org.eclipse.ditto.protocol.mappingstrategies;
 
+import java.util.Collections;
+import java.util.Map;
+
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.JsonifiableMapper;
 import org.eclipse.ditto.things.model.signals.commands.modify.MigrateThingDefinitionResponse;
 
-import javax.annotation.Nullable;
-
-import java.util.Collections;
-import java.util.Map;
-
 /**
- * Defines mapping strategies (map from signal type to JsonifiableMapper) for thing modify command responses.
+ * Defines mapping strategies for the {@code MigrateThingDefinitionResponse} command response.
  */
 final class ThingMigrateCommandResponseMappingStrategies implements MappingStrategies<MigrateThingDefinitionResponse> {
 
@@ -37,12 +37,14 @@ final class ThingMigrateCommandResponseMappingStrategies implements MappingStrat
     }
 
     private static Map<String, JsonifiableMapper<MigrateThingDefinitionResponse>> initMappingStrategies() {
-        final AdaptableToSignalMapper<MigrateThingDefinitionResponse> mapper = AdaptableToSignalMapper.of(MigrateThingDefinitionResponse.TYPE,
-                context -> {
-                    final Adaptable adaptable = context.getAdaptable();
-                    final JsonObject payload = adaptable.getPayload().getValue().orElse(JsonObject.empty()).asObject();
-                    return MigrateThingDefinitionResponse.fromJson(payload, context.getDittoHeaders());
-                });
+        final AdaptableToSignalMapper<MigrateThingDefinitionResponse> mapper =
+                AdaptableToSignalMapper.of(MigrateThingDefinitionResponse.TYPE,
+                        context -> {
+                            final Adaptable adaptable = context.getAdaptable();
+                            final JsonObject payload =
+                                    adaptable.getPayload().getValue().orElse(JsonObject.empty()).asObject();
+                            return MigrateThingDefinitionResponse.fromJson(payload, context.getDittoHeaders());
+                        });
         return Collections.singletonMap(mapper.getSignalType(), mapper);
     }
 

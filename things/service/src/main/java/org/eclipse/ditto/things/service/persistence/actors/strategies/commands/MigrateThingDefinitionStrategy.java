@@ -136,7 +136,8 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
 
         // 3. Validate and build event response
         final CompletionStage<Pair<Thing, MigrateThingDefinition>> validatedStage = updatedThingStage
-                .thenCompose(patchThing -> buildValidatedStage(command, existingThing, buildValidationPreviewThing(existingThing, patchThing, command))
+                .thenCompose(patchThing -> buildValidatedStage(command, existingThing,
+                        buildValidationPreviewThing(existingThing, patchThing, command))
                         .thenApply(migrateThingDefinition -> new Pair<>(patchThing, migrateThingDefinition)));
 
         // If Dry Run, return a simulated response without applying changes
@@ -167,8 +168,8 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
     }
 
     private Thing buildValidationPreviewThing(final Thing existingThing,
-            final Thing patchThing, final MigrateThingDefinition command){
-       final var mergedJson = JsonFactory.mergeJsonValues(patchThing.toJson(), existingThing.toJson()).asObject();
+            final Thing patchThing, final MigrateThingDefinition command) {
+        final var mergedJson = JsonFactory.mergeJsonValues(patchThing.toJson(), existingThing.toJson()).asObject();
 
         ThingCommandSizeValidator.getInstance().ensureValidSize(
                 mergedJson::getUpperBoundForStringSize,
@@ -178,6 +179,7 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
         return ThingsModelFactory.newThingBuilder(mergedJson)
                 .build();
     }
+
     private JsonObject evaluatePatchConditions(final Thing existingThing,
             final JsonObject migrationPayload,
             final Map<ResourceKey, String> patchConditions,
@@ -234,7 +236,7 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
                         dittoHeaders
                 )
                 .thenApply(optionalSkeleton -> {
-                    Thing skeleton = optionalSkeleton.orElseThrow(() ->
+                    final Thing skeleton = optionalSkeleton.orElseThrow(() ->
                             SkeletonGenerationFailedException.newBuilder(command.getEntityId())
                                     .dittoHeaders(command.getDittoHeaders())
                                     .build()
@@ -245,7 +247,6 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
                             .build();
                 });
     }
-
 
 
     private Thing extractDefinitions(final Thing thing) {
@@ -265,8 +266,8 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
      * If initialization is disabled, only definitions from the skeleton are extracted. Otherwise, conflicting
      * fields are removed, and a new Thing is created with the refined values.
      *
-     * @param existingThing        The existing Thing to compare against.
-     * @param skeletonThing        The skeleton Thing containing default values.
+     * @param existingThing The existing Thing to compare against.
+     * @param skeletonThing The skeleton Thing containing default values.
      * @param isInitializeProperties A flag indicating whether properties should be initialized.
      * @return A new Thing with conflicts resolved and properties optionally initialized.
      */
@@ -289,7 +290,7 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
      * object, the function will recursively filter out conflicting values. If a field does not exist in the
      * existing values, it is retained from the default values.
      *
-     * @param defaultValues  The JsonObject containing the default values.
+     * @param defaultValues The JsonObject containing the default values.
      * @param existingValues The JsonObject containing the existing values to compare against.
      * @return A new JsonObject with conflicts removed, preserving necessary fields.
      */
@@ -317,8 +318,7 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
                         builder.set(key, value);
                     }
                 });
-            }
-            else {
+            } else {
                 if (!isEmptyObject(defaultValue)) {
                     builder.set(field);
                 }
@@ -334,17 +334,18 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
      * to recursively filter out conflicting values. Otherwise, it returns an empty Optional,
      * indicating that the value should not be retained.
      *
-     * @param defaultValue  The JsonValue from the default values object.
+     * @param defaultValue The JsonValue from the default values object.
      * @param existingValue The JsonValue from the existing values object.
      * @return An Optional containing a filtered JsonObject if both values are objects; otherwise, an empty Optional.
      */
-    private static Optional<JsonValue> resolveConflictingValues(final JsonValue defaultValue, final JsonValue existingValue) {
+    private static Optional<JsonValue> resolveConflictingValues(final JsonValue defaultValue,
+            final JsonValue existingValue) {
         return (defaultValue.isObject() && existingValue.isObject())
                 ? Optional.of(removeConflicts(defaultValue.asObject(), existingValue.asObject()))
                 : Optional.empty();
     }
 
-    private static boolean isEmptyObject(JsonValue value) {
+    private static boolean isEmptyObject(final JsonValue value) {
         return value.isObject() && value.asObject().isEmpty();
     }
 

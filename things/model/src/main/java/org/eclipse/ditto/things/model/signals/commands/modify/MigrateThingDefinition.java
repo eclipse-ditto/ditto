@@ -27,7 +27,6 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommand;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.base.model.signals.UnsupportedSchemaVersionException;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
 import org.eclipse.ditto.json.JsonFactory;
@@ -77,8 +76,7 @@ public final class MigrateThingDefinition extends AbstractCommand<MigrateThingDe
         this.thingId = checkNotNull(thingId, "thingId");
         this.thingDefinitionUrl = checkNotNull(thingDefinitionUrl, "thingDefinitionUrl");
         this.migrationPayload = checkJsonSize(checkNotNull(migrationPayload, "migrationPayload"), dittoHeaders);
-        this.patchConditions =
-                Collections.unmodifiableMap(patchConditions != null ? patchConditions : Collections.emptyMap());
+        this.patchConditions = Collections.unmodifiableMap(checkNotNull(patchConditions, "patchConditions"));
         this.initializeMissingPropertiesFromDefaults = initializeMissingPropertiesFromDefaults;
         checkSchemaVersion();
     }
@@ -124,8 +122,9 @@ public final class MigrateThingDefinition extends AbstractCommand<MigrateThingDe
                         field -> field.getValue().asString()
                 ));
 
-        final boolean initializeMissingPropertiesFromDefaults = jsonObject.getValue(JsonFields.JSON_INITIALIZE_MISSING_PROPERTIES_FROM_DEFAULTS)
-                .orElse(false);
+        final boolean initializeMissingPropertiesFromDefaults =
+                jsonObject.getValue(JsonFields.JSON_INITIALIZE_MISSING_PROPERTIES_FROM_DEFAULTS)
+                        .orElse(false);
 
         return new MigrateThingDefinition(
                 ThingId.of(thingIdStr),
@@ -191,7 +190,8 @@ public final class MigrateThingDefinition extends AbstractCommand<MigrateThingDe
     @Override
     public MigrateThingDefinition setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new MigrateThingDefinition(
-                thingId, thingDefinitionUrl, migrationPayload, patchConditions, initializeMissingPropertiesFromDefaults, dittoHeaders);
+                thingId, thingDefinitionUrl, migrationPayload, patchConditions, initializeMissingPropertiesFromDefaults,
+                dittoHeaders);
     }
 
     @Override
@@ -202,18 +202,14 @@ public final class MigrateThingDefinition extends AbstractCommand<MigrateThingDe
         jsonObjectBuilder.set(ThingCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JsonFields.JSON_THING_DEFINITION_URL, thingDefinitionUrl, predicate);
         jsonObjectBuilder.set(JsonFields.JSON_MIGRATION_PAYLOAD, migrationPayload, predicate);
-        jsonObjectBuilder.set(JsonFields.JSON_INITIALIZE_MISSING_PROPERTIES_FROM_DEFAULTS, initializeMissingPropertiesFromDefaults, predicate);
+        jsonObjectBuilder.set(JsonFields.JSON_INITIALIZE_MISSING_PROPERTIES_FROM_DEFAULTS,
+                initializeMissingPropertiesFromDefaults, predicate);
 
         if (!patchConditions.isEmpty()) {
             final JsonObjectBuilder conditionsBuilder = JsonFactory.newObjectBuilder();
             patchConditions.forEach(conditionsBuilder::set);
             jsonObjectBuilder.set(JsonFields.JSON_PATCH_CONDITIONS, conditionsBuilder.build(), predicate);
         }
-    }
-
-    @Override
-    public JsonSchemaVersion[] getSupportedSchemaVersions() {
-        return new JsonSchemaVersion[]{JsonSchemaVersion.V_2};
     }
 
     private void checkSchemaVersion() {
@@ -247,7 +243,8 @@ public final class MigrateThingDefinition extends AbstractCommand<MigrateThingDe
                 JsonFactory.newJsonObjectFieldDefinition("patchConditions", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         public static final JsonFieldDefinition<Boolean> JSON_INITIALIZE_MISSING_PROPERTIES_FROM_DEFAULTS =
-                JsonFactory.newBooleanFieldDefinition("initializeMissingPropertiesFromDefaults", FieldType.REGULAR, JsonSchemaVersion.V_2);
+                JsonFactory.newBooleanFieldDefinition("initializeMissingPropertiesFromDefaults", FieldType.REGULAR,
+                        JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();
@@ -275,13 +272,13 @@ public final class MigrateThingDefinition extends AbstractCommand<MigrateThingDe
 
     @Override
     public String toString() {
-        return "MigrateThingDefinition{" +
+        return "MigrateThingDefinition[" +
                 "thingId=" + thingId +
                 ", thingDefinitionUrl='" + thingDefinitionUrl + '\'' +
                 ", migrationPayload=" + migrationPayload +
                 ", patchConditions=" + patchConditions +
                 ", initializeMissingPropertiesFromDefaults=" + initializeMissingPropertiesFromDefaults +
                 ", dittoHeaders=" + getDittoHeaders() +
-                '}';
+                ']';
     }
 }
