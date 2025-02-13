@@ -87,6 +87,7 @@ public final class ThingCommandStrategies
         addStrategy(new RetrieveThingStrategy(system));
         addStrategy(new DeleteThingStrategy(system));
         addStrategy(new MergeThingStrategy(system));
+        addStrategy(new MigrateThingDefinitionStrategy(system));
     }
 
     private void addPolicyStrategies(final ActorSystem system) {

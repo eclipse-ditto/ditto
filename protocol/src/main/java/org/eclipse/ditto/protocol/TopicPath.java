@@ -407,14 +407,18 @@ public interface TopicPath {
 
         DELETE("delete"),
 
+        MIGRATE("migrate"),
 
         CREATED("created"),
 
         MODIFIED("modified"),
 
         MERGED("merged"),
+        MIGRATED("migrated"),
+
 
         DELETED("deleted");
+
 
         private final String name;
 

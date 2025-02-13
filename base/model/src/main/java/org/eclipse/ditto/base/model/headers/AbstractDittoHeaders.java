@@ -264,6 +264,11 @@ public abstract class AbstractDittoHeaders implements DittoHeaders {
     }
 
     @Override
+    public boolean isExternalDryRun() {
+        return isExpectedBoolean(DittoHeaderDefinition.EXTERNAL_DRY_RUN, Boolean.TRUE);
+    }
+
+    @Override
     public boolean isSudo() {
         return isExpectedBoolean(DittoHeaderDefinition.DITTO_SUDO, Boolean.TRUE);
     }
