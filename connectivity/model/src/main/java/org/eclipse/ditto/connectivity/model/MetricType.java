@@ -44,6 +44,11 @@ public enum MetricType {
     MAPPED("mapped", MetricDirection.INBOUND, MetricDirection.OUTBOUND),
 
     /**
+     * Counts others/uncategorized for messages.
+     */
+    OTHER("other", MetricDirection.INBOUND, MetricDirection.OUTBOUND),
+
+    /**
      * Counts messages that were dropped (not published by intention e.g. because no reply-to address was given).
      */
     DROPPED("dropped", MetricDirection.INBOUND, MetricDirection.OUTBOUND),

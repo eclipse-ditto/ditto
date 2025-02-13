@@ -247,6 +247,11 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
     }
 
     @Override
+    public ConnectionMetricsCounter forResponseOther(final Connection connection) {
+        return getCounter(connection, MetricType.OTHER, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
+    }
+
+    @Override
     public ConnectionMetricsCounter forResponsePublished(final Connection connection) {
         return getCounter(connection, MetricType.PUBLISHED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
     }

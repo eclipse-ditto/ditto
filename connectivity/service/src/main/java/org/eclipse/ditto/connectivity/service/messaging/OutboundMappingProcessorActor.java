@@ -15,6 +15,7 @@ package org.eclipse.ditto.connectivity.service.messaging;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotEmpty;
 import static org.eclipse.ditto.connectivity.model.MetricType.DROPPED;
 import static org.eclipse.ditto.connectivity.model.MetricType.MAPPED;
+import static org.eclipse.ditto.connectivity.model.MetricType.OTHER;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -157,6 +158,7 @@ public final class OutboundMappingProcessorActor
     private final ConnectionMonitor responseDispatchedMonitor;
     private final ConnectionMonitor responseDroppedMonitor;
     private final ConnectionMonitor responseMappedMonitor;
+    private final ConnectionMonitor responseOtherMonitor;
     private final SignalEnrichmentFacade signalEnrichmentFacade;
     private final int processorPoolSize;
     private final DittoRuntimeExceptionToErrorResponseFunction toErrorResponseFunction;
@@ -187,6 +189,7 @@ public final class OutboundMappingProcessorActor
         responseDispatchedMonitor = connectionMonitorRegistry.forResponseDispatched(this.connection);
         responseDroppedMonitor = connectionMonitorRegistry.forResponseDropped(this.connection);
         responseMappedMonitor = connectionMonitorRegistry.forResponseMapped(this.connection);
+        responseOtherMonitor = connectionMonitorRegistry.forResponseOther(this.connection);
         signalEnrichmentFacade = ConnectivitySignalEnrichmentProvider.get(system, dittoExtensionConfig).getFacade(this.connection.getId());
         this.processorPoolSize = determinePoolSize(processorPoolSize, mappingConfig.getMaxPoolSize());
         toErrorResponseFunction = DittoRuntimeExceptionToErrorResponseFunction.of(DittoHeadersValidator.get(system, dittoExtensionConfig));
@@ -661,15 +664,13 @@ public final class OutboundMappingProcessorActor
                         })
                         .onError((mapperId, exception, topicPath, unused) -> {
                             if (exception instanceof DittoRuntimeException e) {
-                                monitorsForOther.forEach(monitor ->
-                                        monitor.getLogger().failure(infoProvider, e));
+                                monitorsForOther.forEach(monitor -> monitor.failure(infoProvider, e));
                                 logger.withCorrelationId(e)
                                         .info("Got DittoRuntimeException during processing Signal: {} - {}",
                                                 e.getMessage(),
                                                 e.getDescription().orElse(""));
                             } else {
-                                monitorsForOther.forEach(monitor ->
-                                        monitor.getLogger().exception(infoProvider, exception));
+                                monitorsForOther.forEach(monitor -> monitor.exception(infoProvider, exception));
                                 logger.withCorrelationId(outbound.getSource())
                                         .warning("Got unexpected exception during processing Signal <{}>.",
                                                 exception.getMessage());
@@ -696,7 +697,7 @@ public final class OutboundMappingProcessorActor
 
     private Set<ConnectionMonitor> getMonitorsForOther(final OutboundSignal outbound) {
 
-        return getMonitorsForOutboundSignal(outbound, MAPPED, LogType.OTHER, responseMappedMonitor);
+        return getMonitorsForOutboundSignal(outbound, OTHER, LogType.OTHER, responseOtherMonitor);
     }
 
     private Set<ConnectionMonitor> getMonitorsForOutboundSignal(final OutboundSignal outbound,

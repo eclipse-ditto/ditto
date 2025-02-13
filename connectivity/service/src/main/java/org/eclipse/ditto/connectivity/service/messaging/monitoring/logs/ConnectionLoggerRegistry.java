@@ -465,6 +465,11 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     }
 
     @Override
+    public ConnectionLogger forResponseOther(final Connection connection) {
+        return getLogger(connection.getId(), LogCategory.RESPONSE, LogType.OTHER, RESPONSES_ADDRESS);
+    }
+
+    @Override
     public ConnectionLogger forResponsePublished(final Connection connection) {
         return getLogger(connection.getId(), LogCategory.RESPONSE, LogType.PUBLISHED, RESPONSES_ADDRESS);
     }

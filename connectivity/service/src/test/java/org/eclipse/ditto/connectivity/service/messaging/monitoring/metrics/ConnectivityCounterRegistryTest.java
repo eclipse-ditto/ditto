@@ -23,6 +23,7 @@ import static org.eclipse.ditto.connectivity.model.MetricType.DROPPED;
 import static org.eclipse.ditto.connectivity.model.MetricType.ENFORCED;
 import static org.eclipse.ditto.connectivity.model.MetricType.FILTERED;
 import static org.eclipse.ditto.connectivity.model.MetricType.MAPPED;
+import static org.eclipse.ditto.connectivity.model.MetricType.OTHER;
 import static org.eclipse.ditto.connectivity.model.MetricType.PUBLISHED;
 import static org.eclipse.ditto.connectivity.model.MetricType.THROTTLED;
 import static org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.MeasurementWindow.ONE_MINUTE_WITH_ONE_MINUTE_RESOLUTION;
@@ -208,7 +209,7 @@ public class ConnectivityCounterRegistryTest {
 
         final SourceMetrics sourceMetrics = counterRegistry.aggregateSourceMetrics(connection.getId());
 
-        final MetricType[] expectedTypes = {CONSUMED, MAPPED, DROPPED, ACKNOWLEDGED, ENFORCED, THROTTLED};
+        final MetricType[] expectedTypes = {OTHER, CONSUMED, MAPPED, DROPPED, ACKNOWLEDGED, ENFORCED, THROTTLED};
         connection.getSources()
                 .stream()
                 .flatMap(source -> source.getAddresses().stream())
