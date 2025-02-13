@@ -530,6 +530,17 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
             HeaderValueValidators.getJsonObjectValidator()),
 
     /**
+     * Header containing the current revision of the entity (e.g. thing/policy) which was e.g. modified or fetched.
+     *
+     * @since 3.7.0
+     */
+    ENTITY_REVISION("entity-revision",
+            Long.class,
+            false,
+            true,
+            HeaderValueValidators.getLongValidator()),
+
+    /**
      * Internal header containing the pre-defined configured {@code extraFields} as list of jsonPointers for the
      * emitted thing event.
      *

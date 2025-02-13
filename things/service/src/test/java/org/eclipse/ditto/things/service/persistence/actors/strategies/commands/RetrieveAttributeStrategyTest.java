@@ -16,6 +16,7 @@ import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
@@ -49,7 +50,9 @@ public final class RetrieveAttributeStrategyTest extends AbstractCommandStrategy
                 RetrieveAttribute.of(context.getState(), attributePointer, provideHeaders(context));
         final RetrieveAttributeResponse expectedResponse =
                 ETagTestUtils.retrieveAttributeResponse(command.getEntityId(), command.getAttributePointer(),
-                        JsonFactory.newValue(44.673856), command.getDittoHeaders());
+                        JsonFactory.newValue(44.673856), command.getDittoHeaders().toBuilder()
+                                .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "41")
+                                .build());
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
     }

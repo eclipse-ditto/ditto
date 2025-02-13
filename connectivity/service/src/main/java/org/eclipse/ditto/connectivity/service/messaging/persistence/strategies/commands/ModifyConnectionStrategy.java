@@ -25,6 +25,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.connectivity.model.Connection;
@@ -61,22 +62,23 @@ final class ModifyConnectionStrategy extends AbstractConnectivityCommandStrategy
                 .revision(nextRevision)
                 .modified(eventTs)
                 .build();
-        if (entity != null && entity.getConnectionType() != connection.getConnectionType() &&
-                !command.getDittoHeaders().isSudo()) {
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+        if (entity != null && entity.getConnectionType() != connection.getConnectionType() && !dittoHeaders.isSudo()) {
             return ResultFactory.newErrorResult(
                     ConnectionConfigurationInvalidException
                             .newBuilder("ConnectionType <" + connection.getConnectionType().getName() +
                                     "> of existing connection <" + context.getState().id() + "> cannot be changed!")
-                            .dittoHeaders(command.getDittoHeaders())
+                            .dittoHeaders(dittoHeaders)
                             .build(),
                     command
             );
         }
         final ConnectivityEvent<?> event =
-                ConnectionModified.of(connection, nextRevision, getEventTimestamp(), command.getDittoHeaders(),
+                ConnectionModified.of(connection, nextRevision, getEventTimestamp(), dittoHeaders,
                         metadata);
         final WithDittoHeaders response =
-                ModifyConnectionResponse.of(context.getState().id(), command.getDittoHeaders());
+                ModifyConnectionResponse.of(context.getState().id(),
+                        createCommandResponseDittoHeaders(dittoHeaders, nextRevision));
         final boolean isCurrentConnectionOpen = Optional.ofNullable(entity)
                 .map(c -> c.getConnectionStatus() == ConnectivityStatus.OPEN)
                 .orElse(false);

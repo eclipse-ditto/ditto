@@ -22,19 +22,19 @@ import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.policies.api.PoliciesValidator;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.SubjectId;
-import org.eclipse.ditto.policies.api.PoliciesValidator;
-import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
-import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
-import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubject;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubjectResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 import org.eclipse.ditto.policies.model.signals.events.SubjectDeleted;
+import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubject} command.
@@ -70,7 +70,9 @@ final class DeleteSubjectStrategy extends AbstractPolicyCommandStrategy<DeleteSu
                             SubjectDeleted.of(policyId, label, subjectId, nextRevision, getEventTimestamp(),
                                     headers, metadata);
                     final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                            DeleteSubjectResponse.of(policyId, label, subjectId, headers), nonNullPolicy);
+                            DeleteSubjectResponse.of(policyId, label, subjectId,
+                                    createCommandResponseDittoHeaders(headers, nextRevision)
+                            ), nonNullPolicy);
                     return ResultFactory.newMutationResult(command, subjectDeleted, response);
                 } else {
                     return ResultFactory.newErrorResult(

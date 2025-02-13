@@ -22,12 +22,12 @@ import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
+import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionState;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.StagedCommand;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
-import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
-import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
 
 /**
  * Abstract base class for ephemeral strategies not affecting the persistence.
@@ -53,7 +53,8 @@ abstract class AbstractEphemeralStrategy<C extends ConnectivityCommand<?>>
             final C command,
             @Nullable final Metadata metadata) {
 
-        final WithDittoHeaders response = getResponse(context.getState(), command.getDittoHeaders());
+        final WithDittoHeaders response = getResponse(context.getState(),
+                createCommandResponseDittoHeaders(command.getDittoHeaders(), nextRevision));
         final List<ConnectionAction> actions = getActions();
         return newMutationResult(StagedCommand.of(command, null, response, actions), null, response);
     }

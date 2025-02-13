@@ -137,6 +137,8 @@ public final class ImmutableDittoHeadersTest {
             .set(DittoHeaderDefinition.ORIGINATOR.getKey(), "foo:bar")
             .build();
 
+    private static final Long KNOWN_ENTITY_REVISION = 42L;
+
     private static final JsonArray KNOWN_PRE_DEFINED_EXTRA_FIELDS = JsonArray.newBuilder()
             .add("foo:bar:123")
             .build();
@@ -215,6 +217,7 @@ public final class ImmutableDittoHeadersTest {
                 .putHeader(DittoHeaderDefinition.AT_HISTORICAL_REVISION.getKey(), String.valueOf(KNOWN_AT_HISTORICAL_REVISION))
                 .putHeader(DittoHeaderDefinition.AT_HISTORICAL_TIMESTAMP.getKey(), String.valueOf(KNOWN_AT_HISTORICAL_TIMESTAMP))
                 .putHeader(DittoHeaderDefinition.HISTORICAL_HEADERS.getKey(), KNOWN_HISTORICAL_HEADERS.formatAsString())
+                .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), String.valueOf(KNOWN_ENTITY_REVISION))
                 .putHeader(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS.getKey(),
                         KNOWN_PRE_DEFINED_EXTRA_FIELDS.formatAsString())
                 .putHeader(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT.getKey(),
@@ -551,6 +554,7 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.AT_HISTORICAL_REVISION.getKey(), KNOWN_AT_HISTORICAL_REVISION)
                 .set(DittoHeaderDefinition.AT_HISTORICAL_TIMESTAMP.getKey(), KNOWN_AT_HISTORICAL_TIMESTAMP.toString())
                 .set(DittoHeaderDefinition.HISTORICAL_HEADERS.getKey(), KNOWN_HISTORICAL_HEADERS)
+                .set(DittoHeaderDefinition.ENTITY_REVISION.getKey(), KNOWN_ENTITY_REVISION)
                 .set(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS.getKey(), KNOWN_PRE_DEFINED_EXTRA_FIELDS)
                 .set(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT.getKey(),
                         KNOWN_PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT)
@@ -795,6 +799,7 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.AT_HISTORICAL_REVISION.getKey(), String.valueOf(KNOWN_AT_HISTORICAL_REVISION));
         result.put(DittoHeaderDefinition.AT_HISTORICAL_TIMESTAMP.getKey(), String.valueOf(KNOWN_AT_HISTORICAL_TIMESTAMP));
         result.put(DittoHeaderDefinition.HISTORICAL_HEADERS.getKey(), KNOWN_HISTORICAL_HEADERS.formatAsString());
+        result.put(DittoHeaderDefinition.ENTITY_REVISION.getKey(), String.valueOf(KNOWN_ENTITY_REVISION));
         result.put(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS.getKey(),
                 KNOWN_PRE_DEFINED_EXTRA_FIELDS.formatAsString());
         result.put(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT.getKey(),

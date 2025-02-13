@@ -67,7 +67,9 @@ final class ModifyPolicyImportsStrategy extends AbstractPolicyCommandStrategy<Mo
                 PolicyImportsModified.of(policyId, policyImports, nextRevision, getEventTimestamp(), dittoHeaders,
                         metadata);
         final WithDittoHeaders response =
-                appendETagHeaderIfProvided(command, ModifyPolicyImportsResponse.modified(policyId, dittoHeaders),
+                appendETagHeaderIfProvided(command, ModifyPolicyImportsResponse.modified(policyId,
+                                createCommandResponseDittoHeaders(dittoHeaders, nextRevision)
+                        ),
                         policy);
 
         return ResultFactory.newMutationResult(command, policyImportsModified, response);

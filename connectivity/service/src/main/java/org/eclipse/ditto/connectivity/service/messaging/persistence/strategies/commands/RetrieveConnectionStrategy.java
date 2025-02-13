@@ -17,6 +17,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.connectivity.model.Connection;
@@ -48,7 +49,8 @@ final class RetrieveConnectionStrategy extends AbstractConnectivityCommandStrate
 
         if (entity != null) {
             return ResultFactory.newQueryResult(command,
-                    appendETagHeaderIfProvided(command, getRetrieveConnectionResponse(entity, command), entity)
+                    appendETagHeaderIfProvided(command, getRetrieveConnectionResponse(entity, command, nextRevision),
+                            entity)
             );
         } else {
             return ResultFactory.newErrorResult(notAccessible(context, command), command);
@@ -66,14 +68,15 @@ final class RetrieveConnectionStrategy extends AbstractConnectivityCommandStrate
         return Optional.ofNullable(newEntity).flatMap(EntityTag::fromEntity);
     }
 
-    private static DittoHeadersSettable<?> getRetrieveConnectionResponse(@Nullable final Connection connection,
-            final ConnectivityQueryCommand<RetrieveConnection> command) {
+    private DittoHeadersSettable<?> getRetrieveConnectionResponse(@Nullable final Connection connection,
+            final ConnectivityQueryCommand<RetrieveConnection> command, final long nextRevision) {
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
         if (connection != null) {
             return RetrieveConnectionResponse.of(getConnectionJson(connection, command),
-                    command.getDittoHeaders());
+                    createCommandResponseDittoHeaders(dittoHeaders, nextRevision-1));
         } else {
             return ConnectionNotAccessibleException.newBuilder(((RetrieveConnection) command).getEntityId())
-                    .dittoHeaders(command.getDittoHeaders())
+                    .dittoHeaders(dittoHeaders)
                     .build();
         }
     }

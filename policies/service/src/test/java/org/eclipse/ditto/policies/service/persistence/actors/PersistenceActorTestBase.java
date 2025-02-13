@@ -21,9 +21,15 @@ import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.stream.Attributes;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonPointer;
@@ -51,12 +57,6 @@ import org.junit.BeforeClass;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.stream.Attributes;
-import org.apache.pekko.testkit.TestProbe;
-import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Base test class for testing persistence actors of the policies persistence.
@@ -100,6 +100,7 @@ public abstract class PersistenceActorTestBase {
     protected ActorRef pubSubMediator = null;
     protected TestProbe pubSubMediatorTestProbe = null;
     protected DittoHeaders dittoHeadersV2;
+    protected DittoHeaders dittoHeadersV2_rev2;
 
     @BeforeClass
     public static void initTestFixture() {
@@ -108,6 +109,7 @@ public abstract class PersistenceActorTestBase {
     }
 
     protected static DittoHeaders createDittoHeaders(final JsonSchemaVersion schemaVersion,
+            final long entityRevision,
             final String... authSubjectIds) {
 
         final List<AuthorizationSubject> authSubjects = Arrays.stream(authSubjectIds)
@@ -117,6 +119,7 @@ public abstract class PersistenceActorTestBase {
         return DittoHeaders.newBuilder()
                 .correlationId(null)
                 .schemaVersion(schemaVersion)
+                .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), String.valueOf(entityRevision))
                 .authorizationContext(
                         AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
                                 authSubjects))
@@ -155,7 +158,8 @@ public abstract class PersistenceActorTestBase {
         actorSystem = ActorSystem.create("PekkoTestSystem", config);
         pubSubMediatorTestProbe = new TestProbe(actorSystem, "mock-pubSub-mediator");
         pubSubMediator = pubSubMediatorTestProbe.ref();
-        dittoHeadersV2 = createDittoHeaders(JsonSchemaVersion.V_2, AUTH_SUBJECT);
+        dittoHeadersV2 = createDittoHeaders(JsonSchemaVersion.V_2, 1, AUTH_SUBJECT);
+        dittoHeadersV2_rev2 = createDittoHeaders(JsonSchemaVersion.V_2, 2, AUTH_SUBJECT);
     }
 
     @After

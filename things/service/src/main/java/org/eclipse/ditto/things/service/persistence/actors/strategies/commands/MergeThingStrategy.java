@@ -133,8 +133,8 @@ final class MergeThingStrategy extends AbstractThingModifyCommandStrategy<MergeT
                 ThingMerged.of(mergeThing.getEntityId(), path, value, nextRevision, eventTs, dittoHeaders, metadata)
         );
         final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(mergeThing ->
-                appendETagHeaderIfProvided(mergeThing, MergeThingResponse.of(command.getEntityId(), path, dittoHeaders),
-                        mergedThing)
+                appendETagHeaderIfProvided(mergeThing, MergeThingResponse.of(command.getEntityId(), path,
+                                createCommandResponseDittoHeaders(dittoHeaders, nextRevision)), mergedThing)
         );
         return ResultFactory.newMutationResult(command, eventStage, responseStage);
     }

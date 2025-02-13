@@ -19,6 +19,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
@@ -52,14 +53,16 @@ final class RetrievePolicyIdStrategy extends AbstractThingCommandStrategy<Retrie
             final RetrievePolicyId command,
             @Nullable final Metadata metadata) {
 
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
         return extractPolicyId(thing)
                 .map(policyId -> RetrievePolicyIdResponse.of(context.getState(), policyId,
-                        command.getDittoHeaders()))
+                        createCommandResponseDittoHeaders(dittoHeaders, nextRevision-1)
+                ))
                 .<Result<ThingEvent<?>>>map(response ->
                         ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing)))
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         PolicyIdNotAccessibleException.newBuilder(context.getState())
-                                .dittoHeaders(command.getDittoHeaders())
+                                .dittoHeaders(dittoHeaders)
                                 .build(),
                         command));
     }

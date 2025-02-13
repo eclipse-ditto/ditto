@@ -92,7 +92,8 @@ final class DeleteThingDefinitionStrategy extends AbstractThingModifyCommandStra
         );
         final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(deleteThingDefinition ->
                 appendETagHeaderIfProvided(deleteThingDefinition,
-                        DeleteThingDefinitionResponse.of(thingId, dittoHeaders), thing)
+                        DeleteThingDefinitionResponse.of(thingId,
+                                createCommandResponseDittoHeaders(dittoHeaders, nextRevision)), thing)
         );
 
         return ResultFactory.newMutationResult(command, eventStage, responseStage);

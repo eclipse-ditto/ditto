@@ -1,10 +1,12 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="PoliciesService" type="Application" factoryName="Application" folderName="Ditto" nameIsGenerated="true">
     <envs>
-      <env name="LOG_LEVEL_APPLICATION" value="INFO" />
       <env name="CLEANUP_HISTORY_RETENTION_DURATION" value="5d" />
+      <env name="DITTO_TRACING_ENABLED" value="true" />
+      <env name="LOG_LEVEL_APPLICATION" value="INFO" />
       <env name="POLICY_EVENT_HISTORICAL_HEADERS_TO_PERSIST.0" value="ditto-originator" />
       <env name="POLICY_EVENT_HISTORICAL_HEADERS_TO_PERSIST.1" value="correlation-id" />
+      <env name="DITTO_TRACING_SAMPLER" value="always" />
     </envs>
     <option name="MAIN_CLASS_NAME" value="org.eclipse.ditto.policies.service.starter.PoliciesService" />
     <module name="ditto-policies-service" />

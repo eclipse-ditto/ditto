@@ -23,6 +23,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonFactory;
@@ -65,7 +66,12 @@ public abstract class AbstractEventsourcedEvent<T extends AbstractEventsourcedEv
             final long revision,
             final JsonFieldDefinition<String> entityIdFieldDefinition) {
 
-        super(type, timestamp, dittoHeaders, metadata);
+        super(type, timestamp,
+                dittoHeaders.toBuilder()
+                        .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), String.valueOf(revision))
+                        .build(),
+                metadata
+        );
         this.entityId = checkNotNull(entityId, "entityId");
         this.revision = revision;
         this.entityIdFieldDefinition = entityIdFieldDefinition;

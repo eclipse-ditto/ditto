@@ -133,7 +133,9 @@ final class CreateThingStrategy extends AbstractThingModifyCommandStrategy<Creat
         );
 
         final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(pair ->
-                appendETagHeaderIfProvided(pair.first(), CreateThingResponse.of(pair.second(), commandHeaders),
+                appendETagHeaderIfProvided(pair.first(), CreateThingResponse.of(pair.second(),
+                                createCommandResponseDittoHeaders(commandHeaders, nextRevision)
+                        ),
                         pair.second())
         );
 
