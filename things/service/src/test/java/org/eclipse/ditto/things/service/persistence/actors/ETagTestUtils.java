@@ -17,6 +17,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.entity.Revision;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
@@ -366,7 +367,11 @@ public final class ETagTestUtils {
             final Object object,
             final DittoHeaders dittoHeaders
     ) {
-        return dittoHeaders.toBuilder()
+        final DittoHeadersBuilder<?, ?> builder = dittoHeaders.toBuilder();
+        if (!dittoHeaders.containsKey(DittoHeaderDefinition.ENTITY_REVISION.getKey())) {
+            builder.putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "42");
+        }
+        return builder
                 .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), thingId.getEntityType() + ":" + thingId)
                 .eTag(EntityTag.fromEntity(object).get())
                 .build();

@@ -25,6 +25,11 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ExtendedActorSystem;
+import org.apache.pekko.actor.PoisonPill;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.bson.BsonDocument;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -65,12 +70,6 @@ import org.mockito.Mockito;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueFactory;
-
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ExtendedActorSystem;
-import org.apache.pekko.actor.PoisonPill;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Unit test for the snapshotting functionality of {@link org.eclipse.ditto.policies.service.persistence.actors.PolicyPersistenceActor}.
@@ -170,7 +169,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
 
                 final DeletePolicy deletePolicy = DeletePolicy.of(policyId, dittoHeadersV2);
                 underTest.tell(deletePolicy, getRef());
-                expectMsgEquals(DeletePolicyResponse.of(policyId, dittoHeadersV2));
+                expectMsgEquals(DeletePolicyResponse.of(policyId, dittoHeadersV2_rev2));
 
                 final Policy expectedDeletedSnapshot = PoliciesModelFactory.newPolicyBuilder()
                         .setRevision(2)

@@ -21,23 +21,23 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.policies.api.PoliciesValidator;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.Resource;
-import org.eclipse.ditto.policies.api.PoliciesValidator;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
-import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
-import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
-import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResource;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResourceResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 import org.eclipse.ditto.policies.model.signals.events.ResourceCreated;
 import org.eclipse.ditto.policies.model.signals.events.ResourceModified;
+import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResource} command.
@@ -82,11 +82,15 @@ final class ModifyResourceStrategy extends AbstractPolicyCommandStrategy<ModifyR
 
                 if (policyEntry.getResources().getResource(resource.getResourceKey()).isPresent()) {
                     rawResponse =
-                            ModifyResourceResponse.modified(policyId, label, resource.getResourceKey(), dittoHeaders);
+                            ModifyResourceResponse.modified(policyId, label, resource.getResourceKey(),
+                                    createCommandResponseDittoHeaders(dittoHeaders, nextRevision)
+                            );
                     eventToPersist = ResourceModified.of(policyId, label, resource, nextRevision, getEventTimestamp(),
                             dittoHeaders, metadata);
                 } else {
-                    rawResponse = ModifyResourceResponse.created(policyId, label, resource, dittoHeaders);
+                    rawResponse = ModifyResourceResponse.created(policyId, label, resource,
+                            createCommandResponseDittoHeaders(dittoHeaders, nextRevision)
+                    );
                     eventToPersist = ResourceCreated.of(policyId, label, resource, nextRevision, getEventTimestamp(),
                             dittoHeaders, metadata);
                 }

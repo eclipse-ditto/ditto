@@ -51,7 +51,8 @@ final class TestConnectionStrategy extends AbstractConnectivityCommandStrategy<T
     }
 
     @Override
-    public boolean isDefined(final Context<ConnectionState> context, @Nullable final Connection connection, final TestConnection command) {
+    public boolean isDefined(final Context<ConnectionState> context, @Nullable final Connection connection,
+            final TestConnection command) {
         final boolean connectionExists = Optional.ofNullable(connection)
                 .map(t -> !t.isDeleted())
                 .orElse(false);
@@ -80,7 +81,8 @@ final class TestConnectionStrategy extends AbstractConnectivityCommandStrategy<T
             return newMutationResult(stagedCommand, event, command);
         } else {
             return newQueryResult(command,
-                    TestConnectionResponse.alreadyCreated(context.getState().id(), command.getDittoHeaders()));
+                    TestConnectionResponse.alreadyCreated(context.getState().id(),
+                            createCommandResponseDittoHeaders(command.getDittoHeaders(), nextRevision-1)));
         }
     }
 

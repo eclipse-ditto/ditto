@@ -57,7 +57,7 @@ final class RetrieveFeaturePropertyStrategy extends AbstractThingCommandStrategy
         final String featureId = command.getFeatureId();
 
         return extractFeature(command, thing)
-                .map(feature -> getRetrieveFeaturePropertyResult(feature, context, command, thing))
+                .map(feature -> getRetrieveFeaturePropertyResult(feature, context, command, nextRevision, thing))
                 .orElseGet(
                         () -> ResultFactory.newErrorResult(ExceptionFactory.featureNotFound(context.getState(),
                                 featureId, command.getDittoHeaders()), command));
@@ -70,10 +70,13 @@ final class RetrieveFeaturePropertyStrategy extends AbstractThingCommandStrategy
 
     private Result<ThingEvent<?>> getRetrieveFeaturePropertyResult(final Feature feature,
             final Context<ThingId> context,
-            final RetrieveFeatureProperty command, @Nullable final Thing thing) {
+            final RetrieveFeatureProperty command,
+            final long nextRevision,
+            @Nullable final Thing thing) {
 
         return feature.getProperties()
-                .map(featureProperties -> getRetrieveFeaturePropertyResult(featureProperties, context, command, thing))
+                .map(featureProperties -> getRetrieveFeaturePropertyResult(featureProperties, context, command,
+                        nextRevision, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featurePropertiesNotFound(context.getState(), feature.getId(),
                                 command.getDittoHeaders()), command));
@@ -81,7 +84,9 @@ final class RetrieveFeaturePropertyStrategy extends AbstractThingCommandStrategy
 
     private Result<ThingEvent<?>> getRetrieveFeaturePropertyResult(final JsonObject featureProperties,
             final Context<ThingId> context,
-            final RetrieveFeatureProperty command, @Nullable final Thing thing) {
+            final RetrieveFeatureProperty command,
+            final long nextRevision,
+            @Nullable final Thing thing) {
 
         final String featureId = command.getFeatureId();
         final JsonPointer propertyPointer = command.getPropertyPointer();
@@ -89,7 +94,8 @@ final class RetrieveFeaturePropertyStrategy extends AbstractThingCommandStrategy
 
         return featureProperties.getValue(propertyPointer)
                 .map(featureProperty -> RetrieveFeaturePropertyResponse.of(context.getState(), featureId,
-                        propertyPointer, featureProperty, dittoHeaders))
+                        propertyPointer, featureProperty, createCommandResponseDittoHeaders(dittoHeaders, nextRevision-1)
+                ))
                 .<Result<ThingEvent<?>>>map(response ->
                         ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing)))
                 .orElseGet(() -> ResultFactory.newErrorResult(

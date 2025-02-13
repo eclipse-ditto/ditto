@@ -18,6 +18,7 @@ import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
@@ -52,7 +53,10 @@ public final class RetrieveFeatureDesiredPropertyStrategyTest extends AbstractCo
                         provideHeaders(context));
         final RetrieveFeatureDesiredPropertyResponse expectedResponse =
                 ETagTestUtils.retrieveFeatureDesiredPropertyResponse(command.getEntityId(), command.getFeatureId(),
-                        command.getDesiredPropertyPointer(), JsonFactory.newValue(1955), command.getDittoHeaders());
+                        command.getDesiredPropertyPointer(), JsonFactory.newValue(1955), command.getDittoHeaders()
+                                .toBuilder()
+                                .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "41")
+                                .build());
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
     }

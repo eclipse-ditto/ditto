@@ -22,19 +22,19 @@ import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.policies.api.PoliciesValidator;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.ResourceKey;
-import org.eclipse.ditto.policies.api.PoliciesValidator;
-import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
-import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
-import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteResource;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteResourceResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 import org.eclipse.ditto.policies.model.signals.events.ResourceDeleted;
+import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.policies.model.signals.commands.modify.DeleteResource} command.
@@ -71,7 +71,9 @@ final class DeleteResourceStrategy extends AbstractPolicyCommandStrategy<DeleteR
                             ResourceDeleted.of(policyId, label, resourceKey, nextRevision, getEventTimestamp(),
                                     headers, metadata);
                     final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                            DeleteResourceResponse.of(policyId, label, resourceKey, headers), nonNullPolicy);
+                            DeleteResourceResponse.of(policyId, label, resourceKey,
+                                    createCommandResponseDittoHeaders(headers, nextRevision)
+                            ), nonNullPolicy);
                     return ResultFactory.newMutationResult(command, resourceDeleted, response);
                 } else {
                     return ResultFactory.newErrorResult(

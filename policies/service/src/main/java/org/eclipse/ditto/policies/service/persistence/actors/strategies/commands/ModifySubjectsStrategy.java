@@ -91,7 +91,9 @@ final class ModifySubjectsStrategy extends AbstractPolicyCommandStrategy<ModifyS
                         SubjectsModified.of(policyId, label, adjustedSubjects, nextRevision, getEventTimestamp(),
                                 commandHeaders, metadata);
                 final WithDittoHeaders response = appendETagHeaderIfProvided(adjustedCommand,
-                        ModifySubjectsResponse.of(policyId, label, commandHeaders), nonNullPolicy);
+                        ModifySubjectsResponse.of(policyId, label,
+                                createCommandResponseDittoHeaders(commandHeaders, nextRevision)
+                        ), nonNullPolicy);
                 return ResultFactory.newMutationResult(adjustedCommand, subjectsModified, response);
             } else {
                 return ResultFactory.newErrorResult(

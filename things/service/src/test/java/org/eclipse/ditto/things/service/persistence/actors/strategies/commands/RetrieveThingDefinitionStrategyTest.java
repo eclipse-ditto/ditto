@@ -16,6 +16,7 @@ import static org.eclipse.ditto.things.model.TestConstants.Thing.DEFINITION;
 import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 
 import org.apache.pekko.actor.ActorSystem;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingDefinitionNotAccessibleException;
@@ -45,7 +46,10 @@ public final class RetrieveThingDefinitionStrategyTest extends AbstractCommandSt
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveThingDefinition command = RetrieveThingDefinition.of(context.getState(), provideHeaders(context));
         final RetrieveThingDefinitionResponse expectedResponse =
-                ETagTestUtils.retrieveDefinitionResponse(command.getEntityId(), DEFINITION, provideHeaders(context));
+                ETagTestUtils.retrieveDefinitionResponse(command.getEntityId(), DEFINITION, provideHeaders(context)
+                        .toBuilder()
+                        .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "41")
+                        .build());
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
     }

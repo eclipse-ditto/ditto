@@ -18,6 +18,7 @@ import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeature;
@@ -48,7 +49,9 @@ public final class RetrieveFeatureStrategyTest extends AbstractCommandStrategyTe
                 RetrieveFeature.of(context.getState(), FLUX_CAPACITOR_ID, provideHeaders(context));
         final RetrieveFeatureResponse expectedResponse =
                 ETagTestUtils.retrieveFeatureResponse(command.getEntityId(), FLUX_CAPACITOR, FLUX_CAPACITOR.toJson(),
-                        command.getDittoHeaders());
+                        command.getDittoHeaders().toBuilder()
+                                .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "41")
+                                .build());
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
     }

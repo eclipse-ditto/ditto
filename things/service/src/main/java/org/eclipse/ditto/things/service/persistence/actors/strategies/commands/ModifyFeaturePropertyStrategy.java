@@ -143,7 +143,7 @@ final class ModifyFeaturePropertyStrategy extends AbstractThingModifyCommandStra
         final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(modifyFeatureProperty ->
                 appendETagHeaderIfProvided(modifyFeatureProperty,
                         ModifyFeaturePropertyResponse.modified(context.getState(), featureId, propertyPointer,
-                                dittoHeaders),
+                                createCommandResponseDittoHeaders(dittoHeaders, nextRevision)),
                         thing)
         );
 
@@ -166,7 +166,7 @@ final class ModifyFeaturePropertyStrategy extends AbstractThingModifyCommandStra
         final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(modifyFeatureProperty ->
                 appendETagHeaderIfProvided(modifyFeatureProperty,
                         ModifyFeaturePropertyResponse.created(context.getState(), featureId, propertyPointer,
-                                propertyValue, dittoHeaders),
+                                propertyValue, createCommandResponseDittoHeaders(dittoHeaders, nextRevision)),
                         thing)
         );
 

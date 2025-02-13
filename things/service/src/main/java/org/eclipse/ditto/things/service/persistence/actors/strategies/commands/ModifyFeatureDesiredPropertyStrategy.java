@@ -89,7 +89,7 @@ final class ModifyFeatureDesiredPropertyStrategy
                 .map(feature -> getModifyOrCreateResult(feature, context, nextRevision, command, thing, metadata))
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featureNotFound(context.getState(), featureId,
-                                command.getDittoHeaders()), command));
+                                createCommandResponseDittoHeaders(command.getDittoHeaders(), nextRevision)), command));
     }
 
     @Override
@@ -151,7 +151,7 @@ final class ModifyFeatureDesiredPropertyStrategy
         final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(modifyFeatureDesiredProperty ->
                 appendETagHeaderIfProvided(modifyFeatureDesiredProperty,
                         ModifyFeatureDesiredPropertyResponse.modified(context.getState(), featureId, propertyPointer,
-                                dittoHeaders),
+                                createCommandResponseDittoHeaders(dittoHeaders, nextRevision)),
                         thing)
         );
 
@@ -177,7 +177,7 @@ final class ModifyFeatureDesiredPropertyStrategy
         final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(modifyFeatureDesiredProperty ->
                 appendETagHeaderIfProvided(modifyFeatureDesiredProperty,
                         ModifyFeatureDesiredPropertyResponse.created(context.getState(), featureId, propertyPointer,
-                                propertyValue, dittoHeaders),
+                                propertyValue, createCommandResponseDittoHeaders(dittoHeaders, nextRevision)),
                         thing)
         );
 

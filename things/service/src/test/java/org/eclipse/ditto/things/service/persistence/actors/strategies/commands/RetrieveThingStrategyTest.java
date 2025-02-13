@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 
 import org.apache.pekko.actor.ActorSystem;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
@@ -83,7 +84,10 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveThing command = RetrieveThing.of(context.getState(), provideHeaders(context));
         final RetrieveThingResponse expectedResponse =
-                ETagTestUtils.retrieveThingResponse(THING_V2, null, provideHeaders(context));
+                ETagTestUtils.retrieveThingResponse(THING_V2, null, provideHeaders(context)
+                        .toBuilder()
+                        .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "41")
+                        .build());
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
     }
@@ -96,7 +100,9 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
                 .withSelectedFields(fieldSelector)
                 .build();
         final RetrieveThingResponse expectedResponse =
-                ETagTestUtils.retrieveThingResponse(THING_V2, fieldSelector, provideHeaders(context));
+                ETagTestUtils.retrieveThingResponse(THING_V2, fieldSelector, provideHeaders(context).toBuilder()
+                        .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "41")
+                        .build());
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
     }
@@ -122,7 +128,9 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
                 .withSelectedFields(fieldSelector)
                 .build();
         final RetrieveThingResponse expectedResponse =
-                ETagTestUtils.retrieveThingResponse(THING_V2, fieldSelector, dittoHeaders);
+                ETagTestUtils.retrieveThingResponse(THING_V2, fieldSelector, dittoHeaders.toBuilder()
+                        .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "41")
+                        .build());
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
     }

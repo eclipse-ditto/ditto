@@ -44,7 +44,8 @@ final class SudoRetrieveConnectionTagsStrategy extends AbstractConnectivityComma
 
         if (entity != null) {
             return ResultFactory.newQueryResult(command,
-                    SudoRetrieveConnectionTagsResponse.of(entity.getTags(), command.getDittoHeaders()));
+                    SudoRetrieveConnectionTagsResponse.of(entity.getTags(),
+                            createCommandResponseDittoHeaders(command.getDittoHeaders(), nextRevision-1)));
         } else {
             return ResultFactory.newErrorResult(notAccessible(context, command), command);
         }

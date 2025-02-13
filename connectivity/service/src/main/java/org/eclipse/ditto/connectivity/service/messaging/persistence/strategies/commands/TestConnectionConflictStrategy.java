@@ -45,7 +45,8 @@ final class TestConnectionConflictStrategy extends AbstractConnectivityCommandSt
             @Nullable final Metadata metadata) {
 
         return newQueryResult(command,
-                TestConnectionResponse.alreadyCreated(context.getState().id(), command.getDittoHeaders()));
+                TestConnectionResponse.alreadyCreated(context.getState().id(),
+                        createCommandResponseDittoHeaders(command.getDittoHeaders(), nextRevision-1)));
     }
 
     @Override

@@ -124,7 +124,8 @@ final class ModifyFeaturesStrategy extends AbstractThingModifyCommandStrategy<Mo
                 );
         final CompletionStage<WithDittoHeaders> responseStage = validationStage.thenApply(modifyFeatures ->
                 appendETagHeaderIfProvided(modifyFeatures,
-                        ModifyFeaturesResponse.modified(context.getState(), dittoHeaders), thing)
+                        ModifyFeaturesResponse.modified(context.getState(),
+                                createCommandResponseDittoHeaders(dittoHeaders, nextRevision)), thing)
         );
 
         return ResultFactory.newMutationResult(command, eventStage, responseStage);
@@ -196,7 +197,7 @@ final class ModifyFeaturesStrategy extends AbstractThingModifyCommandStrategy<Mo
                 featuresStage.thenCompose(validationFunction).thenApply(modifyFeatures ->
                         appendETagHeaderIfProvided(modifyFeatures,
                                 ModifyFeaturesResponse.created(context.getState(), modifyFeatures.getFeatures(),
-                                        dittoHeaders), thing)
+                                        createCommandResponseDittoHeaders(dittoHeaders, nextRevision)), thing)
                 );
 
         return ResultFactory.newMutationResult(command, eventStage, responseStage);

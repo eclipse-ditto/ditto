@@ -128,7 +128,8 @@ final class ActivateTokenIntegrationStrategy
                             eventTimestamp, commandHeaders, metadata);
                 }
                 final ActivateTokenIntegrationResponse rawResponse =
-                        ActivateTokenIntegrationResponse.of(policyId, label, subjectIds, commandHeaders);
+                        ActivateTokenIntegrationResponse.of(policyId, label, subjectIds,
+                                createCommandResponseDittoHeaders(commandHeaders, nextRevision));
                 // do not append ETag - activated subjects do not support ETags.
                 return ResultFactory.newMutationResult(adjustedCommand, event, rawResponse);
             } else {

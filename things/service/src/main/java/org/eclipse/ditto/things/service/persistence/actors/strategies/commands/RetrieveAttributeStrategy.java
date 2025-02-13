@@ -55,7 +55,7 @@ final class RetrieveAttributeStrategy extends AbstractThingCommandStrategy<Retri
             @Nullable final Metadata metadata) {
 
         return extractAttributes(thing)
-                .map(attributes -> getAttributeValueResult(attributes, context.getState(), command, thing))
+                .map(attributes -> getAttributeValueResult(attributes, context.getState(), command, nextRevision, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.attributesNotFound(context.getState(), command.getDittoHeaders()), command));
     }
@@ -65,13 +65,15 @@ final class RetrieveAttributeStrategy extends AbstractThingCommandStrategy<Retri
     }
 
     private Result<ThingEvent<?>> getAttributeValueResult(final JsonObject attributes, final ThingId thingId,
-            final RetrieveAttribute command, @Nullable final Thing thing) {
+            final RetrieveAttribute command, final long nextRevision, @Nullable final Thing thing) {
 
         final JsonPointer attributePointer = command.getAttributePointer();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return attributes.getValue(attributePointer)
-                .map(value -> RetrieveAttributeResponse.of(thingId, attributePointer, value, dittoHeaders))
+                .map(value -> RetrieveAttributeResponse.of(thingId, attributePointer, value,
+                        createCommandResponseDittoHeaders(dittoHeaders, nextRevision-1)
+                ))
                 .<Result<ThingEvent<?>>>map(response ->
                         ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing)))
                 .orElseGet(() -> ResultFactory.newErrorResult(
