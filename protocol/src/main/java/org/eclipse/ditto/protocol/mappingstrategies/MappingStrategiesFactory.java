@@ -78,6 +78,10 @@ public final class MappingStrategiesFactory {
         return ThingMergeCommandResponseMappingStrategies.getInstance();
     }
 
+    public static ThingMigrateCommandResponseMappingStrategies getThingMigrateCommandResponseMappingStrategies() {
+        return ThingMigrateCommandResponseMappingStrategies.getInstance();
+    }
+
     public static ThingQueryCommandResponseMappingStrategies getThingQueryCommandResponseMappingStrategies() {
         return ThingQueryCommandResponseMappingStrategies.getInstance();
     }

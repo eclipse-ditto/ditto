@@ -47,6 +47,7 @@ import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.MigrateThingDefinition;
+import org.eclipse.ditto.things.model.signals.commands.modify.MigrateThingDefinitionResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
@@ -155,6 +156,10 @@ final class AdapterResolverBySignal {
         if (commandResponse instanceof MergeThingResponse) {
             validateChannel(channel, commandResponse, LIVE, TWIN);
             return (Adapter<T>) thingsAdapters.getMergeCommandResponseAdapter();
+        }
+        if (commandResponse instanceof MigrateThingDefinitionResponse) {
+            validateChannel(channel, commandResponse, LIVE, TWIN);
+            return (Adapter<T>) thingsAdapters.getMigrateCommandResponseAdapter();
         }
         if (commandResponse instanceof ThingModifyCommandResponse) {
             validateChannel(channel, commandResponse, LIVE, TWIN);

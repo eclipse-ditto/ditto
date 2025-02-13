@@ -63,7 +63,8 @@ public final class ThingMigrateCommandMappingStrategies extends AbstractThingMap
                         field -> field.getValue().asString()
                 ));
 
-        Boolean initializeMissingPropertiesFromDefaults = payloadObject.getValueOrThrow(MigrateThingDefinition.JsonFields.JSON_INITIALIZE_MISSING_PROPERTIES_FROM_DEFAULTS);
+        Boolean initializeMissingPropertiesFromDefaults = payloadObject.getValue(MigrateThingDefinition.JsonFields.JSON_INITIALIZE_MISSING_PROPERTIES_FROM_DEFAULTS)
+                .map(value -> value.booleanValue()).orElse(false);
 
         return MigrateThingDefinition.of(
                 thingId,

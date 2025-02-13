@@ -25,6 +25,7 @@ import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryComman
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThingResponse;
+import org.eclipse.ditto.things.model.signals.commands.modify.MigrateThingDefinitionResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
@@ -68,6 +69,9 @@ public final class SignalMapperFactory {
         return new ThingMergeResponseSignalMapper();
     }
 
+    public static SignalMapper<MigrateThingDefinitionResponse> newThingMigrateResponseSignalMapper() {
+        return new ThingMigrateResponseSignalMapper();
+    }
     public static SignalMapper<ThingMerged> newThingMergedEventSignalMapper() {
         return new ThingMergedEventSignalMapper();
     }

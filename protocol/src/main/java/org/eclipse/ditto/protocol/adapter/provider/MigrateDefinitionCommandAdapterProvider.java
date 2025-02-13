@@ -14,6 +14,7 @@ package org.eclipse.ditto.protocol.adapter.provider;
 
 import org.eclipse.ditto.protocol.adapter.Adapter;
 import org.eclipse.ditto.things.model.signals.commands.modify.MigrateThingDefinition;
+import org.eclipse.ditto.things.model.signals.commands.modify.MigrateThingDefinitionResponse;
 
 /**
  * Interface providing the migrateThingDefinition command adapter.
@@ -27,4 +28,8 @@ interface MigrateDefinitionCommandAdapterProvider {
      */
     Adapter<MigrateThingDefinition> getMigrateDefinitionCommandAdapter();
 
+    /**
+     * @return the migrate command response adapter
+     */
+    Adapter<MigrateThingDefinitionResponse> getMigrateCommandResponseAdapter();
 }
