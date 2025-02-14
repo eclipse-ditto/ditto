@@ -60,7 +60,7 @@ public class ThingMigrateCommandResponseAdapterTest extends LiveTwinTest impleme
 
         final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(JsonPointer.empty())
-                        .withValue(migrateResponse.toJson())
+                        .withValue(migrateResponse.getEntity().get())
                         .withStatus(HttpStatus.OK)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)

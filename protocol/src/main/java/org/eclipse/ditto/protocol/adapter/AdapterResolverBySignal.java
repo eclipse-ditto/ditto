@@ -224,6 +224,12 @@ final class AdapterResolverBySignal {
             validateChannel(channel, command, LIVE, TWIN);
             return (Adapter<T>) thingsAdapters.getMergeCommandAdapter();
         }
+
+        if (command instanceof MigrateThingDefinition) {
+            validateNotLive(command);
+            return (Adapter<T>) thingsAdapters.getMigrateDefinitionCommandAdapter();
+        }
+
         if (command instanceof ThingModifyCommand) {
             validateChannel(channel, command, LIVE, TWIN);
             return (Adapter<T>) thingsAdapters.getModifyCommandAdapter();
@@ -240,11 +246,6 @@ final class AdapterResolverBySignal {
         if (command instanceof ThingSearchCommand) {
             validateNotLive(command);
             return (Adapter<T>) thingsAdapters.getSearchCommandAdapter();
-        }
-
-        if (command instanceof MigrateThingDefinition) {
-            validateNotLive(command);
-            return (Adapter<T>) thingsAdapters.getMigrateDefinitionCommandAdapter();
         }
 
         if (command instanceof StreamingSubscriptionCommand) {

@@ -52,19 +52,6 @@ public final class MigrateThingDefinitionResponse extends AbstractCommandRespons
 
     public static final String TYPE = ThingCommandResponse.TYPE_PREFIX + MigrateThingDefinition.NAME;
 
-    private static final CommandResponseJsonDeserializer<MigrateThingDefinitionResponse> JSON_DESERIALIZER =
-            CommandResponseJsonDeserializer.newInstance(TYPE,
-                    context -> {
-                        final JsonObject jsonObject = context.getJsonObject();
-                        return newInstance(
-                                ThingId.of(jsonObject.getValueOrThrow(JsonFields.JSON_THING_ID)),
-                                jsonObject.getValueOrThrow(JsonFields.JSON_PATCH),
-                                MergeStatus.fromString(jsonObject.getValueOrThrow(JsonFields.JSON_MERGE_STATUS)),
-                                context.getDeserializedHttpStatus(),
-                                context.getDittoHeaders()
-                        );
-                    });
-
     private final ThingId thingId;
     private final JsonObject patch;
     private final MergeStatus mergeStatus;
@@ -184,7 +171,15 @@ public final class MigrateThingDefinitionResponse extends AbstractCommandRespons
      * @return A {@link MigrateThingDefinitionResponse} instance.
      */
     public static MigrateThingDefinitionResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
+        MergeStatus mergeStatus = MergeStatus.fromString(jsonObject.getValueOrThrow(JsonFields.JSON_MERGE_STATUS));
+
+        return newInstance(
+                ThingId.of(jsonObject.getValueOrThrow(JsonFields.JSON_THING_ID)),
+                jsonObject.getValueOrThrow(JsonFields.JSON_PATCH),
+                mergeStatus,
+                MergeStatus.DRY_RUN.equals(mergeStatus) ? HttpStatus.ACCEPTED : HttpStatus.OK,
+                dittoHeaders
+        );
     }
 
     /**
