@@ -83,7 +83,8 @@ final class SudoRetrieveThingStrategy extends AbstractThingCommandStrategy<SudoR
                 .orElseGet(() -> theThing.toJson(jsonSchemaVersion, FieldType.regularOrSpecial()));
 
         return ResultFactory.newQueryResult(command,
-                appendETagHeaderIfProvided(command, SudoRetrieveThingResponse.of(thingJson, command.getDittoHeaders()),
+                appendETagHeaderIfProvided(command, SudoRetrieveThingResponse.of(thingJson,
+                                createCommandResponseDittoHeaders(command.getDittoHeaders(), nextRevision-1)),
                         thing));
     }
 

@@ -62,7 +62,8 @@ final class DeleteThingStrategy extends AbstractThingModifyCommandStrategy<Delet
 
         final ThingEvent<?> event = ThingDeleted.of(thingId, nextRevision, getEventTimestamp(), dittoHeaders, metadata);
         final WithDittoHeaders response =
-                appendETagHeaderIfProvided(command, DeleteThingResponse.of(thingId, dittoHeaders), null);
+                appendETagHeaderIfProvided(command, DeleteThingResponse.of(thingId,
+                        createCommandResponseDittoHeaders(dittoHeaders, nextRevision)), null);
 
         return ResultFactory.newMutationResult(command, event, response, false, true);
     }

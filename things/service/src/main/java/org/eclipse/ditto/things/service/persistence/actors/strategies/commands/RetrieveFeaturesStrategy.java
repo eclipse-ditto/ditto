@@ -63,7 +63,9 @@ final class RetrieveFeaturesStrategy extends AbstractThingCommandStrategy<Retrie
 
         return extractFeatures(thing)
                 .map(features -> getFeaturesJson(features, command))
-                .map(featuresJson -> RetrieveFeaturesResponse.of(thingId, featuresJson, dittoHeaders))
+                .map(featuresJson -> RetrieveFeaturesResponse.of(thingId, featuresJson,
+                        createCommandResponseDittoHeaders(dittoHeaders, nextRevision-1)
+                ))
                 .<Result<ThingEvent<?>>>map(response ->
                         ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing)))
                 .orElseGet(() -> ResultFactory

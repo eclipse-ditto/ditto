@@ -17,6 +17,7 @@ import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -48,7 +49,9 @@ public final class RetrieveAttributesStrategyTest extends AbstractCommandStrateg
         final RetrieveAttributes command = RetrieveAttributes.of(context.getState(), provideHeaders(context));
         final RetrieveAttributesResponse expectedResponse =
                 ETagTestUtils.retrieveAttributesResponse(context.getState(), ATTRIBUTES,
-                        ATTRIBUTES.toJson(command.getImplementedSchemaVersion()), provideHeaders(context));
+                        ATTRIBUTES.toJson(command.getImplementedSchemaVersion()), provideHeaders(context).toBuilder()
+                                .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "41")
+                                .build());
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
     }
@@ -61,7 +64,10 @@ public final class RetrieveAttributesStrategyTest extends AbstractCommandStrateg
                 RetrieveAttributes.of(context.getState(), selectedFields, provideHeaders(context));
         final RetrieveAttributesResponse expectedResponse =
                 ETagTestUtils.retrieveAttributesResponse(context.getState(), ATTRIBUTES,
-                        ATTRIBUTES.toJson(command.getImplementedSchemaVersion(), selectedFields), provideHeaders(context));
+                        ATTRIBUTES.toJson(command.getImplementedSchemaVersion(), selectedFields),
+                        provideHeaders(context).toBuilder()
+                                .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "41")
+                                .build());
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
     }

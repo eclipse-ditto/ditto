@@ -81,7 +81,8 @@ final class ModifyPolicyIdStrategy extends AbstractThingModifyCommandStrategy<Mo
                 PolicyIdModified.of(thingId, command.getPolicyEntityId(), nextRevision, getEventTimestamp(),
                         dittoHeaders, metadata);
         final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                ModifyPolicyIdResponse.modified(thingId, dittoHeaders), thing);
+                ModifyPolicyIdResponse.modified(thingId, createCommandResponseDittoHeaders(dittoHeaders, nextRevision)),
+                thing);
 
         return ResultFactory.newMutationResult(command, event, response);
     }

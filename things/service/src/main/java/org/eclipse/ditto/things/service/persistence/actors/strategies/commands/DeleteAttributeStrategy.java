@@ -93,7 +93,8 @@ final class DeleteAttributeStrategy extends AbstractThingModifyCommandStrategy<D
         );
         final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(deleteAttribute ->
                 appendETagHeaderIfProvided(deleteAttribute,
-                        DeleteAttributeResponse.of(thingId, attrPointer, dittoHeaders), thing)
+                        DeleteAttributeResponse.of(thingId, attrPointer,
+                                createCommandResponseDittoHeaders(dittoHeaders, nextRevision)), thing)
         );
 
         return ResultFactory.newMutationResult(command, eventStage, responseStage);

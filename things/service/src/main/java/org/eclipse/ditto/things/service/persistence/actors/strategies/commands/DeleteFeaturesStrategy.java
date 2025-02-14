@@ -67,7 +67,8 @@ final class DeleteFeaturesStrategy extends AbstractThingModifyCommandStrategy<De
                             final CompletionStage<WithDittoHeaders> responseStage = validatedStage
                                     .thenApply(deleteFeatures ->
                                             appendETagHeaderIfProvided(deleteFeatures,
-                                                    DeleteFeaturesResponse.of(context.getState(), command.getDittoHeaders()),
+                                                    DeleteFeaturesResponse.of(context.getState(),
+                                                            createCommandResponseDittoHeaders(dittoHeaders, nextRevision)),
                                                     thing)
                                     );
 

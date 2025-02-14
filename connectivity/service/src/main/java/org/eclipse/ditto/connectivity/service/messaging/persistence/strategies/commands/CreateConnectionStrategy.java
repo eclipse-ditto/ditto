@@ -31,6 +31,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.connectivity.model.Connection;
@@ -81,11 +82,11 @@ final class CreateConnectionStrategy extends AbstractConnectivityCommandStrategy
                 .created(timestamp)
                 .modified(timestamp)
                 .build();
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final ConnectivityEvent<?> event =
-                ConnectionCreated.of(connection, nextRevision, getEventTimestamp(), command.getDittoHeaders(),
-                        metadata);
+                ConnectionCreated.of(connection, nextRevision, getEventTimestamp(), dittoHeaders, metadata);
         final WithDittoHeaders response =
-                CreateConnectionResponse.of(connection, command.getDittoHeaders());
+                CreateConnectionResponse.of(connection, createCommandResponseDittoHeaders(dittoHeaders, nextRevision));
         final Optional<DittoRuntimeException> validationError = validate(context, command);
         if (validationError.isPresent()) {
             return newErrorResult(validationError.get(), command);

@@ -58,7 +58,7 @@ final class RetrieveFeatureDesiredPropertyStrategy
         final String featureId = command.getFeatureId();
 
         return extractFeature(command, thing)
-                .map(feature -> getRetrieveFeatureDesiredPropertyResult(feature, context, command, thing))
+                .map(feature -> getRetrieveFeatureDesiredPropertyResult(feature, context, command, nextRevision, thing))
                 .orElseGet(
                         () -> ResultFactory.newErrorResult(ExceptionFactory.featureNotFound(context.getState(),
                                 featureId, command.getDittoHeaders()), command));
@@ -74,11 +74,12 @@ final class RetrieveFeatureDesiredPropertyStrategy
     private Result<ThingEvent<?>> getRetrieveFeatureDesiredPropertyResult(final Feature feature,
             final Context<ThingId> context,
             final RetrieveFeatureDesiredProperty command,
+            final long nextRevision,
             @Nullable final Thing thing) {
 
         return feature.getDesiredProperties()
                 .map(desiredProperties -> getRetrieveFeatureDesiredPropertyResult(desiredProperties, context, command,
-                        thing))
+                        nextRevision, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featureDesiredPropertiesNotFound(context.getState(), feature.getId(),
                                 command.getDittoHeaders()), command));
@@ -87,6 +88,7 @@ final class RetrieveFeatureDesiredPropertyStrategy
     private Result<ThingEvent<?>> getRetrieveFeatureDesiredPropertyResult(final JsonObject featureProperties,
             final Context<ThingId> context,
             final RetrieveFeatureDesiredProperty command,
+            final long nextRevision,
             @Nullable final Thing thing) {
 
         final String featureId = command.getFeatureId();
@@ -95,7 +97,9 @@ final class RetrieveFeatureDesiredPropertyStrategy
 
         return featureProperties.getValue(propertyPointer)
                 .map(featureDesiredProperty -> RetrieveFeatureDesiredPropertyResponse.of(context.getState(), featureId,
-                        propertyPointer, featureDesiredProperty, dittoHeaders))
+                        propertyPointer, featureDesiredProperty,
+                        createCommandResponseDittoHeaders(dittoHeaders, nextRevision-1)
+                ))
                 .<Result<ThingEvent<?>>>map(response ->
                         ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing)))
                 .orElseGet(() -> ResultFactory.newErrorResult(

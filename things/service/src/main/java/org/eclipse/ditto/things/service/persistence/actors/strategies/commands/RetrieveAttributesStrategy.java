@@ -58,7 +58,9 @@ final class RetrieveAttributesStrategy extends AbstractThingCommandStrategy<Retr
 
         return extractAttributes(thing)
                 .map(attributes -> getAttributesJson(attributes, command))
-                .map(attributesJson -> RetrieveAttributesResponse.of(thingId, attributesJson, dittoHeaders))
+                .map(attributesJson -> RetrieveAttributesResponse.of(thingId, attributesJson,
+                        createCommandResponseDittoHeaders(dittoHeaders, nextRevision-1)
+                ))
                 .<Result<ThingEvent<?>>>map(response ->
                         ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing))
                 )

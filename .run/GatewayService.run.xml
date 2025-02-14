@@ -1,7 +1,9 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="GatewayService" type="Application" factoryName="Application" folderName="Ditto">
     <envs>
+      <env name="DITTO_TRACING_ENABLED" value="true" />
       <env name="LOG_LEVEL_APPLICATION" value="INFO" />
+      <env name="DITTO_TRACING_SAMPLER" value="always" />
     </envs>
     <option name="MAIN_CLASS_NAME" value="org.eclipse.ditto.gateway.service.starter.GatewayService" />
     <module name="ditto-gateway-service" />

@@ -108,8 +108,8 @@ final class ModifyAttributesStrategy extends AbstractThingModifyCommandStrategy<
                                 metadata)
                 );
         final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(modifyAttributes ->
-                appendETagHeaderIfProvided(modifyAttributes, ModifyAttributesResponse.modified(thingId, dittoHeaders),
-                        thing)
+                appendETagHeaderIfProvided(modifyAttributes, ModifyAttributesResponse.modified(thingId,
+                                createCommandResponseDittoHeaders(dittoHeaders, nextRevision)), thing)
         );
 
         return ResultFactory.newMutationResult(command, eventStage, responseStage);
@@ -129,7 +129,8 @@ final class ModifyAttributesStrategy extends AbstractThingModifyCommandStrategy<
                 );
         final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(modifyAttributes ->
                 appendETagHeaderIfProvided(modifyAttributes,
-                        ModifyAttributesResponse.created(thingId, modifyAttributes.getAttributes(), dittoHeaders),
+                        ModifyAttributesResponse.created(thingId, modifyAttributes.getAttributes(),
+                                createCommandResponseDittoHeaders(dittoHeaders, nextRevision)),
                         thing)
         );
 

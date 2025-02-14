@@ -80,7 +80,7 @@ final class RetrieveFeatureStrategy extends AbstractThingCommandStrategy<Retriev
             }
         } else {
             return extractFeatures(thing)
-                    .map(features -> getFeatureResult(features, thingId, command, thing))
+                    .map(features -> getFeatureResult(features, thingId, command, nextRevision, thing))
                     .orElseGet(() -> ResultFactory.newErrorResult(ExceptionFactory.featureNotFound(thingId,
                             command.getFeatureId(), command.getDittoHeaders()), command));
         }
@@ -120,14 +120,16 @@ final class RetrieveFeatureStrategy extends AbstractThingCommandStrategy<Retriev
     }
 
     private Result<ThingEvent<?>> getFeatureResult(final Features features, final ThingId thingId,
-            final RetrieveFeature command, @Nullable final Thing thing) {
+            final RetrieveFeature command, final long nextRevision, @Nullable final Thing thing) {
 
         final String featureId = command.getFeatureId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return features.getFeature(featureId)
                 .map(feature -> getFeatureJson(feature, command))
-                .map(featureJson -> RetrieveFeatureResponse.of(thingId, featureId, featureJson, dittoHeaders))
+                .map(featureJson -> RetrieveFeatureResponse.of(thingId, featureId, featureJson,
+                        createCommandResponseDittoHeaders(dittoHeaders, nextRevision-1)
+                ))
                 .<Result<ThingEvent<?>>>map(response ->
                         ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing)))
                 .orElseGet(() -> ResultFactory.newErrorResult(

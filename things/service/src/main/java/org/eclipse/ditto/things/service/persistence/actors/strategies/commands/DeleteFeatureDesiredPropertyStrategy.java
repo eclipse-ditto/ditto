@@ -108,7 +108,9 @@ final class DeleteFeatureDesiredPropertyStrategy extends
                             .thenApply(deleteFeatureDesiredProperty ->
                                     appendETagHeaderIfProvided(deleteFeatureDesiredProperty,
                                             DeleteFeatureDesiredPropertyResponse.of(thingId, featureId,
-                                                    desiredPropertyPointer, dittoHeaders), thing)
+                                                    desiredPropertyPointer,
+                                                    createCommandResponseDittoHeaders(dittoHeaders, nextRevision)),
+                                            thing)
                             );
 
                     return ResultFactory.newMutationResult(command, eventStage, responseStage);

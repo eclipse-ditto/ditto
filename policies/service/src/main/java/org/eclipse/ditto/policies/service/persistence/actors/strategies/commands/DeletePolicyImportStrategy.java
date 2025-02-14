@@ -60,7 +60,9 @@ final class DeletePolicyImportStrategy extends AbstractPolicyCommandStrategy<Del
                     PolicyImportDeleted.of(policyId, importedPolicyId, nextRevision, getEventTimestamp(), dittoHeaders,
                             metadata);
             final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                    DeletePolicyImportResponse.of(policyId, importedPolicyId, dittoHeaders), nonNullPolicy);
+                    DeletePolicyImportResponse.of(policyId, importedPolicyId,
+                            createCommandResponseDittoHeaders(dittoHeaders, nextRevision)
+                    ), nonNullPolicy);
             return ResultFactory.newMutationResult(command, policyImportDeleted, response);
         } else {
             return ResultFactory.newErrorResult(policyImportNotFound(policyId, importedPolicyId, dittoHeaders),

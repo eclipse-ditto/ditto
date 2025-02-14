@@ -15,6 +15,10 @@ package org.eclipse.ditto.edge.service.acknowledgements;
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
@@ -38,10 +42,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import com.typesafe.config.ConfigFactory;
 
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.testkit.TestProbe;
-import org.apache.pekko.testkit.javadsl.TestKit;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
@@ -116,7 +116,10 @@ public final class AcknowledgementForwarderActorStarterTest {
                         .dittoHeaders(dittoHeaders)
                         .build();
         final Acknowledgement expectedNack = Acknowledgement.of(customAckLabel, KNOWN_ENTITY_ID,
-                HttpStatus.CONFLICT, dittoHeaders, expectedException.toJson());
+                HttpStatus.CONFLICT,
+                dittoHeaders.toBuilder().putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "1").build(),
+                expectedException.toJson()
+        );
 
         final AcknowledgementForwarderActorStarter underTest = getActorStarter(dittoHeaders);
 
