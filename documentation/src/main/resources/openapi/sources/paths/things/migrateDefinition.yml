@@ -1,0 +1,105 @@
+# Copyright (c) 2025 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+post:
+  summary: Update the definition of an existing Thing
+  description: |-
+    Updates the definition of the specified thing by providing a new definition URL along with an optional migration payload.
+
+    The request body allows specifying:
+    - A new Thing definition URL.
+    - A migration payload containing updates to attributes and features.
+    - Patch conditions to ensure consistent updates.
+    - Whether properties should be initialized if missing.
+
+    If the `dry-run` query parameter or header is set to `true`, the request will return the calculated migration result without applying any changes.
+
+    ### Example:
+    ```json
+    {
+      "thingDefinitionUrl": "https://example.com/new-thing-definition.json",
+      "migrationPayload": {
+        "attributes": {
+          "manufacturer": "New Corp"
+        },
+        "features": {
+          "sensor": {
+            "properties": {
+              "status": {
+                "temperature": {
+                  "value": 25.0
+                }
+              }
+            }
+          }
+        }
+      },
+      "patchConditions": {
+        "thing:/features/sensor": "not(exists(/features/sensor))"
+      },
+      "initializeMissingPropertiesFromDefaults": true
+    }
+    ```
+
+  tags:
+    - Things
+  parameters:
+    - $ref: '../../parameters/thingIdPathParam.yml'
+    - name: dry-run
+      in: query
+      description: If set to `true`, performs a dry-run and returns the migration result without applying changes.
+      required: false
+      schema:
+        type: boolean
+        default: false
+  requestBody:
+    description: JSON payload containing the new definition URL, migration payload, patch conditions, and initialization flag.
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../requests/things/migrateThingDefinitionRequest.yml'
+  responses:
+    '200':
+      description: The thing definition was successfully updated, and the updated Thing is returned.
+      content:
+        application/json:
+          schema:
+            $ref: '../../responses/things/migrateThingDefinitionResponse.yml'
+    '202':
+      description: Dry-run successful. The migration result is returned without applying changes.
+      content:
+        application/json:
+          schema:
+            $ref: '../../responses/things/migrateThingDefinitionResponse.yml'
+    '400':
+      description: The request could not be processed due to invalid input.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '401':
+      description: Unauthorized request due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '404':
+      description: The specified thing could not be found.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '412':
+      description: The update conditions were not met.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'

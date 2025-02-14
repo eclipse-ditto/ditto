@@ -198,6 +198,13 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     boolean isDryRun();
 
     /**
+     * Returns whether a command is to be executed as a dry-run from an external request.
+     *
+     * @return {@code true} if dry-run is specified externally, {@code false} otherwise.
+     */
+    boolean isExternalDryRun();
+
+    /**
      * Indicates whether this command is flagged as sudo command which should ignore some preventions.
      *
      * @return True if the command is flagged as sudo command, otherwise false.

@@ -25,6 +25,7 @@ import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryComman
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThingResponse;
+import org.eclipse.ditto.things.model.signals.commands.modify.MigrateThingDefinitionResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
@@ -33,6 +34,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingMerged;
+import org.eclipse.ditto.things.model.signals.events.ThingMigrated;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
 
@@ -67,8 +69,15 @@ public final class SignalMapperFactory {
         return new ThingMergeResponseSignalMapper();
     }
 
+    public static SignalMapper<MigrateThingDefinitionResponse> newThingMigrateResponseSignalMapper() {
+        return new ThingMigrateResponseSignalMapper();
+    }
     public static SignalMapper<ThingMerged> newThingMergedEventSignalMapper() {
         return new ThingMergedEventSignalMapper();
+    }
+
+    public static SignalMapper<ThingMigrated> newThingMigratedEventSignalMapper() {
+        return new ThingMigratedEventSignalMapper();
     }
 
     public static SignalMapper<ThingQueryCommand<?>> newThingQuerySignalMapper() {
@@ -101,6 +110,10 @@ public final class SignalMapperFactory {
 
     public static SignalMapper<ThingSearchCommand<?>> newThingSearchSignalMapper() {
         return new ThingSearchSignalMapper<>();
+    }
+
+    public static ThingMigrateSignalMapper newThingMigrateSignalMapper() {
+        return new ThingMigrateSignalMapper();
     }
 
     public static SignalMapper<PolicyModifyCommand<?>> newPolicyModifySignalMapper() {

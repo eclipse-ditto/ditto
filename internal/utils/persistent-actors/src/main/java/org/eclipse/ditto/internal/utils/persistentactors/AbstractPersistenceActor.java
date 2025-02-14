@@ -817,7 +817,8 @@ public abstract class AbstractPersistenceActor<
         if (command.getDittoHeaders().isResponseRequired()) {
             final ActorRef sender = getSender();
             response.whenComplete((r, throwable) -> {
-                if (throwable instanceof DittoRuntimeException dittoRuntimeException) {
+                final Throwable cause = throwable instanceof CompletionException ? throwable.getCause() : throwable;
+                if (cause instanceof DittoRuntimeException dittoRuntimeException) {
                     notifySender(sender, dittoRuntimeException);
                 } else {
                     notifySender(sender, r);

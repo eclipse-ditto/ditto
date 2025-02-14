@@ -41,7 +41,6 @@ import org.eclipse.ditto.internal.utils.persistentactors.commands.DefaultContext
 import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
-import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
@@ -145,18 +144,6 @@ public final class ThingPersistenceActor
     public void onQuery(final Command<?> command, final WithDittoHeaders response) {
         final ActorRef sender = getSender();
         doOnQuery(command, response, sender);
-    }
-
-    @Override
-    public void onStagedQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response,
-            @Nullable final StartedSpan startedSpan) {
-        final ActorRef sender = getSender();
-        response.thenAccept(r -> {
-            doOnQuery(command, r, sender);
-            if (startedSpan != null) {
-                startedSpan.finish();
-            }
-        });
     }
 
     private void doOnQuery(final Command<?> command, final WithDittoHeaders response, final ActorRef sender) {

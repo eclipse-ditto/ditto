@@ -59,6 +59,9 @@ public final class MappingStrategiesFactory {
         return ThingQueryCommandMappingStrategies.getInstance();
     }
 
+    public static ThingMigrateCommandMappingStrategies getThingMigrateCommandMappingStrategies() {
+        return ThingMigrateCommandMappingStrategies.getInstance();
+    }
     public static RetrieveThingsCommandMappingStrategies getRetrieveThingsCommandMappingStrategies() {
         return RetrieveThingsCommandMappingStrategies.getInstance();
     }
@@ -75,6 +78,10 @@ public final class MappingStrategiesFactory {
         return ThingMergeCommandResponseMappingStrategies.getInstance();
     }
 
+    public static ThingMigrateCommandResponseMappingStrategies getThingMigrateCommandResponseMappingStrategies() {
+        return ThingMigrateCommandResponseMappingStrategies.getInstance();
+    }
+
     public static ThingQueryCommandResponseMappingStrategies getThingQueryCommandResponseMappingStrategies() {
         return ThingQueryCommandResponseMappingStrategies.getInstance();
     }
@@ -89,6 +96,10 @@ public final class MappingStrategiesFactory {
 
     public static ThingMergedEventMappingStrategies getThingMergedEventMappingStrategies() {
         return ThingMergedEventMappingStrategies.getInstance();
+    }
+
+    public static ThingMigratedEventMappingStrategies getThingMigratedEventMappingStrategies() {
+        return ThingMigratedEventMappingStrategies.getInstance();
     }
 
     public static SubscriptionEventMappingStrategies getSubscriptionEventMappingStrategies(
