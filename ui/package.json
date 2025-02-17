@@ -30,7 +30,7 @@
     "ace-builds": "^1.35.4",
     "bootstrap": "^5.3.3",
     "bootstrap-icons": "^1.11.3",
-    "dompurify": "^3.1.6",
+    "dompurify": "^3.2.4",
     "event-source-polyfill": "^1.0.31",
     "jsonpath-plus": "^10.2.0",
     "oidc-client-ts": "^3.0.1"
