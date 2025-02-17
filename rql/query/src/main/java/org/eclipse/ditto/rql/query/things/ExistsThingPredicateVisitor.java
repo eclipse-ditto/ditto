@@ -23,6 +23,7 @@ import org.eclipse.ditto.placeholders.Expression;
 import org.eclipse.ditto.placeholders.PlaceholderResolver;
 import org.eclipse.ditto.rql.query.expression.ExistsFieldExpression;
 import org.eclipse.ditto.rql.query.expression.visitors.ExistsFieldExpressionVisitor;
+import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.Thing;
 
 /**
@@ -85,7 +86,8 @@ public final class ExistsThingPredicateVisitor implements ExistsFieldExpressionV
 
     @Override
     public Predicate<Thing> visitAttribute(final String key) {
-        return thing -> thing.getAttributes().map(attributes -> attributes.getValue(key).isPresent())
+        return thing -> thing.getAttributes()
+                .map(attributes -> attributes.getValueFlatteningArrays(key).isPresent())
                 .orElse(false);
     }
 
@@ -124,7 +126,8 @@ public final class ExistsThingPredicateVisitor implements ExistsFieldExpressionV
     public Predicate<Thing> visitFeatureIdProperty(final String featureId, final String property) {
         return thing -> thing.getFeatures()
                 .flatMap(features -> features.getFeature(featureId))
-                .map(feature -> feature.getProperty(property).isPresent())
+                .flatMap(Feature::getProperties)
+                .map(feature -> feature.getValueFlatteningArrays(property).isPresent())
                 .orElse(false);
     }
 
@@ -132,7 +135,8 @@ public final class ExistsThingPredicateVisitor implements ExistsFieldExpressionV
     public Predicate<Thing> visitFeatureIdDesiredProperty(final CharSequence featureId, final CharSequence property) {
         return thing -> thing.getFeatures()
                 .flatMap(features -> features.getFeature(featureId.toString()))
-                .map(feature -> feature.getDesiredProperty(property).isPresent())
+                .flatMap(Feature::getDesiredProperties)
+                .map(feature -> feature.getValueFlatteningArrays(property).isPresent())
                 .orElse(false);
     }
 
