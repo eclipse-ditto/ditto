@@ -20,15 +20,15 @@ import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
-import org.eclipse.ditto.policies.model.Policy;
-import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyDeleted;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
+import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicy} command.
@@ -50,7 +50,9 @@ final class DeletePolicyStrategy extends AbstractPolicyCommandStrategy<DeletePol
         final PolicyDeleted policyDeleted =
                 PolicyDeleted.of(context.getState(), nextRevision, getEventTimestamp(), dittoHeaders, metadata);
         final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                DeletePolicyResponse.of(context.getState(), dittoHeaders), entity);
+                DeletePolicyResponse.of(context.getState(),
+                        createCommandResponseDittoHeaders(dittoHeaders, nextRevision)
+                ), entity);
         context.getLog().withCorrelationId(command)
                 .info("Deleted Policy with ID <{}>.", context.getState());
         return ResultFactory.newMutationResult(command, policyDeleted, response, false, true);

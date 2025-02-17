@@ -22,17 +22,17 @@ import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.policies.api.PoliciesValidator;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.api.PoliciesValidator;
-import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
-import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
-import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntry;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntryResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEntryDeleted;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
+import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntry} command.
@@ -64,7 +64,9 @@ final class DeletePolicyEntryStrategy extends AbstractPolicyCommandStrategy<Dele
                         PolicyEntryDeleted.of(policyId, label, nextRevision, getEventTimestamp(), dittoHeaders,
                                 metadata);
                 final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                        DeletePolicyEntryResponse.of(policyId, label, dittoHeaders), nonNullPolicy);
+                        DeletePolicyEntryResponse.of(policyId, label,
+                                createCommandResponseDittoHeaders(dittoHeaders, nextRevision)
+                        ), nonNullPolicy);
                 return ResultFactory.newMutationResult(command, policyEntryDeleted, response);
             } else {
                 return ResultFactory.newErrorResult(

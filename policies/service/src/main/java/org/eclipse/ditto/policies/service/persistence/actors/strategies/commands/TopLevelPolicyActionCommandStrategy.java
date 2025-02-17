@@ -107,7 +107,9 @@ final class TopLevelPolicyActionCommandStrategy
                 final Optional<PolicyEvent<?>> event = visitor.aggregateEvents();
                 if (event.isPresent()) {
                     final TopLevelPolicyActionCommandResponse response =
-                            TopLevelPolicyActionCommandResponse.of(context.getState(), dittoHeaders);
+                            TopLevelPolicyActionCommandResponse.of(context.getState(),
+                                    createCommandResponseDittoHeaders(dittoHeaders, nextRevision)
+                            );
                     return ResultFactory.newMutationResult(command, event.get(), response);
                 } else {
                     // builds an internal server error, 500

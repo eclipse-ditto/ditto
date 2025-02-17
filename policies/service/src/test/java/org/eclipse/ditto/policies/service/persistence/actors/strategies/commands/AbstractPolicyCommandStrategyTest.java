@@ -30,6 +30,7 @@ import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
@@ -79,6 +80,7 @@ public abstract class AbstractPolicyCommandStrategyTest {
 
     protected static DittoHeaders buildActivateTokenIntegrationHeaders() {
         return DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "42")
                 .authorizationContext(AuthorizationContext.newInstance(
                         DittoAuthorizationContextType.JWT,
                         AuthorizationSubject.newInstance(TestConstants.Policy.SUPPORT_SUBJECT_ID))
@@ -249,7 +251,9 @@ public abstract class AbstractPolicyCommandStrategyTest {
 
     protected static DittoHeaders appendETagToDittoHeaders(final Object object, final DittoHeaders dittoHeaders) {
 
-        return dittoHeaders.toBuilder().eTag(EntityTag.fromEntity(object).orElseThrow()).build();
+        return dittoHeaders.toBuilder().eTag(EntityTag.fromEntity(object).orElseThrow())
+                .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "42")
+                .build();
     }
 
 }

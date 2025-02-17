@@ -105,7 +105,8 @@ final class DeleteFeatureDesiredPropertiesStrategy
                     final CompletionStage<WithDittoHeaders> responseStage = validatedStage
                             .thenApply(deleteFeatureDesiredProperties ->
                                     appendETagHeaderIfProvided(deleteFeatureDesiredProperties,
-                                            DeleteFeatureDesiredPropertiesResponse.of(thingId, featureId, dittoHeaders),
+                                            DeleteFeatureDesiredPropertiesResponse.of(thingId, featureId,
+                                                    createCommandResponseDittoHeaders(dittoHeaders, nextRevision)),
                                             thing)
                             );
 

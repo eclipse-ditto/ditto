@@ -33,6 +33,7 @@ import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
@@ -174,6 +175,7 @@ public abstract class PersistenceActorTestBase {
                 .collect(Collectors.toList());
 
         return DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "1")
                 .authorizationContext(
                         AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED, authSubjects))
                 .schemaVersion(schemaVersion)

@@ -132,8 +132,9 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
                 underTest.tell(modifyThingCommand, getRef());
 
                 final ThingId thingId = modifiedThing.getEntityId().get();
-                expectMsgEquals(modifyThingResponse(modifiedThing, dittoHeadersV2.toBuilder().putHeader(
-                        DittoHeaderDefinition.ENTITY_ID.getKey(), thingId.getEntityType() + ":" + thingId)
+                expectMsgEquals(modifyThingResponse(modifiedThing, dittoHeadersV2.toBuilder()
+                        .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), String.valueOf(revisionNumber))
+                        .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), thingId.getEntityType() + ":" + thingId)
                         .build()
                 ));
 

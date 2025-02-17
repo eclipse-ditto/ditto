@@ -23,6 +23,8 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
@@ -68,6 +70,23 @@ public abstract class AbstractCommandStrategy<C extends Command<?>, S, K, E exte
         } else {
             return unhandled(context, entity, nextRevision, command);
         }
+    }
+
+    /**
+     * Method used to be called for creating {@link DittoHeaders} for
+     * {@link org.eclipse.ditto.base.model.signals.commands.CommandResponse}s, e.g. adding the revision number of
+     * the entity.
+     *
+     * @param commandHeaders the DittoHeaders of the command
+     * @param nextRevisionNumber the next revision number of the entity
+     * @return the prepared DittoHeaders for the command response
+     */
+    protected DittoHeaders createCommandResponseDittoHeaders(final DittoHeaders commandHeaders,
+            final long nextRevisionNumber
+    ) {
+        return commandHeaders.toBuilder()
+                .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), String.valueOf(nextRevisionNumber))
+                .build();
     }
 
     /**

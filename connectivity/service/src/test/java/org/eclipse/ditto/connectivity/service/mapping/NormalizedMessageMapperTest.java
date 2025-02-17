@@ -133,6 +133,7 @@ public final class NormalizedMessageMapperTest {
                         "    \"path\": \"/\",\n" +
                         "    \"value\":{\"thingId\":\"thing:created\",\"policyId\":\"thing:created\",\"attributes\":{\"x\":5},\"features\":{\"feature\":{\"properties\":{\"y\":6}}}},\n" +
                         "    \"headers\": {\n" +
+                        "      \"entity-revision\": \"1\",\n" +
                         "      \"response-required\": \"false\",\n" +
                         "      \"content-type\": \"application/json\"\n" +
                         "    }\n" +
@@ -175,6 +176,7 @@ public final class NormalizedMessageMapperTest {
                         "    \"path\": \"/\",\n" +
                         "    \"value\":{\"thingId\":\"thing:merged\",\"attributes\":{\"x\":5},\"features\":{\"feature\":{\"properties\":{\"y\":6}}}},\n" +
                         "    \"headers\": {\n" +
+                        "      \"entity-revision\": \"1\",\n" +
                         "      \"response-required\": \"false\",\n" +
                         "      \"content-type\": \"application/merge-patch+json\"\n" +
                         "    }\n" +
@@ -220,6 +222,7 @@ public final class NormalizedMessageMapperTest {
                         "    \"path\": \"/\",\n" +
                         "    \"value\":{\"thingId\":\"thing:merged\",\"attributes\":{\"x\":5},\"features\":{\"feature\":{\"properties\":{\"y\":6}}}},\n" +
                         "    \"headers\": {\n" +
+                        "      \"entity-revision\": \"1\",\n" +
                         "      \"response-required\": \"false\",\n" +
                         "      \"content-type\": \"application/merge-patch+json\"\n" +
                         "    }\n" +
@@ -254,6 +257,7 @@ public final class NormalizedMessageMapperTest {
                         "    \"path\": \"/\",\n" +
                         "    \"value\":{\"thingId\":\"thing:merged\"},\n" +
                         "    \"headers\": {\n" +
+                        "      \"entity-revision\": \"1\",\n" +
                         "      \"response-required\": \"false\",\n" +
                         "      \"content-type\": \"application/merge-patch+json\"\n" +
                         "    }\n" +
@@ -313,6 +317,7 @@ public final class NormalizedMessageMapperTest {
                         .set("path", "/features/transmission")
                         .set("value", JsonFactory.readFrom("{\"properties\":{\"cur_speed\":80}}"))
                         .set("headers", JsonObject.newBuilder()
+                                .set("entity-revision", "1")
                                 .set("response-required", "false")
                                 .set("content-type", "application/merge-patch+json")
                                 .build())
@@ -350,6 +355,7 @@ public final class NormalizedMessageMapperTest {
                         "    \"path\": \"/features/featureId/properties/the/quick/brown/fox/jumps/over/the/lazy/dog\",\n" +
                         "    \"value\":9,\n" +
                         "    \"headers\": {\n" +
+                        "      \"entity-revision\": \"2\",\n" +
                         "      \"response-required\": \"false\",\n" +
                         "      \"content-type\": \"application/json\"\n" +
                         "    }\n" +

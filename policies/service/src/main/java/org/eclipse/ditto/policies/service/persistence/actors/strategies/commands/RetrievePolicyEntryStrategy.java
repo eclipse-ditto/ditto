@@ -17,17 +17,18 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
-import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
-import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntry;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
+import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntry} command.
@@ -47,17 +48,20 @@ final class RetrievePolicyEntryStrategy extends
             @Nullable final Metadata metadata) {
 
         final PolicyId policyId = context.getState();
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
         if (policy != null) {
             final Optional<PolicyEntry> optionalEntry = policy.getEntryFor(command.getLabel());
             if (optionalEntry.isPresent()) {
                 final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                        RetrievePolicyEntryResponse.of(policyId, optionalEntry.get(), command.getDittoHeaders()),
+                        RetrievePolicyEntryResponse.of(policyId, optionalEntry.get(),
+                                createCommandResponseDittoHeaders(dittoHeaders, nextRevision-1)
+                        ),
                         policy);
                 return ResultFactory.newQueryResult(command, response);
             }
         }
         return ResultFactory.newErrorResult(
-                policyEntryNotFound(policyId, command.getLabel(), command.getDittoHeaders()), command);
+                policyEntryNotFound(policyId, command.getLabel(), dittoHeaders), command);
     }
 
     @Override

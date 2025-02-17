@@ -82,7 +82,8 @@ final class DeactivateTokenIntegrationStrategy
                         dittoHeaders, metadata);
             }
             final DeactivateTokenIntegrationResponse rawResponse =
-                    DeactivateTokenIntegrationResponse.of(policyId, label, dittoHeaders);
+                    DeactivateTokenIntegrationResponse.of(policyId, label,
+                            createCommandResponseDittoHeaders(dittoHeaders, nextRevision));
             return ResultFactory.newMutationResult(adjustedCommand, event, rawResponse);
         } else {
             return ResultFactory.newErrorResult(command.getNotApplicableException(dittoHeaders), command);

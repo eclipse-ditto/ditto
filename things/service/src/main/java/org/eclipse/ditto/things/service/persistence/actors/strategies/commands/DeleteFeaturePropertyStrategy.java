@@ -113,7 +113,8 @@ final class DeleteFeaturePropertyStrategy extends AbstractThingModifyCommandStra
                             .thenApply(deleteFeatureProperty ->
                                     appendETagHeaderIfProvided(deleteFeatureProperty,
                                             DeleteFeaturePropertyResponse.of(thingId, featureId, propertyPointer,
-                                                    dittoHeaders), thing)
+                                                    createCommandResponseDittoHeaders(dittoHeaders, nextRevision)),
+                                            thing)
                             );
 
                     return ResultFactory.newMutationResult(command, eventStage, responseStage);

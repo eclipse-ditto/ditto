@@ -229,6 +229,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final RetrieveThing retrieveThing = RetrieveThing.of(thingId, dittoHeadersV2);
                 underTest.tell(retrieveThing, getRef());
                 final DittoHeaders expectedHeaders = dittoHeadersV2.toBuilder()
+                        .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "1")
                         .readGrantedSubjects(List.of(AUTHORIZED_SUBJECT))
                         .build();
                 expectMsgEquals(ETagTestUtils.retrieveThingResponse(thing, null, expectedHeaders));
@@ -368,7 +369,9 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 assertThingInResponse(createThingResponse.getThingCreated().orElse(null), thing);
 
                 underTest.tell(modifyThingCommand, getRef());
-                expectMsgEquals(ETagTestUtils.modifyThingResponse(thing, modifiedThing, dittoHeaders, false));
+                expectMsgEquals(ETagTestUtils.modifyThingResponse(thing, modifiedThing, dittoHeaders.toBuilder()
+                        .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "2")
+                        .build(), false));
             }
         };
     }
@@ -432,7 +435,9 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 expectMsgEquals(
                         ETagTestUtils.modifyThingResponse(thingWithFirstLevelFields, thingWithDifferentFirstLevelFields,
-                                dittoHeaders, false));
+                                dittoHeaders.toBuilder()
+                                        .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "2")
+                                        .build(), false));
 
                 assertPublishEvent(ThingModified.of(thingWithDifferentFirstLevelFields, 2L, TIMESTAMP, dittoHeaders,
                         null));
@@ -453,7 +458,9 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     public void modifyThingOverwritesExistingFirstLevelFieldsWhenNotExplicitlySpecifiedV2() {
         final Thing thingWithFirstLevelFields = createThingV2WithRandomId();
         doTestModifyThingOverwritesExistingFirstLevelFieldsWhenNotExplicitlySpecified(thingWithFirstLevelFields,
-                dittoHeadersV2);
+                dittoHeadersV2.toBuilder()
+                        .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "2")
+                        .build());
     }
 
     private void doTestModifyThingOverwritesExistingFirstLevelFieldsWhenNotExplicitlySpecified(
@@ -597,6 +604,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 underTest.tell(deleteThing, getRef());
                 final ThingId thingId = thing.getEntityId().get();
                 expectMsgEquals(DeleteThingResponse.of(getIdOrThrow(thing), dittoHeadersV2.toBuilder()
+                        .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "2")
                         .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), thingId.getEntityType() + ":" + thingId)
                         .build()));
             }
@@ -624,6 +632,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final DeleteThing deleteThing = DeleteThing.of(thingId, dittoHeadersV2);
                 underTest.tell(deleteThing, getRef());
                 expectMsgEquals(DeleteThingResponse.of(thingId, dittoHeadersV2.toBuilder()
+                        .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "2")
                         .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), thingId.getEntityType() + ":" + thingId)
                         .build()));
 
@@ -654,7 +663,10 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         new TestKit(actorSystem) {
             {
                 final DittoHeaders headersMockWithOtherAuth =
-                        createDittoHeadersMock(JsonSchemaVersion.V_2, AUTH_SUBJECT);
+                        createDittoHeadersMock(JsonSchemaVersion.V_2, AUTH_SUBJECT)
+                                .toBuilder()
+                                .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "2")
+                                .build();
 
                 final ThingId thingId = ThingId.of("org.eclipse.ditto", "myThing");
                 final Feature smokeDetector = ThingsModelFactory.newFeature("smokeDetector");
@@ -695,7 +707,9 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         new TestKit(actorSystem) {
             {
                 final DittoHeaders headersMockWithOtherAuth =
-                        createDittoHeadersMock(JsonSchemaVersion.V_2, AUTH_SUBJECT);
+                        createDittoHeadersMock(JsonSchemaVersion.V_2, AUTH_SUBJECT).toBuilder()
+                                .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "2")
+                                .build();
 
                 final ThingId thingId = ThingId.of("org.eclipse.ditto", "myThing");
 
@@ -767,7 +781,11 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                         ModifyAttribute.of(thingId, attributeKey, newAttributeValue, dittoHeadersV2);
                 underTest.tell(authorizedCommand, getRef());
                 expectMsgEquals(
-                        ETagTestUtils.modifyAttributeResponse(thingId, attributeKey, newAttributeValue, dittoHeadersV2,
+                        ETagTestUtils.modifyAttributeResponse(thingId, attributeKey, newAttributeValue, dittoHeadersV2
+                                        .toBuilder()
+                                        .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "2")
+                                        .build()
+                                ,
                                 false));
             }
         };
@@ -840,6 +858,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final ThingCommand authorizedCommand = DeleteAttribute.of(thingId, attributeKey, dittoHeadersV2);
                 underTest.tell(authorizedCommand, getRef());
                 expectMsgEquals(DeleteAttributeResponse.of(thingId, attributeKey, dittoHeadersV2.toBuilder()
+                        .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "2")
                         .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), thingId.getEntityType() + ":" + thingId)
                         .build()));
             }
@@ -865,6 +884,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 underTest.tell(deleteThingCommand, getRef());
                 expectMsgEquals(DeleteThingResponse.of(thingId, dittoHeadersV2.toBuilder()
+                        .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "2")
                         .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), thingId.getEntityType() + ":" + thingId)
                         .build()));
 
@@ -927,6 +947,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final DeleteThing deleteThing = DeleteThing.of(thingId, dittoHeadersV2);
                 underTest.tell(deleteThing, getRef());
                 expectMsgEquals(DeleteThingResponse.of(thingId, dittoHeadersV2.toBuilder()
+                        .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "2")
                         .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), thingId.getEntityType() + ":" + thingId)
                         .build()));
 
@@ -966,7 +987,9 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 underTest.tell(modifyThing, getRef());
 
-                expectMsgEquals(ETagTestUtils.modifyThingResponse(thing, thingToModify, dittoHeadersV2, false));
+                expectMsgEquals(ETagTestUtils.modifyThingResponse(thing, thingToModify, dittoHeadersV2.toBuilder()
+                        .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "2")
+                        .build(), false));
 
                 // retrieve the thing's sequence number
                 final JsonFieldSelector versionFieldSelector =
@@ -981,7 +1004,9 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                         .build();
                 underTest.tell(retrieveThing, getRef());
                 expectMsgEquals(
-                        ETagTestUtils.retrieveThingResponse(thingExpected, versionFieldSelector, dittoHeadersV2));
+                        ETagTestUtils.retrieveThingResponse(thingExpected, versionFieldSelector, dittoHeadersV2.toBuilder()
+                                .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "2")
+                                .build()));
             }
         };
     }
@@ -1005,7 +1030,9 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final Thing thingToModify = thing.setAttributes(THING_ATTRIBUTES.setValue("foo", "bar"));
                 final ModifyThing modifyThing = ModifyThing.of(thingId, thingToModify, null, dittoHeadersV2);
                 underTest.tell(modifyThing, getRef());
-                expectMsgEquals(ETagTestUtils.modifyThingResponse(thing, thingToModify, dittoHeadersV2, false));
+                expectMsgEquals(ETagTestUtils.modifyThingResponse(thing, thingToModify, dittoHeadersV2.toBuilder()
+                        .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "2")
+                        .build(), false));
 
                 // retrieve the thing's sequence number from recovered actor
                 final JsonFieldSelector versionFieldSelector =
@@ -1030,7 +1057,9 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                     underTestAfterRestart.tell(retrieveThing, getRef());
                     expectMsgEquals(ETagTestUtils.retrieveThingResponse(thingExpected,
                             versionFieldSelector,
-                            dittoHeadersV2));
+                            dittoHeadersV2.toBuilder()
+                                    .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "2")
+                                    .build()));
                 });
             }
         };
@@ -1232,7 +1261,9 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             thingPersistenceActor.tell(retrieveFeatureCmd, getRef());
             expectMsgEquals(
                     ETagTestUtils.retrieveFeatureResponse(thingId, gyroscopeFeature, gyroscopeFeature.toJson(),
-                            dittoHeadersV2));
+                            dittoHeadersV2.toBuilder()
+                                    .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "1")
+                                    .build()));
         }};
     }
 
@@ -1371,6 +1402,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     public void modifyAttributesMetadata() {
         final var thing = createThingV2WithRandomId();
         final var headers = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "2")
                 .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(),
                         "[{\"key\":\"/attrKey/meta\",\"value\":{\"type\":\"bumlux\"}}]")
                 .build();
@@ -1404,6 +1436,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     public void modifyAttributeMetadata() {
         final var thing = createThingV2WithRandomId();
         final var headers = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "2")
                 .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(),
                         "[{\"key\":\"/sub\",\"value\":{\"type\":\"bumlux\"}}]")
                 .build();
@@ -1439,6 +1472,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     public void modifyFeaturesMetadata() {
         final var thing = createThingV2WithRandomId();
         final var headers = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "2")
                 .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(),
                         "[{\"key\":\"/featureId\",\"value\":{\"type\":\"bumlux\"}}]")
                 .build();
@@ -1471,6 +1505,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     public void modifyFeatureMetadata() {
         final var thing = createThingV2WithRandomId();
         final var headers = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "2")
                 .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(),
                         "[{\"key\":\"/sub\",\"value\":{\"type\":\"bumlux\"}}]")
                 .build();
@@ -1503,6 +1538,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     public void modifyThingWithWildcardInMetadata() {
         final var thing = createThingV2WithRandomId();
         final var headers = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "2")
                 .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(),
                         "[{\"key\":\"*/modified\",\"value\":\"2022-06-23T06:49:05\"}]")
                 .build();
@@ -1596,6 +1632,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         final Thing thing = createThingV2WithRandomIdAndMetadata()
                 .setFeatureProperty("featureId2", "featureKey2", "someValue");
         final DittoHeaders dittoHeaders = dittoHeadersV2.toBuilder()
+                .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "1")
                 .putHeader(DittoHeaderDefinition.GET_METADATA.getKey(), "/features/featureId")
                 .build();
         final ThingCommand<?> retrieveThingCommand = RetrieveThing.of(getIdOrThrow(thing), dittoHeaders);
@@ -1672,6 +1709,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     public void retrieveFeaturePropertyAndAttributeMetadataWithGetMetadataWildcardHeader() {
         final Thing thing = createThingV2WithRandomIdAndMetadata();
         final DittoHeaders dittoHeaders = dittoHeadersV2.toBuilder()
+                .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "1")
                 .putHeader(DittoHeaderDefinition.GET_METADATA.getKey(),
                         "attributes/*/edited,features/*/properties/*/unit")
                 .build();
@@ -1716,6 +1754,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     public void retrieveLeafMetadataWithGetMetadataWildcardHeader() {
         final Thing thing = createThingV2WithRandomId();
         final DittoHeaders dittoHeaders = dittoHeadersV2.toBuilder()
+                .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "1")
                 .putHeader(DittoHeaderDefinition.GET_METADATA.getKey(), "*/issuedBy")
                 .build();
         final ThingCommand<?> retrieveThingCommand = RetrieveThing.of(getIdOrThrow(thing), dittoHeaders);
@@ -1773,6 +1812,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                             .build())
                     .build();
             final DittoHeaders expectedHeaders = dittoHeaders.toBuilder()
+                    .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "2")
                     .putHeader(DittoHeaderDefinition.DITTO_METADATA.getKey(), expectedMetadata.toJsonString())
                     .build();
 
@@ -1991,12 +2031,14 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     public void testRemovalOfEmptyMetadataAfterDeletion() {
         final var thing = createThingV2WithRandomId();
         final var putHeaders = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "2")
                 .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(),
                         "[{\"key\":\"*/modified\",\"value\":\"2022-06-23T06:49:05\"}]")
                 .build();
         final var modifyThing = ModifyThing.of(getIdOrThrow(thing), thing, null, putHeaders);
 
         final var deleteHeaders = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "3")
                 .putHeader(DittoHeaderDefinition.DELETE_METADATA.getKey(), "*/modified")
                 .build();
         final var modifyThing1 = ModifyThing.of(getIdOrThrow(thing), thing, null, deleteHeaders);
@@ -2276,6 +2318,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     private static ModifyThing modifyThing(final Thing thing, final JsonSchemaVersion version) {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .schemaVersion(version)
+                .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "2")
                 .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
                         AuthorizationSubject.newInstance(AUTH_SUBJECT)))
                 .build();

@@ -89,7 +89,8 @@ final class DeleteAttributesStrategy extends AbstractThingModifyCommandStrategy<
                 AttributesDeleted.of(thingId, nextRevision, getEventTimestamp(), dittoHeaders, metadata)
         );
         final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(deleteAttributes ->
-                appendETagHeaderIfProvided(deleteAttributes, DeleteAttributesResponse.of(thingId, dittoHeaders), thing)
+                appendETagHeaderIfProvided(deleteAttributes, DeleteAttributesResponse.of(thingId,
+                        createCommandResponseDittoHeaders(dittoHeaders, nextRevision)), thing)
         );
 
         return ResultFactory.newMutationResult(command, eventStage, responseStage);

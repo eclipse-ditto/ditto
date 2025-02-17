@@ -21,6 +21,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.connectivity.model.Connection;
@@ -50,10 +51,12 @@ final class DeleteConnectionStrategy extends AbstractConnectivityCommandStrategy
             final DeleteConnection command,
             @Nullable final Metadata metadata) {
 
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final ConnectivityEvent<?> event = ConnectionDeleted.of(context.getState().id(), nextRevision,
-                getEventTimestamp(), command.getDittoHeaders(), metadata);
+                getEventTimestamp(), dittoHeaders, metadata);
         final WithDittoHeaders response =
-                DeleteConnectionResponse.of(context.getState().id(), command.getDittoHeaders());
+                DeleteConnectionResponse.of(context.getState().id(),
+                        createCommandResponseDittoHeaders(dittoHeaders, nextRevision));
         // Not closing the connection asynchronously; rely on client actors to cleanup all resources when stopped.
         final List<ConnectionAction> actions =
                 Arrays.asList(ConnectionAction.PERSIST_AND_APPLY_EVENT, ConnectionAction.UPDATE_SUBSCRIPTIONS,

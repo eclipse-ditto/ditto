@@ -94,15 +94,15 @@ final class RetrieveThingStrategy extends AbstractThingCommandStrategy<RetrieveT
             }
         } else {
             return ResultFactory.newQueryResult(command,
-                    appendETagHeaderIfProvided(command, getRetrieveThingResponse(thing, command), thing));
+                    appendETagHeaderIfProvided(command, getRetrieveThingResponse(thing, command, nextRevision), thing));
         }
     }
 
-    private static DittoHeadersSettable<?> getRetrieveThingResponse(@Nullable final Thing thing,
-            final ThingQueryCommand<RetrieveThing> command) {
+    private DittoHeadersSettable<?> getRetrieveThingResponse(@Nullable final Thing thing,
+            final ThingQueryCommand<RetrieveThing> command, final long nextRevision) {
         if (thing != null) {
             return RetrieveThingResponse.of(command.getEntityId(), getThingJson(thing, command),
-                    command.getDittoHeaders());
+                    createCommandResponseDittoHeaders(command.getDittoHeaders(), nextRevision-1));
         } else {
             return notAccessible(command);
         }

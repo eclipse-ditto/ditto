@@ -78,7 +78,9 @@ final class ModifyResourcesStrategy extends AbstractPolicyCommandStrategy<Modify
                         ResourcesModified.of(policyId, label, newResources, nextRevision, getEventTimestamp(),
                                 commandHeaders, metadata);
                 final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                        ModifyResourcesResponse.of(policyId, label, commandHeaders), policy);
+                        ModifyResourcesResponse.of(policyId, label,
+                                createCommandResponseDittoHeaders(commandHeaders, nextRevision)
+                        ), policy);
                 return ResultFactory.newMutationResult(command, event, response);
             } else {
                 return ResultFactory.newErrorResult(

@@ -16,7 +16,12 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.cluster.pubsub.DistributedPubSub;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.assertj.core.api.Assertions;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
@@ -35,11 +40,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
-
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.cluster.pubsub.DistributedPubSub;
-import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests error handling behaviour of {@link org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceActor}.
@@ -138,7 +138,9 @@ public class ErrorHandlingActorTest extends WithMockServers {
             final ConnectivityModifyCommand<?> command = DeleteConnection.of(connectionId, DittoHeaders.empty());
             underTest.tell(command, getRef());
             expectMsg(dilated(DISCONNECT_TIMEOUT),
-                    DeleteConnectionResponse.of(connectionId, DittoHeaders.empty()));
+                    DeleteConnectionResponse.of(connectionId, DittoHeaders.newBuilder()
+                            .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "2")
+                            .build()));
         }};
         tearDown();
     }

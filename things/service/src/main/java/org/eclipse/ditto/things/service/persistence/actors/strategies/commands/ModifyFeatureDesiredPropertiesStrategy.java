@@ -151,7 +151,7 @@ final class ModifyFeatureDesiredPropertiesStrategy
                 validatedStage.thenApply(modifyFeatureDesiredProperties ->
                         appendETagHeaderIfProvided(modifyFeatureDesiredProperties,
                                 ModifyFeatureDesiredPropertiesResponse.modified(context.getState(), featureId,
-                                        dittoHeaders),
+                                        createCommandResponseDittoHeaders(dittoHeaders, nextRevision)),
                                 thing)
                 );
 
@@ -180,7 +180,7 @@ final class ModifyFeatureDesiredPropertiesStrategy
                         appendETagHeaderIfProvided(modifyFeatureDesiredProperties,
                                 ModifyFeatureDesiredPropertiesResponse.created(thingId, featureId,
                                         modifyFeatureDesiredProperties.getDesiredProperties(),
-                                        dittoHeaders),
+                                        createCommandResponseDittoHeaders(dittoHeaders, nextRevision)),
                                 thing)
                 );
 

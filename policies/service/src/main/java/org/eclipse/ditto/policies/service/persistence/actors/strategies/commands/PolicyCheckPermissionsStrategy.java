@@ -19,6 +19,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
@@ -57,6 +58,7 @@ final class PolicyCheckPermissionsStrategy extends AbstractPolicyCommandStrategy
 
         final PolicyId policyId = command.getEntityId();
 
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
         if (entity != null) {
             final PolicyEnforcer policyEnforcer = PolicyEnforcer.of(entity);
             final Enforcer enforcer = policyEnforcer.getEnforcer();
@@ -66,7 +68,7 @@ final class PolicyCheckPermissionsStrategy extends AbstractPolicyCommandStrategy
             command.getPermissionsMap().forEach((resource, resourcePermission) -> {
                 final ResourceKey resourceKey = resourcePermission.getResourceKey();
                 boolean hasPermissions = enforcer.hasUnrestrictedPermissions(resourceKey,
-                        command.getDittoHeaders().getAuthorizationContext(),
+                        dittoHeaders.getAuthorizationContext(),
                         Permissions.newInstance(
                                 resourcePermission.getPermissions().getFirst(),
                                 resourcePermission.getPermissions().stream().skip(1).toArray(String[]::new)));
@@ -76,14 +78,16 @@ final class PolicyCheckPermissionsStrategy extends AbstractPolicyCommandStrategy
 
             final WithDittoHeaders response = appendETagHeaderIfProvided(
                     command,
-                    CheckPolicyPermissionsResponse.of(policyId, permissionResults, command.getDittoHeaders()),
+                    CheckPolicyPermissionsResponse.of(policyId, permissionResults,
+                            createCommandResponseDittoHeaders(dittoHeaders, nextRevision)
+                    ),
                     entity
             );
 
             return ResultFactory.newQueryResult(command, response);
 
         } else {
-            return ResultFactory.newErrorResult(policyNotFound(policyId, command.getDittoHeaders()), command);
+            return ResultFactory.newErrorResult(policyNotFound(policyId, dittoHeaders), command);
         }
     }
 

@@ -73,12 +73,16 @@ final class ModifyPolicyImportStrategy extends AbstractPolicyCommandStrategy<Mod
             eventToPersist =
                     PolicyImportModified.of(policyId, policyImport, nextRevision, getEventTimestamp(), dittoHeaders,
                             metadata);
-            createdOrModifiedResponse = ModifyPolicyImportResponse.modified(policyId, importedPolicyId, dittoHeaders);
+            createdOrModifiedResponse = ModifyPolicyImportResponse.modified(policyId, importedPolicyId,
+                    createCommandResponseDittoHeaders(dittoHeaders, nextRevision)
+            );
         } else {
             eventToPersist =
                     PolicyImportCreated.of(policyId, policyImport, nextRevision, getEventTimestamp(), dittoHeaders,
                             metadata);
-            createdOrModifiedResponse = ModifyPolicyImportResponse.created(policyId, policyImport, dittoHeaders);
+            createdOrModifiedResponse = ModifyPolicyImportResponse.created(policyId, policyImport,
+                    createCommandResponseDittoHeaders(dittoHeaders, nextRevision)
+            );
         }
         final WithDittoHeaders response = appendETagHeaderIfProvided(command, createdOrModifiedResponse, nonNullPolicy);
         return ResultFactory.newMutationResult(command, eventToPersist, response);

@@ -28,6 +28,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.connectivity.model.Connection;
@@ -60,10 +61,12 @@ final class OpenConnectionStrategy extends AbstractConnectivityCommandStrategy<O
         if (validationError.isPresent()) {
             return newErrorResult(validationError.get(), command);
         } else {
+            final DittoHeaders dittoHeaders = command.getDittoHeaders();
             final ConnectivityEvent<?> event = ConnectionOpened.of(context.getState().id(), nextRevision,
-                    getEventTimestamp(), command.getDittoHeaders(), metadata);
+                    getEventTimestamp(), dittoHeaders, metadata);
             final WithDittoHeaders response =
-                    OpenConnectionResponse.of(context.getState().id(), command.getDittoHeaders());
+                    OpenConnectionResponse.of(context.getState().id(),
+                            createCommandResponseDittoHeaders(dittoHeaders, nextRevision));
             final List<ConnectionAction> actions =
                     Arrays.asList(ENABLE_LOGGING, PERSIST_AND_APPLY_EVENT, OPEN_CONNECTION, UPDATE_SUBSCRIPTIONS,
                             SEND_RESPONSE);

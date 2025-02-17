@@ -29,10 +29,19 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.cluster.Cluster;
+import org.apache.pekko.cluster.pubsub.DistributedPubSub;
+import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
+import org.apache.pekko.testkit.TestActor;
+import org.apache.pekko.testkit.TestProbe;
 import org.assertj.core.api.Assertions;
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
 import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistenceResponse;
+import org.eclipse.ditto.base.model.correlationid.CorrelationId;
 import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -102,14 +111,6 @@ import org.mockito.Mockito;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.actor.Status;
-import org.apache.pekko.cluster.Cluster;
-import org.apache.pekko.cluster.pubsub.DistributedPubSub;
-import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
-import org.apache.pekko.testkit.TestActor;
-import org.apache.pekko.testkit.TestProbe;
 import scala.PartialFunction;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -165,6 +166,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     private TestProbe pubSubMediatorProbe;
     private ActorRef commandForwarderActor;
     private DittoHeaders dittoHeadersWithCorrelationId;
+    private DittoHeaders dittoHeadersWithCorrelationId_rev3;
     private ConnectionId connectionId;
     private Connection connection;
     private Connection closedConnectionWith2Clients;
@@ -190,8 +192,15 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 ConnectivityStatus.CLOSED,
                 TestConstants.Sources.SOURCES_WITH_AUTH_CONTEXT);
 
+        final CorrelationId correlationId = testNameCorrelationId.getCorrelationId();
         dittoHeadersWithCorrelationId =
-                DittoHeaders.newBuilder().correlationId(testNameCorrelationId.getCorrelationId()).build();
+                DittoHeaders.newBuilder().correlationId(correlationId)
+                        .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "2")
+                        .build();
+        dittoHeadersWithCorrelationId_rev3 =
+                DittoHeaders.newBuilder().correlationId(correlationId)
+                        .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "3")
+                        .build();
         mockClientActorProbe = actorSystemResource1.newTestProbe();
         gossipProbe = actorSystemResource1.newTestProbe();
     }
@@ -387,7 +396,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
         // delete connection
         underTest.tell(DeleteConnection.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
-        testProbe.expectMsg(DeleteConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId));
+        testProbe.expectMsg(DeleteConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId_rev3));
         mockClientActorProbe.expectNoMessage();
         testProbe.expectTerminated(underTest, FiniteDuration.apply(3, TimeUnit.SECONDS));
     }
@@ -463,11 +472,15 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 PartialFunction.fromFunction(msg -> isMessageSenderInstanceOf(msg, CloseConnection.class))
         );
         mockClientActorProbe.reply(new Status.Success("mock"));
-        testProbe.expectMsg(CloseConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId));
+        testProbe.expectMsg(CloseConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId_rev3));
 
         // delete connection
         underTest.tell(DeleteConnection.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
-        testProbe.expectMsg(DeleteConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId));
+        testProbe.expectMsg(DeleteConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId_rev3
+                .toBuilder()
+                .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "4")
+                .build()
+        ));
         testProbe.expectTerminated(underTest, FiniteDuration.apply(5, TimeUnit.SECONDS));
     }
 
@@ -713,7 +726,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
         // client actor is not informed about modification as it is not started
         mockClientActorProbe.expectNoMessage(FiniteDuration.apply(3, TimeUnit.SECONDS));
-        testProbe.expectMsg(ModifyConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId));
+        testProbe.expectMsg(ModifyConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId_rev3));
     }
 
     @Test
@@ -1126,7 +1139,11 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final var enableConnectionLogs = EnableConnectionLogs.of(connectionId, DittoHeaders.empty());
         underTest.tell(enableConnectionLogs, testProbe.ref());
         expectMockClientActorMessage(enableConnectionLogs);
-        testProbe.expectMsg(EnableConnectionLogsResponse.of(connectionId, enableConnectionLogs.getDittoHeaders()));
+        testProbe.expectMsg(EnableConnectionLogsResponse.of(connectionId, enableConnectionLogs.getDittoHeaders()
+                .toBuilder()
+                .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "2")
+                .build()
+        ));
 
         // modify connection
         underTest.tell(ModifyConnection.of(connection, dittoHeadersWithCorrelationId), testProbe.ref());
@@ -1299,6 +1316,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 .putHeader("number-of-instantiation-failures",
                         String.valueOf(TestConstants.CONNECTION_CONFIG.getClientActorRestartsBeforeEscalation() + 1))
                 .responseRequired(false)
+                .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "1")
                 .build();
         underTest.tell(createConnection.setDittoHeaders(headersIndicatingFailingInstantiation), testProbe.ref());
         final CreateConnectionResponse resp =

@@ -126,7 +126,8 @@ final class ModifyThingStrategy extends AbstractThingModifyCommandStrategy<Modif
         final CompletionStage<WithDittoHeaders> responseStage = validatedStage
                 .thenApply(modifyThing ->
                         appendETagHeaderIfProvided(modifyThing,
-                                ModifyThingResponse.modified(context.getState(), dittoHeaders),
+                                ModifyThingResponse.modified(context.getState(),
+                                        createCommandResponseDittoHeaders(dittoHeaders, nextRevision)),
                                 modifyThing.getThing())
                 );
 
