@@ -130,9 +130,7 @@ let Ditto = (function () {
    */
   function asByteBuffer(arrayBuffer) {
 
-    let byteBuffer = new ArrayBuffer(arrayBuffer.byteLength);
-    new Uint8Array(byteBuffer).set(new Uint8Array(arrayBuffer));
-    return dcodeIO.ByteBuffer.wrap(byteBuffer);
+    return dcodeIO.ByteBuffer.wrap(new Uint8Array(arrayBuffer));
   }
 
   return {

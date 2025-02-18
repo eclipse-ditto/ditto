@@ -138,7 +138,7 @@
         </dependency>
         <dependency>
             <groupId>org.mozilla</groupId>
-            <artifactId>rhino-runtime</artifactId>
+            <artifactId>rhino</artifactId>
         </dependency>
 
         <!-- note: the order of classindex and jmh-generator-annprocess is important (classindex before
