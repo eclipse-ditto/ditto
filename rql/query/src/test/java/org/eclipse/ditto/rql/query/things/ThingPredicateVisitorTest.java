@@ -22,6 +22,8 @@ import java.util.function.Predicate;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
@@ -70,6 +72,23 @@ public final class ThingPredicateVisitorTest {
             .setAttribute(JsonPointer.of("aDouble"), JsonValue.of(MATCHING_THING_DOUBLE))
             .setAttribute(JsonPointer.of("aBoolean"), JsonValue.of(MATCHING_THING_BOOLEAN))
             .setAttribute(JsonPointer.of("aString"), JsonValue.of(MATCHING_THING_STRING))
+            .setAttribute(JsonPointer.of("anArrayOfObjects"), JsonArray.newBuilder()
+                    .add(JsonObject.newBuilder()
+                            .set("anInteger", MATCHING_THING_INTEGER)
+                            .set("aBoolean", MATCHING_THING_BOOLEAN)
+                            .set("anArrayOfObjects", JsonArray.newBuilder()
+                                    .add(
+                                            JsonObject.newBuilder()
+                                                    .set("anInteger", MATCHING_THING_INTEGER)
+                                                    .set("aBoolean", MATCHING_THING_BOOLEAN)
+                                                    .build()
+                                    )
+                                    .build()
+                            )
+                            .build()
+                    )
+                    .build()
+            )
             .setFeature("foo", FeatureProperties.newBuilder()
                     .set(JsonPointer.of("anInteger"), JsonValue.of(MATCHING_THING_INTEGER))
                     .set(JsonPointer.of("aLong"), JsonValue.of(MATCHING_THING_LONG))
@@ -451,6 +470,67 @@ public final class ThingPredicateVisitorTest {
         assertThat(negativePredicate.test(MATCHING_THING))
                 .as("Filtering 'exists(attributes/missing)' should be false")
                 .isFalse();
+    }
+
+    @Test
+    public void testFilterAttributeNestedInArrayExists() {
+        final Predicate<Thing> thingPredicate = createPredicate("exists(attributes/anArrayOfObjects/aBoolean)");
+        assertThat(thingPredicate.test(MATCHING_THING))
+                .as("Filtering 'exists(attributes/anArrayOfObjects/aBoolean)' should be true")
+                .isTrue();
+
+        final Predicate<Thing> negativePredicate = createPredicate("exists(attributes/anArrayOfObjects/missing)");
+        assertThat(negativePredicate.test(MATCHING_THING))
+                .as("Filtering 'exists(attributes/anArrayOfObjects/missing)' should be false")
+                .isFalse();
+    }
+
+    @Test
+    public void testFilterAttributeNestedInArrayNestedExists() {
+        final Predicate<Thing> thingPredicate = createPredicate("exists(attributes/anArrayOfObjects/anArrayOfObjects/aBoolean)");
+        assertThat(thingPredicate.test(MATCHING_THING))
+                .as("Filtering 'exists(attributes/anArrayOfObjects/anArrayOfObjects/aBoolean)' should be true")
+                .isTrue();
+
+        final Predicate<Thing> negativePredicate = createPredicate("exists(attributes/anArrayOfObjects/anArrayOfObjects/missing)");
+        assertThat(negativePredicate.test(MATCHING_THING))
+                .as("Filtering 'exists(attributes/anArrayOfObjects/anArrayOfObjects/missing)' should be false")
+                .isFalse();
+    }
+
+    @Test
+    public void testFilterArrayAttributeWithNestedIntegerGe() {
+        final String filter = "ge(attributes/anArrayOfObjects/anInteger," + (MATCHING_THING_INTEGER - 1) + ")";
+        final Predicate<Thing> thingPredicate = createPredicate(filter);
+        assertThat(thingPredicate.test(MATCHING_THING))
+                .as("Filtering '" + filter + "' should be true")
+                .isTrue();
+    }
+
+    @Test
+    public void testFilterArrayAttributeWithArrayNestedIntegerGe() {
+        final String filter =
+                "ge(attributes/anArrayOfObjects/anArrayOfObjects/anInteger," + (MATCHING_THING_INTEGER - 1) + ")";
+        final Predicate<Thing> thingPredicate = createPredicate(filter);
+        assertThat(thingPredicate.test(MATCHING_THING))
+                .as("Filtering '" + filter + "' should be true")
+                .isTrue();
+    }
+
+    @Test
+    public void testFilterArrayAttributeWithNestedBooleanEq() {
+        final Predicate<Thing> thingPredicate = createPredicate("eq(attributes/anArrayOfObjects/aBoolean,true)");
+        assertThat(thingPredicate.test(MATCHING_THING))
+                .as("Filtering 'exists(attributes/anArrayOfObjects/aBoolean)' should be true")
+                .isTrue();
+    }
+
+    @Test
+    public void testFilterArrayAttributeWithArrayNestedBooleanEq() {
+        final Predicate<Thing> thingPredicate = createPredicate("eq(attributes/anArrayOfObjects/anArrayOfObjects/aBoolean,true)");
+        assertThat(thingPredicate.test(MATCHING_THING))
+                .as("Filtering 'exists(attributes/anArrayOfObjects/anArrayOfObjects/aBoolean)' should be true")
+                .isTrue();
     }
 
     @Test
