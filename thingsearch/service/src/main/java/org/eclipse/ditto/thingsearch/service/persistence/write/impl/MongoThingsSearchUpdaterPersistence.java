@@ -31,6 +31,7 @@ import org.bson.BsonInt32;
 import org.bson.BsonString;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
@@ -58,8 +59,11 @@ public final class MongoThingsSearchUpdaterPersistence implements ThingsSearchUp
 
     private final MongoCollection<Document> collection;
 
+    private final ThrottlingConfig PolicyModificationCausedSearchIndexUpdateThrottling;
+
     private MongoThingsSearchUpdaterPersistence(final MongoDatabase database,
-            final SearchPersistenceConfig updaterPersistenceConfig) {
+                                                final SearchPersistenceConfig updaterPersistenceConfig) {
+        this.PolicyModificationCausedSearchIndexUpdateThrottling = updaterPersistenceConfig.getPolicyModificationCausedSearchIndexUpdateThrottling();
 
         collection = database.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME)
                 .withReadConcern(updaterPersistenceConfig.readConcern().getMongoReadConcern())
@@ -106,18 +110,25 @@ public final class MongoThingsSearchUpdaterPersistence implements ThingsSearchUp
                         .append(PersistenceConstants.FIELD_POLICY_ID, new BsonInt32(1))
                         .append(PersistenceConstants.FIELD_REFERENCED_POLICIES, new BsonInt32(1)));
 
-        return Source.fromPublisher(publisher)
-                .mapConcat(doc -> {
-                    final ThingId thingId = ThingId.of(doc.getString(PersistenceConstants.FIELD_ID));
-                    final Collection<PolicyId> referencedPolicyIds = referencedPolicyIds(doc);
-                    return referencedPolicyIds.stream()
-                            .map(referencedPolicyId -> Optional.ofNullable(policyRevisions.get(referencedPolicyId))
-                                    .map(revision -> PolicyTag.of(referencedPolicyId, revision))
-                                    .map(policyTag -> PolicyReferenceTag.of(thingId, policyTag))
-                                    .orElse(null))
-                            .filter(Objects::nonNull)
-                            .toList();
-                });
+
+        final Source<Document, NotUsed> throttledSource = PolicyModificationCausedSearchIndexUpdateThrottling.isEnabled()
+                ? Source.fromPublisher(publisher).throttle(
+                    PolicyModificationCausedSearchIndexUpdateThrottling.getLimit(),
+                    PolicyModificationCausedSearchIndexUpdateThrottling.getInterval()
+                )
+                : Source.fromPublisher(publisher);
+
+        return throttledSource.mapConcat(doc -> {
+            final ThingId thingId = ThingId.of(doc.getString(PersistenceConstants.FIELD_ID));
+            final Collection<PolicyId> referencedPolicyIds = referencedPolicyIds(doc);
+            return referencedPolicyIds.stream()
+                    .map(referencedPolicyId -> Optional.ofNullable(policyRevisions.get(referencedPolicyId))
+                            .map(revision -> PolicyTag.of(referencedPolicyId, revision))
+                            .map(policyTag -> PolicyReferenceTag.of(thingId, policyTag))
+                            .orElse(null))
+                    .filter(Objects::nonNull)
+                    .toList();
+        });
     }
 
     private Collection<PolicyId> referencedPolicyIds(final Document doc) {
