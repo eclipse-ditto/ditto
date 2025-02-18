@@ -155,6 +155,44 @@ public final class ThingsRouteTest extends EndpointTestBase {
     }
 
     @Test
+    public void postMigrateThingDefinitionSuccessfully() {
+        var thingId = EndpointTestConstants.KNOWN_THING_ID;
+        final var body = """
+            {
+              "thingDefinitionUrl": "https://models.example.com/thing-definition-1.0.0.tm.jsonld",
+              "migrationPayload": {
+                "attributes": {
+                  "manufacturer": "New Corp",
+                  "location": "Berlin, main floor"
+                },
+                "features": {
+                  "thermostat": {
+                    "properties": {
+                      "status": {
+                        "temperature": {
+                          "value": 23.5,
+                          "unit": "DEGREE_CELSIUS"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "patchConditions": {
+                  "thing:/features/thermostat": "not(exists(/features/thermostat))"
+              },
+              "initializeMissingPropertiesFromDefaults": true
+            }
+        """;
+
+        final RequestEntity requestEntity = HttpEntities.create(ContentTypes.APPLICATION_JSON, body);
+        final var result = underTest.run(HttpRequest.POST("/things/" +
+                        thingId + "/migrateDefinition")
+                .withEntity(requestEntity));
+        result.assertStatusCode(StatusCodes.OK);
+    }
+
+    @Test
     public void getThingsWithEmptyIdsList() {
         final var result = underTest.run(HttpRequest.GET("/things?ids="));
         result.assertStatusCode(StatusCodes.BAD_REQUEST);

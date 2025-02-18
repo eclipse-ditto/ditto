@@ -60,6 +60,8 @@ paths:
     $ref: "./paths/things/index.yml"
   '/api/2/things/{thingId}':
     $ref: "./paths/things/thing.yml"
+  '/api/2/things/{thingId}/migrateDefinition':
+    $ref: "./paths/things/migrateDefinition.yml"
   '/api/2/things/{thingId}/definition':
     $ref: "./paths/things/definition.yml"
   '/api/2/things/{thingId}/policyId':
@@ -214,6 +216,11 @@ components:
       $ref: "./requests/patchValue.yml"
     ActivateTokenIntegration:
       $ref: "./requests/policies/actions/activateTokenIntegration.yml"
+    MigrateThingDefinitionRequest:
+      content:
+        application/json:
+          schema:
+            $ref: "./requests/things/migrateThingDefinitionRequest.yml"
 
   responses:
     EntityTooLarge:
@@ -230,6 +237,12 @@ components:
       $ref: "./responses/successUpdateLogLevel.yml"
     SuccessUpdateLogLevelSinglePod:
       $ref: "./responses/successUpdateLogLevelSinglePod.yml"
+    MigrateThingDefinitionResponse:
+      description: The thing definition was successfully updated, and the updated Thing is returned.
+      content:
+        application/json:
+          schema:
+            $ref: "./responses/things/migrateThingDefinitionResponse.yml"
 
   parameters:
     AllowPolicyLockoutParam:

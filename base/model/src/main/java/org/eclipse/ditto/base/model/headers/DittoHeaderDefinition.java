@@ -69,6 +69,16 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
     DRY_RUN("ditto-dry-run", boolean.class, false, false, HeaderValueValidators.getBooleanValidator()),
 
     /**
+     * Header definition for specifying dry-run behavior from external clients.
+     * <p>
+     * Key: {@code "dry-run"}, Java type: {@code boolean}.
+     * </p>
+     *
+     * @since 3.7.0
+     */
+    EXTERNAL_DRY_RUN("dry-run", boolean.class, true, true, HeaderValueValidators.getBooleanValidator()),
+
+    /**
      * Header definition for read subjects value.
      * <p>
      * Key: {@code "read-subjects"}, Java type: {@link JsonArray}.

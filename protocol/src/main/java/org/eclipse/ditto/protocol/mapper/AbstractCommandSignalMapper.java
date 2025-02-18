@@ -87,6 +87,9 @@ abstract class AbstractCommandSignalMapper<T extends Signal<?>> extends Abstract
             case DELETE:
                 builder.delete();
                 break;
+            case MIGRATE:
+                builder.migrate();
+                break;
             default:
                 throw unknownCommandException(action.getName());
         }

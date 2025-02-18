@@ -117,6 +117,7 @@ public final class ImmutableDittoHeadersTest {
     private static final String KNOWN_TRACEPARENT = "00-dfca0d990402884d22e909a87ac677ec-94fc4da95e842f96-01";
     private static final String KNOWN_TRACESTATE = "eclipse=ditto";
     private static final boolean KNOWN_DITTO_RETRIEVE_DELETED = true;
+    private static final boolean KNOWN_DITTO_EXTERNAL_DRY_RUN = true;
     private static final String KNOWN_DITTO_ACKREGATOR_ADDRESS = "here!";
 
     private static final String KNOWN_DITTO_GET_METADATA = "attributes/*/key";
@@ -224,6 +225,7 @@ public final class ImmutableDittoHeadersTest {
                         KNOWN_PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT.formatAsString())
                 .putHeader(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_OBJECT.getKey(),
                         KNOWN_PRE_DEFINED_EXTRA_FIELDS_OBJECT.formatAsString())
+                .putHeader(DittoHeaderDefinition.EXTERNAL_DRY_RUN.getKey(), String.valueOf(KNOWN_DITTO_EXTERNAL_DRY_RUN))
                 .build();
 
         assertThat(underTest).isEqualTo(expectedHeaderMap);
@@ -534,7 +536,6 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.CONNECTION_ID.getKey(), KNOWN_CONNECTION_ID)
                 .set(DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES.getKey(),
                         charSequencesToJsonArray(KNOWN_EXPECTED_RESPONSE_TYPES))
-                .set(DittoHeaderDefinition.PUT_METADATA.getKey(), KNOWN_METADATA_HEADERS.toJson())
                 .set(DittoHeaderDefinition.ALLOW_POLICY_LOCKOUT.getKey(), KNOWN_ALLOW_POLICY_LOCKOUT)
                 .set(DittoHeaderDefinition.WEAK_ACK.getKey(), KNOWN_IS_WEAK_ACK)
                 .set(DittoHeaderDefinition.EVENT_JOURNAL_TAGS.getKey(),
@@ -548,8 +549,6 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION.getKey(), KNOWN_LIVE_CHANNEL_CONDITION)
                 .set(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(),
                         KNOWN_LIVE_CHANNEL_CONDITION_MATCHED)
-                .set(DittoHeaderDefinition.GET_METADATA.getKey(), KNOWN_DITTO_GET_METADATA)
-                .set(DittoHeaderDefinition.DELETE_METADATA.getKey(), KNOWN_DITTO_DELETE_METADATA)
                 .set(DittoHeaderDefinition.DITTO_METADATA.getKey(), KNOWN_DITTO_METADATA)
                 .set(DittoHeaderDefinition.AT_HISTORICAL_REVISION.getKey(), KNOWN_AT_HISTORICAL_REVISION)
                 .set(DittoHeaderDefinition.AT_HISTORICAL_TIMESTAMP.getKey(), KNOWN_AT_HISTORICAL_TIMESTAMP.toString())
@@ -560,6 +559,10 @@ public final class ImmutableDittoHeadersTest {
                         KNOWN_PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT)
                 .set(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_OBJECT.getKey(),
                         KNOWN_PRE_DEFINED_EXTRA_FIELDS_OBJECT)
+                .set(DittoHeaderDefinition.EXTERNAL_DRY_RUN.getKey(), KNOWN_DITTO_EXTERNAL_DRY_RUN)
+                .set(DittoHeaderDefinition.PUT_METADATA.getKey(), KNOWN_METADATA_HEADERS.toJson())
+                .set(DittoHeaderDefinition.GET_METADATA.getKey(), KNOWN_DITTO_GET_METADATA)
+                .set(DittoHeaderDefinition.DELETE_METADATA.getKey(), KNOWN_DITTO_DELETE_METADATA)
                 .build();
 
         final Map<String, String> allKnownHeaders = createMapContainingAllKnownHeaders();
@@ -806,6 +809,8 @@ public final class ImmutableDittoHeadersTest {
                 KNOWN_PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT.formatAsString());
         result.put(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_OBJECT.getKey(),
                 KNOWN_PRE_DEFINED_EXTRA_FIELDS_OBJECT.formatAsString());
+        result.put(DittoHeaderDefinition.EXTERNAL_DRY_RUN.getKey(),
+                String.valueOf(KNOWN_DITTO_EXTERNAL_DRY_RUN));
 
         return result;
     }

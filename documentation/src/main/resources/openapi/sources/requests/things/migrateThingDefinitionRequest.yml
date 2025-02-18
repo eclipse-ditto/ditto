@@ -1,0 +1,59 @@
+# Copyright (c) 2025 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+type: object
+description: JSON payload to migrate the definition of a Thing.
+properties:
+  thingDefinitionUrl:
+    type: string
+    format: uri
+    description: "The URL of the new Thing definition to be applied."
+    example: "https://models.example.com/thing-definition-1.0.0.tm.jsonld"
+  migrationPayload:
+    type: object
+    description: "Optional migration payload with updates to attributes and features."
+    properties:
+      attributes:
+        type: object
+        additionalProperties: true
+        description: "Attributes to be updated in the thing."
+        example:
+          manufacturer: "New Corp"
+          location: "Berlin, main floor"
+      features:
+        type: object
+        additionalProperties:
+          type: object
+          properties:
+            properties:
+              type: object
+              additionalProperties: true
+        description: "Features to be updated in the thing."
+        example:
+          thermostat:
+            properties:
+              status:
+                temperature:
+                  value: 23.5
+                  unit: "DEGREE_CELSIUS"
+  patchConditions:
+    type: object
+    description: "Optional conditions to apply the migration only if the existing thing matches the specified values."
+    additionalProperties:
+      type: string
+    example:
+      thing:/features/thermostat: "not(exists(/features/thermostat))"
+  initializeMissingPropertiesFromDefaults:
+    type: boolean
+    description: "Flag indicating whether missing properties should be initialized with default values."
+    example: true
+    default: false
+required:
+  - thingDefinitionUrl

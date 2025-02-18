@@ -68,6 +68,9 @@ public abstract class LiveTwinTest {
             case DELETE:
                 commandsTopicPathBuilder.delete();
                 break;
+            case MIGRATE:
+                commandsTopicPathBuilder.migrate();
+                break;
         }
         return commandsTopicPathBuilder.build();
     }

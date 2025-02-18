@@ -739,6 +739,101 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '424':
           $ref: '#/components/responses/DependencyFailed'
+  '/api/2/things/{thingId}/migrateDefinition':
+    post:
+      summary: Update the definition of an existing Thing
+      description: |-
+        Updates the definition of the specified thing by providing a new definition URL along with an optional migration payload.
+
+        The request body allows specifying:
+        - A new Thing definition URL.
+        - A migration payload containing updates to attributes and features.
+        - Patch conditions to ensure consistent updates.
+        - Whether properties should be initialized if missing.
+
+        If the `dry-run` query parameter or header is set to `true`, the request will return the calculated migration result without applying any changes.
+
+        ### Example:
+        ```json
+        {
+          "thingDefinitionUrl": "https://example.com/new-thing-definition.json",
+          "migrationPayload": {
+            "attributes": {
+              "manufacturer": "New Corp"
+            },
+            "features": {
+              "sensor": {
+                "properties": {
+                  "status": {
+                    "temperature": {
+                      "value": 25.0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "patchConditions": {
+            "thing:/features/sensor": "not(exists(/features/sensor))"
+          },
+          "initializeMissingPropertiesFromDefaults": true
+        }
+        ```
+      tags:
+        - Things
+      parameters:
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - name: dry-run
+          in: query
+          description: 'If set to `true`, performs a dry-run and returns the migration result without applying changes.'
+          required: false
+          schema:
+            type: boolean
+            default: false
+      requestBody:
+        description: 'JSON payload containing the new definition URL, migration payload, patch conditions, and initialization flag.'
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/requestBodies/MigrateThingDefinitionRequest/content/application~1json/schema'
+      responses:
+        '200':
+          description: 'The thing definition was successfully updated, and the updated Thing is returned.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/MigrateThingDefinitionResponse/content/application~1json/schema'
+        '202':
+          description: Dry-run successful. The migration result is returned without applying changes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/MigrateThingDefinitionResponse/content/application~1json/schema'
+        '400':
+          description: The request could not be processed due to invalid input.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '401':
+          description: Unauthorized request due to missing authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '404':
+          description: The specified thing could not be found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '412':
+          description: The update conditions were not met.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
   '/api/2/things/{thingId}/definition':
     get:
       summary: Retrieve the definition of a specific thing
@@ -8212,6 +8307,59 @@ components:
               randomizationInterval: 5m
       description: Optional request payload for `activateTokenIntegration` policy action.
       required: false
+    MigrateThingDefinitionRequest:
+      content:
+        application/json:
+          schema:
+            type: object
+            description: JSON payload to migrate the definition of a Thing.
+            properties:
+              thingDefinitionUrl:
+                type: string
+                format: uri
+                description: The URL of the new Thing definition to be applied.
+                example: 'https://models.example.com/thing-definition-1.0.0.tm.jsonld'
+              migrationPayload:
+                type: object
+                description: Optional migration payload with updates to attributes and features.
+                properties:
+                  attributes:
+                    type: object
+                    additionalProperties: true
+                    description: Attributes to be updated in the thing.
+                    example:
+                      manufacturer: New Corp
+                      location: 'Berlin, main floor'
+                  features:
+                    type: object
+                    additionalProperties:
+                      type: object
+                      properties:
+                        properties:
+                          type: object
+                          additionalProperties: true
+                    description: Features to be updated in the thing.
+                    example:
+                      thermostat:
+                        properties:
+                          status:
+                            temperature:
+                              value: 23.5
+                              unit: DEGREE_CELSIUS
+              patchConditions:
+                type: object
+                description: Optional conditions to apply the migration only if the existing thing matches the specified values.
+                additionalProperties:
+                  type: string
+                example:
+                  'thing:/features/thermostat': not(exists(/features/thermostat))
+              initializeMissingPropertiesFromDefaults:
+                type: boolean
+                description: Flag indicating whether missing properties should be initialized with default values.
+                example: true
+                default: false
+            required:
+              - thingDefinitionUrl
   responses:
     EntityTooLarge:
       description: The created or modified entity is larger than the accepted limit of 100 kB.
@@ -8300,6 +8448,41 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ModuleUpdatedLogLevel'
+    MigrateThingDefinitionResponse:
+      description: 'The thing definition was successfully updated, and the updated Thing is returned.'
+      content:
+        application/json:
+          schema:
+            type: object
+            description: Response payload after applying or simulating a migration to a Thing.
+            properties:
+              thingId:
+                type: string
+                description: Unique identifier representing the migrated Thing.
+              patch:
+                type: object
+                description: The patch containing updates to the Thing.
+                properties:
+                  definition:
+                    $ref: '#/components/schemas/Definition'
+                  attributes:
+                    $ref: '#/components/schemas/Attributes'
+                  features:
+                    $ref: '#/components/schemas/Features'
+              mergeStatus:
+                type: string
+                description: |
+                  Indicates the result of the migration process.
+                  - `APPLIED`: The migration was successfully applied.
+                  - `DRY_RUN`: The migration result was calculated but not applied.
+                enum:
+                  - APPLIED
+                  - DRY_RUN
+                example: APPLIED
+            required:
+              - thingId
+              - patch
+              - mergeStatus
   parameters:
     AllowPolicyLockoutParam:
       name: allow-policy-lockout
