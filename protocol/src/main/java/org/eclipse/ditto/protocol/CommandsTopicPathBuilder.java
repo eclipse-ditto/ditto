@@ -54,4 +54,12 @@ public interface CommandsTopicPathBuilder extends TopicPathBuildable {
      */
     CommandsTopicPathBuilder delete();
 
+    /**
+     * Sets the {@code Action} of this builder to {@link TopicPath.Action#MIGRATE}. A previously set action is replaced.
+     *
+     * @return this builder to allow method chaining.
+     * @since 3.7.0
+     */
+    CommandsTopicPathBuilder migrate();
+
 }

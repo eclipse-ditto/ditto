@@ -106,6 +106,41 @@ The following additional API endpoints are automatically available:
 * `/things/{thingId}/features/lamp/properties/color`: accessing the `color` properties of the feature `lamp` of the
   specific thing
 
+#### `/things` in API 2 - Migrate Thing Definitions
+
+The endpoint `/things/{thingId}/migrateDefinition` allows migrating the thing definition with a new model, as well as optionally migrating attributes and features.
+
+HTTP Method: `POST /things/{thingId}/migrateDefinition`
+
+Request Example:
+```json
+{
+  "thingDefinitionUrl": "https://models.example.com/thing-definition-1.0.0.tm.jsonld",
+  "migrationPayload": {
+    "attributes": {
+      "manufacturer": "New Corp",
+      "location": "Berlin, main floor"
+    },
+    "features": {
+      "thermostat": {
+        "properties": {
+          "status": {
+            "temperature": {
+              "value": 23.5, 
+              "unit": "DEGREE_CELSIUS"
+            }
+          }
+        }
+      }
+    }
+  },
+  "patchConditions": {
+    "thing:/features/thermostat": "not(exists(/features/thermostat))"
+  },
+  "initializeMissingPropertiesFromDefaults": true
+}
+```
+
 #### `/policies` in API 2
 
 The base endpoint for accessing and working with `Policies`.<br/>

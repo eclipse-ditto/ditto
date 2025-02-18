@@ -195,7 +195,7 @@ public interface ThingBuilder {
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code featureId} is {@code null}.
          */
-        FromScratch setFeature(String featureId, FeatureDefinition featureDefinition,
+        FromScratch setFeature(String featureId, @Nullable FeatureDefinition featureDefinition,
                 @Nullable FeatureProperties featureProperties);
 
         /**

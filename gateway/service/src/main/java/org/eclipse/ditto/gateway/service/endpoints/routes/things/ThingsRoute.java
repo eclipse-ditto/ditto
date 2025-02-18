@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.routes.things;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.base.model.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
 import java.util.Arrays;
@@ -56,6 +57,7 @@ import org.eclipse.ditto.things.model.ThingBuilder;
 import org.eclipse.ditto.things.model.ThingDefinition;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
+import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.PolicyIdNotDeletableException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingIdNotExplicitlySettableException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingMergeInvalidException;
@@ -71,6 +73,7 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttributes;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyPolicyId;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThingDefinition;
+import org.eclipse.ditto.things.model.signals.commands.modify.MigrateThingDefinition;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttribute;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttributes;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrievePolicyId;
@@ -90,6 +93,7 @@ public final class ThingsRoute extends AbstractRoute {
     private static final String PATH_ATTRIBUTES = "attributes";
     private static final String PATH_THING_DEFINITION = "definition";
     private static final String NAMESPACE_PARAMETER = "namespace";
+    private static final String PATH_MIGRATE_DEFINITION = "migrateDefinition";
 
     private final FeaturesRoute featuresRoute;
     private final MessagesRoute messagesRoute;
@@ -153,6 +157,7 @@ public final class ThingsRoute extends AbstractRoute {
                 thingsEntryAttributes(ctx, dittoHeaders, thingId),
                 thingsEntryAttributesEntry(ctx, dittoHeaders, thingId),
                 thingsEntryDefinition(ctx, dittoHeaders, thingId),
+                thingsEntryMigrateDefinition(ctx, dittoHeaders, thingId),
                 thingsEntryFeatures(ctx, dittoHeaders, thingId),
                 thingsEntryInboxOutbox(ctx, dittoHeaders, thingId)
         );
@@ -573,6 +578,31 @@ public final class ThingsRoute extends AbstractRoute {
                         )
                 )
         );
+    }
+
+    private Route thingsEntryMigrateDefinition(final RequestContext ctx,
+            final DittoHeaders dittoHeaders,
+            final ThingId thingId) {
+        return rawPathPrefix(PathMatchers.slash().concat(PATH_MIGRATE_DEFINITION), () ->
+                pathEndOrSingleSlash(() ->
+                        // POST /things/<thingId>/migrateDefinition
+                        ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                                payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource, payload -> {
+                                    final JsonObject inputJson =
+                                            wrapJsonRuntimeException(() -> JsonFactory.newObject(payload));
+                                    final JsonObject updatedJson = addThingId(inputJson, thingId);
+                                    return MigrateThingDefinition.fromJson(updatedJson, dittoHeaders);
+                                })
+                        )
+                )
+        );
+    }
+
+    private static JsonObject addThingId(final JsonObject inputJson, final ThingId thingId) {
+        checkNotNull(inputJson, "inputJson");
+        return JsonFactory.newObjectBuilder(inputJson)
+                .set(ThingCommand.JsonFields.JSON_THING_ID, thingId.toString())
+                .build();
     }
 
     private ThingDefinition getDefinitionFromJson(final String definitionJson, final DittoHeaders dittoHeaders) {

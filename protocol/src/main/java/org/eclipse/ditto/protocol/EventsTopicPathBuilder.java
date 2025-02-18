@@ -46,4 +46,13 @@ public interface EventsTopicPathBuilder extends TopicPathBuildable {
      * @return this builder to allow method chaining.
      */
     EventsTopicPathBuilder deleted();
+
+    /**
+     * Sets the {@code Action} of this builder to {@link TopicPath.Action#MIGRATED}. A previously set action is
+     * replaced.
+     *
+     * @return this builder to allow method chaining.
+     * @since 3.7.0
+     */
+    EventsTopicPathBuilder migrated();
 }

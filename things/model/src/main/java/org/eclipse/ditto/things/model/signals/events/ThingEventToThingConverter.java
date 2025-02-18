@@ -121,6 +121,8 @@ public final class ThingEventToThingConverter {
                     return ThingsModelFactory.newThing(mergedJson.asObject());
                 }
         );
+        mappers.put(ThingDefinitionMigrated.class,
+                (te, tb) -> ((ThingDefinitionMigrated) te).getThing().toBuilder().setRevision(te.getRevision()).build());
         mappers.put(ThingDeleted.class,
                 (te, tb) -> tb.build());
 

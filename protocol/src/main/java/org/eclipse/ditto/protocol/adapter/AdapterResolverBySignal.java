@@ -46,6 +46,8 @@ import org.eclipse.ditto.protocol.adapter.provider.ThingCommandAdapterProvider;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThingResponse;
+import org.eclipse.ditto.things.model.signals.commands.modify.MigrateThingDefinition;
+import org.eclipse.ditto.things.model.signals.commands.modify.MigrateThingDefinitionResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
@@ -54,6 +56,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingMerged;
+import org.eclipse.ditto.things.model.signals.events.ThingDefinitionMigrated;
 import org.eclipse.ditto.thingsearch.model.signals.commands.SearchErrorResponse;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
@@ -115,6 +118,10 @@ final class AdapterResolverBySignal {
             validateChannel(channel, event, LIVE, TWIN);
             return (Adapter<T>) thingsAdapters.getMergedEventAdapter();
         }
+        if (event instanceof ThingDefinitionMigrated) {
+            validateChannel(channel, event, LIVE, TWIN);
+            return (Adapter<T>) thingsAdapters.getThingDefinitionMigratedEventAdapter();
+        }
         if (event instanceof ThingEvent) {
             validateChannel(channel, event, LIVE, TWIN);
             return (Adapter<T>) thingsAdapters.getEventAdapter();
@@ -149,6 +156,10 @@ final class AdapterResolverBySignal {
         if (commandResponse instanceof MergeThingResponse) {
             validateChannel(channel, commandResponse, LIVE, TWIN);
             return (Adapter<T>) thingsAdapters.getMergeCommandResponseAdapter();
+        }
+        if (commandResponse instanceof MigrateThingDefinitionResponse) {
+            validateChannel(channel, commandResponse, LIVE, TWIN);
+            return (Adapter<T>) thingsAdapters.getMigrateThingDefinitionCommandResponseAdapter();
         }
         if (commandResponse instanceof ThingModifyCommandResponse) {
             validateChannel(channel, commandResponse, LIVE, TWIN);
@@ -213,6 +224,12 @@ final class AdapterResolverBySignal {
             validateChannel(channel, command, LIVE, TWIN);
             return (Adapter<T>) thingsAdapters.getMergeCommandAdapter();
         }
+
+        if (command instanceof MigrateThingDefinition) {
+            validateNotLive(command);
+            return (Adapter<T>) thingsAdapters.getMigrateThingDefinitionCommandAdapter();
+        }
+
         if (command instanceof ThingModifyCommand) {
             validateChannel(channel, command, LIVE, TWIN);
             return (Adapter<T>) thingsAdapters.getModifyCommandAdapter();
@@ -230,6 +247,7 @@ final class AdapterResolverBySignal {
             validateNotLive(command);
             return (Adapter<T>) thingsAdapters.getSearchCommandAdapter();
         }
+
         if (command instanceof StreamingSubscriptionCommand) {
             validateNotLive(command);
             return (Adapter<T>) streamingSubscriptionCommandAdapter;

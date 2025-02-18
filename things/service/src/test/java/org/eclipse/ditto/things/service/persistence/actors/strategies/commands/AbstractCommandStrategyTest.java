@@ -72,9 +72,9 @@ public abstract class AbstractCommandStrategyTest {
     @BeforeClass
     public static void initTestConstants() {
         logger = Mockito.mock(DittoDiagnosticLoggingAdapter.class);
-        Mockito.when(logger.withCorrelationId(Mockito.any(DittoHeaders.class))).thenReturn(logger);
-        Mockito.when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class))).thenReturn(logger);
-        Mockito.when(logger.withCorrelationId(Mockito.any(CharSequence.class))).thenReturn(logger);
+        Mockito.lenient().when(logger.withCorrelationId(Mockito.any(DittoHeaders.class))).thenReturn(logger);
+        Mockito.lenient().when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class))).thenReturn(logger);
+        Mockito.lenient().when(logger.withCorrelationId(Mockito.any(CharSequence.class))).thenReturn(logger);
     }
 
     protected static CommandStrategy.Context<ThingId> getDefaultContext() {
@@ -203,7 +203,7 @@ public abstract class AbstractCommandStrategyTest {
         return event.getValue();
     }
 
-    private static <T extends ThingModifiedEvent<?>> T assertStagedModificationResult(final Result<ThingEvent<?>> result,
+    protected static <T extends ThingModifiedEvent<?>> T assertStagedModificationResult(final Result<ThingEvent<?>> result,
             final Class<T> eventClazz,
             final WithDittoHeaders expectedResponse,
             final boolean becomeDeleted) {

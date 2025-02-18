@@ -151,6 +151,13 @@ public interface Command<T extends Command<T>> extends Signal<T> {
         MERGE,
 
         /**
+         * Category of commands that change the state of entities.
+         *
+         * @since 3.7.0
+         */
+        MIGRATE,
+
+        /**
          * Category of commands that delete entities.
          */
         DELETE,
