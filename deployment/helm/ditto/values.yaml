@@ -1377,7 +1377,7 @@ thingsSearch:
       # updaterPersistenceReadPreference configures the MongoDB read preference for the "ThingUpdater"
       updaterPersistenceReadPreference: "primaryPreferred"
       # PolicyModificationCausedSearchIndexUpdateThrottling contains throttling configuration for the search Index update after a policy update
-      PolicyModificationCausedSearchIndexUpdateThrottling:
+      policyModificationCausedSearchIndexUpdateThrottling:
         # enabled defines whether throttling should be applied for search Index update after a policy update.
         enabled: false
         # The time window within which the throttling limit applies.
