@@ -201,6 +201,12 @@ spec:
               value: "{{ .Values.thingsSearch.config.mongodb.updaterPersistenceReadConcern }}"
             - name: UPDATER_PERSISTENCE_MONGO_DB_READ_PREFERENCE
               value: "{{ .Values.thingsSearch.config.mongodb.updaterPersistenceReadPreference }}"
+            - name: POLICY_MODIFICATION_CAUSED_SEARCH_INDEX_UPDATE_THROTTLING_ENABLED
+              value: "{{ .Values.thingsSearch.config.mongodb.PolicyModificationCausedSearchIndexUpdateThrottling.enabled }}"
+            - name: POLICY_MODIFICATION_CAUSED_SEARCH_INDEX_UPDATE_THROTTLING_INTERVAL
+              value: "{{ .Values.thingsSearch.config.mongodb.PolicyModificationCausedSearchIndexUpdateThrottling.interval }}"
+            - name: POLICY_MODIFICATION_CAUSED_SEARCH_INDEX_UPDATE_THROTTLING_LIMIT
+              value: "{{ .Values.thingsSearch.config.mongodb.PolicyModificationCausedSearchIndexUpdateThrottling.limit }}"
             - name: THINGS_SEARCH_UPDATER_STREAM_PERSISTENCE_WITH_ACKS_WRITE_CONCERN
               value: "{{ .Values.thingsSearch.config.mongodb.searchWithAcksWriteConcern }}"
             - name: THINGS_SEARCH_UPDATER_STREAM_POLICY_CACHE_SIZE

@@ -14,6 +14,7 @@ package org.eclipse.ditto.thingsearch.service.common.config;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ReadConcern;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ReadPreference;
@@ -37,6 +38,14 @@ public interface SearchPersistenceConfig {
      * @return the desired read concern.
      */
     ReadConcern readConcern();
+
+    /**
+     * Returns the {@code ThrottlingConfig} for the policy update after search Index update.
+     *
+     * @return the policy update ThrottlingConfig.
+     * @since 3.7.0
+     */
+    ThrottlingConfig getPolicyModificationCausedSearchIndexUpdateThrottling();
 
     /**
      * An enumeration of known config path expressions and their associated default values for {@code SearchPersistenceConfig}.

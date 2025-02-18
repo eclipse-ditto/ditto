@@ -17,6 +17,7 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
@@ -35,6 +36,7 @@ public final class DefaultSearchPersistenceConfig implements SearchPersistenceCo
 
     private final ReadPreference readPreference;
     private final ReadConcern readConcern;
+    private final ThrottlingConfig policyModificationCausedSearchIndexUpdateThrottling;
 
 
     private DefaultSearchPersistenceConfig(final ConfigWithFallback config) {
@@ -56,6 +58,7 @@ public final class DefaultSearchPersistenceConfig implements SearchPersistenceCo
                                     readConcernString);
                     return new DittoConfigError(msg);
                 });
+        policyModificationCausedSearchIndexUpdateThrottling = ThrottlingConfig.of(config);
     }
 
     /**
@@ -81,6 +84,11 @@ public final class DefaultSearchPersistenceConfig implements SearchPersistenceCo
     }
 
     @Override
+    public ThrottlingConfig getPolicyModificationCausedSearchIndexUpdateThrottling() {
+        return policyModificationCausedSearchIndexUpdateThrottling;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -89,12 +97,15 @@ public final class DefaultSearchPersistenceConfig implements SearchPersistenceCo
             return false;
         }
         final DefaultSearchPersistenceConfig that = (DefaultSearchPersistenceConfig) o;
-        return readPreference == that.readPreference && readConcern == that.readConcern;
+        return readPreference == that.readPreference
+                && readConcern == that.readConcern
+                && Objects.equals(
+                policyModificationCausedSearchIndexUpdateThrottling, that.policyModificationCausedSearchIndexUpdateThrottling);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(readPreference, readConcern);
+        return Objects.hash(readPreference, readConcern, policyModificationCausedSearchIndexUpdateThrottling);
     }
 
     @Override
@@ -102,6 +113,7 @@ public final class DefaultSearchPersistenceConfig implements SearchPersistenceCo
         return getClass().getSimpleName() + " [" +
                 "readPreference=" + readPreference +
                 ", readConcern=" + readConcern +
+                ", policyModificationCausedSearchIndexUpdateThrottling=" + policyModificationCausedSearchIndexUpdateThrottling +
                 "]";
     }
 }

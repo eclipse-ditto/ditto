@@ -13,6 +13,7 @@
 package org.eclipse.ditto.thingsearch.service.common.config;
 
 import org.assertj.core.api.JUnitSoftAssertions;
+import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ReadConcern;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ReadPreference;
 import org.junit.BeforeClass;
@@ -62,6 +63,10 @@ public final class DefaultSearchPersistenceConfigTest {
                 .isEqualTo(ReadPreference.ofReadPreference(
                         (String) SearchPersistenceConfig.ConfigValue.READ_PREFERENCE.getDefaultValue())
                         .orElseThrow());
+
+        softly.assertThat(underTest.getPolicyModificationCausedSearchIndexUpdateThrottling())
+                .as("Throttling Config should have default values")
+                .isEqualTo(ThrottlingConfig.of(ConfigFactory.empty()));
     }
 
     @Test
@@ -75,6 +80,10 @@ public final class DefaultSearchPersistenceConfigTest {
         softly.assertThat(underTest.readPreference())
                 .as(SearchPersistenceConfig.ConfigValue.READ_PREFERENCE.getConfigPath())
                 .isEqualTo(ReadPreference.SECONDARY_PREFERRED);
+
+        softly.assertThat(underTest.getPolicyModificationCausedSearchIndexUpdateThrottling())
+                .as("Throttling Config should match the configuration file")
+                .isNotNull();
     }
 
 }
