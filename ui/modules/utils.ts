@@ -15,7 +15,7 @@
 import autoComplete from '@tarekraafat/autocomplete.js';
 import * as ace from 'ace-builds/src-noconflict/ace';
 import { Modal, Toast } from 'bootstrap';
-import * as DOMPurify from 'dompurify';
+import DOMPurify from 'dompurify';
 
 
 const dom = {
