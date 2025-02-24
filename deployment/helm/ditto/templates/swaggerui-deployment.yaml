@@ -15,6 +15,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "ditto.fullname" . }}-swaggerui
+  namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/name: {{ $name }}-swaggerui
 {{ include "ditto.labels" . | indent 4 }}

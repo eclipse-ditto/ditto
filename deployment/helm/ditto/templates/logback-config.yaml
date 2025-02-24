@@ -20,6 +20,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ $releaseName }}-{{ $path | replace "/" "-" | replace "." "-" }}
+  namespace: {{ $root.Release.Namespace }}
   labels:
     app.kubernetes.io/name: {{ $name }}-logback-config
 {{ $labels | indent 4 }}

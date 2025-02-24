@@ -17,6 +17,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: {{ $releaseName }}-nginx-config-nginx-htpasswd
+  namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/name: {{ $name }}-nginx-config
 {{ $labels | indent 4 }}

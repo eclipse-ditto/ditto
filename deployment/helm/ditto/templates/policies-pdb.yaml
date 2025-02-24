@@ -14,6 +14,7 @@ apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
   name: {{ include "ditto.fullname" . }}-policies
+  namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/name: {{ include "ditto.name" . }}-policies
 {{ include "ditto.labels" . | indent 4 }}

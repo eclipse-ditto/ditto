@@ -15,6 +15,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "ditto.fullname" . }}-nginx
+  namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/name: {{ $name }}-nginx
 {{ include "ditto.labels" . | indent 4 }}

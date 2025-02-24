@@ -15,6 +15,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "ditto.fullname" . }}-dittoui
+  namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/name: {{ $name }}-dittoui
 {{ include "ditto.labels" . | indent 4 }}
