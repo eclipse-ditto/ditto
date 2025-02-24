@@ -260,14 +260,14 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=com/hivemq/hivemq-mqtt-client/1.3.5/hivemq-mqtt-client-1.3.5-sources.jar
 
 
-## JsonSchemaValidator (1.5.5)
+## JsonSchemaValidator (1.5.6)
 
-* Maven coordinates: `com.networknt:json-schema-validator:1.5.5`
+* Maven coordinates: `com.networknt:json-schema-validator:1.5.6`
 * License: [Apache License Version 2.0](https://spdx.org/licenses/Apache License Version 2.0.html)
 * Project: https://github.com/networknt/json-schema-validator
 * Sources: 
    * declared as SCM: https://github.com/networknt/json-schema-validator
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/networknt/json-schema-validator/1.5.5/json-schema-validator-1.5.5-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/networknt/json-schema-validator/1.5.6/json-schema-validator-1.5.6-sources.jar
 
 
 ## RabbitMQ Java Client (5.25.0)
