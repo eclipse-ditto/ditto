@@ -1,0 +1,40 @@
+{
+  "@context": [
+    "https://www.w3.org/2022/wot/td/v1.1",
+    {
+      "om2": "http://www.ontology-of-units-of-measure.org/resource/om-2/"
+    }
+  ],
+  "@type": "tm:ThingModel",
+  "title": "Angular Velocity Sensor",
+  "version": {
+    "model": "1.0.0"
+  },
+  "tm:optional": [],
+  "properties": {
+    "currentAngularVelocity": {
+      "@type": "om2:AngularVelocity",
+      "title": "Current acceleration",
+      "description": "The last or current measured angular velocity in the three (X/Y/Z) dimension measured in 'rad/s'.",
+      "type": "object",
+      "properties": {
+        "x": {
+          "title": "X dimension",
+          "type": "integer",
+          "unit": "om2:radianPerSecond-Time"
+        },
+        "y": {
+          "title": "Y dimension",
+          "type": "integer",
+          "unit": "om2:radianPerSecond-Time"
+        },
+        "z": {
+          "title": "Z dimension",
+          "type": "integer",
+          "unit": "om2:radianPerSecond-Time"
+        }
+      },
+      "required": ["x","y","z"]
+    }
+  }
+}

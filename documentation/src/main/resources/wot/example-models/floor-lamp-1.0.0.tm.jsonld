@@ -1,0 +1,84 @@
+{
+  "@context": [
+    "https://www.w3.org/2022/wot/td/v1.1",
+    {
+      "om2": "http://www.ontology-of-units-of-measure.org/resource/om-2/",
+      "time": "http://www.w3.org/2006/time#"
+    }
+  ],
+  "@type": "tm:ThingModel",
+  "title": "Floor Lamp",
+  "description": "A smart floor lamp with 3 dimmable and color changing spots, smoke detection capability and power consumption awareness.",
+  "version": {
+    "model": "1.0.0"
+  },
+  "links": [
+    {
+      "rel": "tm:submodel",
+      "href": "https://eclipse.dev/ditto/wot/example-models/dimmable-colored-lamp-1.0.0.tm.jsonld",
+      "type": "application/tm+json",
+      "instanceName": "Spot1"
+    },
+    {
+      "rel": "tm:submodel",
+      "href": "https://eclipse.dev/ditto/wot/example-models/dimmable-colored-lamp-1.0.0.tm.jsonld",
+      "type": "application/tm+json",
+      "instanceName": "Spot2"
+    },
+    {
+      "rel": "tm:submodel",
+      "href": "https://eclipse.dev/ditto/wot/example-models/dimmable-colored-lamp-1.0.0.tm.jsonld",
+      "type": "application/tm+json",
+      "instanceName": "Spot3"
+    },
+    {
+      "rel": "tm:submodel",
+      "href": "https://eclipse.dev/ditto/wot/example-models/connection-status-1.0.0.tm.jsonld",
+      "type": "application/tm+json",
+      "instanceName": "ConnectionStatus"
+    },
+    {
+      "rel": "tm:submodel",
+      "href": "https://eclipse.dev/ditto/wot/example-models/power-consumption-aware-1.0.0.tm.jsonld",
+      "type": "application/tm+json",
+      "instanceName": "PowerConsumptionAwareness"
+    },
+    {
+      "rel": "tm:submodel",
+      "href": "https://eclipse.dev/ditto/wot/example-models/smoke-detector-1.0.0.tm.jsonld",
+      "type": "application/tm+json",
+      "instanceName": "SmokeDetection"
+    },
+    {
+      "rel": "tm:submodel",
+      "href": "https://eclipse.dev/ditto/wot/example-models/colored-lamp-1.0.0.tm.jsonld",
+      "type": "application/tm+json",
+      "instanceName": "Status-LED"
+    }
+  ],
+  "tm:optional": [],
+  "properties": {
+    "manufacturer": {
+      "title": "Manufacturer",
+      "type": "string",
+      "readOnly": true
+    },
+    "serialNo": {
+      "title": "Serial number",
+      "type": "string",
+      "readOnly": true
+    }
+  },
+  "actions": {
+    "switch-all-spots": {
+      "title": "Switch all spots",
+      "description": "Switches all spots (1-3) on/off based on the passed in boolean.",
+      "type": "boolean"
+    },
+    "switch-all-spots-on-for-duration": {
+      "title": "Switch all spots on for duration",
+      "description": "Switches all spots (1-3) on for a given duration, then switches back to their previous state.",
+      "tm:ref": "https://eclipse.dev/ditto/wot/example-models/switchable-1.0.0.tm.jsonld#/actions/switch-on-for-duration"
+    }
+  }
+}

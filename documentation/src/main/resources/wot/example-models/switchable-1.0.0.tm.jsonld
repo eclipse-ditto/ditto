@@ -1,0 +1,41 @@
+{
+  "@context": [
+    "https://www.w3.org/2022/wot/td/v1.1",
+    {
+      "time": "http://www.w3.org/2006/time#"
+    }
+  ],
+  "@type": "tm:ThingModel",
+  "title": "Switchable",
+  "version": {
+    "model": "1.0.0"
+  },
+  "tm:optional": [],
+  "properties": {
+    "on": {
+      "title": "On",
+      "description": "Whether the switch is on or off.",
+      "type": "boolean"
+    }
+  },
+  "actions": {
+    "toggle": {
+      "title": "Toggle",
+      "description": "Toggles/inverts the current 'on' state.",
+      "output": {
+        "title": "New 'on' state",
+        "type": "boolean"
+      }
+    },
+    "switch-on-for-duration": {
+      "title": "Switch on for duration",
+      "description": "Switches the switchable on for a given duration, then switches back to the previous state.",
+      "input": {
+        "@type": "time:Duration",
+        "title": "Duration in seconds",
+        "type": "integer",
+        "unit": "time:seconds"
+      }
+    }
+  }
+}

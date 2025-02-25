@@ -1,0 +1,32 @@
+{
+  "@context": [
+    "https://www.w3.org/2022/wot/td/v1.1",
+    {
+      "time": "http://www.w3.org/2006/time#"
+    }
+  ],
+  "@type": "tm:ThingModel",
+  "title": "Connection Status",
+  "version": {
+    "model": "1.0.0"
+  },
+  "tm:optional": [],
+  "properties": {
+    "readySince": {
+      "@type": "time:Instant",
+      "title": "Ready since",
+      "description": "Timestamp when the device or the connectivity endpoint signals that the device is connected and stays connected at least for some time and is ready for receiving information.",
+      "type": "string",
+      "format": "date-time",
+      "unit": "xsd:dateTime"
+    },
+    "readyUntil": {
+      "@type": "time:Instant",
+      "title": "Ready until",
+      "description": "Timestamp until when device or the connectivity endpoint signals that it stays ready for receiving information; if it signals that it stays connected and is ready until further notice then this timestamp is symbolically set to a timestamp that is at least 1 year ahead of now.",
+      "type": "string",
+      "format": "date-time",
+      "unit": "xsd:dateTime"
+    }
+  }
+}

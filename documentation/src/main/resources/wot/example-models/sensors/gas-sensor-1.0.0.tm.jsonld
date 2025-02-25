@@ -1,0 +1,46 @@
+{
+  "@context": [
+    "https://www.w3.org/2022/wot/td/v1.1",
+    {
+      "om2": "http://www.ontology-of-units-of-measure.org/resource/om-2/"
+    }
+  ],
+  "@type": "tm:ThingModel",
+  "title": "Gas Sensor",
+  "description": "Gas sensor measuring Volatile organic compounds (VOC)",
+  "version": {
+    "model": "1.0.0"
+  },
+  "links": [
+    {
+      "type": "service-doc",
+      "href": "https://www.epa.gov/indoor-air-quality-iaq/technical-overview-volatile-organic-compounds"
+    },
+    {
+      "rel": "tm:extends",
+      "href": "https://eclipse.dev/ditto/wot/example-models/sensors/min-max-aware-sensor-1.0.0.tm.jsonld",
+      "type": "application/tm+json"
+    }
+  ],
+  "tm:optional": [],
+  "properties": {
+    "currentVoc": {
+      "title": "Current VOC",
+      "description": "The last or current measured VOC value.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "minMeasuredVoc": {
+      "title": "Minimum measured VOC",
+      "description": "The minimum measured VOC value since power ON or reset.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "maxMeasuredVoc": {
+      "title": "Maximum measured temperature",
+      "description": "The maximum measured VOC value since power ON or reset.",
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "@context": [
+    "https://www.w3.org/2022/wot/td/v1.1"
+  ],
+  "@type": "tm:ThingModel",
+  "title": "Min/max Aware Sensor",
+  "version": {
+    "model": "1.0.0"
+  },
+  "tm:optional": [],
+  "actions": {
+    "resetMinMaxMeasurements": {
+      "title": "Reset min/max measurement",
+      "description": "Resets the minimum and maximum sensor measurement to the current sensor value."
+    }
+  }
+}

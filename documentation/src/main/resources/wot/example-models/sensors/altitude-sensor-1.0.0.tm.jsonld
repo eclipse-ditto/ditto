@@ -1,0 +1,44 @@
+{
+  "@context": [
+    "https://www.w3.org/2022/wot/td/v1.1",
+    {
+      "om2": "http://www.ontology-of-units-of-measure.org/resource/om-2/"
+    }
+  ],
+  "@type": "tm:ThingModel",
+  "title": "Altitude Sensor",
+  "version": {
+    "model": "1.0.0"
+  },
+  "links": [
+    {
+      "rel": "tm:extends",
+      "href": "https://eclipse.dev/ditto/wot/example-models/sensors/min-max-aware-sensor-1.0.0.tm.jsonld",
+      "type": "application/tm+json"
+    }
+  ],
+  "tm:optional": [],
+  "properties": {
+    "currentAltitude": {
+      "@type": "om2:Height",
+      "title": "Current altitude",
+      "description": "The last or current measured altitude above sea level in 'm'.",
+      "type": "number",
+      "unit": "om2:metre"
+    },
+    "minMeasuredAltitude": {
+      "@type": "om2:Height",
+      "title": "Minimum measured altitude",
+      "description": "The minimum measured altitude above sea level since power ON or reset in 'm'.",
+      "type": "number",
+      "unit": "om2:metre"
+    },
+    "maxMeasuredAltitude": {
+      "@type": "om2:Height",
+      "title": "Maximum measured altitude",
+      "description": "The maximum measured altitude above sea level since power ON or reset in 'm'.",
+      "type": "number",
+      "unit": "om2:metre"
+    }
+  }
+}

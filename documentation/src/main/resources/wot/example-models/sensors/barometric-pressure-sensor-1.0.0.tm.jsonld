@@ -1,0 +1,44 @@
+{
+  "@context": [
+    "https://www.w3.org/2022/wot/td/v1.1",
+    {
+      "om2": "http://www.ontology-of-units-of-measure.org/resource/om-2/"
+    }
+  ],
+  "@type": "tm:ThingModel",
+  "title": "Barometric Pressure Sensor",
+  "version": {
+    "model": "1.0.0"
+  },
+  "links": [
+    {
+      "rel": "tm:extends",
+      "href": "https://eclipse.dev/ditto/wot/example-models/sensors/min-max-aware-sensor-1.0.0.tm.jsonld",
+      "type": "application/tm+json"
+    }
+  ],
+  "tm:optional": [],
+  "properties": {
+    "currentBarometricPressure": {
+      "@type": "om2:Pressure",
+      "title": "Current barometric pressure",
+      "description": "The last or current measured barometric pressure in 'hPa'.",
+      "type": "number",
+      "unit": "om2:hectopascal"
+    },
+    "minMeasuredBarometricPressure": {
+      "@type": "om2:Pressure",
+      "title": "Minimum measured barometric pressure",
+      "description": "The minimum measured barometric pressure since power ON or reset in 'hPa'.",
+      "type": "number",
+      "unit": "om2:hectopascal"
+    },
+    "maxMeasuredBarometricPressure": {
+      "@type": "om2:Pressure",
+      "title": "Maximum measured barometric pressure",
+      "description": "The maximum measured barometric pressure since power ON or reset in 'hPa'.",
+      "type": "number",
+      "unit": "om2:hectopascal"
+    }
+  }
+}

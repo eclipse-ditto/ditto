@@ -1,0 +1,53 @@
+{
+  "@context": [
+    "https://www.w3.org/2022/wot/td/v1.1",
+    {
+      "om2": "http://www.ontology-of-units-of-measure.org/resource/om-2/"
+    }
+  ],
+  "@type": "tm:ThingModel",
+  "title": "Humidity Sensor",
+  "version": {
+    "model": "1.0.0"
+  },
+  "links": [
+    {
+      "rel": "tm:extends",
+      "href": "https://eclipse.dev/ditto/wot/example-models/sensors/min-max-aware-sensor-1.0.0.tm.jsonld",
+      "type": "application/tm+json"
+    }
+  ],
+  "tm:optional": [],
+  "properties": {
+    "currentRelativeHumidity": {
+      "@type": "om2:RelativeHumidity",
+      "title": "Current relative humidity",
+      "description": "The last or current measured relative humidity in '%'.",
+      "type": "number",
+      "unit": "om2:percent",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "multipleOf": 0.01
+    },
+    "minMeasuredRelativeHumidity": {
+      "@type": "om2:RelativeHumidity",
+      "title": "Minimum measured relative humidity",
+      "description": "The minimum measured relative humidity since power ON or reset in '%'.",
+      "type": "number",
+      "unit": "om2:percent",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "multipleOf": 0.01
+    },
+    "maxMeasuredRelativeHumidity": {
+      "@type": "om2:RelativeHumidity",
+      "title": "Maximum measured relative humidity",
+      "description": "The maximum measured relative humidity since power ON or reset in '%'.",
+      "type": "number",
+      "unit": "om2:percent",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "multipleOf": 0.01
+    }
+  }
+}

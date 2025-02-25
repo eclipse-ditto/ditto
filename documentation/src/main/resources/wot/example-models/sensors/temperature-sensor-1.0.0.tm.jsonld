@@ -1,0 +1,47 @@
+{
+  "@context": [
+    "https://www.w3.org/2022/wot/td/v1.1",
+    {
+      "om2": "http://www.ontology-of-units-of-measure.org/resource/om-2/"
+    }
+  ],
+  "@type": "tm:ThingModel",
+  "title": "Temperature Sensor",
+  "version": {
+    "model": "1.0.0"
+  },
+  "links": [
+    {
+      "rel": "tm:extends",
+      "href": "https://eclipse.dev/ditto/wot/example-models/sensors/min-max-aware-sensor-1.0.0.tm.jsonld",
+      "type": "application/tm+json"
+    }
+  ],
+  "tm:optional": [],
+  "properties": {
+    "currentTemperature": {
+      "@type": "om2:CelsiusTemperature",
+      "title": "Current temperature",
+      "description": "The last or current measured temperature in '°C'.",
+      "type": "number",
+      "unit": "om2:degreeCelsius",
+      "minimum": -273.15
+    },
+    "minMeasuredTemperature": {
+      "@type": "om2:CelsiusTemperature",
+      "title": "Minimum measured temperature",
+      "description": "The minimum measured temperature since power ON or reset in '°C'.",
+      "type": "number",
+      "unit": "om2:degreeCelsius",
+      "minimum": -273.15
+    },
+    "maxMeasuredTemperature": {
+      "@type": "om2:CelsiusTemperature",
+      "title": "Maximum measured temperature",
+      "description": "The maximum measured temperature since power ON or reset in '°C'.",
+      "type": "number",
+      "unit": "om2:degreeCelsius",
+      "minimum": -273.15
+    }
+  }
+}

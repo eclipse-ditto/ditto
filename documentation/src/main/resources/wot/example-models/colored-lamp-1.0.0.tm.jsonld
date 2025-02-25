@@ -1,0 +1,56 @@
+{
+  "@context": [
+    "https://www.w3.org/2022/wot/td/v1.1"
+  ],
+  "@type": "tm:ThingModel",
+  "title": "Colored Lamp",
+  "version": {
+    "model": "1.0.0"
+  },
+  "links": [
+    {
+      "rel": "tm:extends",
+      "href": "https://eclipse.dev/ditto/wot/example-models/switchable-1.0.0.tm.jsonld",
+      "type": "application/tm+json"
+    }
+  ],
+  "tm:optional": [],
+  "properties": {
+    "color": {
+      "title": "Color",
+      "description": "The current color.",
+      "type": "object",
+      "properties": {
+        "r": {
+          "title": "Red",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "g": {
+          "title": "Green",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "b": {
+          "title": "Blue",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "w": {
+          "title": "White",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        }
+      },
+      "required": [
+        "r",
+        "g",
+        "b"
+      ]
+    }
+  }
+}

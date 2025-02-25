@@ -1,0 +1,44 @@
+{
+  "@context": [
+    "https://www.w3.org/2022/wot/td/v1.1",
+    {
+      "om2": "http://www.ontology-of-units-of-measure.org/resource/om-2/"
+    }
+  ],
+  "@type": "tm:ThingModel",
+  "title": "Magnetic Field Strength Sensor",
+  "version": {
+    "model": "1.0.0"
+  },
+  "links": [
+    {
+      "rel": "tm:extends",
+      "href": "https://eclipse.dev/ditto/wot/example-models/sensors/min-max-aware-sensor-1.0.0.tm.jsonld",
+      "type": "application/tm+json"
+    }
+  ],
+  "tm:optional": [],
+  "properties": {
+    "currentMagneticFieldStrength": {
+      "@type": "om2:MagneticFluxDensity",
+      "title": "Current magnetic field strength",
+      "description": "The last or current measured magnetic field strength in 'μT'.",
+      "type": "number",
+      "unit": "om2:microtesla"
+    },
+    "minMeasuredMagneticFieldStrength": {
+      "@type": "om2:MagneticFluxDensity",
+      "title": "Minimum measured magnetic field strength",
+      "description": "The minimum measured magnetic field strength since power ON or reset in 'μT'.",
+      "type": "number",
+      "unit": "om2:microtesla"
+    },
+    "maxMeasuredMagneticFieldStrength": {
+      "@type": "om2:MagneticFluxDensity",
+      "title": "Maximum measured magnetic field strength",
+      "description": "The maximum measured magnetic field strength since power ON or reset in 'μT'.",
+      "type": "number",
+      "unit": "om2:microtesla"
+    }
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "@context": [
+    "https://www.w3.org/2022/wot/td/v1.1",
+    {
+      "om2": "http://www.ontology-of-units-of-measure.org/resource/om-2/"
+    }
+  ],
+  "@type": "tm:ThingModel",
+  "title": "Power Consumption Aware",
+  "version": {
+    "model": "1.0.0"
+  },
+  "tm:optional": [],
+  "properties": {
+    "reportPowerConsumption": {
+      "title": "Report power consumption",
+      "description": "Configuration whether the current power consumption should be published via event 'reportedPowerConsumption'.",
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "title": "Reporting enabled",
+          "type": "boolean",
+          "default": false
+        },
+        "interval": {
+          "@type": "time:Duration",
+          "title": "Reporting interval",
+          "type": "integer",
+          "unit": "time:seconds",
+          "default": 30
+        }
+      }
+    }
+  },
+  "events": {
+    "current-power-consumption": {
+      "title": "Current power consumption",
+      "description": "Measurement of the current power consumption.",
+      "data": {
+        "@type": "om2:Power",
+        "title": "Consumption in kW.",
+        "type": "number",
+        "unit": "om2:kilowatt",
+        "minimum": 0.0
+      }
+    }
+  }
+}

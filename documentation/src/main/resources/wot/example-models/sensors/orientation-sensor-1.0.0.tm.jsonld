@@ -1,0 +1,38 @@
+{
+  "@context": [
+    "https://www.w3.org/2022/wot/td/v1.1"
+  ],
+  "@type": "tm:ThingModel",
+  "title": "Orientation Sensor",
+  "description": "Orientation Sensor providing measurement in Quaternion format.",
+  "version": {
+    "model": "1.0.0"
+  },
+  "tm:optional": [],
+  "properties": {
+    "currentOrientation": {
+      "title": "Current orientation",
+      "description": "The last or current measured orientation in the four (W/X/Y/Z) dimensions measured in 'quaternion' format.",
+      "type": "object",
+      "properties": {
+        "w": {
+          "title": "W dimension",
+          "type": "number"
+        },
+        "x": {
+          "title": "X dimension",
+          "type": "number"
+        },
+        "y": {
+          "title": "Y dimension",
+          "type": "number"
+        },
+        "z": {
+          "title": "Z dimension",
+          "type": "number"
+        }
+      },
+      "required": ["w","x","y","z"]
+    }
+  }
+}

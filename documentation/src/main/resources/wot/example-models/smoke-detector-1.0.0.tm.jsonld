@@ -1,0 +1,46 @@
+{
+  "@context": [
+    "https://www.w3.org/2022/wot/td/v1.1"
+  ],
+  "@type": "tm:ThingModel",
+  "title": "Smoke Detector",
+  "version": {
+    "model": "1.0.0"
+  },
+  "tm:optional": [],
+  "events": {
+    "smoke-detected": {
+      "title": "Smoke detected",
+      "description": "Emitted whenever smoke was detected.",
+      "data": {
+        "title": "Smoke detection payload",
+        "type": "object",
+        "properties": {
+          "priority": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "smoke-cleared": {
+      "title": "Smoke cleared",
+      "description": "Emitted whenever smoke was cleared after a smoke detection.",
+      "data": {
+        "title": "Smoke cleared payload",
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  }
+}
