@@ -14,6 +14,7 @@ kind: Route
 apiVersion: route.openshift.io/v1
 metadata:
   name: {{ include "ditto.fullname" . }}
+  namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/name: {{ include "ditto.name" . }}-nginx
 {{ include "ditto.labels" . | indent 4 }}

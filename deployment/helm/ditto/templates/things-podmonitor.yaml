@@ -15,6 +15,7 @@ kind: PodMonitor
 apiVersion: monitoring.coreos.com/v1
 metadata:
   name: {{ include "ditto.fullname" . }}-things
+  namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/name: {{ include "ditto.name" . }}-things
 {{ include "ditto.labels" . | indent 4 }}

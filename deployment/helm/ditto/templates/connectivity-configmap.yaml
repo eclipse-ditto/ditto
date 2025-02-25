@@ -17,6 +17,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ $releaseName }}-service-config-connectivity-extension-conf
+  namespace: {{ $root.Release.Namespace }}
   labels:
     app.kubernetes.io/name: {{ $name }}-service-config-connectivity-extension-conf
 {{ $labels | indent 4 }}
