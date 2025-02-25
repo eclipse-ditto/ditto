@@ -26,6 +26,9 @@ import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.github.benmanes.caffeine.cache.AsyncCache;
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -38,7 +41,9 @@ import com.github.benmanes.caffeine.cache.Policy;
  * @param <K> the type of the key.
  * @param <V> the type of the value.
  */
-public class CaffeineCache<K, V> implements Cache<K, V> {
+public final class CaffeineCache<K, V> implements Cache<K, V> {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(CaffeineCache.class);
 
     @Nullable private final MetricsStatsCounter metricStatsCounter;
     private final BiFunction<K, Executor, CompletableFuture<? extends V>> asyncLoad;
@@ -69,7 +74,9 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
                     try {
                         return loader.asyncLoad(k, e);
                     } catch (final Exception ex) {
-                        return CompletableFuture.completedFuture(null);
+                        LOGGER.warn("Exception thrown by cache loader for key <{}>: <{}: {}>", k,
+                                ex.getClass().getSimpleName(), ex.getMessage(), ex);
+                        return CompletableFuture.failedFuture(ex);
                     }
                 } :
                 (k, e) -> CompletableFuture.completedFuture(null);

@@ -26,7 +26,6 @@
 
 
     <logger name="org.eclipse.ditto" level="INFO"/>
-    <logger name="org.eclipse.ditto.wot" level="DEBUG"/>
 
     <root level="WARN">
         <appender-ref ref="CONSOLE"/>
