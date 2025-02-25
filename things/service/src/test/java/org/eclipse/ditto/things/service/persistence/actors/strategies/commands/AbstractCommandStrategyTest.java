@@ -20,6 +20,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Consumer;
 
@@ -219,10 +220,10 @@ public abstract class AbstractCommandStrategyTest {
                 eq(null));
         assertThat(eventStage.getValue()).isInstanceOf(CompletionStage.class);
         CompletableFutureAssert.assertThatCompletionStage(eventStage.getValue())
-                .isCompletedWithValueMatching(t -> eventClazz.isAssignableFrom(t.getClass()));
+                .isCompletedWithValueMatchingWithin(t -> eventClazz.isAssignableFrom(t.getClass()), Duration.ofSeconds(5));
         assertThat(responseStage.getValue()).isInstanceOf(CompletionStage.class);
         CompletableFutureAssert.assertThatCompletionStage(responseStage.getValue())
-                .isCompletedWithValue(expectedResponse);
+                .isCompletedWithValueMatchingWithin(r -> r.equals(expectedResponse), Duration.ofSeconds(5));
         return (T) eventStage.getValue().toCompletableFuture().join();
     }
 

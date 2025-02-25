@@ -77,12 +77,6 @@ public final class MigrateThingDefinitionStrategyTest extends AbstractCommandStr
                 command.getDittoHeaders());
 
         final Result<ThingEvent<?>> result = underTest.apply(context, existingThing, NEXT_REVISION, command);
-
-        result.mapStages(completionStage -> {
-            completionStage.toCompletableFuture().join();
-            return completionStage;
-        });
-
         assertStagedModificationResult(result, ThingDefinitionMigrated.class, expectedResponse, false);
     }
 
