@@ -28,8 +28,8 @@ import org.eclipse.ditto.things.model.ThingRevision;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.modify.MigrateThingDefinition;
 import org.eclipse.ditto.things.model.signals.commands.modify.MigrateThingDefinitionResponse;
-import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingDefinitionMigrated;
+import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -60,7 +60,7 @@ public final class MigrateThingDefinitionStrategyTest extends AbstractCommandStr
                 .set("attributes", JsonFactory.newObjectBuilder().set("manufacturer", "New Corp").build())
                 .build();
 
-        final String thingDefinitionUrl = "https://eclipse-ditto.github.io/ditto-examples/wot/models/dimmable-colored-lamp-1.0.0.tm.jsonld";
+        final String thingDefinitionUrl = "https://eclipse.dev/ditto/wot/example-models/dimmable-colored-lamp-1.0.0.tm.jsonld";
 
         final MigrateThingDefinition command = MigrateThingDefinition.of(
                 thingId,
