@@ -32,7 +32,6 @@ import org.eclipse.ditto.things.model.signals.events.ThingDefinitionMigrated;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
@@ -52,7 +51,6 @@ public final class MigrateThingDefinitionStrategyTest extends AbstractCommandStr
 
 
     @Test
-    @Ignore("temp ignored for release")
     public void migrateExistingThing() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ThingId thingId = context.getState();
