@@ -227,6 +227,8 @@ public abstract class AbstractCommandStrategyTest {
         assertThat(responseStage.getValue()).isInstanceOf(CompletionStage.class);
         CompletableFutureAssert.assertThatCompletionStage(responseStage.getValue())
                 .isCompletedWithValueMatchingWithin(r -> r.equals(expectedResponse), COMPLETION_WAIT_TIME);
+
+        responseStage.getValue().toCompletableFuture().join();
         return (T) eventStage.getValue().toCompletableFuture().join();
     }
 
