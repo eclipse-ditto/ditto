@@ -206,7 +206,7 @@ spec:
               value: "{{ .Values.thingsSearch.config.mongodb.policyModificationCausedSearchIndexUpdateThrottling.enabled }}"
             - name: POLICY_MODIFICATION_CAUSED_SEARCH_INDEX_UPDATE_THROTTLING_INTERVAL
               value: "{{ .Values.thingsSearch.config.mongodb.policyModificationCausedSearchIndexUpdateThrottling.interval }}"
-            - name: POLICY_MODIFICATION_CAUSED_SEARCH_INDEX_UPDATE_policyModificationCausedSearchIndexUpdateThrottlingTHROTTLING_LIMIT
+            - name: POLICY_MODIFICATION_CAUSED_SEARCH_INDEX_UPDATE_THROTTLING_LIMIT
               value: "{{ .Values.thingsSearch.config.mongodb.policyModificationCausedSearchIndexUpdateThrottling.limit }}"
             - name: THINGS_SEARCH_UPDATER_STREAM_PERSISTENCE_WITH_ACKS_WRITE_CONCERN
               value: "{{ .Values.thingsSearch.config.mongodb.searchWithAcksWriteConcern }}"
