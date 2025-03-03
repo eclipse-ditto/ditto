@@ -90,7 +90,7 @@ public interface ThrottlingConfig {
         /**
          * Whether throttling should be enabled.
          */
-        ENABLED("enabled", false),
+        ENABLED("enabled", true),
 
         /**
          * The throttling interval meaning in which duration may the configured
