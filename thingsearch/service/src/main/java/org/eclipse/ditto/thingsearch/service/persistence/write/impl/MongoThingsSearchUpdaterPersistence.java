@@ -25,6 +25,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.japi.pf.PFBuilder;
+import org.apache.pekko.stream.javadsl.Source;
 import org.bson.BsonDateTime;
 import org.bson.BsonDocument;
 import org.bson.BsonInt32;
@@ -48,10 +51,6 @@ import com.mongodb.client.model.WriteModel;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.japi.pf.PFBuilder;
-import org.apache.pekko.stream.javadsl.Source;
-
 /**
  * MongoDB specific implementation of the {@link org.eclipse.ditto.thingsearch.service.persistence.write.ThingsSearchUpdaterPersistence}.
  */
@@ -59,11 +58,13 @@ public final class MongoThingsSearchUpdaterPersistence implements ThingsSearchUp
 
     private final MongoCollection<Document> collection;
 
-    private final ThrottlingConfig PolicyModificationCausedSearchIndexUpdateThrottling;
+    private final ThrottlingConfig policyModificationCausedSearchIndexUpdateThrottling;
 
     private MongoThingsSearchUpdaterPersistence(final MongoDatabase database,
-                                                final SearchPersistenceConfig updaterPersistenceConfig) {
-        this.PolicyModificationCausedSearchIndexUpdateThrottling = updaterPersistenceConfig.getPolicyModificationCausedSearchIndexUpdateThrottling();
+                                                final SearchPersistenceConfig updaterPersistenceConfig)
+    {
+        this.policyModificationCausedSearchIndexUpdateThrottling = updaterPersistenceConfig
+                .getPolicyModificationCausedSearchIndexUpdateThrottling();
 
         collection = database.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME)
                 .withReadConcern(updaterPersistenceConfig.readConcern().getMongoReadConcern())
@@ -111,10 +112,10 @@ public final class MongoThingsSearchUpdaterPersistence implements ThingsSearchUp
                         .append(PersistenceConstants.FIELD_REFERENCED_POLICIES, new BsonInt32(1)));
 
 
-        final Source<Document, NotUsed> throttledSource = PolicyModificationCausedSearchIndexUpdateThrottling.isEnabled()
+        final Source<Document, NotUsed> throttledSource = policyModificationCausedSearchIndexUpdateThrottling.isEnabled()
                 ? Source.fromPublisher(publisher).throttle(
-                    PolicyModificationCausedSearchIndexUpdateThrottling.getLimit(),
-                    PolicyModificationCausedSearchIndexUpdateThrottling.getInterval()
+                    policyModificationCausedSearchIndexUpdateThrottling.getLimit(),
+                    policyModificationCausedSearchIndexUpdateThrottling.getInterval()
                 )
                 : Source.fromPublisher(publisher);
 
