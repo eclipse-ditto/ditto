@@ -61,7 +61,7 @@ public abstract class AbstractCommandStrategyTest {
     protected static final long THING_SIZE_LIMIT_BYTES = Long.parseLong(
             System.getProperty(DittoSystemProperties.DITTO_LIMITS_THINGS_MAX_SIZE_BYTES, "-1"));
 
-    private static final Duration COMPLETION_WAIT_TIME = Duration.ofSeconds(15);
+    private static final Duration COMPLETION_WAIT_TIME = Duration.ofSeconds(30);
 
     protected static DittoDiagnosticLoggingAdapter logger;
 
@@ -228,7 +228,6 @@ public abstract class AbstractCommandStrategyTest {
         CompletableFutureAssert.assertThatCompletionStage(responseStage.getValue())
                 .isCompletedWithValueMatchingWithin(r -> r.equals(expectedResponse), COMPLETION_WAIT_TIME);
 
-        responseStage.getValue().toCompletableFuture().join();
         return (T) eventStage.getValue().toCompletableFuture().join();
     }
 

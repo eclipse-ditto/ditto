@@ -19,7 +19,6 @@ import java.util.Collections;
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
-import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.Thing;
@@ -29,7 +28,6 @@ import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.modify.MigrateThingDefinition;
 import org.eclipse.ditto.things.model.signals.commands.modify.MigrateThingDefinitionResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingDefinitionMigrated;
-import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -44,11 +42,10 @@ public final class MigrateThingDefinitionStrategyTest extends AbstractCommandStr
     private MigrateThingDefinitionStrategy underTest;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         final ActorSystem actorSystem = ActorSystem.create("test", ConfigFactory.load("test"));
         underTest = new MigrateThingDefinitionStrategy(actorSystem);
     }
-
 
     @Test
     public void migrateExistingThing() {
@@ -60,7 +57,8 @@ public final class MigrateThingDefinitionStrategyTest extends AbstractCommandStr
                 .set("attributes", JsonFactory.newObjectBuilder().set("manufacturer", "New Corp").build())
                 .build();
 
-        final String thingDefinitionUrl = "https://eclipse.dev/ditto/wot/example-models/dimmable-colored-lamp-1.0.0.tm.jsonld";
+        final String thingDefinitionUrl =
+                "https://eclipse.dev/ditto/wot/example-models/dimmable-colored-lamp-1.0.0.tm.jsonld";
 
         final MigrateThingDefinition command = MigrateThingDefinition.of(
                 thingId,
@@ -76,8 +74,8 @@ public final class MigrateThingDefinitionStrategyTest extends AbstractCommandStr
                 getMergedThing(thingDefinitionUrl),
                 command.getDittoHeaders());
 
-        final Result<ThingEvent<?>> result = underTest.apply(context, existingThing, NEXT_REVISION, command);
-        assertStagedModificationResult(result, ThingDefinitionMigrated.class, expectedResponse, false);
+        assertStagedModificationResult(underTest, existingThing, command, ThingDefinitionMigrated.class,
+                expectedResponse);
     }
 
     private static JsonObject getThingJson(String thingDefinitionUrl) {
