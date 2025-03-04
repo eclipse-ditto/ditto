@@ -153,7 +153,7 @@ public final class ThingPersistenceActor
             @Nullable final StartedSpan startedSpan) {
         final ActorRef sender = getSender();
         response.whenComplete((r, throwable) -> {
-            if (throwable instanceof DittoRuntimeException dittoRuntimeException) {
+            if (unwrapThrowable(throwable) instanceof DittoRuntimeException dittoRuntimeException) {
                 notifySender(sender, dittoRuntimeException);
             } else {
                 doOnQuery(command, r, sender);
