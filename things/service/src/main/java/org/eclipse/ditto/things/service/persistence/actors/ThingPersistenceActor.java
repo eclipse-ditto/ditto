@@ -24,7 +24,6 @@ import org.apache.pekko.actor.Props;
 import org.apache.pekko.japi.pf.ReceiveBuilder;
 import org.apache.pekko.persistence.RecoveryCompleted;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -153,22 +152,15 @@ public final class ThingPersistenceActor
     public void onStagedQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response,
             @Nullable final StartedSpan startedSpan) {
         final ActorRef sender = getSender();
-        response.handle((r, throwable) -> {
-            if (throwable != null ) {
-                final DittoRuntimeException exception = DittoRuntimeException.asDittoRuntimeException(throwable, t ->
-                        DittoInternalErrorException.newBuilder()
-                                .cause(t)
-                                .dittoHeaders(command.getDittoHeaders())
-                                .build()
-                );
-                notifySender(sender, exception);
+        response.whenComplete((r, throwable) -> {
+            if (throwable instanceof DittoRuntimeException dittoRuntimeException) {
+                notifySender(sender, dittoRuntimeException);
             } else {
                 doOnQuery(command, r, sender);
             }
             if (startedSpan != null) {
                 startedSpan.finish();
             }
-            return null;
         });
     }
 
