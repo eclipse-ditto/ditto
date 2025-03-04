@@ -817,7 +817,7 @@ public abstract class AbstractPersistenceActor<
         if (command.getDittoHeaders().isResponseRequired()) {
             final ActorRef sender = getSender();
             response.whenComplete((r, throwable) -> {
-                if (throwable instanceof DittoRuntimeException dittoRuntimeException) {
+                if (unwrapThrowable(throwable) instanceof DittoRuntimeException dittoRuntimeException) {
                     notifySender(sender, dittoRuntimeException);
                 } else {
                     notifySender(sender, r);
@@ -839,6 +839,21 @@ public abstract class AbstractPersistenceActor<
             notifySender(error);
         }
     }
+
+    /**
+     * Unwraps the root cause of the given {@link Throwable} if it is wrapped inside a {@link CompletionException}.
+     *
+     * @param throwable The throwable to unwrap.
+     * @return The unwrapped cause if the throwable is a {@link CompletionException} and has a cause,
+     *         otherwise returns the original throwable.
+     */
+    protected static Throwable unwrapThrowable(final Throwable throwable) {
+        if (throwable != null && throwable instanceof CompletionException) {
+            return throwable.getCause() != null ? throwable.getCause() : throwable;
+        }
+        return throwable;
+    }
+
 
     /**
      * Send a reply and increment access counter.
