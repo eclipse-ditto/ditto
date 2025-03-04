@@ -24,6 +24,7 @@ import org.apache.pekko.actor.Props;
 import org.apache.pekko.japi.pf.ReceiveBuilder;
 import org.apache.pekko.persistence.RecoveryCompleted;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.LiveChannelTimeoutStrategy;
@@ -151,13 +152,18 @@ public final class ThingPersistenceActor
     public void onStagedQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response,
             @Nullable final StartedSpan startedSpan) {
         final ActorRef sender = getSender();
-        response.thenAccept(r -> {
-            doOnQuery(command, r, sender);
+        response.whenComplete((r, throwable) -> {
+            if (unwrapThrowable(throwable) instanceof DittoRuntimeException dittoRuntimeException) {
+                notifySender(sender, dittoRuntimeException);
+            } else {
+                doOnQuery(command, r, sender);
+            }
             if (startedSpan != null) {
                 startedSpan.finish();
             }
         });
     }
+
 
     private void doOnQuery(final Command<?> command, final WithDittoHeaders response, final ActorRef sender) {
         if (response.getDittoHeaders().didLiveChannelConditionMatch()) {
