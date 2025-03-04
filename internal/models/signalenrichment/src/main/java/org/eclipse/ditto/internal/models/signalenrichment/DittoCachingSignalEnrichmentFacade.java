@@ -193,13 +193,24 @@ public class DittoCachingSignalEnrichmentFacade implements CachingSignalEnrichme
 
         final JsonObject preDefinedExtraFields =
                 JsonObject.of(signalHeaders.get(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_OBJECT.getKey()));
-        final JsonObject filteredPreDefinedExtraFieldsReadGranted =
-                filterPreDefinedExtraReadGrantedObject(jsonFieldSelector, dittoHeaders, signalHeaders,
-                        preDefinedExtraFields);
+        final JsonObject preDefinedExtraFieldsReadGrantObject = JsonObject.of(
+                signalHeaders.get(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT.getKey())
+        );
+        final boolean preDefinedExtraFieldsAuthAvailable = !preDefinedExtraFieldsReadGrantObject.isEmpty();
 
-        final boolean allExtraFieldsPresent =
-                allConfiguredPredefinedExtraFields.containsAll(jsonFieldSelector.getPointers());
-        if (allExtraFieldsPresent) {
+        final JsonObject filteredPreDefinedExtraFieldsReadGranted = filterPreDefinedExtraReadGrantedObject(
+                jsonFieldSelector, dittoHeaders, preDefinedExtraFieldsReadGrantObject, preDefinedExtraFields);
+
+        final boolean allExtraFieldsPresent = jsonFieldSelector.getPointers().stream()
+                .allMatch(requiredField ->
+                        allConfiguredPredefinedExtraFields.contains(requiredField) ||
+                        allConfiguredPredefinedExtraFields.stream()
+                                .anyMatch(configuredField ->
+                                        requiredField.toString().startsWith(configuredField.toString())
+                                )
+                );
+
+        if (allExtraFieldsPresent && preDefinedExtraFieldsAuthAvailable) {
             LOGGER.withCorrelationId(dittoHeaders)
                     .debug("All asked for extraFields for thing <{}> were present in pre-defined fields, " +
                             "skipping cache retrieval: <{}>", thingId, jsonFieldSelector);
@@ -207,7 +218,11 @@ public class DittoCachingSignalEnrichmentFacade implements CachingSignalEnrichme
         } else {
             // optimization to only fetch extra fields which were not pre-defined
             final List<JsonPointer> missingFieldsPointers = new ArrayList<>(jsonFieldSelector.getPointers());
-            missingFieldsPointers.removeAll(allConfiguredPredefinedExtraFields);
+            if (preDefinedExtraFieldsAuthAvailable) {
+                // only if we have a proper authorization, we can apply the optimization and remove existing fields
+                //  to not load them via cache
+                missingFieldsPointers.removeAll(allConfiguredPredefinedExtraFields);
+            }
             final JsonFieldSelector missingFieldsSelector = JsonFactory.newFieldSelector(missingFieldsPointers);
             final var cachingParameters =
                     new CachingParameters(missingFieldsSelector, thingEvents, true, 0);
@@ -228,12 +243,9 @@ public class DittoCachingSignalEnrichmentFacade implements CachingSignalEnrichme
     private static JsonObject filterPreDefinedExtraReadGrantedObject(
             final JsonFieldSelector jsonFieldSelector,
             final DittoHeaders dittoHeaders,
-            final DittoHeaders signalHeaders,
+            final JsonObject preDefinedExtraFieldsReadGrant,
             final JsonObject preDefinedExtraFields
     ) {
-        final JsonObject preDefinedExtraFieldsReadGrant = JsonObject.of(
-                signalHeaders.get(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT.getKey())
-        );
         final JsonFieldSelector grantedReadJsonFieldSelector = filterAskedForFieldSelectorToGrantedFields(
                 jsonFieldSelector,
                 preDefinedExtraFieldsReadGrant,

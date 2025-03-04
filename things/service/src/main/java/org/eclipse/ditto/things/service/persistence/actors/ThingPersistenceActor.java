@@ -284,7 +284,11 @@ public final class ThingPersistenceActor
         final CompletionStage<ThingEvent<?>> stage = eventPreDefinedExtraFieldsEnricher.enrichWithPredefinedExtraFields(
                 entityId,
                 entity,
-                Optional.ofNullable(previousEntity).flatMap(Thing::getPolicyId).orElse(null),
+                Optional.ofNullable(entity).flatMap(Thing::getPolicyId)
+                        .orElse(Optional.ofNullable(previousEntity)
+                                .flatMap(Thing::getPolicyId)
+                                .orElse(null)
+                        ),
                 event
         );
         stage.whenComplete((modifiedEvent, ex) -> {
