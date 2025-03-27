@@ -261,7 +261,7 @@ async function performSingleSignOn(forMainAuth: boolean): Promise<boolean> {
       return false
     } else {
       let user = await userManager.getUser();
-      if (user?.[oidcProvider.extractBearerTokenFrom] !== undefined || user?.expired === true) {
+      if (user !== null && user[oidcProvider.extractBearerTokenFrom] !== undefined && user.expired !== true) {
         // a user is still logged in via a valid token stored in the browser's session storage
         if (sameProviderForMainAndDevops) {
           fillMainOidcBearerToken(user[oidcProvider.extractBearerTokenFrom]);
