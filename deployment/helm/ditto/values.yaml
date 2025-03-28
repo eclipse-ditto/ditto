@@ -329,7 +329,7 @@ ingress:
     # namespace for ingress controller, managed by helm, should not be created manually
     namespace: ingress-nginx
     # Ingress-NGINX version. Check Supported Versions table from https://github.com/kubernetes/ingress-nginx to match k8s version.
-    nginxIngressVersion: "v1.11.2"
+    nginxIngressVersion: "v1.11.5"
     # Nginx Version. Check Supported Versions table from https://github.com/kubernetes/ingress-nginx to match k8s version.
     nginxVersion: "1.25.5"
     # Pod topology spread constraints for nginx-ingress controller
