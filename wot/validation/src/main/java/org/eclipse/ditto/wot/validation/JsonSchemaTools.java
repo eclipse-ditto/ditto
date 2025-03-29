@@ -158,26 +158,28 @@ final class JsonSchemaTools {
                 extractFromSingleDataSchema(dataSchema, validateRequiredObjectFields, dittoHeaders);
 
         JsonPointer relativePropertyPath = JsonPointer.empty();
-        JsonSchema relativeSchema = jsonSchema;
+        JsonSchema effectiveSchema = jsonSchema;
         JsonValue valueToValidate = jsonValue;
         if (pointerPath.getLevelCount() > 1) {
             final JsonPointer subPointer = pointerPath.getSubPointer(1).orElseThrow();
             relativePropertyPath = subPointer;
             JsonNodePath jsonNodePath = new JsonNodePath(PathType.JSON_POINTER);
             for (int i = 0; i < subPointer.getLevelCount(); i++) {
-                // adding "properties" only works if we always deal with "object" schemas ..
-                //  which however is the only way Ditto allows to use JsonPointer notation
-                //  accessing array elements is not supported in Ditto
+                // Descend into schema only if it is of type "object" and has the requested property.
+                // This is in line with Ditto's JSON pointer usage, which does not support direct array element access.
+                // Keys like "0", "1", etc. are treated as object keys if the schema says it's an object.
                 final String jsonKey = subPointer.get(i).orElseThrow().toString();
-                if (relativeSchema.getSchemaNode().has(PROPERTIES) &&
-                        relativeSchema.getSchemaNode().get(PROPERTIES).has(jsonKey) &&
-                        Optional.ofNullable(relativeSchema.getSchemaNode().get(PROPERTIES).get(jsonKey).get("type"))
-                                .map(JsonNode::asText).filter("object"::equals).isPresent()
-                ) {
-                    jsonNodePath = jsonNodePath
-                            .append(PROPERTIES)
-                            .append(jsonKey);
-                    relativeSchema = relativeSchema.getSubSchema(jsonNodePath);
+                final JsonNode currentSchemaNode = effectiveSchema.getSchemaNode();
+                final boolean isObjectSchema = Optional.ofNullable(currentSchemaNode.get("type"))
+                        .map(JsonNode::asText)
+                        .filter("object"::equals)
+                        .isPresent();
+
+                if (isObjectSchema &&
+                        currentSchemaNode.has(PROPERTIES) &&
+                        currentSchemaNode.get(PROPERTIES).has(jsonKey)) {
+                    jsonNodePath = jsonNodePath.append(PROPERTIES).append(jsonKey);
+                    effectiveSchema = effectiveSchema.getSubSchema(jsonNodePath);
                     relativePropertyPath = relativePropertyPath.getSubPointer(1).orElseThrow();
                     valueToValidate = Optional.ofNullable(valueToValidate)
                             .filter(JsonValue::isObject)
@@ -187,7 +189,7 @@ final class JsonSchemaTools {
                 }
             }
         }
-        return validateDittoJson(relativeSchema, relativePropertyPath, valueToValidate, dittoHeaders);
+        return validateDittoJson(effectiveSchema, relativePropertyPath, valueToValidate, dittoHeaders);
     }
 
     OutputUnit validateDittoJson(final JsonSchema jsonSchema,
