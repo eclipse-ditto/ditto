@@ -598,6 +598,17 @@ public final class WotThingModelValidationFeatureLevelTest {
     }
 
     @Test
+    public void validateFeaturePropertiesSucceedsForNestedBoolInObjectPropertyNotSettingOtherRequiredProperties() {
+        checkValidateFeatureProperty(
+                KNOWN_FEATURE_ID,
+                JsonPointer.of(PROP_SOME_OBJECT + "/" + PROP_NESTED_OBJECT + "/" + PROP_NESTED_OBJECT_BOOL),
+                false,
+                JsonValue.of(true),
+                false
+        );
+    }
+
+    @Test
     public void validateFeaturePropertiesFailsForNestedStringInObjectPropertyWithWrongSubfieldType() {
         checkValidateFeatureProperty(
                 KNOWN_FEATURE_ID,
