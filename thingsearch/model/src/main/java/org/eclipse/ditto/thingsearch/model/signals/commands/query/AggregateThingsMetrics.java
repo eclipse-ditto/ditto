@@ -16,6 +16,8 @@ package org.eclipse.ditto.thingsearch.model.signals.commands.query;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -59,16 +61,16 @@ public final class AggregateThingsMetrics extends AbstractCommand<AggregateThing
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition<JsonObject> JSON_FILTER =
-            JsonFactory.newJsonObjectFieldDefinition("filter", FieldType.REGULAR,
+    static final JsonFieldDefinition<String> JSON_FILTER =
+            JsonFactory.newStringFieldDefinition("filter", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private static final JsonFieldDefinition<String> METRIC_NAME =
             JsonFactory.newStringFieldDefinition("metric-name", FieldType.REGULAR, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<JsonObject> GROUPING_BY =
             JsonFactory.newJsonObjectFieldDefinition("grouping-by", FieldType.REGULAR, JsonSchemaVersion.V_2);
-    private static final JsonFieldDefinition<JsonObject> NAMED_FILTERS =
-            JsonFactory.newJsonObjectFieldDefinition("named-filters", FieldType.REGULAR, JsonSchemaVersion.V_2);
+    private static final JsonFieldDefinition<String> FILTER =
+            JsonFactory.newStringFieldDefinition("filter", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private static final JsonFieldDefinition<JsonArray> NAMESPACES =
             JsonFactory.newJsonArrayFieldDefinition("namespaces", FieldType.REGULAR,
@@ -77,17 +79,17 @@ public final class AggregateThingsMetrics extends AbstractCommand<AggregateThing
 
     private final String metricName;
     private final Map<String, String> groupingBy;
-    private final Map<String, String> namedFilters;
+    private final String filter;
     private final DittoHeaders dittoHeaders;
     private final Set<String> namespaces;
 
     private AggregateThingsMetrics(final String metricName, final Map<String, String> groupingBy,
-            final Map<String, String> namedFilters, final Set<String> namespaces,
+            final String filter, final Set<String> namespaces,
             final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.metricName = metricName;
         this.groupingBy = Collections.unmodifiableMap(groupingBy);
-        this.namedFilters = Collections.unmodifiableMap(namedFilters);
+        this.filter = filter;
         this.namespaces = Collections.unmodifiableSet(namespaces);
         this.dittoHeaders = dittoHeaders;
     }
@@ -97,15 +99,21 @@ public final class AggregateThingsMetrics extends AbstractCommand<AggregateThing
      *
      * @param metricName the name of the metric to aggregate.
      * @param groupingBy the fields we want our metric aggregation to be grouped by.
-     * @param namedFilters the named filters to use for the aggregation.
+     * @param filter the filter to use for the $match expression in the aggregation.
      * @param namespaces the namespaces the metric should be executed for.
      * @param dittoHeaders the headers to use for the command.
      * @return a new {@link AggregateThingsMetrics} instance.
      */
     public static AggregateThingsMetrics of(final String metricName, final Map<String, String> groupingBy,
-            final Map<String, String> namedFilters, final Set<String> namespaces,
+            final String filter, final List<String> namespaces,
             final DittoHeaders dittoHeaders) {
-        return new AggregateThingsMetrics(metricName, groupingBy, namedFilters, namespaces, dittoHeaders);
+        return of(metricName, groupingBy, filter, new HashSet<>(namespaces), dittoHeaders);
+    }
+
+    private static AggregateThingsMetrics of(final String metricName, final Map<String, String> groupingBy,
+            final String filter, final Set<String> namespaces,
+            final DittoHeaders dittoHeaders) {
+        return new AggregateThingsMetrics(metricName, groupingBy, filter, namespaces, dittoHeaders);
     }
 
     /**
@@ -140,9 +148,7 @@ public final class AggregateThingsMetrics extends AbstractCommand<AggregateThing
             final HashMap<String, String> groupingBy = new HashMap<>();
             extractedGroupingBy.forEach(jf -> groupingBy.put(jf.getKey().toString(), jf.getValue().asString()));
 
-            final JsonObject extractedFilter = jsonObject.getValue(JSON_FILTER).orElseThrow(getJsonMissingFieldExceptionSupplier(JSON_FILTER.getPointer().toString(), jsonObject));
-            final HashMap<String, String> namedFiltersMap = new HashMap<>();
-            extractedFilter.forEach(jf -> namedFiltersMap.put(jf.getKey().toString(), jf.getValue().asString()));
+            final String extractedFilter = jsonObject.getValue(JSON_FILTER).orElseThrow(getJsonMissingFieldExceptionSupplier(JSON_FILTER.getPointer().toString(), jsonObject));
 
             final Set<String> extractedNamespaces = jsonObject.getValue(NAMESPACES)
                     .map(jsonValues -> jsonValues.stream()
@@ -151,7 +157,7 @@ public final class AggregateThingsMetrics extends AbstractCommand<AggregateThing
                             .collect(Collectors.toSet()))
                     .orElse(Collections.emptySet());
 
-            return new AggregateThingsMetrics(metricName, groupingBy, namedFiltersMap, extractedNamespaces, dittoHeaders);
+            return new AggregateThingsMetrics(metricName, groupingBy, extractedFilter, extractedNamespaces, dittoHeaders);
         });
     }
 
@@ -163,8 +169,8 @@ public final class AggregateThingsMetrics extends AbstractCommand<AggregateThing
         return groupingBy;
     }
 
-    public Map<String, String> getNamedFilters() {
-        return namedFilters;
+    public String getFilter() {
+        return filter;
     }
 
     @Override
@@ -176,9 +182,7 @@ public final class AggregateThingsMetrics extends AbstractCommand<AggregateThing
         final JsonObjectBuilder groupingBy = JsonFactory.newObjectBuilder();
         this.groupingBy.forEach(groupingBy::set);
         jsonObjectBuilder.set(GROUPING_BY, groupingBy.build(), predicate);
-        final JsonObjectBuilder jsonFields = JsonFactory.newObjectBuilder();
-        namedFilters.forEach(jsonFields::set);
-        jsonObjectBuilder.set(NAMED_FILTERS, jsonFields.build(), predicate);
+        jsonObjectBuilder.set(FILTER, filter, predicate);
         final JsonArray array =
                 JsonFactory.newArrayBuilder(namespaces.stream().map(JsonFactory::newValue).collect(
                         Collectors.toSet())).build();
@@ -202,7 +206,7 @@ public final class AggregateThingsMetrics extends AbstractCommand<AggregateThing
 
     @Override
     public AggregateThingsMetrics setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getMetricName(), getGroupingBy(), getNamedFilters(), getNamespaces(), dittoHeaders);
+        return of(getMetricName(), getGroupingBy(), getFilter(), getNamespaces(), dittoHeaders);
     }
 
     @Override
@@ -222,14 +226,14 @@ public final class AggregateThingsMetrics extends AbstractCommand<AggregateThing
         final AggregateThingsMetrics that = (AggregateThingsMetrics) o;
         return Objects.equals(metricName, that.metricName) &&
                 Objects.equals(groupingBy, that.groupingBy) &&
-                Objects.equals(namedFilters, that.namedFilters) &&
+                Objects.equals(filter, that.filter) &&
                 Objects.equals(dittoHeaders, that.dittoHeaders) &&
                 Objects.equals(namespaces, that.namespaces);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(metricName, groupingBy, namedFilters, dittoHeaders, namespaces);
+        return Objects.hash(metricName, groupingBy, filter, dittoHeaders, namespaces);
     }
 
     @Override
@@ -237,7 +241,7 @@ public final class AggregateThingsMetrics extends AbstractCommand<AggregateThing
         return "AggregateThingsMetrics{" +
                 "metricName='" + metricName + '\'' +
                 ", groupingBy=" + groupingBy +
-                ", namedFilters=" + namedFilters +
+                ", namedFilters=" + filter +
                 ", dittoHeaders=" + dittoHeaders +
                 ", namespaces=" + namespaces +
                 '}';

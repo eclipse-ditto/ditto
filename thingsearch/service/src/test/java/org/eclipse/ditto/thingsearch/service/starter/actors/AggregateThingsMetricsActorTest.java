@@ -81,13 +81,12 @@ public class AggregateThingsMetricsActorTest {
             // Prepare the test message
             Map<String, String> groupingBy =
                     Map.of("_revision", "$_revision", "location", "$t.attributes.Info.location");
-            Map<String, String> namedFilters = Map.of(
-                    "online", "gt(features/ConnectionStatus/properties/status/readyUntil/,time:now)",
-                    "offline", "lt(features/ConnectionStatus/properties/status/readyUntil/,time:now)");
+            String onlineFilter = "gt(features/ConnectionStatus/properties/status/readyUntil/,time:now)";
+            String offlineFilter = "lt(features/ConnectionStatus/properties/status/readyUntil/,time:now)";
             Set<String> namespaces = Collections.singleton("namespace");
             DittoHeaders headers = DittoHeaders.newBuilder().build();
             AggregateThingsMetrics metrics =
-                    AggregateThingsMetrics.of("metricName", groupingBy, namedFilters, namespaces, headers);
+                    AggregateThingsMetrics.of("metricName", groupingBy, onlineFilter, namespaces, headers);
 
             // Send the message to the actor
             actorRef.tell(metrics, getRef());
@@ -104,7 +103,6 @@ public class AggregateThingsMetricsActorTest {
                     expectedResponse = AggregateThingsMetricsResponse.of(mongoAggregationResult, metrics);
             expectMsg(expectedResponse);
 
-            // Verify interactions with the mock (this depends on your actual implementation)
             verify(mockPersistence, times(1)).aggregateThings(metrics);
         }};
     }
