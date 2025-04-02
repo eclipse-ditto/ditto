@@ -1,0 +1,28 @@
+  {
+    "_id": "${thingId}",
+    "_namespace": "org.eclipse.ditto",
+    "policyId": "${thingId}",
+    "t": {
+      "_namespace": "org.eclipse.ditto",
+      "thingId": "${thingId}",
+      "policyId": "${thingId}",
+      "definition": "org.eclipse.ditto:HeatingDevice:2.1.0",
+      "attributes": {
+        "coffeemaker": {
+          "serialno": "${serial}",
+          "model": "${model}",
+          "location": "${location}"
+        }
+      },
+      "features": {
+        "ConnectionStatus": {
+          "properties": {
+            "status": {
+              "readySince": "${readySince}",
+              "readyUntil": "${readyUntil}"
+            }
+          }
+        }
+      }
+    }
+  }
