@@ -239,11 +239,15 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
         final ValidationContext context = buildValidationContext(dittoHeaders, thingDefinition);
         return provideValidationConfigIfWotValidationEnabled(context)
                 .map(validationConfig -> fetchResolveAndValidateWith(thingDefinition, dittoHeaders, thingModel ->
-                        selectValidation(validationConfig)
-                                .validateThingActionInput(thingModel,
-                                        messageSubject, inputPayloadSupplier.get(), resourcePath, context
-                                ).handle(applyLogingErrorOnlyStrategy(validationConfig, context, "validateThingActionInput"))
-                ))
+                                CompletableFuture.supplyAsync(inputPayloadSupplier).thenCompose(inputPayload ->
+                                        selectValidation(validationConfig)
+                                                .validateThingActionInput(thingModel,
+                                                        messageSubject, inputPayload, resourcePath, context
+                                                )
+                                )
+                        )
+                        .handle(applyLogingErrorOnlyStrategy(validationConfig, context, "validateThingActionInput"))
+                )
                 .orElseGet(DefaultWotThingModelValidator::success);
     }
 
@@ -257,11 +261,14 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
         final ValidationContext context = buildValidationContext(dittoHeaders, thingDefinition);
         return provideValidationConfigIfWotValidationEnabled(context)
                 .map(validationConfig -> fetchResolveAndValidateWith(thingDefinition, dittoHeaders, thingModel ->
-                        selectValidation(validationConfig)
-                                .validateThingActionOutput(thingModel,
-                                        messageSubject, outputPayloadSupplier.get(), resourcePath, context
-                                ).handle(applyLogingErrorOnlyStrategy(validationConfig, context, "validateThingActionOutput"))
-                ))
+                                CompletableFuture.supplyAsync(outputPayloadSupplier).thenCompose(outputPayload ->
+                                        selectValidation(validationConfig)
+                                                .validateThingActionOutput(thingModel,
+                                                        messageSubject, outputPayload, resourcePath, context
+                                                )
+                                )
+                        ).handle(applyLogingErrorOnlyStrategy(validationConfig, context, "validateThingActionOutput"))
+                )
                 .orElseGet(DefaultWotThingModelValidator::success);
     }
 
@@ -275,11 +282,14 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
         final ValidationContext context = buildValidationContext(dittoHeaders, thingDefinition);
         return provideValidationConfigIfWotValidationEnabled(context)
                 .map(validationConfig -> fetchResolveAndValidateWith(thingDefinition, dittoHeaders, thingModel ->
-                        selectValidation(validationConfig)
-                                .validateThingEventData(thingModel,
-                                        messageSubject, dataPayloadSupplier.get(), resourcePath, context
-                                ).handle(applyLogingErrorOnlyStrategy(validationConfig, context, "validateThingEventData"))
-                ))
+                                CompletableFuture.supplyAsync(dataPayloadSupplier).thenCompose(dataPayload ->
+                                        selectValidation(validationConfig)
+                                                .validateThingEventData(thingModel,
+                                                        messageSubject, dataPayload, resourcePath, context
+                                                )
+                                )
+                        ).handle(applyLogingErrorOnlyStrategy(validationConfig, context, "validateThingEventData"))
+                )
                 .orElseGet(DefaultWotThingModelValidator::success);
     }
 
@@ -501,13 +511,16 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
         final ValidationContext context = buildValidationContext(dittoHeaders, thingDefinition, featureDefinition);
         return provideValidationConfigIfWotValidationEnabled(context)
                 .map(validationConfig -> fetchResolveAndValidateWith(
-                        Optional.ofNullable(featureDefinition).map(FeatureDefinition::getFirstIdentifier).orElse(null),
-                        dittoHeaders, featureThingModel ->
-                                selectValidation(validationConfig)
-                                        .validateFeatureActionInput(featureThingModel,
-                                                featureId, messageSubject, inputPayloadSupplier.get(), resourcePath, context
-                                        ).handle(applyLogingErrorOnlyStrategy(validationConfig, context, "validateFeatureActionInput"))
-                ))
+                                Optional.ofNullable(featureDefinition).map(FeatureDefinition::getFirstIdentifier).orElse(null),
+                                dittoHeaders, featureThingModel ->
+                                CompletableFuture.supplyAsync(inputPayloadSupplier).thenCompose(inputPayload ->
+                                        selectValidation(validationConfig)
+                                                .validateFeatureActionInput(featureThingModel,
+                                                        featureId, messageSubject, inputPayload, resourcePath, context
+                                                )
+                                        )
+                        ).handle(applyLogingErrorOnlyStrategy(validationConfig, context, "validateFeatureActionInput"))
+                )
                 .orElseGet(DefaultWotThingModelValidator::success);
     }
 
@@ -516,20 +529,23 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
             @Nullable final FeatureDefinition featureDefinition,
             final String featureId,
             final String messageSubject,
-            final Supplier<JsonValue> inputPayloadSupplier,
+            final Supplier<JsonValue> outputPayloadSupplier,
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
         final ValidationContext context = buildValidationContext(dittoHeaders, thingDefinition, featureDefinition);
         return provideValidationConfigIfWotValidationEnabled(context)
                 .map(validationConfig -> fetchResolveAndValidateWith(
-                        Optional.ofNullable(featureDefinition).map(FeatureDefinition::getFirstIdentifier).orElse(null),
-                        dittoHeaders, featureThingModel ->
-                                selectValidation(validationConfig)
-                                        .validateFeatureActionOutput(featureThingModel,
-                                                featureId, messageSubject, inputPayloadSupplier.get(), resourcePath, context
-                                        ).handle(applyLogingErrorOnlyStrategy(validationConfig, context, "validateFeatureActionOutput"))
-                ))
+                                Optional.ofNullable(featureDefinition).map(FeatureDefinition::getFirstIdentifier).orElse(null),
+                                dittoHeaders, featureThingModel ->
+                                CompletableFuture.supplyAsync(outputPayloadSupplier).thenCompose(outputPayload ->
+                                        selectValidation(validationConfig)
+                                                .validateFeatureActionOutput(featureThingModel, featureId,
+                                                        messageSubject, outputPayload, resourcePath, context
+                                                )
+                                )
+                        ).handle(applyLogingErrorOnlyStrategy(validationConfig, context, "validateFeatureActionOutput"))
+                )
                 .orElseGet(DefaultWotThingModelValidator::success);
     }
 
@@ -545,13 +561,17 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
         final ValidationContext context = buildValidationContext(dittoHeaders, thingDefinition, featureDefinition);
         return provideValidationConfigIfWotValidationEnabled(context)
                 .map(validationConfig -> fetchResolveAndValidateWith(
-                        Optional.ofNullable(featureDefinition).map(FeatureDefinition::getFirstIdentifier).orElse(null),
-                        dittoHeaders, featureThingModel ->
-                                selectValidation(validationConfig)
-                                        .validateFeatureEventData(featureThingModel,
-                                                featureId, messageSubject, dataPayloadSupplier.get(), resourcePath, context
-                                        ).handle(applyLogingErrorOnlyStrategy(validationConfig, context, "validateFeatureEventData"))
-                ))
+                                Optional.ofNullable(featureDefinition).map(FeatureDefinition::getFirstIdentifier).orElse(null),
+                                dittoHeaders, featureThingModel ->
+                                CompletableFuture.supplyAsync(dataPayloadSupplier).thenCompose(dataPayload ->
+                                        selectValidation(validationConfig)
+                                                .validateFeatureEventData(featureThingModel, featureId,
+                                                        messageSubject, dataPayload, resourcePath, context
+                                                )
+                                )
+                        )
+                        .handle(applyLogingErrorOnlyStrategy(validationConfig, context, "validateFeatureEventData"))
+                )
                 .orElseGet(DefaultWotThingModelValidator::success);
     }
 
@@ -574,12 +594,12 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
         return CompletableFuture.completedStage(null);
     }
 
-    private static BiFunction<Void, Throwable, Void> applyLogingErrorOnlyStrategy(
+    private static <T> BiFunction<T, Throwable, T> applyLogingErrorOnlyStrategy(
             final TmValidationConfig validationConfig,
             final ValidationContext context,
             final String loggingHintSource
     ) {
-        return (aVoid, throwable) -> {
+        return (result, throwable) -> {
             if (throwable != null) {
                 final Throwable cause =
                         (throwable instanceof CompletionException ce) ? ce.getCause() : throwable;
@@ -596,7 +616,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                     }
                 }
             } else {
-                return aVoid;
+                return result;
             }
         };
     }
