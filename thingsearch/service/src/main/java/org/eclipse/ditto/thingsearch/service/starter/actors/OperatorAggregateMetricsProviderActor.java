@@ -18,12 +18,10 @@ import java.time.Duration;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
@@ -46,8 +44,6 @@ import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
-import org.eclipse.ditto.placeholders.PlaceholderResolver;
-import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.MultipleAggregationFilterMatchingException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.AggregateThingsMetrics;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.AggregateThingsMetricsResponse;
 import org.eclipse.ditto.thingsearch.service.common.config.CustomAggregationMetricConfig;
@@ -55,7 +51,6 @@ import org.eclipse.ditto.thingsearch.service.common.config.OperatorMetricsConfig
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsAggregationPersistence;
 import org.eclipse.ditto.thingsearch.service.placeholders.GroupByPlaceholderResolver;
-import org.eclipse.ditto.thingsearch.service.placeholders.InlinePlaceholderResolver;
 
 import kamon.Kamon;
 
@@ -79,24 +74,17 @@ public final class OperatorAggregateMetricsProviderActor extends AbstractActorWi
     private final Map<String, CustomAggregationMetricConfig> customSearchMetricConfigMap;
     private final Map<GageIdentifier, TimestampedGauge> metricsGauges;
     private final Gauge customSearchMetricsGauge;
-    private final Map<FilterIdentifier, PlaceholderResolver<Map<String, String>>> inlinePlaceholderResolvers;
 
     @SuppressWarnings("unused")
     private OperatorAggregateMetricsProviderActor(final SearchConfig searchConfig) {
         this.aggregateThingsMetricsActorSingletonProxy = initializeAggregationThingsMetricsActor(searchConfig);
         this.customSearchMetricConfigMap = searchConfig.getOperatorMetricsConfig().getCustomAggregationMetricConfigs();
         this.metricsGauges = new HashMap<>();
-        this.inlinePlaceholderResolvers = new LinkedHashMap<>();
         this.customSearchMetricsGauge = KamonGauge.newGauge("custom-aggregation-metrics-count-of-instruments");
-        this.customSearchMetricConfigMap.forEach((metricName, customSearchMetricConfig) -> {
-            initializeCustomMetricTimer(metricName, customSearchMetricConfig,
-                    getMaxConfiguredScrapeInterval(searchConfig.getOperatorMetricsConfig()));
-
-            // Initialize the inline resolvers here as they use a static source from config
-            customSearchMetricConfig.getFilterConfigs()
-                    .forEach(fc -> inlinePlaceholderResolvers.put(new FilterIdentifier(metricName, fc.getFilterName()),
-                            new InlinePlaceholderResolver(fc.getInlinePlaceholderValues())));
-        });
+        this.customSearchMetricConfigMap.forEach(
+                (metricName, customSearchMetricConfig) -> initializeCustomMetricTimer(metricName,
+                        customSearchMetricConfig,
+                        getMaxConfiguredScrapeInterval(searchConfig.getOperatorMetricsConfig())));
         initializeCustomMetricsCleanupTimer(searchConfig.getOperatorMetricsConfig());
     }
 
@@ -138,47 +126,37 @@ public final class OperatorAggregateMetricsProviderActor extends AbstractActorWi
     }
 
     private void handleGatheringMetrics(final GatherMetricsCommand gatherMetricsCommand) {
-        final String metricName = gatherMetricsCommand.metricName();
         final CustomAggregationMetricConfig config = gatherMetricsCommand.config();
+        final String metricName = config.getMetricName();
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                .correlationId("gather-search-metrics_" + metricName + "_" + UUID.randomUUID())
+                .correlationId("aggregation-metrics" + metricName + "_" + UUID.randomUUID())
                 .build();
 
-        final Map<String, String> namedFilters = config.getFilterConfigs().stream()
-                .collect(Collectors.toMap(CustomAggregationMetricConfig.FilterConfig::getFilterName,
-                        CustomAggregationMetricConfig.FilterConfig::getFilter));
         final AggregateThingsMetrics
-                aggregateThingsMetrics = AggregateThingsMetrics.of(metricName, config.getGroupBy(), namedFilters,
-                Set.of(config.getNamespaces().toArray(new String[0])), dittoHeaders);
+                aggregateThingsMetrics = AggregateThingsMetrics.of(metricName, config.getGroupBy(), config.getFilter(),
+                config.getNamespaces(), dittoHeaders);
         aggregateThingsMetricsActorSingletonProxy.tell(aggregateThingsMetrics, getSelf());
     }
 
 
     private void handleAggregateThingsResponse(final AggregateThingsMetricsResponse response) {
         final String metricName = response.getMetricName();
-        final Optional<Map.Entry<String, Long>> result;
-        try {
-            result = response.getResult();
-            log.withCorrelationId(response)
-                    .debug("Received aggregate things response for metric name <{}>: {}, " +
-                                    "extracted result: <{}> - in thread: {}",
-                            metricName, response, result, Thread.currentThread().getName());
-        } catch (final MultipleAggregationFilterMatchingException e) {
-            log.withCorrelationId(response)
-                    .warning("Could not gather metrics for metric name <{}> from aggregate " +
-                            "things response: {} as multiple filters were matching at the same time: <{}>",
-                            metricName, response, e.getMessage());
-            return;
-        }
-        result.ifPresent(entry -> {
-            final String filterName = entry.getKey();
-            final Long value = entry.getValue();
+        final Optional<Long> result = response.getResult();
+
+        result.ifPresentOrElse(value -> {
             final CustomAggregationMetricConfig customAggregationMetricConfig =
                     customSearchMetricConfigMap.get(metricName);
-            final TagSet tagSet = resolveTags(filterName, customAggregationMetricConfig, response);
+            final TagSet tagSet = resolveTags(customAggregationMetricConfig, response);
+            log.withCorrelationId(response)
+                    .debug("Received aggregate things response for metric name <{} : {}>: {}, " +
+                                    "extracted result: <{}> - in thread: {}",
+                            metricName, tagSet, response, result, Thread.currentThread().getName());
             recordMetric(metricName, tagSet, value);
-            customSearchMetricsGauge.tag(Tag.of(METRIC_NAME, metricName)).set(Long.valueOf(metricsGauges.size()));
-        });
+
+        }, () -> log.withCorrelationId(response)
+                .info("No result for metric name <{}> in aggregate things response: {}. " +
+                                "Should not happen, at least 0 is expected in each result",
+                        metricName, response));
     }
 
     private void recordMetric(final String metricName, final TagSet tagSet, final Long value) {
@@ -187,6 +165,7 @@ public final class OperatorAggregateMetricsProviderActor extends AbstractActorWi
                 final Gauge gauge = KamonGauge.newGauge(metricName)
                         .tags(tagSet);
                 gauge.set(value);
+                incrementMonitorGauge(metricName);
                 return new TimestampedGauge(gauge);
             } else {
                 return timestampedGauge.set(value);
@@ -194,8 +173,7 @@ public final class OperatorAggregateMetricsProviderActor extends AbstractActorWi
         });
     }
 
-    private TagSet resolveTags(final String filterName,
-            final CustomAggregationMetricConfig customAggregationMetricConfig,
+    private TagSet resolveTags(final CustomAggregationMetricConfig customAggregationMetricConfig,
             final AggregateThingsMetricsResponse response) {
         return TagSet.ofTagCollection(customAggregationMetricConfig.getTags().entrySet().stream().map(tagEntry -> {
             if (!isPlaceHolder(tagEntry.getValue())) {
@@ -205,10 +183,7 @@ public final class OperatorAggregateMetricsProviderActor extends AbstractActorWi
                 final ExpressionResolver expressionResolver =
                         PlaceholderFactory.newExpressionResolver(List.of(
                                 new GroupByPlaceholderResolver(customAggregationMetricConfig.getGroupBy().keySet(),
-                                        response.getGroupedBy())
-                                , inlinePlaceholderResolvers.get(
-                                        new FilterIdentifier(customAggregationMetricConfig.getMetricName(),
-                                                filterName))));
+                                        response.getGroupedBy())));
                 return expressionResolver.resolve(tagEntry.getValue())
                         .findFirst()
                         .map(resolvedValue -> Tag.of(tagEntry.getKey(), resolvedValue))
@@ -238,8 +213,7 @@ public final class OperatorAggregateMetricsProviderActor extends AbstractActorWi
                     log.debug("Removed custom search metric instrument: {} {}", metricName,
                             next.getValue().getTagSet());
                     iterator.remove();
-                    customSearchMetricsGauge.tag(Tag.of(METRIC_NAME, metricName)).set(
-                            Long.valueOf(metricsGauges.size()));
+                    decrementMonitorGauge(metricName);
                 } else {
                     log.warning("Could not remove unused custom search metric instrument: {}", next.getKey());
                 }
@@ -270,7 +244,7 @@ public final class OperatorAggregateMetricsProviderActor extends AbstractActorWi
         log.info("Initializing custom metric timer for metric <{}> with initialDelay <{}> and scrapeInterval <{}>",
                 metricName,
                 initialDelay, scrapeInterval);
-        getTimers().startTimerAtFixedRate(metricName, new GatherMetricsCommand(metricName, config), initialDelay,
+        getTimers().startTimerAtFixedRate(metricName, new GatherMetricsCommand(config), initialDelay,
                 scrapeInterval);
     }
 
@@ -284,6 +258,15 @@ public final class OperatorAggregateMetricsProviderActor extends AbstractActorWi
 
     private boolean isPlaceHolder(final String value) {
         return value.startsWith("{{") && value.endsWith("}}");
+    }
+
+    private void incrementMonitorGauge(final String metricName) {
+        customSearchMetricsGauge.tag(Tag.of(METRIC_NAME, metricName)).increment();
+    }
+
+
+    private void decrementMonitorGauge(final String metricName) {
+        customSearchMetricsGauge.tag(Tag.of(METRIC_NAME, metricName)).decrement();
     }
 
     private static final class TimestampedGauge {
@@ -331,11 +314,9 @@ public final class OperatorAggregateMetricsProviderActor extends AbstractActorWi
         }
     }
 
-    private record GatherMetricsCommand(String metricName, CustomAggregationMetricConfig config) {}
+    private record GatherMetricsCommand(CustomAggregationMetricConfig config) {}
 
     private record CleanupUnusedMetricsCommand(OperatorMetricsConfig config) {}
-
-    private record FilterIdentifier(String metricName, String filterName) {}
 
     private record GageIdentifier(String metricName, TagSet tags) {}
 }

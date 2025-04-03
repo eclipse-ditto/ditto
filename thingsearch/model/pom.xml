@@ -105,6 +105,9 @@
                         <excludes>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                             <exclude>org.eclipse.ditto.thingsearch.model.signals.commands.query.AggregateThingsMetricsResponse#getResult()</exclude>
+                            <exclude>org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.MultipleAggregationFilterMatchingException</exclude>
+                            <exclude>org.eclipse.ditto.thingsearch.model.signals.commands.query.AggregateThingsMetricsResponse</exclude>
+                            <exclude>org.eclipse.ditto.thingsearch.model.signals.commands.query.AggregateThingsMetrics</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

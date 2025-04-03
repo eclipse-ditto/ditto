@@ -689,16 +689,72 @@ This is configured via the [search](architecture-services-things-search.html) se
 > :warning: **Abstain of defining grouping by fields that have a high cardinality, as this will lead to a high number of metrics and
 may overload the Prometheus server!**
 
-Now you can augment the statistic about "Things" managed in Ditto
+> :note: **After Ditto 3.7.\* There is a change in how the custom aggregation metrics
+> are configured!.**
+> - No longer multiple filters will be an option for single metric. The filters object is removed and now a single filter property is used. **
+> - Respectfully, the inline placeholders are no longer available as they made sense only in the context of multiple filters.
+ 
+```hocon
+
+custom-aggregation-metrics {
+    online_status {
+        namespaces = []
+        filters {
+            online_filter {
+                filter = "gt(features/ConnectionStatus/properties/status/readyUntil,time:now)"
+                inline-placeholder-values  {
+                    "health" = "good"
+                }
+            }
+            offline_filter {
+                filter = "lt(features/ConnectionStatus/properties/status/readyUntil,time:now)"
+                inline-placeholder-values = {
+                    "health" = "bad"
+                }
+            }
+        }
+        group-by {...}
+        tags {
+            "health" = "{{ inline:health }}"
+        }
+        
+    }
+}
+
+```
+ becomes
+```hocon
+custom-aggregation-metrics {
+    online_status {
+        namespaces = []
+        filter = "gt(features/ConnectionStatus/properties/status/readyUntil/,time:now)"
+        group-by {}
+        tags {
+            "health" = "good"
+        }
+    }
+    offline_status {
+        namespaces = []
+        filter = "lt(features/ConnectionStatus/properties/status/readyUntil/,time:now)"
+        group-by {}
+        tags {
+            "health" = "bad"
+        }
+    }
+}
+``` 
+
+Now you can augment the statistics about "Things" managed in Ditto
 fulfilling a certain condition with tags with either predefined values,
-values retrieved from the things or values which are defined based on the matching filter. 
+values retrieved from the things. 
 This is fulfilled by using hardcoded values or placeholders in the tags configuration.
-The supported placeholder types are `inline` and `group-by` placeholders.
+To use live data for tag values use the `group-by` placeholder
+which will get the result from the aggregation query for the specified field.
 [Function expressions](basic-placeholders.html#function-expressions) are also supported
-to manipulate the values of the placeholders before they are used in the tags.
+to manipulate the values of the placeholder before they are used in the tags.
 
 This would be an example search service configuration snippet for e.g. providing a metric named
-`online_devices` defining a query on the values of a `ConnectionStatus` feature:
+`online_devices` and `offline_devices` defining a query on the values of a `ConnectionStatus` feature:
 ```hocon
 ditto {
   search {
@@ -709,7 +765,7 @@ ditto {
         ...
       }
       custom-aggregation-metrics {
-        online_status {
+        online_things {
           enabled = true
           scrape-interval = 20m # override scrape interval, run every 20 minutes
           namespaces = [
@@ -720,33 +776,22 @@ ditto {
             "isGateway" = "attributes/Info/gateway"
           }
           tags {
-            "online" = "{%raw%}{{ inline:online_placeholder }}{%endraw%}"
-            "health" = "{%raw%}{{ inline:health }}{%endraw%}"
             "hardcoded-tag" = "hardcoded_value"
             "location" = "{%raw%}{{ group-by:location | fn:default('missing location') }}{%endraw%}"
             "isGateway" = "{%raw%}{{ group-by:isGateway }}{%endraw%}"
           }
-          filters {
-            online_filter {
-              filter = "gt(features/ConnectionStatus/properties/status/readyUntil,time:now)"
-              inline-placeholder-values  {
-                "online_placeholder" = true
-                "health" = "good"
-              }
-            }
-            offline_filter {
-              filter = "lt(features/ConnectionStatus/properties/status/readyUntil,time:now)"
-              inline-placeholder-values = {
-                "online_placeholder" = false
-                "health" = "bad"
-              }
-            }
-          }
+          filter = "gt(features/ConnectionStatus/properties/status/readyUntil,time:now)"
+        }
+        offline_things {
+         ...
+            filter = "lt(features/ConnectionStatus/properties/status/readyUntil,time:now)"
         }
       }
     }
   }
 }
+
+
 ```
 
 To add custom metrics via System properties, the following example shows how the above metric can be configured:
@@ -754,28 +799,23 @@ To add custom metrics via System properties, the following example shows how the
 -Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.enabled=true
 -Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.scrape-interval=20m
 -Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.namespaces.0=org.eclipse.ditto
--Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.tags.online="{%raw%}{{online_placeholder}}{%endraw%}"
--Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.tags.location="{%raw%}{{attributes/Info/location}}{%endraw%}"
-
--Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.filters.online-filter.filter=gt(features/ConnectionStatus/properties/status/readyUntil/,time:now)
--Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.filters.online-filter.inline-placeholder-values.online_placeholder=true
--Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.filters.online-filter.fields.0=attributes/Info/location
-
--Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.filters.offline-filter.filter=lt(features/ConnectionStatus/properties/status/readyUntil/,time:now)
--Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.filters.offline-filter.inline-placeholder-values.online_placeholder=false
--Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.filters.offline-filter.fields.0=attributes/Info/location
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.group-by.location="attributes/Info/location"
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.group-by.isGateway="attributes/Info/gateway"
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.tags.hardcoded-tag="hardcoded_value"
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.tags.location="{%raw%}{{ group-by:location | fn:default('missing location') }}{%endraw%}"
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.tags.isGateway="{%raw%}{ group-by:isGateway }}{%endraw%}"
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.filter=gt(features/ConnectionStatus/properties/status/readyUntil/,time:now)
 
 ```
 
 Ditto will perform an [aggregation operation](https://www.mongodb.com/docs/manual/aggregation/) over the search db collection every `20m` (20 minutes), providing
 a gauge named `online_devices` with the value of devices that match the filter. 
-The tags `online` and `location` will be added.
-Their values will be resolved from the placeholders `{%raw%}{{online_placeholder}}{%endraw%}` and `{%raw%}{{attributes/Info/location}}{%endraw%}` respectively.
+The tags `hardcoded-tag`, `location` and `isGateway` will be added.
 
 In Prometheus format, this would look like:
 ```
-online_status{location="Berlin",online="false"} 6.0
-online_status{location="Immenstaad",online="true"} 8.0
+online_status{location="Berlin",isGateway="false",hardcoded-tag="hardcoded_value"} 6.0
+online_status{location="Immenstaad",isGateway="true",hardcoded-tag="hardcoded_value"} 8.0
 ```
 
 ## Tracing

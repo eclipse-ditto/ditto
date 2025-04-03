@@ -75,7 +75,7 @@ public interface CustomAggregationMetricConfig {
      *
      * @return the filter configurations.
      */
-    List<FilterConfig> getFilterConfigs();
+    String getFilter();
 
     enum CustomSearchMetricConfigValue implements KnownConfigValue {
         /**
@@ -106,9 +106,9 @@ public interface CustomAggregationMetricConfig {
         TAGS("tags", Map.of()),
 
         /**
-         * The filter configurations for this custom metric.
+         * The filter for this custom metric.
          */
-        FILTERS("filters", List.of());
+        FILTER("filter", "");
 
         private final String path;
         private final Object defaultValue;
@@ -126,58 +126,6 @@ public interface CustomAggregationMetricConfig {
         @Override
         public String getConfigPath() {
             return path;
-        }
-    }
-
-    /**
-     * Provides the configuration settings for a single filter configuration.
-     */
-    interface FilterConfig {
-
-        String getFilterName();
-
-        /**
-         * Returns the filter to be used.
-         * @return the filter.
-         */
-        String getFilter();
-
-        /**
-         * Returns the inline placeholder values to be used for resolving.
-         * @return the inline placeholder values.
-         */
-        Map<String, String> getInlinePlaceholderValues();
-
-        /**
-         * The known configuration values for a filter configuration.
-         */
-        enum FilterConfigValues implements KnownConfigValue {
-            /**
-             * The filter to be used.
-             */
-            FILTER("filter", ""),
-            /**
-             * The inline placeholder values to be used for resolving.
-             */
-            INLINE_PLACEHOLDER_VALUES("inline-placeholder-values", Map.of());
-
-            private final String path;
-            private final Object defaultValue;
-
-            FilterConfigValues(final String thePath, final Object theDefaultValue) {
-                path = thePath;
-                defaultValue = theDefaultValue;
-            }
-
-            @Override
-            public Object getDefaultValue() {
-                return defaultValue;
-            }
-
-            @Override
-            public String getConfigPath() {
-                return path;
-            }
         }
     }
 }

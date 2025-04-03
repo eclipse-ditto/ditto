@@ -36,6 +36,7 @@
     <logger name="org.mongodb.driver" level="WARN"/>
     <logger name="org.apache.pekko.stream.Materializer" level="ERROR"/>
     <logger name="org.eclipse.ditto.internal.utils" level="WARN"/>
+    <logger name="org.eclipse.ditto.thingsearch.service.starter.actors.OperatorAggregateMetricsProviderActor" level="DEBUG"/>
 
     <root level="${LOG_LEVEL_TEST:-WARN}">
         <appender-ref ref="STDOUT"/>

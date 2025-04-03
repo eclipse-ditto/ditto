@@ -1472,14 +1472,9 @@ thingsSearch:
       #   groupBy:
       #     "location": "attributes/Info/location"
       #   tags:
-      #     "online": "{{ inline:online_placeholder }}"
       #     "hardcoded-tag": "value"
       #     "location": "{{ group-by:location | fn:default('missing location') }}"
-      #   filters:
-      #     online_filter:
-      #       filter: "gt(features/ConnectionStatus/properties/status/readyUntil,time:now)"
-      #       inlinePlaceholderValues:
-      #         online_placeholder: true
+      #   filter: "gt(features/ConnectionStatus/properties/status/readyUntil,time:now)"
 
 
 ## ----------------------------------------------------------------------------

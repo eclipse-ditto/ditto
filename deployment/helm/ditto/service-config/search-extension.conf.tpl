@@ -67,18 +67,7 @@ ditto {
             {{$tagKey}} = "{{$tagValue}}"
           {{- end }}
           }
-          filters {
-          {{- range $filterKey, $filterValue := $camValue.filters }}
-            {{$filterKey}} {
-              filter = "{{$filterValue.filter}}"
-              inline-placeholder-values {
-              {{- range $inlinePlaceholderKey, $inlinePlaceholderValue := $filterValue.inlinePlaceholderValues }}
-                {{$inlinePlaceholderKey}} = "{{$inlinePlaceholderValue}}"
-              {{- end }}
-              }
-            }
-          {{- end }}
-          }
+          filter = "{{$camValue.filter}}"
         }
         {{- end }}
       }
