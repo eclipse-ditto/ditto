@@ -129,11 +129,11 @@ public final class OperatorAggregateMetricsProviderActor extends AbstractActorWi
         final CustomAggregationMetricConfig config = gatherMetricsCommand.config();
         final String metricName = config.getMetricName();
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                .correlationId("aggregation-metrics" + metricName + "_" + UUID.randomUUID())
+                .correlationId("aggregation-metrics_" + metricName + "_" + UUID.randomUUID())
                 .build();
 
         final AggregateThingsMetrics
-                aggregateThingsMetrics = AggregateThingsMetrics.of(metricName, config.getGroupBy(), config.getFilter(),
+                aggregateThingsMetrics = AggregateThingsMetrics.of(metricName, config.getGroupBy(), config.getFilter().orElse(null),
                 config.getNamespaces(), dittoHeaders);
         aggregateThingsMetricsActorSingletonProxy.tell(aggregateThingsMetrics, getSelf());
     }

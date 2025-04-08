@@ -138,6 +138,11 @@ public class AggregateThingsMetricsActorTest {
         this.config = config;
     }
 
+  /**
+   * This test is dynamic and will run for each custom aggregation metric defined in
+   * the configuration file `aggregation-metric-test.conf` under
+   * `ditto.search.operator-metrics.custom-aggregation-metrics`.
+   */
     @Test
     public void testAggregationMetric() {
         new TestKit(SYSTEM) {{
@@ -147,7 +152,7 @@ public class AggregateThingsMetricsActorTest {
             final AggregateThingsMetrics command = AggregateThingsMetrics.of(
                     config.getMetricName(),
                     config.getGroupBy(),
-                    config.getFilter(),
+                    config.getFilter().orElse(null),
                     config.getNamespaces(),
                     DittoHeaders.newBuilder()
                             .correlationId(AggregateThingsMetrics.class.getSimpleName() + "-" + UUID.randomUUID())
@@ -155,29 +160,23 @@ public class AggregateThingsMetricsActorTest {
             );
 
             actor.tell(command, getRef());
-            final AggregateThingsMetricsResponse response =
-                    expectMsgClass(Duration.ofSeconds(5), AggregateThingsMetricsResponse.class);
-            final AggregateThingsMetricsResponse response2 =
-                    expectMsgClass(Duration.ofSeconds(5), AggregateThingsMetricsResponse.class);
+            config.getTags().entrySet().stream().filter(entry -> entry.getKey().startsWith("expectedResult"))
+                    .forEach(entry -> {
+                        String expectedResult = entry.getValue();
+                        final AggregateThingsMetricsResponse response =
+                                expectMsgClass(Duration.ofSeconds(5), AggregateThingsMetricsResponse.class);
+                        LOG.info("Aggregation {}: {}", entry.getKey(), response);
+                        assertThat(response.getMetricName()).isEqualTo(config.getMetricName());
+                        assertThat(response.getResult()).isPresent();
+                        config.getGroupBy().keySet().forEach(key ->
+                                assertThat(response.getGroupedBy()).containsKey(key)
+                        );
+                        if (expectedResult != null) {
+                            assertThat(response.getResult().get()).isEqualTo(Integer.parseInt(expectedResult));
+                        }
+
+                    });
             expectNoMsg();
-            LOG.info("Aggregation response 1: {}", response);
-            LOG.info("Aggregation response 2: {}", response2);
-
-            assertThat(response.getMetricName()).isEqualTo(config.getMetricName());
-            assertThat(response.getResult()).isPresent();
-
-            config.getGroupBy().keySet().forEach(key ->
-                    assertThat(response.getGroupedBy()).containsKey(key)
-            );
-
-            String expectedResult = config.getTags().get("expectedResult1");
-            if (expectedResult != null) {
-                assertThat(response.getResult().get()).isEqualTo(Integer.parseInt(expectedResult));
-            }
-            String expectedResult2 = config.getTags().get("expectedResult2");
-            if (expectedResult2 != null) {
-                assertThat(response.getResult().get()).isEqualTo(Integer.parseInt(expectedResult2));
-            }
         }};
     }
 
