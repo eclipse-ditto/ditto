@@ -22,6 +22,7 @@ import javax.annotation.Nullable;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.Props;
 import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.pattern.Patterns;
 import org.apache.pekko.persistence.RecoveryCompleted;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -356,8 +357,7 @@ public final class ThingPersistenceActor
             default ->
                 stage = CompletableFuture.completedStage(signal);
         }
-        stage.thenAccept(modifiedSignal ->
-                sender.tell(new EnrichSignalWithPreDefinedExtraFieldsResponse(modifiedSignal), getSelf())
-        );
+        Patterns.pipe(stage.thenApply(EnrichSignalWithPreDefinedExtraFieldsResponse::new), getContext().dispatcher())
+                .to(sender);
     }
 }
