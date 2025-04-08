@@ -688,64 +688,12 @@ This is configured via the [search](architecture-services-things-search.html) se
 
 > :warning: **Abstain of defining grouping by fields that have a high cardinality, as this will lead to a high number of metrics and
 may overload the Prometheus server!**
-
-> :note: **After Ditto 3.7.\* There is a change in how the custom aggregation metrics
-> are configured!.**
-> - No longer multiple filters will be an option for single metric. The filters object is removed and now a single filter property is used. **
-> - Respectfully, the inline placeholders are no longer available as they made sense only in the context of multiple filters.
  
-```hocon
-
-custom-aggregation-metrics {
-    online_status {
-        namespaces = []
-        filters {
-            online_filter {
-                filter = "gt(features/ConnectionStatus/properties/status/readyUntil,time:now)"
-                inline-placeholder-values  {
-                    "health" = "good"
-                }
-            }
-            offline_filter {
-                filter = "lt(features/ConnectionStatus/properties/status/readyUntil,time:now)"
-                inline-placeholder-values = {
-                    "health" = "bad"
-                }
-            }
-        }
-        group-by {...}
-        tags {
-            "health" = "{{ inline:health }}"
-        }
-        
-    }
-}
-
-```
- becomes
-```hocon
-custom-aggregation-metrics {
-    online_status {
-        namespaces = []
-        filter = "gt(features/ConnectionStatus/properties/status/readyUntil/,time:now)"
-        group-by {}
-        tags {
-            "health" = "good"
-        }
-    }
-    offline_status {
-        namespaces = []
-        filter = "lt(features/ConnectionStatus/properties/status/readyUntil/,time:now)"
-        group-by {}
-        tags {
-            "health" = "bad"
-        }
-    }
-}
-``` 
+> :note: **Since Ditto 3.7.3 There is a change in how the custom aggregation metrics are configured!.**
+> See the [Release notes of 3.7.3](release_notes_373.html) for details on migration steps.
 
 Now you can augment the statistics about "Things" managed in Ditto
-fulfilling a certain condition with tags with either predefined values,
+fulfilling a certain condition with tags with predefined values or
 values retrieved from the things. 
 This is fulfilled by using hardcoded values or placeholders in the tags configuration.
 To use live data for tag values use the `group-by` placeholder

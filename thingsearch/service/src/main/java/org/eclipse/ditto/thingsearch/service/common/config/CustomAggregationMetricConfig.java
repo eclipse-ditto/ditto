@@ -71,11 +71,11 @@ public interface CustomAggregationMetricConfig {
     Map<String, String> getTags();
 
     /**
-     * Returns the filter configurations for this custom metric.
+     * Returns the filter for this custom metric.
      *
-     * @return the filter configurations.
+     * @return the filter or empty optional if not configured.
      */
-    String getFilter();
+    Optional<String> getFilter();
 
     enum CustomSearchMetricConfigValue implements KnownConfigValue {
         /**

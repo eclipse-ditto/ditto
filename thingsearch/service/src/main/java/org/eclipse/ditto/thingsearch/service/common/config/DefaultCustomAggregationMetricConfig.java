@@ -25,10 +25,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.thingsearch.service.persistence.read.criteria.visitors.CreateBsonVisitor;
 import org.eclipse.ditto.thingsearch.service.placeholders.GroupByPlaceholderResolver;
 
 import com.typesafe.config.Config;
@@ -42,6 +42,7 @@ public final class DefaultCustomAggregationMetricConfig implements CustomAggrega
     private final List<String> namespaces;
     private final Map<String, String> groupBy;
     private final Map<String, String> tags;
+    @Nullable
     private final String filter;
 
     private DefaultCustomAggregationMetricConfig(final String key, final ConfigWithFallback configWithFallback) {
@@ -70,7 +71,7 @@ public final class DefaultCustomAggregationMetricConfig implements CustomAggrega
                                 },
                                 LinkedHashMap::new))
         ));
-        filter = configWithFallback.getString(CustomMetricConfig.CustomMetricConfigValue.FILTER.getConfigPath());;
+        filter = configWithFallback.getStringOrNull(CustomMetricConfig.CustomMetricConfigValue.FILTER);
         validateConfig();
     }
 
@@ -110,39 +111,39 @@ public final class DefaultCustomAggregationMetricConfig implements CustomAggrega
     }
 
     @Override
-    public String getFilter() {
-        return filter;
+    public Optional<String> getFilter() {
+        return (filter == null || filter.isEmpty()) ? Optional.empty() : Optional.of(filter);
     }
 
 
     private void validateConfig() {
-            if (getGroupBy().isEmpty()) {
-                throw new IllegalArgumentException("Custom search metric Gauge for metric <" + metricName
-                        + "> must have at least one groupBy tag configured or else disable.");
-            }
-            getTags().values().stream()
-                    .filter(this::isPlaceHolder)
-                    .map(value -> value.substring(2, value.length() - 2).trim())
-                    .forEach(placeholder -> {
-                        if (!placeholder.contains("inline:") && !placeholder.contains("group-by:")) {
-                            throw new IllegalArgumentException("Custom search metric Gauge for metric <" + metricName
-                                    + "> tag placeholder <" + placeholder
-                                    + "> is not supported. Supported placeholder types are 'inline' and 'group-by'.");
-                        }
-                    });
+        if (getGroupBy().isEmpty()) {
+            throw new IllegalArgumentException("Custom search metric Gauge for metric <" + metricName
+                    + "> must have at least one groupBy tag configured or else disable.");
+        }
+        getTags().values().stream()
+                .filter(this::isPlaceHolder)
+                .map(value -> value.substring(2, value.length() - 2).trim())
+                .forEach(placeholder -> {
+                    if (!placeholder.contains("inline:") && !placeholder.contains("group-by:")) {
+                        throw new IllegalArgumentException("Custom search metric Gauge for metric <" + metricName
+                                + "> tag placeholder <" + placeholder
+                                + "> is not supported. Supported placeholder types are 'inline' and 'group-by'.");
+                    }
+                });
 
-            final Set<String> requiredGroupByPlaceholders = getDeclaredGroupByPlaceholdersExpressions(getTags());
-            List<String> missing = new ArrayList<>();
-            requiredGroupByPlaceholders.forEach(placeholder -> {
-                if (!getGroupBy().containsKey(placeholder)) {
-                    missing.add(placeholder);
-                }
-            });
-            if (!missing.isEmpty()){
-                throw new IllegalArgumentException("Custom search metric Gauge for metric <" + metricName
-                        + "> must contain in the groupBy fields all of the fields used by placeholder expressions in tags. Missing: "
-                        + missing + " Configured: " + getGroupBy().keySet());
+        final Set<String> requiredGroupByPlaceholders = getDeclaredGroupByPlaceholdersExpressions(getTags());
+        List<String> missing = new ArrayList<>();
+        requiredGroupByPlaceholders.forEach(placeholder -> {
+            if (!getGroupBy().containsKey(placeholder)) {
+                missing.add(placeholder);
             }
+        });
+        if (!missing.isEmpty()) {
+            throw new IllegalArgumentException("Custom search metric Gauge for metric <" + metricName
+                    + "> must contain in the groupBy fields all of the fields used by placeholder expressions in tags. Missing: "
+                    + missing + " Configured: " + getGroupBy().keySet());
+        }
     }
 
     private Set<String> getDeclaredGroupByPlaceholdersExpressions(final Map<String, String> tags) {
@@ -185,7 +186,7 @@ public final class DefaultCustomAggregationMetricConfig implements CustomAggrega
                 ", namespaces=" + namespaces +
                 ", groupBy=" + groupBy +
                 ", tags=" + tags +
-                ", filterConfigs=" + filter +
+                ", filter=" + filter +
                 '}';
     }
 }

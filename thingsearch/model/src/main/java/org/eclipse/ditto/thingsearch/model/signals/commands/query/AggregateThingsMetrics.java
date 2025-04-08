@@ -25,6 +25,8 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommand;
@@ -79,12 +81,13 @@ public final class AggregateThingsMetrics extends AbstractCommand<AggregateThing
 
     private final String metricName;
     private final Map<String, String> groupingBy;
+    @Nullable
     private final String filter;
     private final DittoHeaders dittoHeaders;
     private final Set<String> namespaces;
 
     private AggregateThingsMetrics(final String metricName, final Map<String, String> groupingBy,
-            final String filter, final Set<String> namespaces,
+            @Nullable final String filter, final Set<String> namespaces,
             final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.metricName = metricName;
@@ -105,13 +108,13 @@ public final class AggregateThingsMetrics extends AbstractCommand<AggregateThing
      * @return a new {@link AggregateThingsMetrics} instance.
      */
     public static AggregateThingsMetrics of(final String metricName, final Map<String, String> groupingBy,
-            final String filter, final List<String> namespaces,
+            @Nullable final String filter, final List<String> namespaces,
             final DittoHeaders dittoHeaders) {
         return of(metricName, groupingBy, filter, new HashSet<>(namespaces), dittoHeaders);
     }
 
     private static AggregateThingsMetrics of(final String metricName, final Map<String, String> groupingBy,
-            final String filter, final Set<String> namespaces,
+            @Nullable final String filter, final Set<String> namespaces,
             final DittoHeaders dittoHeaders) {
         return new AggregateThingsMetrics(metricName, groupingBy, filter, namespaces, dittoHeaders);
     }
@@ -148,7 +151,7 @@ public final class AggregateThingsMetrics extends AbstractCommand<AggregateThing
             final HashMap<String, String> groupingBy = new HashMap<>();
             extractedGroupingBy.forEach(jf -> groupingBy.put(jf.getKey().toString(), jf.getValue().asString()));
 
-            final String extractedFilter = jsonObject.getValue(JSON_FILTER).orElseThrow(getJsonMissingFieldExceptionSupplier(JSON_FILTER.getPointer().toString(), jsonObject));
+            final String extractedFilter = jsonObject.getValue(JSON_FILTER).orElse(null);
 
             final Set<String> extractedNamespaces = jsonObject.getValue(NAMESPACES)
                     .map(jsonValues -> jsonValues.stream()
@@ -169,6 +172,7 @@ public final class AggregateThingsMetrics extends AbstractCommand<AggregateThing
         return groupingBy;
     }
 
+    @Nullable
     public String getFilter() {
         return filter;
     }
@@ -241,7 +245,7 @@ public final class AggregateThingsMetrics extends AbstractCommand<AggregateThing
         return "AggregateThingsMetrics{" +
                 "metricName='" + metricName + '\'' +
                 ", groupingBy=" + groupingBy +
-                ", namedFilters=" + filter +
+                ", filter=" + filter +
                 ", dittoHeaders=" + dittoHeaders +
                 ", namespaces=" + namespaces +
                 '}';
