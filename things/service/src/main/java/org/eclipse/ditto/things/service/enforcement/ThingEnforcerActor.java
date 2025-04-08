@@ -228,8 +228,9 @@ public final class ThingEnforcerActor
     protected CompletionStage<Signal<?>> enrichWithPreDefinedExtraFields(final Signal<?> signal) {
         if (signal instanceof MessageCommand<?, ?> messageCommand) {
             return enrichSignalWithPredefinedFieldsAtPersistenceActor(messageCommand)
-                    .thenApply(opt -> opt.orElse(signal));
+                    .thenApply(opt -> opt.orElse(messageCommand));
         } else {
+            // events are enriched directly in the persistence actor:
             return super.enrichWithPreDefinedExtraFields(signal);
         }
     }
@@ -238,14 +239,21 @@ public final class ThingEnforcerActor
             final Signal<?> signal
     ) {
         return Patterns.ask(getContext().getParent(),
-                new EnrichSignalWithPreDefinedExtraFields(signal), DEFAULT_LOCAL_ASK_TIMEOUT
-        ).thenApply(response -> {
+                new EnrichSignalWithPreDefinedExtraFields(signal), DEFAULT_LOCAL_ASK_TIMEOUT // it might also take longer, as resolving a policy may be involved - in that case, the optimization is simply not done
+        ).handle((response, t) -> {
             if (response instanceof EnrichSignalWithPreDefinedExtraFieldsResponse(Signal<?> enrichedSignal)) {
                 return Optional.of(enrichedSignal);
             } else if (response instanceof ThingNotAccessibleException) {
                 return Optional.empty();
+            } else if (t != null) {
+                log.withCorrelationId(signal)
+                        .warning(t, "expected EnrichSignalWithPreDefinedExtraFieldsResponse, " +
+                                "got throwable: <{}: {}>", t.getClass().getSimpleName(), t.getMessage());
+                return Optional.empty();
             } else {
-                throw new IllegalStateException("expected EnrichSignalWithPreDefinedExtraFieldsResponse, got: " + response);
+                log.withCorrelationId(signal)
+                        .error("expected EnrichSignalWithPreDefinedExtraFieldsResponse, got: {}", response);
+                return Optional.empty();
             }
         });
     }
