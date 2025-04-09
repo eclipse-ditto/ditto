@@ -102,7 +102,7 @@ public final class MongoThingsAggregationPersistence implements ThingsAggregatio
 
         // Create filter predicate
         final Bson filter = CreateBsonVisitor.sudoApply(
-                queryFilterCriteriaFactory.filterCriteria(aggregateCommand.getFilter(),
+                queryFilterCriteriaFactory.filterCriteria(aggregateCommand.getFilter().orElse(null),
                         aggregateCommand.getDittoHeaders()));
         // Merge the namespace predicate with the filter predicate or use just the filter
         nsPredicateOptional.ifPresentOrElse(nsPredicate -> {
