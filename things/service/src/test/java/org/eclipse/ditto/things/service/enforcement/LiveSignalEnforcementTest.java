@@ -307,7 +307,6 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
 
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-            expectAndAnswerEnrichSignalWithPreDefinedExtraFields();
 
             final var firstPublishRead = expectPubsubMessagePublish(message.getEntityId());
             assertThat((CharSequence) ((WithDittoHeaders) firstPublishRead.msg()).getDittoHeaders()
@@ -319,7 +318,6 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
 
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-            expectAndAnswerEnrichSignalWithPreDefinedExtraFields();
 
             final var secondPublishRead = expectPubsubMessagePublish(message.getEntityId());
             // Assure second command has suffixed correlation-id, because of conflict with first command.
@@ -357,7 +355,6 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
 
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-            expectAndAnswerEnrichSignalWithPreDefinedExtraFields();
 
             expectPubsubMessagePublish(msgCommand.getEntityId());
         }};
@@ -386,7 +383,6 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
 
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-            expectAndAnswerEnrichSignalWithPreDefinedExtraFields();
 
             expectPubsubMessagePublish(msgCommand.getEntityId());
         }};
