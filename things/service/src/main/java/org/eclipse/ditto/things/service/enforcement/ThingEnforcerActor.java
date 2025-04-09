@@ -14,6 +14,7 @@ package org.eclipse.ditto.things.service.enforcement;
 
 import static org.eclipse.ditto.policies.api.Permission.MIN_REQUIRED_POLICY_PERMISSIONS;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -41,6 +42,7 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
 import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
@@ -92,6 +94,8 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotCreata
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotModifiableException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
+import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
+import org.eclipse.ditto.things.service.common.config.PreDefinedExtraFieldsConfig;
 import org.eclipse.ditto.things.service.persistence.actors.enrichment.EnrichSignalWithPreDefinedExtraFields;
 import org.eclipse.ditto.things.service.persistence.actors.enrichment.EnrichSignalWithPreDefinedExtraFieldsResponse;
 import org.eclipse.ditto.wot.api.validator.WotThingModelValidator;
@@ -114,6 +118,7 @@ public final class ThingEnforcerActor
 
     private final PolicyIdReferencePlaceholderResolver policyIdReferencePlaceholderResolver;
     private final ActorRef policiesShardRegion;
+    private final DittoThingsConfig thingsConfig;
     private final AskWithRetryConfig askWithRetryConfig;
     private final WotThingModelValidator thingModelValidator;
 
@@ -130,6 +135,9 @@ public final class ThingEnforcerActor
         this.policiesShardRegion = policiesShardRegion;
         this.askWithRetryConfig = askWithRetryConfig;
         final ActorSystem system = context().system();
+        thingsConfig = DittoThingsConfig.of(
+                DefaultScopedConfig.dittoScoped(system.settings().config())
+        );
         policyIdReferencePlaceholderResolver = PolicyIdReferencePlaceholderResolver.of(
                 thingsShardRegion, askWithRetryConfig, system);
 
@@ -238,24 +246,40 @@ public final class ThingEnforcerActor
     private CompletionStage<Optional<Signal<?>>> enrichSignalWithPredefinedFieldsAtPersistenceActor(
             final Signal<?> signal
     ) {
-        return Patterns.ask(getContext().getParent(),
-                new EnrichSignalWithPreDefinedExtraFields(signal), DEFAULT_LOCAL_ASK_TIMEOUT // it might also take longer, as resolving a policy may be involved - in that case, the optimization is simply not done
-        ).handle((response, t) -> {
-            if (response instanceof EnrichSignalWithPreDefinedExtraFieldsResponse(Signal<?> enrichedSignal)) {
-                return Optional.of(enrichedSignal);
-            } else if (response instanceof ThingNotAccessibleException) {
-                return Optional.empty();
-            } else if (t != null) {
-                log.withCorrelationId(signal)
-                        .warning(t, "expected EnrichSignalWithPreDefinedExtraFieldsResponse, " +
-                                "got throwable: <{}: {}>", t.getClass().getSimpleName(), t.getMessage());
-                return Optional.empty();
-            } else {
-                log.withCorrelationId(signal)
-                        .error("expected EnrichSignalWithPreDefinedExtraFieldsResponse, got: {}", response);
-                return Optional.empty();
-            }
-        });
+        final List<PreDefinedExtraFieldsConfig> predefinedExtraFieldsConfigs =
+                thingsConfig.getThingConfig().getEventConfig().getPredefinedExtraFieldsConfigs();
+        if (!predefinedExtraFieldsConfigs.isEmpty() &&
+                predefinedExtraFieldsConfigs.stream()
+                        .anyMatch(conf -> conf.getNamespace().isEmpty() ||
+                                conf.getNamespace()
+                                        .stream()
+                                        .anyMatch(pattern ->
+                                                pattern.matcher(entityId.getNamespace()).matches()
+                                        )
+                        )
+        ) {
+            return Patterns.ask(getContext().getParent(),
+                    new EnrichSignalWithPreDefinedExtraFields(signal), DEFAULT_LOCAL_ASK_TIMEOUT
+                    // it might also take longer, as resolving a policy may be involved - in that case, the optimization is simply not done
+            ).handle((response, t) -> {
+                if (response instanceof EnrichSignalWithPreDefinedExtraFieldsResponse(Signal<?> enrichedSignal)) {
+                    return Optional.of(enrichedSignal);
+                } else if (response instanceof ThingNotAccessibleException) {
+                    return Optional.empty();
+                } else if (t != null) {
+                    log.withCorrelationId(signal)
+                            .warning(t, "expected EnrichSignalWithPreDefinedExtraFieldsResponse, " +
+                                    "got throwable: <{}: {}>", t.getClass().getSimpleName(), t.getMessage());
+                    return Optional.empty();
+                } else {
+                    log.withCorrelationId(signal)
+                            .error("expected EnrichSignalWithPreDefinedExtraFieldsResponse, got: {}", response);
+                    return Optional.empty();
+                }
+            });
+        } else {
+            return CompletableFuture.completedFuture(Optional.empty());
+        }
     }
 
     @Override
