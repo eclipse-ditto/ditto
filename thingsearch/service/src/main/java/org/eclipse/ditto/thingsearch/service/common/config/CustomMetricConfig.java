@@ -84,7 +84,7 @@ public interface CustomMetricConfig {
         /**
          * The filter RQL statement.
          */
-        FILTER("filter", ""),
+        FILTER("filter", null),
 
         /**
          * The optional tags to report to the custom Gauge metric.

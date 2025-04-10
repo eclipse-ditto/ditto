@@ -16,11 +16,11 @@ package org.eclipse.ditto.thingsearch.service.persistence.read;
 
 import static com.mongodb.client.model.Aggregates.group;
 import static com.mongodb.client.model.Aggregates.match;
+import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.in;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -40,9 +40,9 @@ import org.eclipse.ditto.thingsearch.model.signals.commands.query.AggregateThing
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchPersistenceConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
-import org.eclipse.ditto.thingsearch.service.persistence.read.criteria.visitors.CreateBsonAggregationVisitor;
+import org.eclipse.ditto.thingsearch.service.persistence.read.criteria.visitors.CreateBsonVisitor;
 
-import com.mongodb.client.model.BsonField;
+import com.mongodb.client.model.Accumulators;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 
@@ -95,24 +95,25 @@ public final class MongoThingsAggregationPersistence implements ThingsAggregatio
     public Source<Document, NotUsed> aggregateThings(final AggregateThingsMetrics aggregateCommand) {
         final List<Bson> aggregatePipeline = new ArrayList<>();
 
-        // Add $match stage if namespaces are present
-        if (!aggregateCommand.getNamespaces().isEmpty()) {
-            aggregatePipeline.add(match(in(PersistenceConstants.FIELD_NAMESPACE, aggregateCommand.getNamespaces())));
-        }
+        // Create namespace predicate optional for $match stage
+        final Optional<Bson> nsPredicateOptional = Optional.of(aggregateCommand.getNamespaces())
+                .filter(set -> !set.isEmpty())
+                .map(nsSet -> in(PersistenceConstants.FIELD_NAMESPACE, aggregateCommand.getNamespaces()));
+
+        // Create filter predicate
+        final Bson filter = CreateBsonVisitor.sudoApply(
+                queryFilterCriteriaFactory.filterCriteria(aggregateCommand.getFilter().orElse(null),
+                        aggregateCommand.getDittoHeaders()));
+        // Merge the namespace predicate with the filter predicate or use just the filter
+        nsPredicateOptional.ifPresentOrElse(nsPredicate -> {
+            aggregatePipeline.add(match(and(nsPredicate, filter)));
+        }, () -> aggregatePipeline.add(match(filter)));
 
         // Construct the $group stage
         final Map<String, String> groupingBy =
                 aggregateCommand.getGroupingBy().entrySet().stream().collect(Collectors.toMap(
                         Map.Entry::getKey, entry -> "$t." + entry.getValue().replace("/", ".")));
-        final List<BsonField> accumulatorFields = aggregateCommand.getNamedFilters()
-                .entrySet()
-                .stream()
-                .map(entry -> new BsonField(entry.getKey(), new Document("$sum",
-                        new Document("$cond", Arrays.asList(CreateBsonAggregationVisitor.sudoApply(
-                                queryFilterCriteriaFactory.filterCriteria(entry.getValue(),
-                                        aggregateCommand.getDittoHeaders())), 1, 0)))))
-                .collect(Collectors.toList());
-        final Bson group = group(new Document(groupingBy), accumulatorFields);
+        final Bson group = group(new Document(groupingBy), Accumulators.sum("count", 1));
         aggregatePipeline.add(group);
         log.debug("aggregation Pipeline: {}",
                 aggregatePipeline.stream().map(bson -> bson.toBsonDocument().toJson()).collect(
@@ -122,6 +123,6 @@ public final class MongoThingsAggregationPersistence implements ThingsAggregatio
                 .hint(hints.getHint(aggregateCommand.getNamespaces())
                         .orElse(null))
                 .allowDiskUse(true)
-                .maxTime(maxQueryTime.toMillis(), TimeUnit.MILLISECONDS)).log("aggregateThings");
+                .maxTime(maxQueryTime.toMillis(), TimeUnit.MILLISECONDS));
     }
 }

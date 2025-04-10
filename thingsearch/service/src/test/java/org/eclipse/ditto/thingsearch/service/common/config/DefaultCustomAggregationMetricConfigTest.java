@@ -71,15 +71,9 @@ public class DefaultCustomAggregationMetricConfigTest {
                         customSearchMetricTestConfig.getObject("online_status.tags")
                                 .unwrapped().entrySet().stream().collect(
                                         Collectors.toMap(Map.Entry::getKey, o -> o.getValue().toString())));
-        softly.assertThat(underTest.getFilterConfigs())
-                .as(CustomAggregationMetricConfig.CustomSearchMetricConfigValue.FILTERS.getConfigPath())
-                .hasSize(2);
-        softly.assertThat(underTest.getFilterConfigs().get(0).getFilterName())
-                .as("filter name")
-                .isEqualTo("online_filter");
-        softly.assertThat(underTest.getFilterConfigs().get(1).getFilterName())
-                .as("filter name")
-                .isEqualTo("offline_filter");
+        softly.assertThat(underTest.getFilter().orElse(null))
+                .as(CustomAggregationMetricConfig.CustomSearchMetricConfigValue.FILTER.getConfigPath())
+                .isEqualTo(customSearchMetricTestConfig.getString("online_status.filter"));
         softly.assertThat(underTest.getTags())
                 .as("tags")
                 .containsExactlyInAnyOrderEntriesOf(

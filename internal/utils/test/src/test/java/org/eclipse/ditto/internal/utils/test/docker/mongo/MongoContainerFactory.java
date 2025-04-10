@@ -25,7 +25,7 @@ import com.github.dockerjava.api.command.CreateContainerCmd;
 final class MongoContainerFactory extends ContainerFactory {
 
     private static final String MONGO_IMAGE_NAME = "mongo";
-    private static final String DEFAULT_MONGO_VERSION = "6.0";
+    private static final String DEFAULT_MONGO_VERSION = "7.0";
     private static final int MONGO_INTERNAL_PORT = 27017;
     private static final List<String> MONGO_COMMANDS = List.of("mongod", "--storageEngine", "wiredTiger");
 
