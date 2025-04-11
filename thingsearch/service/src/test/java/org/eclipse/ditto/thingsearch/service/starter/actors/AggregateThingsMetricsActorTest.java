@@ -38,7 +38,6 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
-import org.eclipse.ditto.internal.utils.test.docker.mongo.MongoDbResource;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.AggregateThingsMetrics;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.AggregateThingsMetricsResponse;
@@ -59,14 +58,20 @@ import com.mongodb.client.result.InsertManyResult;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import de.flapdoodle.embed.mongo.commands.ServerAddress;
+import de.flapdoodle.embed.mongo.distribution.Version;
+import de.flapdoodle.embed.mongo.transitions.Mongod;
+import de.flapdoodle.embed.mongo.transitions.RunningMongodProcess;
+import de.flapdoodle.reverse.TransitionWalker;
+
 @RunWith(Parameterized.class)
 public class AggregateThingsMetricsActorTest {
 
     @ClassRule
     public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
             DittoTracingInitResource.disableDittoTracing();
-    @ClassRule
-    public static final MongoDbResource MONGO_RESOURCE = new MongoDbResource();
+    private static final TransitionWalker.ReachedState<RunningMongodProcess> RUNNING_MONGOD_PROCESS =
+            Mongod.instance().start(Version.Main.V7_0);
     private static ActorSystem SYSTEM = ActorSystem.create();
     private static final LoggingAdapter LOG = SYSTEM.log();
     private static DittoMongoClient mongoClient;
@@ -75,9 +80,10 @@ public class AggregateThingsMetricsActorTest {
 
     @BeforeClass
     public static void initTestData() {
-        mongoClient = provideClientWrapper();
+        final ServerAddress serverAddress = RUNNING_MONGOD_PROCESS.current().getServerAddress();
+        mongoClient = provideClientWrapper(serverAddress, "testSearchDB");
         persistence = MongoThingsAggregationPersistence.of(mongoClient, searchConfig, LOG);
-        LOG.info("Mongo started at: {}:{}", MONGO_RESOURCE.getBindIp(), MONGO_RESOURCE.getPort());
+        LOG.info("Mongo started at: {}", serverAddress);
         List<Map<String, String>> paramList = List.of(
                 Map.of(
                         "thingId", "org.eclipse.ditto:thing1",
@@ -121,13 +127,16 @@ public class AggregateThingsMetricsActorTest {
     @AfterClass
     public static void teardown() {
         TestKit.shutdownActorSystem(SYSTEM);
+        if (RUNNING_MONGOD_PROCESS != null) {
+            RUNNING_MONGOD_PROCESS.current().stop();
+        }
         SYSTEM = null;
     }
 
-    private static DittoMongoClient provideClientWrapper() {
+    private static DittoMongoClient provideClientWrapper(final ServerAddress serverAddress, final String dbName) {
         return MongoClientWrapper.getBuilder()
                 .connectionString(
-                        "mongodb://" + MONGO_RESOURCE.getBindIp() + ":" + MONGO_RESOURCE.getPort() + "/testSearchDB")
+                        "mongodb://" + serverAddress + "/" + dbName)
                 .build();
     }
 
