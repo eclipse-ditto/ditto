@@ -57,7 +57,7 @@ final class DefaultDittoWotIntegration implements DittoWotIntegration {
         final Executor executor = actorSystem.dispatchers().lookup("wot-dispatcher");
         final Executor cacheLoaderExecutor = actorSystem.dispatchers().lookup("wot-dispatcher-cache-loader");
         final PekkoHttpJsonDownloader httpThingModelDownloader =
-                new PekkoHttpJsonDownloader(actorSystem, wotConfig);
+                new PekkoHttpJsonDownloader(actorSystem, wotConfig, executor);
         thingModelFetcher = WotThingModelFetcher.of(wotConfig, httpThingModelDownloader, cacheLoaderExecutor);
         thingModelExtensionResolver = WotThingModelExtensionResolver.of(thingModelFetcher, executor);
         thingModelResolver =

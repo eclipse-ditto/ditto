@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
 
 import javax.annotation.Nullable;
 
@@ -51,9 +52,11 @@ import org.eclipse.ditto.wot.validation.config.TmValidationConfig;
 final class DefaultWotThingModelValidation implements WotThingModelValidation {
 
     private final TmValidationConfig validationConfig;
+    private final Executor executor;
 
-    DefaultWotThingModelValidation(final TmValidationConfig validationConfig) {
+    DefaultWotThingModelValidation(final TmValidationConfig validationConfig, final Executor executor) {
         this.validationConfig = validationConfig;
+        this.executor = executor;
     }
 
     @Override
@@ -146,7 +149,8 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                     validationConfig.getThingValidationConfig().isForbidNonModeledInboxMessages(),
                     resourcePath,
                     true,
-                    context
+                    context,
+                    executor
             );
         }
         return success();
@@ -166,7 +170,8 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                     validationConfig.getThingValidationConfig().isForbidNonModeledInboxMessages(),
                     resourcePath,
                     false,
-                    context
+                    context,
+                    executor
             );
         }
         return success();
@@ -185,7 +190,8 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                     dataPayload,
                     validationConfig.getThingValidationConfig().isForbidNonModeledOutboxMessages(),
                     resourcePath,
-                    context
+                    context,
+                    executor
             );
         }
         return success();
@@ -209,7 +215,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
         } else {
             secondStage = success();
         }
-        return firstStage.thenCompose(unused -> secondStage);
+        return firstStage.thenComposeAsync(unused -> secondStage, executor);
     }
 
     @Override
@@ -225,7 +231,8 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                     features,
                     false,
                     validationConfig.getFeatureValidationConfig().isForbidNonModeledProperties(),
-                    context
+                    context,
+                    executor
             ).thenApply(aVoid -> null);
         } else {
             firstStage = success();
@@ -238,12 +245,13 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                     features,
                     true,
                     validationConfig.getFeatureValidationConfig().isForbidNonModeledDesiredProperties(),
-                    context
+                    context,
+                    executor
             ).thenApply(aVoid -> null);
         } else {
             secondStage = success();
         }
-        return firstStage.thenCompose(unused -> secondStage);
+        return firstStage.thenComposeAsync(unused -> secondStage, executor);
     }
 
 
@@ -297,7 +305,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
         } else {
             secondStage = success();
         }
-        return firstStage.thenCompose(unused -> secondStage);
+        return firstStage.thenComposeAsync(unused -> secondStage, executor);
     }
 
     @Override
@@ -378,7 +386,8 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
             return enforcePresenceOfRequiredPropertiesUponFeatureLevelDeletion(featureThingModel,
                     featureId,
                     resourcePath,
-                    context
+                    context,
+                    executor
             );
         }
         // desired properties do not need to be checked, as the "required" definitions do not apply for them
@@ -402,7 +411,8 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                     validationConfig.getFeatureValidationConfig().isForbidNonModeledInboxMessages(),
                     resourcePath,
                     true,
-                    context
+                    context,
+                    executor
             );
         }
         return success();
@@ -424,7 +434,8 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                     validationConfig.getFeatureValidationConfig().isForbidNonModeledInboxMessages(),
                     resourcePath,
                     false,
-                    context
+                    context,
+                    executor
             );
         }
         return success();
@@ -445,7 +456,8 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                     dataPayload,
                     validationConfig.getFeatureValidationConfig().isForbidNonModeledOutboxMessages(),
                     resourcePath,
-                    context
+                    context,
+                    executor
             );
         }
         return success();

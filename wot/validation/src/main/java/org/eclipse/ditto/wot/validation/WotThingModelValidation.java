@@ -14,6 +14,7 @@ package org.eclipse.ditto.wot.validation;
 
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
 
 import javax.annotation.Nullable;
 
@@ -332,9 +333,10 @@ public interface WotThingModelValidation {
      * Creates a new instance of WotThingModelValidation with the given {@code validationConfig}.
      *
      * @param validationConfig the WoT TM validation config to use.
+     * @param executor the executor to use for async operations.
      * @return the created WotThingModelValidation.
      */
-    static WotThingModelValidation of(final TmValidationConfig validationConfig) {
-        return new DefaultWotThingModelValidation(validationConfig);
+    static WotThingModelValidation of(final TmValidationConfig validationConfig, final Executor executor) {
+        return new DefaultWotThingModelValidation(validationConfig, executor);
     }
 }
