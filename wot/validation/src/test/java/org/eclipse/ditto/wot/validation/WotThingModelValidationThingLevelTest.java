@@ -183,7 +183,8 @@ public final class WotThingModelValidationThingLevelTest {
         when(thingValidationConfig.isForbidNonModeledOutboxMessages()).thenReturn(true);
         when(validationConfig.getThingValidationConfig()).thenReturn(thingValidationConfig);
 
-        sut = WotThingModelValidation.of(validationConfig);
+
+        sut = WotThingModelValidation.of(validationConfig, new CurrentThreadExecutor());
     }
 
     @Test

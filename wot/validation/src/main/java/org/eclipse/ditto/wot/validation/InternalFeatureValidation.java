@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -106,7 +107,8 @@ final class InternalFeatureValidation {
             final Features features,
             final boolean desiredProperties,
             final boolean forbidNonModeledProperties,
-            final ValidationContext context
+            final ValidationContext context,
+            final Executor executor
     ) {
         final CompletableFuture<List<Void>> enforcedPropertiesListFuture;
         final List<CompletableFuture<Void>> enforcedPropertiesFutures = featureThingModels
@@ -130,9 +132,9 @@ final class InternalFeatureValidation {
                 .toList();
         enforcedPropertiesListFuture =
                 CompletableFuture.allOf(enforcedPropertiesFutures.toArray(new CompletableFuture[0]))
-                        .thenApply(ignored -> enforcedPropertiesFutures.stream()
+                        .thenApplyAsync(ignored -> enforcedPropertiesFutures.stream()
                                 .map(CompletableFuture::join)
-                                .toList()
+                                .toList(), executor
                         );
         return enforcedPropertiesListFuture;
     }
@@ -364,7 +366,8 @@ final class InternalFeatureValidation {
             final ThingModel featureThingModel,
             final String featureId,
             final JsonPointer resourcePath,
-            final ValidationContext context
+            final ValidationContext context,
+            final Executor executor
     ) {
         final JsonPointer propertiesPath =
                 resourcePath.getSubPointer(2).orElse(resourcePath); // cut /features/<featureId>
@@ -380,7 +383,7 @@ final class InternalFeatureValidation {
             firstStage = success();
         }
 
-        return firstStage.thenCompose(unused ->
+        return firstStage.thenComposeAsync(unused ->
                 enforcePresenceOfRequiredPropertiesUponDeletion(
                         featureThingModel,
                         propertiesPath,
@@ -389,7 +392,8 @@ final class InternalFeatureValidation {
                         "all Feature <" + featureId + "> properties",
                         "Feature <" + featureId + "> property",
                         context
-                )
+                ),
+                executor
         );
     }
 
@@ -437,7 +441,8 @@ final class InternalFeatureValidation {
             final boolean forbidNonModeledInboxMessages,
             final JsonPointer resourcePath,
             final boolean isInput,
-            final ValidationContext context
+            final ValidationContext context,
+            final Executor executor
     ) {
         final CompletableFuture<Void> firstStage;
         if (forbidNonModeledInboxMessages) {
@@ -449,12 +454,13 @@ final class InternalFeatureValidation {
         } else {
             firstStage = success();
         }
-        return firstStage.thenCompose(unused ->
+        return firstStage.thenComposeAsync(unused ->
                 enforceActionPayload(featureThingModel, messageSubject, inputPayload, resourcePath, isInput,
                         "Feature <" + featureId + ">'s action <" + messageSubject + "> " +
                                 (isInput ? "input" : "output"),
                         context
-                )
+                ),
+                executor
         );
     }
 
@@ -464,7 +470,8 @@ final class InternalFeatureValidation {
             @Nullable final JsonValue payload,
             final boolean forbidNonModeledOutboxMessages,
             final JsonPointer resourcePath,
-            final ValidationContext context
+            final ValidationContext context,
+            final Executor executor
     ) {
         final CompletableFuture<Void> firstStage;
         if (forbidNonModeledOutboxMessages) {
@@ -477,11 +484,12 @@ final class InternalFeatureValidation {
         } else {
             firstStage = success();
         }
-        return firstStage.thenCompose(unused ->
+        return firstStage.thenComposeAsync(unused ->
                 enforceEventPayload(featureThingModel, messageSubject, payload, resourcePath,
                         "Feature <" + featureId + ">'s event <" + messageSubject + "> data",
                         context
-                )
+                ),
+                executor
         );
     }
 

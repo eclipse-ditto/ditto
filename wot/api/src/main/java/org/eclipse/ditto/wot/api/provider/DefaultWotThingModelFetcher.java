@@ -47,12 +47,14 @@ final class DefaultWotThingModelFetcher implements WotThingModelFetcher {
     private static final Duration MAX_FETCH_MODEL_DURATION = Duration.ofSeconds(10);
 
     private final JsonDownloader jsonDownloader;
+    private final Executor executor;
     private final Cache<URL, ThingModel> thingModelCache;
 
     DefaultWotThingModelFetcher(final WotConfig wotConfig,
             final JsonDownloader jsonDownloader,
             final Executor cacheLoaderExecutor) {
         this.jsonDownloader = jsonDownloader;
+        this.executor = cacheLoaderExecutor;
         final AsyncCacheLoader<URL, ThingModel> loader = this::loadThingModelViaHttp;
         thingModelCache = CacheFactory.createCache(loader,
                 wotConfig.getCacheConfig(),
@@ -76,7 +78,7 @@ final class DefaultWotThingModelFetcher implements WotThingModelFetcher {
     public CompletableFuture<ThingModel> fetchThingModel(final URL url, final DittoHeaders dittoHeaders) {
         LOGGER.debug("Fetching ThingModel (from cache or downloading as fallback) from URL: <{}>", url);
         return thingModelCache.get(url)
-                .thenApply(optTm -> resolveThingModel(optTm.orElse(null), url, dittoHeaders))
+                .thenApplyAsync(optTm -> resolveThingModel(optTm.orElse(null), url, dittoHeaders), executor)
                 .orTimeout(MAX_FETCH_MODEL_DURATION.toSeconds(), TimeUnit.SECONDS);
     }
 
@@ -98,7 +100,7 @@ final class DefaultWotThingModelFetcher implements WotThingModelFetcher {
         LOGGER.debug("Loading ThingModel from URL <{}>.", url);
         final CompletionStage<JsonObject> responseFuture = jsonDownloader.downloadJsonViaHttp(url, executor);
         final CompletionStage<ThingModel> thingModelFuture = responseFuture
-                .thenApply(ThingModel::fromJson)
+                .thenApplyAsync(ThingModel::fromJson, executor)
                 .exceptionally(t -> {
                     LOGGER.warn("Failed to extract ThingModel from response because of <{}: {}>",
                             t.getClass().getSimpleName(), t.getMessage());

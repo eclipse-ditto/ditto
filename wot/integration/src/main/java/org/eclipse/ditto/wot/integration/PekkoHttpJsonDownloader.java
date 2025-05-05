@@ -59,8 +59,10 @@ final class PekkoHttpJsonDownloader implements JsonDownloader {
 
     private final HttpClientFacade httpClient;
     private final Materializer materializer;
+    private final Executor executor;
 
-    PekkoHttpJsonDownloader(final ActorSystem actorSystem, final WotConfig wotConfig) {
+    PekkoHttpJsonDownloader(final ActorSystem actorSystem, final WotConfig wotConfig, final Executor executor) {
+        this.executor = executor;
         this.httpClient = DefaultHttpClientFacade.getInstance(actorSystem, wotConfig.getHttpProxyConfig());
         materializer = SystemMaterializer.get(actorSystem).materializer();
     }
@@ -69,13 +71,13 @@ final class PekkoHttpJsonDownloader implements JsonDownloader {
     public CompletionStage<JsonObject> downloadJsonViaHttp(final URL url, final Executor executor) {
         LOGGER.debug("Loading JsonObject from URL <{}>.", url);
         final CompletionStage<HttpResponse> responseFuture = getJsonObjectFromUrl(url);
-        final CompletionStage<JsonObject> thingModelFuture = responseFuture.thenCompose(this::mapResponseToJsonObject);
+        final CompletionStage<JsonObject> thingModelFuture = responseFuture.thenComposeAsync(this::mapResponseToJsonObject, executor);
         return thingModelFuture.toCompletableFuture();
     }
 
     private CompletionStage<HttpResponse> getJsonObjectFromUrl(final URL url) {
         return httpClient.createSingleHttpRequest(HttpRequest.GET(url.toString()).withHeaders(List.of(ACCEPT_HEADER)))
-                .thenCompose(response -> {
+                .thenComposeAsync(response -> {
                     if (response.status().isRedirection()) {
                         return response.getHeader(Location.class)
                                 .map(location -> {
@@ -92,13 +94,13 @@ final class PekkoHttpJsonDownloader implements JsonDownloader {
                     } else {
                         return CompletableFuture.completedFuture(response);
                     }
-                })
-                .thenApply(response -> {
+                }, executor)
+                .thenApplyAsync(response -> {
                     if (!response.status().isSuccess() || response.status().isRedirection()) {
                         handleNonSuccessResponse(response, url);
                     }
                     return response;
-                })
+                }, executor)
                 .exceptionally(e -> {
                     throw DittoRuntimeException.asDittoRuntimeException(e,
                             cause -> handleUnexpectedException(cause, url));
@@ -117,7 +119,7 @@ final class PekkoHttpJsonDownloader implements JsonDownloader {
         final String msg = MessageFormat.format(
                 "Got non success response from JsonObject endpoint with status code: <{0}>", response.status());
         getBodyAsString(response)
-                .thenAccept(stringBody -> LOGGER.info("{} and body: <{}>.", msg, stringBody));
+                .thenAcceptAsync(stringBody -> LOGGER.info("{} and body: <{}>.", msg, stringBody), executor);
         throw WotThingModelNotAccessibleException.newBuilder(url)
                 .build();
     }

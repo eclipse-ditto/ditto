@@ -270,7 +270,7 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
 
         // generation rules defined at: https://w3c.github.io/wot-thing-description/#thing-model-td-generation
         return CompletableFuture.completedFuture(thingModel)
-                .thenApply(thingModelWithExtensionsAndImports -> {
+                .thenApplyAsync(thingModelWithExtensionsAndImports -> {
                     LOGGER.debug("ThingModel after resolving extensions + refs: <{}>",
                             thingModelWithExtensionsAndImports);
 
@@ -306,7 +306,7 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
                     LOGGER.info("Created ThingDescription for thingId <{}> and featureId <{}>: <{}>", thingId,
                             featureId, thingDescription);
                     return thingDescription;
-                });
+                }, executor);
     }
 
     private ObjectSchema buildDittoErrorSchema() {
