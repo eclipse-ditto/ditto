@@ -29,13 +29,15 @@ final class DefaultDittoHeadersBuilder extends AbstractDittoHeadersBuilder<Defau
 
     private static final DittoHeaders EMPTY_DITTO_HEADERS = ImmutableDittoHeaders.of(Collections.emptyMap());
     private static final EnumSet<DittoHeaderDefinition> DEFINITIONS = EnumSet.allOf(DittoHeaderDefinition.class);
+    private static final Map<String, HeaderDefinition> KNOWN_HEADER_DEFINITIONS =
+            AbstractDittoHeadersBuilder.getHeaderDefinitionsAsMap(DEFINITIONS);
 
     private DefaultDittoHeadersBuilder(final Map<String, String> headers) {
-        super(headers, DEFINITIONS, DefaultDittoHeadersBuilder.class);
+        super(headers, DEFINITIONS, KNOWN_HEADER_DEFINITIONS, DefaultDittoHeadersBuilder.class);
     }
 
     private DefaultDittoHeadersBuilder(final DittoHeaders dittoHeaders) {
-        super(dittoHeaders, DEFINITIONS, DefaultDittoHeadersBuilder.class);
+        super(dittoHeaders, DEFINITIONS, KNOWN_HEADER_DEFINITIONS, DefaultDittoHeadersBuilder.class);
     }
 
     /**
