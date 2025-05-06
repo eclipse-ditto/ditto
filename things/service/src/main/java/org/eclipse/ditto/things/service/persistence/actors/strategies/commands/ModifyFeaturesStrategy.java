@@ -186,7 +186,7 @@ final class ModifyFeaturesStrategy extends AbstractThingModifyCommandStrategy<Mo
                 buildValidatedStage(command, thing);
 
         final CompletableFuture<ThingEvent<?>> eventStage =
-                featuresStage.thenCompose(validationFunction)
+                featuresStage.thenComposeAsync(validationFunction, wotValidationExecutor)
                         .thenApply(ModifyFeatures::getFeatures)
                         .thenApply(features ->
                                 FeaturesCreated.of(command.getEntityId(), features, nextRevision, getEventTimestamp(),
@@ -194,11 +194,12 @@ final class ModifyFeaturesStrategy extends AbstractThingModifyCommandStrategy<Mo
                                 )
                         );
         final CompletableFuture<WithDittoHeaders> responseStage =
-                featuresStage.thenCompose(validationFunction).thenApply(modifyFeatures ->
-                        appendETagHeaderIfProvided(modifyFeatures,
-                                ModifyFeaturesResponse.created(context.getState(), modifyFeatures.getFeatures(),
-                                        createCommandResponseDittoHeaders(dittoHeaders, nextRevision)), thing)
-                );
+                featuresStage.thenComposeAsync(validationFunction, wotValidationExecutor)
+                        .thenApply(modifyFeatures ->
+                                appendETagHeaderIfProvided(modifyFeatures,
+                                        ModifyFeaturesResponse.created(context.getState(), modifyFeatures.getFeatures(),
+                                                createCommandResponseDittoHeaders(dittoHeaders, nextRevision)), thing)
+                        );
 
         return ResultFactory.newMutationResult(command, eventStage, responseStage);
     }

@@ -12,12 +12,15 @@
  */
 package org.eclipse.ditto.things.service.enforcement;
 
+import static org.eclipse.ditto.things.service.enforcement.ThingEnforcerActor.ENFORCEMENT_DISPATCHER;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -98,6 +101,7 @@ final class ThingCommandEnforcement
     private final ActorSystem actorSystem;
     private final ActorRef policiesShardRegion;
     private final AskWithRetryConfig askWithRetryConfig;
+    private final Executor enforcementExecutor;
 
     /**
      * Creates a new instance of the thing command enforcer.
@@ -115,6 +119,7 @@ final class ThingCommandEnforcement
         this.actorSystem = actorSystem;
         this.policiesShardRegion = policiesShardRegion;
         this.askWithRetryConfig = enforcementConfig.getAskWithRetryConfig();
+        enforcementExecutor = actorSystem.dispatchers().lookup(ENFORCEMENT_DISPATCHER);
         enforcementConfig.getSpecialLoggingInspectedNamespaces()
                 .forEach(loggedNamespace -> NAMESPACE_INSPECTION_LOGGERS.put(
                         loggedNamespace,
@@ -403,12 +408,12 @@ final class ThingCommandEnforcement
     private CompletionStage<Done> doDeletePolicy(final DeletePolicy deletePolicy) {
         return AskWithRetry.askWithRetry(policiesShardRegion, deletePolicy, askWithRetryConfig, actorSystem,
                         this::handleDeletePolicyResponse)
-                .thenCompose(success -> {
+                .thenComposeAsync(success -> {
                     if (Boolean.FALSE.equals(success)) {
                         return doDeletePolicy(deletePolicy);
                     }
                     return CompletableFuture.completedFuture(Done.getInstance());
-                });
+                }, enforcementExecutor);
     }
 
     private boolean handleDeletePolicyResponse(final Object policyResponse) {

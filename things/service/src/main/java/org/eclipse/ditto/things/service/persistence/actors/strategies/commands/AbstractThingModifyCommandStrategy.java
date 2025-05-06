@@ -14,6 +14,7 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -35,8 +36,11 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand
 abstract class AbstractThingModifyCommandStrategy<C extends ThingModifyCommand<C>>
         extends AbstractThingCommandStrategy<C> {
 
+    protected final Executor wotValidationExecutor;
+
     protected AbstractThingModifyCommandStrategy(final Class<C> theMatchingClass, final ActorSystem actorSystem) {
         super(theMatchingClass, actorSystem);
+        wotValidationExecutor = actorSystem.dispatchers().lookup("wot-dispatcher");
     }
 
     /**
@@ -77,7 +81,7 @@ abstract class AbstractThingModifyCommandStrategy<C extends ThingModifyCommand<C
         final var tracedCommand =
                 command.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(command.getDittoHeaders())));
         return performWotValidation(tracedCommand, previousThing, previewThing)
-                .whenComplete((result, throwable) -> {
+                .whenCompleteAsync((result, throwable) -> {
                     if (throwable instanceof CompletionException completionException) {
                         if (completionException.getCause() instanceof DittoRuntimeException dre) {
                             startedSpan.tagAsFailed(dre.toString())
@@ -97,7 +101,7 @@ abstract class AbstractThingModifyCommandStrategy<C extends ThingModifyCommand<C
                     } else {
                         startedSpan.finish();
                     }
-                });
+                }, wotValidationExecutor);
 
     }
 

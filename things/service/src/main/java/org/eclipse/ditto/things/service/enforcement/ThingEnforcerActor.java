@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -109,7 +110,7 @@ import org.eclipse.ditto.wot.validation.WotThingModelPayloadValidationException;
 public final class ThingEnforcerActor
         extends AbstractPolicyLoadingEnforcerActor<ThingId, Signal<?>, CommandResponse<?>, ThingEnforcement> {
 
-    private static final String ENFORCEMENT_DISPATCHER = "enforcement-dispatcher";
+    static final String ENFORCEMENT_DISPATCHER = "enforcement-dispatcher";
 
     /**
      * Label of default policy entry in default policy.
@@ -121,6 +122,8 @@ public final class ThingEnforcerActor
     private final DittoThingsConfig thingsConfig;
     private final AskWithRetryConfig askWithRetryConfig;
     private final WotThingModelValidator thingModelValidator;
+    private final Executor enforcementExecutor;
+    private final Executor wotValidationExecutor;
 
     @SuppressWarnings("unused")
     private ThingEnforcerActor(final ThingId thingId,
@@ -143,6 +146,8 @@ public final class ThingEnforcerActor
 
         final DittoWotIntegration wotIntegration = DittoWotIntegration.get(system);
         thingModelValidator = wotIntegration.getWotThingModelValidator();
+        enforcementExecutor = getContext().getSystem().dispatchers().lookup(ENFORCEMENT_DISPATCHER);
+        wotValidationExecutor = getContext().getSystem().dispatchers().lookup("wot-dispatcher");
     }
 
     /**
@@ -173,16 +178,16 @@ public final class ThingEnforcerActor
             return loadPolicyEnforcerForCreateThing(createThing);
         } else {
             return providePolicyIdForEnforcement(signal)
-                    .thenCompose(policyId -> providePolicyEnforcer(policyId)
-                            .thenCompose(policyEnforcer -> {
+                    .thenComposeAsync(policyId -> providePolicyEnforcer(policyId)
+                            .thenComposeAsync(policyEnforcer -> {
                                 if (policyId != null && policyEnforcer.isEmpty() &&
                                         signal instanceof ThingCommand<?> thingCommand) {
                                     return getDreForMissingPolicyEnforcer(thingCommand, policyId)
-                                            .thenCompose(CompletableFuture::failedStage);
+                                            .thenComposeAsync(CompletableFuture::failedStage, enforcementExecutor);
                                 } else {
                                     return CompletableFuture.completedFuture(policyEnforcer);
                                 }
-                            }));
+                            }, enforcementExecutor), enforcementExecutor);
         }
     }
 
@@ -366,7 +371,7 @@ public final class ThingEnforcerActor
                     .orElseGet(() -> thing.getEntityId().map(PolicyId::of).orElseThrow());
             final DittoHeaders dittoHeaders = createThing.getDittoHeaders();
             policyCs = getCopiedPolicy(policyIdOrPlaceholder.get(), dittoHeaders, policyIdToBe)
-                    .thenCompose(copiedPolicy -> createPolicy(copiedPolicy, createThing));
+                    .thenComposeAsync(copiedPolicy -> createPolicy(copiedPolicy, createThing), enforcementExecutor);
         } else if (initialPolicyJson.isPresent()) {
             // An initial policy was defined => build policy and return it as enforcer
             final Policy initialPolicy = getInitialPolicy(createThing, initialPolicyJson.get());
@@ -383,7 +388,7 @@ public final class ThingEnforcerActor
         final String correlationId =
                 createThing.getDittoHeaders().getCorrelationId().orElse("unexpected:" + UUID.randomUUID());
         return policyCs
-                .thenCompose(policy -> {
+                .thenComposeAsync(policy -> {
                     if (policyEnforcerProvider instanceof Invalidatable invalidatable &&
                             policy.getEntityId().isPresent() && policy.getRevision().isPresent()) {
                         return invalidatable.invalidate(PolicyTag.of(policy.getEntityId().get(),
@@ -396,8 +401,9 @@ public final class ThingEnforcerActor
                                 });
                     }
                     return CompletableFuture.completedFuture(policy);
-                })
-                .thenCompose(policy -> providePolicyEnforcer(policy.getEntityId().orElse(null)));
+                }, enforcementExecutor)
+                .thenComposeAsync(policy -> providePolicyEnforcer(policy.getEntityId().orElse(null)),
+                        enforcementExecutor);
     }
 
     private CompletionStage<Policy> getCopiedPolicy(final String policyIdOrPlaceholder,
@@ -417,10 +423,12 @@ public final class ThingEnforcerActor
                             .thenApply(PolicyId::of);
                 })
                 .orElseGet(() -> CompletableFuture.completedFuture(PolicyId.of(policyIdOrPlaceholder)))
-                .thenCompose(resolvedPolicyId -> retrievePolicyWithEnforcement(dittoHeaders, resolvedPolicyId)
+                .thenComposeAsync(resolvedPolicyId -> retrievePolicyWithEnforcement(dittoHeaders, resolvedPolicyId)
                         .thenApply(Policy::toBuilder)
                         .thenApply(policyBuilder -> policyBuilder.setId(policyIdForCopiedPolicy)
-                                .build()));
+                                .build()),
+                        enforcementExecutor
+                );
     }
 
     private CompletionStage<Policy> retrievePolicyWithEnforcement(final DittoHeaders dittoHeaders,
@@ -675,7 +683,7 @@ public final class ThingEnforcerActor
             final Supplier<JsonValue> messageCommandPayloadSupplier
     ) {
         return resolveThingDefinition()
-                .thenCompose(optThingDefinition -> {
+                .thenComposeAsync(optThingDefinition -> {
                     if (messageDirection == MessageDirection.TO) {
                         return thingModelValidator.validateThingActionInput(
                                 optThingDefinition.orElse(null),
@@ -699,7 +707,7 @@ public final class ThingEnforcerActor
                                 .build()
                         );
                     }
-                });
+                }, wotValidationExecutor);
     }
 
     private CompletionStage<Void> performWotBasedFeatureMessageValidation(final MessageCommand<?, ?> messageCommand,
@@ -709,7 +717,7 @@ public final class ThingEnforcerActor
             final Supplier<JsonValue> messageCommandPayloadSupplier
     ) {
         return resolveThingAndFeatureDefinition(featureId)
-                .thenCompose(optDefinitionPair -> {
+                .thenComposeAsync(optDefinitionPair -> {
                     if (messageDirection == MessageDirection.TO) {
                         return thingModelValidator.validateFeatureActionInput(
                                 optDefinitionPair.first().orElse(null),
@@ -737,7 +745,7 @@ public final class ThingEnforcerActor
                                 .build()
                         );
                     }
-                });
+                }, wotValidationExecutor);
     }
 
     private CompletionStage<MessageCommandResponse<?, ?>> performWotBasedMessageCommandResponseValidation(
@@ -764,26 +772,30 @@ public final class ThingEnforcerActor
 
         if (messageCommandResponse instanceof SendThingMessageResponse<?> sendThingMessageResponse) {
             return resolveThingDefinition()
-                    .thenCompose(optThingDefinition -> thingModelValidator.validateThingActionOutput(
-                            optThingDefinition.orElse(null),
-                            sendThingMessageResponse.getMessage().getSubject(),
-                            messageCommandPayloadSupplier,
-                            sendThingMessageResponse.getResourcePath(),
-                            sendThingMessageResponse.getDittoHeaders()
-                    ))
+                    .thenComposeAsync(optThingDefinition ->
+                            thingModelValidator.validateThingActionOutput(
+                                optThingDefinition.orElse(null),
+                                sendThingMessageResponse.getMessage().getSubject(),
+                                messageCommandPayloadSupplier,
+                                sendThingMessageResponse.getResourcePath(),
+                                sendThingMessageResponse.getDittoHeaders()
+                        ), wotValidationExecutor
+                    )
                     .thenApply(aVoid -> messageCommandResponse);
         } else if (messageCommandResponse instanceof SendFeatureMessageResponse<?> sendFeatureMessageResponse) {
             final String featureId = sendFeatureMessageResponse.getFeatureId();
             return resolveThingAndFeatureDefinition(featureId)
-                    .thenCompose(optDefinitionPair -> thingModelValidator.validateFeatureActionOutput(
-                            optDefinitionPair.first().orElse(null),
-                            optDefinitionPair.second().orElse(null),
-                            featureId,
-                            sendFeatureMessageResponse.getMessage().getSubject(),
-                            messageCommandPayloadSupplier,
-                            sendFeatureMessageResponse.getResourcePath(),
-                            sendFeatureMessageResponse.getDittoHeaders()
-                    ))
+                    .thenComposeAsync(optDefinitionPair ->
+                            thingModelValidator.validateFeatureActionOutput(
+                                optDefinitionPair.first().orElse(null),
+                                optDefinitionPair.second().orElse(null),
+                                featureId,
+                                sendFeatureMessageResponse.getMessage().getSubject(),
+                                messageCommandPayloadSupplier,
+                                sendFeatureMessageResponse.getResourcePath(),
+                                sendFeatureMessageResponse.getDittoHeaders()
+                        ), wotValidationExecutor
+                    )
                     .thenApply(aVoid -> messageCommandResponse);
         } else {
             return CompletableFuture.completedFuture(messageCommandResponse);
