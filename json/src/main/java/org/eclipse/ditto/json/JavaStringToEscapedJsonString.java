@@ -14,7 +14,7 @@ package org.eclipse.ditto.json;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.function.Function;
+import java.util.function.IntFunction;
 import java.util.function.UnaryOperator;
 
 import javax.annotation.Nullable;
@@ -33,9 +33,9 @@ final class JavaStringToEscapedJsonString implements UnaryOperator<String> {
 
     private static final char QUOTE = '\"';
 
-    private final Function<Integer, String> jsonCharEscaper;
+    private final IntFunction<String> jsonCharEscaper;
 
-    private JavaStringToEscapedJsonString(final Function<Integer, String> theJsonCharEscaper) {
+    private JavaStringToEscapedJsonString(final IntFunction<String> theJsonCharEscaper) {
         jsonCharEscaper = theJsonCharEscaper;
     }
 
@@ -56,7 +56,7 @@ final class JavaStringToEscapedJsonString implements UnaryOperator<String> {
         stringBuilder.append(javaString);
         int i = 1; // offset of starting " char
         for (final char c : javaString.toCharArray()) {
-            @Nullable final String replacement = jsonCharEscaper.apply((int) c);
+            @Nullable final String replacement = jsonCharEscaper.apply(c);
             if (null != replacement) {
                 stringBuilder.replace(i, i + 1, replacement);
                 i += replacement.length();
