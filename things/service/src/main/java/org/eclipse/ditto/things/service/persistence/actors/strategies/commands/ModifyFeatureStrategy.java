@@ -180,12 +180,14 @@ final class ModifyFeatureStrategy extends AbstractThingModifyCommandStrategy<Mod
                 );
 
         final CompletionStage<Pair<ModifyFeature, Feature>> validatedStage =
-                featureStage.thenCompose(createdFeatureWithImplicits ->
+                featureStage.thenComposeAsync(createdFeatureWithImplicits ->
                         buildValidatedStage(
                                 ModifyFeature.of(command.getEntityId(), createdFeatureWithImplicits,
                                         command.getDittoHeaders()),
                                 thing
-                        ).thenApply(modifyFeature -> new Pair<>(modifyFeature, createdFeatureWithImplicits))
+                        ).thenApplyAsync(modifyFeature ->
+                                new Pair<>(modifyFeature, createdFeatureWithImplicits), wotValidationExecutor),
+                        wotValidationExecutor
                 );
         final CompletionStage<ThingEvent<?>> eventStage =
                 validatedStage.thenApply(pair ->
