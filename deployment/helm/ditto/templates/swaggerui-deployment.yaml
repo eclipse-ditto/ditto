@@ -48,7 +48,7 @@ spec:
       {{- end }}
       initContainers:
         - name: {{ .Chart.Name }}-swaggerui-init
-          image: "docker.io/curlimages/curl:8.3.0"
+          image: "docker.io/curlimages/curl:8.13.0"
           imagePullPolicy: {{ .Values.swaggerui.image.pullPolicy }}
           command:
             - sh
