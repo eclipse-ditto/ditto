@@ -143,7 +143,7 @@ public final class ThingEnforcerActor
 
         final DittoWotIntegration wotIntegration = DittoWotIntegration.get(system);
         thingModelValidator = wotIntegration.getWotThingModelValidator();
-        wotValidationExecutor = getContext().getSystem().dispatchers().lookup("wot-dispatcher");
+        wotValidationExecutor = getContext().getSystem().dispatchers().lookup(DittoWotIntegration.WOT_DISPATCHER);
     }
 
     /**

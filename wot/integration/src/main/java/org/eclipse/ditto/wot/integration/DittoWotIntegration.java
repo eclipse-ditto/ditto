@@ -30,6 +30,16 @@ import org.eclipse.ditto.wot.api.validator.WotThingModelValidator;
 public interface DittoWotIntegration extends Extension {
 
     /**
+     * Dispatcher name used for WoT integration (e.g. validating, resolving of WoT models).
+     */
+    String WOT_DISPATCHER = "wot-dispatcher";
+
+    /**
+     * Dispatcher name used for loading and caching WoT models.
+     */
+    String WOT_DISPATCHER_CACHE_LOADER = "wot-dispatcher-cache-loader";
+
+    /**
      * @return the applied WoT configuration.
      */
     WotConfig getWotConfig();
