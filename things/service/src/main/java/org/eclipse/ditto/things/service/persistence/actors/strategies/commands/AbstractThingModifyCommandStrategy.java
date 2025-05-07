@@ -26,6 +26,7 @@ import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
+import org.eclipse.ditto.wot.integration.DittoWotIntegration;
 
 /**
  * Abstract base class for {@link ThingModifyCommand} strategies.
@@ -40,7 +41,7 @@ abstract class AbstractThingModifyCommandStrategy<C extends ThingModifyCommand<C
 
     protected AbstractThingModifyCommandStrategy(final Class<C> theMatchingClass, final ActorSystem actorSystem) {
         super(theMatchingClass, actorSystem);
-        wotValidationExecutor = actorSystem.dispatchers().lookup("wot-dispatcher");
+        wotValidationExecutor = actorSystem.dispatchers().lookup(DittoWotIntegration.WOT_DISPATCHER);
     }
 
     /**
