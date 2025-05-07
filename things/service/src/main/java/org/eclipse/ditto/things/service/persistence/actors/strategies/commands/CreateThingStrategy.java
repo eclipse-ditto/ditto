@@ -123,9 +123,11 @@ final class CreateThingStrategy extends AbstractThingModifyCommandStrategy<Creat
 
         // validate based on potentially referenced Thing WoT TM/TD
         final CompletionStage<Pair<CreateThing, Thing>> validatedStage =
-                thingStage.thenCompose(createdThingWithImplicits ->
+                thingStage.thenComposeAsync(createdThingWithImplicits ->
                         buildValidatedStage(command, null, createdThingWithImplicits)
-                                .thenApply(createThing -> new Pair<>(createThing, createdThingWithImplicits))
+                                .thenApplyAsync(createThing ->
+                                        new Pair<>(createThing, createdThingWithImplicits), wotValidationExecutor),
+                        wotValidationExecutor
                 );
 
         final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(pair ->

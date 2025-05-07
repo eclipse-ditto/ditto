@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.json;
 
-import java.util.function.Function;
+import java.util.function.IntFunction;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -31,7 +31,7 @@ import javax.annotation.concurrent.Immutable;
  * @see "https://tools.ietf.org/html/rfc8259#section-7"
  */
 @Immutable
-final class JsonCharEscaper implements Function<Integer, String> {
+final class JsonCharEscaper implements IntFunction<String> {
 
     private static final JsonCharEscaper INSTANCE = new JsonCharEscaper();
 
@@ -63,7 +63,7 @@ final class JsonCharEscaper implements Function<Integer, String> {
      */
     @Nullable
     @Override
-    public String apply(final Integer i) {
+    public String apply(final int i) {
         if (0 <= i && i < ESCAPE_TABLE.length) {
             return ESCAPE_TABLE[i];
         } else {

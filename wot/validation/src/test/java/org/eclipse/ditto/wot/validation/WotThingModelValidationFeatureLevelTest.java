@@ -233,7 +233,7 @@ public final class WotThingModelValidationFeatureLevelTest {
         when(featureValidationConfig.isForbidNonModeledOutboxMessages()).thenReturn(true);
         when(validationConfig.getFeatureValidationConfig()).thenReturn(featureValidationConfig);
 
-        sut = WotThingModelValidation.of(validationConfig);
+        sut = WotThingModelValidation.of(validationConfig, new CurrentThreadExecutor());
     }
 
     @Test
@@ -938,7 +938,7 @@ public final class WotThingModelValidationFeatureLevelTest {
                     .withThrowableOfType(ExecutionException.class)
                     .withCauseInstanceOf(WotThingModelPayloadValidationException.class);
         } else {
-            assertThat(stage).isNotCompletedExceptionally().isDone();
+            assertThat(stage).isNotCompletedExceptionally().succeedsWithin(150, TimeUnit.MILLISECONDS);
         }
     }
 }

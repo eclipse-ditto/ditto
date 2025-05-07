@@ -18,6 +18,7 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -84,6 +85,7 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJou
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.policies.enforcement.AbstractEnforcerActor;
 
 import com.typesafe.config.Config;
 
@@ -122,6 +124,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     private final SupervisorStrategy supervisorStrategy;
 
     protected final MongoReadJournal mongoReadJournal;
+    protected final Executor enforcementExecutor;
 
     @Nullable protected final BlockedNamespaces blockedNamespaces;
 
@@ -156,6 +159,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         this.enforcerChild = enforcerChild;
         this.blockedNamespaces = blockedNamespaces;
         this.mongoReadJournal = mongoReadJournal;
+        this.enforcementExecutor = system.dispatchers().lookup(AbstractEnforcerActor.ENFORCEMENT_DISPATCHER);
         this.localAskTimeout = getLocalAskTimeoutConfig().getLocalAckTimeout();
         this.exponentialBackOffConfig = getExponentialBackOffConfig();
         this.backOff = ExponentialBackOff.initial(exponentialBackOffConfig);
@@ -263,7 +267,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
 
         final ActorRef sender = getSender();
         askEnforcerChild(subscribeForPersistedEvents)
-                .whenComplete((enforcedStreamPersistedEvents, throwable) -> {
+                .whenCompleteAsync((enforcedStreamPersistedEvents, throwable) -> {
                     if (enforcedStreamPersistedEvents instanceof DittoRuntimeException dre) {
                         log.withCorrelationId(subscribeForPersistedEvents)
                                 .info("Got DittoRuntimeException handling SubscribeForPersistedEvents: " +
@@ -297,7 +301,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                                 .warning(throwable, "Got throwable: <{}: {}>", throwable.getClass().getSimpleName(),
                                             throwable.getMessage());
                     }
-                });
+                }, enforcementExecutor);
     }
 
     /**
@@ -791,12 +795,17 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                     becomeTwinSignalProcessingAwaiting();
                 }
                 final var syncCs = signalTransformer.apply(signal)
-                        .whenComplete((result, error) -> handleOptionalTransformationException(signal, error, sender))
-                        .thenCompose(transformed -> enforceSignalAndForwardToTargetActor((S) transformed, sender)
-                                .exceptionallyCompose(error -> handleTargetActorAndEnforcerException(transformed, error))
-                                .whenComplete((response, throwable) ->
-                                        handleSignalEnforcementResponse(response, throwable, transformed, sender)
-                                ))
+                        .whenComplete((result, error) ->
+                                handleOptionalTransformationException(signal, error, sender)
+                        )
+                        .thenComposeAsync(transformed ->
+                                enforceSignalAndForwardToTargetActor((S) transformed, sender)
+                                    .exceptionallyComposeAsync(error ->
+                                            handleTargetActorAndEnforcerException(transformed, error), enforcementExecutor)
+                                    .whenComplete((response, throwable) ->
+                                            handleSignalEnforcementResponse(response, throwable, transformed, sender)
+                                    ), enforcementExecutor
+                        )
                         .handle((response, throwable) -> new ProcessNextTwinMessage(signal));
                 incrementOpCounter(signal); // decremented by ProcessNextTwinMessage
                 Patterns.pipe(syncCs, getContext().getDispatcher()).pipeTo(getSelf(), getSelf());
@@ -913,12 +922,12 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
             final StartedTimer rootTimer = createTimer(tracedSignal);
             final StartedTimer enforcementTimer = rootTimer.startNewSegment(ENFORCEMENT_TIMER_SEGMENT_ENFORCEMENT);
             return askEnforcerChild(tracedSignal)
-                    .thenCompose(this::modifyEnforcerActorEnforcedSignalResponse)
+                    .thenComposeAsync(this::modifyEnforcerActorEnforcedSignalResponse, enforcementExecutor)
                     .whenComplete((result, error) -> {
                         startedSpan.mark("enforced_policy");
                         stopTimer(enforcementTimer).accept(result, error);
                     })
-                    .thenCompose(enforcedCommand -> {
+                    .thenComposeAsync(enforcedCommand -> {
                         final StartedTimer processingTimer =
                                 rootTimer.startNewSegment(ENFORCEMENT_TIMER_SEGMENT_PROCESSING);
                         final DittoHeaders dittoHeaders;
@@ -932,21 +941,22 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                                     startedSpan.mark("processed");
                                     stopTimer(processingTimer).accept(result, error);
                                 });
-                    })
-                    .thenCompose(targetActorResponse -> {
-                        final StartedTimer responseFilterTimer =
-                                rootTimer.startNewSegment(ENFORCEMENT_TIMER_SEGMENT_RESPONSE_FILTER);
-                        return filterTargetActorResponseViaEnforcer(targetActorResponse)
-                                .whenComplete((result, error) -> {
-                                    startedSpan.mark("filtered_response");
-                                    responseFilterTimer.tag(ENFORCEMENT_TIMER_TAG_OUTCOME,
-                                            error != null ? ENFORCEMENT_TIMER_TAG_OUTCOME_FAIL :
-                                                    ENFORCEMENT_TIMER_TAG_OUTCOME_SUCCESS).stop();
-                                    if (null != error) {
-                                        startedSpan.tagAsFailed(error);
-                                    }
-                                });
-                    }).whenComplete((result, error) -> {
+                    }, enforcementExecutor)
+                    .thenComposeAsync(targetActorResponse -> {
+                                final StartedTimer responseFilterTimer =
+                                        rootTimer.startNewSegment(ENFORCEMENT_TIMER_SEGMENT_RESPONSE_FILTER);
+                                return filterTargetActorResponseViaEnforcer(targetActorResponse)
+                                        .whenComplete((result, error) -> {
+                                            startedSpan.mark("filtered_response");
+                                            responseFilterTimer.tag(ENFORCEMENT_TIMER_TAG_OUTCOME,
+                                                    error != null ? ENFORCEMENT_TIMER_TAG_OUTCOME_FAIL :
+                                                            ENFORCEMENT_TIMER_TAG_OUTCOME_SUCCESS).stop();
+                                            if (null != error) {
+                                                startedSpan.tagAsFailed(error);
+                                            }
+                                        });
+                            }, enforcementExecutor
+                    ).whenComplete((result, error) -> {
                         if (null != error) {
                             startedSpan.tagAsFailed(error);
                         }
@@ -1001,8 +1011,8 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                     .debug("Received enforcedSignal from enforcerChild, forwarding to target actor: {}",
                             enforcedSignal);
             return askTargetActor(enforcedSignal, shouldSendResponse(enforcedSignal), sender)
-                    .thenCompose(response ->
-                            modifyTargetActorCommandResponse(enforcedSignal, response))
+                    .thenComposeAsync(response ->
+                            modifyTargetActorCommandResponse(enforcedSignal, response), enforcementExecutor)
                     .thenApply(response ->
                             new EnforcedSignalAndTargetActorResponse(enforcedSignal, response)
                     );
@@ -1010,8 +1020,8 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
             return askTargetActor(distributedPubWithMessage,
                     distributedPubWithMessage.signal().getDittoHeaders().isResponseRequired(), sender
             )
-                    .thenCompose(response ->
-                            modifyTargetActorCommandResponse(distributedPubWithMessage.signal(), response))
+                    .thenComposeAsync(response ->
+                            modifyTargetActorCommandResponse(distributedPubWithMessage.signal(), response), enforcementExecutor)
                     .thenApply(response ->
                             new EnforcedSignalAndTargetActorResponse(distributedPubWithMessage.signal(), response)
                     );

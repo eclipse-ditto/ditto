@@ -78,8 +78,8 @@ final class DefaultWotThingModelExtensionResolver implements WotThingModelExtens
                     } else {
                         CompletionStage<ThingModel.Builder> currentStage =
                                 resolveThingModelExtensions(extendedModels.getFirst(), dittoHeaders) // recurse!
-                                        .thenApply(extendedModel ->
-                                                mergeThingModelIntoBuilder().apply(tmBuilder, extendedModel)
+                                        .thenApplyAsync(extendedModel ->
+                                                mergeThingModelIntoBuilder().apply(tmBuilder, extendedModel), executor
                                         );
                         for (int i = 1; i < extendedModels.size(); i++) {
                             currentStage = currentStage.thenCombine(
@@ -87,7 +87,7 @@ final class DefaultWotThingModelExtensionResolver implements WotThingModelExtens
                                     mergeThingModelIntoBuilder()
                             );
                         }
-                        return currentStage.thenApply(ThingModel.Builder::build);
+                        return currentStage.thenApplyAsync(ThingModel.Builder::build, executor);
                     }
                 }, executor))
                 .orElse(CompletableFuture.completedFuture(thingModel));
@@ -143,7 +143,7 @@ final class DefaultWotThingModelExtensionResolver implements WotThingModelExtens
 
     @Override
     public CompletionStage<ThingModel> resolveThingModelRefs(final ThingModel thingModel, final DittoHeaders dittoHeaders) {
-        return potentiallyResolveRefs(thingModel, dittoHeaders).thenApply(ThingModel::fromJson);
+        return potentiallyResolveRefs(thingModel, dittoHeaders).thenApplyAsync(ThingModel::fromJson, executor);
     }
 
     private CompletionStage<JsonObject> potentiallyResolveRefs(final JsonObject jsonObject,
@@ -152,10 +152,11 @@ final class DefaultWotThingModelExtensionResolver implements WotThingModelExtens
                 .map(field -> {
                     if (field.getValue().isObject() && field.getValue().asObject().contains(TM_REF)) {
                         return resolveRefs(field.getValue().asObject(), dittoHeaders)
-                                .thenApply(refs -> JsonField.newInstance(field.getKey(), refs));
+                                .thenApplyAsync(refs -> JsonField.newInstance(field.getKey(), refs),
+                                        executor);
                     } else if (field.getValue().isObject()) {
                         return potentiallyResolveRefs(field.getValue().asObject(), dittoHeaders)  // recurse!
-                                .thenApply(refs -> JsonField.newInstance(field.getKey(), refs));
+                                .thenApplyAsync(refs -> JsonField.newInstance(field.getKey(), refs), executor);
                     } else {
                         return CompletableFuture.completedFuture(field);
                     }
@@ -181,7 +182,7 @@ final class DefaultWotThingModelExtensionResolver implements WotThingModelExtens
             throw WotThingModelRefInvalidException.newBuilder(tmRef).dittoHeaders(dittoHeaders).build();
         }
         return thingModelFetcher.fetchThingModel(IRI.of(urlAndPointer[0]), dittoHeaders)
-                .thenApply(thingModel -> thingModel.getValue(JsonPointer.of(urlAndPointer[1])))
+                .thenApplyAsync(thingModel -> thingModel.getValue(JsonPointer.of(urlAndPointer[1])), executor)
                 .thenComposeAsync(optJsonValue -> optJsonValue
                                 .filter(JsonValue::isObject)
                                 .map(JsonValue::asObject)
@@ -189,16 +190,16 @@ final class DefaultWotThingModelExtensionResolver implements WotThingModelExtens
                                 .orElseGet(() -> CompletableFuture.completedFuture(null))
                         , executor
                 )
-                .thenCompose(refObject -> {
+                .thenComposeAsync(refObject -> {
                     if (refObject.contains(TM_REF)) {
                         return resolveRefs(refObject, dittoHeaders) // recurse!
-                                .thenApply(JsonValue::asObject);
+                                .thenApplyAsync(JsonValue::asObject, executor);
                     } else {
                         return potentiallyResolveRefs(refObject, dittoHeaders); // recurse!
                     }
-                })
-                .thenApply(refObject ->
-                        JsonFactory.mergeJsonValues(objectWithTmRef.remove(TM_REF), refObject).asObject()
+                }, executor)
+                .thenApplyAsync(refObject ->
+                        JsonFactory.mergeJsonValues(objectWithTmRef.remove(TM_REF), refObject).asObject(), executor
                 );
     }
 }

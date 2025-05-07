@@ -52,8 +52,8 @@ import org.eclipse.ditto.things.model.signals.commands.ThingCommandSizeValidator
 import org.eclipse.ditto.things.model.signals.commands.ThingResourceMapper;
 import org.eclipse.ditto.things.model.signals.commands.modify.MigrateThingDefinition;
 import org.eclipse.ditto.things.model.signals.commands.modify.MigrateThingDefinitionResponse;
-import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingDefinitionMigrated;
+import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.wot.model.SkeletonGenerationFailedException;
 
 
@@ -138,9 +138,12 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
 
         // 3. Validate and build event response
         final CompletionStage<Pair<Thing, MigrateThingDefinition>> validatedStage = updatedThingStage
-                .thenCompose(patchThing -> buildValidatedStage(command, existingThing,
+                .thenComposeAsync(patchThing -> buildValidatedStage(command, existingThing,
                         buildValidationPreviewThing(existingThing, patchThing, command))
-                        .thenApply(migrateThingDefinition -> new Pair<>(patchThing, migrateThingDefinition)));
+                        .thenApplyAsync(migrateThingDefinition ->
+                                new Pair<>(patchThing, migrateThingDefinition), wotValidationExecutor),
+                        wotValidationExecutor
+                );
 
         // If Dry Run, return a simulated response without applying changes
         if (isDryRun) {

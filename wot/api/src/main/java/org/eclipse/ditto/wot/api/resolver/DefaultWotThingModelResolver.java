@@ -58,6 +58,7 @@ final class DefaultWotThingModelResolver implements WotThingModelResolver {
 
     private final WotThingModelFetcher thingModelFetcher;
     private final WotThingModelExtensionResolver thingModelExtensionResolver;
+    private final Executor executor;
     private final Cache<URL, ThingModel> fullyResolvedThingModelCache;
 
     DefaultWotThingModelResolver(final WotConfig wotConfig,
@@ -66,6 +67,7 @@ final class DefaultWotThingModelResolver implements WotThingModelResolver {
             final Executor cacheLoaderExecutor) {
         this.thingModelFetcher = thingModelFetcher;
         this.thingModelExtensionResolver = thingModelExtensionResolver;
+        this.executor = cacheLoaderExecutor;
         final AsyncCacheLoader<URL, ThingModel> loader = this::loadThingModelViaHttp;
         fullyResolvedThingModelCache = CacheFactory.createCache(loader,
                 wotConfig.getCacheConfig(),
@@ -88,7 +90,7 @@ final class DefaultWotThingModelResolver implements WotThingModelResolver {
     public CompletableFuture<ThingModel> resolveThingModel(final URL url, final DittoHeaders dittoHeaders) {
         LOGGER.debug("Resolving ThingModel (from cache or downloading as fallback) from URL: <{}>", url);
         return fullyResolvedThingModelCache.get(url)
-                .thenApply(optTm -> resolveThingModel(optTm.orElse(null), url, dittoHeaders))
+                .thenApplyAsync(optTm -> resolveThingModel(optTm.orElse(null), url, dittoHeaders), executor)
                 .orTimeout(MAX_RESOLVE_MODEL_DURATION.toSeconds(), TimeUnit.SECONDS);
     }
 
@@ -118,8 +120,8 @@ final class DefaultWotThingModelResolver implements WotThingModelResolver {
                         )
                         .orElseGet(Stream::empty)
                         .map(submodel -> resolveThingModel(submodel.href(), dittoHeaders)
-                                .thenApply(subThingModel ->
-                                        new AbstractMap.SimpleEntry<>(submodel, subThingModel)
+                                .thenApplyAsync(subThingModel ->
+                                        new AbstractMap.SimpleEntry<>(submodel, subThingModel), executor
                                 )
                                 .toCompletableFuture()
                         )
@@ -153,9 +155,10 @@ final class DefaultWotThingModelResolver implements WotThingModelResolver {
                 .thenComposeAsync(thingModel ->
                                 thingModelExtensionResolver
                                         .resolveThingModelExtensions(thingModel, dittoHeaders)
-                                        .thenCompose(thingModelWithExtensions ->
+                                        .thenComposeAsync(thingModelWithExtensions ->
                                                 thingModelExtensionResolver.resolveThingModelRefs(thingModelWithExtensions,
-                                                        dittoHeaders)
+                                                        dittoHeaders),
+                                                executor
                                         ),
                         executor
                 )

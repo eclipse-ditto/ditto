@@ -27,10 +27,11 @@ import java.util.Set;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.AbstractDittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.HeaderDefinition;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.ThingId;
 
 /**
@@ -43,13 +44,16 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
             EnumSet.of(MessageHeaderDefinition.DIRECTION, MessageHeaderDefinition.THING_ID,
                     MessageHeaderDefinition.SUBJECT));
     private static final Set<MessageHeaderDefinition> DEFINITIONS = EnumSet.allOf(MessageHeaderDefinition.class);
+    private static final Map<String, HeaderDefinition> KNOWN_HEADER_DEFINITIONS =
+            AbstractDittoHeadersBuilder.getHeaderDefinitionsAsMap(DEFINITIONS);
+
 
     private MessageHeadersBuilder(final Map<String, String> headers) {
-        super(headers, DEFINITIONS, MessageHeadersBuilder.class);
+        super(headers, DEFINITIONS, KNOWN_HEADER_DEFINITIONS, MessageHeadersBuilder.class);
     }
 
     private MessageHeadersBuilder(final MessageHeaders dittoHeaders) {
-        super(dittoHeaders, DEFINITIONS, MessageHeadersBuilder.class);
+        super(dittoHeaders, DEFINITIONS, KNOWN_HEADER_DEFINITIONS, MessageHeadersBuilder.class);
     }
 
     /**

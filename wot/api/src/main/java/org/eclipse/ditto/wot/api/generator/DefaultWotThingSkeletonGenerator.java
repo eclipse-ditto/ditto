@@ -126,7 +126,7 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
                                 ),
                                 executor
                         )
-                        .handle((thingSkeleton, throwable) -> {
+                        .handleAsync((thingSkeleton, throwable) -> {
                             if (throwable != null) {
                                 LOGGER.info("Could not fetch ThingModel or generate Thing skeleton based on it due " +
                                                 "to: <{}: {}>",
@@ -148,7 +148,7 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
                                         thingSkeleton);
                                 return thingSkeleton;
                             }
-                        });
+                        }, executor);
             } else {
                 return CompletableFuture.completedFuture(Optional.empty());
             }
@@ -181,7 +181,7 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
                                 ),
                                 executor
                         )
-                        .handle((featureSkeleton, throwable) -> {
+                        .handleAsync((featureSkeleton, throwable) -> {
                             if (throwable != null) {
                                 LOGGER.info("Could not fetch ThingModel or generate Feature skeleton based on it due " +
                                                 "to: <{}: {}>",
@@ -203,7 +203,7 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
                                         featureSkeleton);
                                 return featureSkeleton;
                             }
-                        });
+                        }, executor);
             } else {
                 return CompletableFuture.completedFuture(Optional.empty());
             }
@@ -220,7 +220,7 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
             final DittoHeaders dittoHeaders) {
 
         return CompletableFuture.completedFuture(thingModel)
-                .thenApply(thingModelWithExtensionsAndImports -> {
+                .thenApplyAsync(thingModelWithExtensionsAndImports -> {
                     final Optional<String> dittoExtensionPrefix = thingModelWithExtensionsAndImports.getAtContext()
                             .determinePrefixFor(DittoWotExtension.DITTO_WOT_EXTENSION);
 
@@ -259,14 +259,16 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
                             }).ifPresent(builder::setAttributes);
 
                     return new AbstractMap.SimpleImmutableEntry<>(thingModelWithExtensionsAndImports, builder);
-                })
-                .thenCompose(pair ->
+                }, executor)
+                .thenComposeAsync(pair ->
                         createFeaturesFromSubmodels(pair.getKey(), generateDefaultsForOptionalProperties, dittoHeaders)
-                                .thenApply(features ->
-                                        features.map(f -> pair.getValue().setFeatures(f)).orElse(pair.getValue())
-                                )
+                                .thenApplyAsync(features ->
+                                        features.map(f -> pair.getValue().setFeatures(f)).orElse(pair.getValue()),
+                                        executor
+                                ),
+                        executor
                 )
-                .thenApply(builder -> Optional.of(builder.build()));
+                .thenApplyAsync(builder -> Optional.of(builder.build()), executor);
     }
 
     private static void fillPropertiesInOptionalCategories(final Properties properties,
@@ -318,7 +320,7 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
                                 , executor);
 
         final FeaturesBuilder featuresBuilder = Features.newBuilder();
-        return futureListStage.thenCompose(futureList ->
+        return futureListStage.thenComposeAsync(futureList ->
                 CompletableFuture.allOf(futureList.toArray(CompletableFuture<?>[]::new))
                         .thenApplyAsync(v -> {
                                     if (futureList.isEmpty()) {
@@ -333,7 +335,9 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
                                     }
                                 },
                                 executor
-                        ));
+                        ),
+                executor
+        );
     }
 
     private CompletionStage<Optional<Feature>> generateFeatureSkeleton(final String featureId,
@@ -504,10 +508,10 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
             final URL thingModelUrl,
             final DittoHeaders dittoHeaders) {
         return determineFurtherFeatureDefinitionIdentifiers(thingModel, dittoHeaders)
-                .thenApply(definitionIdentifiers -> FeatureDefinition.fromIdentifier(
+                .thenApplyAsync(definitionIdentifiers -> FeatureDefinition.fromIdentifier(
                         thingModelUrl.toString(),
                         definitionIdentifiers.toArray(DefinitionIdentifier[]::new)
-                ));
+                ), executor);
     }
 
     private CompletionStage<List<DefinitionIdentifier>> determineFurtherFeatureDefinitionIdentifiers(
@@ -527,12 +531,12 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
                                         dittoHeaders
                                 ), executor
                         )
-                        .thenApply(recursedSubmodels -> {
+                        .thenApplyAsync(recursedSubmodels -> {
                             final List<DefinitionIdentifier> combinedIdentifiers = new ArrayList<>();
                             combinedIdentifiers.add(ThingsModelFactory.newFeatureDefinitionIdentifier(link.getHref()));
                             combinedIdentifiers.addAll(recursedSubmodels);
                             return combinedIdentifiers;
-                        });
+                        }, executor);
             } else {
                 return CompletableFuture.completedFuture(Collections.<DefinitionIdentifier>emptyList());
             }

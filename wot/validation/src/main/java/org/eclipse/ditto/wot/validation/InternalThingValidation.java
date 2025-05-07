@@ -25,6 +25,7 @@ import static org.eclipse.ditto.wot.validation.InternalValidation.validateProper
 
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 import javax.annotation.Nullable;
 
@@ -152,7 +153,8 @@ final class InternalThingValidation {
             final boolean forbidNonModeledInboxMessages,
             final JsonPointer resourcePath,
             final boolean isInput,
-            final ValidationContext context
+            final ValidationContext context,
+            final Executor executor
     ) {
         final CompletableFuture<Void> firstStage;
         if (isInput && forbidNonModeledInboxMessages) {
@@ -164,11 +166,12 @@ final class InternalThingValidation {
         } else {
             firstStage = success();
         }
-        return firstStage.thenCompose(unused ->
+        return firstStage.thenComposeAsync(unused ->
                 enforceActionPayload(thingModel, messageSubject, payload, resourcePath, isInput,
                         "Thing's action <" + messageSubject + "> " + (isInput ? "input" : "output"),
                         context
-                )
+                ),
+                executor
         );
     }
 
@@ -177,7 +180,8 @@ final class InternalThingValidation {
             @Nullable final JsonValue payload,
             final boolean forbidNonModeledOutboxMessages,
             final JsonPointer resourcePath,
-            final ValidationContext context
+            final ValidationContext context,
+            final Executor executor
     ) {
         final CompletableFuture<Void> firstStage;
         if (forbidNonModeledOutboxMessages) {
@@ -186,10 +190,11 @@ final class InternalThingValidation {
         } else {
             firstStage = success();
         }
-        return firstStage.thenCompose(unused ->
+        return firstStage.thenComposeAsync(unused ->
                 enforceEventPayload(thingModel, messageSubject, payload, resourcePath,
                         "Thing's event <" + messageSubject + "> data", context
-                )
+                ),
+                executor
         );
     }
 

@@ -78,6 +78,26 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
         BUILT_IN_DEFINITIONS = Collections.unmodifiableMap(definitions);
     }
 
+    /**
+     * Resolves the passed in collection of {@link HeaderDefinition}s to a map of the definition's keys and their
+     * {@link HeaderDefinition} as value.
+     *
+     * @param headerDefinitions the known header definitions to build up the map for.
+     * @return the build map.
+     */
+    public static Map<String, HeaderDefinition> getHeaderDefinitionsAsMap(
+            final Collection<? extends HeaderDefinition> headerDefinitions) {
+
+        final DittoHeaderDefinition[] dittoHeaderDefinitions = DittoHeaderDefinition.values();
+        final Map<String, HeaderDefinition> result =
+                new LinkedHashMap<>(headerDefinitions.size() + dittoHeaderDefinitions.length);
+        for (final HeaderDefinition definition : headerDefinitions) {
+            result.put(definition.getKey(), definition);
+        }
+        result.putAll(BUILT_IN_DEFINITIONS);
+        return result;
+    }
+
     protected final S myself;
     private final Map<String, Header> headers;
     private final Map<String, HeaderDefinition> definitions;
@@ -89,15 +109,18 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
      * Constructs a new {@code AbstractDittoHeadersBuilder} object.
      *
      * @param initialHeaders initial key-value-pairs or an empty map.
-     * @param definitions a collection of all well known {@link org.eclipse.ditto.base.model.headers.HeaderDefinition}s
-     * of this builder. The definitions are used for header value validation.
+     * @param definitions a collection of all well known {@link HeaderDefinition}s of this builder.
+     * The definitions are used for header value validation.
+     * @param definitionsMap a map of header string keys and their {@link HeaderDefinition} as value.
      * @param selfType this type is used to simulate the "self type" of the returned object for Method Chaining of
      * the builder methods.
      * @throws NullPointerException if any argument is {@code null}.
      */
     @SuppressWarnings("unchecked")
     protected AbstractDittoHeadersBuilder(final Map<String, String> initialHeaders,
-            final Collection<? extends HeaderDefinition> definitions, final Class<?> selfType) {
+            final Collection<? extends HeaderDefinition> definitions,
+            final Map<String, HeaderDefinition> definitionsMap,
+            final Class<?> selfType) {
 
         checkNotNull(initialHeaders, "initial headers");
         checkNotNull(definitions, "header definitions");
@@ -106,7 +129,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
         headers = preserveCaseSensitivity(initialHeaders);
         metadataHeaders = MetadataHeaders.newInstance();
         metadataHeaders.addAll(extractMetadataHeaders(headers));
-        this.definitions = getHeaderDefinitionsAsMap(definitions);
+        this.definitions = checkNotNull(definitionsMap, "definitionsMap");
         getMetadataFieldSelector = extractMetadataFieldSelector(headers, DittoHeaderDefinition.GET_METADATA);
         deleteMetadataFieldSelector = extractMetadataFieldSelector(headers, DittoHeaderDefinition.DELETE_METADATA);
     }
@@ -136,34 +159,24 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
         return result;
     }
 
-    private static Map<String, HeaderDefinition> getHeaderDefinitionsAsMap(
-            final Collection<? extends HeaderDefinition> headerDefinitions) {
-
-        final DittoHeaderDefinition[] dittoHeaderDefinitions = DittoHeaderDefinition.values();
-        final Map<String, HeaderDefinition> result =
-                new LinkedHashMap<>(headerDefinitions.size() + dittoHeaderDefinitions.length);
-        for (final HeaderDefinition definition : headerDefinitions) {
-            result.put(definition.getKey(), definition);
-        }
-        result.putAll(BUILT_IN_DEFINITIONS);
-        return result;
-    }
-
     /**
      * Constructs a new {@code AbstractDittoHeadersBuilder} object based on an existing {@code DittoHeaders} instance
      * applying a performance optimization: skipping the validation of values types as we can be sure that they already
      * are valid when being passed in as DittoHeaders.
      *
      * @param initialHeaders initial DittoHeaders.
-     * @param definitions a collection of all well known {@link org.eclipse.ditto.base.model.headers.HeaderDefinition}s
-     * of this builder. The definitions are used for header value validation.
+     * @param definitions a collection of all well known {@link HeaderDefinition}s of this builder.
+     * The definitions are used for header value validation.
+     * @param definitionsMap a map of header string keys and their {@link HeaderDefinition} as value.
      * @param selfType this type is used to simulate the "self type" of the returned object for Method Chaining of
      * the builder methods.
      * @throws NullPointerException if any argument is {@code null}.
      */
     @SuppressWarnings("unchecked")
     protected AbstractDittoHeadersBuilder(final R initialHeaders,
-            final Collection<? extends HeaderDefinition> definitions, final Class<?> selfType) {
+            final Collection<? extends HeaderDefinition> definitions,
+            final Map<String, HeaderDefinition> definitionsMap,
+            final Class<?> selfType) {
 
         checkNotNull(initialHeaders, "initialHeaders");
         checkNotNull(definitions, "definitions");
@@ -171,7 +184,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
         headers = preserveCaseSensitivity(initialHeaders);
         metadataHeaders = MetadataHeaders.newInstance();
         metadataHeaders.addAll(extractMetadataHeaders(headers));
-        this.definitions = getHeaderDefinitionsAsMap(definitions);
+        this.definitions = checkNotNull(definitionsMap, "definitionsMap");
         getMetadataFieldSelector = extractMetadataFieldSelector(headers, DittoHeaderDefinition.GET_METADATA);
         deleteMetadataFieldSelector = extractMetadataFieldSelector(headers, DittoHeaderDefinition.DELETE_METADATA);
     }

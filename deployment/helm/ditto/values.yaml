@@ -445,13 +445,13 @@ ingress:
         pathType: Exact
         backendSuffix: nginx
       - path: /index.html
-        pathType: Exact
+        pathType: ImplementationSpecific
         backendSuffix: nginx
       - path: /ditto-up.svg
-        pathType: Exact
+        pathType: ImplementationSpecific
         backendSuffix: nginx
       - path: /ditto-down.svg
-        pathType: Exact
+        pathType: ImplementationSpecific
         backendSuffix: nginx
     # annotations defines k8s annotations to add to the Ingress
     annotations:
@@ -2179,7 +2179,7 @@ swaggerui:
     # repository for the swagger ui docker image
     repository: docker.io/swaggerapi/swagger-ui
     # tag for the swagger ui docker image
-    tag: v5.17.14
+    tag: v5.20.8
     # pullPolicy for the swagger ui docker image
     pullPolicy: IfNotPresent
   # extraEnv to add arbitrary environment variable to swagger ui container

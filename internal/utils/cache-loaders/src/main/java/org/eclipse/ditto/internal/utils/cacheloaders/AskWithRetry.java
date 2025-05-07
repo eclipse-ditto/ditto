@@ -24,6 +24,11 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Scheduler;
+import org.apache.pekko.pattern.AskTimeoutException;
+import org.apache.pekko.pattern.Patterns;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
@@ -32,15 +37,10 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
-import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.Scheduler;
-import org.apache.pekko.pattern.AskTimeoutException;
-import org.apache.pekko.pattern.Patterns;
 import scala.compat.java8.FutureConverters;
 
 /**
@@ -139,11 +139,11 @@ public final class AskWithRetry {
 
         final int retryAttempts = config.getRetryAttempts();
         final Callable<CompletionStage<AskResult<A>>> askHandleCallable = () ->
-                createAskHandle(actorToAsk, message, dittoHeaders, responseMapper, config.getAskTimeout());
+                createAskHandle(actorToAsk, message, dittoHeaders, responseMapper, config.getAskTimeout(), executor);
 
         final CompletionStage<AskResult<A>> stage;
         if (retryAttempts == 0) {
-            stage = createAskHandle(actorToAsk, message, dittoHeaders, responseMapper, config.getAskTimeout());
+            stage = createAskHandle(actorToAsk, message, dittoHeaders, responseMapper, config.getAskTimeout(), executor);
         } else {
             switch (config.getRetryStrategy()) {
                 case BACKOFF_DELAY:
@@ -172,21 +172,23 @@ public final class AskWithRetry {
                     break;
                 case OFF:
                 default:
-                    stage = createAskHandle(actorToAsk, message, dittoHeaders, responseMapper, config.getAskTimeout());
+                    stage = createAskHandle(actorToAsk, message, dittoHeaders, responseMapper, config.getAskTimeout(),
+                            executor);
             }
         }
 
-        return stage.handle(handleRetryResult(dittoHeaders));
+        return stage.handleAsync(handleRetryResult(dittoHeaders), executor);
     }
 
     private static <M, A> CompletionStage<AskResult<A>> createAskHandle(final ActorRef actorToAsk,
             final M message,
             @Nullable final DittoHeaders dittoHeaders,
             final Function<Object, A> responseMapper,
-            final Duration askTimeout) {
+            final Duration askTimeout,
+            final Executor executor) {
 
         return Patterns.ask(actorToAsk, message, askTimeout)
-                .handle((response, throwable) -> {
+                .handleAsync((response, throwable) -> {
                     if (null != throwable) {
                         final var dre = DittoRuntimeException.asDittoRuntimeException(throwable,
                                 cause -> DUMMY_DRE); // throwable was no DittoRuntimeException when DUMMY_DRE is used
@@ -223,7 +225,7 @@ public final class AskWithRetry {
                             return new AskFailure<>(dre);
                         }
                     }
-                });
+                }, executor);
     }
 
     private static <A> BiFunction<AskResult<A>, Throwable, A> handleRetryResult(

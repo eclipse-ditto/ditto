@@ -48,7 +48,7 @@ final class ResolvedPolicyCacheLoader
             final Executor executor) {
 
         return policyCacheLoader.asyncLoad(policyIdResolvingImports.policyId(), executor)
-                .thenCompose(policyEntry -> {
+                .thenComposeAsync(policyEntry -> {
                     if (policyEntry.exists()) {
                         final Policy policy = policyEntry.getValueOrThrow();
                         final long revision = policy.getRevision().map(PolicyRevision::toLong)
@@ -57,8 +57,8 @@ final class ResolvedPolicyCacheLoader
                         final Set<PolicyTag> referencedPolicies = new HashSet<>();
 
                         if (policyIdResolvingImports.resolveImports()) {
-                            return cacheFuture.thenCompose(cache ->
-                                            resolvePolicyImports(cache, policy, referencedPolicies)
+                            return cacheFuture.thenComposeAsync(cache ->
+                                            resolvePolicyImports(cache, policy, referencedPolicies), executor
                                     )
                                     .thenApply(resolvedPolicy ->
                                             Entry.of(revision, new Pair<>(resolvedPolicy, referencedPolicies))
@@ -71,7 +71,7 @@ final class ResolvedPolicyCacheLoader
                     } else {
                         return CompletableFuture.completedFuture(Entry.nonexistent());
                     }
-                });
+                }, executor);
     }
 
     private static CompletionStage<Policy> resolvePolicyImports(
