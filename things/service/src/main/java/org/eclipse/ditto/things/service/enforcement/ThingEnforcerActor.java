@@ -110,8 +110,6 @@ import org.eclipse.ditto.wot.validation.WotThingModelPayloadValidationException;
 public final class ThingEnforcerActor
         extends AbstractPolicyLoadingEnforcerActor<ThingId, Signal<?>, CommandResponse<?>, ThingEnforcement> {
 
-    static final String ENFORCEMENT_DISPATCHER = "enforcement-dispatcher";
-
     /**
      * Label of default policy entry in default policy.
      */
@@ -122,7 +120,6 @@ public final class ThingEnforcerActor
     private final DittoThingsConfig thingsConfig;
     private final AskWithRetryConfig askWithRetryConfig;
     private final WotThingModelValidator thingModelValidator;
-    private final Executor enforcementExecutor;
     private final Executor wotValidationExecutor;
 
     @SuppressWarnings("unused")
@@ -146,7 +143,6 @@ public final class ThingEnforcerActor
 
         final DittoWotIntegration wotIntegration = DittoWotIntegration.get(system);
         thingModelValidator = wotIntegration.getWotThingModelValidator();
-        enforcementExecutor = getContext().getSystem().dispatchers().lookup(ENFORCEMENT_DISPATCHER);
         wotValidationExecutor = getContext().getSystem().dispatchers().lookup("wot-dispatcher");
     }
 

@@ -68,18 +68,20 @@ final class CachingPolicyEnforcerProvider extends AbstractPolicyEnforcerProvider
 
         this(actorSystem, new PolicyEnforcerCache(policyEnforcerCacheLoader, cacheDispatcher, cacheConfig),
                 BlockedNamespaces.of(actorSystem),
-                DistributedPubSub.get(actorSystem).mediator()
+                DistributedPubSub.get(actorSystem).mediator(),
+                cacheDispatcher
         );
     }
 
     CachingPolicyEnforcerProvider(final ActorSystem actorSystem,
             final PolicyEnforcerCache policyEnforcerCache,
             final BlockedNamespaces blockedNamespaces,
-            final ActorRef pubSubMediator) {
+            final ActorRef pubSubMediator,
+            final MessageDispatcher cacheDispatcher) {
 
         this.cachingPolicyEnforcerProviderActor = actorSystem.actorOf(
                 CachingPolicyEnforcerProviderActor.props(policyEnforcerCache, blockedNamespaces,
-                        pubSubMediator));
+                        pubSubMediator, cacheDispatcher));
     }
 
     @Override
@@ -132,12 +134,15 @@ final class CachingPolicyEnforcerProvider extends AbstractPolicyEnforcerProvider
 
         private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
         private final PolicyEnforcerCache policyEnforcerCache;
+        private final MessageDispatcher cacheDispatcher;
 
         CachingPolicyEnforcerProviderActor(final PolicyEnforcerCache policyEnforcerCache,
                 @Nullable final BlockedNamespaces blockedNamespaces,
-                final ActorRef pubSubMediator) {
+                final ActorRef pubSubMediator,
+                final MessageDispatcher cacheDispatcher) {
 
             this.policyEnforcerCache = policyEnforcerCache;
+            this.cacheDispatcher = cacheDispatcher;
 
             if (blockedNamespaces != null) {
                 blockedNamespaces.subscribeForChanges(getSelf());
@@ -150,10 +155,10 @@ final class CachingPolicyEnforcerProvider extends AbstractPolicyEnforcerProvider
 
         private static Props props(final PolicyEnforcerCache policyEnforcerCache,
                 @Nullable final BlockedNamespaces blockedNamespaces,
-                final ActorRef pubSubMediator) {
+                final ActorRef pubSubMediator, final MessageDispatcher cacheDispatcher) {
 
             return Props.create(CachingPolicyEnforcerProviderActor.class, policyEnforcerCache, blockedNamespaces,
-                    pubSubMediator);
+                    pubSubMediator, cacheDispatcher);
         }
 
         @Override
@@ -176,7 +181,7 @@ final class CachingPolicyEnforcerProvider extends AbstractPolicyEnforcerProvider
             final ActorRef sender = getSender();
             final CompletableFuture<Optional<PolicyEnforcer>> policyEnforcerCS =
                     policyEnforcerCache.get(policyId).thenApply(optionalEntry -> optionalEntry.flatMap(Entry::get));
-            Patterns.pipe(policyEnforcerCS, getContext().dispatcher()).to(sender);
+            Patterns.pipe(policyEnforcerCS, cacheDispatcher).to(sender);
         }
 
         @SuppressWarnings("unchecked")

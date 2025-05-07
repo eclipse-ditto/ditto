@@ -20,6 +20,7 @@ import java.util.function.Function;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
@@ -35,15 +36,18 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<PolicyI
     public static final String ENFORCEMENT_CACHE_DISPATCHER = "enforcement-cache-dispatcher";
 
     private final PolicyCacheLoader delegate;
+    private final Executor enforcementCacheExecutor;
 
     /**
      * Constructor.
      *
      * @param policyCacheLoader used to load the policies which should be transformed to a {@link PolicyEnforcer}.
+     * @param actorSystem the actor system to use.
      */
-    public PolicyEnforcerCacheLoader(final PolicyCacheLoader policyCacheLoader) {
+    public PolicyEnforcerCacheLoader(final PolicyCacheLoader policyCacheLoader, final ActorSystem actorSystem) {
 
         delegate = policyCacheLoader;
+        enforcementCacheExecutor = actorSystem.dispatchers().lookup(ENFORCEMENT_CACHE_DISPATCHER);
     }
 
     @Override
@@ -53,7 +57,9 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<PolicyI
                 policyIdToResolve -> delegate.asyncLoad(policyIdToResolve, executor).thenApply(Entry::get);
 
         return delegate.asyncLoad(policyId, executor)
-                .thenCompose(policyEntry -> evaluatePolicy(policyEntry, policyResolver));
+                .thenComposeAsync(policyEntry ->
+                        evaluatePolicy(policyEntry, policyResolver), enforcementCacheExecutor
+                );
     }
 
     private CompletionStage<Entry<PolicyEnforcer>> evaluatePolicy(final Entry<Policy> entry,

@@ -38,8 +38,6 @@ import org.eclipse.ditto.policies.service.enforcement.PolicyCommandEnforcement;
 public final class PolicyEnforcerActor extends
         AbstractPolicyLoadingEnforcerActor<PolicyId, Signal<?>, PolicyCommandResponse<?>, PolicyCommandEnforcement> {
 
-    private static final String ENFORCEMENT_DISPATCHER = "enforcement-dispatcher";
-
     @SuppressWarnings("unused")
     private PolicyEnforcerActor(final PolicyId policyId, final PolicyCommandEnforcement policyCommandEnforcement,
             final PolicyEnforcerProvider policyEnforcerProvider) {

@@ -46,7 +46,7 @@ final class PolicyEnforcerCache implements Cache<PolicyId, Entry<PolicyEnforcer>
         policyIdToImportingMap = new ConcurrentHashMap<>();
         this.delegate = CacheFactory.createCache(
                 (policyId, executor) -> policyEnforcerCacheLoader.asyncLoad(policyId, executor)
-                        .whenComplete(((policyEnforcerEntry, throwable) -> policyEnforcerEntry.get()
+                        .whenCompleteAsync(((policyEnforcerEntry, throwable) -> policyEnforcerEntry.get()
                                 .flatMap(PolicyEnforcer::getPolicy)
                                 .map(Policy::getPolicyImports)
                                 .filter(imports -> !imports.isEmpty())
@@ -59,7 +59,10 @@ final class PolicyEnforcerCache implements Cache<PolicyId, Entry<PolicyEnforcer>
                                                                     importingPolicyIds;
                                                     newImportingPolicyIds.add(policyId);
                                                     return newImportingPolicyIds;
-                                                }))))),
+                                                })))
+                                ),
+                                cacheDispatcher
+                        ),
                 cacheConfig,
                 "policy_enforcer_cache",
                 cacheDispatcher
