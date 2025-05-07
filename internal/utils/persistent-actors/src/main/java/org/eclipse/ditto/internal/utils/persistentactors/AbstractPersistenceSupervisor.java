@@ -85,6 +85,7 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJou
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.policies.enforcement.AbstractEnforcerActor;
 
 import com.typesafe.config.Config;
 
@@ -158,7 +159,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         this.enforcerChild = enforcerChild;
         this.blockedNamespaces = blockedNamespaces;
         this.mongoReadJournal = mongoReadJournal;
-        this.enforcementExecutor = system.dispatchers().lookup("enforcement-dispatcher");
+        this.enforcementExecutor = system.dispatchers().lookup(AbstractEnforcerActor.ENFORCEMENT_DISPATCHER);
         this.localAskTimeout = getLocalAskTimeoutConfig().getLocalAckTimeout();
         this.exponentialBackOffConfig = getExponentialBackOffConfig();
         this.backOff = ExponentialBackOff.initial(exponentialBackOffConfig);

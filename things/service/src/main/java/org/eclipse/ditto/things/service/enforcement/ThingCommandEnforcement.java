@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.things.service.enforcement;
 
-import static org.eclipse.ditto.things.service.enforcement.ThingEnforcerActor.ENFORCEMENT_DISPATCHER;
+import static org.eclipse.ditto.policies.enforcement.AbstractEnforcerActor.ENFORCEMENT_DISPATCHER;
 
 import java.util.HashMap;
 import java.util.HashSet;

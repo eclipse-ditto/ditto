@@ -12,13 +12,12 @@
  */
 package org.eclipse.ditto.policies.enforcement;
 
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.dispatch.MessageDispatcher;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.policies.model.PolicyId;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
-
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.dispatch.MessageDispatcher;
 
 /**
  * Abstract base of {@link PolicyEnforcer} implementations.
@@ -33,7 +32,7 @@ abstract class AbstractPolicyEnforcerProvider implements PolicyEnforcerProvider 
             final ActorSystem actorSystem) {
 
         final PolicyCacheLoader policyCacheLoader = PolicyCacheLoader.getSingletonInstance(actorSystem);
-        return new PolicyEnforcerCacheLoader(policyCacheLoader);
+        return new PolicyEnforcerCacheLoader(policyCacheLoader, actorSystem);
     }
 
     protected static MessageDispatcher enforcementCacheDispatcher(final ActorSystem actorSystem) {

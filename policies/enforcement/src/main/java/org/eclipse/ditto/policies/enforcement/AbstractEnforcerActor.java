@@ -42,6 +42,8 @@ import org.eclipse.ditto.policies.enforcement.pre.PreEnforcerProvider;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
 
+import scala.concurrent.ExecutionContextExecutor;
+
 /**
  * Abstract enforcer of commands performing authorization / enforcement of incoming signals.
  *
@@ -54,6 +56,8 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
         E extends EnforcementReloaded<S, R>>
         extends AbstractActorWithStashWithTimers {
 
+    public static final String ENFORCEMENT_DISPATCHER = "enforcement-dispatcher";
+
     /**
      * Timeout for local actor invocations - a small timeout should be more than sufficient as those are just method
      * calls.
@@ -65,6 +69,7 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
     protected final I entityId;
     protected final E enforcement;
     protected final PreEnforcerProvider preEnforcer;
+    protected final ExecutionContextExecutor enforcementExecutor;
 
     protected AbstractEnforcerActor(final I entityId, final E enforcement) {
         this.entityId = entityId;
@@ -72,6 +77,7 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
         final var system = getContext().getSystem();
         final var dittoExtensionsConfig = ScopedConfig.dittoExtension(system.settings().config());
         preEnforcer = PreEnforcerProvider.get(system, dittoExtensionsConfig);
+        enforcementExecutor = getContext().getSystem().dispatchers().lookup(ENFORCEMENT_DISPATCHER);
     }
 
     /**
@@ -112,7 +118,7 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
 
     protected CompletionStage<Optional<PolicyEnforcer>> loadPolicyEnforcer(final Signal<?> signal) {
         return providePolicyIdForEnforcement(signal)
-                .thenCompose(this::providePolicyEnforcer);
+                .thenComposeAsync(this::providePolicyEnforcer, enforcementExecutor);
     }
 
     /**
@@ -143,22 +149,24 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
 
         try {
             preEnforcer.apply(tracedSignal)
-                    .thenApply(preEnforcedSignal -> (S) preEnforcedSignal)
-                    .thenCompose(preEnforcedSignal -> {
+                    .thenApplyAsync(preEnforcedSignal -> (S) preEnforcedSignal, enforcementExecutor)
+                    .thenComposeAsync(preEnforcedSignal -> {
                         startedSpan.mark("pre_enforced");
-                        return loadPolicyEnforcer(preEnforcedSignal).thenCompose(optionalPolicyEnforcer -> {
-                                    startedSpan.mark("enforcer_loaded");
-                                    return optionalPolicyEnforcer
-                                            .map(policyEnforcer -> enforcement.authorizeSignal(preEnforcedSignal,
-                                                    policyEnforcer))
-                                            .orElseGet(() -> enforcement.authorizeSignalWithMissingEnforcer(
-                                                    preEnforcedSignal));
-                                }
-                        );
-                    })
-                    .thenCompose(this::performWotBasedSignalValidation)
-                    .thenCompose(this::enrichWithPreDefinedExtraFields)
-                    .whenComplete((authorizedSignal, throwable) -> {
+                        return loadPolicyEnforcer(preEnforcedSignal)
+                                .thenComposeAsync(optionalPolicyEnforcer -> {
+                                            startedSpan.mark("enforcer_loaded");
+                                            return optionalPolicyEnforcer
+                                                    .map(policyEnforcer -> enforcement.authorizeSignal(preEnforcedSignal,
+                                                            policyEnforcer))
+                                                    .orElseGet(() -> enforcement.authorizeSignalWithMissingEnforcer(
+                                                            preEnforcedSignal));
+                                        },
+                                        enforcementExecutor
+                                );
+                    }, enforcementExecutor)
+                    .thenComposeAsync(this::performWotBasedSignalValidation, enforcementExecutor)
+                    .thenComposeAsync(this::enrichWithPreDefinedExtraFields, enforcementExecutor)
+                    .whenCompleteAsync((authorizedSignal, throwable) -> {
                         if (null != authorizedSignal) {
                             startedSpan.mark("enforce_success").finish();
                             log.withCorrelationId(authorizedSignal)
@@ -182,7 +190,7 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
                                                     " of signal: <{}>",
                                             tracedSignal);
                         }
-                    });
+                    }, enforcementExecutor);
         } catch (final DittoRuntimeException dittoRuntimeException) {
             startedSpan.mark("enforce_failed").tagAsFailed(dittoRuntimeException).finish();
             handleAuthorizationFailure(tracedSignal, dittoRuntimeException, sender);
@@ -254,7 +262,7 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
         final ActorRef sender = getSender();
         final ActorRef parent = getContext().parent();
         if (enforcement.shouldFilterCommandResponse(commandResponse)) {
-            Patterns.pipe(filterResponse(commandResponse), getContext().dispatcher()).to(sender, parent);
+            Patterns.pipe(filterResponse(commandResponse), enforcementExecutor).to(sender, parent);
         } else {
             sender.tell(commandResponse, parent);
         }
@@ -269,7 +277,10 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
     private CompletionStage<R> filterResponse(final R commandResponse) {
         if (enforcement.shouldFilterCommandResponse(commandResponse)) {
             return providePolicyIdForEnforcement(commandResponse)
-                    .thenCompose(id -> providePolicyEnforcer(id).thenApply(enforcer -> Pair.apply(id, enforcer)))
+                    .thenComposeAsync(id ->
+                            providePolicyEnforcer(id).thenApply(enforcer -> Pair.apply(id, enforcer)),
+                            enforcementExecutor
+                    )
                     .thenApply(pair -> pair.second().orElseThrow(
                             () -> {
                                 log.withCorrelationId(commandResponse)
@@ -277,7 +288,9 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
                                                 " Likely the policy was deleted during command processing.");
                                 return PolicyNotAccessibleException.newBuilder(pair.first()).build();
                             }))
-                    .thenCompose(policyEnforcer -> doFilterResponse(commandResponse, policyEnforcer));
+                    .thenComposeAsync(policyEnforcer ->
+                            doFilterResponse(commandResponse, policyEnforcer), enforcementExecutor
+                    );
         } else {
             return CompletableFuture.completedFuture(commandResponse);
         }
@@ -287,7 +300,7 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
         try {
             final CompletionStage<R> filteredResponseStage =
                     enforcement.filterResponse(commandResponse, policyEnforcer)
-                            .thenCompose(this::performWotBasedResponseValidation);
+                            .thenComposeAsync(this::performWotBasedResponseValidation, enforcementExecutor);
 
             return filteredResponseStage.handle((filteredResponse, throwable) -> {
                 if (null != filteredResponse) {

@@ -17,6 +17,7 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
 import java.util.function.BiConsumer;
 
 import org.apache.pekko.actor.ActorSystem;
@@ -30,6 +31,7 @@ import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint.ExtensionI
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
+import org.eclipse.ditto.policies.enforcement.AbstractEnforcerActor;
 
 import com.typesafe.config.Config;
 
@@ -47,6 +49,7 @@ public final class PreEnforcerProvider implements DittoExtensionPoint {
     private static final String ENFORCEMENT_TIMER_TAG_OUTCOME_SUCCESS = "success";
     private static final String PRE_ENFORCERS = "pre-enforcers";
     private final List<PreEnforcer> preEnforcers;
+    private final Executor enforcementExecutor;
 
     @SuppressWarnings("unused")
     private PreEnforcerProvider(final ActorSystem actorSystem, final Config config) {
@@ -58,6 +61,7 @@ public final class PreEnforcerProvider implements DittoExtensionPoint {
                         PreEnforcerExtensionId::new))
                 .map(extensionId -> extensionId.get(actorSystem))
                 .toList();
+        enforcementExecutor = actorSystem.dispatchers().lookup(AbstractEnforcerActor.ENFORCEMENT_DISPATCHER);
     }
 
     /**
@@ -69,14 +73,14 @@ public final class PreEnforcerProvider implements DittoExtensionPoint {
         final StartedTimer timer = createTimer(signal);
         CompletionStage<Signal<?>> prior = CompletableFuture.completedFuture(signal);
         for (final PreEnforcer preEnforcer : preEnforcers) {
-            prior = prior.thenCompose(preEnforcer);
+            prior = prior.thenComposeAsync(preEnforcer, enforcementExecutor);
         }
-        return prior.whenComplete((result, error) -> {
+        return prior.whenCompleteAsync((result, error) -> {
             if (result instanceof Command<?> command) {
                 timer.tag(ENFORCEMENT_TIMER_TAG_CATEGORY, command.getCategory().name().toLowerCase());
             }
             stopTimer(timer).accept(result, error);
-        });
+        }, enforcementExecutor);
     }
 
     /**

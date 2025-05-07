@@ -26,6 +26,15 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.cluster.ddata.ORSet;
+import org.apache.pekko.cluster.ddata.Replicator;
+import org.apache.pekko.cluster.ddata.SelfUniqueAddress;
+import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
+import org.apache.pekko.dispatch.MessageDispatcher;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.policies.api.PolicyTag;
@@ -36,15 +45,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.cluster.ddata.ORSet;
-import org.apache.pekko.cluster.ddata.Replicator;
-import org.apache.pekko.cluster.ddata.SelfUniqueAddress;
-import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
-import org.apache.pekko.testkit.TestProbe;
-import org.apache.pekko.testkit.javadsl.TestKit;
 
 @RunWith(MockitoJUnitRunner.class)
 public final class CachingPolicyEnforcerProviderTest {
@@ -84,7 +84,8 @@ public final class CachingPolicyEnforcerProviderTest {
                 system,
                 cache,
                 blockedNamespaces,
-                pubSubMediatorProbe.ref()
+                pubSubMediatorProbe.ref(),
+                (MessageDispatcher) actorSystem.dispatcher()
         );
 
         new TestKit(actorSystem) {{
@@ -105,7 +106,8 @@ public final class CachingPolicyEnforcerProviderTest {
                 system,
                 cache,
                 blockedNamespaces,
-                pubSubMediatorProbe.ref()
+                pubSubMediatorProbe.ref(),
+                (MessageDispatcher) actorSystem.dispatcher()
         );
 
         new TestKit(actorSystem) {{
@@ -124,7 +126,8 @@ public final class CachingPolicyEnforcerProviderTest {
                 system,
                 cache,
                 blockedNamespaces,
-                pubSubMediatorProbe.ref()
+                pubSubMediatorProbe.ref(),
+                (MessageDispatcher) actorSystem.dispatcher()
         );
 
         new TestKit(actorSystem) {{
@@ -146,7 +149,8 @@ public final class CachingPolicyEnforcerProviderTest {
                 system,
                 cache,
                 blockedNamespaces,
-                pubSubMediatorProbe.ref()
+                pubSubMediatorProbe.ref(),
+                (MessageDispatcher) actorSystem.dispatcher()
         );
 
         new TestKit(actorSystem) {{
@@ -167,7 +171,8 @@ public final class CachingPolicyEnforcerProviderTest {
                 system,
                 cache,
                 blockedNamespaces,
-                pubSubMediatorProbe.ref()
+                pubSubMediatorProbe.ref(),
+                (MessageDispatcher) actorSystem.dispatcher()
         );
 
         new TestKit(actorSystem) {{
@@ -186,7 +191,8 @@ public final class CachingPolicyEnforcerProviderTest {
                 actorSystem,
                 cache,
                 blockedNamespaces,
-                pubSubMediatorProbe.ref()
+                pubSubMediatorProbe.ref(),
+                (MessageDispatcher) actorSystem.dispatcher()
         );
 
         new TestKit(actorSystem) {{
@@ -208,7 +214,8 @@ public final class CachingPolicyEnforcerProviderTest {
                 actorSystem,
                 cache,
                 blockedNamespaces,
-                pubSubMediatorProbe.ref()
+                pubSubMediatorProbe.ref(),
+                (MessageDispatcher) actorSystem.dispatcher()
         );
 
         new TestKit(actorSystem) {{
@@ -227,7 +234,8 @@ public final class CachingPolicyEnforcerProviderTest {
                 actorSystem,
                 cache,
                 blockedNamespaces,
-                pubSubMediatorProbe.ref()
+                pubSubMediatorProbe.ref(),
+                (MessageDispatcher) actorSystem.dispatcher()
         );
 
         new TestKit(actorSystem) {{
@@ -248,7 +256,8 @@ public final class CachingPolicyEnforcerProviderTest {
                 actorSystem,
                 cache,
                 blockedNamespaces,
-                pubSubMediatorProbe.ref()
+                pubSubMediatorProbe.ref(),
+                (MessageDispatcher) actorSystem.dispatcher()
         );
 
         new TestKit(actorSystem) {{
