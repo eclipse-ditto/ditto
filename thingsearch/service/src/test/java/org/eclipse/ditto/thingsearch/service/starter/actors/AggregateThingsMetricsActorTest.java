@@ -48,7 +48,6 @@ import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsAggregationP
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -66,7 +65,6 @@ import de.flapdoodle.embed.mongo.transitions.RunningMongodProcess;
 import de.flapdoodle.reverse.TransitionWalker;
 
 @RunWith(Parameterized.class)
-@Ignore("TODO temporarily ignored for release")
 public class AggregateThingsMetricsActorTest {
 
     @ClassRule
