@@ -51,7 +51,7 @@ spec:
                 runAsGroup: {{  .Values.global.podDeletionCostPatching.group }}
                 allowPrivilegeEscalation: {{ .Values.global.podDeletionCostPatching.allowPrivilegeEscalation }}
                 runAsNonRoot: {{ .Values.global.podDeletionCostPatching.runAsNonRoot }}
-              image: {{ printf "%s:%s" .Values.global.podDeletionCostPatching.image.repository ( default .Values.global.podDeletionCostPatching.image.tag "latest" ) }}
+              image: {{ printf "%s:%s" .Values.global.podDeletionCostPatching.image.repository ( default "latest" .Values.global.podDeletionCostPatching.image.tag ) }}
               imagePullPolicy: {{ .Values.global.podDeletionCostPatching.image.pullPolicy }}
               command:
                 - /bin/sh
