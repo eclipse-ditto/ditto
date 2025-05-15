@@ -42,6 +42,7 @@ import org.eclipse.ditto.internal.models.streaming.LowerBound;
 import org.eclipse.ditto.internal.utils.persistence.mongo.BsonUtil;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.IndexInitializationConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.indices.IndexInitializer;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.policies.api.PolicyTag;
@@ -52,6 +53,7 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.api.QueryTimeExceededException;
 import org.eclipse.ditto.thingsearch.api.SearchNamespaceReportResult;
 import org.eclipse.ditto.thingsearch.api.SearchNamespaceResultEntry;
+import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchPersistenceConfig;
 import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
 import org.eclipse.ditto.thingsearch.service.common.model.ResultListImpl;
@@ -92,6 +94,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
     private final Duration maxQueryTime;
     private final boolean documentDbCompatibilityMode;
     private final MongoHints hints;
+    @Nullable private final String countHintIndexName;
 
     /**
      * Initializes the things search persistence with a passed in {@code persistence}.
@@ -99,8 +102,11 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
      * @param mongoClient the mongoDB persistence wrapper.
      * @param actorSystem the Pekko ActorSystem.
      */
-    public MongoThingsSearchPersistence(final DittoMongoClient mongoClient, final ActorSystem actorSystem,
-            final SearchPersistenceConfig persistenceConfig) {
+    public MongoThingsSearchPersistence(final DittoMongoClient mongoClient,
+            final ActorSystem actorSystem,
+            final SearchPersistenceConfig persistenceConfig,
+            final SearchConfig searchConfig
+    ) {
         final MongoDatabase database = mongoClient.getDefaultDatabase();
         final var readConcern = persistenceConfig.readConcern();
         final var readPreference = persistenceConfig.readPreference().getMongoReadPreference();
@@ -111,42 +117,21 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
         indexInitializer = IndexInitializer.of(database, SystemMaterializer.get(actorSystem).materializer());
         maxQueryTime = mongoClient.getDittoSettings().getMaxQueryTime();
         documentDbCompatibilityMode = mongoClient.getDittoSettings().isDocumentDbCompatibilityMode();
-        hints = MongoHints.empty();
+        hints = searchConfig.getMongoHintsByNamespace()
+                .map(mongoHintsByNamespace -> {
+                    log.info("Applying MongoDB hints <{}>.", mongoHintsByNamespace);
+                    return MongoHints.byNamespace(mongoHintsByNamespace);
+                })
+                .orElseGet(MongoHints::empty);
+        countHintIndexName = searchConfig.getMongoCountHintIndexName().orElse(null);
         log.info("Query readConcern=<{}> readPreference=<{}>", readConcern, readPreference);
     }
 
-    private MongoThingsSearchPersistence(
-            final MongoCollection<Document> collection,
-            final LoggingAdapter log,
-            final IndexInitializer indexInitializer,
-            final Duration maxQueryTime,
-            final boolean documentDbCompatibilityMode,
-            final MongoHints hints) {
-
-        this.collection = collection;
-        this.log = log;
-        this.indexInitializer = indexInitializer;
-        this.maxQueryTime = maxQueryTime;
-        this.documentDbCompatibilityMode = documentDbCompatibilityMode;
-        this.hints = hints;
-    }
-
-    /**
-     * Create a copy of this object with configurable hints for each namespace.
-     *
-     * @param jsonString JSON representation of hints for queries of each namespace.
-     * @return copy of this object with hints configured.
-     */
-    public MongoThingsSearchPersistence withHintsByNamespace(final String jsonString) {
-        final MongoHints theHints = MongoHints.byNamespace(jsonString);
-        return new MongoThingsSearchPersistence(collection, log, indexInitializer, maxQueryTime,
-                documentDbCompatibilityMode, theHints);
-    }
-
     @Override
-    public CompletionStage<Void> initializeIndices() {
+    public CompletionStage<Void> initializeIndices(final IndexInitializationConfig indexInitializationConfig) {
         return indexInitializer.initialize(PersistenceConstants.THINGS_COLLECTION_NAME,
-                        Indices.all(documentDbCompatibilityMode)
+                        Indices.all(documentDbCompatibilityMode),
+                        indexInitializationConfig.getActivatedIndexNames()
                 )
                 .exceptionally(t -> {
                     log.error(t, "Index-Initialization failed: {}", t.getMessage());
@@ -192,6 +177,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
         final CountOptions countOptions = new CountOptions()
                 .skip(query.getSkip())
                 .limit(query.getLimit())
+                .hintString(countHintIndexName)
                 .maxTime(maxQueryTime.getSeconds(), TimeUnit.SECONDS);
 
         return Source.fromPublisher(collection.countDocuments(queryFilter, countOptions))
