@@ -13,6 +13,7 @@
 package org.eclipse.ditto.internal.utils.persistence.mongo.config;
 
 import java.util.Objects;
+import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -30,9 +31,13 @@ public final class DefaultIndexInitializationConfig implements IndexInitializati
     private static final String CONFIG_PATH = "index-initialization";
 
     private final boolean indexInitializationEnabled;
+    private final Set<String> activatedIndexNames;
 
     private DefaultIndexInitializationConfig(final ScopedConfig config) {
         indexInitializationEnabled = config.getBoolean(IndexInitializerConfigValue.ENABLED.getConfigPath());
+        activatedIndexNames = Set.copyOf(
+                config.getStringList(IndexInitializerConfigValue.ACTIVATED_INDEX_NAMES.getConfigPath())
+        );
     }
 
     /**
@@ -54,6 +59,11 @@ public final class DefaultIndexInitializationConfig implements IndexInitializati
     }
 
     @Override
+    public Set<String> getActivatedIndexNames() {
+        return activatedIndexNames;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -62,18 +72,20 @@ public final class DefaultIndexInitializationConfig implements IndexInitializati
             return false;
         }
         final DefaultIndexInitializationConfig that = (DefaultIndexInitializationConfig) o;
-        return Objects.equals(indexInitializationEnabled, that.indexInitializationEnabled);
+        return Objects.equals(indexInitializationEnabled, that.indexInitializationEnabled) &&
+                Objects.equals(activatedIndexNames, that.activatedIndexNames);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(indexInitializationEnabled);
+        return Objects.hash(indexInitializationEnabled, activatedIndexNames);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "indexInitializationEnabled=" + indexInitializationEnabled +
+                ", activatedIndexNames=" + activatedIndexNames +
                 "]";
     }
 
