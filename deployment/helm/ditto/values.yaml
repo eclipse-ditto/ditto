@@ -302,6 +302,18 @@ ingress:
     enabled: false
     # replicaCount configuration for the ingress controller
     replicaCount: 1
+    # Exposes the ingress controller settings in order to configure its behavior.
+    config:
+      # Sets the number of worker processes that should be started by the ingress controller.
+      # Depending on the load of the ingress controller, this value can be increased or decreased.
+      # When not sure setting it to auto is also fine, but take cares as that will increase RAM usage.
+      workerProcesses: 2
+      # Sets the maximum number of simultaneous connections that can be opened by each worker process.
+      # 0 will use the value of max-worker-open-files. default: 16384
+      workerConnections: 0
+      # Sets the maximum number of files that can be opened by each worker process.
+      # The default of 0 means "max open files (system's limit) - 1024".
+      workerOpenFiles: 0
     updateStrategy:
       type: RollingUpdate
       rollingUpdate:

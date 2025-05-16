@@ -103,10 +103,9 @@ metadata:
   name: nginx-configuration
   namespace: "{{ .Values.ingress.controller.namespace }}"
 data:
-  allow-snippet-annotations: "true"
-  worker-processes: "auto"
-  max-worker-connections: "0" # 0 will use the value of max-worker-open-files
-  max-worker-open-files: "0" # the default of 0 means "max open files (system's limit) / worker-processes - 1024"
+  worker-processes: "{{ .Values.ingress.controller.config.workerProcesses }}"
+  max-worker-connections: "{{ .Values.ingress.controller.config.workerConnections }}" # 0 will use the value of max-worker-open-files
+  max-worker-open-files: "{{ .Values.ingress.controller.config.workerOpenFiles }}" # the default of 0 means "max open files (system's limit) / worker-processes - 1024"
   server-tokens: "False"
   use-gzip: "True"
   gzip-level: "6"
