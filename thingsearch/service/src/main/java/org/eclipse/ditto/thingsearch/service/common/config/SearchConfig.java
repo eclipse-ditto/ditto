@@ -38,6 +38,14 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
     Optional<String> getMongoHintsByNamespace();
 
     /**
+     * Returns the optional index name to use for doing count queries at the search collection, e.g. preventing use
+     * of the wildcard index.
+     *
+     * @return the index name to hint for doing count queries.
+     */
+    Optional<String> getMongoCountHintIndexName();
+
+    /**
      * Returns the configuration settings for the search updating functionality.
      *
      * @return the config.
@@ -83,6 +91,12 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
          * Default value is {@code null}.
          */
         MONGO_HINTS_BY_NAMESPACE("mongo-hints-by-namespace", null),
+
+
+        /**
+         * Default value is {@code null}.
+         */
+        MONGO_COUNT_HINT_INDEX_NAME("mongo-count-hint-index-name", null),
 
         /**
          * How simple fields are mapped during query parsing.

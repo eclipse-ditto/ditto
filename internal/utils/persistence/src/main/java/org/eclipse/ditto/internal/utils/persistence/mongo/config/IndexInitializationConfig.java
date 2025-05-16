@@ -12,6 +12,9 @@
  */
 package org.eclipse.ditto.internal.utils.persistence.mongo.config;
 
+import java.util.List;
+import java.util.Set;
+
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
@@ -30,6 +33,13 @@ public interface IndexInitializationConfig {
     boolean isIndexInitializationConfigEnabled();
 
     /**
+     * The configuration which indexes should be active (automatically created and not configured ones deleted).
+     *
+     * @return the set of activated index names.
+     */
+    Set<String> getActivatedIndexNames();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * IndexInitializationConfig.
      */
@@ -39,12 +49,26 @@ public interface IndexInitializationConfig {
          * Determines whether minimal information for all incoming messages should be logged.
          * This enables message tracing throughout the system.
          */
-        ENABLED("enabled", true);
+        ENABLED("enabled", true),
+
+        /**
+         * Holds the configuration which indexes should be active (automatically created and not configured ones deleted).
+         */
+        ACTIVATED_INDEX_NAMES("activated-index-names",
+                List.of(
+                        "_namespace",
+                        "global_read",
+                        "v_wildcard",
+                        "policyId",
+                        "referencedPolicies",
+                        "deleteAt"
+                )
+        );
 
         private final String path;
         private final Object defaultValue;
 
-        private IndexInitializerConfigValue(final String thePath, final Object theDefaultValue) {
+        IndexInitializerConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }

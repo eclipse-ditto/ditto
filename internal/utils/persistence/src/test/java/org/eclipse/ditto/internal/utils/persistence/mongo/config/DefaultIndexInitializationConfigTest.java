@@ -12,6 +12,9 @@
  */
 package org.eclipse.ditto.internal.utils.persistence.mongo.config;
 
+import java.util.Collection;
+import java.util.Set;
+
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -34,7 +37,7 @@ public final class DefaultIndexInitializationConfigTest {
 
     @BeforeClass
     public static void initTestFixture() {
-        indexInitializationTestConf = ConfigFactory.load("index-initialization-test");
+        indexInitializationTestConf = ConfigFactory.load("index-initialization");
     }
 
     @Test
@@ -51,6 +54,10 @@ public final class DefaultIndexInitializationConfigTest {
         softly.assertThat(underTest.isIndexInitializationConfigEnabled())
                 .as(IndexInitializationConfig.IndexInitializerConfigValue.ENABLED.getConfigPath())
                 .isEqualTo(IndexInitializationConfig.IndexInitializerConfigValue.ENABLED.getDefaultValue());
+
+        softly.assertThat(underTest.getActivatedIndexNames())
+                .as(IndexInitializationConfig.IndexInitializerConfigValue.ACTIVATED_INDEX_NAMES.getConfigPath())
+                .isEqualTo(Set.copyOf((Collection<String>) IndexInitializationConfig.IndexInitializerConfigValue.ACTIVATED_INDEX_NAMES.getDefaultValue()));
     }
 
     @Test
@@ -60,6 +67,10 @@ public final class DefaultIndexInitializationConfigTest {
 
         softly.assertThat(underTest.isIndexInitializationConfigEnabled())
                 .as(IndexInitializationConfig.IndexInitializerConfigValue.ENABLED.getConfigPath())
-                .isTrue();
+                .isFalse();
+
+        softly.assertThat(underTest.getActivatedIndexNames())
+                .as(IndexInitializationConfig.IndexInitializerConfigValue.ACTIVATED_INDEX_NAMES.getConfigPath())
+                .isEqualTo(Set.of("index-1", "index-2", "index-3"));
     }
 }

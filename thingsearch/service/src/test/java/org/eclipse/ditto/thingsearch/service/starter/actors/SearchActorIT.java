@@ -23,6 +23,11 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.stream.SourceRef;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.bson.Document;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
@@ -75,12 +80,6 @@ import com.mongodb.reactivestreams.client.MongoCollection;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.stream.SourceRef;
-import org.apache.pekko.stream.javadsl.Sink;
-import org.apache.pekko.testkit.javadsl.TestKit;
-
 /**
  * Tests {@link SearchActor}.
  */
@@ -127,9 +126,11 @@ public final class SearchActorIT {
 
     private MongoThingsSearchPersistence provideReadPersistence() {
         final var config = DefaultSearchPersistenceConfig.of(ConfigFactory.empty());
-        final MongoThingsSearchPersistence result = new MongoThingsSearchPersistence(mongoClient, actorSystem, config);
+        final var searchConfig = DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
+        final MongoThingsSearchPersistence result = new MongoThingsSearchPersistence(mongoClient, actorSystem, config,
+                searchConfig);
         // explicitly trigger CompletableFuture to make sure that indices are created before test runs
-        result.initializeIndices().toCompletableFuture().join();
+        result.initializeIndices(searchConfig.getIndexInitializationConfig()).toCompletableFuture().join();
         return result;
     }
 

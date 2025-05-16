@@ -61,6 +61,26 @@ public final class Indices {
             );
 
     /**
+     * Index for queries with effective filters including the _id field for sorting.
+     * <p>
+     * All fields not included in the wildcard index are enumerated.
+     * Policy objects are excluded on thing and feature levels to prevent MongoDB from choosing an inefficient query
+     * plan according to the nested clauses for authorization.
+     * It is not possible to list the included fields because the feature array 'f' is the parent of the excluded
+     * feature policy field 'f.p'.
+     */
+    private static final Index WILDCARD_ID = IndexFactory.newInstance("v_wildcard_id", List.of("$**", "_id"), false)
+            .withWildcardProjection(Stream.of(FIELD_ID, FIELD_NAMESPACE, FIELD_GLOBAL_READ, FIELD_REVISION,
+                            FIELD_POLICY_ID, FIELD_POLICY_REVISION, FIELD_POLICY, FIELD_FEATURE_POLICY)
+                    .reduce(new BsonDocument(),
+                            (doc, field) -> doc.append(field, new BsonInt32(0)),
+                            (doc1, doc2) -> {
+                                doc2.forEach(doc1::append);
+                                return doc1;
+                            })
+            );
+
+    /**
      * Index for queries without effective filters to be executed as scans over all visible things.
      */
     private static final Index GLOBAL_READ =
@@ -101,7 +121,7 @@ public final class Indices {
             // no wildcard index supported in DocumentDB (which is a MongoDB 4.2 feature):
             return List.of(NAMESPACE, GLOBAL_READ, POLICY, REFERENCED_POLICIES, DELETE_AT);
         } else {
-            return List.of(NAMESPACE, GLOBAL_READ, WILDCARD, POLICY, REFERENCED_POLICIES, DELETE_AT);
+            return List.of(NAMESPACE, GLOBAL_READ, WILDCARD, WILDCARD_ID, POLICY, REFERENCED_POLICIES, DELETE_AT);
         }
     }
 

@@ -7,6 +7,21 @@ ditto {
   {{- end }}
 
   search {
+    {{- if .Values.thingsSearch.config.countHintIndexName }}
+    mongo-count-hint-index-name = "{{ .Values.thingsSearch.config.countHintIndexName }}"
+    {{- end }}
+
+    index-initialization {
+        enabled = {{ .Values.thingsSearch.config.indexInitialization.enabled }}
+    {{- if gt (len .Values.thingsSearch.config.indexInitialization.activatedIndexNames) 0 }}
+        activated-index-names = [
+        {{- range $index, $indexName := .Values.thingsSearch.config.indexInitialization.activatedIndexNames }}
+          "{{$indexName}}"
+        {{- end }}
+        ]
+    {{- end }}
+    }
+
     {{- if .Values.thingsSearch.config.indexedFieldsLimiting.enabled }}
     namespace-indexed-fields = [
       {{- range $index, $value := .Values.thingsSearch.config.indexedFieldsLimiting.items }}
