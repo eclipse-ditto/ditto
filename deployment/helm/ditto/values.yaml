@@ -1445,6 +1445,23 @@ thingsSearch:
           throughput: 100
           # period the throttle period
           period: 30s
+    # countHintIndexName contains the optional index name to use for doing count queries at the search collection,
+    #  e.g. preventing use of the wildcard index
+    countHintIndexName: null
+    # indexInitialization contains configuration for creation of the "search" collection indices
+    indexInitialization:
+      # enabled whether the index initialization should be enabled or not (also removes not known indices)
+      enabled: true
+      # activatedIndexNames contains the list of indices to be actively created (well known ones) or custom ones not to remove actively
+      #  if the list is empty, all "Ditto known" indices will be created
+      activatedIndexNames: []
+        # - "_namespace",
+        # - "global_read",
+        # - "v_wildcard",
+        # - "v_wildcard_id",
+        # - "policyId",
+        # - "referencedPolicies",
+        # - "deleteAt"
     # indexedFieldsLimiting by default, Ditto indexed all fields of things in its search.
     #  However, this behavior can be customized, providing configuration to only index certain fields for specified namespaces.
     indexedFieldsLimiting:
