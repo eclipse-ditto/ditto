@@ -66,6 +66,7 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
 
     private final DittoServiceConfig dittoServiceConfig;
     @Nullable private final String mongoHintsByNamespace;
+    @Nullable private final String mongoCountHintIndexName;
     private final UpdaterConfig updaterConfig;
     private final HealthCheckConfig healthCheckConfig;
     private final IndexInitializationConfig indexInitializationConfig;
@@ -85,6 +86,7 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
         final var configWithFallback =
                 ConfigWithFallback.newInstance(dittoScopedConfig, CONFIG_PATH, SearchConfigValue.values());
         mongoHintsByNamespace = configWithFallback.getStringOrNull(SearchConfigValue.MONGO_HINTS_BY_NAMESPACE);
+        mongoCountHintIndexName = configWithFallback.getStringOrNull(SearchConfigValue.MONGO_COUNT_HINT_INDEX_NAME);
         updaterConfig = DefaultUpdaterConfig.of(configWithFallback);
         indexInitializationConfig = DefaultIndexInitializationConfig.of(configWithFallback);
 
@@ -113,6 +115,11 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
     @Override
     public Optional<String> getMongoHintsByNamespace() {
         return Optional.ofNullable(mongoHintsByNamespace);
+    }
+
+    @Override
+    public Optional<String> getMongoCountHintIndexName() {
+        return Optional.ofNullable(mongoCountHintIndexName);
     }
 
     @Override
@@ -195,6 +202,7 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
         }
         final DittoSearchConfig that = (DittoSearchConfig) o;
         return Objects.equals(mongoHintsByNamespace, that.mongoHintsByNamespace) &&
+                Objects.equals(mongoCountHintIndexName, that.mongoCountHintIndexName) &&
                 Objects.equals(updaterConfig, that.updaterConfig) &&
                 Objects.equals(dittoServiceConfig, that.dittoServiceConfig) &&
                 Objects.equals(healthCheckConfig, that.healthCheckConfig) &&
@@ -209,15 +217,16 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
 
     @Override
     public int hashCode() {
-        return Objects.hash(mongoHintsByNamespace, updaterConfig, dittoServiceConfig, healthCheckConfig,
-                indexInitializationConfig, persistenceOperationsConfig, mongoDbConfig, queryPersistenceConfig,
-                simpleFieldMappings, operatorMetricsConfig, namespaceIndexedFields);
+        return Objects.hash(mongoHintsByNamespace, mongoCountHintIndexName, updaterConfig, dittoServiceConfig,
+                healthCheckConfig, indexInitializationConfig, persistenceOperationsConfig, mongoDbConfig,
+                queryPersistenceConfig, simpleFieldMappings, operatorMetricsConfig, namespaceIndexedFields);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "mongoHintsByNamespace=" + mongoHintsByNamespace +
+                ", mongoCountHintIndexName=" + mongoCountHintIndexName +
                 ", updaterConfig=" + updaterConfig +
                 ", dittoServiceConfig=" + dittoServiceConfig +
                 ", healthCheckConfig=" + healthCheckConfig +

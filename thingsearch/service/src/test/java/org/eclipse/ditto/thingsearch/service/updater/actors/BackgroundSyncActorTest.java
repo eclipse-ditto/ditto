@@ -59,6 +59,7 @@ import org.eclipse.ditto.internal.utils.health.RetrieveHealthResponse;
 import org.eclipse.ditto.internal.utils.health.StatusDetailMessage;
 import org.eclipse.ditto.internal.utils.health.StatusInfo;
 import org.eclipse.ditto.internal.utils.pekko.streaming.TimestampPersistence;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.IndexInitializationConfig;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
@@ -457,7 +458,7 @@ public final class BackgroundSyncActorTest {
         }
 
         @Override
-        public CompletionStage<Void> initializeIndices() {
+        public CompletionStage<Void> initializeIndices(final IndexInitializationConfig indexInitializationConfig) {
             throw new UnsupportedOperationException();
         }
 

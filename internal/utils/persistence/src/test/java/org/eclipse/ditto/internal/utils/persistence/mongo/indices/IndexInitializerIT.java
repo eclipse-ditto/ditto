@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
+import java.util.stream.Collectors;
 
 import org.apache.pekko.Done;
 import org.apache.pekko.actor.ActorSystem;
@@ -263,7 +264,9 @@ public final class IndexInitializerIT {
         requireNonNull(indexInitializerUnderTest);
 
         final CompletionStage<Void> completionStage =
-                indexInitializerUnderTest.initialize(collectionName, indices);
+                indexInitializerUnderTest.initialize(collectionName, indices,
+                        indices.stream().map(Index::getName).collect(Collectors.toSet())
+                );
 
         runBlocking(completionStage);
     }
@@ -275,13 +278,6 @@ public final class IndexInitializerIT {
 
     private static <T> void runBlocking(final CompletionStage<T> completionStage) {
         completionStage.toCompletableFuture().join();
-    }
-
-    private static RuntimeException mapToRuntimeException(final Throwable t) {
-        if (t instanceof RuntimeException) {
-            throw (RuntimeException) t;
-        }
-        throw new IllegalStateException(t);
     }
 
 }

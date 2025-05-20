@@ -18,7 +18,10 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.stream.javadsl.Source;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.IndexInitializationConfig;
 import org.eclipse.ditto.rql.query.Query;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.api.SearchNamespaceReportResult;
@@ -26,9 +29,6 @@ import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
 import org.eclipse.ditto.thingsearch.service.common.model.ResultListImpl;
 import org.eclipse.ditto.thingsearch.service.common.model.TimestampedThingId;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
-
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Interface for thing operations on the persistence used within the search service.
@@ -40,9 +40,10 @@ public interface ThingsSearchPersistence {
     /**
      * Initializes the search index if necessary.
      *
+     * @param indexInitializationConfig the configuration for the index initialization.
      * @return a {@link java.util.concurrent.CompletionStage} which can be either used for blocking or non-blocking initialization.
      */
-    CompletionStage<Void> initializeIndices();
+    CompletionStage<Void> initializeIndices(IndexInitializationConfig indexInitializationConfig);
 
     /**
      * Generate a report of things per Namespace.

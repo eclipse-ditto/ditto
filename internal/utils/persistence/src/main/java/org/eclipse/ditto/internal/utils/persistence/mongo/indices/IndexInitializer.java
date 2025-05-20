@@ -23,16 +23,15 @@ import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.mongodb.reactivestreams.client.MongoDatabase;
-
 import org.apache.pekko.Done;
 import org.apache.pekko.NotUsed;
 import org.apache.pekko.stream.Materializer;
 import org.apache.pekko.stream.javadsl.Sink;
 import org.apache.pekko.stream.javadsl.Source;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.mongodb.reactivestreams.client.MongoDatabase;
 
 /**
  * Initializes indexes on a MongoDB collection.
@@ -70,16 +69,23 @@ public final class IndexInitializer {
      *
      * @param collectionName the collection on which the indexes will be initialized.
      * @param indices the indexes to be used for initialization.
+     * @param activatedIndexNames the index names which should be active via configuration.
      * @return a completion stage that completes successfully if the indexes are initialized, otherwise it will raise an
      * exception.
      */
-    public CompletionStage<Void> initialize(final String collectionName, final List<Index> indices) {
+    public CompletionStage<Void> initialize(final String collectionName, final List<Index> indices,
+            final Set<String> activatedIndexNames) {
         requireNonNull(collectionName);
         requireNonNull(indices);
 
-        LOGGER.info("Starting index-initialization with defined indices: {}", indices);
-        return createNonExistingIndices(collectionName, indices)
-                .thenCompose(done -> dropUndefinedIndices(collectionName, indices))
+        LOGGER.info("index-initialization is aware of defined indices: {}", indices);
+        final List<Index> activatedIndices = indices.stream()
+                    .filter(ind -> activatedIndexNames.contains(ind.getName()))
+                    .toList();
+        LOGGER.info("Starting index-initialization with activated indices: {}", activatedIndices);
+
+        return createNonExistingIndices(collectionName, activatedIndices)
+                .thenCompose(done -> dropUndefinedIndices(collectionName, activatedIndices, activatedIndexNames))
                 .thenApply(unused -> {
                     LOGGER.info("Index-Initialization was successful.");
                     return null;
@@ -102,7 +108,7 @@ public final class IndexInitializer {
                 .flatMapConcat(
                         existingIndices -> {
                             LOGGER.info("Create non-existing indices: Existing indices are: {}", existingIndices);
-                            final List<Index> indicesToCreate = excludeIndices(indices, existingIndices);
+                            final List<Index> indicesToCreate = excludeIndices(indices, existingIndices, Set.of());
                             LOGGER.info("Indices to create are: {}", indicesToCreate);
                             return createIndices(collectionName, indicesToCreate);
                         })
@@ -123,11 +129,13 @@ public final class IndexInitializer {
         return indexOperations.createIndex(collectionName, index);
     }
 
-    private CompletionStage<Done> dropUndefinedIndices(final String collectionName, final List<Index> definedIndices) {
+    private CompletionStage<Done> dropUndefinedIndices(final String collectionName, final List<Index> activeIndices,
+            final Set<String> allToleratedIndexNames) {
         return getIndicesExceptDefaultIndex(collectionName)
                 .flatMapConcat(existingIndices -> {
                     LOGGER.info("Drop undefined indices - Existing indices are: {}", existingIndices);
-                    final List<String> indicesToDrop = getUndefinedIndexNames(existingIndices, definedIndices);
+                    final List<String> indicesToDrop = getUndefinedIndexNames(existingIndices, activeIndices,
+                            allToleratedIndexNames);
                     LOGGER.info("Dropping undefined indices: {}", indicesToDrop);
                     return dropIndices(collectionName, indicesToDrop);
                 })
@@ -135,9 +143,9 @@ public final class IndexInitializer {
     }
 
     private static List<String> getUndefinedIndexNames(final Collection<Index> allIndices,
-            final Collection<Index> definedIndices) {
+            final Collection<Index> definedIndices, final Set<String> allToleratedIndexNames) {
 
-        return excludeIndices(allIndices, definedIndices).stream()
+        return excludeIndices(allIndices, definedIndices, allToleratedIndexNames).stream()
                 .map(Index::getName)
                 .toList();
     }
@@ -167,12 +175,14 @@ public final class IndexInitializer {
     }
 
     private static List<Index> excludeIndices(final Collection<Index> allIndices, final Collection<Index>
-            indicesToExclude) {
+            definedIndices, final Set<String> allToleratedIndexNames) {
 
-        final Set<String> excludedIndexNames = extractIndexNames(indicesToExclude);
+        final Set<String> definedIndexNames = extractIndexNames(definedIndices);
 
         return allIndices.stream()
-                .filter(indexModel -> !excludedIndexNames.contains(indexModel.getName()))
+                .filter(indexModel -> !definedIndexNames.contains(indexModel.getName()) ||
+                        !allToleratedIndexNames.contains(indexModel.getName())
+                )
                 .toList();
     }
 

@@ -94,21 +94,17 @@ public final class SearchRootActor extends DittoRootActor {
 
         final ActorContext context = getContext();
         final var persistenceConfig = searchConfig.getQueryPersistenceConfig();
-        final var persistence = new MongoThingsSearchPersistence(mongoDbClient, context.getSystem(), persistenceConfig);
+        final var persistence = new MongoThingsSearchPersistence(mongoDbClient, context.getSystem(), persistenceConfig,
+                searchConfig);
 
         final var indexInitializationConfig = searchConfig.getIndexInitializationConfig();
         if (indexInitializationConfig.isIndexInitializationConfigEnabled()) {
-            persistence.initializeIndices();
+            persistence.initializeIndices(indexInitializationConfig);
         } else {
             log.info("Skipping IndexInitializer because it is disabled.");
         }
 
-        return searchConfig.getMongoHintsByNamespace()
-                .map(mongoHintsByNamespace -> {
-                    log.info("Applying MongoDB hints <{}>.", mongoHintsByNamespace);
-                    return persistence.withHintsByNamespace(mongoHintsByNamespace);
-                })
-                .orElse(persistence);
+        return persistence;
     }
 
     private ActorRef initializeHealthCheckActor(final SearchConfig searchConfig,

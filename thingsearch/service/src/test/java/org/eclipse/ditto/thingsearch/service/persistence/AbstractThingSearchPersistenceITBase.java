@@ -22,8 +22,17 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.event.LoggingAdapter;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.SystemMaterializer;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.bson.Document;
 import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
@@ -35,6 +44,7 @@ import org.eclipse.ditto.rql.query.expression.FieldExpressionUtil;
 import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.service.common.config.DefaultSearchPersistenceConfig;
+import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
 import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsSearchPersistence;
 import org.eclipse.ditto.thingsearch.service.persistence.read.query.MongoQueryBuilderFactory;
@@ -49,15 +59,6 @@ import org.junit.ClassRule;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.event.LoggingAdapter;
-import org.apache.pekko.stream.Materializer;
-import org.apache.pekko.stream.SystemMaterializer;
-import org.apache.pekko.stream.javadsl.Sink;
-import org.apache.pekko.stream.javadsl.Source;
-import org.apache.pekko.testkit.javadsl.TestKit;
 
 
 /**
@@ -111,9 +112,11 @@ public abstract class AbstractThingSearchPersistenceITBase {
 
     private MongoThingsSearchPersistence provideReadPersistence() {
         final var config = DefaultSearchPersistenceConfig.of(ConfigFactory.empty());
-        final MongoThingsSearchPersistence result = new MongoThingsSearchPersistence(mongoClient, actorSystem, config);
+        final var searchConfig = DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
+        final MongoThingsSearchPersistence result = new MongoThingsSearchPersistence(mongoClient, actorSystem, config,
+                searchConfig);
         // explicitly trigger CompletableFuture to make sure that indices are created before test runs
-        result.initializeIndices().toCompletableFuture().join();
+        result.initializeIndices(searchConfig.getIndexInitializationConfig()).toCompletableFuture().join();
 
         return result;
     }
