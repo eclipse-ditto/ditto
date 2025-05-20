@@ -115,9 +115,10 @@ public final class MongoThingsAggregationPersistence implements ThingsAggregatio
                         Map.Entry::getKey, entry -> "$t." + entry.getValue().replace("/", ".")));
         final Bson group = group(new Document(groupingBy), Accumulators.sum("count", 1));
         aggregatePipeline.add(group);
-        log.debug("aggregation Pipeline: {}",
-                aggregatePipeline.stream().map(bson -> bson.toBsonDocument().toJson()).collect(
-                        Collectors.toList()));
+        if (log.isDebugEnabled()) {
+            log.debug("aggregation Pipeline: {}",
+                    aggregatePipeline.stream().map(bson -> bson.toBsonDocument().toJson()).toList());
+        }
         // Execute the aggregation pipeline
         return Source.fromPublisher(collection.aggregate(aggregatePipeline)
                 .hint(hints.getHint(aggregateCommand.getNamespaces())
