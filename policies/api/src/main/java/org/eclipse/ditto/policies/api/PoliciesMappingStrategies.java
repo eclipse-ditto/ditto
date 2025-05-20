@@ -32,6 +32,8 @@ import org.eclipse.ditto.policies.model.Policy;
 @Immutable
 public final class PoliciesMappingStrategies extends MappingStrategies {
 
+    private static final MappingStrategies POLICIES_MAPPING_STRATEGIES = getPoliciesMappingStrategies();
+
     @Nullable private static PoliciesMappingStrategies instance = null;
 
     private PoliciesMappingStrategies(final Map<String, JsonParsable<Jsonifiable<?>>> policiesMappingStrategies) {
@@ -43,7 +45,7 @@ public final class PoliciesMappingStrategies extends MappingStrategies {
      */
     @SuppressWarnings("unused") // used via reflection
     public PoliciesMappingStrategies() {
-        this(getPoliciesMappingStrategies());
+        this(POLICIES_MAPPING_STRATEGIES);
     }
 
     /**
@@ -54,7 +56,7 @@ public final class PoliciesMappingStrategies extends MappingStrategies {
     public static PoliciesMappingStrategies getInstance() {
         PoliciesMappingStrategies result = instance;
         if (null == result) {
-            result = new PoliciesMappingStrategies(getPoliciesMappingStrategies());
+            result = new PoliciesMappingStrategies(POLICIES_MAPPING_STRATEGIES);
             instance = result;
         }
         return result;

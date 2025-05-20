@@ -18,20 +18,22 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.base.model.signals.JsonParsable;
 import org.eclipse.ditto.connectivity.api.ConnectivityMappingStrategies;
-import org.eclipse.ditto.policies.api.PoliciesMappingStrategies;
-import org.eclipse.ditto.things.api.ThingsMappingStrategies;
-import org.eclipse.ditto.thingsearch.api.ThingSearchMappingStrategies;
 import org.eclipse.ditto.internal.utils.cluster.GlobalMappingStrategies;
 import org.eclipse.ditto.internal.utils.cluster.MappingStrategies;
 import org.eclipse.ditto.internal.utils.cluster.MappingStrategiesBuilder;
-import org.eclipse.ditto.base.model.signals.JsonParsable;
+import org.eclipse.ditto.policies.api.PoliciesMappingStrategies;
+import org.eclipse.ditto.things.api.ThingsMappingStrategies;
+import org.eclipse.ditto.thingsearch.api.ThingSearchMappingStrategies;
 
 /**
  * {@link MappingStrategies} for the Gateway service containing all {@link Jsonifiable} types known to Gateway.
  */
 @Immutable
 public final class GatewayMappingStrategies extends MappingStrategies {
+
+    private static final MappingStrategies GATEWAY_MAPPING_STRATEGIES = getGatewayMappingStrategies();
 
     @Nullable private static GatewayMappingStrategies instance = null;
 
@@ -44,7 +46,7 @@ public final class GatewayMappingStrategies extends MappingStrategies {
      */
     @SuppressWarnings("unused") // used via reflection
     public GatewayMappingStrategies() {
-        this(getGatewayMappingStrategies());
+        this(GATEWAY_MAPPING_STRATEGIES);
     }
 
     /**
@@ -55,7 +57,7 @@ public final class GatewayMappingStrategies extends MappingStrategies {
     public static GatewayMappingStrategies getInstance() {
         GatewayMappingStrategies result = instance;
         if (null == result) {
-            result = new GatewayMappingStrategies(getGatewayMappingStrategies());
+            result = new GatewayMappingStrategies(GATEWAY_MAPPING_STRATEGIES);
             instance = result;
         }
         return result;

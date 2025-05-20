@@ -40,6 +40,8 @@ import org.eclipse.ditto.things.api.ThingsMappingStrategies;
 @Immutable
 public final class ConnectivityMappingStrategies extends MappingStrategies {
 
+    private static final MappingStrategies CONNECTIVITY_MAPPING_STRATEGIES = getConnectivityMappingStrategies();
+
     @Nullable private static ConnectivityMappingStrategies instance = null;
 
     private ConnectivityMappingStrategies(final Map<String, JsonParsable<Jsonifiable<?>>> strategies) {
@@ -51,7 +53,7 @@ public final class ConnectivityMappingStrategies extends MappingStrategies {
      */
     @SuppressWarnings("unused") // used via reflection
     public ConnectivityMappingStrategies() {
-        this(getConnectivityMappingStrategies());
+        this(CONNECTIVITY_MAPPING_STRATEGIES);
     }
 
     /**
@@ -62,7 +64,7 @@ public final class ConnectivityMappingStrategies extends MappingStrategies {
     public static ConnectivityMappingStrategies getInstance() {
         ConnectivityMappingStrategies result = instance;
         if (null == result) {
-            result = new ConnectivityMappingStrategies(getConnectivityMappingStrategies());
+            result = new ConnectivityMappingStrategies(CONNECTIVITY_MAPPING_STRATEGIES);
             instance = result;
         }
         return result;
