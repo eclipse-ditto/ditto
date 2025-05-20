@@ -12,14 +12,15 @@
  */
 package org.eclipse.ditto.things.model;
 
+import org.eclipse.ditto.base.model.common.Validator;
+import org.eclipse.ditto.base.model.entity.validation.NoControlCharactersNoSlashesValidator;
+import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.Validator;
-import org.eclipse.ditto.base.model.entity.validation.NoControlCharactersNoSlashesValidator;
 
 /**
  * Validates keys of {@link JsonObject}s or {@link JsonPointer}s.
@@ -39,12 +40,14 @@ final class JsonKeyValidator {
      * pattern {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     static JsonObject validateJsonKeys(final JsonObject jsonObject) {
-        for (final JsonField jsonField : jsonObject) {
-            validate(jsonField.getKey());
-            final JsonValue value = jsonField.getValue();
-            if (value.isObject()) {
-                // recurse!
-                validateJsonKeys(value.asObject());
+        if (FeatureToggle.isJsonKeyValidationEnabled()) {
+            for (final JsonField jsonField : jsonObject) {
+                validate(jsonField.getKey());
+                final JsonValue value = jsonField.getValue();
+                if (value.isObject()) {
+                    // recurse!
+                    validateJsonKeys(value.asObject());
+                }
             }
         }
         return jsonObject;
@@ -59,21 +62,25 @@ final class JsonKeyValidator {
      * pattern {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     static JsonPointer validate(final JsonPointer pointer) {
-        pointer.forEach(key -> {
+        if (FeatureToggle.isJsonKeyValidationEnabled()) {
+            pointer.forEach(key -> {
+                final Validator validator = NoControlCharactersNoSlashesValidator.getInstance(key);
+                if (!validator.isValid()) {
+                    throw JsonKeyInvalidException.newBuilderWithDescription(key, validator.getReason().orElse(null))
+                            .build();
+                }
+            });
+        }
+        return pointer;
+    }
+
+    private static void validate(final JsonKey key) {
+        if (FeatureToggle.isJsonKeyValidationEnabled()) {
             final Validator validator = NoControlCharactersNoSlashesValidator.getInstance(key);
             if (!validator.isValid()) {
                 throw JsonKeyInvalidException.newBuilderWithDescription(key, validator.getReason().orElse(null))
                         .build();
             }
-        });
-        return pointer;
-    }
-
-    private static void validate(final JsonKey key) {
-        final Validator validator = NoControlCharactersNoSlashesValidator.getInstance(key);
-        if (!validator.isValid()) {
-            throw JsonKeyInvalidException.newBuilderWithDescription(key, validator.getReason().orElse(null))
-                    .build();
         }
     }
 }

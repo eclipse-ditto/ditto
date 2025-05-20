@@ -46,6 +46,15 @@ public final class FeatureToggle {
     public static final String PRESERVE_KNOWN_MQTT_HEADERS_ENABLED = "ditto.devops.feature.preserve-known-mqtt-headers-enabled";
 
     /**
+     * System property name of the property defining whether JSON keys should be validated via the {@code JsonKeyValidator}.
+     * As this is quite expensive to do, disabling it might be a good idea for scenarios where it is ensured in a different way
+     * that only valid JSON keys are used.
+     *
+     * @since 3.7.5
+     */
+    public static final String JSON_KEY_VALIDATION_ENABLED = "ditto.devops.feature.json-key-validation-enabled";
+
+    /**
      * Resolves the system property {@value MERGE_THINGS_ENABLED}.
      */
     private static final boolean IS_MERGE_THINGS_ENABLED = resolveProperty(MERGE_THINGS_ENABLED);
@@ -64,6 +73,11 @@ public final class FeatureToggle {
      * Resolves the system property {@value PRESERVE_KNOWN_MQTT_HEADERS_ENABLED}.
      */
     private static final boolean IS_PRESERVE_KNOWN_MQTT_HEADERS_ENABLED = resolveProperty(PRESERVE_KNOWN_MQTT_HEADERS_ENABLED);
+
+    /**
+     * Resolves the system property {@value JSON_KEY_VALIDATION_ENABLED}.
+     */
+    private static final boolean IS_JSON_KEY_VALIDATION_ENABLED = resolveProperty(JSON_KEY_VALIDATION_ENABLED);
 
     private static boolean resolveProperty(final String propertyName) {
         final String propertyValue = System.getProperty(propertyName, Boolean.TRUE.toString());
@@ -164,5 +178,15 @@ public final class FeatureToggle {
      */
     public static boolean isPreserveKnownMqttHeadersFeatureEnabled() {
         return IS_PRESERVE_KNOWN_MQTT_HEADERS_ENABLED;
+    }
+
+    /**
+     * Returns whether JSON key validation is enabled based on the system property {@value JSON_KEY_VALIDATION_ENABLED}.
+     *
+     * @return whether JSON key validation is enabled based on the system property
+     * @since 3.7.5
+     */
+    public static boolean isJsonKeyValidationEnabled() {
+        return IS_JSON_KEY_VALIDATION_ENABLED;
     }
 }

@@ -32,6 +32,8 @@ import org.eclipse.ditto.things.model.ThingsModelFactory;
 @Immutable
 public final class ThingsMappingStrategies extends MappingStrategies {
 
+    private static final MappingStrategies THINGS_MAPPING_STRATEGIES = getThingsMappingStrategies();
+
     @Nullable private static ThingsMappingStrategies instance = null;
 
     private ThingsMappingStrategies(final Map<String, JsonParsable<Jsonifiable<?>>> mappingStrategies) {
@@ -43,7 +45,7 @@ public final class ThingsMappingStrategies extends MappingStrategies {
      */
     @SuppressWarnings("unused") // used via reflection
     public ThingsMappingStrategies() {
-        this(getThingsMappingStrategies());
+        this(THINGS_MAPPING_STRATEGIES);
     }
 
     /**
@@ -54,7 +56,7 @@ public final class ThingsMappingStrategies extends MappingStrategies {
     public static ThingsMappingStrategies getInstance() {
         ThingsMappingStrategies result = instance;
         if (null == result) {
-            result = new ThingsMappingStrategies(getThingsMappingStrategies());
+            result = new ThingsMappingStrategies(THINGS_MAPPING_STRATEGIES);
             instance = result;
         }
         return result;

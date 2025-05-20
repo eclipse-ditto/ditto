@@ -20,13 +20,15 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.base.model.signals.GlobalErrorRegistry;
 import org.eclipse.ditto.base.model.signals.JsonParsable;
+import org.eclipse.ditto.base.model.signals.announcements.GlobalAnnouncementRegistry;
 import org.eclipse.ditto.base.model.signals.commands.GlobalCommandRegistry;
 import org.eclipse.ditto.base.model.signals.commands.GlobalCommandResponseRegistry;
 import org.eclipse.ditto.base.model.signals.events.GlobalEventRegistry;
-import org.eclipse.ditto.base.model.signals.announcements.GlobalAnnouncementRegistry;
 
 @Immutable
 public final class GlobalMappingStrategies extends MappingStrategies {
+
+    private static final MappingStrategies GLOBAL_STRATEGIES = getGlobalStrategies();
 
     @Nullable private static GlobalMappingStrategies instance = null;
 
@@ -39,7 +41,7 @@ public final class GlobalMappingStrategies extends MappingStrategies {
      */
     @SuppressWarnings("unused") // used via reflection
     public GlobalMappingStrategies() {
-        this(getGlobalStrategies());
+        this(GLOBAL_STRATEGIES);
     }
 
     /**
@@ -50,7 +52,7 @@ public final class GlobalMappingStrategies extends MappingStrategies {
     public static GlobalMappingStrategies getInstance() {
         GlobalMappingStrategies result = instance;
         if (null == result) {
-            result = new GlobalMappingStrategies(getGlobalStrategies());
+            result = new GlobalMappingStrategies(GLOBAL_STRATEGIES);
             instance = result;
         }
         return result;

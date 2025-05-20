@@ -33,6 +33,8 @@ import org.eclipse.ditto.things.api.ThingsMappingStrategies;
 @Immutable
 public final class ThingSearchMappingStrategies extends MappingStrategies {
 
+    private static final MappingStrategies THING_SEARCH_MAPPING_STRATEGIES = getThingSearchMappingStrategies();
+
     @Nullable private static ThingSearchMappingStrategies instance = null;
 
     private ThingSearchMappingStrategies(final Map<String, JsonParsable<Jsonifiable<?>>> mappingStrategies) {
@@ -44,7 +46,7 @@ public final class ThingSearchMappingStrategies extends MappingStrategies {
      */
     @SuppressWarnings("unused") // used via reflection
     public ThingSearchMappingStrategies() {
-        this(getThingSearchMappingStrategies());
+        this(THING_SEARCH_MAPPING_STRATEGIES);
     }
 
     /**
@@ -55,7 +57,7 @@ public final class ThingSearchMappingStrategies extends MappingStrategies {
     public static ThingSearchMappingStrategies getInstance() {
         ThingSearchMappingStrategies result = instance;
         if (null == result) {
-            result = new ThingSearchMappingStrategies(getThingSearchMappingStrategies());
+            result = new ThingSearchMappingStrategies(THING_SEARCH_MAPPING_STRATEGIES);
             instance = result;
         }
         return result;
