@@ -8,8 +8,6 @@ topnav:
       url: /intro-overview.html
     - title: HTTP API
       url: /http-api-doc.html
-    - title: Sandbox
-      url: /sandbox.html
     - title:
       image: GitHub-Mark-Light-32px.png
       alt: Sources at GitHub

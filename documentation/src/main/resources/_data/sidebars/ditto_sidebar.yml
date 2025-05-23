@@ -943,10 +943,6 @@ entries:
         url: /user-interface.html
         output: web
 
-      - title: Sandbox
-        url: /sandbox.html
-        output: web
-
       - title: Presentations
         url: /presentations.html
         output: web
