@@ -26,6 +26,10 @@ hr {color: #3a8c9a;}
     background-color: #248ec2;
 }
 
+div.navbar-collapse .dropdown {
+   padding-left: 2em;
+}
+
 div.navbar-collapse .dropdown-menu > li > a:hover {
     background-color: #3a8c9a;
 }
