@@ -110,7 +110,7 @@ Use the following query parameters in order to specify the start/stop revision/t
 
 Either use the revision based parameters:
 * `from-historical-revision`: Specifies the revision number to start streaming historical modification events from.
-  May also be negative in order to specify to get the last `n` revisions relative to the `to-historical-revision`.
+  May also be negative in order to specify to get the last `n` revisions relative to the **most recent revision** (`_revision` of the thing).
 * `to-historical-revision`: Optionally specifies the revision number to stop streaming at (if omitted, it streams events until the current state of the entity). 
   May also be 0 or negative in order to specify to get either the latest (`0`) or the `n`th most recent revision.
 
