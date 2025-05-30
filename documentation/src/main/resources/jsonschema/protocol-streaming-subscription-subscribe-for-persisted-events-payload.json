@@ -6,7 +6,7 @@
   "properties": {
     "fromHistoricalRevision": {
       "type": "integer",
-      "description": "The revision to start the streaming from. May also be negative in order to specify to get the last n revisions relative to the 'toHistoricalRevision'."
+      "description": "The revision to start the streaming from. May also be negative in order to specify to get the last n revisions relative to the most recent revision (`_revision` of the thing)."
     },
     "toHistoricalRevision": {
       "type": "integer",
