@@ -695,9 +695,12 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
             final long toSequenceNr) {
         if (fromSequenceNr <= 0 || toSequenceNr <= 0) {
             return getLatestEventSeqNo(persistenceId).flatMapConcat(latestSnOpt -> {
-                final long effectiveTo = toSequenceNr <= 0 ?
-                        latestSnOpt.map(latest -> latest + toSequenceNr).orElse(toSequenceNr) : toSequenceNr;
-                final long effectiveFrom = fromSequenceNr <= 0 ? effectiveTo + 1 + fromSequenceNr : fromSequenceNr;
+                final long effectiveTo = toSequenceNr <= 0
+                        ? latestSnOpt.map(latest -> latest + toSequenceNr).orElse(toSequenceNr)
+                        : toSequenceNr;
+                final long effectiveFrom = fromSequenceNr < 0
+                        ? latestSnOpt.map(latest -> latest + fromSequenceNr + 1).orElse(fromSequenceNr)
+                        : fromSequenceNr;
                 return pekkoReadJournal.currentEventsByPersistenceId(persistenceId, effectiveFrom, effectiveTo);
             });
         } else {
