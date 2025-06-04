@@ -104,9 +104,10 @@ abstract class AbstractThingEventStrategy<T extends ThingEvent<T>> implements Ev
     }
 
     private Metadata deleteMetadataForMergeAndModifiedEvents(final T event, final MetadataBuilder metadataBuilder) {
-        if (event instanceof ThingModifiedEvent && event.getCommandCategory().equals(Command.Category.DELETE)) {
+        final Command.Category commandCategory = event.getCommandCategory();
+        if (event instanceof ThingModifiedEvent && commandCategory.equals(Command.Category.DELETE)) {
             return metadataBuilder.remove(event.getResourcePath()).build();
-        } else if (event instanceof ThingModifiedEvent && event.getCommandCategory().equals(Command.Category.MERGE)) {
+        } else if (event instanceof ThingModifiedEvent && commandCategory.equals(Command.Category.MERGE)) {
             final Optional<JsonValue> optionalJsonValue = event.getEntity();
             if (optionalJsonValue.isEmpty() || optionalJsonValue.get().isNull()) {
                 return metadataBuilder.remove(event.getResourcePath()).build();
@@ -121,7 +122,10 @@ abstract class AbstractThingEventStrategy<T extends ThingEvent<T>> implements Ev
 
                 return metadataBuilder.build();
             }
-        } else if (event instanceof ThingModifiedEvent && event.getCommandCategory().equals(Command.Category.MODIFY)) {
+        } else if (event instanceof ThingModifiedEvent && (
+                commandCategory.equals(Command.Category.MODIFY) ||
+                commandCategory.equals(Command.Category.MIGRATE)
+        )) {
             final Optional<JsonValue> optionalJsonValue = event.getEntity();
             if (optionalJsonValue.isPresent() && optionalJsonValue.get().isObject()
                     && optionalJsonValue.get().asObject().isEmpty()) {
