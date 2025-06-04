@@ -30,6 +30,7 @@ import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.WithResource;
 import org.eclipse.ditto.internal.utils.cache.Cache;
@@ -51,6 +52,7 @@ import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingCreated;
+import org.eclipse.ditto.things.model.signals.events.ThingDefinitionMigrated;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingMerged;
@@ -460,6 +462,7 @@ public class DittoCachingSignalEnrichmentFacade implements CachingSignalEnrichme
 
             jsonObject = switch (thingEvent.getCommandCategory()) {
                 case MERGE -> getMergeJsonObject(jsonObject, thingEvent);
+                case MIGRATE -> getThingDefinitionMigratedJsonObject(jsonObject, thingEvent);
                 case DELETE -> getDeleteJsonObject(jsonObject, thingEvent);
                 default -> getDefaultJsonObject(jsonObject, thingEvent);
             };
@@ -491,6 +494,26 @@ public class DittoCachingSignalEnrichmentFacade implements CachingSignalEnrichme
                         .build());
 
         return JsonFactory.mergeJsonValues(mergePatchBuilder.build(), jsonObject).asObject();
+    }
+
+    private static JsonObject getThingDefinitionMigratedJsonObject(final JsonObject jsonObject,
+            final ThingEvent<?> thingEvent) {
+        final var thingDefinitionMigrated = (ThingDefinitionMigrated) thingEvent;
+        final JsonValue mergedValue = thingDefinitionMigrated.getEntity(JsonSchemaVersion.LATEST).orElse(null);
+        if (mergedValue != null) {
+            final JsonObjectBuilder mergePatchBuilder =
+                    JsonFactory.newObject(thingDefinitionMigrated.getResourcePath(), mergedValue)
+                            .toBuilder();
+            thingDefinitionMigrated.getMetadata()
+                    .ifPresent(metadata -> mergePatchBuilder.set(
+                                    Thing.JsonFields.METADATA.getPointer().append(thingDefinitionMigrated.getResourcePath()),
+                                    metadata)
+                            .build());
+
+            return JsonFactory.mergeJsonValues(mergePatchBuilder.build(), jsonObject).asObject();
+        } else {
+            return jsonObject;
+        }
     }
 
     private static JsonObject getDeleteJsonObject(final JsonObject jsonObject, final WithResource thingEvent) {

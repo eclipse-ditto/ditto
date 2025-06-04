@@ -15,6 +15,12 @@ package org.eclipse.ditto.edge.service.dispatching;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
@@ -31,12 +37,12 @@ import org.eclipse.ditto.connectivity.api.commands.sudo.ConnectivitySudoCommand;
 import org.eclipse.ditto.connectivity.model.ConnectivityConstants;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveAllConnectionIds;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.DefaultAskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
 import org.eclipse.ditto.policies.api.commands.sudo.CheckPolicyPermissions;
@@ -54,13 +60,6 @@ import org.eclipse.ditto.thingsearch.api.commands.sudo.ThingSearchSudoCommand;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 
 import com.typesafe.config.Config;
-
-import org.apache.pekko.actor.AbstractActor;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
-import org.apache.pekko.japi.pf.ReceiveBuilder;
 
 /**
  * Actor which acts as a client used at the Ditto edges (gateway and connectivity) in order to forward messages
@@ -121,7 +120,7 @@ public class EdgeCommandForwarderActor extends AbstractActor {
      */
     public static boolean isIdempotent(final Command<?> command) {
         return switch (command.getCategory()) {
-            case QUERY, MERGE, MODIFY, DELETE -> true;
+            case QUERY, MERGE, MODIFY, DELETE, MIGRATE -> true;
             default -> false;
         };
     }

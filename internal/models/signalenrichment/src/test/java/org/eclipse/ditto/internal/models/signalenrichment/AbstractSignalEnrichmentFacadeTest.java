@@ -31,11 +31,15 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.things.model.FeatureDefinition;
+import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.things.model.signals.events.AttributeModified;
+import org.eclipse.ditto.things.model.signals.events.ThingDefinitionMigrated;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -205,6 +209,33 @@ abstract class AbstractSignalEnrichmentFacadeTest {
             // WHEN: ThingDeleted event is about to be enriched by facade
             final CompletionStage<JsonObject> askResult =
                     underTest.retrievePartialThing(thingId, getJsonFieldSelector(), headers, thingDeleted);
+            final RetrieveThing retrieveThing = kit.expectMsgClass(RetrieveThing.class);
+            assertThat(retrieveThing.getSelectedFields()).contains(actualSelectedFields(getJsonFieldSelector()));
+            kit.reply(RetrieveThingResponse.of(thingId, getThingResponseThingJson(), headers));
+
+            // THEN: The result future completes with the entity of the RetrieveThingResponse
+            askResult.toCompletableFuture().join();
+            assertThat(askResult).isCompletedWithValue(getExpectedThingJson());
+        });
+    }
+
+    @Test
+    public void enrichThingDefinitionMigrated() {
+        DittoTestSystem.run(this, kit -> {
+            // GIVEN: SignalEnrichmentFacade.retrievePartialThing()
+            final SignalEnrichmentFacade underTest =
+                    createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
+            final ThingId thingId = ThingId.generateRandom();
+            final DittoHeaders headers = DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
+            final Thing thing = Thing.newBuilder().setId(thingId)
+                    .setDefinition(ThingsModelFactory.newDefinition("foo:bar:baz"))
+                    .setFeatureDefinition("y", FeatureDefinition.fromIdentifier("some:feature:foo"))
+                    .build();
+            final ThingDefinitionMigrated thingDefinitionMigrated = ThingDefinitionMigrated.of(thing, 4L, Instant.EPOCH, headers, null);
+
+            // WHEN: ThingDefinitionMigrated event is about to be enriched by facade
+            final CompletionStage<JsonObject> askResult =
+                    underTest.retrievePartialThing(thingId, getJsonFieldSelector(), headers, thingDefinitionMigrated);
             final RetrieveThing retrieveThing = kit.expectMsgClass(RetrieveThing.class);
             assertThat(retrieveThing.getSelectedFields()).contains(actualSelectedFields(getJsonFieldSelector()));
             kit.reply(RetrieveThingResponse.of(thingId, getThingResponseThingJson(), headers));
