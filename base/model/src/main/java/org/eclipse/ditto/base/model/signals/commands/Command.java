@@ -182,7 +182,8 @@ public interface Command<T extends Command<T>> extends Signal<T> {
          * @since 3.0.0
          */
         public static boolean isEntityModifyingCommand(final Category category) {
-            return category == CREATE || category == MODIFY || category == MERGE || category == DELETE;
+            return category == CREATE || category == MODIFY || category == MERGE || category == DELETE ||
+                    category == MIGRATE;
         }
     }
 
