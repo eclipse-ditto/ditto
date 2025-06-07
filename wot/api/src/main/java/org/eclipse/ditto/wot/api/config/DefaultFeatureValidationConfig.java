@@ -81,8 +81,8 @@ final class DefaultFeatureValidationConfig implements FeatureValidationConfig {
      * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultFeatureValidationConfig of(final Config config) {
-        return new DefaultFeatureValidationConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH,
-                ConfigValue.values()));
+        return new DefaultFeatureValidationConfig(
+                ConfigWithFallback.newInstance(config, CONFIG_PATH, ConfigValue.values()));
     }
 
     @Override
@@ -155,31 +155,35 @@ final class DefaultFeatureValidationConfig implements FeatureValidationConfig {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         final DefaultFeatureValidationConfig that = (DefaultFeatureValidationConfig) o;
-        return enforcePresenceOfModeledFeatures == that.enforcePresenceOfModeledFeatures &&
+        return enforceFeatureDescriptionModification == that.enforceFeatureDescriptionModification &&
+                enforcePresenceOfModeledFeatures == that.enforcePresenceOfModeledFeatures &&
+                enforceProperties == that.enforceProperties &&
+                enforceDesiredProperties == that.enforceDesiredProperties &&
+                enforceInboxMessagesInput == that.enforceInboxMessagesInput &&
+                enforceInboxMessagesOutput == that.enforceInboxMessagesOutput &&
+                enforceOutboxMessages == that.enforceOutboxMessages &&
                 forbidFeatureDescriptionDeletion == that.forbidFeatureDescriptionDeletion &&
                 forbidNonModeledFeatures == that.forbidNonModeledFeatures &&
-                enforceProperties == that.enforceProperties &&
                 forbidNonModeledProperties == that.forbidNonModeledProperties &&
-                enforceDesiredProperties == that.enforceDesiredProperties &&
                 forbidNonModeledDesiredProperties == that.forbidNonModeledDesiredProperties &&
-                enforceInboxMessagesInput == that.enforceInboxMessagesInput &&
                 forbidNonModeledInboxMessages == that.forbidNonModeledInboxMessages &&
-                enforceOutboxMessages == that.enforceOutboxMessages &&
                 forbidNonModeledOutboxMessages == that.forbidNonModeledOutboxMessages;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(enforcePresenceOfModeledFeatures, forbidFeatureDescriptionDeletion,
-                forbidNonModeledFeatures, enforceProperties, forbidNonModeledProperties, enforceDesiredProperties,
-                forbidNonModeledDesiredProperties, enforceInboxMessagesInput, enforceInboxMessagesOutput,
-                forbidNonModeledInboxMessages, enforceOutboxMessages, forbidNonModeledOutboxMessages);
+        return Objects.hash(enforceFeatureDescriptionModification, enforcePresenceOfModeledFeatures,
+                enforceProperties, enforceDesiredProperties, enforceInboxMessagesInput,
+                enforceInboxMessagesOutput, enforceOutboxMessages, forbidFeatureDescriptionDeletion,
+                forbidNonModeledFeatures, forbidNonModeledProperties, forbidNonModeledDesiredProperties,
+                forbidNonModeledInboxMessages, forbidNonModeledOutboxMessages);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "enforcePresenceOfModeledFeatures=" + enforcePresenceOfModeledFeatures +
+                "enforceFeatureDescriptionModification=" + enforceFeatureDescriptionModification +
+                ", enforcePresenceOfModeledFeatures=" + enforcePresenceOfModeledFeatures +
                 ", enforceProperties=" + enforceProperties +
                 ", enforceDesiredProperties=" + enforceDesiredProperties +
                 ", enforceInboxMessagesInput=" + enforceInboxMessagesInput +
