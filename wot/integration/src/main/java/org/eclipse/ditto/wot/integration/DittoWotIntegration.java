@@ -21,6 +21,9 @@ import org.eclipse.ditto.wot.api.generator.WotThingSkeletonGenerator;
 import org.eclipse.ditto.wot.api.provider.WotThingModelFetcher;
 import org.eclipse.ditto.wot.api.resolver.WotThingModelResolver;
 import org.eclipse.ditto.wot.api.validator.WotThingModelValidator;
+import org.eclipse.ditto.wot.validation.config.TmValidationConfig;
+
+import java.util.Collection;
 
 /**
  * Extension providing access to all Ditto WoT integration capabilities.
@@ -77,6 +80,15 @@ public interface DittoWotIntegration extends Extension {
      * defined ThingModel and its JsonSchema for properties, actions, events.
      */
     WotThingModelValidator getWotThingModelValidator();
+
+    /**
+     * Updates the dynamic validation configs and recreates the validator with the new configs.
+     *
+     * @param configs the new dynamic validation configs
+     * @since 3.8.0
+     */
+    void updateDynamicConfigs(Collection<TmValidationConfig> configs);
+
 
     /**
      * Get the {@code DittoWotIntegration} for an actor system.

@@ -58,6 +58,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.thingsearch.api.ThingsSearchConstants;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.ThingSearchSudoCommand;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
+import org.eclipse.ditto.things.model.devops.commands.WotValidationConfigCommand;
 
 import com.typesafe.config.Config;
 
@@ -165,6 +166,7 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                         src -> src.getEntityType().equals(ConnectivityConstants.ENTITY_TYPE),
                         this::forwardToConnectivity
                 )
+                .match(WotValidationConfigCommand.class, this::forwardToWotValidationConfig)
                 .match(Signal.class, this::handleUnknownSignal)
                 .matchAny(m -> log.warning("Got unknown message: {}", m))
                 .build();
@@ -191,6 +193,26 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                         sender);
             } else {
                 shardRegions.things().tell(transformed, sender);
+            }
+        }));
+    }
+
+    private void forwardToWotValidationConfig(final WotValidationConfigCommand<?> wotValidationConfigSignal) {
+        final ActorRef sender = getSender();
+        final CompletionStage<Signal<?>> signalTransformationCs = applySignalTransformation(wotValidationConfigSignal, sender);
+
+        scheduleTask(wotValidationConfigSignal, () -> signalTransformationCs.thenAccept(transformed -> {
+            log.withCorrelationId(transformed)
+                    .info("Forwarding WoT validation config signal with ID <{}> and type <{}> to 'wot-validation-config' shard region",
+                            transformed instanceof WithEntityId withEntityId ? withEntityId.getEntityId() : null,
+                            transformed.getType());
+
+            if (transformed instanceof Command<?> command && isIdempotent(command)) {
+                askWithRetryCommandForwarder.forwardCommand(command,
+                        shardRegions.wotValidationConfig(),
+                        sender);
+            } else {
+                shardRegions.wotValidationConfig().tell(transformed, sender);
             }
         }));
     }

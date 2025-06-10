@@ -40,6 +40,9 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeature;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateSubscription;
+import org.eclipse.ditto.things.model.devops.commands.RetrieveMergedWotValidationConfig;
+import org.eclipse.ditto.things.model.devops.commands.RetrieveWotValidationConfig;
+import org.eclipse.ditto.things.model.devops.commands.ModifyWotValidationConfig;
 
 public final class GatewayServiceGlobalCommandRegistryTest extends GlobalCommandRegistryTestCases {
 
@@ -71,7 +74,10 @@ public final class GatewayServiceGlobalCommandRegistryTest extends GlobalCommand
                 ModifySplitBrainResolver.class,
                 CleanupPersistence.class,
                 SudoAddConnectionLogEntry.class,
-                SubscribeForPersistedEvents.class
+                SubscribeForPersistedEvents.class,
+                RetrieveMergedWotValidationConfig.class,
+                RetrieveWotValidationConfig.class,
+                ModifyWotValidationConfig.class
         );
     }
 

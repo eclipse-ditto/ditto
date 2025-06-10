@@ -46,6 +46,11 @@ import org.eclipse.ditto.thingsearch.api.QueryTimeExceededException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidNamespacesException;
 import org.eclipse.ditto.wot.model.WotThingModelInvalidException;
 import org.eclipse.ditto.wot.validation.WotThingModelPayloadValidationException;
+import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigRunTimeException;
+import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigHistoryNotAccessibleException;
+import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigInvalidException;
+import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigNotAccessibleException;
+
 
 public final class ConnectivityServiceGlobalErrorRegistryTest extends GlobalErrorRegistryTestCases {
 
@@ -83,7 +88,11 @@ public final class ConnectivityServiceGlobalErrorRegistryTest extends GlobalErro
                 IllegalAdaptableException.class,
                 WotThingModelInvalidException.class,
                 EdgeServiceTimeoutException.class,
-                WotThingModelPayloadValidationException.class
+                WotThingModelPayloadValidationException.class,
+                WotValidationConfigRunTimeException.class,
+                WotValidationConfigHistoryNotAccessibleException.class,
+                WotValidationConfigInvalidException.class,
+                WotValidationConfigNotAccessibleException.class
         );
     }
 

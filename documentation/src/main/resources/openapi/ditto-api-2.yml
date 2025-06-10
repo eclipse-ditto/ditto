@@ -8196,6 +8196,132 @@ paths:
             text/plain:
               schema:
                 $ref: '#/components/schemas/TextUnauthorizeError'
+  /devops/wot/config:
+    get:
+      summary: Get the WoT validation config
+      tags: [Devops]
+      security:
+        - DevOpsBasic: []
+        - DevOpsBearer: []
+      responses:
+        '200':
+          description: The WoT validation config
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WotValidationConfigResponse'
+        '404':
+          description: Not found
+    put:
+      summary: Update the WoT validation config
+      tags: [Devops]
+      security:
+        - DevOpsBasic: []
+        - DevOpsBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WotValidationConfigResponse'
+      responses:
+        '204':
+          description: Updated config
+    delete:
+      summary: Delete the WoT validation config
+      tags: [Devops]
+      security:
+        - DevOpsBasic: []
+        - DevOpsBearer: []
+      responses:
+        '204':
+          description: Deleted successfully
+        '404':
+          description: Not found
+
+  /devops/wot/config/global/merged:
+    get:
+      summary: Get the merged WoT validation config
+      tags: [Devops]
+      security:
+        - DevOpsBasic: []
+        - DevOpsBearer: []
+      responses:
+        '200':
+          description: The merged WoT validation config
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WotValidationConfigResponse'
+        '404':
+          description: Not found
+
+  /devops/wot/config/dynamicConfigs:
+    get:
+      summary: List all dynamic WoT validation config sections
+      tags: [Devops]
+      security:
+        - DevOpsBasic: []
+        - DevOpsBearer: []
+      responses:
+        '200':
+          description: List of dynamic config sections
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DynamicValidationConfigResponse'
+
+  /devops/wot/config/dynamicConfigs/{scopeId}:
+      parameters:
+        - name: scopeId
+          in: path
+          required: true
+          schema:
+            type: string
+      get:
+        summary: Get a dynamic WoT validation config section by scopeId
+        tags: [Devops]
+        security:
+          - DevOpsBasic: []
+          - DevOpsBearer: []
+        responses:
+          '200':
+            description: The dynamic config section
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/DynamicValidationConfigResponse'
+          '404':
+            description: Not found
+      put:
+        summary: Create or update a dynamic WoT validation config section
+        tags: [Devops]
+        security:
+          - DevOpsBasic: []
+          - DevOpsBearer: []
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DynamicValidationConfigRequest'
+        responses:
+          '204':
+            description: Updated dynamic config section
+      delete:
+        summary: Delete a dynamic WoT validation config section
+        tags: [Devops]
+        security:
+          - DevOpsBasic: []
+          - DevOpsBearer: []
+        responses:
+          '204':
+            description: Deleted successfully
+          '404':
+            description: Not found
+
 components:
   requestBodies:
     Attributes:
@@ -9277,6 +9403,200 @@ components:
       schema:
         type: string
   schemas:
+    WotValidationConfigRequest:
+      type: object
+      description: Request body for creating or updating a WoT validation config.
+      properties:
+        enabled:
+          type: boolean
+        logWarning:
+          type: boolean
+        thing:
+          $ref: '#/components/schemas/ThingValidationConfig'
+        feature:
+          $ref: '#/components/schemas/FeatureValidationConfig'
+        dynamicConfig:
+          type: array
+          items:
+            $ref: '#/components/schemas/DynamicValidationConfigRequest'
+      required:
+        - enabled
+        - thing
+        - feature
+
+    WotValidationConfigResponse:
+      type: object
+      description: Response body for a WoT validation config.
+      properties:
+        configId:
+          type: string
+        enabled:
+          type: boolean
+        logWarning:
+          type: boolean
+        thing:
+          $ref: '#/components/schemas/ThingValidationConfig'
+        feature:
+          $ref: '#/components/schemas/FeatureValidationConfig'
+        dynamicConfig:
+          type: array
+          items:
+            $ref: '#/components/schemas/DynamicValidationConfigResponse'
+        revision:
+          type: integer
+          format: int64
+        created:
+          type: string
+          format: date-time
+        modified:
+          type: string
+          format: date-time
+        deleted:
+          type: boolean
+        metadata:
+          type: object
+      required:
+        - configId
+        - enabled
+        - thing
+        - feature
+
+    ThingValidationConfig:
+      type: object
+      description: Thing validation config.
+      properties:
+        enforce:
+          type: object
+          properties:
+            thingDescriptionModification:
+              type: boolean
+            attributes:
+              type: boolean
+            inboxMessagesInput:
+              type: boolean
+            inboxMessagesOutput:
+              type: boolean
+            outboxMessages:
+              type: boolean
+        forbid:
+          type: object
+          properties:
+            thingDescriptionDeletion:
+              type: boolean
+            nonModeledAttributes:
+              type: boolean
+            nonModeledInboxMessages:
+              type: boolean
+            nonModeledOutboxMessages:
+              type: boolean
+
+    FeatureValidationConfig:
+      type: object
+      description: Feature validation config.
+      properties:
+        enforce:
+          type: object
+          properties:
+            featureDescriptionModification:
+              type: boolean
+            presenceOfModeledFeatures:
+              type: boolean
+            properties:
+              type: boolean
+            desiredProperties:
+              type: boolean
+            inboxMessagesInput:
+              type: boolean
+            inboxMessagesOutput:
+              type: boolean
+            oOutboxMessages:
+              type: boolean
+        forbid:
+          type: object
+          properties:
+            featureDescriptionDeletion:
+              type: boolean
+            nonModeledFeatures:
+              type: boolean
+            nonModeledProperties:
+              type: boolean
+            nonModeledDesiredProperties:
+              type: boolean
+            nonModeledInboxMessages:
+              type: boolean
+            nonModeledOutboxMessages:
+              type: boolean
+
+    DynamicValidationConfigRequest:
+      type: object
+      description: Dynamic config section for request.
+      properties:
+        scopeId:
+          type: string
+        validationContext:
+          $ref: '#/components/schemas/ValidationContext'
+        configOverrides:
+          $ref: '#/components/schemas/ConfigOverrides'
+      required:
+        - scopeId
+        - validationContext
+        - configOverrides
+
+    DynamicValidationConfigResponse:
+      type: object
+      description: Dynamic config section for response.
+      properties:
+        scopeId:
+          type: string
+        validationContext:
+          $ref: '#/components/schemas/ValidationContext'
+        configOverrides:
+          $ref: '#/components/schemas/ConfigOverrides'
+      required:
+        - scopeId
+        - validationContext
+        - configOverrides
+
+    ConfigOverrides:
+      type: object
+      description: Config overrides for a dynamic config section.
+      properties:
+        enabled:
+          type: boolean
+        logWarningInsteadOfFailingApiCalls:
+          type: boolean
+        thing:
+          $ref: '#/components/schemas/ThingValidationConfig'
+        feature:
+          $ref: '#/components/schemas/FeatureValidationConfig'
+      required:
+        - enabled
+        - thing
+        - feature
+
+    ValidationContext:
+      type: object
+      description: Validation context for dynamic config section.
+      properties:
+        dittoHeadersPatterns:
+          type: array
+          items:
+            type: object
+            additionalProperties:
+              type: string
+        thingDefinitionPatterns:
+          type: array
+          items:
+            type: string
+        featureDefinitionPatterns:
+          type: array
+          items:
+            type: string
+        scopeId:
+          type: string
+      required:
+        - scopeId
+
     Error:
       properties:
         status:
