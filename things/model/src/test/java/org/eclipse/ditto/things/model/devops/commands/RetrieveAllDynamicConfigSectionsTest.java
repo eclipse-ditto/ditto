@@ -17,7 +17,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
-import org.eclipse.ditto.things.model.devops.commands.RetrieveAllDynamicConfigSections;
 import org.junit.jupiter.api.Test;
 
 class RetrieveAllDynamicConfigSectionsTest {

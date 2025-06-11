@@ -33,6 +33,7 @@ import org.eclipse.ditto.things.model.devops.WotValidationConfig;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigRevision;
 import org.eclipse.ditto.things.model.devops.commands.RetrieveAllDynamicConfigSections;
+import org.eclipse.ditto.things.model.devops.commands.RetrieveDynamicConfigsResponse;
 import org.eclipse.ditto.things.model.devops.commands.RetrieveWotValidationConfigResponse;
 import org.eclipse.ditto.things.model.devops.events.WotValidationConfigEvent;
 import org.junit.Before;
@@ -117,16 +118,16 @@ public final class RetrieveAllDynamicConfigSectionsStrategyTest {
         final Result<WotValidationConfigEvent<?>> result = underTest.apply(context, existingConfig, 1L, command);
 
         // Then
-        final ArgumentCaptor<RetrieveWotValidationConfigResponse> responseCaptor = ArgumentCaptor.forClass(RetrieveWotValidationConfigResponse.class);
+        final ArgumentCaptor<RetrieveDynamicConfigsResponse> responseCaptor = ArgumentCaptor.forClass(RetrieveDynamicConfigsResponse.class);
         final ResultVisitor<WotValidationConfigEvent<?>> visitor = mock(ResultVisitor.class);
 
         result.accept(visitor, null);
 
         verify(visitor).onQuery(eq(command), responseCaptor.capture());
 
-        final RetrieveWotValidationConfigResponse response = responseCaptor.getValue();
+        final RetrieveDynamicConfigsResponse response = responseCaptor.getValue();
         assertThat(response).isNotNull();
-        final JsonArray dynamicConfigs = response.getValidationConfig().asObject().getValue("dynamicConfigs").get().asArray();
+        final JsonArray dynamicConfigs = response.getDynamicConfigs();
         assertThat(dynamicConfigs).hasSize(2);
         assertThat(dynamicConfigs.stream().anyMatch(jv -> jv.asObject().getValue("scopeId").get().asString().equals("scope1"))).isTrue();
         assertThat(dynamicConfigs.stream().anyMatch(jv -> jv.asObject().getValue("scopeId").get().asString().equals("scope2"))).isTrue();
