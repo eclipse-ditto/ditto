@@ -52,7 +52,7 @@ public final class MigrateThingDefinitionStrategyTest extends AbstractCommandStr
 
     @Before
     public void setUp() throws Exception {
-        final ActorSystem actorSystem = ActorSystem.create("test", ConfigFactory.load("test"));
+        final ActorSystem actorSystem = ActorSystem.create("MigrateThingDefinitionStrategyTest", ConfigFactory.load("test"));
         underTest = new MigrateThingDefinitionStrategy(actorSystem);
         injectSkeletonGeneratorMock(underTest, skeletonGeneratorMock);
     }

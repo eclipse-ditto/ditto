@@ -151,9 +151,9 @@ public final class RetrieveMergedWotValidationConfigStrategyTest {
         final JsonObject thingEnforce = thingConfig.getValue("enforce").get().asObject();
         final JsonObject thingForbid = thingConfig.getValue("forbid").get().asObject();
         assertThat(thingEnforce.getValue("thingDescriptionModification").get().asBoolean()).isTrue();
-        assertThat(thingEnforce.getValue("properties").get().asBoolean()).isTrue();
+        assertThat(thingEnforce.getValue("attributes").get().asBoolean()).isTrue();
         assertThat(thingForbid.getValue("thingDescriptionDeletion").get().asBoolean()).isFalse();
-        assertThat(thingForbid.getValue("nonModeledProperties").get().asBoolean()).isTrue();
+        assertThat(thingForbid.getValue("nonModeledInboxMessages").get().asBoolean()).isFalse();
 
         // Verify feature validation config
         final JsonObject featureConfig = mergedConfig.getValue("feature").get().asObject();
