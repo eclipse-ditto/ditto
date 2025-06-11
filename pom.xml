@@ -497,9 +497,9 @@
                     <version>1.2</version>
                 </plugin>
                 <plugin>
-                    <groupId>org.sonatype.plugins</groupId>
-                    <artifactId>nexus-staging-maven-plugin</artifactId>
-                    <version>1.7.0</version>
+                    <groupId>org.sonatype.central</groupId>
+                    <artifactId>central-publishing-maven-plugin</artifactId>
+                    <version>0.7.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -937,29 +937,30 @@
             </activation>
             <distributionManagement>
                 <repository>
-                    <id>ossrh</id>
+                    <id>central</id>
                     <name>Eclipse Ditto Repository - Release</name>
-                    <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
+                    <url>https://central.sonatype.com</url>
                 </repository>
                 <snapshotRepository>
-                    <id>ossrh</id>
+                    <id>central</id>
                     <name>Eclipse Ditto Repository - Snapshots</name>
-                    <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+                    <url>https://central.sonatype.com/repository/maven-snapshots/</url>
                 </snapshotRepository>
             </distributionManagement>
             <build>
                 <plugins>
-                    <!-- see doc: http://central.sonatype.org/pages/apache-maven.html -->
+                    <!-- see doc: https://eclipse-cbi.github.io/cbi-website/jiro/Nexus-Maven-Central/ -->
+                    <!-- see doc: https://central.sonatype.org/publish/publish-portal-maven/#automatic-publishing -->
                     <plugin>
-                        <groupId>org.sonatype.plugins</groupId>
-                        <artifactId>nexus-staging-maven-plugin</artifactId>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
                         <extensions>true</extensions>
                         <configuration>
-                            <serverId>ossrh</serverId>
-                            <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-                            <skipStagingRepositoryClose>false</skipStagingRepositoryClose>
-                            <autoReleaseAfterClose>true</autoReleaseAfterClose>
-                            <autoDropAfterRelease>true</autoDropAfterRelease>
+                            <publishingServerId>central</publishingServerId>
+                            <autoPublish>true</autoPublish>
+                            <waitUntil>published</waitUntil>
+                            <centralSnapshotsUrl>https://central.sonatype.com/repository/maven-snapshots/</centralSnapshotsUrl>
+                            <deploymentName>Ditto ${revision}</deploymentName>
                         </configuration>
                     </plugin>
                 </plugins>
@@ -974,7 +975,6 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-compiler-plugin</artifactId>
-                        <version>3.7.0</version>
                         <configuration>
                             <source>${javac.source}</source>
                             <target>${javac.target}</target>
