@@ -33,6 +33,7 @@ import org.eclipse.ditto.things.model.signals.commands.modify.MigrateThingDefini
 import org.eclipse.ditto.things.model.signals.events.ThingDefinitionMigrated;
 import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
 import org.eclipse.ditto.wot.api.generator.WotThingSkeletonGenerator;
+import org.eclipse.ditto.wot.api.validator.WotThingModelValidator;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -41,7 +42,7 @@ import com.typesafe.config.ConfigFactory;
 import org.mockito.Mockito;
 
 /**
- * Unit test for {@link MigrateThingDefinitionStrategy}, verifying correct behavior when using a mocked {@link WotThingSkeletonGenerator}.
+ * Unit test for {@link MigrateThingDefinitionStrategy}, verifying correct behavior using mocked Wot integration.
  */
 public final class MigrateThingDefinitionStrategyTest extends AbstractCommandStrategyTest {
 
@@ -49,12 +50,14 @@ public final class MigrateThingDefinitionStrategyTest extends AbstractCommandStr
 
     private MigrateThingDefinitionStrategy underTest;
     private final WotThingSkeletonGenerator skeletonGeneratorMock = Mockito.mock(WotThingSkeletonGenerator.class);
+    private final WotThingModelValidator modelValidatorMock = Mockito.mock(WotThingModelValidator.class);
 
     @Before
     public void setUp() throws Exception {
         final ActorSystem actorSystem = ActorSystem.create("MigrateThingDefinitionStrategyTest", ConfigFactory.load("test"));
         underTest = new MigrateThingDefinitionStrategy(actorSystem);
-        injectSkeletonGeneratorMock(underTest, skeletonGeneratorMock);
+        injectPrivateField(underTest, "wotThingSkeletonGenerator", skeletonGeneratorMock);
+        injectPrivateField(underTest, "wotThingModelValidator", modelValidatorMock);
     }
 
     @Test
@@ -62,11 +65,14 @@ public final class MigrateThingDefinitionStrategyTest extends AbstractCommandStr
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ThingId thingId = context.getState();
         final Thing existingThing = THING_V2.toBuilder().setRevision(NEXT_REVISION - 1).build();
-
         final Thing skeletonThing = ThingsModelFactory.newThing(getExpectedThingJson());
 
         Mockito.when(skeletonGeneratorMock.provideThingSkeletonForCreation(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(Optional.of(skeletonThing)));
+
+        Mockito.when(
+                modelValidatorMock.validateThing(Mockito.any(), Mockito.any(), Mockito.any())
+        ).thenAnswer(invocation -> CompletableFuture.completedFuture(null));
 
         final MigrateThingDefinition command = MigrateThingDefinition.of(
                 thingId,
@@ -87,20 +93,19 @@ public final class MigrateThingDefinitionStrategyTest extends AbstractCommandStr
         assertStagedModificationResult(underTest, existingThing, command, ThingDefinitionMigrated.class, expectedResponse);
     }
 
-    private void injectSkeletonGeneratorMock(final MigrateThingDefinitionStrategy strategy,
-            final WotThingSkeletonGenerator skeletonGeneratorMock) throws Exception {
-        Class<?> clazz = strategy.getClass();
-        while (clazz != null && !clazz.equals(Object.class)) {
+    private static void injectPrivateField(final Object target, final String fieldName, final Object value) throws Exception {
+        Class<?> clazz = target.getClass();
+        while (clazz != null) {
             try {
-                final Field field = clazz.getDeclaredField("wotThingSkeletonGenerator");
+                final Field field = clazz.getDeclaredField(fieldName);
                 field.setAccessible(true);
-                field.set(strategy, skeletonGeneratorMock);
+                field.set(target, value);
                 return;
-            } catch (final NoSuchFieldException e) {
+            } catch (NoSuchFieldException e) {
                 clazz = clazz.getSuperclass();
             }
         }
-        throw new NoSuchFieldException("wotThingSkeletonGenerator not found in class hierarchy");
+        throw new IllegalArgumentException("Field '" + fieldName + "' not found in class hierarchy.");
     }
 
     private static JsonObject getExpectedThingJson() {
@@ -123,5 +128,4 @@ public final class MigrateThingDefinitionStrategyTest extends AbstractCommandStr
                 .setRevision(ThingRevision.newInstance(NEXT_REVISION))
                 .build();
     }
-
 }
