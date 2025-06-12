@@ -33,7 +33,7 @@
 
         <!-- ### Compile dependencies versions -->
         <minimal-json.version>0.9.5</minimal-json.version>
-        <jackson-bom.version>2.17.3</jackson-bom.version>
+        <jackson-bom.version>2.19.0</jackson-bom.version>
         <json-schema-validator.version>1.5.6</json-schema-validator.version>
         <typesafe-config.version>1.4.3</typesafe-config.version>
         <ssl-config-core.version>0.6.1</ssl-config-core.version>
@@ -43,7 +43,7 @@
         <eddsa.version>0.3.0</eddsa.version>
         <lz4-java.version>1.8.0</lz4-java.version>
 
-        <pekko-bom.version>1.1.3</pekko-bom.version>
+        <pekko-bom.version>1.2.0-M1</pekko-bom.version>
         <pekko-http-bom.version>1.1.0</pekko-http-bom.version>
         <pekko-persistence-mongodb.version>1.2.2</pekko-persistence-mongodb.version>
         <pekko-persistence-inmemory.version>1.2.1</pekko-persistence-inmemory.version>
