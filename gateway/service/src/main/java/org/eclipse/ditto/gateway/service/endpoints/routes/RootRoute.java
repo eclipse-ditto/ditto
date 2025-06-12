@@ -113,6 +113,7 @@ public final class RootRoute extends AllDirectives {
     private final CustomHeadersHandler customHeadersHandler;
     private final RejectionHandler rejectionHandler;
     private final RootRouteHeadersStepBuilder rootRouteHeadersStepBuilder;
+    private final DittoHeadersValidator dittoHeadersValidator;
 
     private RootRoute(final Builder builder) {
         final HttpConfig httpConfig = builder.httpConfig;
@@ -147,8 +148,8 @@ public final class RootRoute extends AllDirectives {
         rejectionHandler = builder.rejectionHandler;
         rootRouteHeadersStepBuilder = RootRouteHeadersStepBuilder.getInstance(builder.headerTranslator,
                 QueryParametersToHeadersMap.getInstance(httpConfig),
-                customHeadersHandler,
-                builder.dittoHeadersValidator);
+                customHeadersHandler);
+        dittoHeadersValidator = builder.dittoHeadersValidator;
     }
 
     public static RootRouteBuilder getBuilder(final HttpConfig httpConfig) {
@@ -264,19 +265,23 @@ public final class RootRoute extends AllDirectives {
 
         return rawPathPrefix(PathMatchers.slash().concat(HTTP_PATH_API_PREFIX), () -> // /api
                 ensureSchemaVersion(apiVersion ->  // /api/<apiVersion>
-                        customApiRoutesProvider
-                                .unauthorized(routeBaseProperties, apiVersion, correlationId)
-                                .orElse(apiAuthentication(apiVersion, correlationId, auth ->
-                                        withDittoHeaders(
-                                                rootRouteHeadersStepBuilder.withInitialDittoHeadersBuilder(
-                                                                auth.getDittoHeaders().toBuilder()
-                                                        )
-                                                        .withRequestContext(ctx)
-                                                        .withQueryParameters(queryParameters)
-                                                        .build(CustomHeadersHandler.RequestType.API),
-                                                dittoHeaders -> buildApiSubRoutes(ctx, dittoHeaders, auth)
+                        withDittoHeaders(
+                                rootRouteHeadersStepBuilder.withInitialDittoHeadersBuilder(
+                                                DittoHeaders.newBuilder()
+                                                        .schemaVersion(apiVersion)
+                                                        .correlationId(correlationId)
                                         )
-                                ))
+                                        .withRequestContext(ctx)
+                                        .withQueryParameters(queryParameters)
+                                        .build(CustomHeadersHandler.RequestType.API),
+                                dittoHeaders ->
+                                        customApiRoutesProvider
+                                                .unauthorized(routeBaseProperties, apiVersion, correlationId)
+                                                .orElse(apiAuthentication(dittoHeaders, auth ->
+                                                                buildApiSubRoutes(ctx, auth.getDittoHeaders(), auth)
+                                                        )
+                                                )
+                        )
                 )
         );
     }
@@ -299,14 +304,9 @@ public final class RootRoute extends AllDirectives {
                 });
     }
 
-    private Route apiAuthentication(final JsonSchemaVersion schemaVersion, final CharSequence correlationId,
+    private Route apiAuthentication(final DittoHeaders dittoHeaders,
             final Function<AuthenticationResult, Route> inner) {
-
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                .schemaVersion(schemaVersion)
-                .correlationId(correlationId)
-                .build();
-        return apiAuthenticationDirective.authenticate(dittoHeaders, inner);
+        return apiAuthenticationDirective.authenticate(dittoHeaders, dittoHeadersValidator, inner);
     }
 
     private Route buildApiSubRoutes(final RequestContext ctx, final DittoHeaders dittoHeaders,
@@ -357,35 +357,32 @@ public final class RootRoute extends AllDirectives {
             final Map<String, String> queryParameters) {
         return rawPathPrefix(PathMatchers.slash().concat(WS_PATH_PREFIX), () -> // /ws
                 ensureSchemaVersion(wsVersion -> // /ws/<wsVersion>
-                        wsAuthentication(wsVersion, correlationId, auth -> {
-                                    final CompletionStage<DittoHeaders> dittoHeadersPromise =
-                                            rootRouteHeadersStepBuilder
-                                                    .withInitialDittoHeadersBuilder(auth.getDittoHeaders().toBuilder())
-                                                    .withRequestContext(ctx)
-                                                    .withQueryParameters(queryParameters)
-                                                    .build(CustomHeadersHandler.RequestType.WS);
-
-                                    return withDittoHeaders(dittoHeadersPromise, dittoHeaders -> {
-                                        @Nullable final String userAgent = getUserAgentOrNull(ctx);
-                                        final ProtocolAdapter chosenProtocolAdapter =
-                                                protocolAdapterProvider.getProtocolAdapter(userAgent);
-                                        return websocketRouteBuilder.build(wsVersion, correlationId, dittoHeaders,
-                                                chosenProtocolAdapter, ctx);
-                                    });
-                                }
+                        withDittoHeaders(
+                                rootRouteHeadersStepBuilder.withInitialDittoHeadersBuilder(
+                                                DittoHeaders.newBuilder()
+                                                        .schemaVersion(wsVersion)
+                                                        .correlationId(correlationId)
+                                        )
+                                        .withRequestContext(ctx)
+                                        .withQueryParameters(queryParameters)
+                                        .build(CustomHeadersHandler.RequestType.WS),
+                                dittoHeaders ->
+                                        wsAuthentication(dittoHeaders, auth -> {
+                                            @Nullable final String userAgent = getUserAgentOrNull(ctx);
+                                            final ProtocolAdapter chosenProtocolAdapter =
+                                                    protocolAdapterProvider.getProtocolAdapter(userAgent);
+                                            return websocketRouteBuilder.build(wsVersion, correlationId,
+                                                    auth.getDittoHeaders(),
+                                                    chosenProtocolAdapter, ctx);
+                                        })
                         )
                 )
         );
     }
 
-    private Route wsAuthentication(final JsonSchemaVersion schemaVersion, final CharSequence correlationId,
+    private Route wsAuthentication(final DittoHeaders dittoHeaders,
             final Function<AuthenticationResult, Route> inner) {
-
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                .schemaVersion(schemaVersion)
-                .correlationId(correlationId)
-                .build();
-        return wsAuthenticationDirective.authenticate(dittoHeaders, inner);
+        return wsAuthenticationDirective.authenticate(dittoHeaders, dittoHeadersValidator, inner);
     }
 
     @Nullable

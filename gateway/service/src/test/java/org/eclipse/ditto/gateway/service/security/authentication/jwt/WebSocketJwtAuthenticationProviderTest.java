@@ -12,16 +12,21 @@
  */
 package org.eclipse.ditto.gateway.service.security.authentication.jwt;
 
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.junit.Before;
-import org.junit.Test;
-
 import org.apache.pekko.http.javadsl.server.RequestContext;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Test;
 
 /**
  * Tests {@link JwtAuthenticationProvider}.
  */
 public final class WebSocketJwtAuthenticationProviderTest extends AbstractJwtAuthenticationProviderTest {
+
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
 
     private JwtAuthenticationProvider underTest;
 
