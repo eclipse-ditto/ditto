@@ -201,6 +201,18 @@ paths:
   '/devops/piggyback/{serviceName}/{instanceIndex}':
     $ref: "./paths/piggyback/instanceIndex.yml"
 
+  ###
+  ### WoT Validation Config
+  ###
+  /devops/wot/config:
+    $ref: "./paths/wotValidationConfig/wotConfig.yml"
+  /devops/wot/config/merged:
+    $ref: "./paths/wotValidationConfig/wotConfigMerged.yml"
+  /devops/wot/config/dynamicConfigs:
+    $ref: "./paths/wotValidationConfig/dynamicConfigs.yml"
+  /devops/wot/config/dynamicConfigs/{scopeId}:
+    $ref: "./paths/wotValidationConfig/dynamicConfigScopeId.yml"
+
 components:
 
   requestBodies:
@@ -483,6 +495,20 @@ components:
       $ref: "./schemas/properties/searchFilterProperty.yml"
     NamespaceProperty:
       $ref: "./schemas/properties/namespacesProperty.yml"
+    WotValidationConfigResponse:
+      $ref: "./schemas/wot-validation-config/wotValidationConfig.yml"
+    DynamicValidationConfigRequest:
+      $ref: "./schemas/wot-validation-config/dynamicValidationConfig.yml"
+    DynamicValidationConfigResponse:
+      $ref: "./schemas/wot-validation-config/dynamicValidationConfig.yml"
+    ConfigOverrides:
+      $ref: "./schemas/wot-validation-config/configOverrides.yml"
+    ValidationContext:
+      $ref: "./schemas/wot-validation-config/validationContext.yml"
+    ThingValidationConfig:
+      $ref: "./schemas/wot-validation-config/thingValidationConfig.yml"
+    FeatureValidationConfig:
+      $ref: "./schemas/wot-validation-config/featureValidationConfig.yml"
 
   securitySchemes:
     NginxBasic:

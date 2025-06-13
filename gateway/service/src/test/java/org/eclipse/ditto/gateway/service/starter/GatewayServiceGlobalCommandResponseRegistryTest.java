@@ -35,12 +35,15 @@ import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIn
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubjectResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResourceResponse;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
+import org.eclipse.ditto.things.model.devops.commands.CreateWotValidationConfigResponse;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeaturePropertyResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureResponse;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoRetrieveNamespaceReportResponse;
 import org.eclipse.ditto.thingsearch.model.signals.commands.SearchErrorResponse;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThingsResponse;
+import org.eclipse.ditto.things.model.devops.commands.RetrieveMergedWotValidationConfigResponse;
+import org.eclipse.ditto.things.model.devops.commands.RetrieveWotValidationConfigResponse;
 
 public final class GatewayServiceGlobalCommandResponseRegistryTest extends GlobalCommandResponseRegistryTestCases {
 
@@ -73,7 +76,10 @@ public final class GatewayServiceGlobalCommandResponseRegistryTest extends Globa
                 CheckPermissionsResponse.class,
                 Acknowledgement.class,
                 ModifySplitBrainResolverResponse.class,
-                CleanupPersistenceResponse.class
+                CleanupPersistenceResponse.class,
+                RetrieveMergedWotValidationConfigResponse.class,
+                RetrieveWotValidationConfigResponse.class,
+                CreateWotValidationConfigResponse.class
         );
         excludeKnownNotAnnotatedClass("org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase$DummyThingModifyCommandResponse");
     }

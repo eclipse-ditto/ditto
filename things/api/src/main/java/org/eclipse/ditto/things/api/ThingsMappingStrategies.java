@@ -25,6 +25,7 @@ import org.eclipse.ditto.internal.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
+import org.eclipse.ditto.things.model.devops.WotValidationConfig;
 
 /**
  * {@link MappingStrategies} for the Things service containing all {@link Jsonifiable} types known to Things.
@@ -66,6 +67,7 @@ public final class ThingsMappingStrategies extends MappingStrategies {
         return MappingStrategiesBuilder.newInstance()
                 .add(Thing.class, jsonObject -> ThingsModelFactory.newThing(jsonObject)) // do not replace with lambda
                 .add(PolicyTag.class, PolicyTag::fromJson)
+                .add(WotValidationConfig.class, WotValidationConfig::fromJson)
                 .putAll(GlobalMappingStrategies.getInstance())
                 .build();
     }

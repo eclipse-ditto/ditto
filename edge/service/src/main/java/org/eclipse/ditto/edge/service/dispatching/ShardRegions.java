@@ -28,6 +28,7 @@ public final class ShardRegions {
 
     private static final String THINGS_CLUSTER_ROLE = "things";
     private static final String THINGS_SHARD_REGION = "thing";
+    private static final String WOT_VALIDATION_CONFIG_SHARD_REGION = "wot-validation-config";
 
     private static final String SEARCH_CLUSTER_ROLE = "things-search";
     private static final String SEARCH_SHARD_REGION = "search-updater";
@@ -38,6 +39,7 @@ public final class ShardRegions {
     private final ShardRegionProxyActorFactory shardRegionProxyActorFactory;
     private final ActorRef policies;
     private final ActorRef things;
+    private final ActorRef wotValidationConfig;
     private final ActorRef connections;
     private final ActorRef search;
 
@@ -45,6 +47,7 @@ public final class ShardRegions {
         this.shardRegionProxyActorFactory = shardRegionProxyActorFactory;
         policies = startShardRegionProxy(POLICIES_CLUSTER_ROLE, POLICIES_SHARD_REGION);
         things = startShardRegionProxy(THINGS_CLUSTER_ROLE, THINGS_SHARD_REGION);
+        wotValidationConfig = startShardRegionProxy(THINGS_CLUSTER_ROLE, WOT_VALIDATION_CONFIG_SHARD_REGION);
         connections = startShardRegionProxy(CONNECTIVITY_CLUSTER_ROLE, CONNECTIVITY_SHARD_REGION);
         search = startShardRegionProxy(SEARCH_CLUSTER_ROLE, SEARCH_SHARD_REGION);
     }
@@ -81,6 +84,15 @@ public final class ShardRegions {
      */
     public ActorRef things() {
         return things;
+    }
+
+    /**
+     * Return the WoT validation config's shard region proxy.
+     *
+     * @return WoT validation config shard region proxy.
+     */
+    public ActorRef wotValidationConfig() {
+        return wotValidationConfig;
     }
 
     /**

@@ -1,0 +1,46 @@
+# Copyright (c) 2025 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+
+type: object
+description: Response body for a WoT validation config.
+properties:
+  configId:
+    type: string
+  enabled:
+    type: boolean
+  logWarning:
+    type: boolean
+  thing:
+    $ref: 'thingValidationConfig.yml'
+  feature:
+    $ref: 'featureValidationConfig.yml'
+  dynamicConfig:
+    type: array
+    items:
+      $ref: 'dynamicValidationConfigResponse.yml'
+  revision:
+    type: integer
+    format: int64
+  created:
+    type: string
+    format: date-time
+  modified:
+    type: string
+    format: date-time
+  deleted:
+    type: boolean
+  metadata:
+    type: object
+required:
+  - configId
+  - enabled
+  - thing
+  - feature 
