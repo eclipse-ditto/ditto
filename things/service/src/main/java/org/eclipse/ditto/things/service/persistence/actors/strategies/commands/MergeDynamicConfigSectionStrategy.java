@@ -32,7 +32,8 @@ import org.eclipse.ditto.things.model.devops.commands.MergeDynamicConfigSection;
 import org.eclipse.ditto.things.model.devops.commands.ModifyWotValidationConfigResponse;
 import org.eclipse.ditto.things.model.devops.events.DynamicConfigSectionMerged;
 import org.eclipse.ditto.things.model.devops.events.WotValidationConfigEvent;
-import org.eclipse.ditto.things.model.signals.commands.exceptions.WotValidationConfigNotAccessibleException;
+import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigNotAccessibleException;
+import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigRunTimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

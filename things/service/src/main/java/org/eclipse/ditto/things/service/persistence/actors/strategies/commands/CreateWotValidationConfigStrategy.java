@@ -24,8 +24,8 @@ import org.eclipse.ditto.things.model.devops.WotValidationConfigRevision;
 import org.eclipse.ditto.things.model.devops.commands.CreateWotValidationConfig;
 import org.eclipse.ditto.things.model.devops.commands.CreateWotValidationConfigResponse;
 import org.eclipse.ditto.things.model.devops.events.WotValidationConfigCreated;
-import org.eclipse.ditto.things.model.signals.commands.exceptions.WotValidationConfigNotAccessibleException;
 import org.eclipse.ditto.things.model.devops.events.WotValidationConfigEvent;
+import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigRunTimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,7 +68,7 @@ final class CreateWotValidationConfigStrategy extends AbstractWotValidationConfi
         if (entity != null) {
             LOGGER.warn("WoT validation config already exists for id: {}", command.getEntityId());
             return ResultFactory.newErrorResult(
-                    WotValidationConfigNotAccessibleException.newBuilder(command.getEntityId())
+                    WotValidationConfigRunTimeException.newBuilder()
                             .description("WoT validation config already exists")
                             .dittoHeaders(dittoHeaders)
                             .build(),
@@ -80,8 +80,8 @@ final class CreateWotValidationConfigStrategy extends AbstractWotValidationConfi
 
         final WotValidationConfig configWithRevision = WotValidationConfig.of(
                 command.getEntityId(),
-                newConfig.isEnabled().orElse(false),
-                newConfig.logWarningInsteadOfFailingApiCalls().orElse(false),
+                newConfig.isEnabled().orElse(null),
+                newConfig.logWarningInsteadOfFailingApiCalls().orElse(null),
                 newConfig.getThingConfig().orElse(null),
                 newConfig.getFeatureConfig().orElse(null),
                 newConfig.getDynamicConfigs(),

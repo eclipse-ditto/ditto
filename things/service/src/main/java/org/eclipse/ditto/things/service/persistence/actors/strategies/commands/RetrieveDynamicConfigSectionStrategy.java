@@ -30,7 +30,8 @@ import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
 import org.eclipse.ditto.things.model.devops.commands.RetrieveDynamicConfigSection;
 import org.eclipse.ditto.things.model.devops.commands.RetrieveDynamicConfigSectionResponse;
 import org.eclipse.ditto.things.model.devops.events.WotValidationConfigEvent;
-import org.eclipse.ditto.things.model.signals.commands.exceptions.WotValidationConfigNotAccessibleException;
+import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigNotAccessibleException;
+import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigRunTimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,7 +85,7 @@ final class RetrieveDynamicConfigSectionStrategy
 
         if (entity == null) {
             return ResultFactory.newErrorResult(
-                    WotValidationConfigNotAccessibleException.newBuilderForScope(scopeId)
+                    WotValidationConfigNotAccessibleException.newBuilder(command.getEntityId())
                             .description("No WoT validation config found")
                             .dittoHeaders(dittoHeaders)
                             .build(),

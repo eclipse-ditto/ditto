@@ -33,7 +33,8 @@ import org.eclipse.ditto.things.model.devops.commands.DeleteDynamicConfigSection
 import org.eclipse.ditto.things.model.devops.commands.DeleteWotValidationConfigResponse;
 import org.eclipse.ditto.things.model.devops.events.DynamicConfigSectionDeleted;
 import org.eclipse.ditto.things.model.devops.events.WotValidationConfigEvent;
-import org.eclipse.ditto.things.model.signals.commands.exceptions.WotValidationConfigNotAccessibleException;
+import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigNotAccessibleException;
+import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigRunTimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -118,7 +119,7 @@ final class DeleteDynamicConfigSectionStrategy extends AbstractWotValidationConf
             final String errorMessage = "Dynamic config section not found for scope: " + scopeId;
             LOGGER.error(errorMessage);
             return ResultFactory.newErrorResult(
-                    WotValidationConfigNotAccessibleException.newBuilder(command.getEntityId())
+                    WotValidationConfigNotAccessibleException.newBuilderForScope(scopeId)
                             .description(errorMessage)
                             .dittoHeaders(dittoHeaders)
                             .build(),
@@ -161,7 +162,7 @@ final class DeleteDynamicConfigSectionStrategy extends AbstractWotValidationConf
             final String errorMessage = "Failed to update WoT validation config: " + e.getMessage();
             LOGGER.error(errorMessage, e);
             return ResultFactory.newErrorResult(
-                    WotValidationConfigNotAccessibleException.newBuilder(command.getEntityId())
+                    WotValidationConfigRunTimeException.newBuilder()
                             .description(errorMessage)
                             .dittoHeaders(dittoHeaders)
                             .build(),
