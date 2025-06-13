@@ -12,6 +12,15 @@
  */
 package org.eclipse.ditto.things.model.devops.events;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
+import java.time.Instant;
+import java.util.Objects;
+import java.util.function.Predicate;
+
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
@@ -28,15 +37,6 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
 import org.eclipse.ditto.things.model.devops.commands.WotValidationConfigCommand;
-
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
-
-import java.time.Instant;
-import java.util.Objects;
-import java.util.function.Predicate;
-
-import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 /**
  * Event that is emitted after a dynamic config section was deleted from a WoT validation config.
@@ -58,11 +58,7 @@ public final class DynamicConfigSectionDeleted extends AbstractWotValidationConf
      */
     public static final String NAME = "dynamicConfigSectionDeleted";
 
-    /**
-     * The full type identifier for this event, including the prefix.
-     *
-     */
-    public static final String TYPE = WotValidationConfigCommand.TYPE_PREFIX + NAME;
+    private static final String TYPE = TYPE_PREFIX + NAME;
 
     private final JsonPointer sectionPointer;
     private final String scopeId;
@@ -158,11 +154,6 @@ public final class DynamicConfigSectionDeleted extends AbstractWotValidationConf
         return this;
     }
 
-    @Override
-    public JsonSchemaVersion[] getSupportedSchemaVersions() {
-        return new JsonSchemaVersion[]{JsonSchemaVersion.V_2};
-    }
-
     private void checkSchemaVersion() {
         final JsonSchemaVersion implementedSchemaVersion = getImplementedSchemaVersion();
         if (!implementsSchemaVersion(implementedSchemaVersion)) {
@@ -199,7 +190,8 @@ public final class DynamicConfigSectionDeleted extends AbstractWotValidationConf
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [" + super.toString() +
+        return getClass().getSimpleName() + " [" +
+                super.toString() +
                 ", sectionPointer=" + sectionPointer +
                 ", scopeId=" + scopeId +
                 "]";
@@ -209,17 +201,18 @@ public final class DynamicConfigSectionDeleted extends AbstractWotValidationConf
      * Contains the JSON field definitions for this event.
      */
     public static final class JsonFields {
-        private JsonFields() {}
+        private JsonFields() {
+            throw new AssertionError();
+        }
+
         /**
          * The JSON field for the section pointer.
-         *
          */
         public static final JsonFieldDefinition<String> SECTION_POINTER =
                 JsonFactory.newStringFieldDefinition("sectionPointer", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * The JSON field for the scope ID.
-         *
          */
         public static final JsonFieldDefinition<String> SCOPE_ID =
                 JsonFactory.newStringFieldDefinition("scopeId", FieldType.REGULAR, JsonSchemaVersion.V_2);

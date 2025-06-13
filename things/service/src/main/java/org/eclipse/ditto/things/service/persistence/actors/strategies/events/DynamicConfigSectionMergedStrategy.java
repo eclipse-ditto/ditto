@@ -34,17 +34,14 @@ import org.eclipse.ditto.things.model.devops.events.DynamicConfigSectionMerged;
  * @since 3.8.0
  */
 @Immutable
-final class DynamicConfigSectionMergedStrategy implements EventStrategy<DynamicConfigSectionMerged, WotValidationConfig> {
-
-    DynamicConfigSectionMergedStrategy() {
-        super();
-    }
+final class DynamicConfigSectionMergedStrategy
+        implements EventStrategy<DynamicConfigSectionMerged, WotValidationConfig> {
 
     @Nullable
     @Override
     public WotValidationConfig handle(final DynamicConfigSectionMerged event,
-                                      @Nullable final WotValidationConfig entity,
-                                      final long revision) {
+            @Nullable final WotValidationConfig entity,
+            final long revision) {
         if (entity == null) {
             return null;
         }

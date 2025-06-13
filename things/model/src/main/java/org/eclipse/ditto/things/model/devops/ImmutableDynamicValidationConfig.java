@@ -39,7 +39,6 @@ import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigInval
 @Immutable
 final class ImmutableDynamicValidationConfig implements DynamicValidationConfig {
 
-
     private static final JsonFieldDefinition<String> SCOPE_ID_FIELD =
             JsonFactory.newStringFieldDefinition("scopeId", FieldType.REGULAR, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<JsonObject> VALIDATION_CONTEXT_FIELD =

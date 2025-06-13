@@ -31,12 +31,12 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
 
 /**
  * Abstract base class for all WoT validation configuration events.
  *
+ * @param <T> the type of the implementing class.
  * @since 3.8.0
  */
 @Immutable
@@ -69,11 +69,6 @@ public abstract class AbstractWotValidationConfigEvent<T extends AbstractWotVali
     @Override
     public WotValidationConfigId getEntityId() {
         return configId;
-    }
-
-    @Override
-    public JsonPointer getResourcePath() {
-        return JsonPointer.empty();
     }
 
     @Override
@@ -124,9 +119,14 @@ public abstract class AbstractWotValidationConfigEvent<T extends AbstractWotVali
     }
 
     protected static final class JsonFields {
+
         static final JsonFieldDefinition<String> CONFIG_ID =
                 JsonFactory.newStringFieldDefinition("configId", FieldType.REGULAR, JsonSchemaVersion.V_2);
         static final JsonFieldDefinition<JsonObject> CONFIG =
                 JsonFactory.newJsonObjectFieldDefinition("config", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        private JsonFields() {
+            throw new AssertionError();
+        }
     }
 } 

@@ -15,19 +15,20 @@ package org.eclipse.ditto.things.model.devops.commands;
 import java.util.Objects;
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommand;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
 
 /**
@@ -51,11 +52,7 @@ public final class DeleteDynamicConfigSection extends AbstractWotValidationConfi
      */
     public static final String NAME = "deleteDynamicConfigSection";
 
-    /**
-     * Type of this command.
-     * This is the full type identifier including the prefix.
-     */
-    private static final String TYPE = WotValidationConfigCommand.TYPE_PREFIX + NAME;
+    private static final String TYPE = TYPE_PREFIX + NAME;
 
     /**
      * JSON field definition for the scope ID.
@@ -74,7 +71,8 @@ public final class DeleteDynamicConfigSection extends AbstractWotValidationConfi
      * @param dittoHeaders the headers of the command.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    private DeleteDynamicConfigSection(final WotValidationConfigId configId, final String scopeId, final DittoHeaders dittoHeaders) {
+    private DeleteDynamicConfigSection(final WotValidationConfigId configId, final String scopeId,
+            final DittoHeaders dittoHeaders) {
         super(TYPE, configId, dittoHeaders);
         this.scopeId = Objects.requireNonNull(scopeId, "scopeId");
     }
@@ -88,7 +86,8 @@ public final class DeleteDynamicConfigSection extends AbstractWotValidationConfi
      * @return the new instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static DeleteDynamicConfigSection of(final WotValidationConfigId configId, final String scopeId, final DittoHeaders dittoHeaders) {
+    public static DeleteDynamicConfigSection of(final WotValidationConfigId configId, final String scopeId,
+            final DittoHeaders dittoHeaders) {
         return new DeleteDynamicConfigSection(configId, scopeId, dittoHeaders);
     }
 
@@ -122,25 +121,21 @@ public final class DeleteDynamicConfigSection extends AbstractWotValidationConfi
     }
 
     @Override
-    public String getTypePrefix() {
-        return WotValidationConfigCommand.TYPE_PREFIX;
-    }
-
-    @Override
     public DeleteDynamicConfigSection setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(getEntityId(), scopeId, dittoHeaders);
     }
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
-                                 final Predicate<JsonField> predicate) {
-        super.appendPayload(jsonObjectBuilder, schemaVersion, predicate);
+            final Predicate<JsonField> thePredicate) {
+        super.appendPayload(jsonObjectBuilder, schemaVersion, thePredicate);
+        final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(SCOPE_ID, scopeId, predicate);
     }
 
     @Override
     public JsonPointer getResourcePath() {
-        return JsonPointer.of("/dynamicConfig/" + scopeId);
+        return JsonPointer.of("/dynamicConfigs/" + scopeId);
     }
 
     @Override
@@ -149,12 +144,23 @@ public final class DeleteDynamicConfigSection extends AbstractWotValidationConfi
     }
 
     @Override
-    public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
+    public boolean equals(@Nullable final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
         final DeleteDynamicConfigSection that = (DeleteDynamicConfigSection) o;
         return Objects.equals(scopeId, that.scopeId);
+    }
+
+    @Override
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof DeleteDynamicConfigSection;
     }
 
     @Override

@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors.strategies.events;
 
-import javax.annotation.concurrent.Immutable;
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.things.model.devops.WotValidationConfig;
@@ -23,8 +23,10 @@ import org.eclipse.ditto.things.model.devops.events.WotValidationConfigDeleted;
  * This strategy handles the {@link WotValidationConfigDeleted} event.
  */
 @Immutable
-final class WotValidationConfigDeletedStrategy implements EventStrategy<WotValidationConfigDeleted, WotValidationConfig> {
+final class WotValidationConfigDeletedStrategy
+        implements EventStrategy<WotValidationConfigDeleted, WotValidationConfig> {
 
+    @Nullable
     @Override
     public WotValidationConfig handle(final WotValidationConfigDeleted event,
             @Nullable final WotValidationConfig config,

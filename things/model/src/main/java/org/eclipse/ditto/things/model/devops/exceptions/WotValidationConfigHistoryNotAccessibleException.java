@@ -30,6 +30,8 @@ import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
 
 /**
  * Thrown if the history of a WoT validation config was not accessible.
+ *
+ * @since 3.8.0
  */
 @Immutable
 @JsonParsableException(errorCode = WotValidationConfigHistoryNotAccessibleException.ERROR_CODE)

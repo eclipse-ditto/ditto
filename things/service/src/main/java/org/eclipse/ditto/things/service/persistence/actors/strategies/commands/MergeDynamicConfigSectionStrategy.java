@@ -12,29 +12,29 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
-import org.eclipse.ditto.base.model.entity.metadata.Metadata;
-import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
-import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
-import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
-import org.eclipse.ditto.things.model.devops.WotValidationConfig;
-import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
-import org.eclipse.ditto.things.model.devops.commands.MergeDynamicConfigSection;
-import org.eclipse.ditto.things.model.devops.DynamicValidationConfig;
-import org.eclipse.ditto.things.model.devops.commands.ModifyWotValidationConfigResponse;
-import org.eclipse.ditto.things.model.devops.events.WotValidationConfigEvent;
-import org.eclipse.ditto.things.model.signals.commands.exceptions.WotValidationConfigNotAccessibleException;
-import org.eclipse.ditto.things.model.devops.events.DynamicConfigSectionMerged;
-import org.eclipse.ditto.json.JsonPointer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
+
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
+
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.things.model.devops.DynamicValidationConfig;
+import org.eclipse.ditto.things.model.devops.WotValidationConfig;
+import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
+import org.eclipse.ditto.things.model.devops.commands.MergeDynamicConfigSection;
+import org.eclipse.ditto.things.model.devops.commands.ModifyWotValidationConfigResponse;
+import org.eclipse.ditto.things.model.devops.events.DynamicConfigSectionMerged;
+import org.eclipse.ditto.things.model.devops.events.WotValidationConfigEvent;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.WotValidationConfigNotAccessibleException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Command strategy for handling {@link MergeDynamicConfigSection} commands.
@@ -140,7 +140,6 @@ final class MergeDynamicConfigSectionStrategy
 
         final ModifyWotValidationConfigResponse response = ModifyWotValidationConfigResponse.modified(
                 command.getEntityId(),
-                updatedEntity,
                 createCommandResponseDittoHeaders(command.getDittoHeaders(), nextRevision)
         );
         return ResultFactory.newMutationResult(command, event, response, false, false);

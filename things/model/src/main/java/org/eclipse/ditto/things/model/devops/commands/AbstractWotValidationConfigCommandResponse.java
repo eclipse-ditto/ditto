@@ -15,6 +15,7 @@ package org.eclipse.ditto.things.model.devops.commands;
 import java.util.Objects;
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
@@ -23,19 +24,18 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.things.model.devops.WithWotValidationConfigId;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
 
 /**
  * Abstract base class for WoT validation config command responses.
  *
  * @param <T> the type of the implementing class.
- *
  * @since 3.8.0
  */
 @Immutable
 abstract class AbstractWotValidationConfigCommandResponse<T extends AbstractWotValidationConfigCommandResponse<T>>
-        extends AbstractCommandResponse<T> implements WotValidationConfigCommandResponse<T> {
+        extends AbstractCommandResponse<T> implements WotValidationConfigCommandResponse<T>, WithWotValidationConfigId {
 
     protected final WotValidationConfigId configId;
 
@@ -66,14 +66,20 @@ abstract class AbstractWotValidationConfigCommandResponse<T extends AbstractWotV
     }
 
     @Override
-    public JsonPointer getResourcePath() {
-        return JsonPointer.empty();
+    public WotValidationConfigId getEntityId() {
+        return configId;
+    }
+
+    @Override
+    public String getResourceType() {
+        return WotValidationConfigCommandResponse.RESOURCE_TYPE;
     }
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
             final JsonSchemaVersion schemaVersion,
-            final Predicate<JsonField> predicate) {
+            final Predicate<JsonField> thePredicate) {
+        final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(WotValidationConfigCommand.JsonFields.CONFIG_ID, configId.toString(), predicate);
     }
 
@@ -95,6 +101,11 @@ abstract class AbstractWotValidationConfigCommandResponse<T extends AbstractWotV
         }
         final AbstractWotValidationConfigCommandResponse<?> that = (AbstractWotValidationConfigCommandResponse<?>) o;
         return Objects.equals(configId, that.configId);
+    }
+
+    @Override
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof AbstractWotValidationConfigCommandResponse;
     }
 
     @Override

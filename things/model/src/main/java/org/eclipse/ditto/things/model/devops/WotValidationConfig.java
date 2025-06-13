@@ -12,16 +12,16 @@
  */
 package org.eclipse.ditto.things.model.devops;
 
-import org.eclipse.ditto.base.model.entity.Entity;
-import org.eclipse.ditto.base.model.entity.metadata.Metadata;
-import org.eclipse.ditto.json.JsonObject;
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
+import org.eclipse.ditto.base.model.entity.Entity;
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Public API for a WoT (Web of Things) validation configuration.
@@ -35,6 +35,7 @@ import java.util.Optional;
  */
 @Immutable
 public interface WotValidationConfig extends Entity<WotValidationConfigRevision> {
+
     /**
      * Gets the unique identifier of this configuration.
      *

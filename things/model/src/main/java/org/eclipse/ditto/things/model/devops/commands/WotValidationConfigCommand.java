@@ -19,9 +19,7 @@ import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
-import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
-import org.eclipse.ditto.things.model.signals.commands.exceptions.WotValidationConfigNotAccessibleException;
+import org.eclipse.ditto.things.model.devops.WithWotValidationConfigId;
 
 /**
  * Base interface for all commands which are handled by the WoT validation config persistence.
@@ -29,7 +27,8 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.WotValidationC
  * @param <T> the type of the implementing class.
  * @since 3.8.0
  */
-public interface WotValidationConfigCommand<T extends WotValidationConfigCommand<T>> extends Command<T> {
+public interface WotValidationConfigCommand<T extends WotValidationConfigCommand<T>> extends Command<T>,
+        WithWotValidationConfigId {
 
     /**
      * Type Prefix of WoT validation config commands.
@@ -64,25 +63,6 @@ public interface WotValidationConfigCommand<T extends WotValidationConfigCommand
             throw new AssertionError();
         }
     }
-
-    /**
-     * Returns an error response indicating that the command is not applicable.
-     *
-     * @return the error response.
-     */
-    default ThingErrorResponse getNotApplicableErrorResponse() {
-        return ThingErrorResponse.of(WotValidationConfigNotAccessibleException
-                .newBuilder(getEntityId())
-                .dittoHeaders(getDittoHeaders())
-                .build());
-    }
-
-    /**
-     * Returns the ID of the WoT validation config.
-     *
-     * @return the ID.
-     */
-    WotValidationConfigId getEntityId();
 
     /**
      * Returns the entity type of the WoT validation config.

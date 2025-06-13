@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.things.model.devops.commands;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -32,7 +33,8 @@ import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
  */
 @Immutable
 @JsonParsableCommand(typePrefix = WotValidationConfigCommand.TYPE_PREFIX, name = RetrieveAllDynamicConfigSections.NAME)
-public final class RetrieveAllDynamicConfigSections extends AbstractWotValidationConfigCommand<RetrieveAllDynamicConfigSections>
+public final class RetrieveAllDynamicConfigSections
+        extends AbstractWotValidationConfigCommand<RetrieveAllDynamicConfigSections>
         implements WotValidationConfigCommand<RetrieveAllDynamicConfigSections> {
 
     /**
@@ -41,11 +43,7 @@ public final class RetrieveAllDynamicConfigSections extends AbstractWotValidatio
      */
     public static final String NAME = "retrieveAllDynamicConfigSections";
 
-    /**
-     * Type of this command.
-     * This is the full type identifier including the prefix.
-     */
-    private static final String TYPE = WotValidationConfigCommand.TYPE_PREFIX + NAME;
+    private static final String TYPE = TYPE_PREFIX + NAME;
 
     /**
      * Constructs a new {@code RetrieveAllDynamicConfigSections} command.
@@ -66,7 +64,8 @@ public final class RetrieveAllDynamicConfigSections extends AbstractWotValidatio
      * @return the new instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveAllDynamicConfigSections of(final WotValidationConfigId configId, final DittoHeaders dittoHeaders) {
+    public static RetrieveAllDynamicConfigSections of(final WotValidationConfigId configId,
+            final DittoHeaders dittoHeaders) {
         return new RetrieveAllDynamicConfigSections(configId, dittoHeaders);
     }
 
@@ -81,14 +80,10 @@ public final class RetrieveAllDynamicConfigSections extends AbstractWotValidatio
      * @param dittoHeaders the headers of the command.
      * @return the new instance.
      */
-    public static RetrieveAllDynamicConfigSections fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+    public static RetrieveAllDynamicConfigSections fromJson(final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
         final String configIdString = jsonObject.getValueOrThrow(WotValidationConfigCommand.JsonFields.CONFIG_ID);
         return of(WotValidationConfigId.of(configIdString), dittoHeaders);
-    }
-
-    @Override
-    public String getTypePrefix() {
-        return WotValidationConfigCommand.TYPE_PREFIX;
     }
 
     @Override
@@ -98,7 +93,7 @@ public final class RetrieveAllDynamicConfigSections extends AbstractWotValidatio
 
     @Override
     public JsonPointer getResourcePath() {
-        return JsonPointer.empty();
+        return JsonPointer.of("/dynamicConfigs");
     }
 
     @Override
@@ -109,6 +104,11 @@ public final class RetrieveAllDynamicConfigSections extends AbstractWotValidatio
     @Override
     public boolean equals(final Object o) {
         return super.equals(o);
+    }
+
+    @Override
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof RetrieveAllDynamicConfigSections;
     }
 
     @Override

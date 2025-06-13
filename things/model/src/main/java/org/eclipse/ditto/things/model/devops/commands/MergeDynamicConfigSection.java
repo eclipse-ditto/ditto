@@ -12,9 +12,12 @@
  */
 package org.eclipse.ditto.things.model.devops.commands;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.util.Objects;
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -32,10 +35,7 @@ import org.eclipse.ditto.things.model.devops.DynamicValidationConfig;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
 import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigInvalidException;
 
-import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
-
 /**
- *
  * Command to merge a single dynamic config section in the WoT validation config.
  * <p>
  * This command is used to merge (create or update) a specific dynamic validation config section, identified by its scope ID,
@@ -49,11 +49,21 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 public final class MergeDynamicConfigSection extends AbstractWotValidationConfigCommand<MergeDynamicConfigSection>
         implements WotValidationConfigCommand<MergeDynamicConfigSection> {
 
+    /**
+     * Name of this command.
+     */
     public static final String NAME = "mergeDynamicConfigSection";
-    private static final String TYPE = WotValidationConfigCommand.TYPE_PREFIX + NAME;
+
+    private static final String TYPE = TYPE_PREFIX + NAME;
 
     private static final JsonFieldDefinition<String> SCOPE_ID =
             JsonFactory.newStringFieldDefinition("scopeId", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    private static final JsonFieldDefinition<JsonObject> VALIDATION_CONTEXT =
+            JsonFactory.newJsonObjectFieldDefinition("validationContext", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    private static final JsonFieldDefinition<JsonObject> CONFIG_OVERRIDES =
+            JsonFactory.newJsonObjectFieldDefinition("configOverrides", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final String scopeId;
     private final DynamicValidationConfig dynamicConfigSection;
@@ -67,6 +77,16 @@ public final class MergeDynamicConfigSection extends AbstractWotValidationConfig
         this.dynamicConfigSection = Objects.requireNonNull(dynamicConfigSection, "dynamicConfigSection");
     }
 
+    /**
+     * Creates a new {@code MergeDynamicConfigSection} command.
+     *
+     * @param configId the ID of the config to modify.
+     * @param scopeId the dynamic config scope identifier
+     * @param dynamicConfigSection the dynamic config validation config section
+     * @param dittoHeaders the headers of the command.
+     * @return a new command for modifying the WoT validation config.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
     public static MergeDynamicConfigSection of(final WotValidationConfigId configId,
             final String scopeId,
             final DynamicValidationConfig dynamicConfigSection,
@@ -78,12 +98,11 @@ public final class MergeDynamicConfigSection extends AbstractWotValidationConfig
 
     private static void ensureScopeIdMatches(String scopeId, DynamicValidationConfig dynamicConfigSection) {
         if (!dynamicConfigSection.getScopeId().equals(scopeId)) {
-            throw WotValidationConfigInvalidException.newBuilder("The scopeId in the thing JSON is not equal to the scopeId in the topic path.")
+            throw WotValidationConfigInvalidException.newBuilder(
+                            "The scopeId in the thing JSON is not equal to the scopeId in the topic path.")
                     .build();
-
         }
     }
-
 
     /**
      * Creates a new {@code MergeDynamicConfigSection} command from a JSON object.
@@ -103,26 +122,26 @@ public final class MergeDynamicConfigSection extends AbstractWotValidationConfig
         final String configIdString = jsonObject.getValueOrThrow(WotValidationConfigCommand.JsonFields.CONFIG_ID);
         final String scopeId = jsonObject.getValueOrThrow(SCOPE_ID);
         final JsonObject dynamicConfigJson = JsonObject.newBuilder()
-                .set("scopeId", scopeId)
-                .set("validationContext", jsonObject.getValue("validationContext").orElse(null))
-                .set("configOverrides", jsonObject.getValue("configOverrides").orElse(null))
+                .set(SCOPE_ID, scopeId)
+                .set(VALIDATION_CONTEXT, jsonObject.getValueOrThrow(VALIDATION_CONTEXT))
+                .set(CONFIG_OVERRIDES, jsonObject.getValueOrThrow(CONFIG_OVERRIDES))
                 .build();
-        final DynamicValidationConfig dynamicConfigSection =
-                DynamicValidationConfig.fromJson(dynamicConfigJson);
+        final DynamicValidationConfig dynamicConfigSection = DynamicValidationConfig.fromJson(dynamicConfigJson);
         return of(WotValidationConfigId.of(configIdString), scopeId, dynamicConfigSection, dittoHeaders);
     }
 
+    /**
+     * @return the dynamic config scope identifier
+     */
     public String getScopeId() {
         return scopeId;
     }
 
+    /**
+     * @return the dynamic config validation config section
+     */
     public DynamicValidationConfig getDynamicConfigSection() {
         return dynamicConfigSection;
-    }
-
-    @Override
-    public String getTypePrefix() {
-        return WotValidationConfigCommand.TYPE_PREFIX;
     }
 
     @Override
@@ -132,24 +151,48 @@ public final class MergeDynamicConfigSection extends AbstractWotValidationConfig
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
-            final Predicate<JsonField> predicate) {
-        super.appendPayload(jsonObjectBuilder, schemaVersion, predicate);
+            final Predicate<JsonField> thePredicate) {
+        super.appendPayload(jsonObjectBuilder, schemaVersion, thePredicate);
+        final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(SCOPE_ID, getScopeId(), predicate);
-        if(dynamicConfigSection.getValidationContext().isPresent()){
-            jsonObjectBuilder.set("validationContext", dynamicConfigSection.getValidationContext().get().toJson(), predicate);
-        }
-        if(dynamicConfigSection.getConfigOverrides().isPresent()) {
-            jsonObjectBuilder.set("configOverrides", dynamicConfigSection.getConfigOverrides().get().toJson(), predicate);
-        }
+        dynamicConfigSection.getValidationContext()
+                .ifPresent(validationContext ->
+                        jsonObjectBuilder.set(VALIDATION_CONTEXT, validationContext.toJson(), predicate)
+                );
+        dynamicConfigSection.getConfigOverrides()
+                .ifPresent(configOverrides ->
+                        jsonObjectBuilder.set(CONFIG_OVERRIDES, configOverrides.toJson(), predicate)
+                );
     }
 
     @Override
-    public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
+    public JsonPointer getResourcePath() {
+        return JsonPointer.of("/dynamicConfigs/" + scopeId);
+    }
+
+    @Override
+    public Command.Category getCategory() {
+        return Command.Category.MERGE;
+    }
+
+    @Override
+    public boolean equals(@Nullable final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
         final MergeDynamicConfigSection that = (MergeDynamicConfigSection) o;
         return Objects.equals(scopeId, that.scopeId) && Objects.equals(dynamicConfigSection, that.dynamicConfigSection);
+    }
+
+    @Override
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof MergeDynamicConfigSection;
     }
 
     @Override
@@ -164,15 +207,5 @@ public final class MergeDynamicConfigSection extends AbstractWotValidationConfig
                 ", scopeId=" + scopeId +
                 ", dynamicConfigSection=" + dynamicConfigSection +
                 "]";
-    }
-
-    @Override
-    public JsonPointer getResourcePath() {
-        return JsonPointer.of("/dynamicConfig/" + scopeId);
-    }
-
-    @Override
-    public Command.Category getCategory() {
-        return Command.Category.MERGE;
     }
 } 

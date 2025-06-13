@@ -12,6 +12,13 @@
  */
 package org.eclipse.ditto.things.model.devops.exceptions;
 
+import java.net.URI;
+import java.text.MessageFormat;
+
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
@@ -19,20 +26,15 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
 import org.eclipse.ditto.json.JsonObject;
 
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
-import javax.annotation.concurrent.NotThreadSafe;
-
-import java.net.URI;
-import java.text.MessageFormat;
-
 /**
  * Thrown when validating a precondition header fails on a WoT validation config.
+ *
  * @since 3.8.0
  */
 @Immutable
 @JsonParsableException(errorCode = WotValidationConfigPreconditionFailedException.ERROR_CODE)
-public final class WotValidationConfigPreconditionFailedException extends DittoRuntimeException implements WotValidationConfigException {
+public final class WotValidationConfigPreconditionFailedException extends DittoRuntimeException
+        implements WotValidationConfigException {
 
     /**
      * Error code of this exception.
@@ -41,17 +43,17 @@ public final class WotValidationConfigPreconditionFailedException extends DittoR
 
     private static final String MESSAGE_TEMPLATE =
             "The comparison of precondition header ''{0}'' for the requested WoT validation config resource evaluated to false." +
-            " Header value: ''{1}'', actual entity-tag: ''{2}''.";
+                    " Header value: ''{1}'', actual entity-tag: ''{2}''.";
 
     private static final String DEFAULT_DESCRIPTION = "The comparison of the provided precondition header with the " +
             "current ETag value of the requested WoT validation config resource evaluated to false. Check the value of your " +
             "conditional header value.";
 
     private WotValidationConfigPreconditionFailedException(final DittoHeaders dittoHeaders,
-                                                           @Nullable final String message,
-                                                           @Nullable final String description,
-                                                           @Nullable final Throwable cause,
-                                                           @Nullable final URI href) {
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatus.PRECONDITION_FAILED, dittoHeaders, message, description, cause, href);
     }
 

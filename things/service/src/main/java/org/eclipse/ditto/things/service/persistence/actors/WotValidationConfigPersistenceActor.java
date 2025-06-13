@@ -14,6 +14,8 @@ package org.eclipse.ditto.things.service.persistence.actors;
 
 import java.time.Instant;
 
+import javax.annotation.Nullable;
+
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.Props;
 import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
@@ -23,23 +25,23 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultActivityCheckConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultSnapshotConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceActor;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.things.model.devops.WotValidationConfig;
-import org.eclipse.ditto.things.model.devops.events.WotValidationConfigEvent;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
+import org.eclipse.ditto.things.model.devops.events.WotValidationConfigEvent;
+import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigHistoryNotAccessibleException;
+import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigNotAccessibleException;
 import org.eclipse.ditto.things.service.persistence.actors.strategies.commands.WotValidationConfigCommandStrategies;
 import org.eclipse.ditto.things.service.persistence.actors.strategies.commands.WotValidationConfigDData;
 import org.eclipse.ditto.things.service.persistence.actors.strategies.events.WotValidationConfigEventStrategies;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultActivityCheckConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultSnapshotConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
-import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigNotAccessibleException;
-import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigHistoryNotAccessibleException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,7 +56,8 @@ import org.slf4j.LoggerFactory;
  * @since 3.8.0
  */
 public final class WotValidationConfigPersistenceActor
-        extends AbstractPersistenceActor<Command<?>, WotValidationConfig, WotValidationConfigId, WotValidationConfigId, WotValidationConfigEvent<?>> {
+        extends
+        AbstractPersistenceActor<Command<?>, WotValidationConfig, WotValidationConfigId, WotValidationConfigId, WotValidationConfigEvent<?>> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(WotValidationConfigPersistenceActor.class);
 
@@ -73,7 +76,6 @@ public final class WotValidationConfigPersistenceActor
      */
     static final String SNAPSHOT_PLUGIN_ID = "pekko-contrib-mongodb-persistence-wot-validation-config-snapshots";
 
-    private final WotValidationConfigId entityId;
     private final ActorRef pubSubMediator;
     private final DefaultActivityCheckConfig activityCheckConfig;
     private final DefaultSnapshotConfig snapshotConfig;
@@ -81,11 +83,11 @@ public final class WotValidationConfigPersistenceActor
     private final EventStrategy<WotValidationConfigEvent<?>, WotValidationConfig> eventStrategy;
     private final WotValidationConfigCommandStrategies commandStrategies;
 
+    @SuppressWarnings("unused")
     private WotValidationConfigPersistenceActor(final WotValidationConfigId entityId,
             final MongoReadJournal mongoReadJournal,
             final ActorRef pubSubMediator) {
         super(entityId, mongoReadJournal);
-        this.entityId = entityId;
         this.pubSubMediator = pubSubMediator;
 
         final var actorSystem = getContext().getSystem();
@@ -97,7 +99,8 @@ public final class WotValidationConfigPersistenceActor
         this.commandStrategies = WotValidationConfigCommandStrategies.getInstance(actorSystem);
     }
 
-    public static Props props(final WotValidationConfigId entityId, final MongoReadJournal mongoReadJournal, final ActorRef pubSubMediator) {
+    public static Props props(final WotValidationConfigId entityId, final MongoReadJournal mongoReadJournal,
+            final ActorRef pubSubMediator) {
         return Props.create(WotValidationConfigPersistenceActor.class, entityId, mongoReadJournal, pubSubMediator);
     }
 
@@ -162,12 +165,14 @@ public final class WotValidationConfigPersistenceActor
     }
 
     @Override
-    protected DittoRuntimeExceptionBuilder<WotValidationConfigHistoryNotAccessibleException> newHistoryNotAccessibleExceptionBuilder(final long revision) {
+    protected DittoRuntimeExceptionBuilder<WotValidationConfigHistoryNotAccessibleException> newHistoryNotAccessibleExceptionBuilder(
+            final long revision) {
         return WotValidationConfigHistoryNotAccessibleException.newBuilder(entityId, revision);
     }
 
     @Override
-    protected DittoRuntimeExceptionBuilder<WotValidationConfigHistoryNotAccessibleException> newHistoryNotAccessibleExceptionBuilder(final Instant timestamp) {
+    protected DittoRuntimeExceptionBuilder<WotValidationConfigHistoryNotAccessibleException> newHistoryNotAccessibleExceptionBuilder(
+            final Instant timestamp) {
         return WotValidationConfigHistoryNotAccessibleException.newBuilder(entityId, timestamp);
     }
 
@@ -177,7 +182,7 @@ public final class WotValidationConfigPersistenceActor
     }
 
     @Override
-    protected void publishEvent(final WotValidationConfig entity, final WotValidationConfigEvent<?> event) {
+    protected void publishEvent(@Nullable final WotValidationConfig entity, final WotValidationConfigEvent<?> event) {
         final var publish = new DistributedPubSubMediator.Publish(
                 event.getType(),
                 event,
@@ -199,17 +204,20 @@ public final class WotValidationConfigPersistenceActor
     @Override
     protected void recoveryCompleted(final RecoveryCompleted event) {
         super.recoveryCompleted(event);
-        LOGGER.debug("recoveryCompleted called for entityId: {}. Entity: {}", entityId, entity != null ? entity.toString() : null);
+        LOGGER.debug("recoveryCompleted called for entityId: {}. Entity: {}", entityId,
+                entity != null ? entity.toString() : null);
         if (entity != null) {
             LOGGER.debug("Starting DData update for recovered entity: {}", entity.getConfigId());
             ddata.add(entity.toJson())
-                .whenComplete((v, error) -> {
-                    if (error != null) {
-                        LOGGER.error("Failed to publish WoT validation config to DData: {}", error.getMessage(), error);
-                    } else {
-                        LOGGER.debug("Successfully published WoT validation config to DData: {}", entity.getConfigId());
-                    }
-                });
+                    .whenComplete((v, error) -> {
+                        if (error != null) {
+                            LOGGER.error("Failed to publish WoT validation config to DData: {}", error.getMessage(),
+                                    error);
+                        } else {
+                            LOGGER.debug("Successfully published WoT validation config to DData: {}",
+                                    entity.getConfigId());
+                        }
+                    });
         } else {
             LOGGER.info("No WoT validation config to publish to DData after recovery.");
         }

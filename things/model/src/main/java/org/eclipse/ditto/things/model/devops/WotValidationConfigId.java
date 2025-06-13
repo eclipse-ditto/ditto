@@ -29,6 +29,8 @@ import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigInval
 
 /**
  * Java representation of a WoT validation config ID.
+ *
+ * @since 3.8.0
  */
 @Immutable
 @TypedEntityId(type = "wot-validation-config")

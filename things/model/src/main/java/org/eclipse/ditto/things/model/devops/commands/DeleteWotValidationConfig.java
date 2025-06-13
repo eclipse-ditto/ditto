@@ -12,6 +12,9 @@
  */
 package org.eclipse.ditto.things.model.devops.commands;
 
+import java.util.Objects;
+
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -31,7 +34,8 @@ import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
  */
 @Immutable
 @JsonParsableCommand(typePrefix = WotValidationConfigCommand.TYPE_PREFIX, name = DeleteWotValidationConfig.NAME)
-public final class DeleteWotValidationConfig extends AbstractWotValidationConfigCommand<DeleteWotValidationConfig> implements WotValidationConfigCommand<DeleteWotValidationConfig> {
+public final class DeleteWotValidationConfig extends AbstractWotValidationConfigCommand<DeleteWotValidationConfig>
+        implements WotValidationConfigCommand<DeleteWotValidationConfig> {
 
     /**
      * Name of this command.
@@ -39,11 +43,7 @@ public final class DeleteWotValidationConfig extends AbstractWotValidationConfig
      */
     public static final String NAME = "deleteWotValidationConfig";
 
-    /**
-     * Type of this command.
-     * This is the full type identifier including the prefix.
-     */
-    private static final String TYPE = WotValidationConfigCommand.TYPE_PREFIX + NAME;
+    private static final String TYPE = TYPE_PREFIX + NAME;
 
     /**
      * Constructs a new {@code DeleteWotValidationConfig} command.
@@ -91,11 +91,6 @@ public final class DeleteWotValidationConfig extends AbstractWotValidationConfig
     }
 
     @Override
-    public String getTypePrefix() {
-        return WotValidationConfigCommand.TYPE_PREFIX;
-    }
-
-    @Override
     public JsonPointer getResourcePath() {
         return JsonPointer.empty();
     }
@@ -106,17 +101,35 @@ public final class DeleteWotValidationConfig extends AbstractWotValidationConfig
     }
 
     @Override
-    public String getType() {
-        return TYPE;
-    }
-
-    @Override
-    public String getManifest() {
-        return getType();
-    }
-
-    @Override
     public DeleteWotValidationConfig setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(getEntityId(), dittoHeaders);
+    }
+
+    @Override
+    public boolean equals(@Nullable final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        return super.equals(o);
+    }
+
+    @Override
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof DeleteWotValidationConfig;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode());
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                super.toString() +
+                "]";
     }
 }

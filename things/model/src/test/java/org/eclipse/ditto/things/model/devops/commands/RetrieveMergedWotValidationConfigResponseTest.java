@@ -67,8 +67,9 @@ class RetrieveMergedWotValidationConfigResponseTest {
         DittoHeaders headers = DittoHeaders.empty();
         RetrieveMergedWotValidationConfigResponse r1 = RetrieveMergedWotValidationConfigResponse.of(config, headers);
         RetrieveMergedWotValidationConfigResponse r2 = RetrieveMergedWotValidationConfigResponse.of(config, headers);
-        assertThat(r1).isEqualTo(r2);
-        assertThat(r1.hashCode()).isEqualTo(r2.hashCode());
+        assertThat(r1)
+                .isEqualTo(r2)
+                .hasSameHashCodeAs(r2);
     }
 
     @Test

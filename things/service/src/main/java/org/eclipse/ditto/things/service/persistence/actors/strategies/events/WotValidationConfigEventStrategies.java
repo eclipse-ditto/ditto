@@ -17,17 +17,18 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.internal.utils.persistentactors.events.AbstractEventStrategies;
 import org.eclipse.ditto.things.model.devops.WotValidationConfig;
 import org.eclipse.ditto.things.model.devops.events.DynamicConfigSectionDeleted;
-import org.eclipse.ditto.things.model.devops.events.WotValidationConfigEvent;
+import org.eclipse.ditto.things.model.devops.events.DynamicConfigSectionMerged;
 import org.eclipse.ditto.things.model.devops.events.WotValidationConfigCreated;
 import org.eclipse.ditto.things.model.devops.events.WotValidationConfigDeleted;
-import org.eclipse.ditto.things.model.devops.events.DynamicConfigSectionMerged;
+import org.eclipse.ditto.things.model.devops.events.WotValidationConfigEvent;
 import org.eclipse.ditto.things.model.devops.events.WotValidationConfigModified;
 
 /**
  * This Singleton strategy handles all {@link WotValidationConfigEvent}s.
  */
 @Immutable
-public final class WotValidationConfigEventStrategies extends AbstractEventStrategies<WotValidationConfigEvent<?>, WotValidationConfig> {
+public final class WotValidationConfigEventStrategies
+        extends AbstractEventStrategies<WotValidationConfigEvent<?>, WotValidationConfig> {
 
     private static final WotValidationConfigEventStrategies INSTANCE = new WotValidationConfigEventStrategies();
 

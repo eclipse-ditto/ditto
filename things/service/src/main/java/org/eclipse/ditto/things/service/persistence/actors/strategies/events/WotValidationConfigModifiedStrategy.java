@@ -21,12 +21,13 @@ import org.eclipse.ditto.things.model.devops.events.WotValidationConfigModified;
 /**
  * This strategy handles {@link WotValidationConfigModified} events.
  */
-final class WotValidationConfigModifiedStrategy implements EventStrategy<WotValidationConfigModified, WotValidationConfig> {
+final class WotValidationConfigModifiedStrategy
+        implements EventStrategy<WotValidationConfigModified, WotValidationConfig> {
 
     @Override
     public WotValidationConfig handle(final WotValidationConfigModified event,
-                                               @Nullable final WotValidationConfig entity,
-                                               final long revision) {
+            @Nullable final WotValidationConfig entity,
+            final long revision) {
         return event.getConfig();
     }
 } 

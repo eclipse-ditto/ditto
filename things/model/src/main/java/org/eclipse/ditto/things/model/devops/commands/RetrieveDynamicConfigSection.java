@@ -52,11 +52,7 @@ public final class RetrieveDynamicConfigSection extends AbstractWotValidationCon
      */
     public static final String NAME = "retrieveDynamicConfigSection";
 
-    /**
-     * Type of this command.
-     * This is the full type identifier including the prefix.
-     */
-    private static final String TYPE = WotValidationConfigCommand.TYPE_PREFIX + NAME;
+    private static final String TYPE = TYPE_PREFIX + NAME;
 
     /**
      * JSON field definition for the scope ID.
@@ -119,13 +115,21 @@ public final class RetrieveDynamicConfigSection extends AbstractWotValidationCon
         return of(WotValidationConfigId.of(configIdString), scopeId, dittoHeaders);
     }
 
+    /**
+     * @return the dynamic config scope identifier
+     */
     public String getScopeId() {
         return scopeId;
     }
 
     @Override
-    public String getTypePrefix() {
-        return WotValidationConfigCommand.TYPE_PREFIX;
+    public JsonPointer getResourcePath() {
+        return JsonPointer.of("/dynamicConfigs/" + scopeId);
+    }
+
+    @Override
+    public Command.Category getCategory() {
+        return Category.QUERY;
     }
 
     @Override
@@ -135,18 +139,30 @@ public final class RetrieveDynamicConfigSection extends AbstractWotValidationCon
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
-            final Predicate<JsonField> predicate) {
-        super.appendPayload(jsonObjectBuilder, schemaVersion, predicate);
+            final Predicate<JsonField> thePredicate) {
+        super.appendPayload(jsonObjectBuilder, schemaVersion, thePredicate);
+        final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(SCOPE_ID, scopeId, predicate);
     }
 
     @Override
     public boolean equals(@Nullable final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
         final RetrieveDynamicConfigSection that = (RetrieveDynamicConfigSection) o;
         return Objects.equals(scopeId, that.scopeId);
+    }
+
+    @Override
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof RetrieveDynamicConfigSection;
     }
 
     @Override
@@ -162,13 +178,4 @@ public final class RetrieveDynamicConfigSection extends AbstractWotValidationCon
                 "]";
     }
 
-    @Override
-    public JsonPointer getResourcePath() {
-        return JsonPointer.of("/wot/validation/config");
-    }
-
-    @Override
-    public Command.Category getCategory() {
-        return Category.QUERY;
-    }
 }

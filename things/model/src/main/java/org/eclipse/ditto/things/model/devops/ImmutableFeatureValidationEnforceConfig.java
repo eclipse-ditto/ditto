@@ -27,18 +27,18 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 
 /**
  * Immutable value object representing feature-level enforce configuration for WoT validation.
-
  *
  * @since 3.8.0
  */
 @Immutable
 final class ImmutableFeatureValidationEnforceConfig implements FeatureValidationEnforceConfig {
 
-
     private static final JsonFieldDefinition<Boolean> FEATURE_DESCRIPTION_MODIFICATION =
-            JsonFactory.newBooleanFieldDefinition("featureDescriptionModification", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newBooleanFieldDefinition("featureDescriptionModification", FieldType.REGULAR,
+                    JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<Boolean> PRESENCE_OF_MODELED_FEATURES =
-            JsonFactory.newBooleanFieldDefinition("presenceOfModeledFeatures", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newBooleanFieldDefinition("presenceOfModeledFeatures", FieldType.REGULAR,
+                    JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<Boolean> PROPERTIES =
             JsonFactory.newBooleanFieldDefinition("properties", FieldType.REGULAR, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<Boolean> DESIRED_PROPERTIES =

@@ -15,42 +15,47 @@ package org.eclipse.ditto.things.model.devops.commands;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
 import org.junit.jupiter.api.Test;
 
-class RetrieveDynamicConfigsResponseTest {
+class RetrieveDynamicConfigSectionResponseTest {
+
     @Test
     void testConstructionAndGetters() {
         WotValidationConfigId configId = WotValidationConfigId.of("ns:test");
-        JsonArray dynamicConfigs = JsonFactory.newArrayBuilder().add(JsonFactory.newObjectBuilder().set("scopeId", "scope1").build()).build();
+        JsonValue config = JsonFactory.newObjectBuilder().set("enabled", true).build();
         DittoHeaders headers = DittoHeaders.empty();
-        RetrieveDynamicConfigsResponse response = RetrieveDynamicConfigsResponse.of(configId, dynamicConfigs, headers);
+        RetrieveDynamicConfigSectionResponse response =
+                RetrieveDynamicConfigSectionResponse.of(configId, config, headers);
         assertThat(response.getConfigId().equals(configId)).isTrue();
-        assertThat(response.getDynamicConfigs()).isEqualTo(dynamicConfigs);
+        assertThat(response.getValidationConfig()).isEqualTo(config);
+        assertThat(response.getDittoHeaders().get("response-required")).isEqualTo("false");
     }
 
     @Test
     void testEqualsAndHashCode() {
         WotValidationConfigId configId = WotValidationConfigId.of("ns:test");
-        JsonArray dynamicConfigs = JsonFactory.newArrayBuilder().add(JsonFactory.newObjectBuilder().set("scopeId", "scope1").build()).build();
+        JsonValue config = JsonFactory.newObjectBuilder().set("enabled", true).build();
         DittoHeaders headers = DittoHeaders.empty();
-        RetrieveDynamicConfigsResponse r1 = RetrieveDynamicConfigsResponse.of(configId, dynamicConfigs, headers);
-        RetrieveDynamicConfigsResponse r2 = RetrieveDynamicConfigsResponse.of(configId, dynamicConfigs, headers);
-        assertThat(r1).isEqualTo(r2);
-        assertThat(r1.hashCode()).isEqualTo(r2.hashCode());
+        RetrieveDynamicConfigSectionResponse r1 = RetrieveDynamicConfigSectionResponse.of(configId, config, headers);
+        RetrieveDynamicConfigSectionResponse r2 = RetrieveDynamicConfigSectionResponse.of(configId, config, headers);
+        assertThat(r1)
+                .isEqualTo(r2)
+                .hasSameHashCodeAs(r2);
     }
 
     @Test
     void testSerializationDeserialization() {
         WotValidationConfigId configId = WotValidationConfigId.of("ns:test");
-        JsonArray dynamicConfigs = JsonFactory.newArrayBuilder().add(JsonFactory.newObjectBuilder().set("scopeId", "scope1").build()).build();
+        JsonValue config = JsonFactory.newObjectBuilder().set("enabled", true).build();
         DittoHeaders headers = DittoHeaders.empty();
-        RetrieveDynamicConfigsResponse response = RetrieveDynamicConfigsResponse.of(configId, dynamicConfigs, headers);
+        RetrieveDynamicConfigSectionResponse response =
+                RetrieveDynamicConfigSectionResponse.of(configId, config, headers);
         JsonObject json = response.toJson();
-        RetrieveDynamicConfigsResponse fromJson = RetrieveDynamicConfigsResponse.fromJson(json, headers);
+        RetrieveDynamicConfigSectionResponse fromJson = RetrieveDynamicConfigSectionResponse.fromJson(json, headers);
         assertThat(fromJson).isEqualTo(response);
     }
 } 

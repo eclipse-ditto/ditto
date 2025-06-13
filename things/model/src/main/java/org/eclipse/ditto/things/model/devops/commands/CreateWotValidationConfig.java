@@ -18,6 +18,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -44,10 +45,15 @@ import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
 @Immutable
 @JsonParsableCommand(typePrefix = WotValidationConfigCommand.TYPE_PREFIX, name = CreateWotValidationConfig.NAME)
 public final class CreateWotValidationConfig extends AbstractWotValidationConfigCommand<CreateWotValidationConfig>
-        implements WotValidationConfigCommand<CreateWotValidationConfig>, WithOptionalEntity<CreateWotValidationConfig> {
+        implements WotValidationConfigCommand<CreateWotValidationConfig>,
+        WithOptionalEntity<CreateWotValidationConfig> {
 
+    /**
+     * Name of this command.
+     */
     public static final String NAME = "createWotValidationConfig";
-    private static final String TYPE = WotValidationConfigCommand.TYPE_PREFIX + NAME;
+
+    private static final String TYPE = TYPE_PREFIX + NAME;
 
     private final WotValidationConfig validationConfig;
 
@@ -64,7 +70,7 @@ public final class CreateWotValidationConfig extends AbstractWotValidationConfig
             final DittoHeaders dittoHeaders) {
         super(TYPE, configId, dittoHeaders);
         this.validationConfig = checkNotNull(validationConfig, "validationConfig");
-        
+
         if (!validationConfig.getEntityId().isPresent()) {
             throw new IllegalArgumentException("Entity ID must be present");
         }
@@ -117,12 +123,7 @@ public final class CreateWotValidationConfig extends AbstractWotValidationConfig
 
     @Override
     public JsonPointer getResourcePath() {
-        return JsonPointer.of("/wot/validation/config");
-    }
-
-    @Override
-    public String getTypePrefix() {
-        return WotValidationConfigCommand.TYPE_PREFIX;
+        return JsonPointer.empty();
     }
 
     @Override
@@ -144,7 +145,7 @@ public final class CreateWotValidationConfig extends AbstractWotValidationConfig
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
@@ -156,6 +157,11 @@ public final class CreateWotValidationConfig extends AbstractWotValidationConfig
         }
         final CreateWotValidationConfig that = (CreateWotValidationConfig) o;
         return Objects.equals(validationConfig, that.validationConfig);
+    }
+
+    @Override
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof CreateWotValidationConfig;
     }
 
     @Override
@@ -181,6 +187,7 @@ public final class CreateWotValidationConfig extends AbstractWotValidationConfig
     }
 
     private static final class JsonFields {
+
         static final JsonFieldDefinition<JsonObject> VALIDATION_CONFIG =
                 JsonFactory.newJsonObjectFieldDefinition("validationConfig", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);

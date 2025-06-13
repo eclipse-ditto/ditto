@@ -16,6 +16,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
@@ -28,36 +29,27 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.things.model.devops.WithWotValidationConfigId;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
 
 /**
  * Response to a {@link CreateWotValidationConfig} command.
- * since 3.8.0
+ *
+ * @since 3.8.0
  */
 @Immutable
 @JsonParsableCommandResponse(type = CreateWotValidationConfigResponse.TYPE)
-public final class CreateWotValidationConfigResponse extends AbstractWotValidationConfigCommandResponse<CreateWotValidationConfigResponse>
-        implements WithOptionalEntity<CreateWotValidationConfigResponse>, WithWotValidationConfigId {
+public final class CreateWotValidationConfigResponse
+        extends AbstractWotValidationConfigCommandResponse<CreateWotValidationConfigResponse>
+        implements WithOptionalEntity<CreateWotValidationConfigResponse> {
 
-    /**
-     * Name of the response.
-     */
-    public static final String NAME = "createWotValidationConfigResponse";
-
-    /**
-     * Type of this response.
-     */
-    public static final String TYPE = WotValidationConfigCommandResponse.TYPE_PREFIX + NAME;
+    static final String TYPE = TYPE_PREFIX + CreateWotValidationConfig.NAME;
 
     private final JsonValue validationConfig;
-    private final WotValidationConfigId configId;
 
     private CreateWotValidationConfigResponse(final WotValidationConfigId configId, final JsonValue validationConfig,
             final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatus.CREATED, configId, dittoHeaders);
         this.validationConfig = Objects.requireNonNull(validationConfig, "validationConfig");
-        this.configId = configId;
     }
 
     /**
@@ -69,9 +61,26 @@ public final class CreateWotValidationConfigResponse extends AbstractWotValidati
      * @return a new CreateWotValidationConfigResponse.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static CreateWotValidationConfigResponse of(final WotValidationConfigId configId, final JsonValue validationConfig,
+    public static CreateWotValidationConfigResponse of(final WotValidationConfigId configId,
+            final JsonValue validationConfig,
             final DittoHeaders dittoHeaders) {
         return new CreateWotValidationConfigResponse(configId, validationConfig, dittoHeaders);
+    }
+
+    /**
+     * Creates a new {@code CreateWotValidationConfigResponse} from the given JSON object and Ditto headers.
+     *
+     * @param jsonObject the JSON object containing the response data.
+     * @param dittoHeaders the Ditto headers associated with this response.
+     * @return a new CreateWotValidationConfigResponse.
+     */
+    public static CreateWotValidationConfigResponse fromJson(final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
+        final WotValidationConfigId configId =
+                WotValidationConfigId.of(jsonObject.getValueOrThrow(WotValidationConfigCommand.JsonFields.CONFIG_ID));
+        final JsonValue validationConfig =
+                jsonObject.getValueOrThrow(WotValidationConfigCommand.JsonFields.VALIDATION_CONFIG);
+        return of(configId, validationConfig, dittoHeaders);
     }
 
     /**
@@ -99,14 +108,10 @@ public final class CreateWotValidationConfigResponse extends AbstractWotValidati
     }
 
     @Override
-    public String getResourceType() {
-        return WotValidationConfigCommandResponse.RESOURCE_TYPE;
-    }
-
-    @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
-            final Predicate<JsonField> predicate) {
-        super.appendPayload(jsonObjectBuilder, schemaVersion, predicate);
+            final Predicate<JsonField> thePredicate) {
+        super.appendPayload(jsonObjectBuilder, schemaVersion, thePredicate);
+        final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(WotValidationConfigCommand.JsonFields.VALIDATION_CONFIG, validationConfig, predicate);
     }
 
@@ -121,7 +126,7 @@ public final class CreateWotValidationConfigResponse extends AbstractWotValidati
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
@@ -132,25 +137,19 @@ public final class CreateWotValidationConfigResponse extends AbstractWotValidati
             return false;
         }
         final CreateWotValidationConfigResponse that = (CreateWotValidationConfigResponse) o;
-        return Objects.equals(validationConfig, that.validationConfig) &&
-                Objects.equals(configId, that.configId);
-    }
-
-    /**
-     * Creates a new {@code CreateWotValidationConfigResponse} from the given JSON object and Ditto headers.
-     *
-     * @param jsonObject the JSON object containing the response data.
-     * @param dittoHeaders the Ditto headers associated with this response.
-     * @return a new CreateWotValidationConfigResponse.
-     */
-    public static CreateWotValidationConfigResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        final WotValidationConfigId configId = WotValidationConfigId.of(jsonObject.getValueOrThrow(WotValidationConfigCommand.JsonFields.CONFIG_ID));
-        final JsonValue validationConfig = jsonObject.getValueOrThrow(WotValidationConfigCommand.JsonFields.VALIDATION_CONFIG);
-        return of(configId, validationConfig, dittoHeaders);
+        return Objects.equals(validationConfig, that.validationConfig);
     }
 
     @Override
-    public WotValidationConfigId getEntityId() {
-        return configId;
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof CreateWotValidationConfigResponse;
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                super.toString() +
+                ", validationConfig=" + validationConfig +
+                "]";
     }
 }

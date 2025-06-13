@@ -12,25 +12,26 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
+import java.util.Optional;
+
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
-import org.eclipse.ditto.things.model.devops.WotValidationConfig;
-import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
-import org.eclipse.ditto.things.model.devops.commands.RetrieveAllDynamicConfigSections;
-import org.eclipse.ditto.things.model.devops.commands.RetrieveDynamicConfigsResponse;
-import org.eclipse.ditto.things.model.devops.events.WotValidationConfigEvent;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonArrayBuilder;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.things.model.devops.WotValidationConfig;
+import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
+import org.eclipse.ditto.things.model.devops.commands.RetrieveAllDynamicConfigSections;
+import org.eclipse.ditto.things.model.devops.commands.RetrieveAllDynamicConfigSectionsResponse;
+import org.eclipse.ditto.things.model.devops.events.WotValidationConfigEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
-import java.util.Optional;
 
 /**
  * Strategy for handling {@link org.eclipse.ditto.things.model.devops.commands.RetrieveAllDynamicConfigSections} commands.
@@ -89,7 +90,7 @@ final class RetrieveAllDynamicConfigSectionsStrategy extends AbstractWotValidati
         }
         DittoHeaders headersWithRevisionAndEtag = builder.build();
 
-        RetrieveDynamicConfigsResponse response = RetrieveDynamicConfigsResponse.of(
+        RetrieveAllDynamicConfigSectionsResponse response = RetrieveAllDynamicConfigSectionsResponse.of(
                 command.getEntityId(),
                 dynamicConfigs,
                 headersWithRevisionAndEtag);

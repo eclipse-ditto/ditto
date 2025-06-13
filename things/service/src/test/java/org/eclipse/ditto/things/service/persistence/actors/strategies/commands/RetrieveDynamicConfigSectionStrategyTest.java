@@ -44,7 +44,7 @@ import org.eclipse.ditto.things.model.devops.WotValidationConfig;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigRevision;
 import org.eclipse.ditto.things.model.devops.commands.RetrieveDynamicConfigSection;
-import org.eclipse.ditto.things.model.devops.commands.RetrieveWotValidationConfigResponse;
+import org.eclipse.ditto.things.model.devops.commands.RetrieveDynamicConfigSectionResponse;
 import org.eclipse.ditto.things.model.devops.events.WotValidationConfigEvent;
 import org.junit.Before;
 import org.junit.Test;
@@ -69,13 +69,13 @@ public final class RetrieveDynamicConfigSectionStrategyTest {
         MockitoAnnotations.openMocks(this);
         actorSystem = mock(ActorSystem.class);
         context = mock(CommandStrategy.Context.class);
-        
+
         // Set up logger mock
         when(logger.withCorrelationId(any(WithDittoHeaders.class))).thenReturn(logger);
         when(logger.withCorrelationId(any(DittoHeaders.class))).thenReturn(logger);
         when(logger.withCorrelationId(any(CharSequence.class))).thenReturn(logger);
         when(context.getLog()).thenReturn(logger);
-        
+
         underTest = new RetrieveDynamicConfigSectionStrategy();
     }
 
@@ -87,18 +87,19 @@ public final class RetrieveDynamicConfigSectionStrategyTest {
         final ValidationContext validationContext = ValidationContext.of(
                 Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
         final ConfigOverrides configOverrides = ConfigOverrides.of(true, false, null, null);
-        final DynamicValidationConfig dynamicSection = DynamicValidationConfig.of("scope1", validationContext, configOverrides);
+        final DynamicValidationConfig dynamicSection =
+                DynamicValidationConfig.of("scope1", validationContext, configOverrides);
         final WotValidationConfig existingConfig = WotValidationConfig.of(
                 configId,
                 true,
                 false,
                 ThingValidationConfig.of(
-                    ThingValidationEnforceConfig.of(true, true, true, true, true),
-                    ThingValidationForbidConfig.of(false, true, false, true)
+                        ThingValidationEnforceConfig.of(true, true, true, true, true),
+                        ThingValidationForbidConfig.of(false, true, false, true)
                 ),
                 FeatureValidationConfig.of(
-                    FeatureValidationEnforceConfig.of(true, false, true, false, true, false, true),
-                    FeatureValidationForbidConfig.of(false, true, false, true, false, true)
+                        FeatureValidationEnforceConfig.of(true, false, true, false, true, false, true),
+                        FeatureValidationForbidConfig.of(false, true, false, true, false, true)
                 ),
                 Collections.singletonList(dynamicSection),
                 WotValidationConfigRevision.of(1L),
@@ -113,14 +114,15 @@ public final class RetrieveDynamicConfigSectionStrategyTest {
         final Result<WotValidationConfigEvent<?>> result = underTest.apply(context, existingConfig, 1L, command);
 
         // Then
-        final ArgumentCaptor<RetrieveWotValidationConfigResponse> responseCaptor = ArgumentCaptor.forClass(RetrieveWotValidationConfigResponse.class);
+        final ArgumentCaptor<RetrieveDynamicConfigSectionResponse> responseCaptor =
+                ArgumentCaptor.forClass(RetrieveDynamicConfigSectionResponse.class);
         final ResultVisitor<WotValidationConfigEvent<?>> visitor = mock(ResultVisitor.class);
 
         result.accept(visitor, null);
 
         verify(visitor).onQuery(eq(command), responseCaptor.capture());
 
-        final RetrieveWotValidationConfigResponse response = responseCaptor.getValue();
+        final RetrieveDynamicConfigSectionResponse response = responseCaptor.getValue();
         assertThat(response).isNotNull();
         assertThat(response.getValidationConfig().asObject().getValue("scopeId").get().asString()).isEqualTo("scope1");
     }
@@ -135,12 +137,12 @@ public final class RetrieveDynamicConfigSectionStrategyTest {
                 true,
                 false,
                 ThingValidationConfig.of(
-                    ThingValidationEnforceConfig.of(true, true, true, true, true),
-                    ThingValidationForbidConfig.of(false, true, false, true)
+                        ThingValidationEnforceConfig.of(true, true, true, true, true),
+                        ThingValidationForbidConfig.of(false, true, false, true)
                 ),
                 FeatureValidationConfig.of(
-                    FeatureValidationEnforceConfig.of(true, false, true, false, true, false, true),
-                    FeatureValidationForbidConfig.of(false, true, false, true, false, true)
+                        FeatureValidationEnforceConfig.of(true, false, true, false, true, false, true),
+                        FeatureValidationForbidConfig.of(false, true, false, true, false, true)
                 ),
                 Collections.emptyList(),
                 WotValidationConfigRevision.of(1L),
@@ -169,12 +171,12 @@ public final class RetrieveDynamicConfigSectionStrategyTest {
                 true,
                 false,
                 ThingValidationConfig.of(
-                    ThingValidationEnforceConfig.of(true, true, true, true, true),
-                    ThingValidationForbidConfig.of(false, true, false, true)
+                        ThingValidationEnforceConfig.of(true, true, true, true, true),
+                        ThingValidationForbidConfig.of(false, true, false, true)
                 ),
                 FeatureValidationConfig.of(
-                    FeatureValidationEnforceConfig.of(true, false, true, false, true, false, true),
-                    FeatureValidationForbidConfig.of(false, true, false, true, false, true)
+                        FeatureValidationEnforceConfig.of(true, false, true, false, true, false, true),
+                        FeatureValidationForbidConfig.of(false, true, false, true, false, true)
                 ),
                 Collections.emptyList(),
                 WotValidationConfigRevision.of(2L),

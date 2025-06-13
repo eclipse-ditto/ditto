@@ -28,7 +28,7 @@ import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
  * Interface for all WoT validation config events.
  *
  * @param <T> the type of the implementing class.
- * since 3.8.0
+ * @since 3.8.0
  */
 public interface WotValidationConfigEvent<T extends WotValidationConfigEvent<T>>
         extends Event<T>, EventsourcedEvent<T>, Jsonifiable.WithPredicate<JsonObject, JsonField> {

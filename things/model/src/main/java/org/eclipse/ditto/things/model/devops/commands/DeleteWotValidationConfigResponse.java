@@ -13,14 +13,13 @@
 package org.eclipse.ditto.things.model.devops.commands;
 
 import java.util.Objects;
-import java.util.Optional;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -29,22 +28,15 @@ import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
 
 /**
  * Response to a {@link DeleteWotValidationConfig} command.
- * since 3.8.0
+ *
+ * @since 3.8.0
  */
 @Immutable
 @JsonParsableCommandResponse(type = DeleteWotValidationConfigResponse.TYPE)
 public final class DeleteWotValidationConfigResponse extends AbstractWotValidationConfigCommandResponse<DeleteWotValidationConfigResponse>
         implements WithOptionalEntity<DeleteWotValidationConfigResponse> {
 
-    /**
-     * Name of the response.
-     */
-    public static final String NAME = "deleteWotValidationConfigResponse";
-
-    /**
-     * Type of this response.
-     */
-    public static final String TYPE = WotValidationConfigCommandResponse.TYPE_PREFIX + NAME;
+    static final String TYPE = WotValidationConfigCommandResponse.TYPE_PREFIX + DeleteWotValidationConfig.NAME;
 
     private DeleteWotValidationConfigResponse(final WotValidationConfigId configId,
             final DittoHeaders dittoHeaders) {
@@ -85,18 +77,8 @@ public final class DeleteWotValidationConfigResponse extends AbstractWotValidati
     }
 
     @Override
-    public String getResourceType() {
-        return WotValidationConfigCommandResponse.RESOURCE_TYPE;
-    }
-
-    @Override
     public DeleteWotValidationConfigResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(configId, dittoHeaders);
-    }
-
-    @Override
-    public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.empty();
     }
 
     @Override
@@ -105,17 +87,19 @@ public final class DeleteWotValidationConfigResponse extends AbstractWotValidati
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        if (!super.equals(o)) {
-            return false;
-        }
-        return true;
+        return super.equals(o);
+    }
+
+    @Override
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof DeleteWotValidationConfigResponse;
     }
 
     @Override

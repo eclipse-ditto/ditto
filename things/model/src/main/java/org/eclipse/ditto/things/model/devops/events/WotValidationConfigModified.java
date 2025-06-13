@@ -14,8 +14,8 @@ package org.eclipse.ditto.things.model.devops.events;
 
 import java.time.Instant;
 import java.util.Objects;
-import java.util.function.Predicate;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -30,6 +30,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.devops.WotValidationConfig;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
@@ -46,10 +47,14 @@ import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
 public final class WotValidationConfigModified extends AbstractWotValidationConfigEvent<WotValidationConfigModified>
         implements WotValidationConfigModifiedEvent<WotValidationConfigModified> {
 
+    /**
+     * Name of this command.
+     */
     public static final String NAME = "wotValidationConfigModified";
+
     private final WotValidationConfig config;
 
-    public static final String TYPE = WotValidationConfigEvent.TYPE_PREFIX + NAME;
+    public static final String TYPE = TYPE_PREFIX + NAME;
 
 
     /**
@@ -120,11 +125,6 @@ public final class WotValidationConfigModified extends AbstractWotValidationConf
         return new WotValidationConfigModified(configId, config, revision, timestamp, dittoHeaders, metadata);
     }
 
-    /**
-     * Returns the JSON schema version implemented by this event.
-     *
-     * @return the JSON schema version
-     */
     @Override
     public JsonSchemaVersion getImplementedSchemaVersion() {
         return JsonSchemaVersion.V_2;
@@ -159,8 +159,10 @@ public final class WotValidationConfigModified extends AbstractWotValidationConf
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
-            final JsonSchemaVersion schemaVersion, final Predicate<JsonField> predicate) {
-        super.appendPayload(jsonObjectBuilder, schemaVersion, predicate);
+            final JsonSchemaVersion schemaVersion,
+            final Predicate<JsonField> thePredicate) {
+        super.appendPayload(jsonObjectBuilder, schemaVersion, thePredicate);
+        final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(AbstractWotValidationConfigEvent.JsonFields.CONFIG,
                 config.toJson(schemaVersion, predicate), predicate);
     }
@@ -182,6 +184,11 @@ public final class WotValidationConfigModified extends AbstractWotValidationConf
     }
 
     @Override
+    public JsonPointer getResourcePath() {
+        return JsonPointer.empty();
+    }
+
+    @Override
     public int hashCode() {
         return Objects.hashCode(config);
     }
@@ -198,4 +205,16 @@ public final class WotValidationConfigModified extends AbstractWotValidationConf
         return Objects.equals(config, that.config);
     }
 
+    @Override
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof WotValidationConfigModified;
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                super.toString() +
+                ", config=" + config +
+                "]";
+    }
 }

@@ -12,6 +12,17 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.Collections;
+
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
@@ -33,25 +44,13 @@ import org.eclipse.ditto.things.model.devops.WotValidationConfig;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigRevision;
 import org.eclipse.ditto.things.model.devops.commands.RetrieveAllDynamicConfigSections;
-import org.eclipse.ditto.things.model.devops.commands.RetrieveDynamicConfigsResponse;
-import org.eclipse.ditto.things.model.devops.commands.RetrieveWotValidationConfigResponse;
+import org.eclipse.ditto.things.model.devops.commands.RetrieveAllDynamicConfigSectionsResponse;
 import org.eclipse.ditto.things.model.devops.events.WotValidationConfigEvent;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-
-import java.time.Instant;
-import java.util.Arrays;
-import java.util.Collections;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 /**
  * Unit test for {@link RetrieveAllDynamicConfigSectionsStrategy}.
@@ -118,14 +117,15 @@ public final class RetrieveAllDynamicConfigSectionsStrategyTest {
         final Result<WotValidationConfigEvent<?>> result = underTest.apply(context, existingConfig, 1L, command);
 
         // Then
-        final ArgumentCaptor<RetrieveDynamicConfigsResponse> responseCaptor = ArgumentCaptor.forClass(RetrieveDynamicConfigsResponse.class);
+        final ArgumentCaptor<RetrieveAllDynamicConfigSectionsResponse> responseCaptor = ArgumentCaptor.forClass(
+                RetrieveAllDynamicConfigSectionsResponse.class);
         final ResultVisitor<WotValidationConfigEvent<?>> visitor = mock(ResultVisitor.class);
 
         result.accept(visitor, null);
 
         verify(visitor).onQuery(eq(command), responseCaptor.capture());
 
-        final RetrieveDynamicConfigsResponse response = responseCaptor.getValue();
+        final RetrieveAllDynamicConfigSectionsResponse response = responseCaptor.getValue();
         assertThat(response).isNotNull();
         final JsonArray dynamicConfigs = response.getDynamicConfigs();
         assertThat(dynamicConfigs).hasSize(2);

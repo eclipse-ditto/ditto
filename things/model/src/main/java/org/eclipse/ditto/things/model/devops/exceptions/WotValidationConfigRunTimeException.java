@@ -26,7 +26,8 @@ import org.eclipse.ditto.base.model.json.JsonParsableException;
 
 /**
  * Thrown when a WoT validation config operation fails.
- * since 3.8.0
+ *
+ * @since 3.8.0
  */
 @Immutable
 @JsonParsableException(errorCode = WotValidationConfigRunTimeException.ERROR_CODE)

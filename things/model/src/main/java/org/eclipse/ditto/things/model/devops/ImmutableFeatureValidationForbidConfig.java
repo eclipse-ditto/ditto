@@ -33,15 +33,16 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 @Immutable
 final class ImmutableFeatureValidationForbidConfig implements FeatureValidationForbidConfig {
 
-
     private static final JsonFieldDefinition<Boolean> FEATURE_DESCRIPTION_DELETION =
-            JsonFactory.newBooleanFieldDefinition("featureDescriptionDeletion", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newBooleanFieldDefinition("featureDescriptionDeletion", FieldType.REGULAR,
+                    JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<Boolean> NON_MODELED_FEATURES =
             JsonFactory.newBooleanFieldDefinition("nonModeledFeatures", FieldType.REGULAR, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<Boolean> NON_MODELED_PROPERTIES =
             JsonFactory.newBooleanFieldDefinition("nonModeledProperties", FieldType.REGULAR, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<Boolean> NON_MODELED_DESIRED_PROPERTIES =
-            JsonFactory.newBooleanFieldDefinition("nonModeledDesiredProperties", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newBooleanFieldDefinition("nonModeledDesiredProperties", FieldType.REGULAR,
+                    JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<Boolean> NON_MODELED_INBOX_MESSAGES =
             JsonFactory.newBooleanFieldDefinition("nonModeledInboxMessages", FieldType.REGULAR, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<Boolean> NON_MODELED_OUTBOX_MESSAGES =

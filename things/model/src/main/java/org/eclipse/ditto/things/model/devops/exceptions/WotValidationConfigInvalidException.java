@@ -27,6 +27,8 @@ import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Thrown if a WoT validation config payload is invalid (e.g. missing required fields).
+ *
+ * @since 3.8.0
  */
 @Immutable
 @JsonParsableException(errorCode = WotValidationConfigInvalidException.ERROR_CODE)
@@ -39,7 +41,8 @@ public final class WotValidationConfigInvalidException extends DittoRuntimeExcep
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "invalid";
 
     private static final String DEFAULT_MESSAGE = "The WoT validation config payload is invalid.";
-    private static final String DEFAULT_DESCRIPTION = "Please check if all required fields are present in your payload.";
+    private static final String DEFAULT_DESCRIPTION =
+            "Please check if all required fields are present in your payload.";
 
     private WotValidationConfigInvalidException(final DittoHeaders dittoHeaders,
             @Nullable final String message,

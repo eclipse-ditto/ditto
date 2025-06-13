@@ -29,6 +29,7 @@ import org.eclipse.ditto.json.JsonObject;
 /**
  * Thrown when validating a precondition header on a WoT validation config leads to status
  * {@link org.eclipse.ditto.base.model.common.HttpStatus#NOT_MODIFIED}.
+ *
  * @since 3.8.0
  */
 @Immutable

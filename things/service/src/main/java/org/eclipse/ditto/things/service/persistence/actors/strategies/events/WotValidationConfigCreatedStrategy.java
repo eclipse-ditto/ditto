@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors.strategies.events;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
@@ -22,12 +23,13 @@ import org.eclipse.ditto.things.model.devops.events.WotValidationConfigCreated;
  * This strategy handles the {@link WotValidationConfigCreated} event.
  */
 @Immutable
-final class WotValidationConfigCreatedStrategy implements EventStrategy<WotValidationConfigCreated, WotValidationConfig> {
-
+final class WotValidationConfigCreatedStrategy
+        implements EventStrategy<WotValidationConfigCreated, WotValidationConfig> {
 
     @Override
-    public WotValidationConfig handle(final WotValidationConfigCreated event, final WotValidationConfig config, final long revision) {
-        final WotValidationConfig result = event.getConfig();
-        return result;
+    public WotValidationConfig handle(final WotValidationConfigCreated event,
+            @Nullable final WotValidationConfig config,
+            final long revision) {
+        return event.getConfig();
     }
 } 

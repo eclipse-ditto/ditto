@@ -36,13 +36,14 @@ import org.eclipse.ditto.json.JsonValue;
  * @since 3.8.0
  */
 @Immutable
-final class ImmutableConfigOverrides implements ConfigOverrides{
+final class ImmutableConfigOverrides implements ConfigOverrides {
 
 
     private static final JsonFieldDefinition<Boolean> ENABLED_FIELD =
             JsonFactory.newBooleanFieldDefinition("enabled", FieldType.REGULAR, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<Boolean> LOG_WARNING_INSTEAD_OF_FAILING_FIELD =
-            JsonFactory.newBooleanFieldDefinition("logWarningInsteadOfFailingApiCalls", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newBooleanFieldDefinition("logWarningInsteadOfFailingApiCalls", FieldType.REGULAR,
+                    JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<JsonObject> THING_FIELD =
             JsonFactory.newJsonObjectFieldDefinition("thing", FieldType.REGULAR, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<JsonObject> FEATURE_FIELD =
@@ -105,7 +106,8 @@ final class ImmutableConfigOverrides implements ConfigOverrides{
     public JsonObject toJson() {
         final JsonObjectBuilder builder = JsonFactory.newObjectBuilder();
         isEnabled().ifPresent(value -> builder.set(ENABLED_FIELD, value));
-        isLogWarningInsteadOfFailingApiCalls().ifPresent(value -> builder.set(LOG_WARNING_INSTEAD_OF_FAILING_FIELD, value));
+        isLogWarningInsteadOfFailingApiCalls().ifPresent(
+                value -> builder.set(LOG_WARNING_INSTEAD_OF_FAILING_FIELD, value));
         getThingConfig().ifPresent(config -> builder.set(THING_FIELD, config.toJson()));
         getFeatureConfig().ifPresent(config -> builder.set(FEATURE_FIELD, config.toJson()));
         return builder.build();

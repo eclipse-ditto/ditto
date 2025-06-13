@@ -12,31 +12,29 @@
  */
 package org.eclipse.ditto.things.model.devops.commands;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
 import org.junit.jupiter.api.Test;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 class ModifyWotValidationConfigResponseTest {
     @Test
     void testConstructionAndEquals() {
         WotValidationConfigId configId = WotValidationConfigId.of("ns:test");
-        JsonValue config = JsonFactory.newObjectBuilder().set("enabled", true).build();
         DittoHeaders headers = DittoHeaders.empty();
-        ModifyWotValidationConfigResponse r1 = ModifyWotValidationConfigResponse.of(configId, config, headers);
-        ModifyWotValidationConfigResponse r2 = ModifyWotValidationConfigResponse.of(configId, config, headers);
-        assertThat(r1).isEqualTo(r2);
-        assertThat(r1.hashCode()).isEqualTo(r2.hashCode());
+        ModifyWotValidationConfigResponse r1 = ModifyWotValidationConfigResponse.of(configId, headers);
+        ModifyWotValidationConfigResponse r2 = ModifyWotValidationConfigResponse.of(configId, headers);
+        assertThat(r1)
+                .isEqualTo(r2)
+                .hasSameHashCodeAs(r2);
     }
 
     @Test
     void testGetEntityIsEmpty() {
         WotValidationConfigId configId = WotValidationConfigId.of("ns:test");
         DittoHeaders headers = DittoHeaders.empty();
-        ModifyWotValidationConfigResponse response = ModifyWotValidationConfigResponse.of(configId, JsonFactory.nullLiteral(), headers);
+        ModifyWotValidationConfigResponse response = ModifyWotValidationConfigResponse.of(configId, headers);
         assertThat(response.getEntity(null)).isEmpty();
     }
 } 

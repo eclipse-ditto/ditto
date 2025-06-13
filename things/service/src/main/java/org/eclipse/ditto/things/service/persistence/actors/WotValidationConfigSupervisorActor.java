@@ -15,7 +15,6 @@ package org.eclipse.ditto.things.service.persistence.actors;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.Objects;
 
 import javax.annotation.Nullable;
 
@@ -26,12 +25,7 @@ import org.apache.pekko.actor.Terminated;
 import org.apache.pekko.event.Logging;
 import org.apache.pekko.event.LoggingAdapter;
 import org.apache.pekko.japi.pf.ReceiveBuilder;
-import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
-import org.eclipse.ditto.base.model.signals.commands.streaming.SubscribeForPersistedEvents;
-import org.eclipse.ditto.base.model.signals.events.Event;
-import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
-import org.eclipse.ditto.base.service.config.supervision.LocalAskTimeoutConfig;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
 import org.eclipse.ditto.internal.utils.cluster.StopShardedActor;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
@@ -50,10 +44,9 @@ public final class WotValidationConfigSupervisorActor extends AbstractActorWithT
 
     private final ActorRef pubSubMediator;
     private final MongoReadJournal mongoReadJournal;
-    private final Duration shutdownTimeout;
     private final LoggingAdapter log = Logging.getLogger(getContext().getSystem(), this);
+    @Nullable
     private ActorRef persistenceActorChild;
-    private long opCounter = 0;
     private final SignalTransformer signalTransformer;
 
     @SuppressWarnings("unused")
@@ -64,8 +57,6 @@ public final class WotValidationConfigSupervisorActor extends AbstractActorWithT
 
         final var system = getContext().getSystem();
         final var scopedConfig = DefaultScopedConfig.dittoScoped(system.settings().config());
-        final var thingsConfig = DittoThingsConfig.of(scopedConfig);
-        shutdownTimeout = thingsConfig.getThingConfig().getShutdownTimeout();
 
         // This is the only way that works for your transformer setup!
         this.signalTransformer = org.eclipse.ditto.base.service.signaltransformer.SignalTransformers.get(
@@ -123,68 +114,27 @@ public final class WotValidationConfigSupervisorActor extends AbstractActorWithT
         }
     }
 
-    protected long getOpCounter() {
-        return opCounter;
-    }
-
-    protected void incrementOpCounter() {
-        opCounter++;
-    }
-
-    protected void decrementOpCounter() {
-        opCounter--;
-    }
-
-    protected WotValidationConfigId getEntityId() throws Exception {
+    private WotValidationConfigId getEntityId() {
         return WotValidationConfigId.of(URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8));
     }
 
-    protected Props getPersistenceActorProps(final WotValidationConfigId entityId) {
+    private Props getPersistenceActorProps(final WotValidationConfigId entityId) {
         return WotValidationConfigPersistenceActor.props(entityId, mongoReadJournal, pubSubMediator);
     }
 
-    protected Props getPersistenceEnforcerProps(final WotValidationConfigId entityId) {
-        // No persistence enforcer needed for WoT validation config
-        return Props.empty();
-    }
-
-    protected ShutdownBehaviour getShutdownBehaviour(final WotValidationConfigId entityId) {
-        return ShutdownBehaviour.fromId(entityId, pubSubMediator, getSelf());
-    }
-
-    protected DittoRuntimeExceptionBuilder<?> getUnavailableExceptionBuilder(@Nullable final WotValidationConfigId entityId) {
-        return WotValidationConfigNotAccessibleException.newBuilder(
-                Objects.requireNonNullElseGet(entityId, () -> WotValidationConfigId.of("UNKNOWN:ID")));
-    }
-
-    protected ExponentialBackOffConfig getExponentialBackOffConfig() {
+    private ExponentialBackOffConfig getExponentialBackOffConfig() {
         final var system = getContext().getSystem();
         final var scopedConfig = DefaultScopedConfig.dittoScoped(system.settings().config());
         final var thingsConfig = DittoThingsConfig.of(scopedConfig);
         return thingsConfig.getThingConfig().getSupervisorConfig().getExponentialBackOffConfig();
     }
 
-    protected LocalAskTimeoutConfig getLocalAskTimeoutConfig() {
-        final var system = getContext().getSystem();
-        final var scopedConfig = DefaultScopedConfig.dittoScoped(system.settings().config());
-        final var thingsConfig = DittoThingsConfig.of(scopedConfig);
-        return thingsConfig.getThingConfig().getSupervisorConfig().getLocalAskTimeoutConfig();
-    }
-
-    protected boolean applyPersistedEventFilter(final Event<?> event, final SubscribeForPersistedEvents subscribeForPersistedEvents) {
-        // No event filtering needed for WoT validation config
-        return true;
-    }
-
-    protected void stopShardedActor(final StopShardedActor trigger) {
-        if (getOpCounter() > 0) {
-            getTimers().startSingleTimer(Control.SHUTDOWN_TIMEOUT, Control.SHUTDOWN_TIMEOUT, shutdownTimeout);
-        }
+    private void stopShardedActor(final StopShardedActor trigger) {
+        getTimers().startSingleTimer(Control.SHUTDOWN_TIMEOUT, Control.SHUTDOWN_TIMEOUT, Duration.ZERO);
     }
 
     private void shutdownActor(final Control shutdown) {
-        log.warning("Shutdown timeout <{}> reached; aborting <{}> ops and stopping myself", shutdownTimeout,
-                getOpCounter());
+        log.warning("Stopping myself");
         getContext().stop(getSelf());
     }
 

@@ -22,15 +22,18 @@ import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
 import org.junit.jupiter.api.Test;
 
 class RetrieveWotValidationConfigResponseTest {
+
     @Test
     void testConstructionAndGetters() {
         WotValidationConfigId configId = WotValidationConfigId.of("ns:test");
         JsonValue config = JsonFactory.newObjectBuilder().set("enabled", true).build();
         DittoHeaders headers = DittoHeaders.empty();
-        RetrieveWotValidationConfigResponse response = RetrieveWotValidationConfigResponse.of(configId, config, headers);
+        RetrieveWotValidationConfigResponse response =
+                RetrieveWotValidationConfigResponse.of(configId, config, headers);
         assertThat(response.getConfigId().equals(configId)).isTrue();
         assertThat(response.getValidationConfig()).isEqualTo(config);
-        assertThat(response.getDittoHeaders().get("response-required")).isEqualTo("false");    }
+        assertThat(response.getDittoHeaders().get("response-required")).isEqualTo("false");
+    }
 
     @Test
     void testEqualsAndHashCode() {
@@ -39,8 +42,9 @@ class RetrieveWotValidationConfigResponseTest {
         DittoHeaders headers = DittoHeaders.empty();
         RetrieveWotValidationConfigResponse r1 = RetrieveWotValidationConfigResponse.of(configId, config, headers);
         RetrieveWotValidationConfigResponse r2 = RetrieveWotValidationConfigResponse.of(configId, config, headers);
-        assertThat(r1).isEqualTo(r2);
-        assertThat(r1.hashCode()).isEqualTo(r2.hashCode());
+        assertThat(r1)
+                .isEqualTo(r2)
+                .hasSameHashCodeAs(r2);
     }
 
     @Test
@@ -48,7 +52,8 @@ class RetrieveWotValidationConfigResponseTest {
         WotValidationConfigId configId = WotValidationConfigId.of("ns:test");
         JsonValue config = JsonFactory.newObjectBuilder().set("enabled", true).build();
         DittoHeaders headers = DittoHeaders.empty();
-        RetrieveWotValidationConfigResponse response = RetrieveWotValidationConfigResponse.of(configId, config, headers);
+        RetrieveWotValidationConfigResponse response =
+                RetrieveWotValidationConfigResponse.of(configId, config, headers);
         JsonObject json = response.toJson();
         RetrieveWotValidationConfigResponse fromJson = RetrieveWotValidationConfigResponse.fromJson(json, headers);
         assertThat(fromJson).isEqualTo(response);

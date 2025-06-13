@@ -12,6 +12,14 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.CompletionException;
+
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
@@ -20,22 +28,14 @@ import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.things.model.devops.DynamicValidationConfig;
 import org.eclipse.ditto.things.model.devops.WotValidationConfig;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
+import org.eclipse.ditto.things.model.devops.WotValidationConfigRevision;
 import org.eclipse.ditto.things.model.devops.commands.DeleteDynamicConfigSection;
 import org.eclipse.ditto.things.model.devops.commands.DeleteWotValidationConfigResponse;
 import org.eclipse.ditto.things.model.devops.events.DynamicConfigSectionDeleted;
 import org.eclipse.ditto.things.model.devops.events.WotValidationConfigEvent;
-import org.eclipse.ditto.things.model.devops.WotValidationConfigRevision;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.WotValidationConfigNotAccessibleException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import javax.annotation.concurrent.Immutable;
-
-import javax.annotation.Nullable;
-import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.CompletionException;
-import java.util.stream.Collectors;
 
 /**
  * Strategy for handling the {@link org.eclipse.ditto.things.model.devops.commands.DeleteDynamicConfigSection} command.
@@ -128,7 +128,7 @@ final class DeleteDynamicConfigSectionStrategy extends AbstractWotValidationConf
 
         final List<DynamicValidationConfig> updatedDynamicConfig = entity.getDynamicConfigs().stream()
                 .filter(section -> !section.getScopeId().equals(scopeId))
-                .collect(Collectors.toList());
+                .toList();
 
         final WotValidationConfig configWithMetadata = createWotValidationConfig(
                 entity,

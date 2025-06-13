@@ -13,11 +13,12 @@
 package org.eclipse.ditto.things.model.devops;
 
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
-import org.eclipse.ditto.things.model.ThingId;
 
 /**
  * Implementations of this interface are associated to a {@code WotValidationConfig} identified by the value
  * returned from {@link #getEntityId()}.
+ *
+ * @since 3.8.0
  */
 public interface WithWotValidationConfigId extends WithEntityId {
 

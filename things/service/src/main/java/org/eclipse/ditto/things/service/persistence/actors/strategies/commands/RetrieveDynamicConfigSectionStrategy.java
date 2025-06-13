@@ -12,26 +12,27 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
+import java.util.Optional;
+
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.devops.DynamicValidationConfig;
 import org.eclipse.ditto.things.model.devops.WotValidationConfig;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
 import org.eclipse.ditto.things.model.devops.commands.RetrieveDynamicConfigSection;
+import org.eclipse.ditto.things.model.devops.commands.RetrieveDynamicConfigSectionResponse;
 import org.eclipse.ditto.things.model.devops.events.WotValidationConfigEvent;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.WotValidationConfigNotAccessibleException;
-import org.eclipse.ditto.things.model.devops.commands.RetrieveWotValidationConfigResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
-
-import java.util.Optional;
 
 /**
  * Strategy for handling {@link RetrieveDynamicConfigSection} commands.
@@ -40,7 +41,9 @@ import java.util.Optional;
  * If the section exists, it is returned as a response. If not, an error is returned.
  * </p>
  */
-final class RetrieveDynamicConfigSectionStrategy extends AbstractWotValidationConfigCommandStrategy<RetrieveDynamicConfigSection> {
+final class RetrieveDynamicConfigSectionStrategy
+        extends AbstractWotValidationConfigCommandStrategy<RetrieveDynamicConfigSection> {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(RetrieveDynamicConfigSectionStrategy.class);
 
     /**
@@ -104,13 +107,14 @@ final class RetrieveDynamicConfigSectionStrategy extends AbstractWotValidationCo
         }
 
         final JsonObject sectionJson = section.get().toJson();
-        DittoHeadersBuilder<?, ?> builder = dittoHeaders.toBuilder()
-                .putHeader(org.eclipse.ditto.base.model.headers.DittoHeaderDefinition.ENTITY_REVISION.getKey(),
-                        String.valueOf(entity.getRevision().get()));
+        final DittoHeadersBuilder<?, ?> builder = dittoHeaders.toBuilder();
+        entity.getRevision().ifPresent(revision ->
+                builder.putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), String.valueOf(revision))
+        );
         EntityTag.fromEntity(entity).ifPresent(builder::eTag);
-        DittoHeaders headersWithRevisionAndEtag = builder.build();
+        final DittoHeaders headersWithRevisionAndEtag = builder.build();
 
-        final RetrieveWotValidationConfigResponse response = RetrieveWotValidationConfigResponse.of(
+        final RetrieveDynamicConfigSectionResponse response = RetrieveDynamicConfigSectionResponse.of(
                 command.getEntityId(),
                 sectionJson,
                 headersWithRevisionAndEtag);

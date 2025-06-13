@@ -12,15 +12,17 @@
  */
 package org.eclipse.ditto.things.model.devops;
 
-import org.eclipse.ditto.base.model.json.Jsonifiable;
-import org.eclipse.ditto.json.JsonObject;
-
 import java.util.List;
 import java.util.Map;
+
+import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Interface for validation context in WoT validation configuration.
  * This represents the context in which validation rules should be applied.
+ *
+ * @since 3.8.0
  */
 public interface ValidationContext extends Jsonifiable<JsonObject> {
 

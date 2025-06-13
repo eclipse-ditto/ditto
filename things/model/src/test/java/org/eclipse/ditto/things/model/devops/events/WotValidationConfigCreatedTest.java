@@ -16,19 +16,19 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.time.Instant;
+import java.util.Collections;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.devops.WotValidationConfig;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
 import org.junit.jupiter.api.Test;
 
-
 class WotValidationConfigCreatedTest {
 
     @Test
     void testOfAndGetters() {
         WotValidationConfigId configId = WotValidationConfigId.of("ns:test-id");
-        WotValidationConfig config = WotValidationConfig.of(configId, true, false, null, null, null, null, Instant.now(), Instant.now(), false, null);
+        WotValidationConfig config = WotValidationConfig.of(configId, true, false, null, null, Collections.emptyList(), null, Instant.now(), Instant.now(), false, null);
         long revision = 1L;
         Instant now = Instant.now();
         DittoHeaders headers = DittoHeaders.empty();
@@ -42,7 +42,7 @@ class WotValidationConfigCreatedTest {
     @Test
     void testEqualsAndHashCode() {
         WotValidationConfigId configId = WotValidationConfigId.of("ns:test-id");
-        WotValidationConfig config = WotValidationConfig.of(configId, true, false, null, null, null, null, Instant.now(), Instant.now(), false, null);
+        WotValidationConfig config = WotValidationConfig.of(configId, true, false, null, null, Collections.emptyList(), null, Instant.now(), Instant.now(), false, null);
         long revision = 1L;
         Instant now = Instant.now();
         DittoHeaders headers = DittoHeaders.empty();
@@ -56,7 +56,7 @@ class WotValidationConfigCreatedTest {
     void testToJsonAndFromJson() {
         WotValidationConfigId configId = WotValidationConfigId.of("ns:test-id");
         Instant now = Instant.now();
-        WotValidationConfig config = WotValidationConfig.of(configId, true, false, null, null, null, null, now, now, false, null);
+        WotValidationConfig config = WotValidationConfig.of(configId, true, false, null, null, Collections.emptyList(), null, now, now, false, null);
         long revision = 1L;
         DittoHeaders headers = DittoHeaders.empty();
         WotValidationConfigCreated event = WotValidationConfigCreated.of(configId, config, revision, now, headers, null);

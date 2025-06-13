@@ -32,6 +32,8 @@ import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
 /**
  * Thrown if the WoT validation config was either not present in Ditto at all or if the requester had insufficient
  * permissions to access it.
+ *
+ * @since 3.8.0
  */
 @Immutable
 @JsonParsableException(errorCode = WotValidationConfigNotAccessibleException.ERROR_CODE)
@@ -66,7 +68,8 @@ public final class WotValidationConfigNotAccessibleException extends DittoRuntim
      * @param dittoHeaders the headers with which this Exception should be reported back to the user.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public WotValidationConfigNotAccessibleException(final WotValidationConfigId configId, final DittoHeaders dittoHeaders) {
+    public WotValidationConfigNotAccessibleException(final WotValidationConfigId configId,
+            final DittoHeaders dittoHeaders) {
         this(dittoHeaders, getMessage(configId), DEFAULT_DESCRIPTION, null, null);
     }
 
@@ -111,7 +114,8 @@ public final class WotValidationConfigNotAccessibleException extends DittoRuntim
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static WotValidationConfigNotAccessibleException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+    public static WotValidationConfigNotAccessibleException fromJson(final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
 

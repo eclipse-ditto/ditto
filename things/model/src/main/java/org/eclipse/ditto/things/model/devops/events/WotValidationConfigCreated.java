@@ -40,7 +40,8 @@ import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
 
 /**
  * Event that is emitted when a WoT validation config is created.
- * since 3.8.0
+ *
+ * @since 3.8.0
  */
 @Immutable
 @JsonParsableEvent(name = WotValidationConfigCreated.NAME, typePrefix = WotValidationConfigEvent.TYPE_PREFIX)
@@ -96,7 +97,7 @@ public final class WotValidationConfigCreated extends AbstractWotValidationConfi
                 jsonObject.getValueOrThrow(JsonFields.CONFIG));
         final long revision = jsonObject.getValueOrThrow(EventsourcedEvent.JsonFields.REVISION);
         final Instant timestamp = jsonObject.getValue(Event.JsonFields.TIMESTAMP)
-                .map(str -> Instant.parse(str))
+                .map(Instant::parse)
                 .orElse(null);
         final Metadata metadata = jsonObject.getValue(Event.JsonFields.METADATA)
                 .map(JsonValue::asObject)
@@ -133,9 +134,20 @@ public final class WotValidationConfigCreated extends AbstractWotValidationConfi
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
-            final Predicate<JsonField> predicate) {
-        super.appendPayload(jsonObjectBuilder, schemaVersion, predicate);
+            final Predicate<JsonField> thePredicate) {
+        super.appendPayload(jsonObjectBuilder, schemaVersion, thePredicate);
+        final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JsonFields.CONFIG, config.toJson(schemaVersion, predicate), predicate);
+    }
+
+    @Override
+    public WotValidationConfig getConfig() {
+        return config;
+    }
+
+    @Override
+    public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
+        return Optional.of(config.toJson(schemaVersion));
     }
 
     @Override
@@ -166,16 +178,6 @@ public final class WotValidationConfigCreated extends AbstractWotValidationConfi
                 super.toString() +
                 ", config=" + config +
                 "]";
-    }
-
-    @Override
-    public WotValidationConfig getConfig() {
-        return config;
-    }
-
-    @Override
-    public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.of(config.toJson(schemaVersion));
     }
 
     private static final class JsonFields {

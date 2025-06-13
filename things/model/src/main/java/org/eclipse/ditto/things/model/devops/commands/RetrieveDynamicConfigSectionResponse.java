@@ -32,56 +32,57 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
 
 /**
- * Response to a {@link RetrieveWotValidationConfig} command.
+ * Response to a {@link RetrieveDynamicConfigSection} command.
  * <p>
- * This response contains the retrieved WoT validation configuration as a JSON value.
+ * This response contains the retrieved dynamic configuration sections that have been defined for WoT validation
+ * configuration as a JSON value.
  * The configuration includes validation settings for WoT Thing Models, such as thing and feature validation
- * settings, as well as any dynamic configuration sections that have been defined for specific scopes.
+ * settings.
  * </p>
  *
  * @since 3.8.0
  */
 @Immutable
-@JsonParsableCommandResponse(type = RetrieveWotValidationConfigResponse.TYPE)
-public final class RetrieveWotValidationConfigResponse
-        extends AbstractWotValidationConfigCommandResponse<RetrieveWotValidationConfigResponse>
-        implements WithEntity<RetrieveWotValidationConfigResponse>, WithResource {
+@JsonParsableCommandResponse(type = RetrieveDynamicConfigSectionResponse.TYPE)
+public final class RetrieveDynamicConfigSectionResponse
+        extends AbstractWotValidationConfigCommandResponse<RetrieveDynamicConfigSectionResponse>
+        implements WithEntity<RetrieveDynamicConfigSectionResponse>, WithResource {
 
-    static final String TYPE = TYPE_PREFIX + RetrieveWotValidationConfig.NAME;
+    static final String TYPE = TYPE_PREFIX + RetrieveDynamicConfigSection.NAME;
 
     private final JsonValue validationConfig;
 
     /**
-     * Constructs a new {@code RetrieveWotValidationConfigResponse} object.
+     * Constructs a new {@code RetrieveDynamicConfigSectionResponse} object.
      *
      * @param configId the ID of the WoT validation config that was retrieved.
      * @param validationConfig the validation config as a JSON value, containing all validation settings
      * including thing and feature validation settings, and any dynamic config sections.
      * @param dittoHeaders the headers of the response.
      */
-    private RetrieveWotValidationConfigResponse(final WotValidationConfigId configId, final JsonValue validationConfig,
+    private RetrieveDynamicConfigSectionResponse(final WotValidationConfigId configId, final JsonValue validationConfig,
             final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatus.OK, configId, dittoHeaders);
         this.validationConfig = Objects.requireNonNull(validationConfig, "validationConfig");
     }
 
     /**
-     * Creates a new instance of {@code RetrieveWotValidationConfigResponse}.
+     * Creates a new instance of {@code RetrieveDynamicConfigSectionResponse}.
      *
      * @param configId the ID of the WoT validation config that was retrieved.
      * @param validationConfig the validation config as a JSON value, containing all validation settings
      * including thing and feature validation settings, and any dynamic config sections.
      * @param dittoHeaders the headers of the response.
-     * @return a new RetrieveWotValidationConfigResponse.
+     * @return a new RetrieveDynamicConfigSectionResponse.
      */
-    public static RetrieveWotValidationConfigResponse of(final WotValidationConfigId configId,
+    public static RetrieveDynamicConfigSectionResponse of(final WotValidationConfigId configId,
             final JsonValue validationConfig,
             final DittoHeaders dittoHeaders) {
-        return new RetrieveWotValidationConfigResponse(configId, validationConfig, dittoHeaders);
+        return new RetrieveDynamicConfigSectionResponse(configId, validationConfig, dittoHeaders);
     }
 
     /**
-     * Creates a new {@code RetrieveWotValidationConfigResponse} from a JSON string.
+     * Creates a new {@code RetrieveDynamicConfigSectionResponse} from a JSON string.
      * The JSON string should contain the following fields:
      * <ul>
      *     <li>{@code configId} (required): The ID of the WoT validation config that was retrieved</li>
@@ -92,13 +93,13 @@ public final class RetrieveWotValidationConfigResponse
      * @param dittoHeaders the headers of the response.
      * @return the response.
      */
-    public static RetrieveWotValidationConfigResponse fromJson(final String jsonString,
+    public static RetrieveDynamicConfigSectionResponse fromJson(final String jsonString,
             final DittoHeaders dittoHeaders) {
         return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
-     * Creates a new {@code RetrieveWotValidationConfigResponse} from a JSON object.
+     * Creates a new {@code RetrieveDynamicConfigSectionResponse} from a JSON object.
      * The JSON object should contain the following fields:
      * <ul>
      *     <li>{@code configId} (required): The ID of the WoT validation config that was retrieved</li>
@@ -109,7 +110,7 @@ public final class RetrieveWotValidationConfigResponse
      * @param dittoHeaders the headers of the response.
      * @return the response.
      */
-    public static RetrieveWotValidationConfigResponse fromJson(final JsonObject jsonObject,
+    public static RetrieveDynamicConfigSectionResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         final WotValidationConfigId configId =
                 WotValidationConfigId.of(jsonObject.getValueOrThrow(WotValidationConfigCommand.JsonFields.CONFIG_ID));
@@ -140,12 +141,12 @@ public final class RetrieveWotValidationConfigResponse
     }
 
     @Override
-    public RetrieveWotValidationConfigResponse setEntity(final JsonValue entity) {
+    public RetrieveDynamicConfigSectionResponse setEntity(final JsonValue entity) {
         return of(configId, entity, getDittoHeaders());
     }
 
     @Override
-    public RetrieveWotValidationConfigResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
+    public RetrieveDynamicConfigSectionResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(configId, validationConfig, dittoHeaders);
     }
 
@@ -168,13 +169,13 @@ public final class RetrieveWotValidationConfigResponse
         if (!super.equals(o)) {
             return false;
         }
-        final RetrieveWotValidationConfigResponse that = (RetrieveWotValidationConfigResponse) o;
+        final RetrieveDynamicConfigSectionResponse that = (RetrieveDynamicConfigSectionResponse) o;
         return Objects.equals(validationConfig, that.validationConfig);
     }
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return other instanceof RetrieveWotValidationConfigResponse;
+        return other instanceof RetrieveDynamicConfigSectionResponse;
     }
 
     @Override

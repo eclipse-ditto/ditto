@@ -13,6 +13,7 @@
 package org.eclipse.ditto.things.model.devops.events;
 
 import java.time.Instant;
+import java.util.Objects;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -26,6 +27,7 @@ import org.eclipse.ditto.base.model.signals.events.EventJsonDeserializer;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
 
@@ -118,6 +120,40 @@ public final class WotValidationConfigDeleted extends AbstractWotValidationConfi
     @Override
     public WotValidationConfigDeleted setEntity(final JsonValue entity) {
         return this;
+    }
+
+    @Override
+    public JsonPointer getResourcePath() {
+        return JsonPointer.empty();
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(super.hashCode());
+    }
+
+    @Override
+    public boolean equals(@Nullable final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final WotValidationConfigDeleted that = (WotValidationConfigDeleted) o;
+        return super.equals(that);
+    }
+
+    @Override
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof WotValidationConfigDeleted;
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                super.toString() +
+                "]";
     }
 
     private static final class JsonFields {

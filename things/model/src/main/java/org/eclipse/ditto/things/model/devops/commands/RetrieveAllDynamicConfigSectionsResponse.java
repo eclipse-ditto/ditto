@@ -37,33 +37,28 @@ import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
  * This response contains an array of dynamic config sections from a WoT validation configuration.
  * Each section contains validation settings that can be overridden for a specific scope.
  * </p>
+ *
+ * @since 3.8.0
  */
 @Immutable
-@JsonParsableCommandResponse(type = RetrieveDynamicConfigsResponse.TYPE)
-public final class RetrieveDynamicConfigsResponse extends AbstractWotValidationConfigCommandResponse<RetrieveDynamicConfigsResponse>
-        implements WithEntity<RetrieveDynamicConfigsResponse> {
+@JsonParsableCommandResponse(type = RetrieveAllDynamicConfigSectionsResponse.TYPE)
+public final class RetrieveAllDynamicConfigSectionsResponse
+        extends AbstractWotValidationConfigCommandResponse<RetrieveAllDynamicConfigSectionsResponse>
+        implements WithEntity<RetrieveAllDynamicConfigSectionsResponse> {
 
-    /**
-     * Name of this response.
-     */
-    public static final String NAME = "retrieveDynamicConfigsResponse";
-
-    /**
-     * Type of this response.
-     */
-    static final String TYPE = WotValidationConfigCommandResponse.TYPE_PREFIX + NAME;
+    static final String TYPE = TYPE_PREFIX + RetrieveAllDynamicConfigSections.NAME;
 
     private final JsonArray dynamicConfigs;
 
     /**
-     * Constructs a new {@code RetrieveDynamicConfigsResponse} object.
+     * Constructs a new {@code RetrieveAllDynamicConfigSectionsResponse} object.
      *
      * @param configId the ID of the WoT validation config.
      * @param dynamicConfigs the array of dynamic config sections.
      * @param dittoHeaders the headers of the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    private RetrieveDynamicConfigsResponse(final WotValidationConfigId configId,
+    private RetrieveAllDynamicConfigSectionsResponse(final WotValidationConfigId configId,
             final JsonArray dynamicConfigs,
             final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatus.OK, configId, dittoHeaders);
@@ -71,22 +66,22 @@ public final class RetrieveDynamicConfigsResponse extends AbstractWotValidationC
     }
 
     /**
-     * Creates a new instance of {@code RetrieveDynamicConfigsResponse}.
+     * Creates a new instance of {@code RetrieveAllDynamicConfigSectionsResponse}.
      *
      * @param configId the ID of the WoT validation config.
      * @param dynamicConfigs the array of dynamic config sections.
      * @param dittoHeaders the headers of the response.
-     * @return a new RetrieveDynamicConfigsResponse.
+     * @return a new RetrieveAllDynamicConfigSectionsResponse.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveDynamicConfigsResponse of(final WotValidationConfigId configId,
+    public static RetrieveAllDynamicConfigSectionsResponse of(final WotValidationConfigId configId,
             final JsonArray dynamicConfigs,
             final DittoHeaders dittoHeaders) {
-        return new RetrieveDynamicConfigsResponse(configId, dynamicConfigs, dittoHeaders);
+        return new RetrieveAllDynamicConfigSectionsResponse(configId, dynamicConfigs, dittoHeaders);
     }
 
     /**
-     * Creates a new {@code RetrieveDynamicConfigsResponse} from a JSON object.
+     * Creates a new {@code RetrieveAllDynamicConfigSectionsResponse} from a JSON object.
      *
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the response.
@@ -94,11 +89,12 @@ public final class RetrieveDynamicConfigsResponse extends AbstractWotValidationC
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected format.
      */
-    public static RetrieveDynamicConfigsResponse fromJson(final JsonObject jsonObject,
+    public static RetrieveAllDynamicConfigSectionsResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         final WotValidationConfigId configId = WotValidationConfigId.of(
                 jsonObject.getValueOrThrow(WotValidationConfigCommand.JsonFields.CONFIG_ID));
-        final JsonArray dynamicConfigs = jsonObject.getValueOrThrow(WotValidationConfigCommand.JsonFields.VALIDATION_CONFIG).asArray();
+        final JsonArray dynamicConfigs =
+                jsonObject.getValueOrThrow(WotValidationConfigCommand.JsonFields.VALIDATION_CONFIG).asArray();
         return of(configId, dynamicConfigs, dittoHeaders);
     }
 
@@ -117,7 +113,7 @@ public final class RetrieveDynamicConfigsResponse extends AbstractWotValidationC
     }
 
     @Override
-    public RetrieveDynamicConfigsResponse setEntity(final JsonValue entity) {
+    public RetrieveAllDynamicConfigSectionsResponse setEntity(final JsonValue entity) {
         if (entity.isArray()) {
             return of(getConfigId(), entity.asArray(), getDittoHeaders());
         }
@@ -126,24 +122,20 @@ public final class RetrieveDynamicConfigsResponse extends AbstractWotValidationC
 
     @Override
     public JsonPointer getResourcePath() {
-        return JsonPointer.empty();
-    }
-
-    @Override
-    public String getResourceType() {
-        return WotValidationConfigCommandResponse.RESOURCE_TYPE;
+        return JsonPointer.of("/dynamicConfigs");
     }
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
             final JsonSchemaVersion schemaVersion,
-            final Predicate<JsonField> predicate) {
-        super.appendPayload(jsonObjectBuilder, schemaVersion, predicate);
+            final Predicate<JsonField> thePredicate) {
+        super.appendPayload(jsonObjectBuilder, schemaVersion, thePredicate);
+        final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(WotValidationConfigCommand.JsonFields.VALIDATION_CONFIG, dynamicConfigs, predicate);
     }
 
     @Override
-    public RetrieveDynamicConfigsResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
+    public RetrieveAllDynamicConfigSectionsResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(getConfigId(), dynamicConfigs, dittoHeaders);
     }
 
@@ -158,8 +150,13 @@ public final class RetrieveDynamicConfigsResponse extends AbstractWotValidationC
         if (!super.equals(o)) {
             return false;
         }
-        final RetrieveDynamicConfigsResponse that = (RetrieveDynamicConfigsResponse) o;
+        final RetrieveAllDynamicConfigSectionsResponse that = (RetrieveAllDynamicConfigSectionsResponse) o;
         return Objects.equals(dynamicConfigs, that.dynamicConfigs);
+    }
+
+    @Override
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof RetrieveAllDynamicConfigSectionsResponse;
     }
 
     @Override

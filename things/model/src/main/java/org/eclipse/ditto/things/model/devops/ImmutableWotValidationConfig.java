@@ -52,7 +52,8 @@ final class ImmutableWotValidationConfig implements WotValidationConfig {
     private static final JsonFieldDefinition<Boolean> ENABLED_FIELD =
             JsonFactory.newBooleanFieldDefinition("enabled", FieldType.REGULAR, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<Boolean> LOG_WARNING_FIELD =
-            JsonFactory.newBooleanFieldDefinition("logWarningInsteadOfFailingApiCalls", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newBooleanFieldDefinition("logWarningInsteadOfFailingApiCalls", FieldType.REGULAR,
+                    JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<JsonObject> THING_FIELD =
             JsonFactory.newJsonObjectFieldDefinition("thing", FieldType.REGULAR, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<JsonObject> FEATURE_FIELD =
@@ -89,7 +90,7 @@ final class ImmutableWotValidationConfig implements WotValidationConfig {
         this.logWarningInsteadOfFailingApiCalls = logWarningInsteadOfFailingApiCalls;
         this.thingConfig = thingConfig;
         this.featureConfig = featureConfig;
-        this.dynamicConfig = dynamicConfig != null ? Collections.unmodifiableList(dynamicConfig) : Collections.emptyList();
+        this.dynamicConfig = Collections.unmodifiableList(dynamicConfig);
         this.revision = revision;
         this.created = created;
         this.modified = modified;
@@ -126,8 +127,8 @@ final class ImmutableWotValidationConfig implements WotValidationConfig {
             @Nullable final Instant modified,
             @Nullable final Boolean deleted,
             @Nullable final Metadata metadata) {
-        return new ImmutableWotValidationConfig(configId, enabled, logWarningInsteadOfFailingApiCalls, thingConfig, featureConfig,
-                dynamicConfig, revision, created, modified, deleted, metadata);
+        return new ImmutableWotValidationConfig(configId, enabled, logWarningInsteadOfFailingApiCalls, thingConfig,
+                featureConfig, dynamicConfig, revision, created, modified, deleted, metadata);
     }
 
     public WotValidationConfigId getConfigId() {
@@ -211,7 +212,8 @@ final class ImmutableWotValidationConfig implements WotValidationConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(configId, enabled, logWarningInsteadOfFailingApiCalls, thingConfig, featureConfig, dynamicConfig, revision, modified, created, deleted, metadata);
+        return Objects.hash(configId, enabled, logWarningInsteadOfFailingApiCalls, thingConfig, featureConfig,
+                dynamicConfig, revision, modified, created, deleted, metadata);
     }
 
 
@@ -252,12 +254,8 @@ final class ImmutableWotValidationConfig implements WotValidationConfig {
      * @param jsonObject the JSON object to create the configuration from
      * @return a new instance created from the JSON object
      * @throws NullPointerException if {@code jsonObject} is {@code null}
-     * @throws IllegalArgumentException if the JSON object is invalid
      */
     public static ImmutableWotValidationConfig fromJson(final JsonObject jsonObject) {
-        if (jsonObject == null) {
-            throw new IllegalArgumentException("JSON object must not be null");
-        }
 
         final WotValidationConfigId configId = jsonObject.getValue(CONFIG_ID)
                 .map(WotValidationConfigId::of)
@@ -282,11 +280,10 @@ final class ImmutableWotValidationConfig implements WotValidationConfig {
                         .filter(JsonValue::isObject)
                         .map(JsonValue::asObject)
                         .map(ImmutableDynamicValidationConfig::fromJson)
-                        .map(config -> (DynamicValidationConfig) config)
+                        .map(DynamicValidationConfig.class::cast)
                         .collect(Collectors.toList()))
                 .map(Collections::unmodifiableList)
                 .orElse(Collections.emptyList());
-
 
         final WotValidationConfigRevision revision = jsonObject.getValue(JsonFields.REVISION)
                 .map(WotValidationConfigRevision::of)
@@ -308,7 +305,7 @@ final class ImmutableWotValidationConfig implements WotValidationConfig {
                 .orElse(null);
 
 
-       return of(configId, enabled, logWarningInsteadOfFailingApiCalls,
+        return of(configId, enabled, logWarningInsteadOfFailingApiCalls,
                 thingConfig, featureConfig, dynamicConfigs, revision, created, modified, deleted, metadata);
     }
 
@@ -341,6 +338,7 @@ final class ImmutableWotValidationConfig implements WotValidationConfig {
      * An enumeration of the known JSON fields of a WoT validation config.
      */
     public static final class JsonFields {
+
         /**
          * JSON field containing the created timestamp.
          */

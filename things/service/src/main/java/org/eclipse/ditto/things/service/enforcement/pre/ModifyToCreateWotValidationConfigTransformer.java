@@ -12,24 +12,24 @@
  */
 package org.eclipse.ditto.things.service.enforcement.pre;
 
+import java.time.Instant;
+import java.util.Collections;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
 import org.eclipse.ditto.things.model.devops.DynamicValidationConfig;
 import org.eclipse.ditto.things.model.devops.WotValidationConfig;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
-import org.eclipse.ditto.things.model.devops.WotValidationConfigRevision;
 import org.eclipse.ditto.things.model.devops.commands.CreateWotValidationConfig;
 import org.eclipse.ditto.things.model.devops.commands.MergeDynamicConfigSection;
 import org.eclipse.ditto.things.model.devops.commands.ModifyWotValidationConfig;
-import com.typesafe.config.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Instant;
-import java.util.Collections;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
+import com.typesafe.config.Config;
 
 /**
  * Transforms a ModifyWotValidationConfig or ModifyDynamicConfigSection command into a CreateWotValidationConfig

@@ -45,7 +45,6 @@ final class ImmutableValidationContext implements ValidationContext {
     private static final String DITTO_HEADERS_PATTERNS_FIELD = "dittoHeadersPatterns";
     private static final String THING_DEF_PATTERNS_FIELD = "thingDefinitionPatterns";
     private static final String FEATURE_DEF_PATTERNS_FIELD = "featureDefinitionPatterns";
-    private static final String SCOPE_ID_FIELD = "scopeId";
 
     private static final JsonFieldDefinition<JsonArray> DITTO_HEADERS_PATTERNS_POINTER =
             JsonFactory.newJsonArrayFieldDefinition("dittoHeadersPatterns");
@@ -53,8 +52,6 @@ final class ImmutableValidationContext implements ValidationContext {
             JsonFactory.newJsonArrayFieldDefinition("thingDefinitionPatterns");
     private static final JsonFieldDefinition<JsonArray> FEATURE_DEF_PATTERNS_POINTER =
             JsonFactory.newJsonArrayFieldDefinition("featureDefinitionPatterns");
-    private static final JsonFieldDefinition<String> SCOPE_ID_POINTER =
-            JsonFactory.newStringFieldDefinition("scopeId");
 
     private final List<Map<String, String>> dittoHeadersPatterns;
     private final List<String> thingDefinitionPatterns;
@@ -176,9 +173,6 @@ final class ImmutableValidationContext implements ValidationContext {
                         .map(JsonValue::asString)
                         .collect(Collectors.toList()))
                 .orElse(Collections.emptyList());
-
-        final String scopeId = json.getValue(SCOPE_ID_POINTER)
-                .orElse("");
 
         return of(headers, thingDefs, featureDefs);
     }

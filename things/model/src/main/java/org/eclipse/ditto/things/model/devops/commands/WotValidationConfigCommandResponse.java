@@ -18,6 +18,7 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
  * Base interface for all WoT validation config command responses.
  *
  * @param <T> the type of the implementing class.
+ * @since 3.8.0
  */
 public interface WotValidationConfigCommandResponse<T extends WotValidationConfigCommandResponse<T>>
         extends CommandResponse<T> {

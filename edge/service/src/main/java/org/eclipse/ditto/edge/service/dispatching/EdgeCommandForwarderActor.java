@@ -51,6 +51,7 @@ import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.things.model.ThingConstants;
+import org.eclipse.ditto.things.model.devops.commands.WotValidationConfigCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
@@ -58,7 +59,6 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.thingsearch.api.ThingsSearchConstants;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.ThingSearchSudoCommand;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
-import org.eclipse.ditto.things.model.devops.commands.WotValidationConfigCommand;
 
 import com.typesafe.config.Config;
 
@@ -199,7 +199,8 @@ public class EdgeCommandForwarderActor extends AbstractActor {
 
     private void forwardToWotValidationConfig(final WotValidationConfigCommand<?> wotValidationConfigSignal) {
         final ActorRef sender = getSender();
-        final CompletionStage<Signal<?>> signalTransformationCs = applySignalTransformation(wotValidationConfigSignal, sender);
+        final CompletionStage<Signal<?>> signalTransformationCs =
+                applySignalTransformation(wotValidationConfigSignal, sender);
 
         scheduleTask(wotValidationConfigSignal, () -> signalTransformationCs.thenAccept(transformed -> {
             log.withCorrelationId(transformed)

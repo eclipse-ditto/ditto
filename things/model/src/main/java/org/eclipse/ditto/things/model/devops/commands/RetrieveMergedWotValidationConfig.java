@@ -13,18 +13,14 @@
 package org.eclipse.ditto.things.model.devops.commands;
 
 import java.util.Objects;
-import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableCommand;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
 
@@ -47,7 +43,8 @@ import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
  */
 @Immutable
 @JsonParsableCommand(typePrefix = WotValidationConfigCommand.TYPE_PREFIX, name = RetrieveMergedWotValidationConfig.NAME)
-public final class RetrieveMergedWotValidationConfig extends AbstractWotValidationConfigCommand<RetrieveMergedWotValidationConfig>
+public final class RetrieveMergedWotValidationConfig
+        extends AbstractWotValidationConfigCommand<RetrieveMergedWotValidationConfig>
         implements WotValidationConfigCommand<RetrieveMergedWotValidationConfig> {
 
     /**
@@ -56,11 +53,7 @@ public final class RetrieveMergedWotValidationConfig extends AbstractWotValidati
      */
     public static final String NAME = "retrieveMergedWotValidationConfig";
 
-    /**
-     * Type of this command.
-     * This is the full type identifier including the prefix.
-     */
-    private static final String TYPE = WotValidationConfigCommand.TYPE_PREFIX + NAME;
+    private static final String TYPE = TYPE_PREFIX + NAME;
 
     /**
      * Constructs a new {@code RetrieveMergedWotValidationConfig} command.
@@ -80,7 +73,8 @@ public final class RetrieveMergedWotValidationConfig extends AbstractWotValidati
      * @param dittoHeaders the headers of the command.
      * @return the new instance.
      */
-    public static RetrieveMergedWotValidationConfig of(final WotValidationConfigId configId, final DittoHeaders dittoHeaders) {
+    public static RetrieveMergedWotValidationConfig of(final WotValidationConfigId configId,
+            final DittoHeaders dittoHeaders) {
         Objects.requireNonNull(configId, "configId");
         Objects.requireNonNull(dittoHeaders, "dittoHeaders");
         return new RetrieveMergedWotValidationConfig(configId, dittoHeaders);
@@ -93,15 +87,11 @@ public final class RetrieveMergedWotValidationConfig extends AbstractWotValidati
      * @param dittoHeaders the headers of the command.
      * @return the new instance.
      */
-    public static RetrieveMergedWotValidationConfig fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+    public static RetrieveMergedWotValidationConfig fromJson(final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
         final String configIdString = jsonObject.getValueOrThrow(WotValidationConfigCommand.JsonFields.CONFIG_ID);
         final WotValidationConfigId configId = WotValidationConfigId.of(configIdString);
         return of(configId, dittoHeaders);
-    }
-
-    @Override
-    public String getTypePrefix() {
-        return WotValidationConfigCommand.TYPE_PREFIX;
     }
 
     @Override
@@ -120,13 +110,6 @@ public final class RetrieveMergedWotValidationConfig extends AbstractWotValidati
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
-            final Predicate<JsonField> thePredicate) {
-        final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(WotValidationConfigCommand.JsonFields.CONFIG_ID, getEntityId().toString(), predicate);
-    }
-
-    @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
@@ -135,7 +118,12 @@ public final class RetrieveMergedWotValidationConfig extends AbstractWotValidati
             return false;
         }
         final RetrieveMergedWotValidationConfig that = (RetrieveMergedWotValidationConfig) o;
-        return Objects.equals(getEntityId(), that.getEntityId());
+        return super.equals(that);
+    }
+
+    @Override
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof RetrieveMergedWotValidationConfig;
     }
 
     @Override
@@ -146,7 +134,7 @@ public final class RetrieveMergedWotValidationConfig extends AbstractWotValidati
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "configId=" + getEntityId() +
+                super.toString() +
                 "]";
     }
 }

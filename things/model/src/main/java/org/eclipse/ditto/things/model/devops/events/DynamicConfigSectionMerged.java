@@ -16,7 +16,6 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.time.Instant;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
@@ -60,10 +59,7 @@ public final class DynamicConfigSectionMerged extends AbstractWotValidationConfi
      */
     public static final String NAME = "dynamicConfigSectionMerged";
 
-    /**
-     * Type of this event.
-     */
-    public static final String TYPE = WotValidationConfigCommand.TYPE_PREFIX + NAME;
+    private static final String TYPE = TYPE_PREFIX + NAME;
 
     private final JsonPointer sectionPointer;
     private final DynamicValidationConfig sectionValue;
@@ -125,7 +121,8 @@ public final class DynamicConfigSectionMerged extends AbstractWotValidationConfi
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
-            final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
+            final JsonSchemaVersion schemaVersion,
+            final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(WotValidationConfigCommand.JsonFields.CONFIG_ID, getEntityId().toString(), predicate);
         jsonObjectBuilder.set(JsonFields.SECTION_POINTER, sectionPointer.toString(), predicate);
@@ -150,22 +147,17 @@ public final class DynamicConfigSectionMerged extends AbstractWotValidationConfi
         return sectionPointer;
     }
 
-
+    /**
+     * @return the value describing the changes that were merged.
+     */
     public DynamicValidationConfig getSectionValue() {
         return sectionValue;
     }
-
-
 
     @Override
     public DynamicConfigSectionMerged setEntity(final JsonValue entity) {
         return of(getEntityId(), sectionPointer, DynamicValidationConfig.fromJson(entity.asObject()), getRevision(), getTimestamp().orElse(null), getDittoHeaders(),
                 getMetadata().orElse(null));
-    }
-
-    @Override
-    public JsonSchemaVersion[] getSupportedSchemaVersions() {
-        return new JsonSchemaVersion[]{JsonSchemaVersion.V_2};
     }
 
     private void checkSchemaVersion() {
@@ -204,7 +196,8 @@ public final class DynamicConfigSectionMerged extends AbstractWotValidationConfi
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [" + super.toString() +
+        return getClass().getSimpleName() + " [" +
+                super.toString() +
                 ", sectionPointer=" + sectionPointer +
                 ", sectionValue=" + sectionValue +
                 "]";

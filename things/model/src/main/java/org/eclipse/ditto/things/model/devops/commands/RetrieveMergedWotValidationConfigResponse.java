@@ -24,16 +24,16 @@ import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.base.model.signals.commands.WithEntity;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.signals.commands.WithEntity;
 import org.eclipse.ditto.things.model.devops.WotValidationConfig;
+import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
 
 /**
  * Response to a {@link RetrieveMergedWotValidationConfig} command.
@@ -54,26 +54,11 @@ import org.eclipse.ditto.things.model.devops.WotValidationConfig;
  */
 @Immutable
 @JsonParsableCommandResponse(type = RetrieveMergedWotValidationConfigResponse.TYPE)
-public final class RetrieveMergedWotValidationConfigResponse extends AbstractCommandResponse<RetrieveMergedWotValidationConfigResponse>
+public final class RetrieveMergedWotValidationConfigResponse
+        extends AbstractWotValidationConfigCommandResponse<RetrieveMergedWotValidationConfigResponse>
         implements WithEntity<RetrieveMergedWotValidationConfigResponse> {
 
-    /**
-     * Type prefix of WoT validation config commands.
-     * This is used to identify the command type in the command journal and for deserialization.
-     */
-    public static final String TYPE_PREFIX = WotValidationConfigCommand.TYPE_PREFIX;
-
-    /**
-     * Name of this command response.
-     * This is used to identify the response type in the command journal and for deserialization.
-     */
-    private static final String NAME = "retrieveMergedWotValidationConfigResponse";
-
-    /**
-     * Type of this command response.
-     * This is the full type identifier including the prefix.
-     */
-    public static final String TYPE = TYPE_PREFIX + NAME;
+    static final String TYPE = TYPE_PREFIX + RetrieveMergedWotValidationConfig.NAME;
 
     /**
      * JSON field definition for the config object.
@@ -91,11 +76,15 @@ public final class RetrieveMergedWotValidationConfigResponse extends AbstractCom
             CommandResponseJsonDeserializer.newInstance(TYPE,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
+                        final WotValidationConfigId configId = WotValidationConfigId.of(jsonObject
+                                .getValueOrThrow(WotValidationConfigCommand.JsonFields.CONFIG_ID)
+                        );
                         final JsonObject configObj = jsonObject.getValue(JSON_CONFIG)
                                 .orElseThrow(() -> new IllegalArgumentException("Missing 'config' field"))
                                 .asObject();
                         final WotValidationConfig config = WotValidationConfig.fromJson(configObj);
-                        return new RetrieveMergedWotValidationConfigResponse(config, context.getDittoHeaders());
+                        return new RetrieveMergedWotValidationConfigResponse(configId, config,
+                                context.getDittoHeaders());
                     });
 
     private final WotValidationConfig config;
@@ -103,13 +92,15 @@ public final class RetrieveMergedWotValidationConfigResponse extends AbstractCom
     /**
      * Constructs a new {@code RetrieveMergedWotValidationConfigResponse} object.
      *
+     * @param configId the ID of the config to retrieve the merged config for.
      * @param config the merged validation config, where the config represents the effective
-     *               validation settings after merging dynamic and static configurations.
+     * validation settings after merging dynamic and static configurations.
      * @param dittoHeaders the headers of the command response.
      */
-    private RetrieveMergedWotValidationConfigResponse(final WotValidationConfig config,
+    private RetrieveMergedWotValidationConfigResponse(final WotValidationConfigId configId,
+            final WotValidationConfig config,
             final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatus.OK, dittoHeaders);
+        super(TYPE, HttpStatus.OK, configId, dittoHeaders);
         this.config = checkNotNull(config, "config");
     }
 
@@ -117,13 +108,13 @@ public final class RetrieveMergedWotValidationConfigResponse extends AbstractCom
      * Creates a new {@code RetrieveMergedWotValidationConfigResponse} object.
      *
      * @param config the merged validation config, where the config represents the effective
-     *               validation settings after merging dynamic and static configurations.
+     * validation settings after merging dynamic and static configurations.
      * @param dittoHeaders the headers of the command response.
      * @return the command response.
      */
     public static RetrieveMergedWotValidationConfigResponse of(final WotValidationConfig config,
             final DittoHeaders dittoHeaders) {
-        return new RetrieveMergedWotValidationConfigResponse(config, dittoHeaders);
+        return new RetrieveMergedWotValidationConfigResponse(config.getConfigId(), config, dittoHeaders);
     }
 
     /**
@@ -140,11 +131,7 @@ public final class RetrieveMergedWotValidationConfigResponse extends AbstractCom
      */
     public static RetrieveMergedWotValidationConfigResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        final JsonObject configObj = jsonObject.getValue(JSON_CONFIG)
-                .orElseThrow(() -> new IllegalArgumentException("Missing 'config' field"))
-                .asObject();
-        final WotValidationConfig config = WotValidationConfig.fromJson(configObj);
-        return of(config, dittoHeaders);
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     /**
@@ -169,14 +156,11 @@ public final class RetrieveMergedWotValidationConfigResponse extends AbstractCom
     }
 
     @Override
-    public String getResourceType() {
-        return WotValidationConfigCommand.RESOURCE_TYPE;
-    }
-
-    @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
-            final Predicate<JsonField> predicate) {
-        jsonObjectBuilder.set("config", config.toJson());
+            final Predicate<JsonField> thePredicate) {
+        super.appendPayload(jsonObjectBuilder, schemaVersion, thePredicate);
+        final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
+        jsonObjectBuilder.set(JSON_CONFIG, config.toJson(), predicate);
     }
 
     @Override
@@ -190,6 +174,11 @@ public final class RetrieveMergedWotValidationConfigResponse extends AbstractCom
         final RetrieveMergedWotValidationConfigResponse that = (RetrieveMergedWotValidationConfigResponse) o;
         return Objects.equals(config, that.config) &&
                 super.equals(o);
+    }
+
+    @Override
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof RetrieveMergedWotValidationConfigResponse;
     }
 
     @Override

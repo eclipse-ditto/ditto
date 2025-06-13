@@ -36,9 +36,9 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 @Immutable
 final class ImmutableThingValidationEnforceConfig implements ThingValidationEnforceConfig {
 
-
     private static final JsonFieldDefinition<Boolean> THING_DESCRIPTION_MODIFICATION =
-            JsonFactory.newBooleanFieldDefinition("thingDescriptionModification", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newBooleanFieldDefinition("thingDescriptionModification", FieldType.REGULAR,
+                    JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<Boolean> ATTRIBUTES =
             JsonFactory.newBooleanFieldDefinition("attributes", FieldType.REGULAR, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<Boolean> INBOX_MESSAGES_INPUT =

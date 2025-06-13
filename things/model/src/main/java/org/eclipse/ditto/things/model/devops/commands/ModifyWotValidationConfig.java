@@ -18,7 +18,6 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommand;
@@ -53,10 +52,7 @@ public final class ModifyWotValidationConfig extends AbstractWotValidationConfig
      */
     public static final String NAME = "modifyWotValidationConfig";
 
-    /**
-     * Type of this command.
-     */
-    private static final String TYPE = WotValidationConfigCommand.TYPE_PREFIX + NAME;
+    private static final String TYPE = TYPE_PREFIX + NAME;
 
     private final WotValidationConfig validationConfig;
 
@@ -114,52 +110,16 @@ public final class ModifyWotValidationConfig extends AbstractWotValidationConfig
         return validationConfig;
     }
 
-    /**
-     * Returns the type prefix for this command.
-     *
-     * @return the type prefix
-     */
-    @Override
-    public String getTypePrefix() {
-        return WotValidationConfigCommand.TYPE_PREFIX;
-    }
-
-    /**
-     * Returns the resource path for this command.
-     *
-     * @return the resource path
-     */
     @Override
     public JsonPointer getResourcePath() {
         return JsonPointer.empty();
     }
 
-    /**
-     * Returns the command category.
-     *
-     * @return the command category
-     */
     @Override
     public Command.Category getCategory() {
         return Command.Category.MODIFY;
     }
 
-    /**
-     * Returns the entity type for this command.
-     *
-     * @return the entity type
-     */
-    @Override
-    public EntityType getEntityType() {
-        return EntityType.of(WotValidationConfigCommand.RESOURCE_TYPE);
-    }
-
-    /**
-     * Returns a new instance of this command with the given Ditto headers.
-     *
-     * @param dittoHeaders the new Ditto headers
-     * @return a new instance with the updated headers
-     */
     @Override
     public ModifyWotValidationConfig setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(getEntityId(), validationConfig, dittoHeaders);
@@ -186,6 +146,11 @@ public final class ModifyWotValidationConfig extends AbstractWotValidationConfig
         }
         final ModifyWotValidationConfig that = (ModifyWotValidationConfig) o;
         return Objects.equals(validationConfig, that.validationConfig);
+    }
+
+    @Override
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof ModifyWotValidationConfig;
     }
 
     @Override

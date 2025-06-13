@@ -12,6 +12,10 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors.strategies.events;
 
+import java.util.List;
+
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.things.model.devops.DynamicValidationConfig;
 import org.eclipse.ditto.things.model.devops.WotValidationConfig;
@@ -19,37 +23,34 @@ import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigRevision;
 import org.eclipse.ditto.things.model.devops.events.DynamicConfigSectionDeleted;
 
-import javax.annotation.Nullable;
-
-import java.util.List;
-import java.util.stream.Collectors;
-
 /**
- * Event strategy for handling {@link org.eclipse.ditto.things.model.devops.events.DynamicConfigSectionDeleted} events.
+ * Event strategy for handling {@link DynamicConfigSectionDeleted} events.
  * <p>
  * This strategy applies a dynamic config section deletion event to a WoT validation config entity, removing the section
  * with the specified scope ID from the list of dynamic configs.
  * </p>
  *
- * @since 3.8.0
  * @see org.eclipse.ditto.things.model.devops.events.DynamicConfigSectionDeleted
  * @see org.eclipse.ditto.things.model.devops.commands.DeleteDynamicConfigSection
+ * @since 3.8.0
  */
-public class DynamicConfigSectionDeletedStrategy implements EventStrategy<DynamicConfigSectionDeleted, WotValidationConfig> {
+final class DynamicConfigSectionDeletedStrategy
+        implements EventStrategy<DynamicConfigSectionDeleted, WotValidationConfig> {
 
     @Nullable
     @Override
-    public WotValidationConfig handle(DynamicConfigSectionDeleted event, @Nullable WotValidationConfig entity, long revision) {
+    public WotValidationConfig handle(final DynamicConfigSectionDeleted event, @Nullable final WotValidationConfig entity,
+            long revision) {
         if (entity == null) {
             return null;
         }
 
-        String scopeId = event.getScopeId();
-        List<DynamicValidationConfig> updatedConfigs = entity.getDynamicConfigs().stream()
-            .filter(section -> !section.getScopeId().equals(scopeId))
-            .collect(Collectors.toList());
+        final String scopeId = event.getScopeId();
+        final List<DynamicValidationConfig> updatedConfigs = entity.getDynamicConfigs().stream()
+                .filter(section -> !section.getScopeId().equals(scopeId))
+                .toList();
 
-        WotValidationConfigId configId = entity.getConfigId();
+        final WotValidationConfigId configId = entity.getConfigId();
         return WotValidationConfig.of(
                 configId,
                 entity.isEnabled().orElse(null),

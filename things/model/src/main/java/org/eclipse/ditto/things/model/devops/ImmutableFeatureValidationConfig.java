@@ -34,7 +34,6 @@ import org.eclipse.ditto.json.JsonValue;
 @Immutable
 final class ImmutableFeatureValidationConfig implements FeatureValidationConfig {
 
-
     private static final JsonFieldDefinition<JsonObject> ENFORCE_FIELD =
             JsonFactory.newJsonObjectFieldDefinition("enforce", FieldType.REGULAR, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<JsonObject> FORBID_FIELD =

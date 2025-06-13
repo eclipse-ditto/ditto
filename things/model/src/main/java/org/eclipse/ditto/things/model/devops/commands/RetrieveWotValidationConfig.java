@@ -18,7 +18,6 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableCommand;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
@@ -50,11 +49,7 @@ public final class RetrieveWotValidationConfig extends AbstractWotValidationConf
      */
     public static final String NAME = "retrieveWotValidationConfig";
 
-    /**
-     * Type of this command.
-     * This is the full type identifier including the prefix.
-     */
-    private static final String TYPE = WotValidationConfigCommand.TYPE_PREFIX + NAME;
+    private static final String TYPE = TYPE_PREFIX + NAME;
 
     /**
      * Constructs a new {@code RetrieveWotValidationConfig} command.
@@ -66,7 +61,7 @@ public final class RetrieveWotValidationConfig extends AbstractWotValidationConf
      */
     private RetrieveWotValidationConfig(final WotValidationConfigId configId, final DittoHeaders dittoHeaders) {
         super(TYPE, configId, dittoHeaders);
-        
+
         // Validate config ID
         if (configId.toString().isEmpty()) {
             throw new IllegalArgumentException("Config ID must not be empty");
@@ -81,7 +76,8 @@ public final class RetrieveWotValidationConfig extends AbstractWotValidationConf
      * @return the new instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveWotValidationConfig of(final WotValidationConfigId configId, final DittoHeaders dittoHeaders) {
+    public static RetrieveWotValidationConfig of(final WotValidationConfigId configId,
+            final DittoHeaders dittoHeaders) {
         Objects.requireNonNull(configId, "configId");
         Objects.requireNonNull(dittoHeaders, "dittoHeaders");
         return new RetrieveWotValidationConfig(configId, dittoHeaders);
@@ -105,11 +101,6 @@ public final class RetrieveWotValidationConfig extends AbstractWotValidationConf
     }
 
     @Override
-    public String getTypePrefix() {
-        return WotValidationConfigCommand.TYPE_PREFIX;
-    }
-
-    @Override
     public JsonPointer getResourcePath() {
         return JsonPointer.empty();
     }
@@ -117,11 +108,6 @@ public final class RetrieveWotValidationConfig extends AbstractWotValidationConf
     @Override
     public Command.Category getCategory() {
         return Command.Category.QUERY;
-    }
-
-    @Override
-    public EntityType getEntityType() {
-        return EntityType.of(RESOURCE_TYPE);
     }
 
     @Override
@@ -145,7 +131,12 @@ public final class RetrieveWotValidationConfig extends AbstractWotValidationConf
             return false;
         }
         final RetrieveWotValidationConfig that = (RetrieveWotValidationConfig) o;
-        return Objects.equals(getEntityId(), that.getEntityId());
+        return super.equals(that);
+    }
+
+    @Override
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof RetrieveWotValidationConfig;
     }
 
     @Override
@@ -156,7 +147,7 @@ public final class RetrieveWotValidationConfig extends AbstractWotValidationConf
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "configId=" + getEntityId() +
+                super.toString() +
                 "]";
     }
 }

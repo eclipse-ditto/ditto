@@ -36,7 +36,6 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 @Immutable
 final class ImmutableThingValidationForbidConfig implements ThingValidationForbidConfig {
 
-
     private static final JsonFieldDefinition<Boolean> THING_DESCRIPTION_DELETION =
             JsonFactory.newBooleanFieldDefinition("thingDescriptionDeletion", FieldType.REGULAR, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<Boolean> NON_MODELED_ATTRIBUTES =
