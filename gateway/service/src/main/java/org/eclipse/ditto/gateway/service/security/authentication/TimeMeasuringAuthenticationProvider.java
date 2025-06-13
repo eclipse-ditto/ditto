@@ -17,20 +17,23 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
+import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.http.javadsl.server.RequestContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationContextType;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.api.GatewayAuthenticationProviderUnavailableException;
-import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.TraceUtils;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanTagKey;
-
-import org.apache.pekko.http.javadsl.server.RequestContext;
+import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 
 /**
  * An abstract class that measures the time it takes to authenticate a request.
@@ -57,36 +60,49 @@ public abstract class TimeMeasuringAuthenticationProvider<R extends Authenticati
     public final CompletableFuture<R> authenticate(final RequestContext requestContext,
             final DittoHeaders dittoHeaders) {
         final AuthorizationContextType authorizationContextType = getType(requestContext);
-        final StartedTimer timer = TraceUtils.newAuthFilterTimer(authorizationContextType).start();
+        final StartedTimer timer = TraceUtils.newAuthFilterTimer(authorizationContextType, requestContext.getRequest())
+                .start();
+        final StartedSpan startedSpan = DittoTracing.newStartedSpanByTimer(dittoHeaders, timer);
+        final DittoHeaders propagatedHeaders = DittoHeaders.of(startedSpan.propagateContext(dittoHeaders));
+
         CompletableFuture<R> resultFuture;
         try {
-            resultFuture = tryToAuthenticate(requestContext, dittoHeaders);
+            resultFuture = tryToAuthenticate(requestContext, propagatedHeaders);
         } catch (final Throwable e) {
             resultFuture = CompletableFuture.failedFuture(e);
         }
         resultFuture = resultFuture.thenApply(
                         authenticationResult -> {
                             timer.tag(SpanTagKey.AUTH_SUCCESS.getTagForValue(authenticationResult.isSuccess()));
+                            startedSpan.tag(SpanTagKey.AUTH_SUBJECTS.getTagForValue(
+                                    authenticationResult.getAuthorizationContext().getAuthorizationSubjects().stream()
+                                            .map(AuthorizationSubject::getId)
+                                            .collect(Collectors.joining(","))
+                            ));
                             return authenticationResult;
                         })
                 .exceptionally(error -> {
                     final Throwable rootCause = getRootCause(error);
+                    startedSpan.tagAsFailed(rootCause);
                     if (rootCause instanceof DittoRuntimeException dittoRuntimeException) {
                         timer.tag(SpanTagKey.AUTH_SUCCESS.getTagForValue(false));
                         if (isInternalError(dittoRuntimeException.getHttpStatus())) {
-                            logger.withCorrelationId(dittoHeaders)
+                            logger.withCorrelationId(propagatedHeaders)
                                     .warn("An unexpected error occurred during authentication of type <{}>.",
                                             authorizationContextType, dittoRuntimeException);
                             timer.tag(SpanTagKey.AUTH_ERROR.getTagForValue(true));
                         }
-                        return toFailedAuthenticationResult(dittoRuntimeException, dittoHeaders);
+                        return toFailedAuthenticationResult(dittoRuntimeException, propagatedHeaders);
                     } else {
                         timer.tag(SpanTagKey.AUTH_SUCCESS.getTagForValue(false));
                         timer.tag(SpanTagKey.AUTH_ERROR.getTagForValue(true));
-                        return toFailedAuthenticationResult(rootCause, dittoHeaders);
+                        return toFailedAuthenticationResult(rootCause, propagatedHeaders);
                     }
                 });
-        resultFuture.whenComplete((result, error) -> timer.stop());
+        resultFuture.whenComplete((result, error) -> {
+            timer.stop();
+            startedSpan.finish();
+        });
 
         return resultFuture;
     }

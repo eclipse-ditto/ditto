@@ -18,17 +18,22 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
+import org.apache.pekko.http.javadsl.model.Uri;
+import org.apache.pekko.http.javadsl.server.Directives;
+import org.apache.pekko.http.javadsl.server.Route;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.gateway.api.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationChain;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationResult;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.internal.utils.tracing.TraceUtils;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanTagKey;
 
-import org.apache.pekko.http.javadsl.model.Uri;
-import org.apache.pekko.http.javadsl.server.Directives;
-import org.apache.pekko.http.javadsl.server.Route;
 import scala.util.Try;
 
 /**
@@ -73,15 +78,21 @@ public final class GatewayAuthenticationDirective {
      * Depending on the request headers, one of the supported authentication mechanisms is applied.
      *
      * @param dittoHeaders the DittoHeaders containing already gathered context information.
+     * @param dittoHeadersValidator a validator making sure that DittoHeader size is not exceeded
      * @param inner the inner route which will be wrapped with the {@link DittoHeaders}.
      * @return the inner route.
      */
-    public Route authenticate(final DittoHeaders dittoHeaders, final Function<AuthenticationResult, Route> inner) {
+    public Route authenticate(final DittoHeaders dittoHeaders, final DittoHeadersValidator dittoHeadersValidator,
+            final Function<AuthenticationResult, Route> inner) {
         return extractRequestContext(requestContext -> {
             final Uri requestUri = requestContext.getRequest().getUri();
 
             final CompletableFuture<AuthenticationResult> authenticationResult =
-                    authenticationChain.authenticate(requestContext, dittoHeaders);
+                    authenticationChain.authenticate(requestContext, dittoHeaders)
+                            .thenCompose(authRes ->
+                                dittoHeadersValidator.validate(authRes.getDittoHeaders())
+                                        .thenApply(validHeaders -> authRes)
+                            );
 
             final Function<Try<AuthenticationResult>, Route> handleAuthenticationTry =
                     authenticationResultTry -> handleAuthenticationTry(authenticationResultTry, requestUri,
@@ -113,6 +124,12 @@ public final class GatewayAuthenticationDirective {
             LOGGER.withCorrelationId(dittoHeaders)
                     .debug("Authentication for URI <{}> failed. Rethrow DittoRuntimeException.", requestUri,
                             reasonOfFailure);
+            DittoTracing.newPreparedSpan(dittoHeaders, SpanOperationName.of(TraceUtils.FILTER_AUTH_METRIC_NAME))
+                    .start()
+                    .tag(SpanTagKey.AUTH_SUCCESS.getTagForValue(false))
+                    .tag(SpanTagKey.AUTH_ERROR.getTagForValue(true))
+                    .tagAsFailed(reasonOfFailure)
+                    .finish();
             throw dittoRuntimeException;
         } else {
             LOGGER.withCorrelationId(dittoHeaders)
