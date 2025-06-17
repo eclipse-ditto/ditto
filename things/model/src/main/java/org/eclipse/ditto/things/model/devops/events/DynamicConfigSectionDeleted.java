@@ -48,7 +48,7 @@ import org.eclipse.ditto.things.model.devops.commands.WotValidationConfigCommand
  * @since 3.8.0
  */
 @Immutable
-@JsonParsableEvent(name = DynamicConfigSectionDeleted.NAME, typePrefix = WotValidationConfigCommand.TYPE_PREFIX)
+@JsonParsableEvent(name = DynamicConfigSectionDeleted.NAME, typePrefix = WotValidationConfigEvent.TYPE_PREFIX)
 public final class DynamicConfigSectionDeleted extends AbstractWotValidationConfigEvent<DynamicConfigSectionDeleted> {
 
     /**
@@ -73,7 +73,6 @@ public final class DynamicConfigSectionDeleted extends AbstractWotValidationConf
         super(TYPE, configId, revision, timestamp, dittoHeaders, metadata);
         this.sectionPointer = checkNotNull(sectionPointer, "sectionPointer");
         this.scopeId = checkNotNull(scopeId, "scopeId");
-        checkSchemaVersion();
     }
 
     /**
@@ -154,12 +153,6 @@ public final class DynamicConfigSectionDeleted extends AbstractWotValidationConf
         return this;
     }
 
-    private void checkSchemaVersion() {
-        final JsonSchemaVersion implementedSchemaVersion = getImplementedSchemaVersion();
-        if (!implementsSchemaVersion(implementedSchemaVersion)) {
-            throw UnsupportedSchemaVersionException.newBuilder(implementedSchemaVersion).build();
-        }
-    }
 
     @Override
     public boolean equals(final Object o) {

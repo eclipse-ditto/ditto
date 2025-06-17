@@ -45,13 +45,13 @@ public final class WotValidationConfigDeleted extends AbstractWotValidationConfi
      * Name of this event.
      * This is used to identify the event type in the event journal and for deserialization.
      */
-    public static final String NAME = "deleted";
+    public static final String NAME = "wotValidationConfigDeleted";
 
     /**
      * Type of this event.
      * This is the full type identifier including the prefix.
      */
-    public static final String TYPE = WotValidationConfigEvent.TYPE_PREFIX + NAME;
+    public static final String TYPE = TYPE_PREFIX + NAME;
 
     /**
      * Constructs a new {@code WotValidationConfigDeleted} event.
