@@ -17,6 +17,7 @@ import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.http.javadsl.model.HttpRequest;
 import org.eclipse.ditto.base.model.auth.AuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
@@ -27,13 +28,13 @@ import org.eclipse.ditto.internal.utils.tracing.span.SpanTagKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.pekko.http.javadsl.model.HttpRequest;
-
 /**
  * Utility for tracing Http requests.
  */
 @Immutable
 public final class TraceUtils {
+
+    public static final String FILTER_AUTH_METRIC_NAME = "filter_auth";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TraceUtils.class);
 
@@ -42,7 +43,6 @@ public final class TraceUtils {
     private static final Pattern DUPLICATE_SLASH_PATTERN = Pattern.compile("\\/+");
 
     private static final String HTTP_ROUNDTRIP_METRIC_NAME = "roundtrip_http";
-    private static final String FILTER_AUTH_METRIC_NAME = "filter_auth";
     private static final String LIVE_CHANNEL_NAME = "live";
     private static final String TWIN_CHANNEL_NAME = "twin";
     private static final Pattern MESSAGE_PATTERN = Pattern.compile("(.*/(inbox|outbox)/messages/.*)|(.*/inbox/claim)");
@@ -100,11 +100,13 @@ public final class TraceUtils {
      * Prepares an {@link PreparedTimer} with default {@link #FILTER_AUTH_METRIC_NAME} and tags.
      *
      * @param authorizationContextType the authorization context type (i.e. JWT, ...).
+     * @param httpRequest the HTTP request to extract tags from.
      * @return the prepared {@link PreparedTimer}.
      * @throws NullPointerException if {@code authorizationContextType} is {@code null}.
      */
-    public static PreparedTimer newAuthFilterTimer(final AuthorizationContextType authorizationContextType) {
-        return newAuthFilterTimer(authorizationContextType, TagSet.empty());
+    public static PreparedTimer newAuthFilterTimer(final AuthorizationContextType authorizationContextType,
+            final HttpRequest httpRequest) {
+        return newAuthFilterTimer(authorizationContextType, getTraceInformationTags(httpRequest));
     }
 
     private static PreparedTimer newAuthFilterTimer(

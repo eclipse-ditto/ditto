@@ -31,7 +31,6 @@ import org.apache.pekko.http.javadsl.server.RequestContext;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
-import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.gateway.api.GatewayDuplicateHeaderException;
 
 /**
@@ -48,17 +47,14 @@ final class RootRouteHeadersStepBuilder {
     private final HeaderTranslator headerTranslator;
     private final QueryParametersToHeadersMap queryParamsToHeaders;
     private final CustomHeadersHandler customHeadersHandler;
-    private final DittoHeadersValidator dittoHeadersValidator;
 
     private RootRouteHeadersStepBuilder(final HeaderTranslator headerTranslator,
             final QueryParametersToHeadersMap queryParamsToHeaders,
-            final CustomHeadersHandler customHeadersHandler,
-            final DittoHeadersValidator dittoHeadersValidator) {
+            final CustomHeadersHandler customHeadersHandler) {
 
         this.headerTranslator = checkNotNull(headerTranslator, "headerTranslator");
         this.queryParamsToHeaders = checkNotNull(queryParamsToHeaders, "queryParamsToHeaders");
         this.customHeadersHandler = checkNotNull(customHeadersHandler, "customHeadersHandler");
-        this.dittoHeadersValidator = checkNotNull(dittoHeadersValidator, "dittoHeadersValidator");
     }
 
     /**
@@ -68,17 +64,14 @@ final class RootRouteHeadersStepBuilder {
      * @param headerTranslator translates request headers into valid DittoHeaders.
      * @param queryParamsToHeaders converts query parameters into a Map of header key-values pairs.
      * @param customHeadersHandler adds custom headers.
-     * @param dittoHeadersValidator ensures that Ditto headers are small enough to be sent around the cluster.
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
     static RootRouteHeadersStepBuilder getInstance(final HeaderTranslator headerTranslator,
             final QueryParametersToHeadersMap queryParamsToHeaders,
-            final CustomHeadersHandler customHeadersHandler,
-            final DittoHeadersValidator dittoHeadersValidator) {
+            final CustomHeadersHandler customHeadersHandler) {
 
-        return new RootRouteHeadersStepBuilder(headerTranslator, queryParamsToHeaders, customHeadersHandler,
-                dittoHeadersValidator);
+        return new RootRouteHeadersStepBuilder(headerTranslator, queryParamsToHeaders, customHeadersHandler);
     }
 
     /**
@@ -232,14 +225,12 @@ final class RootRouteHeadersStepBuilder {
             // At this point it is ensured that a correlation ID was set
             final String correlationId = dittoDefaultHeaders.getCorrelationId().orElseThrow();
 
-            final CompletionStage<DittoHeaders> result = customHeadersHandler.handleCustomHeaders(correlationId,
+            return customHeadersHandler.handleCustomHeaders(correlationId,
                     requestContext,
                     requestType,
-                    dittoDefaultHeaders);
-
-            return result.thenCompose(dittoHeadersValidator::validate);
+                    dittoDefaultHeaders
+            );
         }
-
     }
 
 }
