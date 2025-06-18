@@ -17,17 +17,14 @@ parameters:
       type: string
 get:
   summary: Get a dynamic WoT validation config section by scopeId
-  tags: [Devops]
+  tags:
+    - Devops
   security:
     - DevOpsBasic: []
     - DevOpsBearer: []
   responses:
     '200':
-      description: The dynamic config section
-      content:
-        application/json:
-          schema:
-            $ref: '../../schemas/wotValidationConfig/dynamicValidationConfigResponse.yml'
+      $ref: '../../responses/wotValidationConfig/dynamicValidationConfigResponse.yml'
     '404':
       description: Not found
 put:
@@ -37,17 +34,14 @@ put:
     - DevOpsBasic: []
     - DevOpsBearer: []
   requestBody:
-    required: true
-    content:
-      application/json:
-        schema:
-          $ref: '../../schemas/wotValidationConfig/dynamicValidationConfigRequest.yml'
+    $ref: '../../requests/wotValidationConfig/dynamicValidationConfigRequest.yml'
   responses:
     '204':
       description: Updated dynamic config section
 delete:
   summary: Delete a dynamic WoT validation config section
-  tags: [Devops]
+  tags:
+    - Devops
   security:
     - DevOpsBasic: []
     - DevOpsBearer: []

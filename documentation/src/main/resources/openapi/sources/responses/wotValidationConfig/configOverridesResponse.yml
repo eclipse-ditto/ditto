@@ -8,15 +8,7 @@
 # http://www.eclipse.org/legal/epl-2.0
 #
 # SPDX-License-Identifier: EPL-2.0
-get:
-  summary: Get the merged WoT validation config
-  tags:
-    - Devops
-  security:
-    - DevOpsBasic: []
-    - DevOpsBearer: []
-  responses:
-    '200':
-      $ref: '../../responses/wotValidationConfig/wotValidationConfigResponse.yml'
-    '404':
-      description: Not found 
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/wotValidationConfig/configOverrides.yml'

@@ -1,4 +1,4 @@
-# Copyright (c) 2025 Contributors to the Eclipse Foundation
+# Copyright (c) 2024 Contributors to the Eclipse Foundation
 #
 # See the NOTICE file(s) distributed with this work for additional
 # information regarding copyright ownership.
@@ -8,17 +8,8 @@
 # http://www.eclipse.org/legal/epl-2.0
 #
 # SPDX-License-Identifier: EPL-2.0
-
 type: object
-description: Dynamic config section for response.
-properties:
-  scopeId:
-    type: string
-  validationContext:
-    $ref: 'validationContext.yml'
-  configOverrides:
-    $ref: 'configOverrides.yml'
-required:
-  - scopeId
-  - validationContext
-  - configOverrides 
+description: |-
+  Request to check permissions for various entities and resources.
+additionalProperties:
+  $ref: '../schemas/checkPermissions/permissionEntityCheck.yml'

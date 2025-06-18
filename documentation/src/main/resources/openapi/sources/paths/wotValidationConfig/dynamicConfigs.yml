@@ -11,7 +11,8 @@
 
 get:
   summary: List all dynamic WoT validation config sections
-  tags: [Devops]
+  tags:
+    - Devops
   security:
     - DevOpsBasic: []
     - DevOpsBearer: []
@@ -23,4 +24,4 @@ get:
           schema:
             type: array
             items:
-              $ref: '../../schemas/wotValidationConfig/dynamicValidationConfigResponse.yml' 
+              $ref: '../../schemas/wotValidationConfig/dynamicValidationConfig.yml'

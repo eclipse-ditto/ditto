@@ -6664,25 +6664,26 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
   /api/2/checkPermissions:
     post:
-      summary: "Check Permissions for Resources"
-      description: "An endpoint to verify permissions on specified resources."
+      summary: Check permissions for specified entities
+      description: This endpoint allows you to verify permissions for various entities on specific resources.
       tags:
         - Policies
       requestBody:
+        description: JSON payload containing entities and their permissions to be checked.
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PermissionCheckRequest'
+              $ref: '#/components/requestBodies/PermissionCheckRequest'
       responses:
         '200':
-          description: "Permissions check result"
+          description: Permission check results for each entity.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PermissionCheckResponse'
+                $ref: '#/components/responses/PermissionCheckResponse'
         '401':
-          description: The request could not be completed due to missing authentication.
+          description: Unauthorized request due to missing authentication.
           content:
             application/json:
               schema:
@@ -8199,37 +8200,35 @@ paths:
   /devops/wot/config:
     get:
       summary: Get the WoT validation config
-      tags: [Devops]
+      tags:
+        - Devops
       security:
         - DevOpsBasic: []
         - DevOpsBearer: []
       responses:
         '200':
-          description: The WoT validation config
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/WotValidationConfigResponse'
+          $ref: '#/components/responses/WotValidationConfigResponse'
         '404':
           description: Not found
     put:
       summary: Update the WoT validation config
-      tags: [Devops]
+      tags:
+        - Devops
       security:
         - DevOpsBasic: []
         - DevOpsBearer: []
       requestBody:
-        required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/WotValidationConfigResponse'
+              $ref: '#/components/schemas/WotValidationConfig'
       responses:
         '204':
           description: Updated config
     delete:
       summary: Delete the WoT validation config
-      tags: [Devops]
+      tags:
+        - Devops
       security:
         - DevOpsBasic: []
         - DevOpsBearer: []
@@ -8238,28 +8237,24 @@ paths:
           description: Deleted successfully
         '404':
           description: Not found
-
-  /devops/wot/config/global/merged:
+  /devops/wot/config/merged:
     get:
       summary: Get the merged WoT validation config
-      tags: [Devops]
+      tags:
+        - Devops
       security:
         - DevOpsBasic: []
         - DevOpsBearer: []
       responses:
         '200':
-          description: The merged WoT validation config
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/WotValidationConfigResponse'
+          $ref: '#/components/responses/WotValidationConfigResponse'
         '404':
           description: Not found
-
   /devops/wot/config/dynamicConfigs:
     get:
       summary: List all dynamic WoT validation config sections
-      tags: [Devops]
+      tags:
+        - Devops
       security:
         - DevOpsBasic: []
         - DevOpsBearer: []
@@ -8271,57 +8266,50 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/DynamicValidationConfigResponse'
-
-  /devops/wot/config/dynamicConfigs/{scopeId}:
-      parameters:
-        - name: scopeId
-          in: path
-          required: true
-          schema:
-            type: string
-      get:
-        summary: Get a dynamic WoT validation config section by scopeId
-        tags: [Devops]
-        security:
-          - DevOpsBasic: []
-          - DevOpsBearer: []
-        responses:
-          '200':
-            description: The dynamic config section
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/DynamicValidationConfigResponse'
-          '404':
-            description: Not found
-      put:
-        summary: Create or update a dynamic WoT validation config section
-        tags: [Devops]
-        security:
-          - DevOpsBasic: []
-          - DevOpsBearer: []
-        requestBody:
-          required: true
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/DynamicValidationConfigRequest'
-        responses:
-          '204':
-            description: Updated dynamic config section
-      delete:
-        summary: Delete a dynamic WoT validation config section
-        tags: [Devops]
-        security:
-          - DevOpsBasic: []
-          - DevOpsBearer: []
-        responses:
-          '204':
-            description: Deleted successfully
-          '404':
-            description: Not found
-
+                  $ref: '#/components/schemas/DynamicValidationConfig'
+  '/devops/wot/config/dynamicConfigs/{scopeId}':
+    parameters:
+      - name: scopeId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get a dynamic WoT validation config section by scopeId
+      tags:
+        - Devops
+      security:
+        - DevOpsBasic: []
+        - DevOpsBearer: []
+      responses:
+        '200':
+          $ref: '#/components/responses/DynamicValidationConfigResponse'
+        '404':
+          description: Not found
+    put:
+      summary: Create or update a dynamic WoT validation config section
+      tags:
+        - Devops
+      security:
+        - DevOpsBasic: []
+        - DevOpsBearer: []
+      requestBody:
+        $ref: '#/components/requestBodies/DynamicValidationConfigRequest'
+      responses:
+        '204':
+          description: Updated dynamic config section
+    delete:
+      summary: Delete a dynamic WoT validation config section
+      tags:
+        - Devops
+      security:
+        - DevOpsBasic: []
+        - DevOpsBearer: []
+      responses:
+        '204':
+          description: Deleted successfully
+        '404':
+          description: Not found
 components:
   requestBodies:
     Attributes:
@@ -8486,6 +8474,37 @@ components:
                 default: false
             required:
               - thingDefinitionUrl
+    PermissionCheckRequest:
+      type: object
+      description: Request to check permissions for various entities and resources.
+      additionalProperties:
+        type: object
+        description: Details for a specific permission check request.
+        properties:
+          resource:
+            type: string
+            description: Resource path the permission check applies to.
+          entityId:
+            type: string
+            description: thingId of the entity performing the action.
+          hasPermissions:
+            type: array
+            items:
+              type: string
+              enum:
+                - READ
+                - WRITE
+            description: Required permissions on the resource.
+    DynamicValidationConfigRequest:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/DynamicValidationConfig'
+    ConfigOverridesRequest:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ConfigOverrides'
   responses:
     EntityTooLarge:
       description: The created or modified entity is larger than the accepted limit of 100 kB.
@@ -8609,6 +8628,26 @@ components:
               - thingId
               - patch
               - mergeStatus
+    PermissionCheckResponse:
+      type: object
+      description: Response with permission check results for each entity.
+      additionalProperties:
+        type: boolean
+    WotValidationConfigResponse:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/WotValidationConfig'
+    DynamicValidationConfigResponse:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/DynamicValidationConfig'
+    ConfigOverridesResponse:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ConfigOverrides'
   parameters:
     AllowPolicyLockoutParam:
       name: allow-policy-lockout
@@ -9403,200 +9442,6 @@ components:
       schema:
         type: string
   schemas:
-    WotValidationConfigRequest:
-      type: object
-      description: Request body for creating or updating a WoT validation config.
-      properties:
-        enabled:
-          type: boolean
-        logWarning:
-          type: boolean
-        thing:
-          $ref: '#/components/schemas/ThingValidationConfig'
-        feature:
-          $ref: '#/components/schemas/FeatureValidationConfig'
-        dynamicConfig:
-          type: array
-          items:
-            $ref: '#/components/schemas/DynamicValidationConfigRequest'
-      required:
-        - enabled
-        - thing
-        - feature
-
-    WotValidationConfigResponse:
-      type: object
-      description: Response body for a WoT validation config.
-      properties:
-        configId:
-          type: string
-        enabled:
-          type: boolean
-        logWarning:
-          type: boolean
-        thing:
-          $ref: '#/components/schemas/ThingValidationConfig'
-        feature:
-          $ref: '#/components/schemas/FeatureValidationConfig'
-        dynamicConfig:
-          type: array
-          items:
-            $ref: '#/components/schemas/DynamicValidationConfigResponse'
-        revision:
-          type: integer
-          format: int64
-        created:
-          type: string
-          format: date-time
-        modified:
-          type: string
-          format: date-time
-        deleted:
-          type: boolean
-        metadata:
-          type: object
-      required:
-        - configId
-        - enabled
-        - thing
-        - feature
-
-    ThingValidationConfig:
-      type: object
-      description: Thing validation config.
-      properties:
-        enforce:
-          type: object
-          properties:
-            thingDescriptionModification:
-              type: boolean
-            attributes:
-              type: boolean
-            inboxMessagesInput:
-              type: boolean
-            inboxMessagesOutput:
-              type: boolean
-            outboxMessages:
-              type: boolean
-        forbid:
-          type: object
-          properties:
-            thingDescriptionDeletion:
-              type: boolean
-            nonModeledAttributes:
-              type: boolean
-            nonModeledInboxMessages:
-              type: boolean
-            nonModeledOutboxMessages:
-              type: boolean
-
-    FeatureValidationConfig:
-      type: object
-      description: Feature validation config.
-      properties:
-        enforce:
-          type: object
-          properties:
-            featureDescriptionModification:
-              type: boolean
-            presenceOfModeledFeatures:
-              type: boolean
-            properties:
-              type: boolean
-            desiredProperties:
-              type: boolean
-            inboxMessagesInput:
-              type: boolean
-            inboxMessagesOutput:
-              type: boolean
-            oOutboxMessages:
-              type: boolean
-        forbid:
-          type: object
-          properties:
-            featureDescriptionDeletion:
-              type: boolean
-            nonModeledFeatures:
-              type: boolean
-            nonModeledProperties:
-              type: boolean
-            nonModeledDesiredProperties:
-              type: boolean
-            nonModeledInboxMessages:
-              type: boolean
-            nonModeledOutboxMessages:
-              type: boolean
-
-    DynamicValidationConfigRequest:
-      type: object
-      description: Dynamic config section for request.
-      properties:
-        scopeId:
-          type: string
-        validationContext:
-          $ref: '#/components/schemas/ValidationContext'
-        configOverrides:
-          $ref: '#/components/schemas/ConfigOverrides'
-      required:
-        - scopeId
-        - validationContext
-        - configOverrides
-
-    DynamicValidationConfigResponse:
-      type: object
-      description: Dynamic config section for response.
-      properties:
-        scopeId:
-          type: string
-        validationContext:
-          $ref: '#/components/schemas/ValidationContext'
-        configOverrides:
-          $ref: '#/components/schemas/ConfigOverrides'
-      required:
-        - scopeId
-        - validationContext
-        - configOverrides
-
-    ConfigOverrides:
-      type: object
-      description: Config overrides for a dynamic config section.
-      properties:
-        enabled:
-          type: boolean
-        logWarningInsteadOfFailingApiCalls:
-          type: boolean
-        thing:
-          $ref: '#/components/schemas/ThingValidationConfig'
-        feature:
-          $ref: '#/components/schemas/FeatureValidationConfig'
-      required:
-        - enabled
-        - thing
-        - feature
-
-    ValidationContext:
-      type: object
-      description: Validation context for dynamic config section.
-      properties:
-        dittoHeadersPatterns:
-          type: array
-          items:
-            type: object
-            additionalProperties:
-              type: string
-        thingDefinitionPatterns:
-          type: array
-          items:
-            type: string
-        featureDefinitionPatterns:
-          type: array
-          items:
-            type: string
-        scopeId:
-          type: string
-      required:
-        - scopeId
-
     Error:
       properties:
         status:
@@ -10958,45 +10803,6 @@ components:
         - security
         - securityDefinitions
       additionalProperties: true
-    PermissionCheckRequest:
-      type: object
-      description: "Request to check permissions for various entities and resources."
-      additionalProperties:
-        $ref: '#/components/schemas/PermissionEntityCheck'
-      example:
-        lamp_reader:
-          resource: "thing:/features/lamp/properties/on"
-          entityId: "org.eclipse.ditto:some-thing-1"
-          hasPermissions: [ "READ" ]
-        lamp_toggler:
-          resource: "message:/features/lamp/inbox/messages/toggle"
-          entityId: "org.eclipse.ditto:some-thing-1"
-          hasPermissions: [ "WRITE" ]
-    PermissionEntityCheck:
-      type: object
-      description: "Details for a specific permission check request."
-      properties:
-        resource:
-          type: string
-          pattern: "^(thing|message|policy):(/[a-zA-Z0-9._-]+)*$"
-          description: "Resource key to be checked, beginning with 'thing:', 'message:', or 'policy:', followed by the specific resource path. This defines the scope of the permission request."
-        entityId:
-          type: string
-        description: "ID of the entity performing the action, which could be a ThingId or PolicyId, depending on the resource context."
-        hasPermissions:
-          type: array
-          items:
-            type: string
-            enum: [ "READ", "WRITE" ]
-          description: "Required permissions on the resource."
-    PermissionCheckResponse:
-      type: object
-      description: "Response with permission check results for each entity."
-      additionalProperties:
-        type: boolean
-      example:
-        lamp_reader: true
-        lamp_toggler: false
     TextUnauthorizeError:
       type: string
       example: The supplied authentication is invalid
@@ -11274,6 +11080,159 @@ components:
 
         * `?namespaces=com.example.namespace1,com.example.namespace2`
       type: string
+    ConfigOverrides:
+      type: object
+      description: Config overrides for a dynamic config section.
+      properties:
+        enabled:
+          type: boolean
+        logWarningInsteadOfFailingApiCalls:
+          type: boolean
+        thing:
+          $ref: '#/components/schemas/ThingValidationConfig'
+        feature:
+          $ref: '#/components/schemas/FeatureValidationConfig'
+      required:
+        - enabled
+        - thing
+        - feature
+    ValidationContext:
+      type: object
+      description: Validation context for dynamic config section.
+      properties:
+        dittoHeadersPatterns:
+          type: array
+          items:
+            type: object
+            additionalProperties:
+              type: string
+        thingDefinitionPatterns:
+          type: array
+          items:
+            type: string
+        featureDefinitionPatterns:
+          type: array
+          items:
+            type: string
+        scopeId:
+          type: string
+      required:
+        - scopeId
+    ThingValidationConfig:
+      type: object
+      description: Thing validation config.
+      properties:
+        enforce:
+          type: object
+          properties:
+            enforceThingDescriptionModification:
+              type: boolean
+            attributes:
+              type: boolean
+            inboxMessagesInput:
+              type: boolean
+            inboxMessagesOutput:
+              type: boolean
+            outboxMessages:
+              type: boolean
+        forbid:
+          type: object
+          properties:
+            thingDescriptionDeletion:
+              type: boolean
+            nonModeledAttributes:
+              type: boolean
+            nonModeledInboxMessages:
+              type: boolean
+            nonModeledOutboxMessages:
+              type: boolean
+    FeatureValidationConfig:
+      type: object
+      description: Feature validation config.
+      properties:
+        enforce:
+          type: object
+          properties:
+            featureDescriptionModification:
+              type: boolean
+            presenceOfModeledFeatures:
+              type: boolean
+            properties:
+              type: boolean
+            desiredProperties:
+              type: boolean
+            inboxMessagesInput:
+              type: boolean
+            inboxMessagesOutput:
+              type: boolean
+            outboxMessages:
+              type: boolean
+        forbid:
+          type: object
+          properties:
+            featureDescriptionDeletion:
+              type: boolean
+            nonModeledFeatures:
+              type: boolean
+            nonModeledProperties:
+              type: boolean
+            nonModeledDesiredProperties:
+              type: boolean
+            nonModeledInboxMessages:
+              type: boolean
+            nonModeledOutboxMessages:
+              type: boolean
+    DynamicValidationConfig:
+      type: object
+      description: Dynamic config section for request/response.
+      properties:
+        scopeId:
+          type: string
+        validationContext:
+          $ref: '#/components/schemas/ValidationContext'
+        configOverrides:
+          $ref: '#/components/schemas/ConfigOverrides'
+      required:
+        - scopeId
+        - validationContext
+        - configOverrides
+    WotValidationConfig:
+      type: object
+      description: WoT validation configuration object.
+      properties:
+        configId:
+          type: string
+          description: The unique ID of the config.
+        enabled:
+          type: boolean
+          description: Whether WoT validation is enabled globally. Defaults to true if not specified.
+        logWarning:
+          type: boolean
+        thing:
+          $ref: '#/components/schemas/ThingValidationConfig'
+        feature:
+          $ref: '#/components/schemas/FeatureValidationConfig'
+        dynamicConfig:
+          type: array
+          items:
+            $ref: '#/components/schemas/DynamicValidationConfig'
+        revision:
+          type: integer
+          format: int64
+        created:
+          type: string
+          format: date-time
+        modified:
+          type: string
+          format: date-time
+        deleted:
+          type: boolean
+        metadata:
+          type: object
+      required:
+        - configId
+        - thing
+        - feature
   securitySchemes:
     NginxBasic:
       type: http

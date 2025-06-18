@@ -8,17 +8,7 @@
 # http://www.eclipse.org/legal/epl-2.0
 #
 # SPDX-License-Identifier: EPL-2.0
-
-type: object
-description: Dynamic config section for request.
-properties:
-  scopeId:
-    type: string
-  validationContext:
-    $ref: 'validationContext.yml'
-  configOverrides:
-    $ref: 'configOverrides.yml'
-required:
-  - scopeId
-  - validationContext
-  - configOverrides 
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/wotValidationConfig/dynamicValidationConfig.yml'

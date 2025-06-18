@@ -20,12 +20,8 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableEvent;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.events.EventJsonDeserializer;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -155,13 +151,4 @@ public final class WotValidationConfigDeleted extends AbstractWotValidationConfi
                 super.toString() +
                 "]";
     }
-
-    private static final class JsonFields {
-        static final JsonFieldDefinition<String> CONFIG_ID =
-                JsonFactory.newStringFieldDefinition("configId", FieldType.REGULAR, JsonSchemaVersion.V_2);
-
-        private JsonFields() {
-            throw new AssertionError();
-        }
-    }
-} 
+}

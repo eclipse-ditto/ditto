@@ -26,7 +26,6 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableEvent;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.signals.UnsupportedSchemaVersionException;
 import org.eclipse.ditto.base.model.signals.events.EventJsonDeserializer;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -40,8 +39,6 @@ import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
 import org.eclipse.ditto.things.model.devops.commands.WotValidationConfigCommand;
 
 /**
-
- *
  * Event that is emitted after a dynamic config section was merged into a WoT validation config.
  * <p>
  * This event is used to track the merging (creation or update) of a specific dynamic validation config section, identified by its scope ID,
@@ -96,7 +93,8 @@ public final class DynamicConfigSectionMerged extends AbstractWotValidationConfi
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders,
             @Nullable final Metadata metadata) {
-        return new DynamicConfigSectionMerged(configId, sectionPointer, sectionValue, revision, timestamp, dittoHeaders, metadata);
+        return new DynamicConfigSectionMerged(configId, sectionPointer, sectionValue, revision, timestamp, dittoHeaders,
+                metadata);
     }
 
     /**
@@ -113,7 +111,8 @@ public final class DynamicConfigSectionMerged extends AbstractWotValidationConfi
                             jsonObject.getValueOrThrow(WotValidationConfigCommand.JsonFields.CONFIG_ID));
                     final JsonPointer sectionPointer = JsonPointer.of(
                             jsonObject.getValueOrThrow(JsonFields.SECTION_POINTER));
-                    final DynamicValidationConfig sectionValue = DynamicValidationConfig.fromJson(jsonObject.getValueOrThrow(JsonFields.SECTION_VALUE).asObject());
+                    final DynamicValidationConfig sectionValue = DynamicValidationConfig.fromJson(
+                            jsonObject.getValueOrThrow(JsonFields.SECTION_VALUE).asObject());
                     return of(configId, sectionPointer, sectionValue, revision, timestamp, dittoHeaders, metadata);
                 });
     }
@@ -155,7 +154,8 @@ public final class DynamicConfigSectionMerged extends AbstractWotValidationConfi
 
     @Override
     public DynamicConfigSectionMerged setEntity(final JsonValue entity) {
-        return of(getEntityId(), sectionPointer, DynamicValidationConfig.fromJson(entity.asObject()), getRevision(), getTimestamp().orElse(null), getDittoHeaders(),
+        return of(getEntityId(), sectionPointer, DynamicValidationConfig.fromJson(entity.asObject()), getRevision(),
+                getTimestamp().orElse(null), getDittoHeaders(),
                 getMetadata().orElse(null));
     }
 

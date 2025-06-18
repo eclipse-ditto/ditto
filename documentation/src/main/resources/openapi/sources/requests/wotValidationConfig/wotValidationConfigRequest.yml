@@ -8,19 +8,7 @@
 # http://www.eclipse.org/legal/epl-2.0
 #
 # SPDX-License-Identifier: EPL-2.0
-
-type: object
-description: Config overrides for a dynamic config section (request).
-properties:
-  enabled:
-    type: boolean
-  logWarning:
-    type: boolean
-  thing:
-    $ref: '#/components/schemas/ThingValidationConfig'
-  feature:
-    $ref: '#/components/schemas/FeatureValidationConfig'
-required:
-  - enabled
-  - thing
-  - feature 
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/wotValidationConfig/wotValidationConfig.yml'

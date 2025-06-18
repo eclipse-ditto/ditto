@@ -22,14 +22,11 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableEvent;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
@@ -48,7 +45,15 @@ import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
 public final class WotValidationConfigCreated extends AbstractWotValidationConfigEvent<WotValidationConfigCreated>
         implements WotValidationConfigModifiedEvent<WotValidationConfigCreated> {
 
+    /**
+     * Name of this command.
+     */
     public static final String NAME = "wotValidationConfigCreated";
+
+    /**
+     * Type of this event.
+     * This is the full type identifier including the prefix.
+     */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     private final WotValidationConfig config;
@@ -113,12 +118,14 @@ public final class WotValidationConfigCreated extends AbstractWotValidationConfi
 
     @Override
     public WotValidationConfigCreated setRevision(final long revision) {
-        return of(getEntityId(), config, revision, getTimestamp().orElse(null), getDittoHeaders(), getMetadata().orElse(null));
+        return of(getEntityId(), config, revision, getTimestamp().orElse(null), getDittoHeaders(),
+                getMetadata().orElse(null));
     }
 
     @Override
     public WotValidationConfigCreated setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getEntityId(), config, getRevision(), getTimestamp().orElse(null), dittoHeaders, getMetadata().orElse(null));
+        return of(getEntityId(), config, getRevision(), getTimestamp().orElse(null), dittoHeaders,
+                getMetadata().orElse(null));
     }
 
     @Override
@@ -126,7 +133,8 @@ public final class WotValidationConfigCreated extends AbstractWotValidationConfi
         try {
             final JsonObject jsonObject = entity.asObject();
             final WotValidationConfig config = WotValidationConfig.fromJson(jsonObject);
-            return of(getEntityId(), config, getRevision(), getTimestamp().orElse(null), getDittoHeaders(), getMetadata().orElse(null));
+            return of(getEntityId(), config, getRevision(), getTimestamp().orElse(null), getDittoHeaders(),
+                    getMetadata().orElse(null));
         } catch (final JsonParseException e) {
             throw new IllegalArgumentException("Failed to parse entity as WoTValidationConfig: " + e.getMessage(), e);
         }
@@ -179,16 +187,4 @@ public final class WotValidationConfigCreated extends AbstractWotValidationConfi
                 ", config=" + config +
                 "]";
     }
-
-    private static final class JsonFields {
-        static final JsonFieldDefinition<String> CONFIG_ID =
-                JsonFactory.newStringFieldDefinition("configId", FieldType.REGULAR, JsonSchemaVersion.V_2);
-
-        static final JsonFieldDefinition<JsonObject> CONFIG =
-                JsonFactory.newJsonObjectFieldDefinition("config", FieldType.REGULAR, JsonSchemaVersion.V_2);
-
-        private JsonFields() {
-            throw new AssertionError();
-        }
-    }
-} 
+}

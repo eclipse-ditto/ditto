@@ -26,7 +26,6 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableEvent;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.signals.UnsupportedSchemaVersionException;
 import org.eclipse.ditto.base.model.signals.events.EventJsonDeserializer;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -54,7 +53,6 @@ public final class DynamicConfigSectionDeleted extends AbstractWotValidationConf
     /**
      * The name of this event.
      * Used to identify the event type in the event journal and for deserialization.
-     *
      */
     public static final String NAME = "dynamicConfigSectionDeleted";
 
@@ -96,7 +94,8 @@ public final class DynamicConfigSectionDeleted extends AbstractWotValidationConf
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders,
             @Nullable final Metadata metadata) {
-        return new DynamicConfigSectionDeleted(configId, sectionPointer, scopeId, revision, timestamp, dittoHeaders, metadata);
+        return new DynamicConfigSectionDeleted(configId, sectionPointer, scopeId, revision, timestamp, dittoHeaders,
+                metadata);
     }
 
     /**
@@ -194,6 +193,7 @@ public final class DynamicConfigSectionDeleted extends AbstractWotValidationConf
      * Contains the JSON field definitions for this event.
      */
     public static final class JsonFields {
+
         private JsonFields() {
             throw new AssertionError();
         }
