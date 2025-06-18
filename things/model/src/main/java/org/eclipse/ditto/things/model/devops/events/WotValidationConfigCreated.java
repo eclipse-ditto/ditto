@@ -160,7 +160,7 @@ public final class WotValidationConfigCreated extends AbstractWotValidationConfi
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(config);
+        return Objects.hash(super.hashCode(), config);
     }
 
     @Override
@@ -169,6 +169,9 @@ public final class WotValidationConfigCreated extends AbstractWotValidationConfi
             return true;
         }
         if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
             return false;
         }
         final WotValidationConfigCreated that = (WotValidationConfigCreated) o;

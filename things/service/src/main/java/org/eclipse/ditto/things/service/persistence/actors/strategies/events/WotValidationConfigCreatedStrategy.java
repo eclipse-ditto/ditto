@@ -21,6 +21,8 @@ import org.eclipse.ditto.things.model.devops.events.WotValidationConfigCreated;
 
 /**
  * This strategy handles the {@link WotValidationConfigCreated} event.
+ *
+ * @since 3.8.0
  */
 @Immutable
 final class WotValidationConfigCreatedStrategy

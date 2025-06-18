@@ -33,7 +33,8 @@ import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
  */
 @Immutable
 @JsonParsableCommandResponse(type = DeleteWotValidationConfigResponse.TYPE)
-public final class DeleteWotValidationConfigResponse extends AbstractWotValidationConfigCommandResponse<DeleteWotValidationConfigResponse>
+public final class DeleteWotValidationConfigResponse
+        extends AbstractWotValidationConfigCommandResponse<DeleteWotValidationConfigResponse>
         implements WithOptionalEntity<DeleteWotValidationConfigResponse> {
 
     static final String TYPE = WotValidationConfigCommandResponse.TYPE_PREFIX + DeleteWotValidationConfig.NAME;

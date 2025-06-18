@@ -20,11 +20,14 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.WithResource;
 import org.eclipse.ditto.base.model.signals.commands.WithEntity;
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
@@ -50,19 +53,27 @@ public final class RetrieveDynamicConfigSectionResponse
 
     static final String TYPE = TYPE_PREFIX + RetrieveDynamicConfigSection.NAME;
 
+    private static final JsonFieldDefinition<String> SCOPE_ID =
+            JsonFactory.newStringFieldDefinition("scopeId", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
     private final JsonValue validationConfig;
+    private final String scopeId;
 
     /**
      * Constructs a new {@code RetrieveDynamicConfigSectionResponse} object.
      *
      * @param configId the ID of the WoT validation config that was retrieved.
+     * @param scopeId the dynamic config scope identifier
      * @param validationConfig the validation config as a JSON value, containing all validation settings
      * including thing and feature validation settings, and any dynamic config sections.
      * @param dittoHeaders the headers of the response.
      */
-    private RetrieveDynamicConfigSectionResponse(final WotValidationConfigId configId, final JsonValue validationConfig,
+    private RetrieveDynamicConfigSectionResponse(final WotValidationConfigId configId,
+            final String scopeId,
+            final JsonValue validationConfig,
             final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatus.OK, configId, dittoHeaders);
+        this.scopeId = Objects.requireNonNull(scopeId, "scopeId");
         this.validationConfig = Objects.requireNonNull(validationConfig, "validationConfig");
     }
 
@@ -70,15 +81,17 @@ public final class RetrieveDynamicConfigSectionResponse
      * Creates a new instance of {@code RetrieveDynamicConfigSectionResponse}.
      *
      * @param configId the ID of the WoT validation config that was retrieved.
+     * @param scopeId the dynamic config scope identifier
      * @param validationConfig the validation config as a JSON value, containing all validation settings
      * including thing and feature validation settings, and any dynamic config sections.
      * @param dittoHeaders the headers of the response.
      * @return a new RetrieveDynamicConfigSectionResponse.
      */
     public static RetrieveDynamicConfigSectionResponse of(final WotValidationConfigId configId,
+            final String scopeId,
             final JsonValue validationConfig,
             final DittoHeaders dittoHeaders) {
-        return new RetrieveDynamicConfigSectionResponse(configId, validationConfig, dittoHeaders);
+        return new RetrieveDynamicConfigSectionResponse(configId, scopeId, validationConfig, dittoHeaders);
     }
 
     /**
@@ -86,6 +99,7 @@ public final class RetrieveDynamicConfigSectionResponse
      * The JSON string should contain the following fields:
      * <ul>
      *     <li>{@code configId} (required): The ID of the WoT validation config that was retrieved</li>
+     *     <li>{@code scopeId} (required): the dynamic config scope identifier</li>
      *     <li>{@code validationConfig} (required): The validation config as a JSON value</li>
      * </ul>
      *
@@ -114,9 +128,10 @@ public final class RetrieveDynamicConfigSectionResponse
             final DittoHeaders dittoHeaders) {
         final WotValidationConfigId configId =
                 WotValidationConfigId.of(jsonObject.getValueOrThrow(WotValidationConfigCommand.JsonFields.CONFIG_ID));
+        final String scopeId = jsonObject.getValueOrThrow(SCOPE_ID);
         final JsonValue validationConfig =
                 jsonObject.getValueOrThrow(WotValidationConfigCommand.JsonFields.VALIDATION_CONFIG);
-        return of(configId, validationConfig, dittoHeaders);
+        return of(configId, scopeId, validationConfig, dittoHeaders);
     }
 
     /**
@@ -130,9 +145,16 @@ public final class RetrieveDynamicConfigSectionResponse
         return validationConfig;
     }
 
+    /**
+     * @return the dynamic config scope identifier
+     */
+    public String getScopeId() {
+        return scopeId;
+    }
+
     @Override
     public JsonPointer getResourcePath() {
-        return JsonPointer.empty();
+        return JsonPointer.of("/dynamicConfigs/" + scopeId);
     }
 
     @Override
@@ -142,12 +164,12 @@ public final class RetrieveDynamicConfigSectionResponse
 
     @Override
     public RetrieveDynamicConfigSectionResponse setEntity(final JsonValue entity) {
-        return of(configId, entity, getDittoHeaders());
+        return of(configId, scopeId, entity, getDittoHeaders());
     }
 
     @Override
     public RetrieveDynamicConfigSectionResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(configId, validationConfig, dittoHeaders);
+        return of(configId, scopeId, validationConfig, dittoHeaders);
     }
 
     @Override
@@ -155,6 +177,7 @@ public final class RetrieveDynamicConfigSectionResponse
             final Predicate<JsonField> thePredicate) {
         super.appendPayload(jsonObjectBuilder, schemaVersion, thePredicate);
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
+        jsonObjectBuilder.set(SCOPE_ID, scopeId, predicate);
         jsonObjectBuilder.set(WotValidationConfigCommand.JsonFields.VALIDATION_CONFIG, validationConfig, predicate);
     }
 
@@ -170,7 +193,8 @@ public final class RetrieveDynamicConfigSectionResponse
             return false;
         }
         final RetrieveDynamicConfigSectionResponse that = (RetrieveDynamicConfigSectionResponse) o;
-        return Objects.equals(validationConfig, that.validationConfig);
+        return Objects.equals(scopeId, that.scopeId) &&
+                Objects.equals(validationConfig, that.validationConfig);
     }
 
     @Override
@@ -180,13 +204,14 @@ public final class RetrieveDynamicConfigSectionResponse
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), validationConfig);
+        return Objects.hash(super.hashCode(), scopeId, validationConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 super.toString() +
+                ", scopeId=" + scopeId +
                 ", validationConfig=" + validationConfig +
                 "]";
     }

@@ -52,14 +52,6 @@ public interface WotValidationConfigEvent<T extends WotValidationConfigEvent<T>>
     WotValidationConfigId getEntityId();
 
     /**
-     * Returns the type of this event.
-     *
-     * @return the type.
-     */
-    @Override
-    String getType();
-
-    /**
      * Sets the Ditto headers of this event.
      *
      * @param dittoHeaders the Ditto headers to set.

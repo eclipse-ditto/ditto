@@ -21,6 +21,8 @@ import org.eclipse.ditto.things.model.devops.events.WotValidationConfigDeleted;
 
 /**
  * This strategy handles the {@link WotValidationConfigDeleted} event.
+ *
+ * @since 3.8.0
  */
 @Immutable
 final class WotValidationConfigDeletedStrategy

@@ -122,7 +122,7 @@ public final class CreateWotValidationConfigResponse
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), validationConfig, configId);
+        return Objects.hash(super.hashCode(), validationConfig);
     }
 
     @Override

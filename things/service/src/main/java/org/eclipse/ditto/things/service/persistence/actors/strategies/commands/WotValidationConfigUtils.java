@@ -22,6 +22,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
@@ -35,7 +36,6 @@ import org.eclipse.ditto.things.model.devops.ThingValidationEnforceConfig;
 import org.eclipse.ditto.things.model.devops.ThingValidationForbidConfig;
 import org.eclipse.ditto.things.model.devops.WotValidationConfig;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
-import org.eclipse.ditto.things.model.devops.WotValidationConfigRevision;
 import org.eclipse.ditto.wot.validation.config.TmValidationConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -425,11 +425,11 @@ public final class WotValidationConfigUtils {
         return hocon;
     }
 
-    private static org.eclipse.ditto.json.JsonObject convertKeysToKebabCase(final org.eclipse.ditto.json.JsonObject json) {
-        org.eclipse.ditto.json.JsonObjectBuilder builder = org.eclipse.ditto.json.JsonFactory.newObjectBuilder();
-        for (JsonKey key : json.getKeys()) {
-            String kebabKey = camelToKebab(key.toString());
-            org.eclipse.ditto.json.JsonValue value = json.getValue(key).get();
+    private static JsonObject convertKeysToKebabCase(final JsonObject json) {
+        final JsonObjectBuilder builder = JsonFactory.newObjectBuilder();
+        for (final JsonKey key : json.getKeys()) {
+            final String kebabKey = camelToKebab(key.toString());
+            final JsonValue value = json.getValue(key).orElseThrow();
             if (value.isObject()) {
                 builder.set(kebabKey, convertKeysToKebabCase(value.asObject()));
             } else if (value.isArray()) {

@@ -23,6 +23,7 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Thrown when a WoT validation config operation fails.
@@ -30,8 +31,8 @@ import org.eclipse.ditto.base.model.json.JsonParsableException;
  * @since 3.8.0
  */
 @Immutable
-@JsonParsableException(errorCode = WotValidationConfigRunTimeException.ERROR_CODE)
-public final class WotValidationConfigRunTimeException extends DittoRuntimeException implements WotValidationConfigException{
+@JsonParsableException(errorCode = WotValidationConfigErrorException.ERROR_CODE)
+public final class WotValidationConfigErrorException extends DittoRuntimeException implements WotValidationConfigException{
 
     /**
      * Error code of this exception.
@@ -41,7 +42,7 @@ public final class WotValidationConfigRunTimeException extends DittoRuntimeExcep
     private static final String DEFAULT_MESSAGE = "The WoT validation config operation failed.";
     private static final String DEFAULT_DESCRIPTION = "Please check the details of your request.";
 
-    private WotValidationConfigRunTimeException(final DittoHeaders dittoHeaders,
+    private WotValidationConfigErrorException(final DittoHeaders dittoHeaders,
                                                 @Nullable final String message,
                                                 @Nullable final String description,
                                                 @Nullable final Throwable cause,
@@ -76,7 +77,7 @@ public final class WotValidationConfigRunTimeException extends DittoRuntimeExcep
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new WotValidationConfigException.
      */
-    public static WotValidationConfigRunTimeException fromJson(final org.eclipse.ditto.json.JsonObject jsonObject,
+    public static WotValidationConfigErrorException fromJson(final JsonObject jsonObject,
                                                                final DittoHeaders dittoHeaders) {
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
@@ -93,10 +94,10 @@ public final class WotValidationConfigRunTimeException extends DittoRuntimeExcep
     }
 
     /**
-     * A mutable builder with a fluent API for a {@link WotValidationConfigRunTimeException}.
+     * A mutable builder with a fluent API for a {@link WotValidationConfigErrorException}.
      */
     @NotThreadSafe
-    public static final class Builder extends DittoRuntimeExceptionBuilder<WotValidationConfigRunTimeException> {
+    public static final class Builder extends DittoRuntimeExceptionBuilder<WotValidationConfigErrorException> {
 
         private Builder() {
             description(DEFAULT_DESCRIPTION);
@@ -108,12 +109,12 @@ public final class WotValidationConfigRunTimeException extends DittoRuntimeExcep
         }
 
         @Override
-        protected WotValidationConfigRunTimeException doBuild(final DittoHeaders dittoHeaders,
+        protected WotValidationConfigErrorException doBuild(final DittoHeaders dittoHeaders,
                                                               @Nullable final String message,
                                                               @Nullable final String description,
                                                               @Nullable final Throwable cause,
                                                               @Nullable final URI href) {
-            return new WotValidationConfigRunTimeException(dittoHeaders, message, description, cause, href);
+            return new WotValidationConfigErrorException(dittoHeaders, message, description, cause, href);
         }
     }
 } 

@@ -42,8 +42,6 @@ import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigNotAc
 import org.eclipse.ditto.things.service.persistence.actors.strategies.commands.WotValidationConfigCommandStrategies;
 import org.eclipse.ditto.things.service.persistence.actors.strategies.commands.WotValidationConfigDData;
 import org.eclipse.ditto.things.service.persistence.actors.strategies.events.WotValidationConfigEventStrategies;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Persistence actor responsible for managing the lifecycle and distributed state of WoT validation configurations.
@@ -58,8 +56,6 @@ import org.slf4j.LoggerFactory;
 public final class WotValidationConfigPersistenceActor
         extends
         AbstractPersistenceActor<Command<?>, WotValidationConfig, WotValidationConfigId, WotValidationConfigId, WotValidationConfigEvent<?>> {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(WotValidationConfigPersistenceActor.class);
 
     /**
      * The prefix of the persistenceId for WoT validation configs.
@@ -204,22 +200,22 @@ public final class WotValidationConfigPersistenceActor
     @Override
     protected void recoveryCompleted(final RecoveryCompleted event) {
         super.recoveryCompleted(event);
-        LOGGER.debug("recoveryCompleted called for entityId: {}. Entity: {}", entityId,
+        log.debug("recoveryCompleted called for entityId: {}. Entity: {}", entityId,
                 entity != null ? entity.toString() : null);
         if (entity != null) {
-            LOGGER.debug("Starting DData update for recovered entity: {}", entity.getConfigId());
+            log.debug("Starting DData update for recovered entity: {}", entity.getConfigId());
             ddata.add(entity.toJson())
                     .whenComplete((v, error) -> {
                         if (error != null) {
-                            LOGGER.error("Failed to publish WoT validation config to DData: {}", error.getMessage(),
+                            log.error("Failed to publish WoT validation config to DData: {}", error.getMessage(),
                                     error);
                         } else {
-                            LOGGER.debug("Successfully published WoT validation config to DData: {}",
+                            log.debug("Successfully published WoT validation config to DData: {}",
                                     entity.getConfigId());
                         }
                     });
         } else {
-            LOGGER.info("No WoT validation config to publish to DData after recovery.");
+            log.info("No WoT validation config to publish to DData after recovery.");
         }
     }
 }

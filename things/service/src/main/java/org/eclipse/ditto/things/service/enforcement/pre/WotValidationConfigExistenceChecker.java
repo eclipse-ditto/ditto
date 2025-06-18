@@ -19,8 +19,6 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.annotation.Nullable;
-
 import org.apache.pekko.actor.AbstractActor;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
@@ -44,7 +42,6 @@ public class WotValidationConfigExistenceChecker {
             WotValidationConfigExistenceChecker.class);
 
 
-    private final ActorSystem actorSystem;
     private final WotValidationConfigDData ddata;
     private final Executor executor;
     private final AtomicReference<Set<WotValidationConfig>> localConfigs;
@@ -52,7 +49,6 @@ public class WotValidationConfigExistenceChecker {
     private final AtomicReference<Boolean> isInitialized = new AtomicReference<>(false);
 
     public WotValidationConfigExistenceChecker(final ActorSystem actorSystem) {
-        this.actorSystem = actorSystem;
         this.ddata = WotValidationConfigDData.of(actorSystem);
         this.executor = actorSystem.dispatcher();
         this.localConfigs = new AtomicReference<>(Collections.emptySet());
@@ -70,7 +66,8 @@ public class WotValidationConfigExistenceChecker {
                                 .map(WotValidationConfig::fromJson)
                                 .collect(java.util.stream.Collectors.toSet());
                         localConfigs.set(initialConfigs);
-                        LOGGER.debug("WotValidationConfigExistenceChecker initialized with {} configs", initialConfigs.size());
+                        LOGGER.debug("WotValidationConfigExistenceChecker initialized with {} configs",
+                                initialConfigs.size());
                     } else {
                         localConfigs.set(Collections.emptySet());
                         LOGGER.debug("WotValidationConfigExistenceChecker initialized with 0 configs (empty set)");
@@ -78,13 +75,15 @@ public class WotValidationConfigExistenceChecker {
                     isInitialized.set(true);
                 })
                 .exceptionally(error -> {
-                    LOGGER.error("Failed to initialize WotValidationConfigExistenceChecker: {}", error.getMessage(), error);
+                    LOGGER.error("Failed to initialize WotValidationConfigExistenceChecker: {}", error.getMessage(),
+                            error);
                     isInitialized.set(true);
                     return null;
                 });
     }
 
     private static class DDataChangeListener extends AbstractActor {
+
         private final WotValidationConfigExistenceChecker checker;
         private final AtomicReference<WotValidationConfigId> currentCheckId = new AtomicReference<>();
         private final AtomicReference<Boolean> isInitialized = new AtomicReference<>(false);
@@ -110,8 +109,7 @@ public class WotValidationConfigExistenceChecker {
                         }
 
                         if (changed.key().equals(ORSetKey.create("WotValidationConfig"))) {
-                            final Set<org.eclipse.ditto.json.JsonObject> jsonConfigs =
-                                    ((ORSet<org.eclipse.ditto.json.JsonObject>) changed.dataValue()).getElements();
+                            final Set<JsonObject> jsonConfigs = ((ORSet<JsonObject>) changed.dataValue()).getElements();
                             Set<WotValidationConfig> newConfigs = jsonConfigs.stream()
                                     .map(WotValidationConfig::fromJson)
                                     .collect(java.util.stream.Collectors.toSet());
@@ -137,26 +135,27 @@ public class WotValidationConfigExistenceChecker {
         if (!isInitialized.get()) {
             LOGGER.warn("WotValidationConfigExistenceChecker not yet initialized, waiting...");
             return CompletableFuture.supplyAsync(() -> {
-                try {
-                    for (int i = 0; i < 50 && !isInitialized.get(); i++) {
-                        Thread.sleep(100);
-                    }
-                    if (!isInitialized.get()) {
-                        LOGGER.error("WotValidationConfigExistenceChecker initialization timeout");
-                        return false;
-                    }
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    LOGGER.error("Interrupted while waiting for initialization", e);
-                    return false;
-                }
-                return true;
-            }, executor).thenCompose(initialized -> {
-                if (!initialized) {
-                    return CompletableFuture.completedFuture(false);
-                }
-                return doCheckExistence(configId);
-            });
+                        try {
+                            for (int i = 0; i < 50 && !isInitialized.get(); i++) {
+                                Thread.sleep(100);
+                            }
+                            if (!isInitialized.get()) {
+                                LOGGER.error("WotValidationConfigExistenceChecker initialization timeout");
+                                return false;
+                            }
+                        } catch (final InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            LOGGER.error("Interrupted while waiting for initialization", e);
+                            return false;
+                        }
+                        return true;
+                    }, executor)
+                    .thenCompose(initialized -> {
+                        if (!initialized) {
+                            return CompletableFuture.completedFuture(false);
+                        }
+                        return doCheckExistence(configId);
+                    });
         }
         return doCheckExistence(configId);
     }

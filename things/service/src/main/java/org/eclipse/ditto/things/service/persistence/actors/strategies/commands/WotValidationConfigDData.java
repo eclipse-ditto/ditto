@@ -14,10 +14,6 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.ditto.internal.utils.ddata.DistributedData;
-import org.eclipse.ditto.internal.utils.ddata.DistributedDataConfig;
-import org.eclipse.ditto.json.JsonObject;
-
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.ExtendedActorSystem;
 import org.apache.pekko.cluster.Cluster;
@@ -26,11 +22,16 @@ import org.apache.pekko.cluster.ddata.ORSet;
 import org.apache.pekko.cluster.ddata.ORSetKey;
 import org.apache.pekko.cluster.ddata.Replicator;
 import org.apache.pekko.cluster.ddata.SelfUniqueAddress;
+import org.eclipse.ditto.internal.utils.ddata.DistributedData;
+import org.eclipse.ditto.internal.utils.ddata.DistributedDataConfig;
+import org.eclipse.ditto.json.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Distributed data for WoT validation configuration.
+ *
+ * @since 3.8.0
  */
 public final class WotValidationConfigDData extends DistributedData<ORSet<JsonObject>> {
 

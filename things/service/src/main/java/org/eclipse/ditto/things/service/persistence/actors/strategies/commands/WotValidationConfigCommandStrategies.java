@@ -33,10 +33,13 @@ import org.eclipse.ditto.wot.api.config.DefaultWotConfig;
  * modify, delete, and retrieve operations for both the main config and dynamic config sections. It acts as a singleton
  * entry point for command strategy resolution in the persistence layer.
  * </p>
+ *
+ * @since 3.8.0
  */
 public final class WotValidationConfigCommandStrategies
         extends AbstractCommandStrategies<Command<?>, WotValidationConfig, WotValidationConfigId, WotValidationConfigEvent<?>> {
 
+    @SuppressWarnings("java:S3077") // volatile because of double checked locking pattern
     @Nullable
     private static volatile WotValidationConfigCommandStrategies instance;
 

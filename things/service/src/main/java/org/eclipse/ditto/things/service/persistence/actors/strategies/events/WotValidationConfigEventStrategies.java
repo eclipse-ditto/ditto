@@ -25,6 +25,8 @@ import org.eclipse.ditto.things.model.devops.events.WotValidationConfigModified;
 
 /**
  * This Singleton strategy handles all {@link WotValidationConfigEvent}s.
+ *
+ * @since 3.8.0
  */
 @Immutable
 public final class WotValidationConfigEventStrategies

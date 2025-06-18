@@ -37,9 +37,12 @@ import org.eclipse.ditto.wot.validation.config.TmValidationConfig;
  * The merged configuration represents the effective validation settings, with dynamic config taking precedence over static.
  * If the configuration does not exist, an error is returned.
  * </p>
+ *
+ * @since 3.8.0
  */
 @Immutable
-final class RetrieveMergedWotValidationConfigStrategy extends AbstractWotValidationConfigCommandStrategy<RetrieveMergedWotValidationConfig> {
+final class RetrieveMergedWotValidationConfigStrategy
+        extends AbstractWotValidationConfigCommandStrategy<RetrieveMergedWotValidationConfig> {
 
     private final TmValidationConfig staticConfig;
 

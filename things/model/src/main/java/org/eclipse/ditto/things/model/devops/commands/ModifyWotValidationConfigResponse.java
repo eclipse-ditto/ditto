@@ -126,11 +126,7 @@ public final class ModifyWotValidationConfigResponse
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        if (!super.equals(o)) {
-            return false;
-        }
-        final ModifyWotValidationConfigResponse that = (ModifyWotValidationConfigResponse) o;
-        return Objects.equals(configId, that.configId);
+        return super.equals(o);
     }
 
     @Override
@@ -142,7 +138,6 @@ public final class ModifyWotValidationConfigResponse
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 super.toString() +
-                ", configId=" + configId +
                 "]";
     }
 } 

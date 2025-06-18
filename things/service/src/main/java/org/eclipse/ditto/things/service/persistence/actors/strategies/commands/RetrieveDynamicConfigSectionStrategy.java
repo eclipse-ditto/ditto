@@ -31,7 +31,6 @@ import org.eclipse.ditto.things.model.devops.commands.RetrieveDynamicConfigSecti
 import org.eclipse.ditto.things.model.devops.commands.RetrieveDynamicConfigSectionResponse;
 import org.eclipse.ditto.things.model.devops.events.WotValidationConfigEvent;
 import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigNotAccessibleException;
-import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigRunTimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,6 +40,8 @@ import org.slf4j.LoggerFactory;
  * This strategy retrieves a specific dynamic config section from a WoT validation configuration, identified by its scope ID.
  * If the section exists, it is returned as a response. If not, an error is returned.
  * </p>
+ *
+ * @since 3.8.0
  */
 final class RetrieveDynamicConfigSectionStrategy
         extends AbstractWotValidationConfigCommandStrategy<RetrieveDynamicConfigSection> {
@@ -117,6 +118,7 @@ final class RetrieveDynamicConfigSectionStrategy
 
         final RetrieveDynamicConfigSectionResponse response = RetrieveDynamicConfigSectionResponse.of(
                 command.getEntityId(),
+                scopeId,
                 sectionJson,
                 headersWithRevisionAndEtag);
 

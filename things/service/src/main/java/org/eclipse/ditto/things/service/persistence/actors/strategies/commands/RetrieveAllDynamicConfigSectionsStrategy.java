@@ -39,8 +39,12 @@ import org.slf4j.LoggerFactory;
  * This strategy retrieves all dynamic config sections from a WoT validation configuration. Each section contains
  * validation settings that can be overridden for a specific scope. The strategy returns all sections as a response.
  * </p>
+ *
+ * @since 3.8.0
  */
-final class RetrieveAllDynamicConfigSectionsStrategy extends AbstractWotValidationConfigCommandStrategy<RetrieveAllDynamicConfigSections> {
+final class RetrieveAllDynamicConfigSectionsStrategy
+        extends AbstractWotValidationConfigCommandStrategy<RetrieveAllDynamicConfigSections> {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(RetrieveAllDynamicConfigSectionsStrategy.class);
 
     RetrieveAllDynamicConfigSectionsStrategy() {
@@ -73,8 +77,8 @@ final class RetrieveAllDynamicConfigSectionsStrategy extends AbstractWotValidati
             @Nullable final Metadata metadata) {
         LOGGER.info("Received RetrieveAllDynamicConfigSections");
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        JsonArray dynamicConfigs;
-        if (entity != null && entity.getDynamicConfigs() != null) {
+        final JsonArray dynamicConfigs;
+        if (entity != null) {
             JsonArrayBuilder arrayBuilder = JsonFactory.newArrayBuilder();
             entity.getDynamicConfigs().forEach(section -> arrayBuilder.add(section.toJson()));
             dynamicConfigs = arrayBuilder.build();
@@ -82,15 +86,15 @@ final class RetrieveAllDynamicConfigSectionsStrategy extends AbstractWotValidati
             dynamicConfigs = JsonFactory.newArrayBuilder().build();
         }
 
-        DittoHeadersBuilder<?, ?> builder = dittoHeaders.toBuilder();
+        final DittoHeadersBuilder<?, ?> builder = dittoHeaders.toBuilder();
         if (entity != null) {
             builder.putHeader(org.eclipse.ditto.base.model.headers.DittoHeaderDefinition.ENTITY_REVISION.getKey(),
                     String.valueOf(entity.getRevision().get()));
             EntityTag.fromEntity(entity).ifPresent(builder::eTag);
         }
-        DittoHeaders headersWithRevisionAndEtag = builder.build();
+        final DittoHeaders headersWithRevisionAndEtag = builder.build();
 
-        RetrieveAllDynamicConfigSectionsResponse response = RetrieveAllDynamicConfigSectionsResponse.of(
+        final RetrieveAllDynamicConfigSectionsResponse response = RetrieveAllDynamicConfigSectionsResponse.of(
                 command.getEntityId(),
                 dynamicConfigs,
                 headersWithRevisionAndEtag);

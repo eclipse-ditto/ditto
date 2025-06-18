@@ -33,8 +33,8 @@ import org.eclipse.ditto.things.model.devops.commands.DeleteDynamicConfigSection
 import org.eclipse.ditto.things.model.devops.commands.DeleteWotValidationConfigResponse;
 import org.eclipse.ditto.things.model.devops.events.DynamicConfigSectionDeleted;
 import org.eclipse.ditto.things.model.devops.events.WotValidationConfigEvent;
+import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigErrorException;
 import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigNotAccessibleException;
-import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigRunTimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,8 +48,11 @@ import org.slf4j.LoggerFactory;
  * @since 3.8.0
  */
 @Immutable
-final class DeleteDynamicConfigSectionStrategy extends AbstractWotValidationConfigCommandStrategy<DeleteDynamicConfigSection> {
+final class DeleteDynamicConfigSectionStrategy
+        extends AbstractWotValidationConfigCommandStrategy<DeleteDynamicConfigSection> {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(DeleteDynamicConfigSectionStrategy.class);
+
     private final WotValidationConfigDData ddata;
 
     /**
@@ -117,7 +120,7 @@ final class DeleteDynamicConfigSectionStrategy extends AbstractWotValidationConf
 
         if (!sectionExists) {
             final String errorMessage = "Dynamic config section not found for scope: " + scopeId;
-            LOGGER.error(errorMessage);
+            LOGGER.warn(errorMessage);
             return ResultFactory.newErrorResult(
                     WotValidationConfigNotAccessibleException.newBuilderForScope(scopeId)
                             .description(errorMessage)
@@ -150,11 +153,12 @@ final class DeleteDynamicConfigSectionStrategy extends AbstractWotValidationConf
 
         try {
             ddata.add(configWithMetadata.toJson())
-                    .thenRun(() -> LOGGER.debug("Successfully updated DData after deleting dynamic config section for scopeId={}", scopeId))
+                    .thenRun(() -> LOGGER.debug(
+                            "Successfully updated DData after deleting dynamic config section for scopeId={}", scopeId))
                     .exceptionally(error -> {
                         final String errorMessage = error instanceof CompletionException ?
                                 error.getCause().getMessage() : error.getMessage();
-                        LOGGER.error("Failed to update DData after deleting dynamic config section for scopeId={}: {}",
+                        LOGGER.warn("Failed to update DData after deleting dynamic config section for scopeId={}: {}",
                                 scopeId, errorMessage);
                         return null;
                     });
@@ -162,7 +166,7 @@ final class DeleteDynamicConfigSectionStrategy extends AbstractWotValidationConf
             final String errorMessage = "Failed to update WoT validation config: " + e.getMessage();
             LOGGER.error(errorMessage, e);
             return ResultFactory.newErrorResult(
-                    WotValidationConfigRunTimeException.newBuilder()
+                    WotValidationConfigErrorException.newBuilder()
                             .description(errorMessage)
                             .dittoHeaders(dittoHeaders)
                             .build(),

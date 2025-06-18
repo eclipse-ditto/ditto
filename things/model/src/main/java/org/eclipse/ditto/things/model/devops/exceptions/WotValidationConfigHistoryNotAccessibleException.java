@@ -41,7 +41,7 @@ public final class WotValidationConfigHistoryNotAccessibleException extends Ditt
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "notaccessible";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "history.notfound";
 
     private static final String MESSAGE_TEMPLATE_REVISION =
             "The history of the WoT validation config with ID ''{0}'' and revision ''{1}'' was not accessible!";

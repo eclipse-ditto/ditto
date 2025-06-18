@@ -172,12 +172,6 @@ public final class WotValidationConfigModified extends AbstractWotValidationConf
         return config;
     }
 
-    /**
-     * Returns the entity (configuration) of this event as a JSON value.
-     *
-     * @param schemaVersion the JSON schema version to use
-     * @return an optional containing the configuration as a JSON value
-     */
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
         return Optional.of(config.toJson(schemaVersion));
@@ -190,7 +184,7 @@ public final class WotValidationConfigModified extends AbstractWotValidationConf
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(config);
+        return Objects.hash(super.hashCode(), config);
     }
 
     @Override
@@ -199,6 +193,9 @@ public final class WotValidationConfigModified extends AbstractWotValidationConf
             return true;
         }
         if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
             return false;
         }
         final WotValidationConfigModified that = (WotValidationConfigModified) o;

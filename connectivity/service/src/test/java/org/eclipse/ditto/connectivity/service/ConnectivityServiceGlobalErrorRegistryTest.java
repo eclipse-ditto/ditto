@@ -41,15 +41,15 @@ import org.eclipse.ditto.protocol.UnknownCommandException;
 import org.eclipse.ditto.protocol.adapter.UnknownTopicPathException;
 import org.eclipse.ditto.protocol.mappingstrategies.IllegalAdaptableException;
 import org.eclipse.ditto.things.model.ThingIdInvalidException;
+import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigErrorException;
+import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigHistoryNotAccessibleException;
+import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigInvalidException;
+import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.AttributePointerInvalidException;
 import org.eclipse.ditto.thingsearch.api.QueryTimeExceededException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidNamespacesException;
 import org.eclipse.ditto.wot.model.WotThingModelInvalidException;
 import org.eclipse.ditto.wot.validation.WotThingModelPayloadValidationException;
-import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigRunTimeException;
-import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigHistoryNotAccessibleException;
-import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigInvalidException;
-import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigNotAccessibleException;
 
 
 public final class ConnectivityServiceGlobalErrorRegistryTest extends GlobalErrorRegistryTestCases {
@@ -89,7 +89,7 @@ public final class ConnectivityServiceGlobalErrorRegistryTest extends GlobalErro
                 WotThingModelInvalidException.class,
                 EdgeServiceTimeoutException.class,
                 WotThingModelPayloadValidationException.class,
-                WotValidationConfigRunTimeException.class,
+                WotValidationConfigErrorException.class,
                 WotValidationConfigHistoryNotAccessibleException.class,
                 WotValidationConfigInvalidException.class,
                 WotValidationConfigNotAccessibleException.class

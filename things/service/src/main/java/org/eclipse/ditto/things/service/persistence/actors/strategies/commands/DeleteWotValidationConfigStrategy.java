@@ -27,10 +27,10 @@ import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.things.model.devops.WotValidationConfig;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
 import org.eclipse.ditto.things.model.devops.commands.DeleteWotValidationConfig;
+import org.eclipse.ditto.things.model.devops.commands.DeleteWotValidationConfigResponse;
 import org.eclipse.ditto.things.model.devops.events.WotValidationConfigDeleted;
 import org.eclipse.ditto.things.model.devops.events.WotValidationConfigEvent;
 import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigNotAccessibleException;
-import org.eclipse.ditto.things.model.devops.commands.DeleteWotValidationConfigResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,11 +40,14 @@ import org.slf4j.LoggerFactory;
  * This strategy deletes a WoT validation configuration by its config ID. If the configuration exists, it is removed
  * from the distributed data store and a deletion event is emitted. If not, an error is returned.
  * </p>
+ * @since 3.8.0
  */
 @Immutable
-final class DeleteWotValidationConfigStrategy extends AbstractWotValidationConfigCommandStrategy<DeleteWotValidationConfig> {
+final class DeleteWotValidationConfigStrategy
+        extends AbstractWotValidationConfigCommandStrategy<DeleteWotValidationConfig> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DeleteWotValidationConfigStrategy.class);
+
     private final WotValidationConfigDData ddata;
 
     /**
@@ -52,8 +55,7 @@ final class DeleteWotValidationConfigStrategy extends AbstractWotValidationConfi
      *
      * @param ddata the DData instance for WoT validation configs.
      */
-    DeleteWotValidationConfigStrategy(
-            final WotValidationConfigDData ddata) {
+    DeleteWotValidationConfigStrategy(final WotValidationConfigDData ddata) {
         super(DeleteWotValidationConfig.class);
         this.ddata = ddata;
     }
@@ -106,7 +108,7 @@ final class DeleteWotValidationConfigStrategy extends AbstractWotValidationConfi
         );
 
         LOGGER.info("Initiating DData removal for WoT validation config with ID <{}>", configId);
-        
+
         final DeleteWotValidationConfigResponse response = DeleteWotValidationConfigResponse.of(configId, dittoHeaders);
 
         ddata.clear().thenRun(() -> {
@@ -120,7 +122,7 @@ final class DeleteWotValidationConfigStrategy extends AbstractWotValidationConfi
     public boolean isDefined(final CommandStrategy.Context<WotValidationConfigId> context,
             @Nullable final WotValidationConfig entity,
             final DeleteWotValidationConfig command) {
-        return command.getEntityId().toString().length() > 0;
+        return !command.getEntityId().toString().isEmpty();
     }
 
     @Override

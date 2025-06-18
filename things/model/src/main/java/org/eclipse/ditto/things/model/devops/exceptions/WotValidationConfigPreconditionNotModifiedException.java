@@ -39,7 +39,7 @@ public final class WotValidationConfigPreconditionNotModifiedException extends D
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "notmodified";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "precondition.notmodified";
 
     private static final String MESSAGE_TEMPLATE =
             "The comparison of precondition header ''if-none-match'' for the requested WoT validation config resource evaluated to " +

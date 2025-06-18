@@ -30,7 +30,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
-import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigRunTimeException;
+import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigErrorException;
 
 /**
  * Command to retrieve a single dynamic config section in the WoT validation config.
@@ -75,7 +75,7 @@ public final class RetrieveDynamicConfigSection extends AbstractWotValidationCon
             final DittoHeaders dittoHeaders) {
         super(TYPE, configId, dittoHeaders);
         if (scopeId.isEmpty()) {
-            throw WotValidationConfigRunTimeException.newBuilder("Scope ID must not be empty").build();
+            throw WotValidationConfigErrorException.newBuilder("Scope ID must not be empty").build();
         }
         this.scopeId = scopeId;
     }

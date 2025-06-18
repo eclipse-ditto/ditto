@@ -125,7 +125,7 @@ public final class WotValidationConfigDeleted extends AbstractWotValidationConfi
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(super.hashCode());
+        return Objects.hash(super.hashCode());
     }
 
     @Override

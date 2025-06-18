@@ -141,7 +141,7 @@ public final class RetrieveWotValidationConfig extends AbstractWotValidationConf
 
     @Override
     public int hashCode() {
-        return Objects.hash(getEntityId());
+        return super.hashCode();
     }
 
     @Override

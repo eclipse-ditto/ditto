@@ -34,12 +34,17 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Strategy for handling {@link ModifyWotValidationConfig} commands.
+ *
+ * @since 3.8.0
  */
-final class ModifyWotValidationConfigStrategy extends AbstractWotValidationConfigCommandStrategy<ModifyWotValidationConfig> {
+final class ModifyWotValidationConfigStrategy
+        extends AbstractWotValidationConfigCommandStrategy<ModifyWotValidationConfig> {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(ModifyWotValidationConfigStrategy.class);
+
     private final WotValidationConfigDData ddata;
 
-    ModifyWotValidationConfigStrategy( final WotValidationConfigDData ddata) {
+    ModifyWotValidationConfigStrategy(final WotValidationConfigDData ddata) {
         super(ModifyWotValidationConfig.class);
         this.ddata = ddata;
     }
@@ -95,7 +100,8 @@ final class ModifyWotValidationConfigStrategy extends AbstractWotValidationConfi
         );
 
         ddata.add(configWithRevision.toJson())
-                .thenRun(() -> LOGGER.info("Successfully updated DData with merged config for <{}>", command.getEntityId()))
+                .thenRun(() -> LOGGER.info("Successfully updated DData with merged config for <{}>",
+                        command.getEntityId()))
                 .exceptionally(error -> {
                     LOGGER.error("Failed to update DData for <{}>: {}", command.getEntityId(), error.getMessage());
                     return null;
@@ -113,12 +119,12 @@ final class ModifyWotValidationConfigStrategy extends AbstractWotValidationConfi
                 .orElse(response);
 
 
-
         return ResultFactory.newMutationResult(command, event, responseWithEtag, false, false);
     }
 
     @Override
-    public boolean isDefined(final Context<WotValidationConfigId> context, @Nullable final WotValidationConfig entity, final ModifyWotValidationConfig command) {
+    public boolean isDefined(final Context<WotValidationConfigId> context, @Nullable final WotValidationConfig entity,
+            final ModifyWotValidationConfig command) {
         return true;
     }
 }

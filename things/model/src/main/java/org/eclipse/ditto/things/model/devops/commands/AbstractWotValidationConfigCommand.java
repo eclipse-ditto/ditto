@@ -101,9 +101,6 @@ abstract class AbstractWotValidationConfigCommand<T extends AbstractWotValidatio
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [" +
-                super.toString() +
-                ", configId=" + configId +
-                "]";
+        return super.toString() + ", configId=" + configId;
     }
 } 

@@ -12,6 +12,11 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
+import java.time.Instant;
+import java.util.Optional;
+
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
@@ -25,13 +30,9 @@ import org.eclipse.ditto.things.model.devops.commands.CreateWotValidationConfig;
 import org.eclipse.ditto.things.model.devops.commands.CreateWotValidationConfigResponse;
 import org.eclipse.ditto.things.model.devops.events.WotValidationConfigCreated;
 import org.eclipse.ditto.things.model.devops.events.WotValidationConfigEvent;
-import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigRunTimeException;
+import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigErrorException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
-import java.time.Instant;
-import java.util.Optional;
 
 /**
  * Strategy for handling {@link CreateWotValidationConfig} commands.
@@ -41,7 +42,9 @@ import java.util.Optional;
  *
  * @since 3.8.0
  */
-final class CreateWotValidationConfigStrategy extends AbstractWotValidationConfigCommandStrategy<CreateWotValidationConfig> {
+final class CreateWotValidationConfigStrategy
+        extends AbstractWotValidationConfigCommandStrategy<CreateWotValidationConfig> {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(CreateWotValidationConfigStrategy.class);
     private final WotValidationConfigDData ddata;
 
@@ -68,7 +71,7 @@ final class CreateWotValidationConfigStrategy extends AbstractWotValidationConfi
         if (entity != null) {
             LOGGER.warn("WoT validation config already exists for id: {}", command.getEntityId());
             return ResultFactory.newErrorResult(
-                    WotValidationConfigRunTimeException.newBuilder()
+                    WotValidationConfigErrorException.newBuilder()
                             .description("WoT validation config already exists")
                             .dittoHeaders(dittoHeaders)
                             .build(),
@@ -102,17 +105,18 @@ final class CreateWotValidationConfigStrategy extends AbstractWotValidationConfi
         );
 
         ddata.add(configWithRevision.toJson())
-                .thenRun(() -> LOGGER.info("Successfully created WoT validation config for id: {}", command.getEntityId()))
+                .thenRun(() -> LOGGER.info("Successfully created WoT validation config for id: {}",
+                        command.getEntityId()))
                 .exceptionally(error -> {
                     LOGGER.error("Failed to create WoT validation config: {}", error.getMessage());
                     return null;
                 });
 
-        DittoHeadersBuilder<?, ?> builder = dittoHeaders.toBuilder()
+        final DittoHeadersBuilder<?, ?> builder = dittoHeaders.toBuilder()
                 .putHeader(org.eclipse.ditto.base.model.headers.DittoHeaderDefinition.ENTITY_REVISION.getKey(),
                         String.valueOf(nextRevision));
         EntityTag.fromEntity(configWithRevision).ifPresent(builder::eTag);
-        DittoHeaders headersWithRevisionAndEtag = builder.build();
+        final DittoHeaders headersWithRevisionAndEtag = builder.build();
 
         final CreateWotValidationConfigResponse response =
                 CreateWotValidationConfigResponse.of(
@@ -138,7 +142,8 @@ final class CreateWotValidationConfigStrategy extends AbstractWotValidationConfi
     }
 
     @Override
-    public boolean isDefined(final Context<WotValidationConfigId> context, @Nullable final WotValidationConfig entity, final CreateWotValidationConfig command) {
+    public boolean isDefined(final Context<WotValidationConfigId> context, @Nullable final WotValidationConfig entity,
+            final CreateWotValidationConfig command) {
         return entity == null;
     }
 }

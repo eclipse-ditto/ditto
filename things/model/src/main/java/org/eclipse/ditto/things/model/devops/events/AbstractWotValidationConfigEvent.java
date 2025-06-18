@@ -112,10 +112,7 @@ public abstract class AbstractWotValidationConfigEvent<T extends AbstractWotVali
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [" +
-                super.toString() +
-                ", configId=" + configId +
-                "]";
+        return super.toString() + ", configId=" + configId;
     }
 
     protected static final class JsonFields {

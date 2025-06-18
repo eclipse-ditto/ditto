@@ -39,7 +39,7 @@ public final class WotValidationConfigPreconditionFailedException extends DittoR
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "failed";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "precondition.failed";
 
     private static final String MESSAGE_TEMPLATE =
             "The comparison of precondition header ''{0}'' for the requested WoT validation config resource evaluated to false." +

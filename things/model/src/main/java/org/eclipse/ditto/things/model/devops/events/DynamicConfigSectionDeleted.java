@@ -143,6 +143,9 @@ public final class DynamicConfigSectionDeleted extends AbstractWotValidationConf
         return sectionPointer;
     }
 
+    /**
+     * @return the scope ID of the deleted section
+     */
     public String getScopeId() {
         return scopeId;
     }
@@ -151,7 +154,6 @@ public final class DynamicConfigSectionDeleted extends AbstractWotValidationConf
     public DynamicConfigSectionDeleted setEntity(final JsonValue entity) {
         return this;
     }
-
 
     @Override
     public boolean equals(final Object o) {

@@ -23,14 +23,17 @@ import org.junit.jupiter.api.Test;
 
 class RetrieveDynamicConfigSectionResponseTest {
 
+    private static final String KNOWN_SCOPE_ID = "knownScope";
+
     @Test
     void testConstructionAndGetters() {
         WotValidationConfigId configId = WotValidationConfigId.of("ns:test");
         JsonValue config = JsonFactory.newObjectBuilder().set("enabled", true).build();
         DittoHeaders headers = DittoHeaders.empty();
         RetrieveDynamicConfigSectionResponse response =
-                RetrieveDynamicConfigSectionResponse.of(configId, config, headers);
+                RetrieveDynamicConfigSectionResponse.of(configId, KNOWN_SCOPE_ID, config, headers);
         assertThat(response.getConfigId().equals(configId)).isTrue();
+        assertThat(response.getScopeId()).isEqualTo(KNOWN_SCOPE_ID);
         assertThat(response.getValidationConfig()).isEqualTo(config);
         assertThat(response.getDittoHeaders().get("response-required")).isEqualTo("false");
     }
@@ -40,8 +43,8 @@ class RetrieveDynamicConfigSectionResponseTest {
         WotValidationConfigId configId = WotValidationConfigId.of("ns:test");
         JsonValue config = JsonFactory.newObjectBuilder().set("enabled", true).build();
         DittoHeaders headers = DittoHeaders.empty();
-        RetrieveDynamicConfigSectionResponse r1 = RetrieveDynamicConfigSectionResponse.of(configId, config, headers);
-        RetrieveDynamicConfigSectionResponse r2 = RetrieveDynamicConfigSectionResponse.of(configId, config, headers);
+        RetrieveDynamicConfigSectionResponse r1 = RetrieveDynamicConfigSectionResponse.of(configId, KNOWN_SCOPE_ID, config, headers);
+        RetrieveDynamicConfigSectionResponse r2 = RetrieveDynamicConfigSectionResponse.of(configId, KNOWN_SCOPE_ID, config, headers);
         assertThat(r1)
                 .isEqualTo(r2)
                 .hasSameHashCodeAs(r2);
@@ -53,7 +56,7 @@ class RetrieveDynamicConfigSectionResponseTest {
         JsonValue config = JsonFactory.newObjectBuilder().set("enabled", true).build();
         DittoHeaders headers = DittoHeaders.empty();
         RetrieveDynamicConfigSectionResponse response =
-                RetrieveDynamicConfigSectionResponse.of(configId, config, headers);
+                RetrieveDynamicConfigSectionResponse.of(configId, KNOWN_SCOPE_ID, config, headers);
         JsonObject json = response.toJson();
         RetrieveDynamicConfigSectionResponse fromJson = RetrieveDynamicConfigSectionResponse.fromJson(json, headers);
         assertThat(fromJson).isEqualTo(response);

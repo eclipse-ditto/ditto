@@ -17,7 +17,6 @@ import java.time.Instant;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.headers.conditional.ConditionalHeadersValidator;
 import org.eclipse.ditto.internal.utils.persistentactors.etags.AbstractConditionHeaderCheckingCommandStrategy;
 import org.eclipse.ditto.things.model.devops.WotValidationConfig;
@@ -76,20 +75,4 @@ abstract class AbstractWotValidationConfigCommandStrategy<C extends WotValidatio
     protected static Instant getEventTimestamp() {
         return Instant.now();
     }
-
-    /**
-     * Adds a Location header to the given DittoHeaders if the resource was created.
-     *
-     * @param baseHeaders the base headers to extend
-     * @param resourcePath the resource path to set as Location
-     * @param created whether the resource was created
-     * @return the headers with Location if created, otherwise the original headers
-     */
-    protected static DittoHeaders addLocationHeaderIfCreated(
-            DittoHeaders baseHeaders, String resourcePath, boolean created) {
-        if (created) {
-            return baseHeaders.toBuilder().putHeader("Location", resourcePath).build();
-        }
-        return baseHeaders;
-    }
-} 
+}

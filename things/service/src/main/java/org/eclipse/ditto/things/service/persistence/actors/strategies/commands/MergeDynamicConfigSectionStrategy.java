@@ -16,6 +16,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -33,7 +34,6 @@ import org.eclipse.ditto.things.model.devops.commands.ModifyWotValidationConfigR
 import org.eclipse.ditto.things.model.devops.events.DynamicConfigSectionMerged;
 import org.eclipse.ditto.things.model.devops.events.WotValidationConfigEvent;
 import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigNotAccessibleException;
-import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigRunTimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,6 +51,7 @@ final class MergeDynamicConfigSectionStrategy
         extends AbstractWotValidationConfigCommandStrategy<MergeDynamicConfigSection> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MergeDynamicConfigSectionStrategy.class);
+
     private final WotValidationConfigDData ddata;
 
     MergeDynamicConfigSectionStrategy(final WotValidationConfigDData ddata) {
@@ -84,15 +85,14 @@ final class MergeDynamicConfigSectionStrategy
             @Nullable final Metadata metadata) {
         final String scopeId = command.getScopeId();
         final DynamicValidationConfig mergeSection = command.getDynamicConfigSection();
-        WotValidationConfig updatedEntity = entity;
 
         final List<DynamicValidationConfig> updatedDynamicConfig = entity.getDynamicConfigs().stream()
                 .filter(section -> !section.getScopeId().equals(scopeId))
-                .collect(java.util.stream.Collectors.toList());
+                .collect(Collectors.toList());
 
         updatedDynamicConfig.add(mergeSection);
 
-        updatedEntity = WotValidationConfig.of(
+        final WotValidationConfig updatedEntity = WotValidationConfig.of(
                 entity.getConfigId(),
                 entity.isEnabled().orElse(null),
                 entity.logWarningInsteadOfFailingApiCalls().orElse(null),

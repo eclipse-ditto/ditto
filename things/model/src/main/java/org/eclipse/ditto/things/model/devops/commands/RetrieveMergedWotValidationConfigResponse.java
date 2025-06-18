@@ -171,9 +171,11 @@ public final class RetrieveMergedWotValidationConfigResponse
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
+        if (!super.equals(o)) {
+            return false;
+        }
         final RetrieveMergedWotValidationConfigResponse that = (RetrieveMergedWotValidationConfigResponse) o;
-        return Objects.equals(config, that.config) &&
-                super.equals(o);
+        return Objects.equals(config, that.config);
     }
 
     @Override
@@ -189,7 +191,8 @@ public final class RetrieveMergedWotValidationConfigResponse
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "config=" + config +
+                super.toString() +
+                ", config=" + config +
                 "]";
     }
 

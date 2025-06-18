@@ -13,10 +13,13 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import java.util.Optional;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
@@ -27,8 +30,6 @@ import org.eclipse.ditto.things.model.devops.commands.RetrieveWotValidationConfi
 import org.eclipse.ditto.things.model.devops.commands.RetrieveWotValidationConfigResponse;
 import org.eclipse.ditto.things.model.devops.events.WotValidationConfigEvent;
 import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigNotAccessibleException;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 
 /**
  * Strategy for handling the {@link RetrieveWotValidationConfig} command.
@@ -36,9 +37,12 @@ import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
  * This strategy retrieves a WoT validation configuration by its config ID. If the configuration exists, it returns
  * the full config document as a response. If not, it returns an error indicating the config is not accessible.
  * </p>
+ *
+ * @since 3.8.0
  */
 @Immutable
-final class RetrieveWotValidationConfigStrategy extends AbstractWotValidationConfigCommandStrategy<RetrieveWotValidationConfig> {
+final class RetrieveWotValidationConfigStrategy
+        extends AbstractWotValidationConfigCommandStrategy<RetrieveWotValidationConfig> {
 
     /**
      * Constructs a new {@code RetrieveWotValidationConfigStrategy} object.
@@ -85,10 +89,11 @@ final class RetrieveWotValidationConfigStrategy extends AbstractWotValidationCon
                     command);
         }
 
-        DittoHeadersBuilder<?, ?> builder = command.getDittoHeaders().toBuilder()
-                .putHeader(org.eclipse.ditto.base.model.headers.DittoHeaderDefinition.ENTITY_REVISION.getKey(), String.valueOf(entity.getRevision().get()));
+        final DittoHeadersBuilder<?, ?> builder = command.getDittoHeaders().toBuilder()
+                .putHeader(org.eclipse.ditto.base.model.headers.DittoHeaderDefinition.ENTITY_REVISION.getKey(),
+                        String.valueOf(entity.getRevision().get()));
         EntityTag.fromEntity(entity).ifPresent(builder::eTag);
-        DittoHeaders headersWithRevisionAndEtag = builder.build();
+        final DittoHeaders headersWithRevisionAndEtag = builder.build();
 
         return ResultFactory.newQueryResult(command,
                 RetrieveWotValidationConfigResponse.of(

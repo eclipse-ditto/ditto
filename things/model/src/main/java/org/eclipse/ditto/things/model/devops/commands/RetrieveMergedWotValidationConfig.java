@@ -117,8 +117,7 @@ public final class RetrieveMergedWotValidationConfig
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final RetrieveMergedWotValidationConfig that = (RetrieveMergedWotValidationConfig) o;
-        return super.equals(that);
+        return super.equals(o);
     }
 
     @Override
@@ -128,7 +127,7 @@ public final class RetrieveMergedWotValidationConfig
 
     @Override
     public int hashCode() {
-        return Objects.hash(getEntityId());
+        return super.hashCode();
     }
 
     @Override
