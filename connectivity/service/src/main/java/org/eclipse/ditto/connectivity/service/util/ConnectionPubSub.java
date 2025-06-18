@@ -69,6 +69,25 @@ public final class ConnectionPubSub implements Extension {
             @Nullable final ActorRef sender) {
         pub.publish(setConnectionId(signal, connectionId), groupIndexKey, sender);
     }
+    /**
+     * Publish a response signal for to another connection for diversion.
+     *
+     * @param signal the signal.
+     * @param connectionId the connection ID.
+     * @param groupIndexKey the group index key to choose the responsible client actor, either the entity ID or the
+     * subscription ID prefix.
+     * @param sender the sender of the signal.
+     */
+    public void publishSignalForDiversion(final Signal<?> signal, final ConnectionId connectionId, final CharSequence groupIndexKey,
+            @Nullable final ActorRef sender) {
+        final String topic = CONNECTION_RESPONSE_DIVERSION_PREFIX + connectionId.toString();
+        final Signal<?> setDittoHeaders = signal.setDittoHeaders(
+                signal.getDittoHeaders()
+                        .toBuilder()
+                        .putHeader(DittoHeaderDefinition.CONNECTION_ID.getKey(), topic)
+                        .build());
+        pub.publish(setDittoHeaders, groupIndexKey, sender);
+    }
 
     /**
      * Subscribe as a client actor.
@@ -85,6 +104,27 @@ public final class ConnectionPubSub implements Extension {
         return sub.subscribeWithFilterAndGroup(List.of(idString), clientActor, null, idString, resubscribe)
                 .thenApply(SubAck::isConsistent);
     }
+    /**
+     * Topic prefix for response diversion.
+     * Topics are formatted as: "connection-response-diversion:targetConnectionId"
+     */
+    private static final String CONNECTION_RESPONSE_DIVERSION_PREFIX = "connection-response-diversion:";
+    /**
+     * Subscribe as a client actor.
+     *
+     * @param connectionId connection ID of the client actor.
+     * @param clientActor the client actor.
+     * @param resubscribe whether this is a resubscription.
+     * @return a future that completes with the consistency check result if it is a resubscription or {@code true}
+     * otherwise.
+     */
+    public CompletionStage<Boolean> subscribeForDivertedResponses(final ConnectionId connectionId, final ActorRef clientActor,
+            final boolean resubscribe) {
+        final var topic = CONNECTION_RESPONSE_DIVERSION_PREFIX + connectionId.toString();
+        return sub.subscribeWithFilterAndGroup(List.of(topic), clientActor, null, topic, resubscribe)
+                .thenApply(SubAck::isConsistent);
+    }
+
 
     /**
      * Unsubscribe as a client actor.
@@ -96,6 +136,18 @@ public final class ConnectionPubSub implements Extension {
      */
     public CompletionStage<Void> unsubscribe(final ConnectionId connectionId, final ActorRef clientActor) {
         final var idString = connectionId.toString();
+        return sub.unsubscribeWithAck(List.of(idString), clientActor).thenApply(unsubAck -> null);
+    }
+    /**
+     * Unsubscribe as a client actor.
+     *
+     * @param connectionId connection ID of the client actor.
+     * @param clientActor the client actor.
+     * @return a future that completes or fails according to whether unsubscription is successful.
+     * otherwise.
+     */
+    public CompletionStage<Void> unsubscribeFromDivertedResponses(final ConnectionId connectionId, final ActorRef clientActor) {
+        final var idString = CONNECTION_RESPONSE_DIVERSION_PREFIX +  connectionId.toString();
         return sub.unsubscribeWithAck(List.of(idString), clientActor).thenApply(unsubAck -> null);
     }
 

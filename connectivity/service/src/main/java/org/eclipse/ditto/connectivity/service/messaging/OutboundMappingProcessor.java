@@ -30,6 +30,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
@@ -44,6 +45,7 @@ import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOutcome;
+import org.eclipse.ditto.connectivity.service.util.ConnectionPubSub;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
@@ -58,6 +60,7 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
     private final ProtocolAdapter protocolAdapter;
     private final Set<AcknowledgementLabel> sourceDeclaredAcks;
     private final Set<AcknowledgementLabel> targetIssuedAcks;
+    @Nullable private final ResponseDiversionInterceptor responseDiversionInterceptor;
 
     private OutboundMappingProcessor(final ConnectionId connectionId,
             final ConnectionType connectionType,
@@ -65,12 +68,14 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
             final ThreadSafeDittoLoggingAdapter logger,
             final ProtocolAdapter protocolAdapter,
             final Set<AcknowledgementLabel> sourceDeclaredAcks,
-            final Set<AcknowledgementLabel> targetIssuedAcks) {
+            final Set<AcknowledgementLabel> targetIssuedAcks,
+            @Nullable final ResponseDiversionInterceptor responseDiversionInterceptor) {
 
         super(registry, logger, connectionId, connectionType);
         this.protocolAdapter = protocolAdapter;
         this.sourceDeclaredAcks = sourceDeclaredAcks;
         this.targetIssuedAcks = targetIssuedAcks;
+        this.responseDiversionInterceptor = responseDiversionInterceptor;
     }
 
     /**
@@ -100,15 +105,53 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
     }
 
     /**
+     * Initializes a new command processor with response diversion support.
+     *
+     * @param connection the connection that the processor works for.
+     * @param connectivityConfig the connectivity config related to the given connection.
+     * @param actorSystem the dynamic access used for message mapper instantiation.
+     * @param protocolAdapter the ProtocolAdapter to be used.
+     * @param logger the logging adapter to be used for log statements.
+     * @param connectionPubSub the response diversion PubSub service.
+     * @return the processor instance.
+     */
+    public static OutboundMappingProcessor of(final Connection connection,
+            final ConnectivityConfig connectivityConfig,
+            final ActorSystem actorSystem,
+            final ProtocolAdapter protocolAdapter,
+            final ThreadSafeDittoLoggingAdapter logger,
+            final ConnectionPubSub connectionPubSub) {
+
+        final ActorSelection deadLetterSelection = actorSystem.actorSelection(actorSystem.deadLetters().path());
+
+        // TODO ?(might need a special header to enable functionality if dynamicity from js mapper will be needed)
+        //  DIVERSION: Create response diversion interceptor if any source has diversion configured
+        final boolean isDiversionConfigured = connection.getSources().stream()
+                .anyMatch(source -> source.getHeaderMapping().getMapping()
+                        .containsKey(DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey()));
+        final ResponseDiversionInterceptor diversionInterceptor = isDiversionConfigured ?
+                ResponseDiversionInterceptor.of(connection, connectionPubSub) : null;
+
+        return of(OutboundMappingSettings.of(connection, connectivityConfig, actorSystem, deadLetterSelection,
+                protocolAdapter, logger), diversionInterceptor);
+    }
+
+    /**
      * Create an {@code OutboundMappingProcessor} from its settings.
      *
      * @param settings Settings of an outbound mapping processor.
      * @return the processor.
      */
     public static OutboundMappingProcessor of(final OutboundMappingSettings settings) {
+        return of(settings, null);
+    }
+
+    // DIVERSION: Add overloaded method with diversion interceptor
+    private static OutboundMappingProcessor of(final OutboundMappingSettings settings,
+            @Nullable final ResponseDiversionInterceptor diversionInterceptor) {
         return new OutboundMappingProcessor(settings.getConnectionId(), settings.getConnectionType(),
                 settings.getRegistry(), settings.getLogger(), settings.getProtocolAdapter(),
-                settings.getSourceDeclaredAcks(), settings.getTargetIssuedAcks());
+                settings.getSourceDeclaredAcks(), settings.getTargetIssuedAcks(), diversionInterceptor);
     }
 
     boolean isSourceDeclaredAck(final AcknowledgementLabel label) {
@@ -131,6 +174,15 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
      */
     @Override
     List<MappingOutcome<OutboundSignal.Mapped>> process(final OutboundSignal outboundSignal) {
+        // DIVERSION: Check if response should be diverted before processing
+        if (responseDiversionInterceptor!= null &  shouldCheckForDiversion(outboundSignal)) {
+            final boolean wasDiverted = responseDiversionInterceptor.interceptAndDivert(outboundSignal);
+            if (wasDiverted) {
+                logger.withCorrelationId(outboundSignal.getSource())
+                        .info("Response diverted, returning empty mapping outcomes");
+                return Collections.emptyList();
+            }
+        }
         final List<OutboundSignal.Mappable> mappableSignals;
         if (outboundSignal.getTargets().isEmpty()) {
             // responses/errors do not have a target assigned, read mapper used for inbound message from internal header
@@ -155,6 +207,17 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
                     .toList();
         }
         return processMappableSignals(outboundSignal, mappableSignals);
+    }
+
+    // DIVERSION: Helper method to check if diversion should be attempted
+    private boolean shouldCheckForDiversion(final OutboundSignal outboundSignal) {
+        return responseDiversionInterceptor != null &&
+                outboundSignal.getSource() instanceof CommandResponse &&
+                // Don't divert already diverted responses
+                !outboundSignal.getSource().getDittoHeaders()
+                        .containsKey(DittoHeaderDefinition.DITTO_DIVERTED_RESPONSE_FROM.getKey()) &&
+                outboundSignal.getSource().getDittoHeaders()
+                        .containsKey(DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey());
     }
 
     private List<MappingOutcome<OutboundSignal.Mapped>> processMappableSignals(

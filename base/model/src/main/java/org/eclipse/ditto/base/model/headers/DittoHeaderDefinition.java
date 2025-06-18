@@ -222,6 +222,45 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
     REPLY_TARGET("ditto-reply-target", Integer.class, false, false, HeaderValueValidators.getIntValidator()),
 
     /**
+     * Header mapping key for the target connection ID to divert responses to.
+     * When configured in a source's headerMapping, responses from that source will be diverted
+     * to the specified connection instead of being sent to the configured replyTarget.
+     * The value should be a valid connection ID string or header placeholder.
+     *
+     * @since 3.8.0
+     */
+    DITTO_DIVERT_RESPONSE_TO("ditto-divert-response-to",
+            String.class,
+            true,
+            false,
+            HeaderValueValidators.getNonEmptyValidator()),
+
+    /**
+     * Header mapping key for specifying which response types should be diverted.
+     * Value should be a comma-separated list of response types: "response,error,nack".
+     * If not specified, all response types will be diverted.
+     *
+     * @since 3.8.0
+     */
+    DITTO_DIVERT_EXPECTED_RESPONSE_TYPES("ditto-divert-expected-response-types",
+            String.class,
+            true,
+            false,
+            HeaderValueValidators.getNonEmptyValidator()),
+
+    /**
+     * Header key for tracking the source connection of a diverted response.
+     *
+     * @since 3.8.0
+     */
+
+    DITTO_DIVERTED_RESPONSE_FROM("ditto-diverted-response-from",
+            String.class,
+            true,
+            true,
+            HeaderValueValidators.getNonEmptyValidator()),
+
+    /**
      * Header definition for the internal header "ditto-expected-response-types".
      * This header is evaluated to distinguish if a response should published or not.
      *
@@ -564,7 +603,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
 
     /**
      * Internal header containing the pre-defined configured {@code extraFields} as keys and the allowed "read subjects"
-     * as array of stings - defining which "auth subjects" are allowed to read which pre-defined extra field.
+     * as array of strings - defining which "auth subjects" are allowed to read which pre-defined extra field.
      *
      * @since 3.7.0
      */
