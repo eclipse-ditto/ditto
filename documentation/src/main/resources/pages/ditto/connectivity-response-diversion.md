@@ -21,14 +21,14 @@ The following special headers control the diversion behavior:
 
 ### Header mapping keys
 
-#### ditto-divert-response-to
+#### divert-response-to
 Specifies the target connection ID where responses should be diverted.
 
 - **Static configuration**: Set to a specific connection ID (e.g., `"target-connection-123"`)
 - **Dynamic configuration**: Set to `"*"` to enable dynamic diversion where the target connection is determined at runtime through signal headers
 - **Disabled**: Omit this header to disable response diversion for the source
 
-#### ditto-divert-expected-response-types
+#### divert-expected-response-types
 Specifies which response types should be diverted. Value should be a comma-separated list of response types.
 
 Supported response types:
@@ -38,7 +38,7 @@ Supported response types:
 
 **Default behavior**: If not specified, all response types (`response,error,nack`) will be diverted.
 
-#### ditto-diverted-response-from
+#### diverted-response-from
 This header is automatically added by Ditto to track the source connection ID of diverted responses. It should not be manually configured.
 
 ### Target connection configuration
@@ -71,8 +71,8 @@ Configure the source connection to always divert responses to a specific target 
                 "ditto:inbound-auth-subject"
             ],
             "headerMapping": {
-                "ditto-divert-response-to": "http-webhook-connection",
-                "ditto-divert-expected-response-types": "response,error"
+                "divert-response-to": "http-webhook-connection",
+                "divert-expected-response-types": "response,error"
             }
         }
     ]
@@ -142,8 +142,8 @@ function mapToDittoProtocolMsg(headers, textPayload, bytePayload, contentType) {
   
   let dittoHeaders = {
     "correlation-id": headers["correlation-id"],
-    "ditto-divert-response-to": targetConnection,
-    "ditto-divert-expected-response-types": "response,error"
+    "divert-response-to": targetConnection,
+    "divert-expected-response-types": "response,error"
   };
   
   return Ditto.buildDittoProtocolMsg(
@@ -165,7 +165,7 @@ function mapToDittoProtocolMsg(headers, textPayload, bytePayload, contentType) {
 ### Circular diversion prevention
 
 Ditto automatically prevents circular diversion chains by:
-- Tracking the source connection in the `ditto-diverted-response-from` header
+- Tracking the source connection in the `diverted-response-from` header
 - Preventing responses from being diverted back to their originating connection by validating the configuration
 - Logging warnings when circular diversion attempts are detected at runtime
 
@@ -180,9 +180,9 @@ Monitor the following metrics to track diversion performance:
 ### Common issues
 
 #### Responses not being diverted
-- Verify that `ditto-divert-response-to` is correctly configured in the source header mapping
+- Verify that `divert-response-to` is correctly configured in the source header mapping
 - Check that the target connection ID exists and is active
-- Ensure response types match the `ditto-divert-expected-response-types` configuration
+- Ensure response types match the `divert-expected-response-types` configuration
 
 #### Target connection not receiving responses
 - Verify the target connection has appropriate target configured

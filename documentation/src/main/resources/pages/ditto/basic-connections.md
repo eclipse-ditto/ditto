@@ -276,15 +276,15 @@ This is done through special header mapping keys:
 ```json
 {
   "headerMapping": {
-    "ditto-divert-response-to": "target-connection-id",
-    "ditto-divert-expected-response-types": "response,error,nack"
+    "divert-response-to": "target-connection-id",
+    "divert-expected-response-types": "response,error,nack"
   }
 }
 ```
 
 Where:
-- `ditto-divert-response-to`: Target connection ID for diversion
-- `ditto-divert-expected-response-types`: Comma-separated list of response types to divert
+- `divert-response-to`: Target connection ID for diversion
+- `divert-expected-response-types`: Comma-separated list of response types to divert
 
 This enables advanced multi-protocol workflows and response routing scenarios.
 See the [Response diversion](connectivity-response-diversion.html) documentation for detailed configuration examples
@@ -298,8 +298,8 @@ and use cases.
   "addresses": ["commands/sensor"],
   "authorizationContext": ["ditto:sensor-commands"],
   "headerMapping": {
-    "ditto-divert-response-to": "analytics-connection",
-    "ditto-divert-expected-response-types": "response,error"
+    "divert-response-to": "analytics-connection",
+    "divert-expected-response-types": "response,error"
   },
   "replyTarget": {
     "enabled": true,
@@ -314,7 +314,7 @@ and use cases.
   "addresses": ["commands/+"],
   "authorizationContext": ["ditto:device-commands"],
   "headerMapping": {
-      "ditto-divert-expected-response-types": "response,error"
+      "divert-expected-response-types": "response,error"
   },
   "payloadMapping": ["response-router"]
 }
@@ -327,8 +327,8 @@ function mapToDittoProtocolMsg(headers, textPayload, bytePayload, contentType) {
   
   let dittoHeaders = {
     "correlation-id": headers["correlation-id"],
-    "ditto-divert-response-to": determineTargetConnection(headers, parsedPayload),
-    "ditto-divert-expected-response-types": "response,error"
+    "divert-response-to": determineTargetConnection(headers, parsedPayload),
+    "divert-expected-response-types": "response,error"
   };
   
   return Ditto.buildDittoProtocolMsg(

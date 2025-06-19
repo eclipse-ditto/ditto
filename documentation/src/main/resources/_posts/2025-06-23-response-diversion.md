@@ -34,8 +34,8 @@ Response diversion is configured at the connection source level using special he
 ```json
 {
   "headerMapping": {
-    "ditto-divert-response-to": "target-connection-id", 
-    "ditto-divert-expected-response-types": "response,error,nack"
+    "divert-response-to": "target-connection-id", 
+    "divert-expected-response-types": "response,error,nack"
   }
 }
 ``` 
@@ -131,8 +131,8 @@ First, create the Kafka connection that consumes device commands:
     "authorizationContext": ["ditto:kafka-consumer"],
     "headerMapping": {
       "device-id": "{{ header:device-id }}",
-      "ditto-divert-response-to": "aws-iot-mqtt-connection",
-      "ditto-divert-expected-response-types": "response,error"
+      "divert-response-to": "aws-iot-mqtt-connection",
+      "divert-expected-response-types": "response,error"
     }
   }]
 }

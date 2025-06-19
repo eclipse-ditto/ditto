@@ -89,7 +89,7 @@ public class ResponseDiversionInterceptor {
         //  Consider static config extraction instead of header based dynamic
         //  as static will do evaluation only once and then reroute all responses based on config.
         //  Maybe a hybrid approach where static config is used for default diversion or one or the other.
-        //  HEADER '"ditto-divert-response-to"' (dynamic from mapping or js mapper)
+        //  HEADER '"divert-response-to"' (dynamic from mapping or js mapper)
         final Signal<?> signal = outboundSignal.getSource();
 
         // Divert instances of command responses.

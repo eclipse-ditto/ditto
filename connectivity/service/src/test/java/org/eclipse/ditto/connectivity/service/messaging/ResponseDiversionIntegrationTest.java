@@ -311,7 +311,7 @@ public class ResponseDiversionIntegrationTest {
                 .topics(Topic.LIVE_MESSAGES, Topic.TWIN_EVENTS)
                 .headerMapping(ConnectivityModelFactory.newHeaderMapping(Map.of(
                         "correlation-id", "{{ header:correlation-id }}",
-                        "diverted-from", "{{ header:ditto-diverted-response-from }}"
+                        "diverted-from", "{{ header:diverted-response-from }}"
                 )))
                 .build();
 
