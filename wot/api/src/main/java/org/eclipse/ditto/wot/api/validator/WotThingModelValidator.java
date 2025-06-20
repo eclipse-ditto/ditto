@@ -524,14 +524,13 @@ public interface WotThingModelValidator {
 
     /**
      * Updates the validation configuration atomically.
-     * 
+     *
      * @param newConfig the new validation config
      */
     void updateConfig(TmValidationConfig newConfig);
 
     /**
      * Creates a new instance of WotThingModelValidator with the given {@code wotConfig} and {@code tmValidationConfig}.
-     * This method is deprecated in favor of using the singleton pattern via {@link DefaultWotThingModelValidator#getInstance}.
      *
      * @param wotConfig the WoT config to use.
      * @param thingModelResolver the ThingModel resolver to fetch and resolve (extensions, refs) of ThingModels during the generation process.
@@ -540,9 +539,24 @@ public interface WotThingModelValidator {
      * @return the created WotThingModelValidator.
      */
     static WotThingModelValidator of(final WotConfig wotConfig,
-                                     final WotThingModelResolver thingModelResolver,
-                                     final Executor executor,
-                                     final TmValidationConfig tmValidationConfig) {
-        return DefaultWotThingModelValidator.getInstance(wotConfig, thingModelResolver, executor, tmValidationConfig);
+            final WotThingModelResolver thingModelResolver,
+            final Executor executor,
+            final TmValidationConfig tmValidationConfig) {
+        return DefaultWotThingModelValidator.getInstance(thingModelResolver, executor, tmValidationConfig);
+    }
+
+    /**
+     * Creates a new instance of WotThingModelValidator with the given {@code tmValidationConfig}.
+     *
+     * @param thingModelResolver the ThingModel resolver to fetch and resolve (extensions, refs) of ThingModels during the generation process.
+     * @param executor the executor to use to run async tasks.
+     * @param tmValidationConfig the merged TmValidationConfig to use.
+     * @return the created WotThingModelValidator.
+     * @since 3.8.0
+     */
+    static WotThingModelValidator of(final WotThingModelResolver thingModelResolver,
+            final Executor executor,
+            final TmValidationConfig tmValidationConfig) {
+        return DefaultWotThingModelValidator.getInstance(thingModelResolver, executor, tmValidationConfig);
     }
 }

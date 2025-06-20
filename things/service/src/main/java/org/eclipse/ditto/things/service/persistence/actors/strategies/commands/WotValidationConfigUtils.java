@@ -22,6 +22,8 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonArrayBuilder;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
@@ -57,11 +59,15 @@ public final class WotValidationConfigUtils {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(WotValidationConfigUtils.class);
 
+    private static final String DYNAMIC_CONFIG = "dynamic-config";
+    private static final String DYNAMIC_CONFIGURATION = "dynamic-configuration";
+
     private WotValidationConfigUtils() {
         throw new AssertionError();
     }
 
-    public static ThingValidationConfig mapToDevopsThingValidationConfig(final org.eclipse.ditto.wot.validation.config.ThingValidationConfig apiConfig) {
+    public static ThingValidationConfig mapToDevopsThingValidationConfig(
+            final org.eclipse.ditto.wot.validation.config.ThingValidationConfig apiConfig) {
         return ThingValidationConfig.of(
                 ThingValidationEnforceConfig.of(
                         apiConfig.isEnforceThingDescriptionModification(),
@@ -79,7 +85,8 @@ public final class WotValidationConfigUtils {
         );
     }
 
-    public static FeatureValidationConfig mapToDevopsFeatureValidationConfig(final org.eclipse.ditto.wot.validation.config.FeatureValidationConfig apiConfig) {
+    public static FeatureValidationConfig mapToDevopsFeatureValidationConfig(
+            final org.eclipse.ditto.wot.validation.config.FeatureValidationConfig apiConfig) {
         return FeatureValidationConfig.of(
                 FeatureValidationEnforceConfig.of(
                         apiConfig.isEnforceFeatureDescriptionModification(),
@@ -276,7 +283,8 @@ public final class WotValidationConfigUtils {
         }
 
         return ThingValidationEnforceConfig.of(
-                mergeBoolean(dynamicConfig.isThingDescriptionModification(), staticEnforce.isThingDescriptionModification()),
+                mergeBoolean(dynamicConfig.isThingDescriptionModification(),
+                        staticEnforce.isThingDescriptionModification()),
                 mergeBoolean(dynamicConfig.isAttributes(), staticEnforce.isAttributes()),
                 mergeBoolean(dynamicConfig.isInboxMessagesInput(), staticEnforce.isInboxMessagesInput()),
                 mergeBoolean(dynamicConfig.isInboxMessagesOutput(), staticEnforce.isInboxMessagesOutput()),
@@ -321,7 +329,8 @@ public final class WotValidationConfigUtils {
         }
 
         return FeatureValidationEnforceConfig.of(
-                mergeBoolean(dynamicConfig.isFeatureDescriptionModification(), staticEnforce.isFeatureDescriptionModification()),
+                mergeBoolean(dynamicConfig.isFeatureDescriptionModification(),
+                        staticEnforce.isFeatureDescriptionModification()),
                 mergeBoolean(dynamicConfig.isPresenceOfModeledFeatures(), staticEnforce.isPresenceOfModeledFeatures()),
                 mergeBoolean(dynamicConfig.isProperties(), staticEnforce.isProperties()),
                 mergeBoolean(dynamicConfig.isDesiredProperties(), staticEnforce.isDesiredProperties()),
@@ -349,7 +358,8 @@ public final class WotValidationConfigUtils {
                 mergeBoolean(dynamicConfig.isFeatureDescriptionDeletion(), staticForbid.isFeatureDescriptionDeletion()),
                 mergeBoolean(dynamicConfig.isNonModeledFeatures(), staticForbid.isNonModeledFeatures()),
                 mergeBoolean(dynamicConfig.isNonModeledProperties(), staticForbid.isNonModeledProperties()),
-                mergeBoolean(dynamicConfig.isNonModeledDesiredProperties(), staticForbid.isNonModeledDesiredProperties()),
+                mergeBoolean(dynamicConfig.isNonModeledDesiredProperties(),
+                        staticForbid.isNonModeledDesiredProperties()),
                 mergeBoolean(dynamicConfig.isNonModeledInboxMessages(), staticForbid.isNonModeledInboxMessages()),
                 mergeBoolean(dynamicConfig.isNonModeledOutboxMessages(), staticForbid.isNonModeledOutboxMessages())
         );
@@ -374,7 +384,7 @@ public final class WotValidationConfigUtils {
             final TmValidationConfig staticConfig) {
         // 1. Merge the configs using your existing logic
         final WotValidationConfig merged = mergeConfigs(entity, staticConfig);
-        LOGGER.info("[mergeConfigsToTmValidationConfig] Merged ImmutableWotValidationConfig: {}", merged);
+        LOGGER.info("Merged ImmutableWotValidationConfig: {}", merged);
 
         // 2. Convert merged config to HOCON Config (using toJson, then toString, then parse)
         final String hoconString = jsonToHocon(merged.toJson());
@@ -382,7 +392,7 @@ public final class WotValidationConfigUtils {
 
         // 3. Build the DefaultTmValidationConfig
         TmValidationConfig result = org.eclipse.ditto.wot.api.config.DefaultTmValidationConfig.of(config);
-        LOGGER.info("[mergeConfigsToTmValidationConfig] Resulting DefaultTmValidationConfig: {}", result);
+        LOGGER.info("Resulting DefaultTmValidationConfig: {}", result);
         return result;
     }
 
@@ -390,38 +400,41 @@ public final class WotValidationConfigUtils {
      * Helper to convert a Ditto JsonObject to a HOCON string for ConfigFactory.parseString().
      * This is a simple implementation; for more complex cases, consider a library or more robust conversion.
      */
-    private static String jsonToHocon(final org.eclipse.ditto.json.JsonObject json) {
-        JsonObject kebabJson = convertKeysToKebabCase(json);
+    private static String jsonToHocon(final JsonObject json) {
+        final JsonObject kebabJson = convertKeysToKebabCase(json);
 
-        JsonObjectBuilder configBuilder = org.eclipse.ditto.json.JsonFactory.newObjectBuilder();
+        final JsonObjectBuilder configBuilder = JsonFactory.newObjectBuilder();
         boolean hasDynamicConfig = false;
 
         // First pass: collect all non-dynamic-config fields
-        for (JsonKey key : kebabJson.getKeys()) {
-            if (!key.toString().equals("dynamic-config")) {
-                configBuilder.set(key.toString(), kebabJson.getValue(key).get());
+        for (final JsonKey key : kebabJson.getKeys()) {
+            if (!key.toString().equals(DYNAMIC_CONFIG)) {
+                kebabJson.getValue(key).ifPresent(value ->
+                        configBuilder.set(key, value)
+                );
             }
         }
 
         // Second pass: handle dynamic-config specifically
-        if (kebabJson.contains("dynamic-config")) {
+        if (kebabJson.contains(DYNAMIC_CONFIG)) {
             hasDynamicConfig = true;
-            JsonValue dynamicConfig = kebabJson.getValue("dynamic-config").get();
+            kebabJson.getValue(DYNAMIC_CONFIG).ifPresent(dc ->
+                    configBuilder.set(DYNAMIC_CONFIGURATION, dc)
+            );
             // Ensure we're setting the dynamic-configuration key with the dynamic config value
-            configBuilder.set("dynamic-configuration", dynamicConfig);
         }
 
         // Always ensure dynamic-configuration exists
         if (!hasDynamicConfig) {
-            configBuilder.set("dynamic-configuration", org.eclipse.ditto.json.JsonFactory.newArrayBuilder().build());
+            configBuilder.set(DYNAMIC_CONFIGURATION, JsonFactory.newArrayBuilder().build());
         }
 
         // Wrap in tm-model-validation
-        org.eclipse.ditto.json.JsonObjectBuilder rootBuilder = org.eclipse.ditto.json.JsonFactory.newObjectBuilder();
+        JsonObjectBuilder rootBuilder = JsonFactory.newObjectBuilder();
         rootBuilder.set("tm-model-validation", configBuilder.build());
 
         String hocon = rootBuilder.build().toString();
-        LOGGER.debug("[jsonToHocon] Final HOCON string: {}", hocon);
+        LOGGER.debug("Final HOCON string: {}", hocon);
         return hocon;
     }
 
@@ -442,9 +455,9 @@ public final class WotValidationConfigUtils {
         return builder.build();
     }
 
-    private static org.eclipse.ditto.json.JsonArray convertArrayKeysToKebabCase(final org.eclipse.ditto.json.JsonArray array) {
-        org.eclipse.ditto.json.JsonArrayBuilder arrayBuilder = org.eclipse.ditto.json.JsonFactory.newArrayBuilder();
-        for (org.eclipse.ditto.json.JsonValue value : array) {
+    private static JsonArray convertArrayKeysToKebabCase(final JsonArray array) {
+        final JsonArrayBuilder arrayBuilder = JsonFactory.newArrayBuilder();
+        for (JsonValue value : array) {
             if (value.isObject()) {
                 arrayBuilder.add(convertKeysToKebabCase(value.asObject()));
             } else if (value.isArray()) {

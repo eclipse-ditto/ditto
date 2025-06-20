@@ -84,6 +84,27 @@ final class InternalDynamicTmValidationConfiguration {
     }
 
     /**
+     * @return the config overrides of this dynamic config
+     */
+    public Config configOverrides() {
+        return configOverrides;
+    }
+
+    /**
+     * @return the configuration of the dynamic validation context
+     */
+    public DynamicValidationContextConfiguration getDynamicValidationContextConfiguration() {
+        return dynamicValidationContextConfiguration;
+    }
+
+    /**
+     * @return the scope ID of this dynamic config
+     */
+    public String getScopeId() {
+        return scopeId;
+    }
+
+    /**
      * Calculates an optional configuration override to apply for the given {@code validationContext} or an empty
      * optional if there should not be specific configuration overrides for the given context.
      *
@@ -161,18 +182,6 @@ final class InternalDynamicTmValidationConfiguration {
                 ", configOverrides=" + configOverrides +
                 ", scopeId=" + scopeId +
                 "]";
-    }
-
-    public Config configOverrides() {
-        return configOverrides;
-    }
-
-    public DynamicValidationContextConfiguration getDynamicValidationContextConfiguration() {
-        return dynamicValidationContextConfiguration;
-    }
-
-    public String getScopeId() {
-        return scopeId;
     }
 
     record DynamicValidationContextConfiguration(

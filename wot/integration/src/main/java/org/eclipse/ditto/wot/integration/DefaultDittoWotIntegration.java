@@ -14,7 +14,6 @@ package org.eclipse.ditto.wot.integration;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.util.Collection;
 import java.util.concurrent.Executor;
 
 import javax.annotation.concurrent.Immutable;
@@ -32,9 +31,8 @@ import org.eclipse.ditto.wot.api.generator.WotThingModelExtensionResolver;
 import org.eclipse.ditto.wot.api.generator.WotThingSkeletonGenerator;
 import org.eclipse.ditto.wot.api.provider.WotThingModelFetcher;
 import org.eclipse.ditto.wot.api.resolver.WotThingModelResolver;
-import org.eclipse.ditto.wot.api.validator.WotThingModelValidator;
-import org.eclipse.ditto.wot.validation.config.TmValidationConfig;
 import org.eclipse.ditto.wot.api.validator.DefaultWotThingModelValidator;
+import org.eclipse.ditto.wot.api.validator.WotThingModelValidator;
 
 /**
  * Default Ditto specific implementation of {@link DittoWotIntegration} and Pekko extension.
@@ -52,13 +50,12 @@ final class DefaultDittoWotIntegration implements DittoWotIntegration {
     private final WotThingDescriptionGenerator thingDescriptionGenerator;
     private final WotThingSkeletonGenerator thingSkeletonGenerator;
     private final DefaultWotThingModelValidator thingModelValidator;
-    private final Executor executor;
 
     private DefaultDittoWotIntegration(final ActorSystem actorSystem, final WotConfig wotConfig) {
         this.wotConfig = checkNotNull(wotConfig, "wotConfig");
         LOGGER.info("Initializing DefaultDittoWotIntegration with config: {}", wotConfig);
 
-        this.executor = actorSystem.dispatchers().lookup(WOT_DISPATCHER);
+        final Executor executor = actorSystem.dispatchers().lookup(WOT_DISPATCHER);
         final Executor cacheLoaderExecutor = actorSystem.dispatchers().lookup(WOT_DISPATCHER_CACHE_LOADER);
 
         final PekkoHttpJsonDownloader httpThingModelDownloader =
@@ -66,10 +63,12 @@ final class DefaultDittoWotIntegration implements DittoWotIntegration {
         thingModelFetcher = WotThingModelFetcher.of(wotConfig, httpThingModelDownloader, cacheLoaderExecutor);
         thingModelExtensionResolver = WotThingModelExtensionResolver.of(thingModelFetcher, executor);
         thingModelResolver =
-                WotThingModelResolver.of(wotConfig, thingModelFetcher, thingModelExtensionResolver, cacheLoaderExecutor);
+                WotThingModelResolver.of(wotConfig, thingModelFetcher, thingModelExtensionResolver,
+                        cacheLoaderExecutor);
         thingDescriptionGenerator = WotThingDescriptionGenerator.of(wotConfig, thingModelResolver, executor);
         thingSkeletonGenerator = WotThingSkeletonGenerator.of(wotConfig, thingModelResolver, executor);
-        thingModelValidator = DefaultWotThingModelValidator.getInstance(wotConfig, thingModelResolver, executor, wotConfig.getValidationConfig());
+        thingModelValidator = DefaultWotThingModelValidator.getInstance(thingModelResolver, executor,
+                wotConfig.getValidationConfig());
     }
 
     /**
@@ -117,14 +116,6 @@ final class DefaultDittoWotIntegration implements DittoWotIntegration {
     @Override
     public WotThingModelValidator getWotThingModelValidator() {
         return thingModelValidator;
-    }
-
-    @Override
-    public void updateDynamicConfigs(final Collection<TmValidationConfig> configs) {
-        final TmValidationConfig mergedConfig = configs.isEmpty() ?
-            wotConfig.getValidationConfig() : 
-            configs.iterator().next();
-        thingModelValidator.updateConfig(mergedConfig);
     }
 
     static final class ExtensionId extends AbstractExtensionId<DittoWotIntegration> {
