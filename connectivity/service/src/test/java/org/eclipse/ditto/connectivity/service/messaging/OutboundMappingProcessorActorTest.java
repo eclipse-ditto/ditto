@@ -277,8 +277,7 @@ public final class OutboundMappingProcessorActorTest {
     private List<OutboundMappingProcessor> getProcessors() {
         return List.of(
                 OutboundMappingProcessor.of(CONNECTION,
-                TestConstants.CONNECTIVITY_CONFIG,
-                actorSystemResource.getActorSystem(),
+                TestConstants.CONNECTIVITY_CONFIG, actorSystemResource.getActorSystem(),
                 protocolAdapterProvider.getProtocolAdapter("test"),
                 AbstractMessageMappingProcessorActorTest.mockLoggingAdapter())
         );
