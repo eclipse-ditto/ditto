@@ -69,8 +69,8 @@ final class DefaultThingValidationConfig implements ThingValidationConfig {
      * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultThingValidationConfig of(final Config config) {
-        return new DefaultThingValidationConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH,
-                ConfigValue.values()));
+        return new DefaultThingValidationConfig(
+                ConfigWithFallback.newInstance(config, CONFIG_PATH, ConfigValue.values()));
     }
 
     @Override
@@ -124,20 +124,21 @@ final class DefaultThingValidationConfig implements ThingValidationConfig {
         if (o == null || getClass() != o.getClass()) return false;
         final DefaultThingValidationConfig that = (DefaultThingValidationConfig) o;
         return enforceThingDescriptionModification == that.enforceThingDescriptionModification &&
-                forbidThingDescriptionDeletion == that.forbidThingDescriptionDeletion &&
                 enforceAttributes == that.enforceAttributes &&
-                forbidNonModeledAttributes == that.forbidNonModeledAttributes &&
                 enforceInboxMessagesInput == that.enforceInboxMessagesInput &&
-                forbidNonModeledInboxMessages == that.forbidNonModeledInboxMessages &&
+                enforceInboxMessagesOutput == that.enforceInboxMessagesOutput &&
                 enforceOutboxMessages == that.enforceOutboxMessages &&
+                forbidThingDescriptionDeletion == that.forbidThingDescriptionDeletion &&
+                forbidNonModeledAttributes == that.forbidNonModeledAttributes &&
+                forbidNonModeledInboxMessages == that.forbidNonModeledInboxMessages &&
                 forbidNonModeledOutboxMessages == that.forbidNonModeledOutboxMessages;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(enforceThingDescriptionModification, forbidThingDescriptionDeletion, enforceAttributes,
-                forbidNonModeledAttributes, enforceInboxMessagesInput, enforceInboxMessagesOutput,
-                forbidNonModeledInboxMessages, enforceOutboxMessages, forbidNonModeledOutboxMessages);
+        return Objects.hash(enforceThingDescriptionModification, enforceAttributes, enforceInboxMessagesInput,
+                enforceInboxMessagesOutput, enforceOutboxMessages, forbidThingDescriptionDeletion,
+                forbidNonModeledAttributes, forbidNonModeledInboxMessages, forbidNonModeledOutboxMessages);
     }
 
     @Override

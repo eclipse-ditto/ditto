@@ -31,6 +31,7 @@ import org.eclipse.ditto.wot.api.generator.WotThingModelExtensionResolver;
 import org.eclipse.ditto.wot.api.generator.WotThingSkeletonGenerator;
 import org.eclipse.ditto.wot.api.provider.WotThingModelFetcher;
 import org.eclipse.ditto.wot.api.resolver.WotThingModelResolver;
+import org.eclipse.ditto.wot.api.validator.DefaultWotThingModelValidator;
 import org.eclipse.ditto.wot.api.validator.WotThingModelValidator;
 
 /**
@@ -48,7 +49,7 @@ final class DefaultDittoWotIntegration implements DittoWotIntegration {
     private final WotThingModelResolver thingModelResolver;
     private final WotThingDescriptionGenerator thingDescriptionGenerator;
     private final WotThingSkeletonGenerator thingSkeletonGenerator;
-    private final WotThingModelValidator thingModelValidator;
+    private final DefaultWotThingModelValidator thingModelValidator;
 
     private DefaultDittoWotIntegration(final ActorSystem actorSystem, final WotConfig wotConfig) {
         this.wotConfig = checkNotNull(wotConfig, "wotConfig");
@@ -56,15 +57,18 @@ final class DefaultDittoWotIntegration implements DittoWotIntegration {
 
         final Executor executor = actorSystem.dispatchers().lookup(WOT_DISPATCHER);
         final Executor cacheLoaderExecutor = actorSystem.dispatchers().lookup(WOT_DISPATCHER_CACHE_LOADER);
+
         final PekkoHttpJsonDownloader httpThingModelDownloader =
                 new PekkoHttpJsonDownloader(actorSystem, wotConfig, executor);
         thingModelFetcher = WotThingModelFetcher.of(wotConfig, httpThingModelDownloader, cacheLoaderExecutor);
         thingModelExtensionResolver = WotThingModelExtensionResolver.of(thingModelFetcher, executor);
         thingModelResolver =
-                WotThingModelResolver.of(wotConfig, thingModelFetcher, thingModelExtensionResolver, cacheLoaderExecutor);
+                WotThingModelResolver.of(wotConfig, thingModelFetcher, thingModelExtensionResolver,
+                        cacheLoaderExecutor);
         thingDescriptionGenerator = WotThingDescriptionGenerator.of(wotConfig, thingModelResolver, executor);
         thingSkeletonGenerator = WotThingSkeletonGenerator.of(wotConfig, thingModelResolver, executor);
-        thingModelValidator = WotThingModelValidator.of(wotConfig, thingModelResolver, executor);
+        thingModelValidator = DefaultWotThingModelValidator.getInstance(thingModelResolver, executor,
+                wotConfig.getValidationConfig());
     }
 
     /**
@@ -113,7 +117,6 @@ final class DefaultDittoWotIntegration implements DittoWotIntegration {
     public WotThingModelValidator getWotThingModelValidator() {
         return thingModelValidator;
     }
-
 
     static final class ExtensionId extends AbstractExtensionId<DittoWotIntegration> {
 

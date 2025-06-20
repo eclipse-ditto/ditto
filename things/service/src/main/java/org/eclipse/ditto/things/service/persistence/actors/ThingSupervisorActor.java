@@ -522,7 +522,6 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
                 getOpCounter());
         getContext().stop(getSelf());
     }
-
     private record CommandResponsePair<C, R>(C command, R response) {}
 
     private enum Control {

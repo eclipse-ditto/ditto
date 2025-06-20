@@ -39,6 +39,8 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeature;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateSubscription;
+import org.eclipse.ditto.things.model.devops.commands.CreateWotValidationConfig;
+
 
 public class ConnectivityServiceGlobalCommandRegistryTest extends GlobalCommandRegistryTestCases {
 
@@ -68,7 +70,8 @@ public class ConnectivityServiceGlobalCommandRegistryTest extends GlobalCommandR
                 ModifySplitBrainResolver.class,
                 PublishSignal.class,
                 SudoAddConnectionLogEntry.class,
-                SubscribeForPersistedEvents.class
+                SubscribeForPersistedEvents.class,
+                CreateWotValidationConfig.class
         );
     }
 

@@ -37,9 +37,12 @@ final class InternalDynamicTmValidationConfiguration {
     private static final String CONFIG_KEY_THING_DEFINITION_PATTERNS = "thing-definition-patterns";
     private static final String CONFIG_KEY_FEATURE_DEFINITION_PATTERNS = "feature-definition-patterns";
     private static final String CONFIG_KEY_CONFIG_OVERRIDES = "config-overrides";
+    private static final String CONFIG_KEY_SCOPE_ID = "scope-id";
 
     private final DynamicValidationContextConfiguration dynamicValidationContextConfiguration;
     private final Config configOverrides;
+    private final String scopeId;
+
 
     InternalDynamicTmValidationConfiguration(final Config config) {
         final Config validationContext = config.getConfig(CONFIG_KEY_VALIDATION_CONTEXT);
@@ -77,6 +80,28 @@ final class InternalDynamicTmValidationConfiguration {
                 featureDefinitionPatterns
         );
         configOverrides = config.getConfig(CONFIG_KEY_CONFIG_OVERRIDES);
+        scopeId = config.hasPath(CONFIG_KEY_SCOPE_ID) ? config.getString(CONFIG_KEY_SCOPE_ID) : "ditto:static";
+    }
+
+    /**
+     * @return the config overrides of this dynamic config
+     */
+    public Config configOverrides() {
+        return configOverrides;
+    }
+
+    /**
+     * @return the configuration of the dynamic validation context
+     */
+    public DynamicValidationContextConfiguration getDynamicValidationContextConfiguration() {
+        return dynamicValidationContextConfiguration;
+    }
+
+    /**
+     * @return the scope ID of this dynamic config
+     */
+    public String getScopeId() {
+        return scopeId;
     }
 
     /**
@@ -141,12 +166,13 @@ final class InternalDynamicTmValidationConfiguration {
             return false;
         }
         return Objects.equals(dynamicValidationContextConfiguration, that.dynamicValidationContextConfiguration) &&
-                Objects.equals(configOverrides, that.configOverrides);
+                Objects.equals(configOverrides, that.configOverrides) &&
+                Objects.equals(scopeId, that.scopeId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(dynamicValidationContextConfiguration, configOverrides);
+        return Objects.hash(dynamicValidationContextConfiguration, configOverrides, scopeId);
     }
 
     @Override
@@ -154,6 +180,7 @@ final class InternalDynamicTmValidationConfiguration {
         return getClass().getSimpleName() + " [" +
                 "dynamicValidationContextConfiguration=" + dynamicValidationContextConfiguration +
                 ", configOverrides=" + configOverrides +
+                ", scopeId=" + scopeId +
                 "]";
     }
 

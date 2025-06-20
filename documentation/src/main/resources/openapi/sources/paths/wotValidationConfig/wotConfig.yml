@@ -1,0 +1,47 @@
+# Copyright (c) 2025 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+
+get:
+  summary: Get the WoT validation config
+  tags:
+    - Devops
+  security:
+    - DevOpsBasic: []
+    - DevOpsBearer: []
+  responses:
+    '200':
+      $ref: '../../responses/wotValidationConfig/wotValidationConfigResponse.yml'
+    '404':
+      description: Not found
+put:
+  summary: Update the WoT validation config
+  tags:
+    - Devops
+  security:
+    - DevOpsBasic: []
+    - DevOpsBearer: []
+  requestBody:
+    $ref: '../../requests/wotValidationConfig/wotValidationConfigRequest.yml'
+  responses:
+    '204':
+      description: Updated config
+delete:
+  summary: Delete the WoT validation config
+  tags:
+    - Devops
+  security:
+    - DevOpsBasic: []
+    - DevOpsBearer: []
+  responses:
+    '204':
+      description: Deleted successfully
+    '404':
+      description: Not found 

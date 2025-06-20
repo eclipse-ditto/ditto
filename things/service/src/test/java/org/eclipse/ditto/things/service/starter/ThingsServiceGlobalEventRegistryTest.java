@@ -20,6 +20,7 @@ import org.eclipse.ditto.things.api.ThingSnapshotTaken;
 import org.eclipse.ditto.things.model.signals.events.FeatureDeleted;
 import org.eclipse.ditto.thingsearch.api.events.ThingsOutOfSync;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionCreated;
+import org.eclipse.ditto.things.model.devops.events.WotValidationConfigCreated;
 
 public final class ThingsServiceGlobalEventRegistryTest extends GlobalEventRegistryTestCases {
 
@@ -32,7 +33,8 @@ public final class ThingsServiceGlobalEventRegistryTest extends GlobalEventRegis
                 StreamingSubscriptionComplete.class,
                 PolicyModified.class,
                 SubscriptionCreated.class,
-                ThingsOutOfSync.class
+                ThingsOutOfSync.class,
+                WotValidationConfigCreated.class
         );
     }
 
