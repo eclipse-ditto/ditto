@@ -22,6 +22,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
@@ -65,7 +66,7 @@ public final class RetrieveMergedWotValidationConfigResponse
      * This field contains the merged validation configuration.
      */
     private static final JsonFieldDefinition<JsonValue> JSON_CONFIG =
-            JsonFieldDefinition.ofJsonValue("config", JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofJsonValue("config", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     /**
      * JSON deserializer for this response.
