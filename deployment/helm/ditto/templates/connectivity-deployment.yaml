@@ -192,6 +192,16 @@ spec:
               value: "{{ .Values.global.limits.maxHeadersSize }}"
             - name: LIMITS_MESSAGES_AUTH_SUBJECTS_COUNT
               value: "{{ .Values.global.limits.maxAuthSubjectsCount }}"
+            - name: DITTO_DEVOPS_FEATURE_MERGE_THINGS_ENABLED
+              value: "{{ .Values.global.featureFlags.mergeThingsEnabled }}"
+            - name: DITTO_DEVOPS_FEATURE_WOT_INTEGRATION_ENABLED
+              value: "{{ .Values.global.featureFlags.wotIntegrationEnabled }}"
+            - name: DITTO_DEVOPS_FEATURE_HISTORICAL_APIS_ENABLED
+              value: "{{ .Values.global.featureFlags.historicalApisEnabled }}"
+            - name: DITTO_DEVOPS_FEATURE_PRESERVE_KNOWN_MQTT_HEADERS_ENABLED
+              value: "{{ .Values.global.featureFlags.preserveKnownMqttHeadersEnabled }}"
+            - name: DITTO_DEVOPS_FEATURE_JSON_KEY_VALIDATION_ENABLED
+              value: "{{ .Values.global.featureFlags.jsonKeyValidationEnabled }}"
             - name: PEKKO_PERSISTENCE_MONGO_JOURNAL_WRITE_CONCERN
               value: "{{ .Values.connectivity.config.mongodb.journalWriteConcern }}"
             - name: PEKKO_PERSISTENCE_MONGO_SNAPS_WRITE_CONCERN
@@ -260,6 +270,12 @@ spec:
               value: "{{ .Values.connectivity.config.policiesEnforcer.cache.expireAfterWrite }}"
             - name: DITTO_POLICIES_ENFORCER_CACHE_EXPIRE_AFTER_ACCESS
               value: "{{ .Values.connectivity.config.policiesEnforcer.cache.expireAfterAccess }}"
+            - name: CONNECTIVITY_SIGNAL_ENRICHMENT_CACHE_ENABLED
+              value: "{{ .Values.connectivity.config.signalEnrichment.cache.enabled }}"
+            - name: CONNECTIVITY_SIGNAL_ENRICHMENT_CACHE_MAXIMUM_SIZE
+              value: "{{ .Values.connectivity.config.signalEnrichment.cache.maximumSize }}"
+            - name: CONNECTIVITY_SIGNAL_ENRICHMENT_CACHE_EXPIRE_AFTER_CREATE
+              value: "{{ .Values.connectivity.config.signalEnrichment.cache.expireAfterCreate }}"
             - name: RECONNECT_RATE_FREQUENCY
               value: "{{ .Values.connectivity.config.connections.reconnect.rate.frequency }}"
             - name: RECONNECT_RATE_ENTITIES

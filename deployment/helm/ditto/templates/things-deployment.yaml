@@ -121,7 +121,7 @@ spec:
             - name: POD_LABEL_SELECTOR
               value: "app.kubernetes.io/name=%s"
             - name: POD_NAMESPACE
-              value: {{.Release.Namespace}}
+              value: {{ .Release.Namespace }}
             - name: INSTANCE_INDEX
               valueFrom:
                 fieldRef:

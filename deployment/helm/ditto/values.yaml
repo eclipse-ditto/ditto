@@ -131,6 +131,19 @@ global:
     path: "/"
     # port where prometheus metrics will be provided
     port: 9095
+  # featureFlags contains feature flags enabling/disabling certain features
+  featureFlags:
+    # mergeThingsEnabled controls whether MergeThing commands (patching of things) are enabled or not
+    mergeThingsEnabled: true
+    # wotIntegrationEnabled controls whether the Web of Things (WoT) integration is enabled or not
+    wotIntegrationEnabled: true
+    # historicalApisEnabled controls whether the historical APIs (using the event journal) are enabled or not
+    historicalApisEnabled: true
+    # preserveKnownMqttHeadersEnabled controls whether known MQTT headers (e.g., mqtt.topic) are preserved in outgoing messages
+    preserveKnownMqttHeadersEnabled: true
+    # jsonKeyValidationEnabled controls whether for each json object, each JSON key should be validated against a regex pattern
+    #  excluding control characters to be used as JSON keys. This can have quite a performance impact.
+    jsonKeyValidationEnabled: true
   # logging the logging configuration for Ditto
   logging:
     # sysout holds the logging to SYSOUT config
@@ -1679,6 +1692,16 @@ connectivity:
         expireAfterWrite: 4h
         # expireAfterAccess prolonged on each cache access by that duration
         expireAfterAccess: 2h
+    # signalEnrichment contains configuration regarding signal enrichment (retrieval of "extra" fields to e.g. enrich events)
+    signalEnrichment:
+      # cache holds the configuration of signal enrichment caching
+      cache:
+        # enabled whether signal enrichment caching (incl. smart updates updating the cache based on event data) should be enabled
+        enabled: true
+        # maximumSize how many things to cache in total on a single cluster node
+        maximumSize: 2000
+        # expireAfterCreate maximum duration of inconsistency after e.g. a policy update
+        expireAfterCreate: 2m
     # cleanup contains the configuration for the background cleanup of stale snapshots and events
     cleanup:
       # enabled configures whether background cleanup is enabled or not
@@ -1786,7 +1809,7 @@ connectivity:
         maxTargets: 5
       enrichment:
         # the buffer size used for the queue in the message mapping processor actor
-        bufferSize: 200
+        bufferSize: 2000
       # kafka contains the configuration specific to Ditto connections to Apache Kafka
       kafka:
         # consumer contains configuration for consuming messages from Kafka
@@ -2050,6 +2073,16 @@ gateway:
         # limit is the maximum number of messages the SSE session is allowed to receive within the configured
         #  throttling interval e.g. 100 msgs/s
         limit: 100
+    # signalEnrichment contains configuration regarding signal enrichment (retrieval of "extra" fields to e.g. enrich events)
+    signalEnrichment:
+      # cache holds the configuration of signal enrichment caching
+      cache:
+        # enabled whether signal enrichment caching (incl. smart updates updating the cache based on event data) should be enabled
+        enabled: true
+        # maximumSize how many things to cache in total on a single cluster node
+        maximumSize: 2000
+        # expireAfterCreate maximum duration of inconsistency after e.g. a policy update
+        expireAfterCreate: 2m
 
 ## ----------------------------------------------------------------------------
 ## nginx configuration
