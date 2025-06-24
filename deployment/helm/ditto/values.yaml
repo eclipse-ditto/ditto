@@ -1109,10 +1109,15 @@ things:
           # authSubjects holds list of authentication subjects this entry applies to. An empty list would match any.
           #  Wildcards `*` (Matching any number of any character) and `?` (Matches any single character) are supported in entries of this list.
           authSubjects: []
+          # thingDefinitions holds list of thing definitions this entry applies to. An empty list would match any.
+          #  Wildcards `*` (Matching any number of any character) and `?` (Matches any single character) are supported in entries of this list.
+          #  If the list contains `null`, creation of things without a thing definition is allowed.
+          thingDefinitions: []
       # revokes contains the list of creation config entries which would reject the creation of entities
       revokes: []
       # - namespaces: []
       #   authSubjects: []
+      #   thingDefinitions: []
     # policiesEnforcer contains configuration for Ditto "Policy Enforcers", e.g. regarding caching
     policiesEnforcer:
       # cache holds the configuration of policy enforcer caching

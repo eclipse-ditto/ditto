@@ -39,9 +39,9 @@ import com.typesafe.config.Config;
  * Pre-Enforcer for evaluating if creation of new entities should be restricted.
  */
 @Immutable
-public final class CreationRestrictionPreEnforcer implements PreEnforcer {
+public class CreationRestrictionPreEnforcer<C extends CreationRestrictionPreEnforcer.Context> implements PreEnforcer {
 
-    private static final ThreadSafeDittoLogger LOG =
+    protected static final ThreadSafeDittoLogger LOG =
             DittoLoggerFactory.getThreadSafeLogger(CreationRestrictionPreEnforcer.class);
 
     private final EntityCreationConfig config;
@@ -59,24 +59,24 @@ public final class CreationRestrictionPreEnforcer implements PreEnforcer {
         this.config = DefaultEntityCreationConfig.of(actorSystem.settings().config());
     }
 
-    boolean canCreate(final Context context) {
+    public boolean canCreate(final C context) {
         return matchesList(this.config.getGrant(), context)
                 && !matchesList(this.config.getRevoke(), context);
     }
 
-    private boolean matchesList(final List<CreationRestrictionConfig> list, final Context context) {
+    private boolean matchesList(final List<CreationRestrictionConfig> list, final C context) {
         return list.stream().anyMatch(entry -> matches(entry, context));
     }
 
-    private static boolean matches(final CreationRestrictionConfig entry, final Context context) {
+    private boolean matches(final CreationRestrictionConfig entry, final C context) {
 
         return matchesResourceType(entry.getResourceTypes(), context)
+                && matchesNamespacePattern(entry.getNamespace(), context)
                 && matchesAuthSubjectPattern(entry.getAuthSubject(), context)
-                && matchesNamespacePattern(entry.getNamespace(), context);
-
+                && matchesResourceTypeSpecifics(entry, context);
     }
 
-    private static boolean matchesResourceType(final Set<String> resourceTypes, final Context context) {
+    private boolean matchesResourceType(final Set<String> resourceTypes, final C context) {
         if (resourceTypes.isEmpty()) {
             // no restriction -> pass
             LOG.withCorrelationId(context.headers()).debug("No resource type restriction: pass");
@@ -92,7 +92,7 @@ public final class CreationRestrictionPreEnforcer implements PreEnforcer {
         return false;
     }
 
-    private static boolean matchesAuthSubjectPattern(final List<Pattern> authSubjectPatterns, final Context context) {
+    private boolean matchesAuthSubjectPattern(final List<Pattern> authSubjectPatterns, final C context) {
         if (authSubjectPatterns.isEmpty()) {
             // no restrictions -> pass
             LOG.withCorrelationId(context.headers()).debug("No auth subject restriction: pass");
@@ -114,7 +114,7 @@ public final class CreationRestrictionPreEnforcer implements PreEnforcer {
         return false;
     }
 
-    private static boolean matchesNamespacePattern(final List<Pattern> namespacePatterns, final Context context) {
+    private boolean matchesNamespacePattern(final List<Pattern> namespacePatterns, final C context) {
 
         if (namespacePatterns.isEmpty()) {
             LOG.withCorrelationId(context.headers()).debug("No namespace restriction: pass");
@@ -134,6 +134,11 @@ public final class CreationRestrictionPreEnforcer implements PreEnforcer {
         LOG.withCorrelationId(context.headers()).debug("No namespace match: reject");
         // no match, but non-empty list -> reject
         return false;
+    }
+
+    protected boolean matchesResourceTypeSpecifics(final CreationRestrictionConfig creationRestrictionConfig,
+            final C context) {
+        return true;
     }
 
     @Override
@@ -163,20 +168,33 @@ public final class CreationRestrictionPreEnforcer implements PreEnforcer {
 
         final WithEntityId withEntityId = getMessageAsWithEntityId(signal);
         final NamespacedEntityId entityId = getEntityIdAsNamespacedEntityId(withEntityId.getEntityId());
-        final var context = new Context(signal.getResourceType(), entityId.getNamespace(),
-                signal.getDittoHeaders());
+        final var context = createContext(signal, entityId);
         if (canCreate(context)) {
             return signal;
         } else {
+            LOG.withCorrelationId(context.headers())
+                    .info("Create command with context <{}> is not allowed to pass - entity-creation config was: " +
+                            "{}", context, this.config);
             throw EntityNotCreatableException.newBuilder(withEntityId.getEntityId())
                     .dittoHeaders(signal.getDittoHeaders())
                     .build();
         }
     }
 
+    @SuppressWarnings("unchecked")
+    protected C createContext(final Signal<?> signal, final NamespacedEntityId entityId) {
+        return (C) new DefaultContext(signal.getResourceType(), entityId.getNamespace(), signal.getDittoHeaders());
+    }
+
+    protected interface Context {
+        String resourceType();
+        String namespace();
+        DittoHeaders headers();
+    }
+
     /**
      * The context for evaluating if an entity may be created or not.
      */
-    record Context(String resourceType, String namespace, DittoHeaders headers) {}
+    protected record DefaultContext(String resourceType, String namespace, DittoHeaders headers) implements Context {}
 
 }
