@@ -180,7 +180,7 @@ public final class DevOpsRoute extends AbstractRoute {
                         put(() -> extractDataBytes(payloadSource ->
                                 handlePerRequest(ctx, dittoHeaders, payloadSource, json -> {
                                     final JsonObject configJson = JsonFactory.readFrom(json).asObject();
-                                    if (!configJson.getValue("scopeId").isPresent()) {
+                                    if (!configJson.getValue("scope-id").isPresent()) {
                                         throw WotValidationConfigInvalidException.newBuilder("Missing required field 'scopeId' in payload")
                                                 .dittoHeaders(dittoHeaders)
                                                 .build();

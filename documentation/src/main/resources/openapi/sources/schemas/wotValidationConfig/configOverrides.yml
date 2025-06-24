@@ -14,7 +14,7 @@ description: Config overrides for a dynamic config section.
 properties:
   enabled:
     type: boolean
-  logWarningInsteadOfFailingApiCalls:
+  log-warning-instead-of-failing-api-calls:
     type: boolean
   thing:
     $ref: 'thingValidationConfig.yml'

@@ -42,7 +42,7 @@ class DeleteDynamicConfigSectionTest {
         DittoHeaders headers = DittoHeaders.empty();
         JsonObject json = JsonFactory.newObjectBuilder()
                 .set(WotValidationConfigCommand.JsonFields.CONFIG_ID, configId.toString())
-                .set("scopeId", scopeId)
+                .set("scope-id", scopeId)
                 .build();
         DeleteDynamicConfigSection parsed = DeleteDynamicConfigSection.fromJson(json, headers);
         assertEquals(configId, parsed.getEntityId());

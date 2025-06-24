@@ -37,13 +37,13 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 final class ImmutableThingValidationForbidConfig implements ThingValidationForbidConfig {
 
     private static final JsonFieldDefinition<Boolean> THING_DESCRIPTION_DELETION =
-            JsonFactory.newBooleanFieldDefinition("thingDescriptionDeletion", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newBooleanFieldDefinition("thing-description-deletion", FieldType.REGULAR, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<Boolean> NON_MODELED_ATTRIBUTES =
-            JsonFactory.newBooleanFieldDefinition("nonModeledAttributes", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newBooleanFieldDefinition("non-modeled-attributes", FieldType.REGULAR, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<Boolean> NON_MODELED_INBOX_MESSAGES =
-            JsonFactory.newBooleanFieldDefinition("nonModeledInboxMessages", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newBooleanFieldDefinition("non-modeled-inbox-messages", FieldType.REGULAR, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<Boolean> NON_MODELED_OUTBOX_MESSAGES =
-            JsonFactory.newBooleanFieldDefinition("nonModeledOutboxMessages", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newBooleanFieldDefinition("non-modeled-outbox-messages", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     @Nullable private final Boolean thingDescriptionDeletion;
     @Nullable private final Boolean nonModeledAttributes;

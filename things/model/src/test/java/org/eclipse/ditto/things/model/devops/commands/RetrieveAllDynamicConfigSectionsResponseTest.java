@@ -25,7 +25,7 @@ class RetrieveAllDynamicConfigSectionsResponseTest {
     @Test
     void testConstructionAndGetters() {
         WotValidationConfigId configId = WotValidationConfigId.of("ns:test");
-        JsonArray dynamicConfigs = JsonFactory.newArrayBuilder().add(JsonFactory.newObjectBuilder().set("scopeId", "scope1").build()).build();
+        JsonArray dynamicConfigs = JsonFactory.newArrayBuilder().add(JsonFactory.newObjectBuilder().set("scope-id", "scope1").build()).build();
         DittoHeaders headers = DittoHeaders.empty();
         RetrieveAllDynamicConfigSectionsResponse
                 response = RetrieveAllDynamicConfigSectionsResponse.of(configId, dynamicConfigs, headers);
@@ -36,7 +36,7 @@ class RetrieveAllDynamicConfigSectionsResponseTest {
     @Test
     void testEqualsAndHashCode() {
         WotValidationConfigId configId = WotValidationConfigId.of("ns:test");
-        JsonArray dynamicConfigs = JsonFactory.newArrayBuilder().add(JsonFactory.newObjectBuilder().set("scopeId", "scope1").build()).build();
+        JsonArray dynamicConfigs = JsonFactory.newArrayBuilder().add(JsonFactory.newObjectBuilder().set("scope-id", "scope1").build()).build();
         DittoHeaders headers = DittoHeaders.empty();
         RetrieveAllDynamicConfigSectionsResponse
                 r1 = RetrieveAllDynamicConfigSectionsResponse.of(configId, dynamicConfigs, headers);
@@ -49,7 +49,7 @@ class RetrieveAllDynamicConfigSectionsResponseTest {
     @Test
     void testSerializationDeserialization() {
         WotValidationConfigId configId = WotValidationConfigId.of("ns:test");
-        JsonArray dynamicConfigs = JsonFactory.newArrayBuilder().add(JsonFactory.newObjectBuilder().set("scopeId", "scope1").build()).build();
+        JsonArray dynamicConfigs = JsonFactory.newArrayBuilder().add(JsonFactory.newObjectBuilder().set("scope-id", "scope1").build()).build();
         DittoHeaders headers = DittoHeaders.empty();
         RetrieveAllDynamicConfigSectionsResponse
                 response = RetrieveAllDynamicConfigSectionsResponse.of(configId, dynamicConfigs, headers);

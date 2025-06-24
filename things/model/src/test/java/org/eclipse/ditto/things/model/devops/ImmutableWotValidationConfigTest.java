@@ -359,7 +359,7 @@ class ImmutableWotValidationConfigTest {
         JsonObject json = JsonFactory.newObjectBuilder()
                 .set("configId", "test:config")
                 .set("enabled", true)
-                .set("logWarningInsteadOfFailingApiCalls", false)
+                .set("log-warning-instead-of-failing-api-calls", false)
                 .set("thing", thingConfig.toJson())
                 .set("feature", featureConfig.toJson())
                 .set("dynamicConfig", JsonFactory.newArrayBuilder().build())

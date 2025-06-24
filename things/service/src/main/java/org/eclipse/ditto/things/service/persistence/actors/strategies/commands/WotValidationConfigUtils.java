@@ -210,8 +210,8 @@ public final class WotValidationConfigUtils {
 
         // Merge dynamic configs, preserving order with entity configs first
         final List<DynamicValidationConfig> mergedDynamicConfigs = new ArrayList<>();
-        mergedDynamicConfigs.addAll(entity.getDynamicConfigs());
         mergedDynamicConfigs.addAll(staticConfig.getDynamicConfigs());
+        mergedDynamicConfigs.addAll(entity.getDynamicConfigs());
 
         return WotValidationConfig.of(
                 WotValidationConfigId.MERGED,

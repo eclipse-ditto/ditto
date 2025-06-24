@@ -34,19 +34,19 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 final class ImmutableFeatureValidationForbidConfig implements FeatureValidationForbidConfig {
 
     private static final JsonFieldDefinition<Boolean> FEATURE_DESCRIPTION_DELETION =
-            JsonFactory.newBooleanFieldDefinition("featureDescriptionDeletion", FieldType.REGULAR,
+            JsonFactory.newBooleanFieldDefinition("feature-description-deletion", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<Boolean> NON_MODELED_FEATURES =
-            JsonFactory.newBooleanFieldDefinition("nonModeledFeatures", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newBooleanFieldDefinition("non-modeled-features", FieldType.REGULAR, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<Boolean> NON_MODELED_PROPERTIES =
-            JsonFactory.newBooleanFieldDefinition("nonModeledProperties", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newBooleanFieldDefinition("non-modeled-properties", FieldType.REGULAR, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<Boolean> NON_MODELED_DESIRED_PROPERTIES =
-            JsonFactory.newBooleanFieldDefinition("nonModeledDesiredProperties", FieldType.REGULAR,
+            JsonFactory.newBooleanFieldDefinition("non-modeled-desired-properties", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<Boolean> NON_MODELED_INBOX_MESSAGES =
-            JsonFactory.newBooleanFieldDefinition("nonModeledInboxMessages", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newBooleanFieldDefinition("non-modeled-inbox-messages", FieldType.REGULAR, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<Boolean> NON_MODELED_OUTBOX_MESSAGES =
-            JsonFactory.newBooleanFieldDefinition("nonModeledOutboxMessages", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newBooleanFieldDefinition("non-modeled-outbox-messages", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     @Nullable private final Boolean featureDescriptionDeletion;
     @Nullable private final Boolean nonModeledFeatures;
