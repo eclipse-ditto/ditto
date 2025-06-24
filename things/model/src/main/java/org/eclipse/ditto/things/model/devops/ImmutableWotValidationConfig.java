@@ -59,7 +59,7 @@ final class ImmutableWotValidationConfig implements WotValidationConfig {
     private static final JsonFieldDefinition<JsonObject> FEATURE_FIELD =
             JsonFactory.newJsonObjectFieldDefinition("feature", FieldType.REGULAR, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<JsonArray> DYNAMIC_CONFIG_FIELD =
-            JsonFactory.newJsonArrayFieldDefinition("dynamicConfig", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newJsonArrayFieldDefinition("dynamic-config", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final WotValidationConfigId configId;
     @Nullable private final Boolean enabled;

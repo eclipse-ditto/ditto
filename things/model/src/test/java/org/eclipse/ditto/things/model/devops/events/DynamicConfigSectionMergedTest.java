@@ -12,24 +12,24 @@
  */
 package org.eclipse.ditto.things.model.devops.events;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import java.time.Instant;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.things.model.devops.DynamicValidationConfig;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
 import org.junit.jupiter.api.Test;
 
-import java.time.Instant;
-
 class DynamicConfigSectionMergedTest {
 
     @Test
     void testOfAndGetters() {
         WotValidationConfigId configId = WotValidationConfigId.of("ns:test-id");
-        JsonPointer pointer = JsonPointer.of("/dynamicConfig/scope1");
+        JsonPointer pointer = JsonPointer.of("/dynamicConfigs/scope1");
         DynamicValidationConfig sectionValue = DynamicValidationConfig.of("scope1", null, null);
         long revision = 1L;
         Instant now = Instant.now();

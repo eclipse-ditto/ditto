@@ -362,7 +362,7 @@ class ImmutableWotValidationConfigTest {
                 .set("log-warning-instead-of-failing-api-calls", false)
                 .set("thing", thingConfig.toJson())
                 .set("feature", featureConfig.toJson())
-                .set("dynamicConfig", JsonFactory.newArrayBuilder().build())
+                .set("dynamic-config", JsonFactory.newArrayBuilder().build())
                 .set("_revision", 1L)
                 .set("_created", "2024-01-01T00:00:00Z")
                 .set("_modified", "2024-01-01T00:00:00Z")
