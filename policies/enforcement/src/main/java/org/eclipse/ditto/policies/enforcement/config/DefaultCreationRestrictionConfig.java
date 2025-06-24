@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.policies.enforcement.config;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -33,6 +34,7 @@ public final class DefaultCreationRestrictionConfig implements CreationRestricti
     private final Set<String> resourceTypes;
     private final List<Pattern> namespacePatterns;
     private final List<Pattern> authSubjectPatterns;
+    private final List<Pattern> thingDefinitionPatterns;
 
     private DefaultCreationRestrictionConfig(final ConfigWithFallback configWithFallback) {
         this.resourceTypes = Set.copyOf(configWithFallback.getStringList(
@@ -44,13 +46,30 @@ public final class DefaultCreationRestrictionConfig implements CreationRestricti
         this.authSubjectPatterns = compile(List.copyOf(configWithFallback.getStringList(
                 CreationRestrictionConfigValues.AUTH_SUBJECTS.getConfigPath())
         ));
+        this.thingDefinitionPatterns = compile(Collections.unmodifiableList(
+                toStringListWithNulls(
+                        configWithFallback.getAnyRefList(
+                                CreationRestrictionConfigValues.THING_DEFINITIONS.getConfigPath()
+                        )
+                )
+        ), true);
+    }
+
+    private List<String> toStringListWithNulls(final List<?> anyRefList) {
+        return anyRefList.stream()
+                .map(any -> any == null ? null : String.valueOf(any))
+                .toList();
     }
 
     private static List<Pattern> compile(final List<String> patterns) {
+        return compile(patterns, false);
+    }
+
+    private static List<Pattern> compile(final List<String> patterns, final boolean keepNullValues) {
         return patterns.stream()
                 .map(LikeHelper::convertToRegexSyntax)
-                .filter(Objects::nonNull)
-                .map(Pattern::compile)
+                .filter(str -> keepNullValues || Objects.nonNull(str))
+                .map(str -> keepNullValues && str == null ? null : Pattern.compile(str))
                 .toList();
     }
 
@@ -81,6 +100,11 @@ public final class DefaultCreationRestrictionConfig implements CreationRestricti
     }
 
     @Override
+    public List<Pattern> getThingDefinitions() {
+        return thingDefinitionPatterns;
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -91,12 +115,13 @@ public final class DefaultCreationRestrictionConfig implements CreationRestricti
         DefaultCreationRestrictionConfig that = (DefaultCreationRestrictionConfig) o;
         return resourceTypes.equals(that.resourceTypes)
                 && namespacePatterns.equals(that.namespacePatterns)
-                && authSubjectPatterns.equals(that.authSubjectPatterns);
+                && authSubjectPatterns.equals(that.authSubjectPatterns)
+                && thingDefinitionPatterns.equals(that.thingDefinitionPatterns);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(resourceTypes, namespacePatterns, authSubjectPatterns);
+        return Objects.hash(resourceTypes, namespacePatterns, authSubjectPatterns, thingDefinitionPatterns);
     }
 
     @Override
@@ -105,6 +130,7 @@ public final class DefaultCreationRestrictionConfig implements CreationRestricti
                 "resourceTypes=" + resourceTypes +
                 ", namespacePatterns=" + namespacePatterns +
                 ", authSubjectPatterns=" + authSubjectPatterns +
+                ", thingDefinitionPatterns=" + thingDefinitionPatterns +
                 ']';
     }
 }
