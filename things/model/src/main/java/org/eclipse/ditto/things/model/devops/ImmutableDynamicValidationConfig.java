@@ -40,11 +40,11 @@ import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigInval
 final class ImmutableDynamicValidationConfig implements DynamicValidationConfig {
 
     private static final JsonFieldDefinition<String> SCOPE_ID_FIELD =
-            JsonFactory.newStringFieldDefinition("scopeId", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newStringFieldDefinition("scope-id", FieldType.REGULAR, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<JsonObject> VALIDATION_CONTEXT_FIELD =
-            JsonFactory.newJsonObjectFieldDefinition("validationContext", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newJsonObjectFieldDefinition("validation-context", FieldType.REGULAR, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<JsonObject> CONFIG_OVERRIDES_FIELD =
-            JsonFactory.newJsonObjectFieldDefinition("configOverrides", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newJsonObjectFieldDefinition("config-overrides", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final String scopeId;
     @Nullable private final ValidationContext validationContext;
@@ -54,7 +54,7 @@ final class ImmutableDynamicValidationConfig implements DynamicValidationConfig 
             final String scopeId,
             @Nullable final ValidationContext validationContext,
             @Nullable final ConfigOverrides configOverrides) {
-        this.scopeId = Objects.requireNonNull(scopeId, "scopeId");
+        this.scopeId = Objects.requireNonNull(scopeId, "scope-id");
         this.validationContext = validationContext;
         this.configOverrides = configOverrides;
     }
@@ -91,7 +91,7 @@ final class ImmutableDynamicValidationConfig implements DynamicValidationConfig 
      */
     public static ImmutableDynamicValidationConfig fromJson(final JsonObject jsonObject) {
         final String scopeId = jsonObject.getValue(SCOPE_ID_FIELD)
-                .orElseThrow(() -> WotValidationConfigInvalidException.newBuilder("Missing required field: scopeId")
+                .orElseThrow(() -> WotValidationConfigInvalidException.newBuilder("Missing required field: scope-id")
                         .build());
 
         final ImmutableValidationContext validationContext = jsonObject.getValue(VALIDATION_CONTEXT_FIELD)

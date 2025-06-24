@@ -150,19 +150,19 @@ public final class RetrieveMergedWotValidationConfigStrategyTest {
         final JsonObject thingConfig = mergedConfig.getValue("thing").get().asObject();
         final JsonObject thingEnforce = thingConfig.getValue("enforce").get().asObject();
         final JsonObject thingForbid = thingConfig.getValue("forbid").get().asObject();
-        assertThat(thingEnforce.getValue("thingDescriptionModification").get().asBoolean()).isTrue();
+        assertThat(thingEnforce.getValue("thing-description-modification").get().asBoolean()).isTrue();
         assertThat(thingEnforce.getValue("attributes").get().asBoolean()).isTrue();
-        assertThat(thingForbid.getValue("thingDescriptionDeletion").get().asBoolean()).isFalse();
-        assertThat(thingForbid.getValue("nonModeledInboxMessages").get().asBoolean()).isFalse();
+        assertThat(thingForbid.getValue("thing-description-deletion").get().asBoolean()).isFalse();
+        assertThat(thingForbid.getValue("non-modeled-inbox-messages").get().asBoolean()).isFalse();
 
         // Verify feature validation config
         final JsonObject featureConfig = mergedConfig.getValue("feature").get().asObject();
         final JsonObject featureEnforce = featureConfig.getValue("enforce").get().asObject();
         final JsonObject featureForbid = featureConfig.getValue("forbid").get().asObject();
-        assertThat(featureEnforce.getValue("featureDescriptionModification").get().asBoolean()).isTrue();
-        assertThat(featureEnforce.getValue("presenceOfModeledFeatures").get().asBoolean()).isFalse();
-        assertThat(featureForbid.getValue("featureDescriptionDeletion").get().asBoolean()).isFalse();
-        assertThat(featureForbid.getValue("nonModeledFeatures").get().asBoolean()).isTrue();
+        assertThat(featureEnforce.getValue("feature-description-modification").get().asBoolean()).isTrue();
+        assertThat(featureEnforce.getValue("presence-of-modeled-features").get().asBoolean()).isFalse();
+        assertThat(featureForbid.getValue("feature-description-deletion").get().asBoolean()).isFalse();
+        assertThat(featureForbid.getValue("non-modeled-features").get().asBoolean()).isTrue();
     }
 
     @Test

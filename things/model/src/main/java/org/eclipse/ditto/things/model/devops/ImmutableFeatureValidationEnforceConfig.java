@@ -34,21 +34,21 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 final class ImmutableFeatureValidationEnforceConfig implements FeatureValidationEnforceConfig {
 
     private static final JsonFieldDefinition<Boolean> FEATURE_DESCRIPTION_MODIFICATION =
-            JsonFactory.newBooleanFieldDefinition("featureDescriptionModification", FieldType.REGULAR,
+            JsonFactory.newBooleanFieldDefinition("feature-description-modification", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<Boolean> PRESENCE_OF_MODELED_FEATURES =
-            JsonFactory.newBooleanFieldDefinition("presenceOfModeledFeatures", FieldType.REGULAR,
+            JsonFactory.newBooleanFieldDefinition("presence-of-modeled-features", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<Boolean> PROPERTIES =
             JsonFactory.newBooleanFieldDefinition("properties", FieldType.REGULAR, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<Boolean> DESIRED_PROPERTIES =
-            JsonFactory.newBooleanFieldDefinition("desiredProperties", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newBooleanFieldDefinition("desired-properties", FieldType.REGULAR, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<Boolean> INBOX_MESSAGES_INPUT =
-            JsonFactory.newBooleanFieldDefinition("inboxMessagesInput", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newBooleanFieldDefinition("inbox-messages-input", FieldType.REGULAR, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<Boolean> INBOX_MESSAGES_OUTPUT =
-            JsonFactory.newBooleanFieldDefinition("inboxMessagesOutput", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newBooleanFieldDefinition("inbox-messages-output", FieldType.REGULAR, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<Boolean> OUTBOX_MESSAGES =
-            JsonFactory.newBooleanFieldDefinition("outboxMessages", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newBooleanFieldDefinition("outbox-messages", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     @Nullable private final Boolean featureDescriptionModification;
     @Nullable private final Boolean presenceOfModeledFeatures;

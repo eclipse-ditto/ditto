@@ -59,7 +59,7 @@ public final class RetrieveDynamicConfigSection extends AbstractWotValidationCon
      * This field identifies the specific dynamic config section to retrieve.
      */
     private static final JsonFieldDefinition<String> SCOPE_ID =
-            JsonFactory.newStringFieldDefinition("scopeId", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newStringFieldDefinition("scope-id", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final String scopeId;
 

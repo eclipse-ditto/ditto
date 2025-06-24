@@ -129,7 +129,7 @@ public final class RetrieveAllDynamicConfigSectionsStrategyTest {
         assertThat(response).isNotNull();
         final JsonArray dynamicConfigs = response.getDynamicConfigs();
         assertThat(dynamicConfigs).hasSize(2);
-        assertThat(dynamicConfigs.stream().anyMatch(jv -> jv.asObject().getValue("scopeId").get().asString().equals("scope1"))).isTrue();
-        assertThat(dynamicConfigs.stream().anyMatch(jv -> jv.asObject().getValue("scopeId").get().asString().equals("scope2"))).isTrue();
+        assertThat(dynamicConfigs.stream().anyMatch(jv -> jv.asObject().getValue("scope-id").get().asString().equals("scope1"))).isTrue();
+        assertThat(dynamicConfigs.stream().anyMatch(jv -> jv.asObject().getValue("scope-id").get().asString().equals("scope2"))).isTrue();
     }
 } 

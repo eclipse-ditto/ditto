@@ -42,16 +42,16 @@ import org.eclipse.ditto.json.JsonValue;
 @Immutable
 final class ImmutableValidationContext implements ValidationContext {
 
-    private static final String DITTO_HEADERS_PATTERNS_FIELD = "dittoHeadersPatterns";
-    private static final String THING_DEF_PATTERNS_FIELD = "thingDefinitionPatterns";
-    private static final String FEATURE_DEF_PATTERNS_FIELD = "featureDefinitionPatterns";
+    private static final String DITTO_HEADERS_PATTERNS_FIELD = "ditto-headers-patterns";
+    private static final String THING_DEF_PATTERNS_FIELD = "thing-definition-patterns";
+    private static final String FEATURE_DEF_PATTERNS_FIELD = "feature-definition-patterns";
 
     private static final JsonFieldDefinition<JsonArray> DITTO_HEADERS_PATTERNS_POINTER =
-            JsonFactory.newJsonArrayFieldDefinition("dittoHeadersPatterns");
+            JsonFactory.newJsonArrayFieldDefinition(DITTO_HEADERS_PATTERNS_FIELD);
     private static final JsonFieldDefinition<JsonArray> THING_DEF_PATTERNS_POINTER =
-            JsonFactory.newJsonArrayFieldDefinition("thingDefinitionPatterns");
+            JsonFactory.newJsonArrayFieldDefinition(THING_DEF_PATTERNS_FIELD);
     private static final JsonFieldDefinition<JsonArray> FEATURE_DEF_PATTERNS_POINTER =
-            JsonFactory.newJsonArrayFieldDefinition("featureDefinitionPatterns");
+            JsonFactory.newJsonArrayFieldDefinition(FEATURE_DEF_PATTERNS_FIELD);
 
     private final List<Map<String, String>> dittoHeadersPatterns;
     private final List<String> thingDefinitionPatterns;

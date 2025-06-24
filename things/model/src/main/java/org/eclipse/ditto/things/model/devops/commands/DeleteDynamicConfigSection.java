@@ -59,7 +59,7 @@ public final class DeleteDynamicConfigSection extends AbstractWotValidationConfi
      * This field identifies the specific dynamic config section to delete.
      */
     private static final JsonFieldDefinition<String> SCOPE_ID =
-            JsonFactory.newStringFieldDefinition("scopeId", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newStringFieldDefinition("scope-id", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final String scopeId;
 
@@ -74,7 +74,7 @@ public final class DeleteDynamicConfigSection extends AbstractWotValidationConfi
     private DeleteDynamicConfigSection(final WotValidationConfigId configId, final String scopeId,
             final DittoHeaders dittoHeaders) {
         super(TYPE, configId, dittoHeaders);
-        this.scopeId = Objects.requireNonNull(scopeId, "scopeId");
+        this.scopeId = Objects.requireNonNull(scopeId, "scope-id");
     }
 
     /**
