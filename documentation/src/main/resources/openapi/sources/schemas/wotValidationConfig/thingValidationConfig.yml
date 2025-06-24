@@ -15,24 +15,24 @@ properties:
   enforce:
     type: object
     properties:
-      enforceThingDescriptionModification:
+      enforce-thing-description-modification:
         type: boolean
       attributes:
         type: boolean
-      inboxMessagesInput:
+      inbox-messages-input:
         type: boolean
-      inboxMessagesOutput:
+      inbox-messages-output:
         type: boolean
-      outboxMessages:
+      outbox-messages:
         type: boolean
   forbid:
     type: object
     properties:
-      thingDescriptionDeletion:
+      thing-description-deletion:
         type: boolean
-      nonModeledAttributes:
+      non-modeled-attributes:
         type: boolean
-      nonModeledInboxMessages:
+      non-modeled-inbox-messages:
         type: boolean
-      nonModeledOutboxMessages:
+      non-modeled-outbox-messages:
         type: boolean 

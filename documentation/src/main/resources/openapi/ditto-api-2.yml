@@ -11100,24 +11100,24 @@ components:
       type: object
       description: Validation context for dynamic config section.
       properties:
-        dittoHeadersPatterns:
+        ditto-headers-patterns:
           type: array
           items:
             type: object
             additionalProperties:
               type: string
-        thingDefinitionPatterns:
+        thing-definition-patterns:
           type: array
           items:
             type: string
-        featureDefinitionPatterns:
+        feature-definition-patterns:
           type: array
           items:
             type: string
-        scopeId:
+        scope-id:
           type: string
       required:
-        - scopeId
+        - scope-id
     ThingValidationConfig:
       type: object
       description: Thing validation config.
@@ -11125,26 +11125,26 @@ components:
         enforce:
           type: object
           properties:
-            enforceThingDescriptionModification:
+            enforce-thing-description-modification:
               type: boolean
             attributes:
               type: boolean
-            inboxMessagesInput:
+            inbox-messages-input:
               type: boolean
-            inboxMessagesOutput:
+            inbox-messages-output:
               type: boolean
-            outboxMessages:
+            outbox-messages:
               type: boolean
         forbid:
           type: object
           properties:
-            thingDescriptionDeletion:
+            thing-description-deletion:
               type: boolean
-            nonModeledAttributes:
+            non-modeled-attributes:
               type: boolean
-            nonModeledInboxMessages:
+            non-modeled-inbox-messages:
               type: boolean
-            nonModeledOutboxMessages:
+            non-modeled-outbox-messages:
               type: boolean
     FeatureValidationConfig:
       type: object
@@ -11161,11 +11161,11 @@ components:
               type: boolean
             desiredProperties:
               type: boolean
-            inboxMessagesInput:
+            inbox-messages-input:
               type: boolean
-            inboxMessagesOutput:
+            inbox-messages-output:
               type: boolean
-            outboxMessages:
+            outbox-messages:
               type: boolean
         forbid:
           type: object
@@ -11178,24 +11178,24 @@ components:
               type: boolean
             nonModeledDesiredProperties:
               type: boolean
-            nonModeledInboxMessages:
+            non-modeled-inbox-messages:
               type: boolean
-            nonModeledOutboxMessages:
+            non-modeled-outbox-messages:
               type: boolean
     DynamicValidationConfig:
       type: object
       description: Dynamic config section for request/response.
       properties:
-        scopeId:
+        scope-id:
           type: string
-        validationContext:
+        validation-context:
           $ref: '#/components/schemas/ValidationContext'
-        configOverrides:
+        config-overrides:
           $ref: '#/components/schemas/ConfigOverrides'
       required:
-        - scopeId
-        - validationContext
-        - configOverrides
+        - scope-id
+        - validation-context
+        - config-overrides
     WotValidationConfig:
       type: object
       description: WoT validation configuration object.
@@ -11206,13 +11206,13 @@ components:
         enabled:
           type: boolean
           description: Whether WoT validation is enabled globally. Defaults to true if not specified.
-        logWarning:
+        log-warning-instead-of-failing-api-calls:
           type: boolean
         thing:
           $ref: '#/components/schemas/ThingValidationConfig'
         feature:
           $ref: '#/components/schemas/FeatureValidationConfig'
-        dynamicConfig:
+        dynamic-config:
           type: array
           items:
             $ref: '#/components/schemas/DynamicValidationConfig'

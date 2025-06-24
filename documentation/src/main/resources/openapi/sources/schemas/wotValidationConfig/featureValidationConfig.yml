@@ -23,11 +23,11 @@ properties:
         type: boolean
       desiredProperties:
         type: boolean
-      inboxMessagesInput:
+      inbox-messages-input:
         type: boolean
-      inboxMessagesOutput:
+      inbox-messages-output:
         type: boolean
-      outboxMessages:
+      outbox-messages:
         type: boolean
   forbid:
     type: object
@@ -40,7 +40,7 @@ properties:
         type: boolean
       nonModeledDesiredProperties:
         type: boolean
-      nonModeledInboxMessages:
+      non-modeled-inbox-messages:
         type: boolean
-      nonModeledOutboxMessages:
+      non-modeled-outbox-messages:
         type: boolean 
