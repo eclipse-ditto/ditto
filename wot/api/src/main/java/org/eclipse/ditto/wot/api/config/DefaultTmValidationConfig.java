@@ -69,7 +69,8 @@ public final class DefaultTmValidationConfig implements TmValidationConfig {
                 .reduce(ConfigFactory.empty(), (a, b) -> b.withFallback(a))
                 .withFallback(scopedConfig.resolve());
         enabled = effectiveConfig.getBoolean(ConfigValue.ENABLED.getConfigPath());
-        logWarningInsteadOfFailingApiCalls = effectiveConfig.getBoolean(ConfigValue.LOG_WARNING_INSTEAD_OF_FAILING_API_CALLS.getConfigPath());
+        logWarningInsteadOfFailingApiCalls =
+                effectiveConfig.getBoolean(ConfigValue.LOG_WARNING_INSTEAD_OF_FAILING_API_CALLS.getConfigPath());
 
         thingValidationConfig = DefaultThingValidationConfig.of(effectiveConfig);
         featureValidationConfig = DefaultFeatureValidationConfig.of(effectiveConfig);
@@ -203,25 +204,38 @@ public final class DefaultTmValidationConfig implements TmValidationConfig {
                             featureDefinitionPatterns
                     );
 
-                    var configOverridesJson = JsonObject.of(internal.configOverrides().root().render(
-                            ConfigRenderOptions.defaults().setComments(false).setOriginComments(false)
-                    ));
+                    Config configOverridesConfig = internal.configOverrides();
+                    JsonObject configOverridesJson;
+                    if (configOverridesConfig.isEmpty()) {
+                        configOverridesJson = JsonObject.empty();
+                    } else {
+                        configOverridesJson = JsonObject.of(configOverridesConfig.root().render(
+                                ConfigRenderOptions.defaults().setComments(false).setOriginComments(false)
+                        ));
+                    }
 
-                    Boolean enabled =  configOverridesJson.getValue("enabled").map(JsonValue::asBoolean).orElse(null);
-                    Boolean logWarning = configOverridesJson.getValue("logWarningInsteadOfFailingApiCalls")
-                            .map(JsonValue::asBoolean).orElse(null);
+                    JsonObject validationConfigJson =
+                            WotConfigTransformationUtils.convertHoconConfigOverridesToValidationConfigJson(
+                                    configOverridesJson);
 
-                    org.eclipse.ditto.things.model.devops.ThingValidationConfig thingConfig = configOverridesJson.getValue("thing")
-                            .filter(JsonValue::isObject)
-                            .map(JsonValue::asObject)
-                            .map(org.eclipse.ditto.things.model.devops.ThingValidationConfig::fromJson)
+                    Boolean enabled = validationConfigJson.getValue("enabled").map(JsonValue::asBoolean).orElse(null);
+                    Boolean logWarning = validationConfigJson.getValue("logWarningInsteadOfFailingApiCalls")
+                            .map(JsonValue::asBoolean)
                             .orElse(null);
 
-                    org.eclipse.ditto.things.model.devops.FeatureValidationConfig featureConfig = configOverridesJson.getValue("feature")
-                            .filter(JsonValue::isObject)
-                            .map(JsonValue::asObject)
-                            .map(org.eclipse.ditto.things.model.devops.FeatureValidationConfig::fromJson)
-                            .orElse(null);
+                    org.eclipse.ditto.things.model.devops.ThingValidationConfig thingConfig = null;
+                    if (validationConfigJson.getValue("thing").isPresent()) {
+                        thingConfig = org.eclipse.ditto.things.model.devops.ThingValidationConfig.fromJson(
+                                validationConfigJson.getValue("thing").get().asObject()
+                        );
+                    }
+
+                    org.eclipse.ditto.things.model.devops.FeatureValidationConfig featureConfig = null;
+                    if (validationConfigJson.getValue("feature").isPresent()) {
+                        featureConfig = org.eclipse.ditto.things.model.devops.FeatureValidationConfig.fromJson(
+                                validationConfigJson.getValue("feature").get().asObject()
+                        );
+                    }
 
                     var configOverrides = ConfigOverrides.of(
                             enabled,
