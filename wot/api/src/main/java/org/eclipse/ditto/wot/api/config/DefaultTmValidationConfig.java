@@ -179,9 +179,9 @@ public final class DefaultTmValidationConfig implements TmValidationConfig {
 
         return dynamicTmValidationConfigurations.stream()
                 .map(internal -> {
-                    var contextConfig = internal.getDynamicValidationContextConfiguration();
+                    final var contextConfig = internal.getDynamicValidationContextConfiguration();
 
-                    var dittoHeadersPatterns = contextConfig.dittoHeadersPatterns().stream()
+                    final var dittoHeadersPatterns = contextConfig.dittoHeadersPatterns().stream()
                             .map(map -> map.entrySet().stream()
                                     .collect(Collectors.toMap(
                                             Map.Entry::getKey,
@@ -189,41 +189,42 @@ public final class DefaultTmValidationConfig implements TmValidationConfig {
                                     )))
                             .toList();
 
-                    var thingDefinitionPatterns = contextConfig.thingDefinitionPatterns().stream()
+                    final var thingDefinitionPatterns = contextConfig.thingDefinitionPatterns().stream()
                             .map(Pattern::pattern)
                             .toList();
 
-                    var featureDefinitionPatterns = contextConfig.featureDefinitionPatterns().stream()
+                    final var featureDefinitionPatterns = contextConfig.featureDefinitionPatterns().stream()
                             .map(Pattern::pattern)
                             .toList();
 
-                    var validationContext = org.eclipse.ditto.things.model.devops.ValidationContext.of(
+                    final var validationContext = org.eclipse.ditto.things.model.devops.ValidationContext.of(
                             dittoHeadersPatterns,
                             thingDefinitionPatterns,
                             featureDefinitionPatterns
                     );
 
-                    var configOverridesJson = JsonObject.of(internal.configOverrides().root().render(
+                    final var configOverridesJson = JsonObject.of(internal.configOverrides().root().render(
                             ConfigRenderOptions.defaults().setComments(false).setOriginComments(false)
                     ));
 
-                    Boolean enabled =  configOverridesJson.getValue("enabled").map(JsonValue::asBoolean).orElse(null);
-                    Boolean logWarning = configOverridesJson.getValue("logWarningInsteadOfFailingApiCalls")
+                    final Boolean enabled =  configOverridesJson.getValue(ConfigValue.ENABLED.getConfigPath())
+                            .map(JsonValue::asBoolean).orElse(null);
+                    final Boolean logWarning = configOverridesJson.getValue(ConfigValue.LOG_WARNING_INSTEAD_OF_FAILING_API_CALLS.getConfigPath())
                             .map(JsonValue::asBoolean).orElse(null);
 
-                    org.eclipse.ditto.things.model.devops.ThingValidationConfig thingConfig = configOverridesJson.getValue("thing")
+                    final org.eclipse.ditto.things.model.devops.ThingValidationConfig thingConfig = configOverridesJson.getValue("thing")
                             .filter(JsonValue::isObject)
                             .map(JsonValue::asObject)
                             .map(org.eclipse.ditto.things.model.devops.ThingValidationConfig::fromJson)
                             .orElse(null);
 
-                    org.eclipse.ditto.things.model.devops.FeatureValidationConfig featureConfig = configOverridesJson.getValue("feature")
+                    final org.eclipse.ditto.things.model.devops.FeatureValidationConfig featureConfig = configOverridesJson.getValue("feature")
                             .filter(JsonValue::isObject)
                             .map(JsonValue::asObject)
                             .map(org.eclipse.ditto.things.model.devops.FeatureValidationConfig::fromJson)
                             .orElse(null);
 
-                    var configOverrides = ConfigOverrides.of(
+                    final var configOverrides = ConfigOverrides.of(
                             enabled,
                             logWarning,
                             thingConfig,

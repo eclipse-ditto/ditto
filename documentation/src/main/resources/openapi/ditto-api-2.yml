@@ -11086,7 +11086,7 @@ components:
       properties:
         enabled:
           type: boolean
-        logWarningInsteadOfFailingApiCalls:
+        log-warning-instead-of-failing-api-calls:
           type: boolean
         thing:
           $ref: '#/components/schemas/ThingValidationConfig'

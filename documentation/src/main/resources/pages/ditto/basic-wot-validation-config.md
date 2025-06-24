@@ -87,7 +87,7 @@ Content-Type: application/json
   },
   "configOverrides": {
     "enabled": false,
-    "logWarningInsteadOfFailingApiCalls": true
+    "log-warning-instead-of-failing-api-calls": true
   }
 }
 ```

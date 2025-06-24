@@ -144,7 +144,7 @@ public final class RetrieveMergedWotValidationConfigStrategyTest {
 
         // Verify merged config values
         assertThat(mergedConfig.getValue("enabled").get().asBoolean()).isTrue();
-        assertThat(mergedConfig.getValue("logWarningInsteadOfFailingApiCalls").get().asBoolean()).isFalse();
+        assertThat(mergedConfig.getValue("log-warning-instead-of-failing-api-calls").get().asBoolean()).isFalse();
 
         // Verify thing validation config
         final JsonObject thingConfig = mergedConfig.getValue("thing").get().asObject();
