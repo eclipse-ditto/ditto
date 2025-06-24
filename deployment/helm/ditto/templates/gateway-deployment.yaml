@@ -179,6 +179,14 @@ spec:
               value: "{{ .Values.global.limits.maxHeadersSize }}"
             - name: LIMITS_MESSAGES_AUTH_SUBJECTS_COUNT
               value: "{{ .Values.global.limits.maxAuthSubjectsCount }}"
+            - name: DITTO_DEVOPS_FEATURE_MERGE_THINGS_ENABLED
+              value: "{{ .Values.global.featureFlags.mergeThingsEnabled }}"
+            - name: DITTO_DEVOPS_FEATURE_WOT_INTEGRATION_ENABLED
+              value: "{{ .Values.global.featureFlags.wotIntegrationEnabled }}"
+            - name: DITTO_DEVOPS_FEATURE_HISTORICAL_APIS_ENABLED
+              value: "{{ .Values.global.featureFlags.historicalApisEnabled }}"
+            - name: DITTO_DEVOPS_FEATURE_JSON_KEY_VALIDATION_ENABLED
+              value: "{{ .Values.global.featureFlags.jsonKeyValidationEnabled }}"
             - name: ENABLE_PRE_AUTHENTICATION
               value: "{{ or .Values.gateway.config.authentication.enablePreAuthentication (not .Values.global.jwtOnly) }}"
             - name: DEVOPS_SECURED
@@ -215,6 +223,12 @@ spec:
               value: "{{ .Values.gateway.config.sse.throttling.interval }}"
             - name: GATEWAY_SSE_THROTTLING_LIMIT
               value: "{{ .Values.gateway.config.sse.throttling.limit }}"
+            - name: GATEWAY_SIGNAL_ENRICHMENT_CACHE_ENABLED
+              value: "{{ .Values.gateway.config.signalEnrichment.cache.enabled }}"
+            - name: GATEWAY_SIGNAL_ENRICHMENT_CACHE_MAXIMUM_SIZE
+              value: "{{ .Values.gateway.config.signalEnrichment.cache.maximumSize }}"
+            - name: GATEWAY_SIGNAL_ENRICHMENT_CACHE_EXPIRE_AFTER_CREATE
+              value: "{{ .Values.gateway.config.signalEnrichment.cache.expireAfterCreate }}"
             - name: OAUTH_ALLOWED_CLOCK_SKEW
               value: "{{ .Values.gateway.config.authentication.oauth.allowedClockSkew }}"
             - name: OAUTH_TOKEN_INTEGRATION_SUBJECT
