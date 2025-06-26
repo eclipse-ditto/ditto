@@ -27,6 +27,17 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.http.javadsl.model.HttpHeader;
+import org.apache.pekko.http.javadsl.model.HttpMethods;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.stream.javadsl.Flow;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.assertj.core.api.Condition;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProviderFactory;
@@ -44,23 +55,12 @@ import org.mockito.Mockito;
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import com.typesafe.config.ConfigFactory;
 
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.http.javadsl.model.HttpHeader;
-import org.apache.pekko.http.javadsl.model.HttpMethods;
-import org.apache.pekko.http.javadsl.model.HttpRequest;
-import org.apache.pekko.http.javadsl.model.HttpResponse;
-import org.apache.pekko.japi.Pair;
-import org.apache.pekko.stream.javadsl.Flow;
-import org.apache.pekko.stream.javadsl.Sink;
-import org.apache.pekko.stream.javadsl.Source;
-import org.apache.pekko.testkit.javadsl.TestKit;
 import scala.util.Try;
 
 /**
- * Tests {@link ClientCredentialsFlow}.
+ * Tests {@link OAuth2BearerTokenFlow}.
  */
-public final class ClientCredentialsFlowTest {
+public final class OAuth2BearerTokenFlowTest {
 
     private static final Duration DEFAULT_TOKEN_TTL = Duration.ofSeconds(10);
     private static final DefaultCacheConfig CACHE_CONFIG = DefaultCacheConfig.of(ConfigFactory.parseMap(Map.of(
@@ -80,21 +80,21 @@ public final class ClientCredentialsFlowTest {
     @Before
     public void init() throws Exception {
         asyncLoadCounter = new AtomicLong();
-        final ClientCredentialsFlow underTest = initClientCredentialsFlow(DEFAULT_TOKEN_TTL, Duration.ZERO);
+        final OAuth2BearerTokenFlow underTest = initClientCredentialsFlow(DEFAULT_TOKEN_TTL, Duration.ZERO);
         credentialsFlow = underTest.getFlow();
     }
 
-    private ClientCredentialsFlow initClientCredentialsFlow(final Duration tokenTtl, final Duration maxClockSkew) {
+    private OAuth2BearerTokenFlow initClientCredentialsFlow(final Duration tokenTtl, final Duration maxClockSkew) {
         final Flow<HttpRequest, Try<HttpResponse>, NotUsed> flow =
                 TokenFlowFactory.getFlow(tokenTtl).wireTap(t -> asyncLoadCounter.incrementAndGet());
         final AsyncCacheLoader<String, JsonWebToken>
                 asyncJwtLoader = new AsyncJwtLoader(actorSystem, flow, TokenFlowFactory.CREDENTIALS);
-        final ClientCredentialsFlowVisitor.JsonWebTokenExpiry jsonWebTokenExpiry =
-                ClientCredentialsFlowVisitor.JsonWebTokenExpiry.of(maxClockSkew);
+        final OAuthFlowVisitor.JsonWebTokenExpiry jsonWebTokenExpiry =
+                OAuthFlowVisitor.JsonWebTokenExpiry.of(maxClockSkew);
         final Cache<String, JsonWebToken> cache =
                 CacheFactory.createCache(asyncJwtLoader, jsonWebTokenExpiry, CACHE_CONFIG, "token-cache",
                         actorSystem.getDispatcher());
-        return ClientCredentialsFlow.of(cache);
+        return OAuth2BearerTokenFlow.of(cache);
     }
 
     @AfterClass
@@ -145,14 +145,14 @@ public final class ClientCredentialsFlowTest {
     @Test
     public void testTokenExpiry() {
         final Duration tokenTtl = Duration.ofSeconds(2);
-        final ClientCredentialsFlow clientCredentialsFlow = initClientCredentialsFlow(tokenTtl, Duration.ZERO);
+        final OAuth2BearerTokenFlow OAuth2BearerTokenFlow = initClientCredentialsFlow(tokenTtl, Duration.ZERO);
 
         // make 10 requests with delay of 300 milliseconds
         final int tokens = 10;
         final CompletionStage<List<Pair<HttpRequest, HttpPushContext>>> resultFuture =
                 Source.repeat(Pair.create(HTTP_REQUEST, PUSH_CONTEXT))
                         .take(tokens)
-                        .via(clientCredentialsFlow.getFlow())
+                        .via(OAuth2BearerTokenFlow.getFlow())
                         .throttle(1, Duration.ofMillis(300))
                         .runWith(Sink.seq(), actorSystem);
 
@@ -177,7 +177,7 @@ public final class ClientCredentialsFlowTest {
 
         final Flow<Pair<HttpRequest, HttpPushContext>, Pair<HttpRequest, HttpPushContext>, NotUsed>
                 emptyCredentialsFlow =
-                ClientCredentialsFlow.of(emptyCache).getFlow();
+                OAuth2BearerTokenFlow.of(emptyCache).getFlow();
 
         final CompletionStage<Pair<HttpRequest, HttpPushContext>> resultFuture =
                 Source.repeat(Pair.create(HTTP_REQUEST, PUSH_CONTEXT))

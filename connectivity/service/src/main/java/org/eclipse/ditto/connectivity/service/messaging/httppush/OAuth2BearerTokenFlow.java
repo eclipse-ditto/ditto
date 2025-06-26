@@ -12,37 +12,35 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.httppush;
 
-
-import org.eclipse.ditto.internal.utils.cache.Cache;
-import org.eclipse.ditto.jwt.model.JsonWebToken;
-import org.eclipse.ditto.jwt.model.JwtInvalidException;
-
 import org.apache.pekko.NotUsed;
 import org.apache.pekko.http.javadsl.model.HttpRequest;
 import org.apache.pekko.http.javadsl.model.headers.HttpCredentials;
 import org.apache.pekko.japi.Pair;
 import org.apache.pekko.stream.javadsl.Flow;
+import org.eclipse.ditto.internal.utils.cache.Cache;
+import org.eclipse.ditto.jwt.model.JsonWebToken;
+import org.eclipse.ditto.jwt.model.JwtInvalidException;
 
 /**
- * Flow of HTTP requests that authenticate via client-credentials flow.
+ * Flow of HTTP requests that authenticate via a JWT bearer token.
  */
-public final class ClientCredentialsFlow {
+public final class OAuth2BearerTokenFlow {
 
     private static final String TOKEN_KEY = "token";
     private final Cache<String, JsonWebToken> tokenCache;
 
-    ClientCredentialsFlow(final Cache<String, JsonWebToken> tokenCache) {
+    OAuth2BearerTokenFlow(final Cache<String, JsonWebToken> tokenCache) {
         this.tokenCache = tokenCache;
     }
 
     /**
-     * Create a {@code ClientCredentialsFlow} object.
+     * Create a {@code OAuth2BearerTokenFlow} object.
      *
      * @param tokenCache the cache that holds valid tokens and refreshes them when required.
      * @return the object.
      */
-    public static ClientCredentialsFlow of(final Cache<String, JsonWebToken> tokenCache) {
-        return new ClientCredentialsFlow(tokenCache);
+    public static OAuth2BearerTokenFlow of(final Cache<String, JsonWebToken> tokenCache) {
+        return new OAuth2BearerTokenFlow(tokenCache);
     }
 
     Flow<Pair<HttpRequest, HttpPushContext>, Pair<HttpRequest, HttpPushContext>, NotUsed> getFlow() {
@@ -50,7 +48,7 @@ public final class ClientCredentialsFlow {
         return flow.mapAsync(1, httpRequest -> tokenCache.get(TOKEN_KEY)
                         .thenApply(jwt -> Pair.create(httpRequest, jwt.orElseThrow(
                                 () -> JwtInvalidException.newBuilder().message("Failed to retrieve JSON Web Token.").build()))))
-                .map(ClientCredentialsFlow::augmentRequestWithJwt);
+                .map(OAuth2BearerTokenFlow::augmentRequestWithJwt);
     }
 
     private static Pair<HttpRequest, HttpPushContext> augmentRequestWithJwt(

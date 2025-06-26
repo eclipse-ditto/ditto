@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Contributors to the Eclipse Foundation
+ * Copyright (c) 2025 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -21,41 +21,52 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 
 /**
- * Credentials used to retrieve a new access token using client credentials flow with the given
+ * Credentials used to retrieve a new access token using "password" flow with the given
  * client id, secret and scope.
  *
- * @since 2.2.0
+ * @since 3.8.0
  */
 @Immutable
-public final class OAuthClientCredentials implements OAuthCredentials {
+public final class OAuthPassword implements OAuthCredentials {
 
     /**
      * Credential type name.
      */
-    public static final String TYPE = "oauth-client-credentials";
+    public static final String TYPE = "oauth-password";
 
     private final String tokenEndpoint;
     private final String clientId;
-    private final String clientSecret;
+    @Nullable private final String clientSecret;
     private final String requestedScopes;
     @Nullable private final String audience;
+    private final String username;
+    private final String password;
 
-    private OAuthClientCredentials(final String tokenEndpoint, final String clientId, final String clientSecret,
-                                   final String requestedScopes, @Nullable final String audience) {
+    private OAuthPassword(final String tokenEndpoint,
+            final String clientId,
+            @Nullable final String clientSecret,
+            final String requestedScopes,
+            @Nullable final String audience,
+            @Nullable final String username,
+            @Nullable final String password
+    ) {
         this.tokenEndpoint = checkNotNull(tokenEndpoint, "tokenEndpoint");
         this.clientId = checkNotNull(clientId, "clientId");
-        this.clientSecret = checkNotNull(clientSecret, "clientSecret");
+        this.clientSecret = clientSecret; // clientSecret might be null in case of a public client
         this.requestedScopes = checkNotNull(requestedScopes, "requestedScopes");
         this.audience = audience;
+        this.username = checkNotNull(username, "username");
+        this.password = checkNotNull(password, "password");
     }
 
     @Override
     public <T> T accept(final CredentialsVisitor<T> visitor) {
-        return visitor.oauthClientCredentials(this);
+        return visitor.oauthPassword(this);
     }
 
     @Override
@@ -70,7 +81,7 @@ public final class OAuthClientCredentials implements OAuthCredentials {
 
     @Override
     public Optional<String> getClientSecret() {
-        return Optional.of(clientSecret);
+        return Optional.ofNullable(clientSecret);
     }
 
     @Override
@@ -83,21 +94,37 @@ public final class OAuthClientCredentials implements OAuthCredentials {
         return Optional.ofNullable(audience);
     }
 
+    /**
+     * @return the username
+     */
+    public String getUsername() {
+        return username;
+    }
+
+    /**
+     * @return the password
+     */
+    public String getPassword() {
+        return password;
+    }
+
     @Override
     public boolean equals(final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        final OAuthClientCredentials that = (OAuthClientCredentials) o;
+        final OAuthPassword that = (OAuthPassword) o;
         return Objects.equals(tokenEndpoint, that.tokenEndpoint) &&
                 Objects.equals(clientId, that.clientId) &&
                 Objects.equals(clientSecret, that.clientSecret) &&
                 Objects.equals(requestedScopes, that.requestedScopes) &&
-                Objects.equals(audience, that.audience);
+                Objects.equals(audience, that.audience) &&
+                Objects.equals(username, that.username) &&
+                Objects.equals(password, that.password);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(tokenEndpoint, clientId, clientSecret, requestedScopes, audience);
+        return Objects.hash(tokenEndpoint, clientId, clientSecret, requestedScopes, audience, username, password);
     }
 
     @Override
@@ -108,6 +135,8 @@ public final class OAuthClientCredentials implements OAuthCredentials {
                 ", clientSecret=" + clientSecret +
                 ", requestedScopes=" + requestedScopes +
                 ", audience=" + audience +
+                ", username=" + username +
+                ", password=***" +
                 "]";
     }
 
@@ -119,26 +148,30 @@ public final class OAuthClientCredentials implements OAuthCredentials {
         jsonObjectBuilder.set(JsonFields.CLIENT_ID, clientId, Objects::nonNull);
         jsonObjectBuilder.set(JsonFields.CLIENT_SECRET, clientSecret, Objects::nonNull);
         jsonObjectBuilder.set(JsonFields.REQUESTED_SCOPES, requestedScopes, Objects::nonNull);
-        jsonObjectBuilder.set(JsonFields.AUDIENCE, audience);
+        jsonObjectBuilder.set(JsonFields.AUDIENCE, audience, Objects::nonNull);
+        jsonObjectBuilder.set(JsonFields.USERNAME, username, Objects::nonNull);
+        jsonObjectBuilder.set(JsonFields.PASSWORD, password, Objects::nonNull);
         return jsonObjectBuilder.build();
     }
 
-    static OAuthClientCredentials fromJson(final JsonObject jsonObject) {
+    static OAuthPassword fromJson(final JsonObject jsonObject) {
         final Builder builder = newBuilder();
         jsonObject.getValue(JsonFields.TOKEN_ENDPOINT).ifPresent(builder::tokenEndpoint);
         jsonObject.getValue(JsonFields.CLIENT_ID).ifPresent(builder::clientId);
         jsonObject.getValue(JsonFields.CLIENT_SECRET).ifPresent(builder::clientSecret);
         jsonObject.getValue(JsonFields.REQUESTED_SCOPES).ifPresent(builder::scope);
         jsonObject.getValue(JsonFields.AUDIENCE).ifPresent(builder::audience);
+        jsonObject.getValue(JsonFields.USERNAME).ifPresent(builder::username);
+        jsonObject.getValue(JsonFields.PASSWORD).ifPresent(builder::password);
         return builder.build();
     }
 
     /**
-     * Create empty credentials with no certificates.
+     * Create empty credentials.
      *
      * @return empty credentials.
      */
-    public static OAuthClientCredentials empty() {
+    public static OAuthPassword empty() {
         return newBuilder().build();
     }
 
@@ -148,8 +181,8 @@ public final class OAuthClientCredentials implements OAuthCredentials {
      * @return a new builder.
      */
     public Builder toBuilder() {
-        return new Builder().clientId(clientId).clientSecret(clientSecret).tokenEndpoint(tokenEndpoint).scope(
-                requestedScopes).audience(audience);
+        return new Builder().clientId(clientId).clientSecret(clientSecret).tokenEndpoint(tokenEndpoint)
+                .scope(requestedScopes).audience(audience).username(username).password(password);
     }
 
     /**
@@ -162,7 +195,7 @@ public final class OAuthClientCredentials implements OAuthCredentials {
     }
 
     /**
-     * Builder of {@code OAuthClientCredentials}.
+     * Builder of {@code OAuthPassword}.
      */
     public static final class Builder {
 
@@ -171,6 +204,8 @@ public final class OAuthClientCredentials implements OAuthCredentials {
         @Nullable private String clientSecret;
         @Nullable private String scope;
         @Nullable private String audience;
+        @Nullable private String username;
+        @Nullable private String password;
 
         /**
          * @param tokenEndpoint the token endpoint
@@ -194,8 +229,8 @@ public final class OAuthClientCredentials implements OAuthCredentials {
          * @param clientSecret the clientSecret
          * @return this builder
          */
-        public Builder clientSecret(final String clientSecret) {
-            this.clientSecret = checkNotNull(clientSecret, "clientSecret");
+        public Builder clientSecret(@Nullable final String clientSecret) {
+            this.clientSecret = clientSecret;
             return this;
         }
 
@@ -218,12 +253,48 @@ public final class OAuthClientCredentials implements OAuthCredentials {
         }
 
         /**
-         * Build a new {@code OAuthClientCredentials}.
+         * @param username the username
+         * @return this builder
+         */
+        public Builder username(final String username) {
+            this.username = checkNotNull(username, "username");
+            return this;
+        }
+
+        /**
+         * @param password the password
+         * @return this builder
+         */
+        public Builder password(final String password) {
+            this.password = checkNotNull(password, "password");
+            return this;
+        }
+
+        /**
+         * Build a new {@code OAuthPassword}.
          *
          * @return the credentials.
          */
-        public OAuthClientCredentials build() {
-            return new OAuthClientCredentials(tokenEndpoint, clientId, clientSecret, scope, audience);
+        public OAuthPassword build() {
+            return new OAuthPassword(tokenEndpoint, clientId, clientSecret, scope, audience, username, password);
         }
+    }
+
+    /**
+     * JSON field definitions.
+     */
+    public static final class JsonFields extends OAuthCredentials.JsonFields {
+
+        /**
+         * JSON field definition of the username.
+         */
+        public static final JsonFieldDefinition<String> USERNAME = JsonFieldDefinition.ofString(
+                "username");
+
+        /**
+         * JSON field definition of the password.
+         */
+        public static final JsonFieldDefinition<String> PASSWORD = JsonFieldDefinition.ofString(
+                "password");
     }
 }

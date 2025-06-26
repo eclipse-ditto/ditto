@@ -18,6 +18,7 @@ import java.util.regex.Pattern;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.http.javadsl.model.Uri;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.ClientCertificateCredentials;
 import org.eclipse.ditto.connectivity.model.Connection;
@@ -26,11 +27,11 @@ import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.CredentialsVisitor;
 import org.eclipse.ditto.connectivity.model.HmacCredentials;
 import org.eclipse.ditto.connectivity.model.OAuthClientCredentials;
+import org.eclipse.ditto.connectivity.model.OAuthCredentials;
+import org.eclipse.ditto.connectivity.model.OAuthPassword;
 import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
-
-import org.apache.pekko.http.javadsl.model.Uri;
 
 /**
  * Validate credentials in a connection.
@@ -108,6 +109,17 @@ final class CredentialsValidationVisitor implements CredentialsVisitor<Void> {
 
     @Override
     public Void oauthClientCredentials(final OAuthClientCredentials credentials) {
+        performOauthCredentialsChecks(credentials);
+        return null;
+    }
+
+    @Override
+    public Void oauthPassword(final OAuthPassword credentials) {
+        performOauthCredentialsChecks(credentials);
+        return null;
+    }
+
+    private void performOauthCredentialsChecks(final OAuthCredentials credentials) {
         if (ConnectionType.HTTP_PUSH != connection.getConnectionType()) {
             throw ConnectionConfigurationInvalidException.newBuilder(
                             "OAuth client credentials are only supported for HTTP connection type.")
@@ -124,7 +136,6 @@ final class CredentialsValidationVisitor implements CredentialsVisitor<Void> {
                     .dittoHeaders(dittoHeaders)
                     .build();
         }
-        return null;
     }
 
     private void validateTokenEndpoint(final String tokenEndpoint) {
