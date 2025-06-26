@@ -21,6 +21,7 @@ import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidExcept
 import org.eclipse.ditto.connectivity.model.CredentialsVisitor;
 import org.eclipse.ditto.connectivity.model.HmacCredentials;
 import org.eclipse.ditto.connectivity.model.OAuthClientCredentials;
+import org.eclipse.ditto.connectivity.model.OAuthPassword;
 import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
 import org.eclipse.ditto.connectivity.model.SshTunnel;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
@@ -126,6 +127,11 @@ final class SshTunnelValidator {
         @Override
         public Void oauthClientCredentials(final OAuthClientCredentials credentials) {
             throw notSupportedException(OAuthClientCredentials.TYPE);
+        }
+
+        @Override
+        public Void oauthPassword(final OAuthPassword credentials) {
+            throw notSupportedException(OAuthPassword.TYPE);
         }
 
         private DittoRuntimeException notSupportedException(final String type) {

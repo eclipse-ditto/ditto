@@ -22,6 +22,10 @@ import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.AbstractActorWithTimers;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.event.LoggingAdapter;
+import org.apache.pekko.pattern.Patterns;
 import org.apache.sshd.client.SshClient;
 import org.apache.sshd.client.future.AuthFuture;
 import org.apache.sshd.client.future.ConnectFuture;
@@ -38,6 +42,7 @@ import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.CredentialsVisitor;
 import org.eclipse.ditto.connectivity.model.HmacCredentials;
 import org.eclipse.ditto.connectivity.model.OAuthClientCredentials;
+import org.eclipse.ditto.connectivity.model.OAuthPassword;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
 import org.eclipse.ditto.connectivity.model.SshTunnel;
@@ -48,13 +53,8 @@ import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailu
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
-
-import org.apache.pekko.actor.AbstractActorWithTimers;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.event.LoggingAdapter;
-import org.apache.pekko.pattern.Patterns;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 
 /**
  * Establishes an SSH tunnel using to the data from the given connection. The tunnel can be started/stopped with the
@@ -331,6 +331,12 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
 
     @Override
     public Void oauthClientCredentials(final OAuthClientCredentials credentials) {
+        // not supported
+        return null;
+    }
+
+    @Override
+    public Void oauthPassword(final OAuthPassword credentials) {
         // not supported
         return null;
     }

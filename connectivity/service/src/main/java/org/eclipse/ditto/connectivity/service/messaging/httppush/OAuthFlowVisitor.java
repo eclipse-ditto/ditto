@@ -14,11 +14,17 @@ package org.eclipse.ditto.connectivity.service.messaging.httppush;
 
 import java.time.Duration;
 
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.stream.javadsl.Flow;
 import org.eclipse.ditto.connectivity.model.ClientCertificateCredentials;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.CredentialsVisitor;
 import org.eclipse.ditto.connectivity.model.HmacCredentials;
 import org.eclipse.ditto.connectivity.model.OAuthClientCredentials;
+import org.eclipse.ditto.connectivity.model.OAuthPassword;
 import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
@@ -28,16 +34,10 @@ import org.eclipse.ditto.jwt.model.JsonWebToken;
 
 import com.github.benmanes.caffeine.cache.Expiry;
 
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.http.javadsl.model.HttpRequest;
-import org.apache.pekko.japi.Pair;
-import org.apache.pekko.stream.javadsl.Flow;
-
 /**
- * Visitor to create a flow that augment requests with bearer tokens.
+ * Visitor to create an OAuth2 flow that augment requests with bearer tokens.
  */
-final class ClientCredentialsFlowVisitor implements
+final class OAuthFlowVisitor implements
         CredentialsVisitor<Flow<Pair<HttpRequest, HttpPushContext>, Pair<HttpRequest, HttpPushContext>, NotUsed>> {
 
     private static final String HTTP_PUSH_DISPATCHER = "http-push-connection-dispatcher";
@@ -45,7 +45,7 @@ final class ClientCredentialsFlowVisitor implements
     private final ActorSystem actorSystem;
     private final HttpPushConfig config;
 
-    private ClientCredentialsFlowVisitor(final ActorSystem actorSystem, final HttpPushConfig config) {
+    private OAuthFlowVisitor(final ActorSystem actorSystem, final HttpPushConfig config) {
         this.actorSystem = actorSystem;
         this.config = config;
     }
@@ -53,7 +53,7 @@ final class ClientCredentialsFlowVisitor implements
     static Flow<Pair<HttpRequest, HttpPushContext>, Pair<HttpRequest, HttpPushContext>, NotUsed> eval(
             final ActorSystem actorSystem, final HttpPushConfig config, final Connection connection) {
         return connection.getCredentials()
-                .map(credentials -> credentials.accept(new ClientCredentialsFlowVisitor(actorSystem, config)))
+                .map(credentials -> credentials.accept(new OAuthFlowVisitor(actorSystem, config)))
                 .orElseGet(Flow::create);
     }
 
@@ -93,7 +93,22 @@ final class ClientCredentialsFlowVisitor implements
                         actorSystem.dispatchers().lookup(HTTP_PUSH_DISPATCHER)
                 );
 
-        return ClientCredentialsFlow.of(tokenCache).getFlow();
+        return OAuth2BearerTokenFlow.of(tokenCache).getFlow();
+    }
+
+    @Override
+    public Flow<Pair<HttpRequest, HttpPushContext>, Pair<HttpRequest, HttpPushContext>, NotUsed> oauthPassword(
+            final OAuthPassword credentials) {
+
+        final Cache<String, JsonWebToken> tokenCache =
+                CacheFactory.createCache(new AsyncJwtLoader(actorSystem, credentials),
+                        JsonWebTokenExpiry.of(config.getOAuth2Config().getMaxClockSkew()),
+                        config.getOAuth2Config().getTokenCacheConfig(),
+                        "token-cache",
+                        actorSystem.dispatchers().lookup(HTTP_PUSH_DISPATCHER)
+                );
+
+        return OAuth2BearerTokenFlow.of(tokenCache).getFlow();
     }
 
     /**

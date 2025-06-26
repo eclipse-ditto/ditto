@@ -16,11 +16,16 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.apache.pekko.actor.AbstractExtensionId;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.ExtendedActorSystem;
+import org.apache.pekko.actor.Extension;
 import org.eclipse.ditto.connectivity.model.ClientCertificateCredentials;
 import org.eclipse.ditto.connectivity.model.CredentialsVisitor;
 import org.eclipse.ditto.connectivity.model.HmacCredentials;
 import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
 import org.eclipse.ditto.connectivity.model.OAuthClientCredentials;
+import org.eclipse.ditto.connectivity.model.OAuthPassword;
 import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
@@ -29,10 +34,6 @@ import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
 import com.typesafe.config.Config;
 
-import org.apache.pekko.actor.AbstractExtensionId;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.ExtendedActorSystem;
-import org.apache.pekko.actor.Extension;
 import scala.collection.immutable.List$;
 import scala.reflect.ClassTag;
 
@@ -93,6 +94,11 @@ public final class HttpRequestSigningExtension implements Extension, Credentials
 
     @Override
     public HttpRequestSigning oauthClientCredentials(final OAuthClientCredentials credentials) {
+        return NoOpSigning.INSTANCE;
+    }
+
+    @Override
+    public HttpRequestSigning oauthPassword(final OAuthPassword credentials) {
         return NoOpSigning.INSTANCE;
     }
 

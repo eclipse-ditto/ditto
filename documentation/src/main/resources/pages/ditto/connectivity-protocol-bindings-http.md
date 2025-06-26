@@ -229,7 +229,42 @@ Here is an example HTTP connection that checks the server certificate and authen
 Ditto supports HMAC request signing for HTTP push connections. Find detailed information on this in 
 [Connectivity API > HMAC request signing](connectivity-hmac-signing.html).
 
-### OAuth2 client credentials flow
+### OAuth2 authentication
+
+In the subsections (either using [client credentials flow](#client-certificate-authentication) or
+[password flow](#oauth2-password-flow)), ach HTTP request to `https://localhost:443/event-publication` includes a 
+bearer token issued by `https://localhost:443/oauth2/token`.  
+The HTTP connection will obtain a new token before the old token expires according to a configured `max-clock-skew`. 
+To prevent looping access token requests, each token is used once even if
+the token endpoint responds with expired tokens. Rejected or malformed access token responses are considered
+misconfiguration errors.
+
+It is possible to configure `max-clock-skew` and whether to enforce HTTPS for token endpoints in
+`connectivity-extension.conf` or by environment variables.
+```hocon
+ditto {
+  connectivity {
+    connection {
+      http-push {
+        oauth2 {
+          # Maximum clock skew of OAuth2 token endpoints.
+          # Access tokens are refreshed this long before expiration.
+          max-clock-skew = 60s
+          max-clock-skew = ${?CONNECTIVITY_HTTP_OAUTH2_MAX_CLOCK_SKEW}
+
+          # Whether to enforce HTTPS for OAuth2 token endpoints.
+          # Should be `true` for production environments
+          # in order not to transmit client secrets in plain text.
+          enforce-https = true
+          enforce-https = ${?CONNECTIVITY_HTTP_OAUTH2_ENFORCE_HTTPS}
+        }
+      }
+    }
+  }
+}
+```
+
+#### OAuth2 client credentials flow
 
 HTTP push connections can authenticate themselves via OAuth2 client credentials flow as described in
 [section 4.4 of RFC-6749](https://datatracker.ietf.org/doc/html/rfc6749#section-4.4).
@@ -259,33 +294,36 @@ This is an example connection with OAuth2 credentials.
 }
 ```
 
-Each HTTP request to `https://localhost:443/event-publication` includes a bearer token issued by
-`https://localhost:443/oauth2/token`. The HTTP connection will obtain a new token before the old token expires
-according to a configured `max-clock-skew`. To prevent looping access token requests, each token is used once even if
-the token endpoint responds with expired tokens. Rejected or malformed access token responses are considered
-misconfiguration errors.
+#### OAuth2 password flow
 
-It is possible to configure `max-clock-skew` and whether to enforce HTTPS for token endpoints in
-`connectivity-extension.conf` or by environment variables.
-```hocon
-ditto {
-  connectivity {
-    connection {
-      http-push {
-        oauth2 {
-          # Maximum clock skew of OAuth2 token endpoints.
-          # Access tokens are refreshed this long before expiration.
-          max-clock-skew = 60s
-          max-clock-skew = ${?CONNECTIVITY_HTTP_OAUTH2_MAX_CLOCK_SKEW}
+HTTP push connections can authenticate themselves via OAuth2 password flow as described in
+[section 4.3 of RFC-6749](https://datatracker.ietf.org/doc/html/rfc6749#section-4.3).
+To configure OAuth2 credentials:
+- Set `type` to `oauth-password`
+- Set `tokenEndpoint` to the URI of the access token request endpoint
+- Set `clientId` to the client ID to include in access token requests
+- Optionally: Set `clientSecret` to the client secret to include in access token requests (or leave away if the
+  client is public and does not have a secret)
+- Set `requestedScopes` to the scopes to request in access token requests
+- Set `username` to the username to use for obtaining the token
+- Set `password` to the password to use for obtaining the token
 
-          # Whether to enforce HTTPS for OAuth2 token endpoints.
-          # Should be `true` for production environments
-          # in order not to transmit client secrets in plain text.
-          enforce-https = true
-          enforce-https = ${?CONNECTIVITY_HTTP_OAUTH2_ENFORCE_HTTPS}
-        }
-      }
-    }
-  }
+This is an example connection with OAuth2 credentials.
+```json
+{
+  "connection": {
+    "id": "http-example-connection-124",
+    "connectionType": "http-push",
+    "connectionStatus": "open",
+    "uri": "https://localhost:443/event-publication",
+    "credentials": {
+      "type": "oauth-password",
+      "tokenEndpoint": "https://localhost:443/oauth2/token",
+      "clientId": "my-public-client-id",
+      "requestedScopes": "user-scope-1 role-scope-2",
+      "username": "my-username",
+      "password": "my-password"
+    },
+    ...
 }
 ```

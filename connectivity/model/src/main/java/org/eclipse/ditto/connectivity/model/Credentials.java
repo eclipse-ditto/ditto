@@ -99,6 +99,7 @@ public interface Credentials {
             registerDeserializer(UserPasswordCredentials.TYPE, UserPasswordCredentials::fromJson);
             registerDeserializer(HmacCredentials.TYPE, HmacCredentials::fromJson);
             registerDeserializer(OAuthClientCredentials.TYPE, OAuthClientCredentials::fromJson);
+            registerDeserializer(OAuthPassword.TYPE, OAuthPassword::fromJson);
         }
     }
 }
