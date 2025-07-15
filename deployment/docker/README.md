@@ -56,7 +56,10 @@ Or by going through the configuration files in this repository, all available co
 ```bash
 docker-compose up -d
 ```
-
+If you want to install a specific Ditto version please use the DITTO_VERSION var from the docker-compose.yaml file before running docker compose:
+```bash
+export DITTO_VERSION=<dockerhub-image-tag>
+```
 Check the logs after starting up:
 ```bash
 docker-compose logs -f

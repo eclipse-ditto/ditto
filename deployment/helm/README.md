@@ -8,7 +8,7 @@ It is deployed as "OCI artifact" to Docker Hub at: https://hub.docker.com/r/ecli
 To install the chart with the release name eclipse-ditto, run the following commands:
 
 ```shell script
-helm install -n ditto my-ditto oci://registry-1.docker.io/eclipse/ditto --version <version> --wait
+helm install -n ditto --create-namespace my-ditto oci://registry-1.docker.io/eclipse/ditto --version <version> --wait
 ```
 
 # Uninstall the Helm Chart
