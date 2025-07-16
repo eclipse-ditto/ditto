@@ -57,13 +57,13 @@ public final class MergeDynamicConfigSection extends AbstractWotValidationConfig
     private static final String TYPE = TYPE_PREFIX + NAME;
 
     private static final JsonFieldDefinition<String> SCOPE_ID =
-            JsonFactory.newStringFieldDefinition("scopeId", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newStringFieldDefinition("scope-id", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private static final JsonFieldDefinition<JsonObject> VALIDATION_CONTEXT =
-            JsonFactory.newJsonObjectFieldDefinition("validationContext", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newJsonObjectFieldDefinition("validation-context", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private static final JsonFieldDefinition<JsonObject> CONFIG_OVERRIDES =
-            JsonFactory.newJsonObjectFieldDefinition("configOverrides", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newJsonObjectFieldDefinition("config-overrides", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final String scopeId;
     private final DynamicValidationConfig dynamicConfigSection;
@@ -73,7 +73,7 @@ public final class MergeDynamicConfigSection extends AbstractWotValidationConfig
             final DynamicValidationConfig dynamicConfigSection,
             final DittoHeaders dittoHeaders) {
         super(TYPE, configId, dittoHeaders);
-        this.scopeId = checkNotNull(scopeId, "scopeId");
+        this.scopeId = checkNotNull(scopeId, "scope-id");
         this.dynamicConfigSection = Objects.requireNonNull(dynamicConfigSection, "dynamicConfigSection");
     }
 

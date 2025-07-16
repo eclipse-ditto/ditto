@@ -18,13 +18,13 @@ properties:
   enabled:
     type: boolean
     description: Whether WoT validation is enabled globally. Defaults to true if not specified.
-  logWarning:
+  log-warning-instead-of-failing-api-calls:
     type: boolean
   thing:
     $ref: 'thingValidationConfig.yml'
   feature:
     $ref: 'featureValidationConfig.yml'
-  dynamicConfig:
+  dynamic-config:
     type: array
     items:
       $ref: 'dynamicValidationConfig.yml'

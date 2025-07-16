@@ -52,14 +52,14 @@ final class ImmutableWotValidationConfig implements WotValidationConfig {
     private static final JsonFieldDefinition<Boolean> ENABLED_FIELD =
             JsonFactory.newBooleanFieldDefinition("enabled", FieldType.REGULAR, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<Boolean> LOG_WARNING_FIELD =
-            JsonFactory.newBooleanFieldDefinition("logWarningInsteadOfFailingApiCalls", FieldType.REGULAR,
+            JsonFactory.newBooleanFieldDefinition("log-warning-instead-of-failing-api-calls", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<JsonObject> THING_FIELD =
             JsonFactory.newJsonObjectFieldDefinition("thing", FieldType.REGULAR, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<JsonObject> FEATURE_FIELD =
             JsonFactory.newJsonObjectFieldDefinition("feature", FieldType.REGULAR, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<JsonArray> DYNAMIC_CONFIG_FIELD =
-            JsonFactory.newJsonArrayFieldDefinition("dynamicConfig", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newJsonArrayFieldDefinition("dynamic-config", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final WotValidationConfigId configId;
     @Nullable private final Boolean enabled;

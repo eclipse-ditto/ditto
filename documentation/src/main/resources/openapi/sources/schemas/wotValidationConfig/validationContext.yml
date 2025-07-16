@@ -12,21 +12,21 @@
 type: object
 description: Validation context for dynamic config section.
 properties:
-  dittoHeadersPatterns:
+  ditto-headers-patterns:
     type: array
     items:
       type: object
       additionalProperties:
         type: string
-  thingDefinitionPatterns:
+  thing-definition-patterns:
     type: array
     items:
       type: string
-  featureDefinitionPatterns:
+  feature-definition-patterns:
     type: array
     items:
       type: string
-  scopeId:
+  scope-id:
     type: string
 required:
-  - scopeId 
+  - scope-id

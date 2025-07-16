@@ -12,7 +12,8 @@
  */
 package org.eclipse.ditto.things.model.devops.commands;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonFactory;
@@ -44,9 +45,9 @@ class MergeDynamicConfigSectionTest {
         DittoHeaders headers = DittoHeaders.empty();
         JsonObject json = JsonFactory.newObjectBuilder()
                 .set("configId", configId.toString())
-                .set("scopeId", scopeId)
-                .set("validationContext", JsonFactory.newObjectBuilder().build())
-                .set("configOverrides", JsonFactory.newObjectBuilder().build())
+                .set("scope-id", scopeId)
+                .set("validation-context", JsonFactory.newObjectBuilder().build())
+                .set("config-overrides", JsonFactory.newObjectBuilder().build())
                 .build();
         MergeDynamicConfigSection parsed = MergeDynamicConfigSection.fromJson(json, headers);
         assertEquals(configId, parsed.getEntityId());

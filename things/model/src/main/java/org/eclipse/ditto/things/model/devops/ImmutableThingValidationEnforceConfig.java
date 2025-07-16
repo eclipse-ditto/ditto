@@ -37,16 +37,16 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 final class ImmutableThingValidationEnforceConfig implements ThingValidationEnforceConfig {
 
     private static final JsonFieldDefinition<Boolean> THING_DESCRIPTION_MODIFICATION =
-            JsonFactory.newBooleanFieldDefinition("thingDescriptionModification", FieldType.REGULAR,
+            JsonFactory.newBooleanFieldDefinition("thing-description-modification", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<Boolean> ATTRIBUTES =
             JsonFactory.newBooleanFieldDefinition("attributes", FieldType.REGULAR, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<Boolean> INBOX_MESSAGES_INPUT =
-            JsonFactory.newBooleanFieldDefinition("inboxMessagesInput", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newBooleanFieldDefinition("inbox-messages-input", FieldType.REGULAR, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<Boolean> INBOX_MESSAGES_OUTPUT =
-            JsonFactory.newBooleanFieldDefinition("inboxMessagesOutput", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newBooleanFieldDefinition("inbox-messages-output", FieldType.REGULAR, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<Boolean> OUTBOX_MESSAGES =
-            JsonFactory.newBooleanFieldDefinition("outboxMessages", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newBooleanFieldDefinition("outbox-messages", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     @Nullable private final Boolean thingDescriptionModification;
     @Nullable private final Boolean attributes;

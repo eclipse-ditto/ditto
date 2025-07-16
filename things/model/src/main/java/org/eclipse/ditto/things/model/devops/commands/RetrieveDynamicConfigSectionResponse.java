@@ -54,7 +54,7 @@ public final class RetrieveDynamicConfigSectionResponse
     static final String TYPE = TYPE_PREFIX + RetrieveDynamicConfigSection.NAME;
 
     private static final JsonFieldDefinition<String> SCOPE_ID =
-            JsonFactory.newStringFieldDefinition("scopeId", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newStringFieldDefinition("scope-id", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final JsonValue validationConfig;
     private final String scopeId;
@@ -73,7 +73,7 @@ public final class RetrieveDynamicConfigSectionResponse
             final JsonValue validationConfig,
             final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatus.OK, configId, dittoHeaders);
-        this.scopeId = Objects.requireNonNull(scopeId, "scopeId");
+        this.scopeId = Objects.requireNonNull(scopeId, "scope-id");
         this.validationConfig = Objects.requireNonNull(validationConfig, "validationConfig");
     }
 

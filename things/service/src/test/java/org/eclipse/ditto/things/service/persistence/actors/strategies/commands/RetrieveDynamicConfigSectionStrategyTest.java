@@ -124,7 +124,7 @@ public final class RetrieveDynamicConfigSectionStrategyTest {
 
         final RetrieveDynamicConfigSectionResponse response = responseCaptor.getValue();
         assertThat(response).isNotNull();
-        assertThat(response.getValidationConfig().asObject().getValue("scopeId").get().asString()).isEqualTo("scope1");
+        assertThat(response.getValidationConfig().asObject().getValue("scope-id").get().asString()).isEqualTo("scope1");
     }
 
     @Test

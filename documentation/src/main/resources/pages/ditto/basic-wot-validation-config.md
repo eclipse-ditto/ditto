@@ -46,25 +46,25 @@ Content-Type: application/json
     "enabled": true,
     "thing": {
         "enforce": {
-            "thingDescriptionModification": false,
+            "thing-description-modification": false,
             "attributes": true,
-            "inboxMessagesInput": true,
-            "inboxMessagesOutput": true,
-            "outboxMessages": true
+            "inbox-messages-input": true,
+            "inbox-messages-output": true,
+            "outbox-messages": true
         },
         "forbid": {
-            "nonModeledInboxMessages": true,
-            "nonModeledOutboxMessages": true
+            "non-modeled-inbox-messages": true,
+            "non-modeled-outbox-messages": true
         }
     },
     "feature": {
         "enforce": {
-            "featureDescriptionModification": false,
-            "presenceOfModeledFeatures": false
+            "feature-description-modification": false,
+            "presence-of-modeled-features": false
         },
         "forbid": {
-            "featureDescriptionDeletion": false,
-            "nonModeledOutboxMessages": false
+            "feature-description-deletion": false,
+            "non-modeled-outbox-messages": false
         }
     }
 }
@@ -77,17 +77,17 @@ PUT /devops/wot/config/dynamicConfigs/my-scope
 Content-Type: application/json
 
 {
-  "scopeId": "my-scope",
-  "validationContext": {
-    "dittoHeadersPatterns": [
+  "scope-id": "my-scope",
+  "validation-context": {
+    "ditto-headers-patterns": [
       { "ditto-originator": "^user:admin$" }
     ],
-    "thingDefinitionPatterns": [],
-    "featureDefinitionPatterns": []
+    "thing-definition-patterns": [],
+    "feature-definition-patterns": []
   },
-  "configOverrides": {
+  "config-overrides": {
     "enabled": false,
-    "logWarningInsteadOfFailingApiCalls": true
+    "log-warning-instead-of-failing-api-calls": true
   }
 }
 ```

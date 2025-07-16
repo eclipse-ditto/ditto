@@ -19,8 +19,6 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
-import org.eclipse.ditto.things.model.devops.commands.RetrieveDynamicConfigSection;
-import org.eclipse.ditto.things.model.devops.commands.WotValidationConfigCommand;
 import org.junit.jupiter.api.Test;
 
 class RetrieveDynamicConfigSectionTest {
@@ -43,7 +41,7 @@ class RetrieveDynamicConfigSectionTest {
         DittoHeaders headers = DittoHeaders.empty();
         JsonObject json = JsonFactory.newObjectBuilder()
                 .set(WotValidationConfigCommand.JsonFields.CONFIG_ID, configId.toString())
-                .set("scopeId", scopeId)
+                .set("scope-id", scopeId)
                 .build();
         RetrieveDynamicConfigSection parsed = RetrieveDynamicConfigSection.fromJson(json, headers);
         assertEquals(configId, parsed.getEntityId());

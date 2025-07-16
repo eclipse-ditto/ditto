@@ -70,7 +70,7 @@ public final class DynamicConfigSectionDeleted extends AbstractWotValidationConf
             @Nullable final Metadata metadata) {
         super(TYPE, configId, revision, timestamp, dittoHeaders, metadata);
         this.sectionPointer = checkNotNull(sectionPointer, "sectionPointer");
-        this.scopeId = checkNotNull(scopeId, "scopeId");
+        this.scopeId = checkNotNull(scopeId, "scope-id");
     }
 
     /**
@@ -210,7 +210,7 @@ public final class DynamicConfigSectionDeleted extends AbstractWotValidationConf
          * The JSON field for the scope ID.
          */
         public static final JsonFieldDefinition<String> SCOPE_ID =
-                JsonFactory.newStringFieldDefinition("scopeId", FieldType.REGULAR, JsonSchemaVersion.V_2);
+                JsonFactory.newStringFieldDefinition("scope-id", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     }
 }

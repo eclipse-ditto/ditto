@@ -42,7 +42,7 @@ final class ImmutableConfigOverrides implements ConfigOverrides {
     private static final JsonFieldDefinition<Boolean> ENABLED_FIELD =
             JsonFactory.newBooleanFieldDefinition("enabled", FieldType.REGULAR, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<Boolean> LOG_WARNING_INSTEAD_OF_FAILING_FIELD =
-            JsonFactory.newBooleanFieldDefinition("logWarningInsteadOfFailingApiCalls", FieldType.REGULAR,
+            JsonFactory.newBooleanFieldDefinition("log-warning-instead-of-failing-api-calls", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<JsonObject> THING_FIELD =
             JsonFactory.newJsonObjectFieldDefinition("thing", FieldType.REGULAR, JsonSchemaVersion.V_2);
