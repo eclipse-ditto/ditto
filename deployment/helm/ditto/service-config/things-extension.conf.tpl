@@ -15,6 +15,15 @@ ditto {
           "{{$subject}}"
         {{- end }}
         ]
+        thing-definitions = [
+        {{- range $subjectIdx, $thingDefinition := $grant.thingDefinitions }}
+          {{- if $thingDefinition }}
+          "{{$thingDefinition}}"
+          {{- else }}
+          null
+          {{- end }}
+        {{- end }}
+        ]
       }
     {{- end }}
     ]
@@ -30,6 +39,15 @@ ditto {
         auth-subjects = [
         {{- range $subjectIdx, $subject := $revoke.authSubjects }}
           "{{$subject}}"
+        {{- end }}
+        ]
+        thing-definitions = [
+        {{- range $subjectIdx, $thingDefinition := $revoke.thingDefinitions }}
+          {{- if $thingDefinition }}
+          "{{$thingDefinition}}"
+          {{- else }}
+          null
+          {{- end }}
         {{- end }}
         ]
       }

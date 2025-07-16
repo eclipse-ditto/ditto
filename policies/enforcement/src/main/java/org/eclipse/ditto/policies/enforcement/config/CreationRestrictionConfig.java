@@ -30,7 +30,7 @@ public interface CreationRestrictionConfig {
      * The list of resource types this entry applies to.
      * An empty list would match any.
      *
-     * @return the list of values
+     * @return the set of resource types
      */
     Set<String> getResourceTypes();
 
@@ -38,7 +38,7 @@ public interface CreationRestrictionConfig {
      * The list of namespace {@link Pattern}s this entry applies to.
      * An empty list would match any. The pattern must match the full string.
      *
-     * @return the list of values
+     * @return the list of namespace patterns
      */
     List<Pattern> getNamespace();
 
@@ -46,9 +46,19 @@ public interface CreationRestrictionConfig {
      * The list of authentication subject {@link Pattern}s this entry applies to.
      * An empty list would match any.
      *
-     * @return the list of values
+     * @return the list of auth subject patterns
      */
     List<Pattern> getAuthSubject();
+
+    /**
+     * The list of thing definition {@link Pattern}s this entry applies to.
+     * This only applies to creation of "thing" resources.
+     * An empty list would match any.
+     * A list containing a {@code null} entry allows creation of things even if no definition was present.
+     *
+     * @return the list of thing definition patterns
+     */
+    List<Pattern> getThingDefinitions();
 
     /**
      * An enumeration of the known config path expressions and their associated default values for
@@ -59,14 +69,21 @@ public interface CreationRestrictionConfig {
          * Matching resource types.
          */
         RESOURCE_TYPES("resource-types", Set.of()),
+
         /**
          * Matching namespaces, supports wildcards.
          */
         NAMESPACES("namespaces", Set.of()),
+
         /**
          * Matching auth subjects.
          */
-        AUTH_SUBJECTS("auth-subjects", Set.of());
+        AUTH_SUBJECTS("auth-subjects", Set.of()),
+
+        /**
+         * Matching thing definitions - only applicable for {@code resource-type} "thing".
+         */
+        THING_DEFINITIONS("thing-definitions", Set.of());
 
         private final String path;
         private final Object defaultValue;

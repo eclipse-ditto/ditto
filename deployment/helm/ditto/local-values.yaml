@@ -69,6 +69,9 @@ things:
           - "org.eclipse.ditto.room"
           authSubjects:
           - "connection:some"
+          thingDefinitions:
+          - null
+          - "https://eclipse-ditto.github.io/ditto-examples/wot/models/*"
     wot:
       tmValidation:
         dynamicConfig:

@@ -17,6 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.util.Arrays;
 import java.util.Map;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
@@ -27,8 +28,6 @@ import org.eclipse.ditto.policies.model.PolicyConstants;
 import org.junit.jupiter.api.Test;
 
 import com.typesafe.config.ConfigFactory;
-
-import org.apache.pekko.actor.ActorSystem;
 
 public final class CreationRestrictionPreEnforcerTest {
 
@@ -85,10 +84,12 @@ public final class CreationRestrictionPreEnforcerTest {
                 false);
     }
 
-    private void testCanCreate(final CreationRestrictionPreEnforcer enforcer, final EntityType type,
+    private void testCanCreate(
+            final CreationRestrictionPreEnforcer<CreationRestrictionPreEnforcer.DefaultContext> enforcer,
+            final EntityType type,
             final String namespace, final DittoHeaders headers, boolean expectedOutcome) {
 
-        assertEquals(expectedOutcome, enforcer.canCreate(new CreationRestrictionPreEnforcer.Context(
+        assertEquals(expectedOutcome, enforcer.canCreate(new CreationRestrictionPreEnforcer.DefaultContext(
                 type.toString(),
                 namespace,
                 headers

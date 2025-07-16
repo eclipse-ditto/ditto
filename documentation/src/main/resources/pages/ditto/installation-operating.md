@@ -334,6 +334,13 @@ ditto.entity-creation {
       auth-subjects = [
 //        "pre:ditto-*"
       ]
+      # thing-definitions are only applicable for "thing" resource types - and can enforce that for creation of things only
+      #  certain thing definitions are allowed .. adding a "null" entry will allow to create things also without
+      #  specifying a thing definition at all
+      thing-definitions = [
+//        null
+//        "https://eclipse-ditto.github.io/ditto-examples/wot/models/*"
+      ]
     }
   ]
   revoke = [
@@ -353,6 +360,8 @@ An entry matches, when all the following conditions are met:
 * The resource types list is empty, or contains the requested resource type
 * The namespace wildcard list is empty, or contains a wildcard that matches the requested namespace
 * The auth subject wildcard list is empty, or contains at least one matching wildcard of the authorized subjects for the request
+* Only for "thing" resources:
+  * The thing definitions list is empty, or contains at least one matching wildcard of the thing definition used to create the thing
 
 This means, an existing entry, with all empty lists, will match. So the default configuration, allowing all access,
 can be as simple as:
