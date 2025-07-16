@@ -187,7 +187,7 @@ public final class HttpPushClientActor extends BaseClientActor {
         final var config = connectivityConfig().getConnectionConfig().getHttpPushConfig();
         return Source.single(Pair.<HttpRequest, HttpPushContext>create(HttpRequest.create(), new TestHttpPushContext()))
                 .concat(Source.never())
-                .via(ClientCredentialsFlowVisitor.eval(actorSystem, config, connection))
+                .via(OAuthFlowVisitor.eval(actorSystem, config, connection))
                 .runWith(Sink.head(), actorSystem);
     }
 

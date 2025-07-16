@@ -21,6 +21,7 @@ import org.eclipse.ditto.connectivity.model.ClientCertificateCredentials;
 import org.eclipse.ditto.connectivity.model.CredentialsVisitor;
 import org.eclipse.ditto.connectivity.model.HmacCredentials;
 import org.eclipse.ditto.connectivity.model.OAuthClientCredentials;
+import org.eclipse.ditto.connectivity.model.OAuthPassword;
 import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 
@@ -75,5 +76,10 @@ public final class PublicKeyAuthenticationFactory implements CredentialsVisitor<
     @Override
     public KeyPair oauthClientCredentials(final OAuthClientCredentials credentials) {
         throw new UnsupportedOperationException("OAuthClientCredentials not supported");
+    }
+
+    @Override
+    public KeyPair oauthPassword(final OAuthPassword credentials) {
+        throw new UnsupportedOperationException("OAuthPassword not supported");
     }
 }
