@@ -12,10 +12,13 @@
  */
 package org.eclipse.ditto.wot.validation.config;
 
+import java.util.List;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
+import org.eclipse.ditto.things.model.devops.DynamicValidationConfig;
 import org.eclipse.ditto.wot.validation.ValidationContext;
 
 /**
@@ -48,13 +51,20 @@ public interface TmValidationConfig {
     FeatureValidationConfig getFeatureValidationConfig();
 
     /**
-     * Creates a new specific instance of this {@link TmValidationConfig} scoped with the provided validation
+     * Creates a new specific instance of this {@link org.eclipse.ditto.wot.validation.config.TmValidationConfig} scoped with the provided validation
      * {@code context} of the API call.
      *
      * @param context the validation context of the API call.
      * @return an API call specific instance of the validation config.
      */
     TmValidationConfig withValidationContext(@Nullable ValidationContext context);
+
+    /**
+     * Returns the list of dynamic validation configurations for specific contexts.
+     * @since 3.8.0
+     */
+    List<DynamicValidationConfig> getDynamicConfigs();
+
 
     /**
      * An enumeration of the known config path expressions and their associated default values for

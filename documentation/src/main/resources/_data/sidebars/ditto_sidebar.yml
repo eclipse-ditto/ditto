@@ -422,6 +422,9 @@ entries:
                   - title: WoT integration
                     url: /basic-wot-integration.html
                     output: web
+                  - title: WoT validation config API
+                    url: /basic-wot-validation-config.html
+                    output: web
                   - title: WoT integration example
                     url: /basic-wot-integration-example.html
                     output: web

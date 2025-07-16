@@ -36,6 +36,7 @@ import org.eclipse.ditto.thingsearch.api.QueryTimeExceededException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidOptionException;
 import org.eclipse.ditto.wot.model.WotThingModelInvalidException;
 import org.eclipse.ditto.wot.validation.WotThingModelPayloadValidationException;
+import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigNotAccessibleException;
 
 public final class ThingsServiceGlobalErrorRegistryTest extends GlobalErrorRegistryTestCases {
 
@@ -62,7 +63,8 @@ public final class ThingsServiceGlobalErrorRegistryTest extends GlobalErrorRegis
                 WotThingModelInvalidException.class,
                 InvalidOptionException.class,
                 QueryTimeExceededException.class,
-                WotThingModelPayloadValidationException.class
+                WotThingModelPayloadValidationException.class,
+                WotValidationConfigNotAccessibleException.class
         );
 
     }

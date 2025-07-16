@@ -40,6 +40,7 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.AttributePoint
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.thingsearch.api.QueryTimeExceededException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidNamespacesException;
+import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigNotAccessibleException;
 
 public final class ThingSearchServiceGlobalErrorRegistryTest extends GlobalErrorRegistryTestCases {
 
@@ -70,7 +71,9 @@ public final class ThingSearchServiceGlobalErrorRegistryTest extends GlobalError
                 ConnectionConflictException.class,
                 UnknownTopicPathException.class,
                 UnknownSignalException.class,
-                IllegalAdaptableException.class);
+                IllegalAdaptableException.class,
+                WotValidationConfigNotAccessibleException.class
+        );
     }
 
 }

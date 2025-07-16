@@ -201,6 +201,18 @@ paths:
   '/devops/piggyback/{serviceName}/{instanceIndex}':
     $ref: "./paths/piggyback/instanceIndex.yml"
 
+  ###
+  ### WoT Validation Config
+  ###
+  /devops/wot/config:
+    $ref: "./paths/wotValidationConfig/wotConfig.yml"
+  /devops/wot/config/merged:
+    $ref: "./paths/wotValidationConfig/wotConfigMerged.yml"
+  /devops/wot/config/dynamicConfigs:
+    $ref: "./paths/wotValidationConfig/dynamicConfigs.yml"
+  /devops/wot/config/dynamicConfigs/{scopeId}:
+    $ref: "./paths/wotValidationConfig/dynamicConfigScopeId.yml"
+
 components:
 
   requestBodies:
@@ -221,6 +233,12 @@ components:
         application/json:
           schema:
             $ref: "./requests/things/migrateThingDefinitionRequest.yml"
+    PermissionCheckRequest:
+      $ref: "./requests/permissionCheckRequest.yml"
+    DynamicValidationConfigRequest:
+      $ref: "./requests/wotValidationConfig/dynamicValidationConfigRequest.yml"
+    ConfigOverridesRequest:
+      $ref: "./requests/wotValidationConfig/configOverridesRequest.yml"
 
   responses:
     EntityTooLarge:
@@ -243,6 +261,14 @@ components:
         application/json:
           schema:
             $ref: "./responses/things/migrateThingDefinitionResponse.yml"
+    PermissionCheckResponse:
+      $ref: "./responses/permissionCheckResponse.yml"
+    WotValidationConfigResponse:
+      $ref: "./responses/wotValidationConfig/wotValidationConfigResponse.yml"
+    DynamicValidationConfigResponse:
+      $ref: "./responses/wotValidationConfig/dynamicValidationConfigResponse.yml"
+    ConfigOverridesResponse:
+      $ref: "./responses/wotValidationConfig/configOverridesResponse.yml"
 
   parameters:
     AllowPolicyLockoutParam:
@@ -483,6 +509,18 @@ components:
       $ref: "./schemas/properties/searchFilterProperty.yml"
     NamespaceProperty:
       $ref: "./schemas/properties/namespacesProperty.yml"
+    ConfigOverrides:
+      $ref: "./schemas/wotValidationConfig/configOverrides.yml"
+    ValidationContext:
+      $ref: "./schemas/wotValidationConfig/validationContext.yml"
+    ThingValidationConfig:
+      $ref: "./schemas/wotValidationConfig/thingValidationConfig.yml"
+    FeatureValidationConfig:
+      $ref: "./schemas/wotValidationConfig/featureValidationConfig.yml"
+    DynamicValidationConfig:
+      $ref: "./schemas/wotValidationConfig/dynamicValidationConfig.yml"
+    WotValidationConfig:
+      $ref: "./schemas/wotValidationConfig/wotValidationConfig.yml"
 
   securitySchemes:
     NginxBasic:

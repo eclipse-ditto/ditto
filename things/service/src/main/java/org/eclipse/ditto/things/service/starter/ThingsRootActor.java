@@ -14,9 +14,15 @@ package org.eclipse.ditto.things.service.starter;
 
 import static org.eclipse.ditto.things.api.ThingsMessagingConstants.CLUSTER_ROLE;
 
+import java.util.Set;
+import java.util.concurrent.Executor;
+
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.Props;
+import org.apache.pekko.cluster.ddata.ORSet;
+import org.apache.pekko.cluster.ddata.ORSetKey;
+import org.apache.pekko.cluster.ddata.Replicator;
 import org.apache.pekko.event.DiagnosticLoggingAdapter;
 import org.apache.pekko.japi.pf.ReceiveBuilder;
 import org.apache.pekko.pattern.Patterns;
@@ -42,9 +48,12 @@ import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsubthings.LiveSignalPub;
 import org.eclipse.ditto.internal.utils.pubsubthings.ThingEventPubSubFactory;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProviderExtension;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
+import org.eclipse.ditto.things.model.devops.WotValidationConfig;
+import org.eclipse.ditto.things.model.devops.commands.RetrieveWotValidationConfig;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.aggregation.DefaultThingsAggregatorConfig;
 import org.eclipse.ditto.things.service.aggregation.ThingsAggregatorActor;
@@ -54,6 +63,12 @@ import org.eclipse.ditto.things.service.persistence.actors.ThingPersistenceActor
 import org.eclipse.ditto.things.service.persistence.actors.ThingPersistenceOperationsActor;
 import org.eclipse.ditto.things.service.persistence.actors.ThingSupervisorActor;
 import org.eclipse.ditto.things.service.persistence.actors.ThingsPersistenceStreamingActorCreator;
+import org.eclipse.ditto.things.service.persistence.actors.WotValidationConfigSupervisorActor;
+import org.eclipse.ditto.things.service.persistence.actors.strategies.commands.WotValidationConfigDData;
+import org.eclipse.ditto.things.service.persistence.actors.strategies.commands.WotValidationConfigUtils;
+import org.eclipse.ditto.wot.api.validator.WotThingModelValidator;
+import org.eclipse.ditto.wot.integration.DittoWotIntegration;
+import org.eclipse.ditto.wot.validation.config.TmValidationConfig;
 
 /**
  * Our "Parent" Actor which takes care of supervision of all other Actors in our system.
@@ -69,12 +84,16 @@ public final class ThingsRootActor extends DittoRootActor {
 
     private final RetrieveStatisticsDetailsResponseSupplier retrieveStatisticsDetailsResponseSupplier;
 
-    @SuppressWarnings("unused")
-    private ThingsRootActor(final ThingsConfig thingsConfig,
-            final ActorRef pubSubMediator,
-            final ThingPersistenceActorPropsFactory propsFactory) {
+    private final ActorSystem actorSystem;
 
-        final var actorSystem = getContext().system();
+    private final DittoWotIntegration dittoWotIntegration;
+    private final TmValidationConfig staticWotConfig;
+    private final Executor wotDispatcher;
+
+    @SuppressWarnings("unused")
+    private ThingsRootActor(final ThingsConfig thingsConfig, final ActorRef pubSubMediator,
+            final ThingPersistenceActorPropsFactory propsFactory) {
+        this.actorSystem = getContext().getSystem();
 
         final var clusterConfig = thingsConfig.getClusterConfig();
         final int numberOfShards = clusterConfig.getNumberOfShards();
@@ -100,6 +119,25 @@ public final class ThingsRootActor extends DittoRootActor {
         final ActorRef thingsShardRegion =
                 ShardRegionCreator.start(actorSystem, ThingsMessagingConstants.SHARD_REGION, thingSupervisorActorProps,
                         numberOfShards, CLUSTER_ROLE);
+
+        // Create WoT validation config supervisor actor
+        final Props wotValidationConfigSupervisorProps = WotValidationConfigSupervisorActor.props(
+                pubSubMediator,
+                mongoReadJournal
+        );
+        final ActorRef wotValidationConfigShardRegion =
+                ShardRegionCreator.start(
+                        actorSystem,
+                        "wot-validation-config",
+                        wotValidationConfigSupervisorProps,
+                        shardRegionExtractor,
+                        CLUSTER_ROLE
+                );
+
+        // Ensure the default WoT validation config is loaded from persistence and DData is repopulated
+        final RetrieveWotValidationConfig retrieveCmd =
+                RetrieveWotValidationConfig.of(org.eclipse.ditto.things.model.devops.WotValidationConfigId.GLOBAL, org.eclipse.ditto.base.model.headers.DittoHeaders.empty());
+        wotValidationConfigShardRegion.tell(retrieveCmd, ActorRef.noSender());
 
         startChildActor(ThingPersistenceOperationsActor.ACTOR_NAME,
                 ThingPersistenceOperationsActor.props(pubSubMediator, thingsConfig.getMongoDbConfig(),
@@ -139,6 +177,21 @@ public final class ThingsRootActor extends DittoRootActor {
 
         bindHttpStatusRoute(thingsConfig.getHttpConfig(), healthCheckingActor);
 
+        // Initialize WoT integration first
+        dittoWotIntegration = DittoWotIntegration.get(actorSystem);
+        staticWotConfig = dittoWotIntegration.getWotConfig().getValidationConfig();
+        wotDispatcher = actorSystem.dispatchers().lookup(DittoWotIntegration.WOT_DISPATCHER);
+
+        // Initialize WoT validator with static config (will be replaced by merged config in initializeWotValidationConfig)
+        // Will be set in initializeWotValidationConfig
+
+        // Subscribe to DData changes and initialize config
+        final WotValidationConfigDData wotValidationConfigDData = WotValidationConfigDData.of(actorSystem);
+        wotValidationConfigDData.subscribeForChanges(getSelf());
+        log.debug("Subscribed for WoT validation config DData changes");
+
+        initializeWotValidationConfig();
+
         RootChildActorStarter.get(actorSystem, ScopedConfig.dittoExtension(actorSystem.settings().config()))
                 .execute(getContext());
     }
@@ -160,6 +213,7 @@ public final class ThingsRootActor extends DittoRootActor {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(RetrieveStatisticsDetails.class, this::handleRetrieveStatisticsDetails)
+                .match(Replicator.Changed.class, this::handleWotValidationConfigChanged)
                 .build().orElse(super.createReceive());
     }
 
@@ -167,6 +221,36 @@ public final class ThingsRootActor extends DittoRootActor {
         log.info("Sending the namespace stats of the things shard as requested ...");
         Patterns.pipe(retrieveStatisticsDetailsResponseSupplier
                 .apply(command.getDittoHeaders()), getContext().dispatcher()).to(getSender());
+    }
+
+    private void handleWotValidationConfigChanged(final Replicator.Changed<?> event) {
+        log.debug("Received DData change for key: {}", event.key());
+        if (event.key().equals(ORSetKey.create("WotValidationConfig"))) {
+            final Set<JsonObject> newConfigs = ((ORSet<JsonObject>) event.dataValue()).getElements();
+            log.debug("Processing {} config change(s). Configs: {}", newConfigs.size(), newConfigs);
+            try {
+                final TmValidationConfig mergedConfig;
+                if (!newConfigs.isEmpty()) {
+                    // Get the first config and merge with static config
+                    JsonObject firstJson = newConfigs.iterator().next();
+                    var firstConfig = WotValidationConfig.fromJson(firstJson);
+                    mergedConfig = WotValidationConfigUtils.mergeConfigsToTmValidationConfig(firstConfig,
+                            staticWotConfig);
+                } else {
+                    mergedConfig = staticWotConfig;
+                }
+
+                // this returns a singleton instance of WotThingModelValidator
+                WotThingModelValidator.of(
+                        dittoWotIntegration.getWotThingModelResolver(),
+                        wotDispatcher,
+                        mergedConfig
+                ).updateConfig(mergedConfig);
+                log.debug("Updated validator with merged config");
+            } catch (Exception e) {
+                log.error("Error processing config change: {}", e.getMessage(), e);
+            }
+        }
     }
 
     private static Props getThingSupervisorActorProps(final ActorRef pubSubMediator,
@@ -186,6 +270,35 @@ public final class ThingsRootActor extends DittoRootActor {
         final var mongoClient = MongoClientWrapper.newInstance(mongoDbConfig);
 
         return MongoReadJournal.newInstance(config, mongoClient, mongoDbConfig.getReadJournalConfig(), actorSystem);
+    }
+
+    private void initializeWotValidationConfig() {
+        // Get the static config from WotConfig
+        log.info("Initialized static WoT validation config: enabled={}, logWarningInsteadOfFailingApiCalls={}",
+                staticWotConfig.isEnabled(), staticWotConfig.logWarningInsteadOfFailingApiCalls());
+
+        // Get DData instance and subscribe to config changes
+        final WotValidationConfigDData ddata = WotValidationConfigDData.of(actorSystem);
+        ddata.getConfigs().thenAccept(configs -> {
+            final TmValidationConfig mergedConfig;
+            if (!configs.isEmpty()) {
+                // Get the first config since we only expect one
+                final JsonObject configJson = configs.getElements().iterator().next();
+                final WotValidationConfig config = WotValidationConfig.fromJson(configJson);
+                mergedConfig = WotValidationConfigUtils.mergeConfigsToTmValidationConfig(config, staticWotConfig);
+            } else {
+                mergedConfig = staticWotConfig;
+            }
+
+            // this returns a singleton instance of WotThingModelValidator
+            WotThingModelValidator.of(
+                    dittoWotIntegration.getWotThingModelResolver(),
+                    wotDispatcher,
+                    mergedConfig
+            ).updateConfig(mergedConfig);
+            log.info("Initialized WoT validator with merged config");
+        });
+        log.info("Subscribed to WoT validation config changes");
     }
 
 }

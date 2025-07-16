@@ -20,14 +20,14 @@ post:
     content:
       application/json:
         schema:
-          $ref: '../../schemas/checkPermissions/permissionCheckRequest.yml'
+          $ref: '../../requests/permissionCheckRequest.yml'
   responses:
     '200':
       description: Permission check results for each entity.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/checkPermissions/permissionCheckResponse.yml'
+            $ref: '../../responses/permissionCheckResponse.yml'
     '401':
       description: Unauthorized request due to missing authentication.
       content:

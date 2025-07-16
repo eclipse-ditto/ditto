@@ -31,6 +31,7 @@ import org.eclipse.ditto.things.model.ThingDefinition;
 import org.eclipse.ditto.wot.api.config.WotConfig;
 import org.eclipse.ditto.wot.api.resolver.WotThingModelResolver;
 import org.eclipse.ditto.wot.model.ThingModel;
+import org.eclipse.ditto.wot.validation.config.TmValidationConfig;
 
 /**
  * Validates different aspects of Ditto a {@link Thing} against a WoT {@link ThingModel} linked in the Thing's
@@ -522,18 +523,40 @@ public interface WotThingModelValidator {
     );
 
     /**
-     * Creates a new instance of WotThingModelValidator with the given {@code wotConfig}.
+     * Updates the validation configuration atomically.
+     *
+     * @param newConfig the new validation config
+     */
+    void updateConfig(TmValidationConfig newConfig);
+
+    /**
+     * Creates a new instance of WotThingModelValidator with the given {@code wotConfig} and {@code tmValidationConfig}.
      *
      * @param wotConfig the WoT config to use.
-     * @param thingModelResolver the ThingModel resolver to fetch and resolve (extensions, refs) of linked other
-     * ThingModels during the generation process.
+     * @param thingModelResolver the ThingModel resolver to fetch and resolve (extensions, refs) of ThingModels during the generation process.
      * @param executor the executor to use to run async tasks.
+     * @param tmValidationConfig the merged TmValidationConfig to use.
      * @return the created WotThingModelValidator.
      */
     static WotThingModelValidator of(final WotConfig wotConfig,
             final WotThingModelResolver thingModelResolver,
-            final Executor executor
-    ) {
-        return new DefaultWotThingModelValidator(wotConfig, thingModelResolver, executor);
+            final Executor executor,
+            final TmValidationConfig tmValidationConfig) {
+        return DefaultWotThingModelValidator.getInstance(thingModelResolver, executor, tmValidationConfig);
+    }
+
+    /**
+     * Creates a new instance of WotThingModelValidator with the given {@code tmValidationConfig}.
+     *
+     * @param thingModelResolver the ThingModel resolver to fetch and resolve (extensions, refs) of ThingModels during the generation process.
+     * @param executor the executor to use to run async tasks.
+     * @param tmValidationConfig the merged TmValidationConfig to use.
+     * @return the created WotThingModelValidator.
+     * @since 3.8.0
+     */
+    static WotThingModelValidator of(final WotThingModelResolver thingModelResolver,
+            final Executor executor,
+            final TmValidationConfig tmValidationConfig) {
+        return DefaultWotThingModelValidator.getInstance(thingModelResolver, executor, tmValidationConfig);
     }
 }
