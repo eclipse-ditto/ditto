@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # Copyright (c) 2024 Contributors to the Eclipse Foundation
 #
 # See the NOTICE file(s) distributed with this work for additional
@@ -76,7 +76,7 @@ done <pods_with_old_cost.txt
 
 echo "Starting to patch pods with updated pod deletion costs ..."
 jq -r '.[] | [.pod, .ip, .cost] | @tsv' new_cost_pod_and_ip.json |
-  while IFS=$'\t' read -r pod ip cost; do
+  while IFS=$(printf '\t') read -r pod ip cost; do
     echo "Patching pod-deletion-cost of pod: $pod to: $cost"
     curl -X PATCH --silent --output /dev/null --show-error --fail --cacert ${CACERT} -H "Authorization: Bearer ${TOKEN}" -H 'Content-Type: application/merge-patch+json' \
        "https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_SERVICE_PORT/api/v1/namespaces/${NAMESPACE}/pods/${pod}" \
