@@ -14,6 +14,7 @@ package org.eclipse.ditto.connectivity.service.messaging;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -26,6 +27,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
@@ -33,8 +35,10 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
 import org.eclipse.ditto.connectivity.model.Connection;
@@ -49,6 +53,7 @@ import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperConfiguration;
 import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOutcome;
+import org.eclipse.ditto.connectivity.service.util.ConnectionPubSub;
 import org.eclipse.ditto.internal.utils.pekko.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.protocol.DittoProtocolAdapterProvider;
@@ -66,6 +71,7 @@ import org.eclipse.ditto.protocol.JsonifiableAdaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThingResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingModifiedEvent;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -163,12 +169,13 @@ public final class OutboundMappingProcessorTest {
                                 .declaredAcknowledgementLabels(Set.of(AcknowledgementLabel.of("custom:ack")))
                                 .build()))
                         .build();
-
+        final ConnectionPubSub mockPubSub = Mockito.mock(ConnectionPubSub.class);
         underTest = OutboundMappingProcessor.of(connection,
                 TestConstants.CONNECTIVITY_CONFIG,
                 ACTOR_SYSTEM_RESOURCE.getActorSystem(),
                 protocolAdapterProvider.getProtocolAdapter(null),
-                logger);
+                logger,
+                mockPubSub);
     }
 
     @Test
@@ -388,6 +395,94 @@ public final class OutboundMappingProcessorTest {
     // headers are represented in string, this makes the string comparison fail.
     private static JsonifiableAdaptable removeCorrelationId(final JsonifiableAdaptable adaptable) {
         return adaptable.setDittoHeaders(adaptable.getDittoHeaders().toBuilder().correlationId(null).build());
+    }
+
+    @Test
+    public void testResponseDiversionIntegration() {
+        new TestKit(ACTOR_SYSTEM_RESOURCE.getActorSystem()) {{
+            // Test that response diversion interceptor is properly integrated
+            final ConnectionId connectionId = ConnectionId.of("test-connection");
+            final ConnectionId targetConnectionId = ConnectionId.of("target-connection");
+            
+            // Create connection with diversion configured in source header mapping
+            final Map<String, String> headerMapping = Map.of(
+                    DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey(), targetConnectionId.toString()
+            );
+            final Connection connection = ConnectivityModelFactory.newConnectionBuilder(
+                    connectionId,
+                    ConnectionType.MQTT,
+                    ConnectivityStatus.OPEN,
+                    "tcp://localhost:1883"
+            )
+                    .sources(Collections.singletonList(
+                            ConnectivityModelFactory.newSourceBuilder()
+                                    .address("test/topic")
+                                    .authorizationContext(AuthorizationContext.newInstance(
+                                            DittoAuthorizationContextType.UNSPECIFIED,
+                                            AuthorizationSubject.newInstance("integration:source")))
+                                    .headerMapping(ConnectivityModelFactory.newHeaderMapping(headerMapping))
+                                    .build()
+                    ))
+                    .build();
+            
+            // Create headers with diversion configuration
+            final DittoHeaders headersWithDiversion = DittoHeaders.newBuilder()
+                    .correlationId("test-correlation")
+                    .putHeader(DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey(), targetConnectionId.toString())
+                    .putHeader(DittoHeaderDefinition.DITTO_DIVERT_EXPECTED_RESPONSE_TYPES.getKey(), "response")
+                    .putHeader(DittoHeaderDefinition.ORIGIN.getKey(), connectionId.toString())
+                    .build();
+            
+            // Create a command response signal
+            final ModifyThingResponse response = ModifyThingResponse.modified(
+                    TestConstants.Things.THING_ID,
+                    headersWithDiversion
+            );
+            
+            // Create target for the outbound signal
+            final Target target = ConnectivityModelFactory.newTargetBuilder()
+                    .address("test/address")
+                    .authorizationContext(AuthorizationContext.newInstance(
+                            DittoAuthorizationContextType.UNSPECIFIED,
+                            AuthorizationSubject.newInstance("integration:test")))
+                    .topics(Topic.TWIN_EVENTS)
+                    .build();
+            
+            final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(
+                    response,
+                    Collections.singletonList(target)
+            );
+            
+            // Mock the response diversion pub sub
+            final ConnectionPubSub mockPubSub = Mockito.mock(ConnectionPubSub.class);
+//            when(mockPubSub.publishSignalForDiversion(any(), any(), any(), any()));
+            
+            // Create processor with response diversion enabled
+            final OutboundMappingProcessor processorWithDiversion = OutboundMappingProcessor.of(
+                    connection,
+                    TestConstants.CONNECTIVITY_CONFIG,
+                    ACTOR_SYSTEM_RESOURCE.getActorSystem(),
+                    protocolAdapterProvider.getProtocolAdapter(null),
+                    logger,
+                    mockPubSub
+            );
+            
+            // Process the outbound signal
+            final MappingOutcome.Visitor<OutboundSignal.Mapped, Void> visitor = Mockito.mock(MappingOutcome.Visitor.class);
+            final List<MappingOutcome<OutboundSignal.Mapped>> outcomes = processorWithDiversion.process(outboundSignal);
+            
+            // When response diversion is active, the signal should be diverted and no mapped outcome should be produced
+            final long outcomeCount = outcomes.stream().peek(outcome -> outcome.accept(visitor)).count();
+            
+            // Verify the response was diverted (no mapping outcomes)
+            assertThat(outcomeCount).isEqualTo(0);
+            verify(visitor, times(0)).onMapped(any(), any());
+            verify(visitor, times(0)).onError(any(), any(), any(), any());
+            verify(visitor, times(0)).onDropped(any(), any());
+            
+            // Verify the response was published to the target connection
+            verify(mockPubSub).publishSignalForDiversion(any(Signal.class), eq(targetConnectionId), any(CharSequence.class), any());
+        }};
     }
 
 }
