@@ -21,6 +21,10 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.http.javadsl.model.ContentTypes;
+import org.apache.pekko.http.javadsl.model.HttpEntities;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheFactory;
@@ -32,11 +36,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
-
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.http.javadsl.model.ContentTypes;
-import org.apache.pekko.http.javadsl.model.HttpEntities;
-import org.apache.pekko.testkit.javadsl.TestKit;
 
 public class AsyncJwtLoaderTest {
 
@@ -141,7 +140,7 @@ public class AsyncJwtLoaderTest {
 
             final Cache<String, JsonWebToken> cache =
                     CacheFactory.createCache(asyncJwtLoader,
-                            ClientCredentialsFlowVisitor.JsonWebTokenExpiry.of(Duration.ZERO),
+                            OAuthFlowVisitor.JsonWebTokenExpiry.of(Duration.ZERO),
                             CACHE_CONFIG, "token-cache", actorSystem.getDispatcher());
 
             final CompletableFuture<Optional<JsonWebToken>> token = cache.get("token");

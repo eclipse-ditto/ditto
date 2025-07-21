@@ -62,4 +62,13 @@ public interface CredentialsVisitor<T> {
      * @since 2.2.0
      */
     T oauthClientCredentials(OAuthClientCredentials credentials);
+
+    /**
+     * Evaluate OAuth Password credentials.
+     *
+     * @param credentials The OAuth Password credentials.
+     * @return evaluation result.
+     * @since 3.8.0
+     */
+    T oauthPassword(OAuthPassword credentials);
 }

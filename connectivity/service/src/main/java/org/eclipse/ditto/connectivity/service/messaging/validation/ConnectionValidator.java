@@ -43,6 +43,7 @@ import org.eclipse.ditto.connectivity.model.Credentials;
 import org.eclipse.ditto.connectivity.model.CredentialsVisitor;
 import org.eclipse.ditto.connectivity.model.HmacCredentials;
 import org.eclipse.ditto.connectivity.model.OAuthClientCredentials;
+import org.eclipse.ditto.connectivity.model.OAuthPassword;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
@@ -414,6 +415,11 @@ public final class ConnectionValidator {
 
         @Override
         public Boolean oauthClientCredentials(final OAuthClientCredentials credentials) {
+            return false;
+        }
+
+        @Override
+        public Boolean oauthPassword(final OAuthPassword credentials) {
             return false;
         }
     }

@@ -56,7 +56,9 @@ public class DefaultFieldsEncryptionConfigTest {
                 "/credentials/parameters/accessKey",
                 "/credentials/parameters/secretKey",
                 "/credentials/parameters/sharedKey",
-                "/credentials/clientSecret"));
+                "/credentials/clientSecret",
+                "/credentials/password"
+                ));
 
         softly.assertThat(underTest.getSymmetricalKey()).isEqualTo("vJFSTPE9PO2BtZlcMAwNjs8jdFvQCk0Ya9MVdYjRJUU=");
 

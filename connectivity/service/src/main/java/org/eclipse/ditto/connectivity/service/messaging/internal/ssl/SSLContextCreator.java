@@ -28,6 +28,7 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.CredentialsVisitor;
 import org.eclipse.ditto.connectivity.model.HmacCredentials;
 import org.eclipse.ditto.connectivity.model.OAuthClientCredentials;
+import org.eclipse.ditto.connectivity.model.OAuthPassword;
 import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
@@ -171,6 +172,11 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
 
     @Override
     public SSLContext oauthClientCredentials(final OAuthClientCredentials credentials) {
+        return withoutClientCertificate();
+    }
+
+    @Override
+    public SSLContext oauthPassword(final OAuthPassword credentials) {
         return withoutClientCertificate();
     }
 

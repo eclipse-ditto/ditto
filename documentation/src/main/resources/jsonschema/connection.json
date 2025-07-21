@@ -346,6 +346,71 @@
               "description": "Space-separated requested scopes to include in access token requests"
             }
           }
+        },
+        {
+          "$id": "/properties/credentials#oauth2-password",
+          "type": "object",
+          "title": "OAuth2 password",
+          "description": "Credentials for OAuth2 password flow over HTTP",
+          "properties": {
+            "type": {
+              "$id": "/properties/credentials/properties/type#oauth2-password",
+              "type": "string",
+              "enum": [
+                "oauth-password"
+              ],
+              "title": "Type of credentials",
+              "description": "Type of credentials",
+              "examples": [
+                "oauth-password"
+              ]
+            },
+            "tokenEndpoint": {
+              "$id": "/properties/credentials/properties/tokenEndpoint#oauth2-password",
+              "type": "string",
+              "title": "Token endpoint",
+              "description": "URI of the token endpoint",
+              "examples": ["https://oauth2-provider.example.com/token"]
+            },
+            "clientId": {
+              "$id": "/properties/credentials/properties/clientId#oauth2-password",
+              "type": "string",
+              "title": "Client ID",
+              "description": "Client ID to include in access token requests"
+            },
+            "clientSecret": {
+              "$id": "/properties/credentials/properties/clientSecret#oauth2-password",
+              "type": "string",
+              "title": "Client secret",
+              "description": "Optional client secret to include in access token requests"
+            },
+            "requestedScopes": {
+              "$id": "/properties/credentials/properties/requestedScopes#oauth2-password",
+              "type": "string",
+              "title": "Requested scopes",
+              "description": "Space-separated requested scopes to include in access token requests"
+            },
+            "username": {
+              "$id": "/properties/credentials/properties/username#oauth2-password",
+              "type": "string",
+              "title": "Username",
+              "description": "Username to authenticate"
+            },
+            "password": {
+              "$id": "/properties/credentials/properties/username#oauth2-password",
+              "type": "string",
+              "title": "Password",
+              "description": "Password to authenticate with"
+            }
+          },
+          "required": [
+            "type",
+            "tokenEndpoint",
+            "clientId",
+            "requestedScopes",
+            "username",
+            "password"
+          ]
         }
       ]
     },

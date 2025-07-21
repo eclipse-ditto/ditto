@@ -15,16 +15,16 @@ package org.eclipse.ditto.connectivity.service.messaging.tunnel;
 import java.security.KeyPair;
 import java.util.Collections;
 
+import org.apache.pekko.event.LoggingAdapter;
 import org.apache.sshd.client.session.ClientSession;
 import org.eclipse.ditto.connectivity.model.ClientCertificateCredentials;
 import org.eclipse.ditto.connectivity.model.CredentialsVisitor;
 import org.eclipse.ditto.connectivity.model.HmacCredentials;
 import org.eclipse.ditto.connectivity.model.OAuthClientCredentials;
+import org.eclipse.ditto.connectivity.model.OAuthPassword;
 import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.PublicKeyAuthenticationFactory;
-
-import org.apache.pekko.event.LoggingAdapter;
 
 /**
  * Applies configured {@link org.eclipse.ditto.connectivity.model.Credentials} from a connection to the given
@@ -73,6 +73,12 @@ class ClientSessionCredentialsVisitor implements CredentialsVisitor<Void> {
 
     @Override
     public Void oauthClientCredentials(final OAuthClientCredentials credentials) {
+        // not supported
+        return null;
+    }
+
+    @Override
+    public Void oauthPassword(final OAuthPassword credentials) {
         // not supported
         return null;
     }
