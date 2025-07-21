@@ -13,9 +13,9 @@
 
 package org.eclipse.ditto.connectivity.service.config;
 
-import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
-
 import java.util.List;
+
+import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings for encrypting json field values in Connections.
@@ -73,7 +73,9 @@ public interface FieldsEncryptionConfig {
                 "/credentials/parameters/accessKey",
                 "/credentials/parameters/secretKey",
                 "/credentials/parameters/sharedKey",
-                "/credentials/clientSecret"));
+                "/credentials/clientSecret",
+                "/credentials/password"
+        ));
 
         private final String configPath;
         private final Object defaultValue;

@@ -13,7 +13,8 @@
 
 package org.eclipse.ditto.connectivity.service.messaging.persistence;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
@@ -22,7 +23,6 @@ import java.util.Optional;
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.connectivity.service.config.DefaultFieldsEncryptionConfig;
 import org.eclipse.ditto.connectivity.service.config.FieldsEncryptionConfig;
-import org.eclipse.ditto.connectivity.service.util.EncryptorAesGcm;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.junit.BeforeClass;
@@ -169,7 +169,8 @@ public class JsonFieldsEncryptorTest {
                             "accessKey": "accessKeyValue",
                             "secretKey": "secretKeyValue",
                             "sharedKey": "sharedKeyValue"
-                        }
+                        },
+                        "password": "foo"
                     },
                     "sshTunnel": {
                         "enabled": true,
