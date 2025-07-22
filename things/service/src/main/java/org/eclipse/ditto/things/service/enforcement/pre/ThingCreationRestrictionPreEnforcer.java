@@ -92,12 +92,11 @@ public final class ThingCreationRestrictionPreEnforcer
                     return true;
                 }
             } else if (thingDefinitionPattern != null && thingDefinitionPattern.matcher(thingDefinitionStr).matches()) {
-                    LOG.withCorrelationId(context.headers())
-                            .debug("ThingDefinition '{}' matched {}: pass", thingDefinitionStr,
-                                    thingDefinitionPattern);
-                    return true;
-                }
-
+                LOG.withCorrelationId(context.headers())
+                        .debug("ThingDefinition '{}' matched {}: pass", thingDefinitionStr,
+                                thingDefinitionPattern);
+                return true;
+            }
         }
 
         LOG.withCorrelationId(context.headers()).debug("No ThingDefinition match: reject");
