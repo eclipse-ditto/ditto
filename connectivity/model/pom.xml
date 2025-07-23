@@ -123,6 +123,7 @@
                 <configuration>
                     <parameter>
                         <excludes>
+                            <exclude>org.eclipse.ditto.connectivity.model.OAuthClientCredentials</exclude>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                         </excludes>
                     </parameter>
