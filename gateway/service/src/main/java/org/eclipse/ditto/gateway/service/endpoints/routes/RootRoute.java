@@ -187,20 +187,24 @@ public final class RootRoute extends AllDirectives {
         final Function<Function<String, Route>, Route> outerRouteProvider = innerRouteProvider ->
                 /* the outer handleExceptions is for handling exceptions in the directives wrapping the rootRoute
                    (which normally should not occur */
-                handleExceptions(exceptionHandler, () ->
-                        CorrelationIdEnsuringDirective.ensureCorrelationId(
-                                correlationId -> requestTimeoutHandlingDirective
-                                        .handleRequestTimeout(correlationId, () ->
-                                                RequestTracingDirective.traceRequest(
-                                                        () -> RequestResultLoggingDirective.logRequestResult(
+                extractActorSystem(actorSystem ->
+                        handleExceptions(exceptionHandler, () ->
+                                CorrelationIdEnsuringDirective.ensureCorrelationId(
+                                        correlationId -> requestTimeoutHandlingDirective
+                                                .handleRequestTimeout(correlationId, () ->
+                                                        RequestTracingDirective.traceRequest(
+                                                                () -> RequestResultLoggingDirective.logRequestResult(
+                                                                        correlationId,
+                                                                        () -> innerRouteProvider.apply(correlationId)
+                                                                ),
                                                                 correlationId,
-                                                                () -> innerRouteProvider.apply(correlationId)
-                                                        ),
-                                                        correlationId
+                                                                actorSystem
+                                                        )
                                                 )
-                                        )
+                                )
                         )
                 );
+
 
         final Function<String, Route> innerRouteProvider = correlationId ->
                 EncodingEnsuringDirective.ensureEncoding(() ->

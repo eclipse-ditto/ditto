@@ -77,7 +77,7 @@ public final class RequestTracingDirectiveTest extends JUnitRouteTest {
     public void traceRequestWithNullInnerRouteSupplierThrowsNullPointerException() {
 
         Assertions.assertThatNullPointerException()
-                .isThrownBy(() -> RequestTracingDirective.traceRequest(null, null))
+                .isThrownBy(() -> RequestTracingDirective.traceRequest(null, null, actorSystemResource.getActorSystem()))
                 .withMessage("The innerRouteSupplier must not be null!")
                 .withNoCause();
     }
@@ -106,8 +106,8 @@ public final class RequestTracingDirectiveTest extends JUnitRouteTest {
                     extractRequestContext(
                             requestContext -> RequestTracingDirective.traceRequest(
                                     () -> Mockito.mock(Route.class),
-                                    testNameCorrelationId.getCorrelationId()
-                            )
+                                    testNameCorrelationId.getCorrelationId(),
+                                    actorSystemResource.getActorSystem())
                     )
             );
 
@@ -149,7 +149,8 @@ public final class RequestTracingDirectiveTest extends JUnitRouteTest {
         final var traceparentHeaderValue = "00-00000000000000002d773e5f58ee5636-28cae4bd320cbc11-0";
         final var fooHeaderValue = "bar";
         final var testRoute = testRoute(
-                RequestTracingDirective.traceRequest(routeFactory::createRoute, testNameCorrelationId.getCorrelationId())
+                RequestTracingDirective.traceRequest(routeFactory::createRoute, testNameCorrelationId.getCorrelationId(),
+                        actorSystemResource.getActorSystem())
         );
 
         final var testRouteResult = testRoute.run(HttpRequest.create()

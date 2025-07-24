@@ -22,6 +22,8 @@ import java.text.MessageFormat;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -30,6 +32,7 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.http.javadsl.model.HttpHeader;
 import org.apache.pekko.http.javadsl.model.HttpRequest;
 import org.apache.pekko.http.javadsl.model.HttpResponse;
@@ -37,6 +40,8 @@ import org.apache.pekko.http.javadsl.model.Uri;
 import org.apache.pekko.http.javadsl.server.Complete;
 import org.apache.pekko.http.javadsl.server.Route;
 import org.apache.pekko.http.javadsl.server.RouteResult;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.util.ByteString;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.common.HttpStatusCodeOutOfRangeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
@@ -70,11 +75,12 @@ public final class RequestTracingDirective {
      * @param innerRouteSupplier supplies the inner Route to be traced.
      * @param correlationId the correlation ID which will be added to the log or {@code null} if no correlation ID
      * should be added.
+     * @param actorSystem the ActorSystem we run in.
      * @return the new Route wrapping {@code inner} with tracing.
      * @throws NullPointerException if {@code inner} is {@code null}.
      */
     public static Route traceRequest(final Supplier<Route> innerRouteSupplier,
-            @Nullable final CharSequence correlationId) {
+            @Nullable final CharSequence correlationId, final ActorSystem actorSystem) {
 
         checkNotNull(innerRouteSupplier, "innerRouteSupplier");
         return extractRequest(request -> {
@@ -87,7 +93,8 @@ public final class RequestTracingDirective {
                         startTrace(getHttpHeadersAsMap(request.getHeaders()), operationName, correlationId),
                         request,
                         innerRouteSupplier,
-                        correlationId
+                        correlationId,
+                        actorSystem
                 );
             }
             return result;
@@ -154,12 +161,14 @@ public final class RequestTracingDirective {
             final StartedSpan startedSpan,
             final HttpRequest httpRequest,
             final Supplier<Route> innerRouteSupplier,
-            @Nullable final CharSequence correlationId
+            @Nullable final CharSequence correlationId,
+            final ActorSystem actorSystem
     ) {
         return mapRequest(
                 req -> adjustSpanContextHeadersOfRequest(req, correlationId, startedSpan),
                 () -> mapRouteResult(
-                        routeResult -> tryToHandleRouteResult(routeResult, httpRequest, startedSpan, correlationId),
+                        routeResult ->
+                                tryToHandleRouteResult(routeResult, httpRequest, startedSpan, correlationId, actorSystem),
                         innerRouteSupplier
                 )
         );
@@ -215,64 +224,55 @@ public final class RequestTracingDirective {
             @Nullable final RouteResult routeResult,
             final HttpRequest httpRequest,
             final StartedSpan startedSpan,
-            @Nullable final CharSequence correlationId
+            @Nullable final CharSequence correlationId,
+            final ActorSystem actorSystem
     ) {
         try {
-            handleRouteResult(routeResult, httpRequest, startedSpan, correlationId);
+            handleRouteResult(routeResult, httpRequest, startedSpan, correlationId, actorSystem)
+                    .thenAccept(StartedSpan::finish);
         } catch (final Exception e) {
-            startedSpan.tagAsFailed(e);
-        } finally {
-            startedSpan.finish();
+            startedSpan.tagAsFailed(e).finish();
         }
         return routeResult;
     }
 
-    private static void handleRouteResult(
+    private static CompletionStage<StartedSpan> handleRouteResult(
             @Nullable final RouteResult routeResult,
             final HttpRequest httpRequest,
             final StartedSpan startedSpan,
-            @Nullable final CharSequence correlationId
+            @Nullable final CharSequence correlationId,
+            final ActorSystem actorSystem
     ) {
         if (routeResult instanceof Complete complete) {
-            addRequestResponseTags(startedSpan, httpRequest, complete.getResponse(), correlationId);
+            return addRequestResponseTags(startedSpan, httpRequest, complete.getResponse(), correlationId, actorSystem);
         } else if (null != routeResult) {
             startedSpan.tagAsFailed("Request rejected: " + routeResult.getClass().getName());
         } else {
             startedSpan.tagAsFailed("Request failed.");
         }
+        return CompletableFuture.completedStage(startedSpan);
     }
 
-    private static void addRequestResponseTags(
+    private static CompletionStage<StartedSpan> addRequestResponseTags(
             final StartedSpan startedSpan,
             final HttpRequest httpRequest,
             final HttpResponse httpResponse,
-            @Nullable final CharSequence correlationId
+            @Nullable final CharSequence correlationId,
+            final ActorSystem actorSystem
     ) {
         startedSpan.tag(SpanTagKey.REQUEST_METHOD_NAME.getTagForValue(getRequestMethodName(httpRequest)));
         startedSpan.tag(SpanTagKey.REQUEST_URI.getTagForValue(URI.create(getRelativeUri(httpRequest).toString())));
         @Nullable final var httpStatus = tryToGetResponseHttpStatus(httpResponse, correlationId);
         if (null != httpStatus) {
             startedSpan.tag(SpanTagKey.HTTP_STATUS.getTagForValue(httpStatus));
+            if (!httpStatus.isSuccess()) {
+                return httpResponse.entity().getDataBytes().fold(ByteString.emptyByteString(), ByteString::concat)
+                        .map(ByteString::utf8String)
+                        .runWith(Sink.head(), actorSystem)
+                        .thenApply(startedSpan::tagAsFailed);
+            }
         }
-    }
-
-    @Nullable
-    private static URI tryToGetRelativeRequestUri(
-            final HttpRequest httpRequest,
-            @Nullable final CharSequence correlationId
-    ) {
-        try {
-            return getRelativeRequestUri(httpRequest);
-        } catch (final IllegalArgumentException e) {
-            LOGGER.withCorrelationId(correlationId)
-                    .info("Failed to get {} for HTTP response: {}", URI.class.getSimpleName(), e.getMessage());
-            return null;
-        }
-    }
-
-    private static URI getRelativeRequestUri(final HttpRequest httpRequest) {
-        final var filteredRelativeRequestUri = RequestLoggingFilter.filterUri(getRelativeUri(httpRequest));
-        return URI.create(filteredRelativeRequestUri.getPathString());
+        return CompletableFuture.completedStage(startedSpan);
     }
 
     @Nullable

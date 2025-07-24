@@ -158,7 +158,7 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
      * @return the created {@link MergeThing} command.
      */
     public static MergeThing withThing(final ThingId thingId, final Thing thing, final DittoHeaders dittoHeaders) {
-        ensureThingIdMatches(thingId, thing);
+        ensureThingIdMatches(thingId, thing, dittoHeaders);
         ensureThingIsNotNullOrEmpty(thing, dittoHeaders);
         final JsonObject mergePatch = thing.toJson();
         return new MergeThing(thingId, JsonPointer.empty(), mergePatch, null, null, dittoHeaders);
@@ -182,7 +182,7 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
     public static MergeThing withThing(final ThingId thingId, final Thing thing,
             @Nullable final JsonObject initialPolicy, @Nullable final String policyIdOrPlaceholder,
             final DittoHeaders dittoHeaders) {
-        ensureThingIdMatches(thingId, thing);
+        ensureThingIdMatches(thingId, thing, dittoHeaders);
         ensureThingIsNotNullOrEmpty(thing, dittoHeaders);
         final JsonObject mergePatch = thing.toJson();
         return new MergeThing(thingId, JsonPointer.empty(), mergePatch, initialPolicy, policyIdOrPlaceholder,
@@ -431,9 +431,9 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
      *
      * @throws org.eclipse.ditto.things.model.signals.commands.exceptions.ThingIdNotExplicitlySettableException if ids do not match.
      */
-    private static void ensureThingIdMatches(final ThingId thingId, final Thing thing) {
+    private static void ensureThingIdMatches(final ThingId thingId, final Thing thing, final DittoHeaders dittoHeaders) {
         if (!thing.getEntityId().map(id -> id.equals(thingId)).orElse(true)) {
-            throw ThingIdNotExplicitlySettableException.forDittoProtocol().build();
+            throw ThingIdNotExplicitlySettableException.forDittoProtocol().dittoHeaders(dittoHeaders).build();
         }
     }
 
