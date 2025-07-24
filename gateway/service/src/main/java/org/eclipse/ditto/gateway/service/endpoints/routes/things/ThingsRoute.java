@@ -68,12 +68,12 @@ import org.eclipse.ditto.things.model.signals.commands.modify.DeleteAttributes;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThingDefinition;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
+import org.eclipse.ditto.things.model.signals.commands.modify.MigrateThingDefinition;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttribute;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttributes;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyPolicyId;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThingDefinition;
-import org.eclipse.ditto.things.model.signals.commands.modify.MigrateThingDefinition;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttribute;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttributes;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrievePolicyId;
@@ -306,7 +306,7 @@ public final class ThingsRoute extends AbstractRoute {
                             payloadSource ->
                                     handlePerRequest(ctx, dittoHeaders, payloadSource,
                                             thingJson -> CreateThing.of(
-                                                    createThingForPost(thingJson, namespaceOpt.orElse(null)),
+                                                    createThingForPost(thingJson, namespaceOpt.orElse(null), dittoHeaders),
                                                     createInlinePolicyJson(thingJson),
                                                     getCopyPolicyFrom(thingJson),
                                                     dittoHeaders)))
@@ -322,10 +322,11 @@ public final class ThingsRoute extends AbstractRoute {
         return isLiveChannelQueryParameter || isLiveChannelHeader;
     }
 
-    private static Thing createThingForPost(final String jsonString, @Nullable final String namespace) {
+    private static Thing createThingForPost(final String jsonString, @Nullable final String namespace,
+            final DittoHeaders dittoHeaders) {
         final var inputJson = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
         if (inputJson.contains(Thing.JsonFields.ID.getPointer())) {
-            throw ThingIdNotExplicitlySettableException.forPostMethod().build();
+            throw ThingIdNotExplicitlySettableException.forPostMethod().dittoHeaders(dittoHeaders).build();
         }
 
         return ThingsModelFactory.newThingBuilder(inputJson)
@@ -354,7 +355,7 @@ public final class ThingsRoute extends AbstractRoute {
                                         thingJson -> ModifyThing.of(thingId,
                                                 ThingsModelFactory.newThingBuilder(
                                                         ThingJsonObjectCreator.newInstance(thingJson,
-                                                                thingId.toString()).forPut()).build(),
+                                                                thingId.toString()).forPut(dittoHeaders)).build(),
                                                 createInlinePolicyJson(thingJson),
                                                 getCopyPolicyFrom(thingJson),
                                                 dittoHeaders)))
@@ -385,7 +386,7 @@ public final class ThingsRoute extends AbstractRoute {
         }
 
         return ThingsModelFactory.newThingBuilder(
-                ThingJsonObjectCreator.newInstance(thingJson, thingId.toString()).forPatch()).build();
+                ThingJsonObjectCreator.newInstance(thingJson, thingId.toString()).forPatch(dittoHeaders)).build();
     }
 
     /*

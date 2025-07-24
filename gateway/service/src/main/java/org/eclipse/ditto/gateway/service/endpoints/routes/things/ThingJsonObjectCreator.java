@@ -18,6 +18,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
@@ -49,24 +50,24 @@ public class ThingJsonObjectCreator {
     /**
      * @return a Thing JSON for PUT requests.
      */
-    JsonObject forPut() {
-        return checkThingIdForPut();
+    JsonObject forPut(final DittoHeaders dittoHeaders) {
+        return checkThingIdForPut(dittoHeaders);
     }
 
     /**
      * @return a Thing JSON for PATCH requests.
      */
-    JsonObject forPatch() {
-        checkThingIdForPatch();
-        checkPolicyIdForPatch();
+    JsonObject forPatch(final DittoHeaders dittoHeaders) {
+        checkThingIdForPatch(dittoHeaders);
+        checkPolicyIdForPatch(dittoHeaders);
         return inputJson;
     }
 
-    private JsonObject checkThingIdForPut() {
+    private JsonObject checkThingIdForPut(final DittoHeaders dittoHeaders) {
         // verifies that thing ID agrees with ID from route
         if (thingIdFromBody != null) {
             if (!thingIdFromBody.isString() || !thingIdFromPath.equals(thingIdFromBody.asString())) {
-                throw ThingIdNotExplicitlySettableException.forPutOrPatchMethod().build();
+                throw ThingIdNotExplicitlySettableException.forPutOrPatchMethod().dittoHeaders(dittoHeaders).build();
             }
             return inputJson;
         } else {
@@ -74,23 +75,23 @@ public class ThingJsonObjectCreator {
         }
     }
 
-    private void checkThingIdForPatch() {
+    private void checkThingIdForPatch(final DittoHeaders dittoHeaders) {
         // verifies that thing ID is not null when PATCHing
         if (thingIdFromBody != null) {
             if (thingIdFromBody.isNull()) {
-                throw ThingIdNotDeletableException.newBuilder().build();
+                throw ThingIdNotDeletableException.newBuilder().dittoHeaders(dittoHeaders).build();
             }
             if (!thingIdFromBody.isString() || !thingIdFromPath.equals(thingIdFromBody.asString())) {
-                throw ThingIdNotExplicitlySettableException.forPutOrPatchMethod().build();
+                throw ThingIdNotExplicitlySettableException.forPutOrPatchMethod().dittoHeaders(dittoHeaders).build();
             }
         }
     }
 
-    private void checkPolicyIdForPatch() {
+    private void checkPolicyIdForPatch(final DittoHeaders dittoHeaders) {
         // verifies that policy ID is not null when PATCHing
         final Optional<JsonValue> optPolicyId = inputJson.getValue(Thing.JsonFields.POLICY_ID.getPointer());
         if (optPolicyId.isPresent() && optPolicyId.get().isNull()) {
-            throw PolicyIdNotDeletableException.newBuilder().build();
+            throw PolicyIdNotDeletableException.newBuilder().dittoHeaders(dittoHeaders).build();
         }
     }
 
