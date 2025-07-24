@@ -114,7 +114,7 @@ final class MockSendProducerFactory implements SendProducerFactory {
                                 invocationOnMock.getArgument(0);
                         final RecordMetadata dummyMetadata =
                                 new RecordMetadata(new TopicPartition(targetTopic, 5),
-                                        0L, 0L, 0L, 0L, 0, 0);
+                                        0L, 0, 0L, 0, 0);
                         final ProducerMessage.Message<String, ByteBuffer, CompletableFuture<RecordMetadata>> message =
                                 (ProducerMessage.Message<String, ByteBuffer, CompletableFuture<RecordMetadata>>) envelope;
                         published.offer(message.record());

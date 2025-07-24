@@ -20,6 +20,7 @@ import static org.mockito.Mockito.when;
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -88,8 +89,8 @@ public final class AtMostOnceConsumerStreamTest {
              */
             final ConsumerRecord<String, ByteBuffer> consumerRecord =
                     new ConsumerRecord<>("topic", 1, 1, Instant.now().toEpochMilli(), TimestampType.LOG_APPEND_TIME,
-                            -1L, NULL_SIZE, NULL_SIZE, "Key", ByteBufferUtils.fromUtf8String("Value"),
-                            new RecordHeaders());
+                            NULL_SIZE, NULL_SIZE, "Key", ByteBufferUtils.fromUtf8String("Value"),
+                            new RecordHeaders(), Optional.empty());
             final AtMostOnceKafkaConsumerSourceSupplier sourceSupplier =
                     mock(AtMostOnceKafkaConsumerSourceSupplier.class);
             when(sourceSupplier.get()).thenReturn(source);
@@ -143,8 +144,8 @@ public final class AtMostOnceConsumerStreamTest {
              */
             final ConsumerRecord<String, ByteBuffer> consumerRecord =
                     new ConsumerRecord<>("topic", 1, 1, Instant.now().toEpochMilli(), TimestampType.LOG_APPEND_TIME,
-                            -1L, NULL_SIZE, NULL_SIZE, "Key", ByteBufferUtils.fromUtf8String("Value"),
-                            new RecordHeaders());
+                            NULL_SIZE, NULL_SIZE, "Key", ByteBufferUtils.fromUtf8String("Value"),
+                            new RecordHeaders(), Optional.empty());
             final AtMostOnceKafkaConsumerSourceSupplier sourceSupplier =
                     mock(AtMostOnceKafkaConsumerSourceSupplier.class);
             when(sourceSupplier.get()).thenReturn(source);
