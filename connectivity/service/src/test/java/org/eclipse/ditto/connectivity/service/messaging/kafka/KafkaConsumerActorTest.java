@@ -17,11 +17,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.header;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.atMost;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -183,7 +189,7 @@ public final class KafkaConsumerActorTest extends AbstractConsumerActorTest<Cons
                 .add(toRecordHeader(header))
                 .add(toRecordHeader(REPLY_TO_HEADER));
         return new ConsumerRecord<>(TOPIC, 1, 1, TIMESTAMP, TimestampType.LOG_APPEND_TIME,
-                -1L, NULL_SIZE, NULL_SIZE, KEY, ByteBufferUtils.fromUtf8String(payload), headers);
+                NULL_SIZE, NULL_SIZE, KEY, ByteBufferUtils.fromUtf8String(payload), headers, Optional.empty());
     }
 
     private RecordHeader toRecordHeader(final Map.Entry<String, ?> header) {
