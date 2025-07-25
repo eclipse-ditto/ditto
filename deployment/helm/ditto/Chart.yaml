@@ -16,8 +16,8 @@ description: |
   A digital twin is a virtual, cloud based, representation of his real world counterpart
   (real world “Things”, e.g. devices like sensors, smart heating, connected cars, smart grids, EV charging stations etc).
 type: application
-version: 3.8.2-M4  # chart version is effectively set by release-job
-appVersion: 3.8.0-M1
+version: 3.8.0-M2  # chart version is effectively set by release-job
+appVersion: 3.8.0-M2
 keywords:
   - iot-chart
   - digital-twin
