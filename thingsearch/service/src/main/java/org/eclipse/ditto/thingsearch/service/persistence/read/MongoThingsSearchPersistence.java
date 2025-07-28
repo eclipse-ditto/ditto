@@ -370,7 +370,8 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
         final long thingRevision =
                 Optional.ofNullable(document.getLong(PersistenceConstants.FIELD_REVISION)).orElse(0L);
         final String policyIdInPersistence = document.getString(PersistenceConstants.FIELD_POLICY_ID);
-        final PolicyId policyId = policyIdInPersistence.isEmpty() ? null : PolicyId.of(policyIdInPersistence);
+        final PolicyId policyId = (policyIdInPersistence == null || policyIdInPersistence.isEmpty()) ? null :
+                PolicyId.of(policyIdInPersistence);
         final long policyRevision =
                 Optional.ofNullable(document.getLong(PersistenceConstants.FIELD_POLICY_REVISION)).orElse(0L);
         final String nullableTimestamp =
