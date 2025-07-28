@@ -156,6 +156,8 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.dbconfig.uriSecret | default ( printf "%s-mongodb-secret" ( include "ditto.fullname" . )) }}
                   key: thingsSearch-uri
+            - name: MONGO_DB_QUERY_TIMEOUT
+              value: "{{ .Values.thingsSearch.config.mongodb.maxQueryTime }}"
             - name: MONGO_DB_CONNECTION_MIN_POOL_SIZE
               value: "{{ .Values.thingsSearch.config.mongodb.minPoolSize }}"
             - name: MONGO_DB_CONNECTION_POOL_SIZE

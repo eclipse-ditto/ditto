@@ -1379,6 +1379,8 @@ thingsSearch:
   config:
     # mongodb holds mongodb specific configuration of things-search
     mongodb:
+      # maxQueryTime configures MONGO_DB_QUERY_TIMEOUT - by default 60s
+      maxQueryTime: 60s
       # minPoolSize configures the minimum number of connections in the connection pool
       minPoolSize: 10
       # maxPoolSize configures the minimum number of connections in the connection pool
