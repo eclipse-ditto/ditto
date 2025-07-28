@@ -104,6 +104,12 @@ public final class ThingCreationRestrictionPreEnforcer
         return false;
     }
 
+    @Override
+    protected String getEntityNotCreatableDescription(final ThingContext context) {
+        return "The thing creation was configured not to be allowed for the authenticated subject(s) and used thing definition '" +
+                context.thingDefinition + "' in namespace '" + context.namespace() + "'. " +
+                "Check with your administrator if that was unexpected.";
+    }
 
     protected record ThingContext(String resourceType, String namespace, @Nullable ThingDefinition thingDefinition,
                                   DittoHeaders headers) implements Context {}

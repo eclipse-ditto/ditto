@@ -141,6 +141,11 @@ public class CreationRestrictionPreEnforcer<C extends CreationRestrictionPreEnfo
         return true;
     }
 
+    protected String getEntityNotCreatableDescription(final C context) {
+        return "The entity creation was configured not to be allowed for the authenticated subject(s) in namespace " +
+                "'" + context.namespace() + "'. Check with your administrator if that was unexpected.";
+    }
+
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
@@ -176,6 +181,7 @@ public class CreationRestrictionPreEnforcer<C extends CreationRestrictionPreEnfo
                     .info("Create command with context <{}> is not allowed to pass - entity-creation config was: " +
                             "{}", context, this.config);
             throw EntityNotCreatableException.newBuilder(withEntityId.getEntityId())
+                    .description(getEntityNotCreatableDescription(context))
                     .dittoHeaders(signal.getDittoHeaders())
                     .build();
         }
