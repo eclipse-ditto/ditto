@@ -153,7 +153,16 @@ public final class MqttClientActorIT {
 
     @Before
     public void before() {
-        actorSystem = ActorSystem.create(getClass().getSimpleName(), actorsTestConfig);
+        // Retry actor system creation if ports are in use
+        for (int attempt = 0; attempt < 3; attempt++) {
+            try {
+                actorSystem = ActorSystem.create(getClass().getSimpleName(), actorsTestConfig);
+                break;
+            } catch (Exception e) {
+                if (attempt == 2) throw e;
+                try { Thread.sleep(1000 * (attempt + 1)); } catch (InterruptedException ie) { /* ignore */ }
+            }
+        }
         commandForwarderProbe = TestProbe.apply("commandForwarder", actorSystem);
         cleanPreviousSession();
     }
@@ -320,7 +329,7 @@ public final class MqttClientActorIT {
     }
 
     @Test
-    public void testSingleTopicAfterReconnect() {
+    public void testSingleTopicAfterReconnect() throws InterruptedException {
         new TestKit(actorSystem) {{
             final var underTest = getMqttClientActor(getConnection(new String[] { TOPIC_NAME }));
             connect(underTest, this);
