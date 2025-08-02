@@ -198,8 +198,11 @@ final class DefaultWotThingModelExtensionResolver implements WotThingModelExtens
                         return potentiallyResolveRefs(refObject, dittoHeaders); // recurse!
                     }
                 }, executor)
-                .thenApplyAsync(refObject ->
-                        JsonFactory.mergeJsonValues(objectWithTmRef.remove(TM_REF), refObject).asObject(), executor
-                );
+                .thenApplyAsync(refObject -> JsonFactory.mergeJsonValues(objectWithTmRef.remove(TM_REF), refObject).asObject(), executor)
+                .thenComposeAsync(mergedResult -> {
+                    // Recursively resolve any remaining tm:ref references in the merged result
+                    return potentiallyResolveRefs(mergedResult, dittoHeaders)
+                            .thenApplyAsync(JsonValue::asObject, executor);
+                }, executor);
     }
 }
