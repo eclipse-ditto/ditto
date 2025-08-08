@@ -33,6 +33,7 @@ import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.events.streaming.StreamingSubscriptionEvent;
 import org.eclipse.ditto.connectivity.api.InboundSignal;
+import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementForwarderActor;
@@ -82,6 +83,7 @@ final class OutboundDispatchingActor extends AbstractActor {
                 .match(SubscriptionEvent.class, this::forwardWithoutCheck)
                 .match(StreamingSubscriptionEvent.class, this::forwardWithoutCheck)
                 .match(DittoRuntimeException.class, this::forwardWithoutCheck)
+                .match(OutboundSignal.class, this::forwardWithoutCheck)
                 .match(Signal.class, this::handleSignal)
                 .matchAny(message -> logger.warning("Unknown message: <{}>", message))
                 .build();
@@ -92,6 +94,9 @@ final class OutboundDispatchingActor extends AbstractActor {
     }
 
     private void forwardWithoutCheck(final Object message) {
+            if (message instanceof OutboundSignal signal) {
+                logger.withCorrelationId(signal.getSource()).debug("forwardWithoutCheck {} {}", getContext().getSelf().path().toString(), message);
+            }
         outboundMappingProcessorActor.tell(message, getSender());
     }
 
