@@ -34,15 +34,15 @@ These headers control [response diversion](connectivity-response-diversion.html)
 
 | Header Key | Description | Example Values                                                 |
 |------------|-------------|----------------------------------------------------------------|
-| `divert-response-to` | Target connection ID for response diversion | `"target-connection-id"`, `"target-connection-id"` |
+| `divert-response-to-connection` | Target connection ID for response diversion | `"target-connection-id"`, `"target-connection-id"` |
 | `divert-expected-response-types` | Response types to divert (comma-separated) | `"response"`, `"error"`, `"nack"`                |
-| `diverted-response-from` | Source connection of diverted response (automatically set) | `"source-connection-id"`                                       |
+| `diverted-response-from-connection` | Source connection of diverted response (automatically set) | `"source-connection-id"`                                       |
 
 Example source configuration with response diversion:
 ```json
 {
   "headerMapping": {
-    "divert-response-to": "webhook-connection",
+    "divert-response-to-connection": "webhook-connection",
     "divert-expected-response-types": "response,error",
     "device-id": "{{ header:device_id }}"
   }

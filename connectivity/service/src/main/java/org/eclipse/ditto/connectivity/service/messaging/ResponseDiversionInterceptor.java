@@ -52,14 +52,22 @@ public class ResponseDiversionInterceptor {
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(ResponseDiversionInterceptor.class);
     private static final Set<String> DEFAULT_RESPONSE_TYPES =
             Set.of(ResponseType.RESPONSE.getName(), ResponseType.ERROR.getName());
+    public static final String AUTHORIZED_CONNECTIONS_AS_SOURCES = "authorized-connections-as-sources";
 
     private final Connection connection;
+    private final Set<String> authorizedSources;
     private final ConnectionPubSub pubSub;
     private final String sourceConnectionId;
 
     private ResponseDiversionInterceptor(final Connection connection,
             final ConnectionPubSub pubSub) {
         this.connection = checkNotNull(connection, "connection");
+        this.authorizedSources = Arrays.stream(connection.getSpecificConfig()
+                        .getOrDefault(AUTHORIZED_CONNECTIONS_AS_SOURCES, "")
+                        .split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toSet());
         this.pubSub = checkNotNull(pubSub, "pubSub");
         this.sourceConnectionId = connection.getId().toString();
     }
@@ -77,6 +85,37 @@ public class ResponseDiversionInterceptor {
     }
 
     /**
+     * Checks if the source connection ID is authorized to divert responses.
+     * If the connection id is not in the list of authorized sources in the connection specific configuration,
+     * it will return false.
+     *
+     * @param outboundSignal the outbound signal to check
+     * @return true if the source connection ID is authorized, false otherwise
+     */
+    public boolean isAuthorized(final OutboundSignal outboundSignal) {
+        // Check if the source connection ID is in the authorized sources
+        final String sourceConnectionId = outboundSignal.getSource().getDittoHeaders()
+                .get(DittoHeaderDefinition.DIVERTED_RESPONSE_FROM_CONNECTION.getKey());
+        return sourceConnectionId != null && authorizedSources.contains(sourceConnectionId.trim());
+    }
+
+    /**
+     * Checks if the given outbound signal is eligible for diversion.
+     * Only command responses that have a diversion target connection header and are not yet diverted are considered eligible.
+     *
+     * @param outboundSignal the outbound signal to check
+     * @return true if the signal is eligible for diversion, false otherwise
+     */
+    public boolean isForDiversion(final OutboundSignal outboundSignal) {
+        return outboundSignal.getSource() instanceof CommandResponse &&
+                // Don't divert already diverted responses
+                !outboundSignal.getSource().getDittoHeaders()
+                        .containsKey(DittoHeaderDefinition.DIVERTED_RESPONSE_FROM_CONNECTION.getKey()) &&
+                outboundSignal.getSource().getDittoHeaders()
+                        .containsKey(DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey());
+    }
+
+    /**
      * Intercepts an outbound signal and diverts it if configured.
      * Only command responses are eligible for diversion.
      *
@@ -85,22 +124,17 @@ public class ResponseDiversionInterceptor {
      */
     public boolean interceptAndDivert(final OutboundSignal outboundSignal) {
         checkNotNull(outboundSignal, "outboundSignal");
-        // TODO DIVERSION:
-        //  Consider static config extraction instead of header based dynamic
-        //  as static will do evaluation only once and then reroute all responses based on config.
-        //  Maybe a hybrid approach where static config is used for default diversion or one or the other.
-        //  HEADER '"divert-response-to"' (dynamic from mapping or js mapper)
         final Signal<?> signal = outboundSignal.getSource();
 
         // Divert instances of command responses.
         if (!(signal instanceof CommandResponse)) {
-            LOGGER.debug("Signal is not a CommandResponse, skipping diversion: {}", signal.getType());
+            LOGGER.withCorrelationId(signal).debug("Signal is not a CommandResponse, skipping diversion: {}", signal.getType());
             return false;
         }
 
         // Check if this response type should be diverted
         final String origin = signal.getDittoHeaders().getOrigin().map(String::trim).orElse("");
-        @Nullable final String targetConnection = signal.getDittoHeaders().getOrDefault(DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey(), null);
+        @Nullable final String targetConnection = signal.getDittoHeaders().getOrDefault(DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey(), null);
         final Set<String> expectedResponses = expectedResponseTypes(signal);
         final String responseType = signalResponseType(signal);
         if (!origin.equals(targetConnection) && !(expectedResponseTypes(signal).isEmpty() || expectedResponses.contains(responseType))) {
@@ -119,7 +153,7 @@ public class ResponseDiversionInterceptor {
 
     private Set<String> expectedResponseTypes(final Signal<?> signal) {
         final String typesString =
-                signal.getDittoHeaders().get(DittoHeaderDefinition.DITTO_DIVERT_EXPECTED_RESPONSE_TYPES.getKey());
+                signal.getDittoHeaders().get(DittoHeaderDefinition.DIVERT_EXPECTED_RESPONSE_TYPES.getKey());
         final Set<String> allResponseTypes =
                 Arrays.stream(ResponseType.values()).map(ResponseType::getName).collect(Collectors.toSet());
         if (typesString != null && !typesString.trim().isEmpty()) {
@@ -150,7 +184,7 @@ public class ResponseDiversionInterceptor {
      */
     private boolean divertToConnection(final Signal<?> signal, final String targetConnectionIdString) {
         // Enhance signal with diversion headers
-        final Signal<?> enhancedSignal = enhanceSignalForDiversion(signal);
+        final Signal<?> enhancedSignal = addSourceConnectionHeader(signal);
         try {
             final ConnectionId targetConnectionId = ConnectionId.of(targetConnectionIdString);
 
@@ -184,18 +218,23 @@ public class ResponseDiversionInterceptor {
     }
 
     /**
-     * Enhances a signal with diversion tracking headers.
+     * Add to the signal diversion tracking headers.
      *
      * @param signal the original signal
      * @return the enhanced signal
      */
-    private Signal<?> enhanceSignalForDiversion(final Signal<?> signal) {
+    private Signal<?> addSourceConnectionHeader(final Signal<?> signal) {
         final DittoHeaders originalHeaders = signal.getDittoHeaders();
 
         final DittoHeaders enhancedHeaders = DittoHeaders.newBuilder(originalHeaders)
-                .putHeader(DittoHeaderDefinition.DITTO_DIVERTED_RESPONSE_FROM.getKey(), connection.getId().toString())
+                .putHeader(DittoHeaderDefinition.DIVERTED_RESPONSE_FROM_CONNECTION.getKey(), connection.getId().toString())
                 .build();
 
         return signal.setDittoHeaders(enhancedHeaders);
+    }
+
+    boolean isAlreadyDiverted(final OutboundSignal outboundSignal) {
+        return outboundSignal.getSource().getDittoHeaders()
+                .containsKey(DittoHeaderDefinition.DIVERTED_RESPONSE_FROM_CONNECTION.getKey());
     }
 }

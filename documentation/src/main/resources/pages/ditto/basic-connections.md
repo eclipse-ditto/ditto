@@ -178,7 +178,6 @@ If the label of an acknowledgement is not in the `declaredAcks` array, then the 
 an error. The declared labels must be prefixed by the connection ID followed by a colon or the 
 `{%raw%}{{connection:id}}{%endraw%}` placeholder followed by a colon. For example:
 ```json
-{%raw%}
 {
   "addresses": [
     "<source>"
@@ -188,7 +187,6 @@ an error. The declared labels must be prefixed by the connection ID followed by 
     "{{connection:id}}:my-custom-ack"
   ]
 }
-{%endraw%}
 ```
 
 #### Source header mapping
@@ -276,14 +274,14 @@ This is done through special header mapping keys:
 ```json
 {
   "headerMapping": {
-    "divert-response-to": "target-connection-id",
+    "divert-response-to-connection": "target-connection-id",
     "divert-expected-response-types": "response,error,nack"
   }
 }
 ```
 
 Where:
-- `divert-response-to`: Target connection ID for diversion
+- `divert-response-to-connection`: Target connection ID for diversion
 - `divert-expected-response-types`: Comma-separated list of response types to divert
 
 This enables advanced multi-protocol workflows and response routing scenarios.
@@ -298,7 +296,7 @@ and use cases.
   "addresses": ["commands/sensor"],
   "authorizationContext": ["ditto:sensor-commands"],
   "headerMapping": {
-    "divert-response-to": "analytics-connection",
+    "divert-response-to-connection": "analytics-connection",
     "divert-expected-response-types": "response,error"
   },
   "replyTarget": {
@@ -447,7 +445,6 @@ The issued acknowledgement label must be prefixed by the connection ID followed 
 `{%raw%}{{connection:id}}{%endraw%}` placeholder followed by a colon.<br/>
 The JSON for a target with issued acknowledgement labels could look like this:
 ```json
-{%raw%}
 {
   "address": "<target>",
   "topics": [
@@ -456,7 +453,6 @@ The JSON for a target with issued acknowledgement labels could look like this:
   "authorizationContext": ["ditto:inbound-auth-subject"],
   "issuedAcknowledgementLabel": "{{connection:id}}:my-custom-ack"
 }
-{%endraw%}
 ```
 
 #### Target header mapping

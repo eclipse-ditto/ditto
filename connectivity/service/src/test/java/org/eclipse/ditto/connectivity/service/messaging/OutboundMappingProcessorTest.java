@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
@@ -174,8 +173,7 @@ public final class OutboundMappingProcessorTest {
                 TestConstants.CONNECTIVITY_CONFIG,
                 ACTOR_SYSTEM_RESOURCE.getActorSystem(),
                 protocolAdapterProvider.getProtocolAdapter(null),
-                logger,
-                mockPubSub);
+                logger);
     }
 
     @Test
@@ -406,7 +404,7 @@ public final class OutboundMappingProcessorTest {
             
             // Create connection with diversion configured in source header mapping
             final Map<String, String> headerMapping = Map.of(
-                    DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey(), targetConnectionId.toString()
+                    DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey(), targetConnectionId.toString()
             );
             final Connection connection = ConnectivityModelFactory.newConnectionBuilder(
                     connectionId,
@@ -428,8 +426,8 @@ public final class OutboundMappingProcessorTest {
             // Create headers with diversion configuration
             final DittoHeaders headersWithDiversion = DittoHeaders.newBuilder()
                     .correlationId("test-correlation")
-                    .putHeader(DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey(), targetConnectionId.toString())
-                    .putHeader(DittoHeaderDefinition.DITTO_DIVERT_EXPECTED_RESPONSE_TYPES.getKey(), "response")
+                    .putHeader(DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey(), targetConnectionId.toString())
+                    .putHeader(DittoHeaderDefinition.DIVERT_EXPECTED_RESPONSE_TYPES.getKey(), "response")
                     .putHeader(DittoHeaderDefinition.ORIGIN.getKey(), connectionId.toString())
                     .build();
             
@@ -455,8 +453,7 @@ public final class OutboundMappingProcessorTest {
             
             // Mock the response diversion pub sub
             final ConnectionPubSub mockPubSub = Mockito.mock(ConnectionPubSub.class);
-//            when(mockPubSub.publishSignalForDiversion(any(), any(), any(), any()));
-            
+
             // Create processor with response diversion enabled
             final OutboundMappingProcessor processorWithDiversion = OutboundMappingProcessor.of(
                     connection,
@@ -464,8 +461,7 @@ public final class OutboundMappingProcessorTest {
                     ACTOR_SYSTEM_RESOURCE.getActorSystem(),
                     protocolAdapterProvider.getProtocolAdapter(null),
                     logger,
-                    mockPubSub
-            );
+                    ResponseDiversionInterceptor.of(connection, mockPubSub));
             
             // Process the outbound signal
             final MappingOutcome.Visitor<OutboundSignal.Mapped, Void> visitor = Mockito.mock(MappingOutcome.Visitor.class);

@@ -229,9 +229,9 @@ public final class ImmutableDittoHeadersTest {
                 .putHeader(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_OBJECT.getKey(),
                         KNOWN_PRE_DEFINED_EXTRA_FIELDS_OBJECT.formatAsString())
                 .putHeader(DittoHeaderDefinition.EXTERNAL_DRY_RUN.getKey(), String.valueOf(KNOWN_DITTO_EXTERNAL_DRY_RUN))
-                .putHeader(DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey(), KNOWN_DITTO_DIVERT_RESPONSE_TO)
-                .putHeader(DittoHeaderDefinition.DITTO_DIVERTED_RESPONSE_FROM.getKey(), KNOWN_DITTO_DIVERTED_RESPONSE_FROM)
-                .putHeader(DittoHeaderDefinition.DITTO_DIVERT_EXPECTED_RESPONSE_TYPES.getKey(), KNOWN_DITTO_DIVERT_RESPONSE_TYPES)
+                .putHeader(DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey(), KNOWN_DITTO_DIVERT_RESPONSE_TO)
+                .putHeader(DittoHeaderDefinition.DIVERTED_RESPONSE_FROM_CONNECTION.getKey(), KNOWN_DITTO_DIVERTED_RESPONSE_FROM)
+                .putHeader(DittoHeaderDefinition.DIVERT_EXPECTED_RESPONSE_TYPES.getKey(), KNOWN_DITTO_DIVERT_RESPONSE_TYPES)
                 .build();
 
         assertThat(underTest).isEqualTo(expectedHeaderMap);
@@ -569,9 +569,9 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.PUT_METADATA.getKey(), KNOWN_METADATA_HEADERS.toJson())
                 .set(DittoHeaderDefinition.GET_METADATA.getKey(), KNOWN_DITTO_GET_METADATA)
                 .set(DittoHeaderDefinition.DELETE_METADATA.getKey(), KNOWN_DITTO_DELETE_METADATA)
-                .set(DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey(), KNOWN_DITTO_DIVERT_RESPONSE_TO)
-                .set(DittoHeaderDefinition.DITTO_DIVERTED_RESPONSE_FROM.getKey(), KNOWN_DITTO_DIVERTED_RESPONSE_FROM)
-                .set(DittoHeaderDefinition.DITTO_DIVERT_EXPECTED_RESPONSE_TYPES.getKey(), KNOWN_DITTO_DIVERT_RESPONSE_TYPES)
+                .set(DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey(), KNOWN_DITTO_DIVERT_RESPONSE_TO)
+                .set(DittoHeaderDefinition.DIVERTED_RESPONSE_FROM_CONNECTION.getKey(), KNOWN_DITTO_DIVERTED_RESPONSE_FROM)
+                .set(DittoHeaderDefinition.DIVERT_EXPECTED_RESPONSE_TYPES.getKey(), KNOWN_DITTO_DIVERT_RESPONSE_TYPES)
                 .build();
 
         final Map<String, String> allKnownHeaders = createMapContainingAllKnownHeaders();
@@ -820,12 +820,12 @@ public final class ImmutableDittoHeadersTest {
                 KNOWN_PRE_DEFINED_EXTRA_FIELDS_OBJECT.formatAsString());
         result.put(DittoHeaderDefinition.EXTERNAL_DRY_RUN.getKey(),
                 String.valueOf(KNOWN_DITTO_EXTERNAL_DRY_RUN));
-        result.put(DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey(), KNOWN_DITTO_DIVERT_RESPONSE_TO);
-        result.put(DittoHeaderDefinition.DITTO_DIVERT_EXPECTED_RESPONSE_TYPES.getKey(), KNOWN_DITTO_DIVERT_RESPONSE_TYPES);
-        result.put(DittoHeaderDefinition.DITTO_DIVERTED_RESPONSE_FROM.getKey(), KNOWN_DITTO_DIVERTED_RESPONSE_FROM);
-        result.put(DittoHeaderDefinition.DITTO_DIVERT_EXPECTED_RESPONSE_TYPES.getKey(), KNOWN_DITTO_DIVERT_RESPONSE_TYPES);
-        result.put(DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey(), KNOWN_DITTO_DIVERT_RESPONSE_TO);
-        result.put(DittoHeaderDefinition.DITTO_DIVERTED_RESPONSE_FROM.getKey(), KNOWN_DITTO_DIVERTED_RESPONSE_FROM);
+        result.put(DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey(), KNOWN_DITTO_DIVERT_RESPONSE_TO);
+        result.put(DittoHeaderDefinition.DIVERT_EXPECTED_RESPONSE_TYPES.getKey(), KNOWN_DITTO_DIVERT_RESPONSE_TYPES);
+        result.put(DittoHeaderDefinition.DIVERTED_RESPONSE_FROM_CONNECTION.getKey(), KNOWN_DITTO_DIVERTED_RESPONSE_FROM);
+        result.put(DittoHeaderDefinition.DIVERT_EXPECTED_RESPONSE_TYPES.getKey(), KNOWN_DITTO_DIVERT_RESPONSE_TYPES);
+        result.put(DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey(), KNOWN_DITTO_DIVERT_RESPONSE_TO);
+        result.put(DittoHeaderDefinition.DIVERTED_RESPONSE_FROM_CONNECTION.getKey(), KNOWN_DITTO_DIVERTED_RESPONSE_FROM);
         return result;
     }
 

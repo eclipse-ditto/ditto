@@ -29,18 +29,45 @@ Response diversion brings this capability directly into Ditto's connectivity lay
 
 ## How response diversion works
 
-Response diversion is configured at the connection source level using special header mapping keys:
+Response diversion is configured at the connection source level using a key in the specific config and special header mapping keys:
 
 ```json
 {
   "headerMapping": {
-    "divert-response-to": "target-connection-id", 
+    "divert-response-to-connection": "target-connection-id", 
     "divert-expected-response-types": "response,error,nack"
-  }
+   }, 
+    "specificConfig": {
+        "is-diversion-source": "true"
+    }
 }
 ``` 
 
-And in the target connection, by defining a target that matches the diverted responses:
+And in the target connection, by defining a target.
+In the case of multiple sources one or exactly the same number of sources targets are required.
+If multiple targets are configured they are mapped to the sources by order.
+Only diverted responses will be accepted by source connections which ids are defined in the specific config under the key
+'authorized-connections-as-sources' in a comma separate format.
+
+```json
+{
+    "id": "target-connection-id-1",
+    "targets": [
+        {
+            "address": "command/redirected/response",
+            "topics": [],
+            "qos": 1,
+            "authorizationContext": [
+                "pre:ditto"
+            ],
+            "headerMapping": {}
+        }
+    ],
+    "specificConfig": {
+        "is-diversion-target": "true"
+    }
+}
+```
 ```json
   {
     "targets": [
@@ -55,7 +82,8 @@ And in the target connection, by defining a target that matches the diverted res
         }
     ],
     "specificConfig": {
-        "is-diversion-target": "true"
+        "is-diversion-target": "true",
+        "authorized-connections-as-sources": "target-connection-id-1,..."
     }
 }
 
@@ -131,7 +159,7 @@ First, create the Kafka connection that consumes device commands:
     "authorizationContext": ["ditto:kafka-consumer"],
     "headerMapping": {
       "device-id": "{{ header:device-id }}",
-      "divert-response-to": "aws-iot-mqtt-connection",
+      "divert-response-to-connection": "aws-iot-mqtt-connection",
       "divert-expected-response-types": "response,error"
     }
   }]

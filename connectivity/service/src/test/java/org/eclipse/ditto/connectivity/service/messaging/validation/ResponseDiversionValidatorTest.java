@@ -33,6 +33,7 @@ import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.Source;
+import org.eclipse.ditto.connectivity.service.messaging.BaseClientActor;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -64,7 +65,7 @@ public class ResponseDiversionValidatorTest {
     @Test
     public void validResponseDiversionConfiguration() {
         final Map<String, String> headerMapping = Map.of(
-                DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey(), TARGET_CONNECTION_ID.toString()
+                DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey(), TARGET_CONNECTION_ID.toString()
         );
         
         final Source source = createSourceWithHeaderMapping(headerMapping);
@@ -79,8 +80,8 @@ public class ResponseDiversionValidatorTest {
     @Test
     public void validResponseDiversionWithTypes() {
         final Map<String, String> headerMapping = Map.of(
-                DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey(), TARGET_CONNECTION_ID.toString(),
-                DittoHeaderDefinition.DITTO_DIVERT_EXPECTED_RESPONSE_TYPES.getKey(), "response,error,nack"
+                DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey(), TARGET_CONNECTION_ID.toString(),
+                DittoHeaderDefinition.DIVERT_EXPECTED_RESPONSE_TYPES.getKey(), "response,error,nack"
         );
         
         final Source source = createSourceWithHeaderMapping(headerMapping);
@@ -95,7 +96,7 @@ public class ResponseDiversionValidatorTest {
     @Test
     public void invalidEmptyTargetConnectionId() {
         final Map<String, String> headerMapping = Map.of(
-                DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey(), ""
+                DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey(), ""
         );
         
         final Source source = createSourceWithHeaderMapping(headerMapping);
@@ -111,7 +112,7 @@ public class ResponseDiversionValidatorTest {
     @Test
     public void invalidSelfDiversion() {
         final Map<String, String> headerMapping = Map.of(
-                DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey(), CONNECTION_ID.toString()
+                DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey(), CONNECTION_ID.toString()
         );
         
         final Source source = createSourceWithHeaderMapping(headerMapping);
@@ -127,7 +128,7 @@ public class ResponseDiversionValidatorTest {
     @Test
     public void invalidConnectionIdFormat() {
         final Map<String, String> headerMapping = Map.of(
-                DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey(), "invalid connection id!"
+                DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey(), "invalid connection id!"
         );
         
         final Source source = createSourceWithHeaderMapping(headerMapping);
@@ -143,13 +144,14 @@ public class ResponseDiversionValidatorTest {
     @Test
     public void invalidResponseType() {
         final Map<String, String> headerMapping = Map.of(
-                DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey(), TARGET_CONNECTION_ID.toString(),
-                DittoHeaderDefinition.DITTO_DIVERT_EXPECTED_RESPONSE_TYPES.getKey(), "response,invalid-type,error"
+                DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey(), TARGET_CONNECTION_ID.toString(),
+                DittoHeaderDefinition.DIVERT_EXPECTED_RESPONSE_TYPES.getKey(), "response,invalid-type,error"
         );
         
         final Source source = createSourceWithHeaderMapping(headerMapping);
         final Connection connection = connectionBuilder
                 .sources(Collections.singletonList(source))
+                .specificConfig(Map.of(BaseClientActor.IS_DIVERSION_SOURCE, "true"))
                 .build();
 
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
@@ -162,8 +164,8 @@ public class ResponseDiversionValidatorTest {
     @Test
     public void emptyResponseTypesIsValid() {
         final Map<String, String> headerMapping = Map.of(
-                DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey(), TARGET_CONNECTION_ID.toString(),
-                DittoHeaderDefinition.DITTO_DIVERT_EXPECTED_RESPONSE_TYPES.getKey(), ""
+                DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey(), TARGET_CONNECTION_ID.toString(),
+                DittoHeaderDefinition.DIVERT_EXPECTED_RESPONSE_TYPES.getKey(), ""
         );
         
         final Source source = createSourceWithHeaderMapping(headerMapping);
@@ -178,8 +180,8 @@ public class ResponseDiversionValidatorTest {
     @Test
     public void whitespaceOnlyResponseTypesIsValid() {
         final Map<String, String> headerMapping = Map.of(
-                DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey(), TARGET_CONNECTION_ID.toString(),
-                DittoHeaderDefinition.DITTO_DIVERT_EXPECTED_RESPONSE_TYPES.getKey(), "   "
+                DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey(), TARGET_CONNECTION_ID.toString(),
+                DittoHeaderDefinition.DIVERT_EXPECTED_RESPONSE_TYPES.getKey(), "   "
         );
         
         final Source source = createSourceWithHeaderMapping(headerMapping);
@@ -195,11 +197,11 @@ public class ResponseDiversionValidatorTest {
     @Test
     public void multipleSourcesWithDifferentDiversionTargets() {
         final Source source1 = createSourceWithHeaderMapping(Map.of(
-                DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey(), "target-1"
+                DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey(), "target-1"
         ));
         
         final Source source2 = createSourceWithHeaderMapping(Map.of(
-                DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey(), "target-2"
+                DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey(), "target-2"
         ));
         
         final Connection connection = connectionBuilder
@@ -225,7 +227,7 @@ public class ResponseDiversionValidatorTest {
     @Test
     public void mixedSourcesWithAndWithoutDiversion() {
         final Source sourceWithDiversion = createSourceWithHeaderMapping(Map.of(
-                DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey(), TARGET_CONNECTION_ID.toString()
+                DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey(), TARGET_CONNECTION_ID.toString()
         ));
         
         final Source sourceWithoutDiversion = createSourceWithHeaderMapping(Map.of());

@@ -403,7 +403,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                 TestConstants.CONNECTIVITY_CONFIG,
                 actorSystem,
                 protocolAdapter,
-                logger);
+                logger, null);
 
         final Props props = OutboundMappingProcessorActor.props(kit.getRef(), List.of(outboundMappingProcessor),
                 CONNECTION, TestConstants.CONNECTIVITY_CONFIG, 99);

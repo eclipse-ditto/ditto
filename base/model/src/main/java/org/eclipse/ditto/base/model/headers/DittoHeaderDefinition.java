@@ -229,7 +229,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 3.8.0
      */
-    DITTO_DIVERT_RESPONSE_TO("divert-response-to",
+    DIVERT_RESPONSE_TO_CONNECTION("divert-response-to-connection",
             String.class,
             true,
             false,
@@ -242,7 +242,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 3.8.0
      */
-    DITTO_DIVERT_EXPECTED_RESPONSE_TYPES("divert-expected-response-types",
+    DIVERT_EXPECTED_RESPONSE_TYPES("divert-expected-response-types",
             String.class,
             true,
             false,
@@ -253,8 +253,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 3.8.0
      */
-
-    DITTO_DIVERTED_RESPONSE_FROM("diverted-response-from",
+    DIVERTED_RESPONSE_FROM_CONNECTION("diverted-response-from-connection",
             String.class,
             true,
             true,

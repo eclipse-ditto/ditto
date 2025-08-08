@@ -279,7 +279,7 @@ public final class OutboundMappingProcessorActorTest {
                 OutboundMappingProcessor.of(CONNECTION,
                 TestConstants.CONNECTIVITY_CONFIG, actorSystemResource.getActorSystem(),
                 protocolAdapterProvider.getProtocolAdapter("test"),
-                AbstractMessageMappingProcessorActorTest.mockLoggingAdapter())
+                AbstractMessageMappingProcessorActorTest.mockLoggingAdapter(), null)
         );
     }
 

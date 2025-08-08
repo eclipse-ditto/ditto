@@ -112,13 +112,13 @@ public class ResponseDiversionInterceptorTest {
 
         final Signal<?> capturedSignal = signalCaptor.getValue();
         assertThat(capturedSignal.getDittoHeaders())
-                .containsEntry(DittoHeaderDefinition.DITTO_DIVERTED_RESPONSE_FROM.getKey(), SOURCE_CONNECTION_ID.toString());
+                .containsEntry(DittoHeaderDefinition.DIVERTED_RESPONSE_FROM_CONNECTION.getKey(), SOURCE_CONNECTION_ID.toString());
     }
 
     @Test
     public void divertWithResponseTypeFiltering() {
         final DittoHeaders headers = commonDittoHeaders()
-                .putHeader(DittoHeaderDefinition.DITTO_DIVERT_EXPECTED_RESPONSE_TYPES.getKey(), "response")
+                .putHeader(DittoHeaderDefinition.DIVERT_EXPECTED_RESPONSE_TYPES.getKey(), "response")
                 .build();
 
         final CommandResponse<?> response = ModifyThingResponse.modified(THING_ID, headers);
@@ -126,7 +126,7 @@ public class ResponseDiversionInterceptorTest {
 
         final boolean diverted = underTest.interceptAndDivert(outboundSignal);
         final CommandResponse<?> expectedResponse = response.setDittoHeaders(response.getDittoHeaders().toBuilder()
-                .putHeader(DittoHeaderDefinition.DITTO_DIVERTED_RESPONSE_FROM.getKey(), SOURCE_CONNECTION_ID.toString())
+                .putHeader(DittoHeaderDefinition.DIVERTED_RESPONSE_FROM_CONNECTION.getKey(), SOURCE_CONNECTION_ID.toString())
                 .build());
         assertThat(diverted).isTrue();
         verify(pubSub).publishSignalForDiversion(eq(expectedResponse), eq(TARGET_CONNECTION_ID), eq(THING_ID.toString()), eq(null));
@@ -135,7 +135,7 @@ public class ResponseDiversionInterceptorTest {
     @Test
     public void doNotDivertErrorWhenOnlyResponseTypeConfigured() {
         final DittoHeaders headers = commonDittoHeaders()
-                .putHeader(DittoHeaderDefinition.DITTO_DIVERT_EXPECTED_RESPONSE_TYPES.getKey(), "response")
+                .putHeader(DittoHeaderDefinition.DIVERT_EXPECTED_RESPONSE_TYPES.getKey(), "response")
                 .build();
 
         // Create an error response
@@ -155,7 +155,7 @@ public class ResponseDiversionInterceptorTest {
     @Test
     public void divertMultipleResponseTypes() {
         final DittoHeaders headers = commonDittoHeaders()
-                .putHeader(DittoHeaderDefinition.DITTO_DIVERT_EXPECTED_RESPONSE_TYPES.getKey(), "response,error,nack")
+                .putHeader(DittoHeaderDefinition.DIVERT_EXPECTED_RESPONSE_TYPES.getKey(), "response,error,nack")
                 .build();
 
         final CommandResponse<?> response = ModifyThingResponse.modified(THING_ID, headers);
@@ -208,7 +208,7 @@ public class ResponseDiversionInterceptorTest {
     @Test
     public void doNotDivertToSelf() {
         final DittoHeaders headers = commonDittoHeaders()
-                .putHeader(DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey(), SOURCE_CONNECTION_ID.toString())
+                .putHeader(DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey(), SOURCE_CONNECTION_ID.toString())
                 .build();
 
         final CommandResponse<?> response = ModifyThingResponse.modified(THING_ID, headers);
@@ -223,7 +223,7 @@ public class ResponseDiversionInterceptorTest {
     @Test
     public void doNotDivertWithInvalidTargetConnectionId() {
         final DittoHeaders headers = commonDittoHeaders()
-                .putHeader(DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey(), "invalid connection id!")
+                .putHeader(DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey(), "invalid connection id!")
                 .build();
 
         final CommandResponse<?> response = ModifyThingResponse.modified(THING_ID, headers);
@@ -270,14 +270,14 @@ public class ResponseDiversionInterceptorTest {
 
     private static @NotNull CommandResponse<?> getExpectedResponse(final CommandResponse<?> response) {
         return response.setDittoHeaders(response.getDittoHeaders().toBuilder()
-                .putHeader(DittoHeaderDefinition.DITTO_DIVERTED_RESPONSE_FROM.getKey(), SOURCE_CONNECTION_ID.toString())
+                .putHeader(DittoHeaderDefinition.DIVERTED_RESPONSE_FROM_CONNECTION.getKey(), SOURCE_CONNECTION_ID.toString())
                 .build());
     }
 
     private static @NotNull DittoHeadersBuilder<?,?> commonDittoHeaders() {
         return DittoHeaders.newBuilder()
                 .correlationId(CORRELATION_ID)
-                .putHeader(DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey(), TARGET_CONNECTION_ID.toString())
+                .putHeader(DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey(), TARGET_CONNECTION_ID.toString())
                 .putHeader(DittoHeaderDefinition.ORIGIN.getKey(), SOURCE_CONNECTION_ID.toString());
     }
 

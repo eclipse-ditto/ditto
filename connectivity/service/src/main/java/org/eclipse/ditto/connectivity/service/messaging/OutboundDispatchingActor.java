@@ -94,6 +94,9 @@ final class OutboundDispatchingActor extends AbstractActor {
     }
 
     private void forwardWithoutCheck(final Object message) {
+            if (message instanceof OutboundSignal signal) {
+                logger.withCorrelationId(signal.getSource()).debug("forwardWithoutCheck {} {}", getContext().getSelf().path().toString(), message);
+            }
         outboundMappingProcessorActor.tell(message, getSender());
     }
 

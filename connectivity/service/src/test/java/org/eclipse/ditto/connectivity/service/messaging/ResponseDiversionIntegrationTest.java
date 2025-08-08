@@ -99,8 +99,8 @@ public class ResponseDiversionIntegrationTest {
             // Create a response signal with diversion headers
             final DittoHeaders headers = DittoHeaders.newBuilder()
                     .correlationId(CORRELATION_ID)
-                    .putHeader(DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey(), TARGET_CONNECTION_ID.toString())
-                    .putHeader(DittoHeaderDefinition.DITTO_DIVERT_EXPECTED_RESPONSE_TYPES.getKey(), "response")
+                    .putHeader(DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey(), TARGET_CONNECTION_ID.toString())
+                    .putHeader(DittoHeaderDefinition.DIVERT_EXPECTED_RESPONSE_TYPES.getKey(), "response")
                     .build();
 
             final ModifyThingResponse response = ModifyThingResponse.modified(THING_ID, headers);
@@ -143,8 +143,8 @@ public class ResponseDiversionIntegrationTest {
             // Create headers that allow all response types
             final DittoHeaders headers = DittoHeaders.newBuilder()
                     .correlationId(CORRELATION_ID)
-                    .putHeader(DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey(), TARGET_CONNECTION_ID.toString())
-                    .putHeader(DittoHeaderDefinition.DITTO_DIVERT_EXPECTED_RESPONSE_TYPES.getKey(), "response,error,nack")
+                    .putHeader(DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey(), TARGET_CONNECTION_ID.toString())
+                    .putHeader(DittoHeaderDefinition.DIVERT_EXPECTED_RESPONSE_TYPES.getKey(), "response,error,nack")
                     .build();
 
             final ModifyThingResponse response = ModifyThingResponse.modified(THING_ID, headers);
@@ -185,7 +185,7 @@ public class ResponseDiversionIntegrationTest {
             // Test diverting to first target
             DittoHeaders headers1 = DittoHeaders.newBuilder()
                     .correlationId(CORRELATION_ID + "-1")
-                    .putHeader(DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey(), TARGET_CONNECTION_ID.toString())
+                    .putHeader(DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey(), TARGET_CONNECTION_ID.toString())
                     .build();
 
             ModifyThingResponse response1 = ModifyThingResponse.modified(THING_ID, headers1);
@@ -208,7 +208,7 @@ public class ResponseDiversionIntegrationTest {
             // Test diverting to second target
             DittoHeaders headers2 = DittoHeaders.newBuilder()
                     .correlationId(CORRELATION_ID + "-2")
-                    .putHeader(DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey(), secondTargetId.toString())
+                    .putHeader(DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey(), secondTargetId.toString())
                     .build();
 
             ModifyThingResponse response2 = ModifyThingResponse.modified(THING_ID, headers2);
@@ -232,7 +232,7 @@ public class ResponseDiversionIntegrationTest {
                     .authorizationContext(AUTHORIZATION_CONTEXT)
                     .address("commands/+/+")
                     .headerMapping(ConnectivityModelFactory.newHeaderMapping(Map.of(
-                            DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey(), "*"
+                            DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey(), "*"
                     )))
                     .build();
 
@@ -253,7 +253,7 @@ public class ResponseDiversionIntegrationTest {
             // Headers should include the actual target since wildcard is used
             final DittoHeaders headers = DittoHeaders.newBuilder()
                     .correlationId(CORRELATION_ID)
-                    .putHeader(DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey(), TARGET_CONNECTION_ID.toString())
+                    .putHeader(DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey(), TARGET_CONNECTION_ID.toString())
                     .build();
 
             final ModifyThingResponse response = ModifyThingResponse.modified(THING_ID, headers);
@@ -279,8 +279,8 @@ public class ResponseDiversionIntegrationTest {
     private Connection createSourceConnection() {
         final Map<String, String> headerMapping = Map.of(
                 "correlation-id", "{{ header:correlation-id }}",
-                DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey(), TARGET_CONNECTION_ID.toString(),
-                DittoHeaderDefinition.DITTO_DIVERT_EXPECTED_RESPONSE_TYPES.getKey(), "response,error"
+                DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey(), TARGET_CONNECTION_ID.toString(),
+                DittoHeaderDefinition.DIVERT_EXPECTED_RESPONSE_TYPES.getKey(), "response,error"
         );
 
         final Source source = ConnectivityModelFactory.newSourceBuilder()

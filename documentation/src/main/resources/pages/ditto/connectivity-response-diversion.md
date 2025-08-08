@@ -21,7 +21,7 @@ The following special headers control the diversion behavior:
 
 ### Header mapping keys
 
-#### divert-response-to
+#### divert-response-to-connection
 Specifies the target connection ID where responses should be diverted.
 
 - **Static configuration**: Set to a specific connection ID (e.g., `"target-connection-123"`)
@@ -71,7 +71,7 @@ Configure the source connection to always divert responses to a specific target 
                 "ditto:inbound-auth-subject"
             ],
             "headerMapping": {
-                "divert-response-to": "http-webhook-connection",
+                "divert-response-to-connection": "http-webhook-connection",
                 "divert-expected-response-types": "response,error"
             }
         }
@@ -142,7 +142,7 @@ function mapToDittoProtocolMsg(headers, textPayload, bytePayload, contentType) {
   
   let dittoHeaders = {
     "correlation-id": headers["correlation-id"],
-    "divert-response-to": targetConnection,
+    "divert-response-to-connection": targetConnection,
     "divert-expected-response-types": "response,error"
   };
   
@@ -180,7 +180,7 @@ Monitor the following metrics to track diversion performance:
 ### Common issues
 
 #### Responses not being diverted
-- Verify that `divert-response-to` is correctly configured in the source header mapping
+- Verify that `divert-response-to-connection` is correctly configured in the source header mapping
 - Check that the target connection ID exists and is active
 - Ensure response types match the `divert-expected-response-types` configuration
 

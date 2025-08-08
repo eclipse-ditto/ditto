@@ -80,13 +80,13 @@ public final class ConnectionPubSub implements Extension {
      */
     public void publishSignalForDiversion(final Signal<?> signal, final ConnectionId connectionId, final CharSequence groupIndexKey,
             @Nullable final ActorRef sender) {
-        final String topic = CONNECTION_RESPONSE_DIVERSION_PREFIX + connectionId.toString();
-        final Signal<?> setDittoHeaders = signal.setDittoHeaders(
+        // Header is needed by the pubSub.
+        final Signal<?> signalWithConnectionId = signal.setDittoHeaders(
                 signal.getDittoHeaders()
                         .toBuilder()
-                        .putHeader(DittoHeaderDefinition.CONNECTION_ID.getKey(), topic)
+                        .putHeader(DittoHeaderDefinition.CONNECTION_ID.getKey(), connectionId)
                         .build());
-        pub.publish(setDittoHeaders, groupIndexKey, sender);
+        pub.publish(signalWithConnectionId, groupIndexKey, sender);
     }
 
     /**

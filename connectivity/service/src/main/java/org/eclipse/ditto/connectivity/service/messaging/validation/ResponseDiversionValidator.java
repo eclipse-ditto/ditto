@@ -14,8 +14,13 @@
 
 package org.eclipse.ditto.connectivity.service.messaging.validation;
 
+import static org.eclipse.ditto.connectivity.service.messaging.BaseClientActor.IS_DIVERSION_SOURCE;
+import static org.eclipse.ditto.connectivity.service.messaging.BaseClientActor.IS_DIVERSION_SOURCE_DEFAULT;
+import static org.eclipse.ditto.connectivity.service.messaging.BaseClientActor.IS_DIVERSION_TARGET;
+import static org.eclipse.ditto.connectivity.service.messaging.BaseClientActor.IS_DIVERSION_TARGET_DEFAULT;
+
 import java.util.Arrays;
-import java.util.Map;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -29,6 +34,8 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionIdInvalidException;
+import org.eclipse.ditto.connectivity.model.Source;
+import org.eclipse.ditto.connectivity.service.messaging.ResponseDiversionInterceptor;
 
 /**
  * Validator for response diversion configuration in connections.
@@ -39,19 +46,9 @@ import org.eclipse.ditto.connectivity.model.ConnectionIdInvalidException;
 @Immutable
 public final class ResponseDiversionValidator {
 
-    private static Map<String, String> mappings;
 
     private ResponseDiversionValidator() {
         // no instantiation
-    }
-
-    public static void validate(final Connection connection, final DittoHeaders dittoHeaders) {
-        validateResponseDiversionConnectionId(connection, dittoHeaders);
-        connection.getSources().stream()
-                .filter(source -> mappings.containsKey(DittoHeaderDefinition.DITTO_DIVERT_EXPECTED_RESPONSE_TYPES.getKey()))
-                .findFirst()
-                .ifPresent(source -> validateResponseTypes(source.getHeaderMapping().getMapping()
-                        .get(DittoHeaderDefinition.DITTO_DIVERT_EXPECTED_RESPONSE_TYPES.getKey()), dittoHeaders));
     }
 
     /**
@@ -61,12 +58,65 @@ public final class ResponseDiversionValidator {
      * @param dittoHeaders the headers to use for error reporting
      * @throws ConnectionConfigurationInvalidException if the diversion headers are invalid
      */
-    public static void validateResponseDiversionConnectionId(final Connection connection, final DittoHeaders dittoHeaders) {
-        final Set<String> targetConnectionId = connection.getSources().stream().filter(source -> {
-                    mappings = source.getHeaderMapping().getMapping();
-                    return mappings.containsKey(DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey());
+    public static void validate(final Connection connection, final DittoHeaders dittoHeaders) {
+        validateResponseDiversionTypes(connection, dittoHeaders);
+        validateResponseDiversionConnectionId(connection, dittoHeaders);
+        validateAuthorizedDiversionSources(connection, dittoHeaders);
+    }
 
-                }).map(source -> mappings.get(DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey()))
+    private static void validateAuthorizedDiversionSources(final Connection connection,
+            final DittoHeaders dittoHeaders) {
+        boolean isDiversionTarget = check(connection, IS_DIVERSION_TARGET, IS_DIVERSION_TARGET_DEFAULT, dittoHeaders);
+        if (isDiversionTarget) {
+            final Set<ConnectionId> authorizedSources = connection.getSpecificConfig()
+                    .getOrDefault(ResponseDiversionInterceptor.AUTHORIZED_CONNECTIONS_AS_SOURCES, "")
+                    .trim()
+                    .isEmpty() ? Set.of() : Stream.of(connection.getSpecificConfig()
+                            .get(ResponseDiversionInterceptor.AUTHORIZED_CONNECTIONS_AS_SOURCES).split(","))
+                    .map(String::trim)
+                    .map(ConnectionId::of)
+                    .collect(Collectors.toSet());
+        }
+    }
+
+    private static boolean check(final Connection connection, final String configKey, final String defaultValue,
+            final DittoHeaders dittoHeaders) {
+        final String isSourseString = connection.getSpecificConfig().getOrDefault(configKey, defaultValue);
+        return Boolean.parseBoolean(isSourseString);
+    }
+
+    private static void validateResponseDiversionTypes(final Connection connection, final DittoHeaders dittoHeaders) {
+        final boolean isDiversionSource =
+                check(connection, IS_DIVERSION_SOURCE, IS_DIVERSION_SOURCE_DEFAULT, dittoHeaders);
+        if (isDiversionSource) {
+            final List<Source> list = connection.getSources().stream()
+                    .filter(source -> source.getHeaderMapping().getMapping().containsKey(
+                            DittoHeaderDefinition.DIVERT_EXPECTED_RESPONSE_TYPES.getKey()))
+                    .peek(source -> validateResponseTypes(source.getHeaderMapping().getMapping()
+                            .get(DittoHeaderDefinition.DIVERT_EXPECTED_RESPONSE_TYPES.getKey()), dittoHeaders))
+                    .toList();
+
+        }
+    }
+
+    /**
+     * Validates the target connection ID for response diversion.
+     *
+     * @param connection the connection to validate
+     * @param dittoHeaders the headers to use for error reporting
+     * @return true if the target connection ID is valid, false if no target connection ID is specified
+     * @throws ConnectionConfigurationInvalidException if the target connection ID is invalid
+     */
+    public static boolean validateResponseDiversionConnectionId(final Connection connection,
+            final DittoHeaders dittoHeaders) {
+        final Set<String> targetConnectionId = connection.getSources()
+                .stream()
+                .filter(source -> source.getHeaderMapping()
+                        .getMapping()
+                        .containsKey(DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey()))
+                .map(source -> source.getHeaderMapping()
+                        .getMapping()
+                        .get(DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey()))
                 .collect(Collectors.toSet());
 
 
@@ -74,7 +124,7 @@ public final class ResponseDiversionValidator {
             // Check if target ID is not empty
             if (targetId.trim().isEmpty()) {
                 throw ConnectionConfigurationInvalidException.newBuilder(
-                                "The " + DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey() +
+                                "The " + DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey() +
                                         " in headerMapping must not be empty")
                         .dittoHeaders(dittoHeaders)
                         .build();
@@ -87,19 +137,21 @@ public final class ResponseDiversionValidator {
                 if (parsedTargetId.equals(connection.getId())) {
                     throw ConnectionConfigurationInvalidException.newBuilder(
                                     "It is pointless to divert responses to the originating connection, it will receive the responses by default. " +
-                                            "Remove the " + DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey() + " from the headerMapping of connection: " + connection.getId())
+                                            "Remove the " + DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey() +
+                                            " from the headerMapping of connection: " + connection.getId())
                             .dittoHeaders(dittoHeaders)
                             .build();
                 }
             } catch (final ConnectionIdInvalidException e) {
                 throw ConnectionConfigurationInvalidException.newBuilder(
                                 "Invalid target connection ID format in " +
-                                        DittoHeaderDefinition.DITTO_DIVERT_RESPONSE_TO.getKey() + ": " + targetId)
+                                        DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey() + ": " + targetId)
                         .dittoHeaders(dittoHeaders)
                         .cause(e)
                         .build();
             }
         });
+        return !targetConnectionId.isEmpty();
     }
 
     private static void validateResponseTypes(final String responseTypes, final DittoHeaders dittoHeaders) {
@@ -114,7 +166,7 @@ public final class ResponseDiversionValidator {
                     .ifPresent(invalidType -> {
                         throw ConnectionConfigurationInvalidException.newBuilder(
                                         "Invalid response type in <"
-                                                + DittoHeaderDefinition.DITTO_DIVERT_EXPECTED_RESPONSE_TYPES.getKey() + ">: "
+                                                + DittoHeaderDefinition.DIVERT_EXPECTED_RESPONSE_TYPES.getKey() + ">: "
                                                 + invalidType + ". Valid types are: response, error, nack")
                                 .dittoHeaders(dittoHeaders)
                                 .build();
