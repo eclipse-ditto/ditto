@@ -27,7 +27,6 @@ sudo tar -C /usr/local/bin -xf /tmp/kubeval.tar.gz kubeval
 
 # add helm repos to resolve dependencies
 helm repo add stable https://charts.helm.sh/stable
-helm repo add bitnami https://charts.bitnami.com/bitnami
 
 # validate chart
 echo "helm dependency build..."
