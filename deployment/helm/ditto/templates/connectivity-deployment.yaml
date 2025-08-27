@@ -90,7 +90,7 @@ spec:
           env:
             {{- if not .Values.global.logging.customConfigFile.enabled }}
             - name: DITTO_LOGGING_DISABLE_SYSOUT_LOG
-              value: "{{ printf "%t" .Values.global.logging.sysout.enabled }}"
+              value: "{{ not .Values.global.logging.sysout.enabled }}"
             - name: DITTO_LOGGING_FILE_APPENDER
               value: "{{ printf "%t" .Values.global.logging.logFiles.enabled }}"
             {{- end }}
