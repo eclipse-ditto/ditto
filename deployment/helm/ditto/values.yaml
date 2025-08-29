@@ -1151,6 +1151,8 @@ things:
       cache:
         # modelCacheSize configures the amount of TMs to hold in the cache
         modelCacheSize: 1000
+        # expireAfterWrite configures how long a single TM should remain cached after first writing it to the cache
+        expireAfterWrite: 2d
         # expireAfterAccess configures how long a single TM should remain cached after its last access
         expireAfterAccess: 1d
       # tdJsonTemplate contains a json template added to generated TDs, e.g. containing security information:
