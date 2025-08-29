@@ -28,6 +28,7 @@ import org.eclipse.ditto.things.model.FeatureProperties;
 import org.eclipse.ditto.things.model.Features;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingDefinition;
+import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.wot.api.config.WotConfig;
 import org.eclipse.ditto.wot.api.resolver.WotThingModelResolver;
 import org.eclipse.ditto.wot.model.ThingModel;
@@ -92,6 +93,52 @@ public interface WotThingModelValidator {
      */
     CompletionStage<Void> validateThing(ThingDefinition thingDefinition,
             ThingModel thingModel,
+            Thing thing,
+            JsonPointer resourcePath,
+            DittoHeaders dittoHeaders
+    );
+
+    /**
+     * Validates the provided {@code thing} against the provided {@code thingDefinition} (if this links to a WoT TM)
+     * specifically for a {@code MergeThing} command.
+     * This is a separate implementation as only parts of the things might be patched which gives room to optimize which
+     * parts to validate.
+     *
+     * @param thingDefinition the ThingDefinition to retrieve the WoT TM from
+     * @param mergeThing the MergeThing command to validate
+     * @param thing the Thing to validate
+     * @param resourcePath the originating path of the command which caused validation
+     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
+     * validation error - exceptionally finished with a {@link org.eclipse.ditto.wot.validation.WotThingModelPayloadValidationException}
+     * @since 3.8.0
+     */
+    CompletionStage<Void> validateMergeThing(@Nullable ThingDefinition thingDefinition,
+            MergeThing mergeThing,
+            Thing thing,
+            JsonPointer resourcePath,
+            DittoHeaders dittoHeaders
+    );
+
+    /**
+     * Validates the provided {@code thing} against the provided {@code thingModel} specifically for a
+     * {@code MergeThing} command.
+     * This is a separate implementation as only parts of the things might be patched which gives room to optimize which
+     * parts to validate.
+     *
+     * @param thingDefinition the ThingDefinition which was used to retrieve the passed {@code thingModel}
+     * @param thingModel the ThingModel to validate against
+     * @param mergeThing the MergeThing command to validate
+     * @param thing the Thing to validate
+     * @param resourcePath the originating path of the command which caused validation
+     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
+     * validation error - exceptionally finished with a {@link org.eclipse.ditto.wot.validation.WotThingModelPayloadValidationException}
+     * @since 3.8.0
+     */
+    CompletionStage<Void> validateMergeThing(ThingDefinition thingDefinition,
+            ThingModel thingModel,
+            MergeThing mergeThing,
             Thing thing,
             JsonPointer resourcePath,
             DittoHeaders dittoHeaders
