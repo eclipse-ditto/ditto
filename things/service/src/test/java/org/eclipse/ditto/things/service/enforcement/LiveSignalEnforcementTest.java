@@ -118,7 +118,6 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
             TestSetup.fishForMsgClass(this, ThingNotAccessibleException.class);
 
             supervisor.tell(getModifyFeatureCommand(liveHeaders()), getRef());
-            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectMsgClass(FeatureNotModifiableException.class);
         }};
     }
@@ -150,7 +149,6 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
             final ThingCommand<?> read = getRetrieveThingCommand(liveHeaders());
             RetrieveThingResponse.of(TestSetup.THING_ID, JsonFactory.newObject(), DittoHeaders.empty());
             supervisor.tell(read, getRef());
-            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             final DistributedPubSubMediator.Publish publishRead =
                     pubSubMediatorProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
 
@@ -201,8 +199,6 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
                     .build();
 
             supervisor.tell(readResponse, getRef());
-            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             final RetrieveThingResponse retrieveThingResponse = expectMsgClass(RetrieveThingResponse.class);
             assertThat(retrieveThingResponse.getThing()).isEqualTo(expectedThing);
         }};
@@ -247,9 +243,6 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
             // Second message right after the response for the first was sent, should have the same correlation-id (Not suffixed).
             supervisor.tell(readResponse, getRef());
 
-            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-
             final RetrieveThingResponse retrieveThingResponse = expectMsgClass(RetrieveThingResponse.class);
             assertThat(retrieveThingResponse.getDittoHeaders().getCorrelationId()).isEqualTo(
                     read.getDittoHeaders().getCorrelationId());
@@ -268,14 +261,9 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
 
             supervisor.tell(read2, getRef());
 
-            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-
             expectPubsubLiveCommandPublish("publish live read command", read2.getEntityId());
 
             supervisor.tell(readResponse2, getRef());
-
-            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
 
             final RetrieveThingResponse retrieveThingResponse2 = expectMsgClass(RetrieveThingResponse.class);
             assertThat(retrieveThingResponse2.getDittoHeaders().getCorrelationId()).isEqualTo(
@@ -316,7 +304,6 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
 
             supervisor.tell(message, getRef());
 
-            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
 
             final var secondPublishRead = expectPubsubMessagePublish(message.getEntityId());
@@ -448,8 +435,6 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
             final ThingEvent<?> liveEventRevoked = liveEventRevoked();
 
             supervisor.tell(liveEventRevoked, getRef());
-
-            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
 
             TestSetup.fishForMsgClass(this, EventSendNotAllowedException.class);
         }};
