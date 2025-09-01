@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -41,18 +42,20 @@ import org.eclipse.ditto.wot.model.SingleUriAtContext;
 import org.eclipse.ditto.wot.model.ThingModel;
 import org.eclipse.ditto.wot.model.TmOptionalElement;
 
+import com.networknt.schema.JsonSchema;
 import com.networknt.schema.output.OutputUnit;
 
 final class InternalValidation {
 
-    private static final JsonSchemaTools JSON_SCHEMA_TOOLS = new JsonSchemaTools();
     private static final String PROPERTIES_PATH_PREFIX = "/properties/";
 
-    private InternalValidation() {
-        throw new AssertionError();
+    private final JsonSchemaTools jsonSchemaTools;
+
+    InternalValidation(@Nullable final Cache<JsonSchemaCacheKey, JsonSchema> jsonSchemaCache) {
+        jsonSchemaTools = new JsonSchemaTools(jsonSchemaCache);
     }
 
-    static CompletableFuture<Void> ensureOnlyDefinedProperties(final ThingModel thingModel,
+    CompletableFuture<Void> ensureOnlyDefinedProperties(final ThingModel thingModel,
             final Properties tdProperties,
             final JsonObject propertiesContainer,
             final String containerNamePlural,
@@ -104,7 +107,7 @@ final class InternalValidation {
         return success();
     }
 
-    static CompletableFuture<Void> ensureRequiredProperties(final ThingModel thingModel,
+    CompletableFuture<Void> ensureRequiredProperties(final ThingModel thingModel,
             final Properties tdProperties,
             final JsonObject propertiesContainer,
             final String containerNamePlural,
@@ -138,7 +141,7 @@ final class InternalValidation {
         return success();
     }
 
-    static CompletableFuture<Void> enforcePresenceOfRequiredPropertiesUponDeletion(
+    CompletableFuture<Void> enforcePresenceOfRequiredPropertiesUponDeletion(
             final ThingModel thingModel,
             final JsonPointer resourcePath,
             final boolean handleDittoCategory,
@@ -207,7 +210,7 @@ final class InternalValidation {
         return success();
     }
 
-    static boolean isPropertyRequired(final Property property,
+    boolean isPropertyRequired(final Property property,
             @Nullable final String category,
             final JsonPointer resourcePath,
             final boolean handleDittoCategory
@@ -227,7 +230,7 @@ final class InternalValidation {
         }
     }
 
-    private static boolean checkResourceForRequired(@Nullable final JsonPointer resourcePath,
+    private boolean checkResourceForRequired(@Nullable final JsonPointer resourcePath,
             final Property property,
             final String key
     ) {
@@ -263,7 +266,7 @@ final class InternalValidation {
         }
     }
 
-    static Map<String, Property> filterNonProvidedRequiredProperties(final Properties tdProperties,
+    Map<String, Property> filterNonProvidedRequiredProperties(final Properties tdProperties,
             final ThingModel thingModel,
             final JsonObject propertiesContainer,
             final boolean handleDittoCategory
@@ -295,7 +298,7 @@ final class InternalValidation {
         return nonProvidedRequiredProperties;
     }
 
-    static Map<String, Property> extractRequiredTmProperties(final Properties tdProperties,
+    Map<String, Property> extractRequiredTmProperties(final Properties tdProperties,
             final ThingModel thingModel
     ) {
         return thingModel.getTmOptional().map(tmOptionalElements -> {
@@ -309,7 +312,7 @@ final class InternalValidation {
         }).orElse(tdProperties);
     }
 
-    static boolean isTmPropertyRequired(final Property property,
+    boolean isTmPropertyRequired(final Property property,
             final ThingModel thingModel
     ) {
         return thingModel.getTmOptional()
@@ -321,7 +324,7 @@ final class InternalValidation {
                 ).orElse(false);
     }
 
-    static CompletableFuture<Void> ensureOnlyDefinedActions(@Nullable final Actions actions,
+    CompletableFuture<Void> ensureOnlyDefinedActions(@Nullable final Actions actions,
             final String messageSubject,
             final String containerName,
             final ValidationContext context
@@ -340,7 +343,7 @@ final class InternalValidation {
         return success();
     }
 
-    static CompletableFuture<Void> ensureOnlyDefinedEvents(
+    CompletableFuture<Void> ensureOnlyDefinedEvents(
             @Nullable final Events events,
             final String messageSubject,
             final String containerName,
@@ -387,7 +390,7 @@ final class InternalValidation {
                 .map(JsonValue::asString);
     }
 
-    static CompletableFuture<Void> validateProperties(final ThingModel thingModel,
+    CompletableFuture<Void> validateProperties(final ThingModel thingModel,
             final Properties tdProperties,
             final JsonObject propertiesContainer,
             final boolean validateRequiredObjectFields,
@@ -441,7 +444,7 @@ final class InternalValidation {
         return success();
     }
 
-    static Map<Property, OutputUnit> determineInvalidProperties(final Properties tdProperties,
+    Map<Property, OutputUnit> determineInvalidProperties(final Properties tdProperties,
             final Function<Property, Optional<JsonValue>> propertyExtractor,
             final boolean validateRequiredObjectFields,
             final ValidationContext context
@@ -451,7 +454,7 @@ final class InternalValidation {
                         propertyExtractor.apply(tdPropertyEntry.getValue())
                                 .map(propertyValue -> new AbstractMap.SimpleEntry<>(
                                         tdPropertyEntry.getValue(),
-                                        JSON_SCHEMA_TOOLS.validateDittoJsonBasedOnDataSchema(
+                                        jsonSchemaTools.validateDittoJsonBasedOnDataSchema(
                                                 tdPropertyEntry.getValue(),
                                                 JsonPointer.empty(),
                                                 validateRequiredObjectFields,
@@ -466,7 +469,7 @@ final class InternalValidation {
                 }, LinkedHashMap::new));
     }
 
-    static CompletableFuture<Void> validateProperty(final ThingModel thingModel,
+    CompletableFuture<Void> validateProperty(final ThingModel thingModel,
             final Properties tdProperties,
             final JsonPointer propertyPath,
             final boolean validateRequiredObjectFields,
@@ -553,7 +556,7 @@ final class InternalValidation {
         }
     }
 
-    static CompletableFuture<Void> enforceActionPayload(final ThingModel thingModel,
+    CompletableFuture<Void> enforceActionPayload(final ThingModel thingModel,
             final String messageSubject,
             @Nullable final JsonValue inputPayload,
             final JsonPointer resourcePath,
@@ -576,7 +579,7 @@ final class InternalValidation {
                 .orElseGet(InternalValidation::success);
     }
 
-    static CompletableFuture<Void> enforceEventPayload(final ThingModel thingModel,
+    CompletableFuture<Void> enforceEventPayload(final ThingModel thingModel,
             final String messageSubject,
             @Nullable final JsonValue dataPayload,
             final JsonPointer resourcePath,
@@ -598,7 +601,7 @@ final class InternalValidation {
                 .orElseGet(InternalValidation::success);
     }
 
-    static CompletableFuture<Void> validateSingleDataSchema(final SingleDataSchema dataSchema,
+    CompletableFuture<Void> validateSingleDataSchema(final SingleDataSchema dataSchema,
             final String validatedDescription,
             final JsonPointer pointerPath,
             final boolean validateRequiredObjectFields,
@@ -606,7 +609,7 @@ final class InternalValidation {
             final JsonPointer resourcePath,
             final ValidationContext context
     ) {
-        final OutputUnit validationOutput = JSON_SCHEMA_TOOLS.validateDittoJsonBasedOnDataSchema(
+        final OutputUnit validationOutput = jsonSchemaTools.validateDittoJsonBasedOnDataSchema(
                 dataSchema,
                 pointerPath,
                 validateRequiredObjectFields,

@@ -1174,6 +1174,16 @@ things:
         enabled: true
         # log-warning-instead-of-failing-api-calls whether to instead of to reject/fail API calls (when enabled=true), log a WARNING log instead
         log-warning-instead-of-failing-api-calls: false
+        # json-schema-cache-enabled whether to enable caching of JSON schemas created from WoT ThingModels
+        json-schema-cache-enabled: true
+        # jsonSchemaCache configuration of the JSON schema cache
+        jsonSchemaCache:
+          # maxSize the maximum size of JSON schemas to keep in the cache
+          maxSize: 10000
+          # expireAfterWrite the maximum duration of inconsistency after losing a cache invalidation
+          expireAfterWrite: 12h
+          # expireAfterAccess prolonged on each cache access by that duration
+          expireAfterAccess: 2h
         # thing provides configuration settings for WoT based validation of Things
         thing:
           # enforce holds all configuration relating to enforcing the model

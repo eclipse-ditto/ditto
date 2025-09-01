@@ -36,6 +36,8 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.FeatureToggle;
+import org.eclipse.ditto.internal.utils.cache.Cache;
+import org.eclipse.ditto.internal.utils.cache.CacheFactory;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -51,6 +53,7 @@ import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.wot.api.resolver.ThingSubmodel;
 import org.eclipse.ditto.wot.api.resolver.WotThingModelResolver;
 import org.eclipse.ditto.wot.model.ThingModel;
+import org.eclipse.ditto.wot.validation.JsonSchemaCacheKey;
 import org.eclipse.ditto.wot.validation.ValidationContext;
 import org.eclipse.ditto.wot.validation.WotThingModelPayloadValidationException;
 import org.eclipse.ditto.wot.validation.WotThingModelValidation;
@@ -60,17 +63,22 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.slf4j.spi.LoggingEventBuilder;
 
+import com.networknt.schema.JsonSchema;
+
 /**
  * Default Ditto specific implementation of {@link WotThingModelValidator}.
  */
 @Immutable
 public final class DefaultWotThingModelValidator implements WotThingModelValidator {
 
-    private static final Logger log = LoggerFactory.getLogger(DefaultWotThingModelValidator.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultWotThingModelValidator.class);
     private static final AtomicReference<DefaultWotThingModelValidator> INSTANCE = new AtomicReference<>();
+
+    private static final String JSON_SCHEMA_CACHE = "json_schema_cache";
 
     private final WotThingModelResolver thingModelResolver;
     private final Executor executor;
+    @Nullable private final Cache<JsonSchemaCacheKey, JsonSchema> jsonSchemaCache;
 
     private TmValidationConfig dynamicConfig;
 
@@ -79,8 +87,14 @@ public final class DefaultWotThingModelValidator implements WotThingModelValidat
             final TmValidationConfig initialConfig) {
         this.thingModelResolver = thingModelResolver;
         this.executor = executor;
-        log.debug("Initial TmValidationConfig: {}", initialConfig);
+        LOG.debug("Initial TmValidationConfig: {}", initialConfig);
         this.dynamicConfig = initialConfig;
+        if (initialConfig.isJsonSchemaCacheEnabled()) {
+            jsonSchemaCache =
+                    CacheFactory.createCache(initialConfig.getJsonSchemaCacheConfig(), JSON_SCHEMA_CACHE, executor);
+        } else {
+            jsonSchemaCache = null;
+        }
     }
 
     /**
@@ -105,7 +119,7 @@ public final class DefaultWotThingModelValidator implements WotThingModelValidat
     @Override
     public void updateConfig(final TmValidationConfig newConfig) {
         final TmValidationConfig oldConfig = dynamicConfig;
-        log.debug("Updating config from Old config JSON={} to New config JSON={}", oldConfig, newConfig);
+        LOG.debug("Updating config from Old config JSON={} to New config JSON={}", oldConfig, newConfig);
         dynamicConfig = newConfig;
     }
 
@@ -765,7 +779,7 @@ public final class DefaultWotThingModelValidator implements WotThingModelValidat
     }
 
     private WotThingModelValidation selectValidation(final TmValidationConfig validationConfig) {
-        return WotThingModelValidation.of(validationConfig, executor);
+        return WotThingModelValidation.of(validationConfig, executor, jsonSchemaCache);
     }
 
     private Optional<TmValidationConfig> provideValidationConfigIfWotValidationEnabled(
@@ -822,7 +836,7 @@ public final class DefaultWotThingModelValidator implements WotThingModelValidat
                     MDC.put("traceparent-span-id", traceParent.substring(36, 52));
                 }
         );
-        final LoggingEventBuilder logBuilder = logAsWarning ? log.atWarn() : log.atInfo();
+        final LoggingEventBuilder logBuilder = logAsWarning ? LOG.atWarn() : LOG.atInfo();
         logBuilder.log("WoT based validation of Thing <{}> in <{}()> failed for <TD {}>/<FD {}> due to: <{}>",
                 context.thingId(), loggingHintSource, context.thingDefinition(), context.featureDefinition(),
                 throwable.toString()
@@ -1170,11 +1184,6 @@ public final class DefaultWotThingModelValidator implements WotThingModelValidat
                         LinkedHashMap::new
                 )
         );
-    }
-
-    private static double getDuration(final long startTimeStamp) {
-        final int nanosecondsToMillisecondsFactor = 1_000_000;
-        return (double) (System.nanoTime() - startTimeStamp) / nanosecondsToMillisecondsFactor;
     }
 
     private static Set<JsonPointer> calculateLeaves(final JsonPointer path, final JsonValue value) {
