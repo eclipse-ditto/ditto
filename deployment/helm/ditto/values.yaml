@@ -1151,6 +1151,8 @@ things:
       cache:
         # modelCacheSize configures the amount of TMs to hold in the cache
         modelCacheSize: 1000
+        # expireAfterWrite configures how long a single TM should remain cached after first writing it to the cache
+        expireAfterWrite: 2d
         # expireAfterAccess configures how long a single TM should remain cached after its last access
         expireAfterAccess: 1d
       # tdJsonTemplate contains a json template added to generated TDs, e.g. containing security information:
@@ -1172,6 +1174,16 @@ things:
         enabled: true
         # log-warning-instead-of-failing-api-calls whether to instead of to reject/fail API calls (when enabled=true), log a WARNING log instead
         log-warning-instead-of-failing-api-calls: false
+        # json-schema-cache-enabled whether to enable caching of JSON schemas created from WoT ThingModels
+        json-schema-cache-enabled: true
+        # jsonSchemaCache configuration of the JSON schema cache
+        jsonSchemaCache:
+          # maxSize the maximum size of JSON schemas to keep in the cache
+          maxSize: 10000
+          # expireAfterWrite the maximum duration of inconsistency after losing a cache invalidation
+          expireAfterWrite: 12h
+          # expireAfterAccess prolonged on each cache access by that duration
+          expireAfterAccess: 2h
         # thing provides configuration settings for WoT based validation of Things
         thing:
           # enforce holds all configuration relating to enforcing the model

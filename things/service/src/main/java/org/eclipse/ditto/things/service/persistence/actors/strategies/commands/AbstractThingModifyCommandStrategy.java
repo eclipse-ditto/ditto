@@ -22,8 +22,10 @@ import javax.annotation.concurrent.Immutable;
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
-import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanTagKey;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 import org.eclipse.ditto.wot.integration.DittoWotIntegration;
@@ -36,6 +38,9 @@ import org.eclipse.ditto.wot.integration.DittoWotIntegration;
 @Immutable
 abstract class AbstractThingModifyCommandStrategy<C extends ThingModifyCommand<C>>
         extends AbstractThingCommandStrategy<C> {
+
+    private static final String TAG_DITTO_WOT_VALIDATION_SUCCESS = "ditto.wot.validation.success";
+    private static final String TAG_DITTO_NAMESPACE = "ditto.namespace";
 
     protected final Executor wotValidationExecutor;
 
@@ -73,12 +78,12 @@ abstract class AbstractThingModifyCommandStrategy<C extends ThingModifyCommand<C
             @Nullable final Thing previousThing,
             @Nullable final Thing previewThing
     ) {
-        final var startedSpan = DittoTracing.newPreparedSpan(
-                        command.getDittoHeaders(),
-                        SpanOperationName.of("enforce_wot_model")
-                )
-                .correlationId(command.getDittoHeaders().getCorrelationId().orElse(null))
+        final var startedTimer = DittoMetrics.timer("enforce_wot_model")
+                .tag(SpanTagKey.SIGNAL_TYPE.getTagForValue(command.getType()))
+                .tag(TAG_DITTO_NAMESPACE, command.getEntityId().getNamespace())
                 .start();
+        final var startedSpan = DittoTracing.newStartedSpanByTimer(command.getDittoHeaders(), startedTimer)
+                .tag(SpanTagKey.SIGNAL_TYPE.getTagForValue(command.getType()));
         final var tracedCommand =
                 command.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(command.getDittoHeaders())));
         return performWotValidation(tracedCommand, previousThing, previewThing)
@@ -87,11 +92,13 @@ abstract class AbstractThingModifyCommandStrategy<C extends ThingModifyCommand<C
                         if (completionException.getCause() instanceof DittoRuntimeException dre) {
                             startedSpan.tagAsFailed(dre.toString())
                                     .finish();
+                            startedTimer.tag(Tag.of(TAG_DITTO_WOT_VALIDATION_SUCCESS, false)).stop();
                         } else {
                             startedSpan.tagAsFailed(
                                     completionException.getCause().getClass().getSimpleName() + ": " +
                                             throwable.getCause().getMessage()
                                     ).finish();
+                            startedTimer.tag(Tag.of(TAG_DITTO_WOT_VALIDATION_SUCCESS, false)).stop();
                         }
                         return;
                     }
@@ -99,8 +106,10 @@ abstract class AbstractThingModifyCommandStrategy<C extends ThingModifyCommand<C
                     if (throwable != null) {
                         startedSpan.tagAsFailed(throwable.getClass().getSimpleName() + ": " + throwable.getMessage())
                                 .finish();
+                        startedTimer.tag(Tag.of(TAG_DITTO_WOT_VALIDATION_SUCCESS, false)).stop();
                     } else {
                         startedSpan.finish();
+                        startedTimer.tag(Tag.of(TAG_DITTO_WOT_VALIDATION_SUCCESS, true)).stop();
                     }
                 }, wotValidationExecutor);
 

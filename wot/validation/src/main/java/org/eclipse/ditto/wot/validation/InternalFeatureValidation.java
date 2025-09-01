@@ -14,18 +14,7 @@ package org.eclipse.ditto.wot.validation;
 
 import static org.eclipse.ditto.wot.validation.InternalValidation.determineDittoCategories;
 import static org.eclipse.ditto.wot.validation.InternalValidation.determineDittoCategory;
-import static org.eclipse.ditto.wot.validation.InternalValidation.enforceActionPayload;
-import static org.eclipse.ditto.wot.validation.InternalValidation.enforceEventPayload;
-import static org.eclipse.ditto.wot.validation.InternalValidation.enforcePresenceOfRequiredPropertiesUponDeletion;
-import static org.eclipse.ditto.wot.validation.InternalValidation.ensureOnlyDefinedActions;
-import static org.eclipse.ditto.wot.validation.InternalValidation.ensureOnlyDefinedEvents;
-import static org.eclipse.ditto.wot.validation.InternalValidation.ensureOnlyDefinedProperties;
-import static org.eclipse.ditto.wot.validation.InternalValidation.ensureRequiredProperties;
-import static org.eclipse.ditto.wot.validation.InternalValidation.extractRequiredTmProperties;
-import static org.eclipse.ditto.wot.validation.InternalValidation.filterNonProvidedRequiredProperties;
 import static org.eclipse.ditto.wot.validation.InternalValidation.success;
-import static org.eclipse.ditto.wot.validation.InternalValidation.validateProperties;
-import static org.eclipse.ditto.wot.validation.InternalValidation.validateProperty;
 
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -39,6 +28,7 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -51,13 +41,17 @@ import org.eclipse.ditto.wot.model.Properties;
 import org.eclipse.ditto.wot.model.Property;
 import org.eclipse.ditto.wot.model.ThingModel;
 
+import com.networknt.schema.JsonSchema;
+
 final class InternalFeatureValidation {
 
-    private InternalFeatureValidation() {
-        throw new AssertionError();
+    private final InternalValidation internalValidation;
+
+    InternalFeatureValidation(@Nullable final Cache<JsonSchemaCacheKey, JsonSchema> jsonSchemaCache) {
+        internalValidation = new InternalValidation(jsonSchemaCache);
     }
 
-    static CompletableFuture<Void> forbidNonModeledFeatures(@Nullable final Features features,
+    CompletableFuture<Void> forbidNonModeledFeatures(@Nullable final Features features,
             final Set<String> definedFeatureIds,
             final ValidationContext context
     ) {
@@ -79,7 +73,7 @@ final class InternalFeatureValidation {
         return success();
     }
 
-    static CompletableFuture<Void> enforcePresenceOfModeledFeatures(@Nullable final Features features,
+    CompletableFuture<Void> enforcePresenceOfModeledFeatures(@Nullable final Features features,
             final Set<String> definedFeatureIds,
             final ValidationContext context
     ) {
@@ -102,7 +96,7 @@ final class InternalFeatureValidation {
         return success();
     }
 
-    static CompletableFuture<List<Void>> enforceFeaturePropertiesInAllSubmodels(
+    CompletableFuture<List<Void>> enforceFeaturePropertiesInAllSubmodels(
             final Map<String, ThingModel> featureThingModels,
             final Features features,
             final boolean desiredProperties,
@@ -139,7 +133,7 @@ final class InternalFeatureValidation {
         return enforcedPropertiesListFuture;
     }
 
-    static CompletableFuture<Void> enforceFeatureProperties(final ThingModel featureThingModel,
+    CompletableFuture<Void> enforceFeatureProperties(final ThingModel featureThingModel,
             final Feature feature,
             final boolean desiredProperties,
             final boolean forbidNonModeledProperties,
@@ -163,7 +157,7 @@ final class InternalFeatureValidation {
 
                     final CompletableFuture<Void> ensureRequiredPropertiesStage;
                     if (!desiredProperties) {
-                        ensureRequiredPropertiesStage = ensureRequiredProperties(featureThingModel,
+                        ensureRequiredPropertiesStage = internalValidation.ensureRequiredProperties(featureThingModel,
                                 tdProperties,
                                 featureProperties,
                                 containerNamePlural,
@@ -178,26 +172,28 @@ final class InternalFeatureValidation {
 
                     final CompletableFuture<Void> ensureOnlyDefinedPropertiesStage;
                     if (forbidNonModeledProperties) {
-                        ensureOnlyDefinedPropertiesStage = ensureOnlyDefinedProperties(featureThingModel,
-                                tdProperties,
-                                featureProperties,
-                                containerNamePlural,
-                                true,
-                                context
-                        );
+                        ensureOnlyDefinedPropertiesStage =
+                                internalValidation.ensureOnlyDefinedProperties(featureThingModel,
+                                        tdProperties,
+                                        featureProperties,
+                                        containerNamePlural,
+                                        true,
+                                        context
+                                );
                     } else {
                         ensureOnlyDefinedPropertiesStage = success();
                     }
 
-                    final CompletableFuture<Void> validatePropertiesStage = validateProperties(featureThingModel,
-                            tdProperties,
-                            featureProperties,
-                            !desiredProperties,
-                            containerNamePlural,
-                            resourcePath,
-                            true,
-                            context
-                    );
+                    final CompletableFuture<Void> validatePropertiesStage =
+                            internalValidation.validateProperties(featureThingModel,
+                                    tdProperties,
+                                    featureProperties,
+                                    !desiredProperties,
+                                    containerNamePlural,
+                                    resourcePath,
+                                    true,
+                                    context
+                            );
 
                     return CompletableFuture.allOf(
                             ensureRequiredPropertiesStage,
@@ -207,7 +203,7 @@ final class InternalFeatureValidation {
                 }).orElseGet(InternalValidation::success);
     }
 
-    static CompletableFuture<Void> enforceFeatureProperty(final ThingModel featureThingModel,
+    CompletableFuture<Void> enforceFeatureProperty(final ThingModel featureThingModel,
             final String featureId,
             final JsonPointer propertyPath,
             final JsonValue propertyValue,
@@ -245,7 +241,7 @@ final class InternalFeatureValidation {
                 }).orElseGet(InternalValidation::success);
     }
 
-    private static CompletableFuture<Void> enforceFeaturePropertyOnlyDefinedProperties(
+    private CompletableFuture<Void> enforceFeaturePropertyOnlyDefinedProperties(
             final ThingModel featureThingModel,
             final JsonPointer propertyPath,
             final JsonValue propertyValue,
@@ -268,7 +264,7 @@ final class InternalFeatureValidation {
                 final FeatureProperties featureProperties = FeatureProperties.newBuilder()
                         .setAll(propertyValue.isObject() ? propertyValue.asObject() : JsonObject.empty())
                         .build();
-                return ensureOnlyDefinedProperties(featureThingModel,
+                return internalValidation.ensureOnlyDefinedProperties(featureThingModel,
                         propertiesInCategory,
                         featureProperties,
                         containerNamePlural,
@@ -281,7 +277,7 @@ final class InternalFeatureValidation {
                 final FeatureProperties featureProperties = FeatureProperties.newBuilder()
                         .set(propertyPath, propertyValue)
                         .build();
-                return ensureOnlyDefinedProperties(featureThingModel,
+                return internalValidation.ensureOnlyDefinedProperties(featureThingModel,
                         tdProperties,
                         featureProperties,
                         containerNamePlural,
@@ -293,7 +289,7 @@ final class InternalFeatureValidation {
         return success();
     }
 
-    private static CompletableFuture<Void> enforceFeaturePropertyValidateProperties(final ThingModel featureThingModel,
+    private CompletableFuture<Void> enforceFeaturePropertyValidateProperties(final ThingModel featureThingModel,
             final JsonPointer propertyPath,
             final JsonValue propertyValue,
             final boolean desiredProperty,
@@ -335,7 +331,7 @@ final class InternalFeatureValidation {
                         context
                 );
             } else {
-                return validateProperty(featureThingModel,
+                return internalValidation.validateProperty(featureThingModel,
                         tdProperties,
                         propertyPath,
                         !desiredProperty,
@@ -348,7 +344,7 @@ final class InternalFeatureValidation {
                 );
             }
         } else {
-            return validateProperty(featureThingModel,
+            return internalValidation.validateProperty(featureThingModel,
                     tdProperties,
                     propertyPath,
                     !desiredProperty,
@@ -362,7 +358,7 @@ final class InternalFeatureValidation {
         }
     }
 
-    static CompletableFuture<Void> enforcePresenceOfRequiredPropertiesUponFeatureLevelDeletion(
+    CompletableFuture<Void> enforcePresenceOfRequiredPropertiesUponFeatureLevelDeletion(
             final ThingModel featureThingModel,
             final String featureId,
             final JsonPointer resourcePath,
@@ -384,20 +380,20 @@ final class InternalFeatureValidation {
         }
 
         return firstStage.thenComposeAsync(unused ->
-                enforcePresenceOfRequiredPropertiesUponDeletion(
-                        featureThingModel,
-                        propertiesPath,
-                        true,
-                        determineDittoCategories(featureThingModel),
-                        "all Feature <" + featureId + "> properties",
-                        "Feature <" + featureId + "> property",
-                        context
-                ),
+                        internalValidation.enforcePresenceOfRequiredPropertiesUponDeletion(
+                                featureThingModel,
+                                propertiesPath,
+                                true,
+                                determineDittoCategories(featureThingModel),
+                                "all Feature <" + featureId + "> properties",
+                                "Feature <" + featureId + "> property",
+                                context
+                        ),
                 executor
         );
     }
 
-    private static CompletableFuture<Void> enforcePresenceOfRequiredPropertiesUponPropertyCategoryDeletion(
+    private CompletableFuture<Void> enforcePresenceOfRequiredPropertiesUponPropertyCategoryDeletion(
             final ThingModel featureThingModel,
             final String featureId,
             final ValidationContext context,
@@ -418,7 +414,7 @@ final class InternalFeatureValidation {
                                     .toList()
                             )
                     )
-                    .map(properties -> extractRequiredTmProperties(properties, featureThingModel))
+                    .map(properties -> internalValidation.extractRequiredTmProperties(properties, featureThingModel))
                     .map(map -> !map.isEmpty())
                     .orElse(false);
             if (containsRequiredProperties) {
@@ -434,7 +430,7 @@ final class InternalFeatureValidation {
         return success();
     }
 
-    static CompletableFuture<Void> enforceFeatureActionPayload(final String featureId,
+    CompletableFuture<Void> enforceFeatureActionPayload(final String featureId,
             final ThingModel featureThingModel,
             final String messageSubject,
             @Nullable final JsonValue inputPayload,
@@ -446,7 +442,7 @@ final class InternalFeatureValidation {
     ) {
         final CompletableFuture<Void> firstStage;
         if (forbidNonModeledInboxMessages) {
-            firstStage = ensureOnlyDefinedActions(featureThingModel.getActions().orElse(null),
+            firstStage = internalValidation.ensureOnlyDefinedActions(featureThingModel.getActions().orElse(null),
                     messageSubject,
                     "Feature <" + featureId + ">'s",
                     context
@@ -455,16 +451,17 @@ final class InternalFeatureValidation {
             firstStage = success();
         }
         return firstStage.thenComposeAsync(unused ->
-                enforceActionPayload(featureThingModel, messageSubject, inputPayload, resourcePath, isInput,
-                        "Feature <" + featureId + ">'s action <" + messageSubject + "> " +
-                                (isInput ? "input" : "output"),
-                        context
-                ),
+                        internalValidation.enforceActionPayload(featureThingModel, messageSubject, inputPayload, resourcePath,
+                                isInput,
+                                "Feature <" + featureId + ">'s action <" + messageSubject + "> " +
+                                        (isInput ? "input" : "output"),
+                                context
+                        ),
                 executor
         );
     }
 
-    static CompletableFuture<Void> enforceFeatureEventPayload(final String featureId,
+    CompletableFuture<Void> enforceFeatureEventPayload(final String featureId,
             final ThingModel featureThingModel,
             final String messageSubject,
             @Nullable final JsonValue payload,
@@ -475,7 +472,7 @@ final class InternalFeatureValidation {
     ) {
         final CompletableFuture<Void> firstStage;
         if (forbidNonModeledOutboxMessages) {
-            firstStage = ensureOnlyDefinedEvents(
+            firstStage = internalValidation.ensureOnlyDefinedEvents(
                     featureThingModel.getEvents().orElse(null),
                     messageSubject,
                     "Feature <" + featureId + ">'s",
@@ -485,15 +482,15 @@ final class InternalFeatureValidation {
             firstStage = success();
         }
         return firstStage.thenComposeAsync(unused ->
-                enforceEventPayload(featureThingModel, messageSubject, payload, resourcePath,
-                        "Feature <" + featureId + ">'s event <" + messageSubject + "> data",
-                        context
-                ),
+                        internalValidation.enforceEventPayload(featureThingModel, messageSubject, payload, resourcePath,
+                                "Feature <" + featureId + ">'s event <" + messageSubject + "> data",
+                                context
+                        ),
                 executor
         );
     }
 
-    static CompletableFuture<Void> validatePropertyCategory(final ThingModel featureThingModel,
+    CompletableFuture<Void> validatePropertyCategory(final ThingModel featureThingModel,
             final Properties categoryProperties,
             final JsonPointer propertyPath,
             final boolean validateRequiredObjectFields,
@@ -503,7 +500,8 @@ final class InternalFeatureValidation {
             final ValidationContext context
     ) {
         final Map<String, Property> nonProvidedRequiredProperties =
-                filterNonProvidedRequiredProperties(categoryProperties, featureThingModel, categoryObject, false);
+                internalValidation.filterNonProvidedRequiredProperties(categoryProperties, featureThingModel,
+                        categoryObject, false);
         final JsonKey category = propertyPath.getRoot().orElseThrow();
         final String propertyCategoryDescription = propertyDescription + " category <" + category + ">";
         if (validateRequiredObjectFields && !nonProvidedRequiredProperties.isEmpty()) {
@@ -520,7 +518,7 @@ final class InternalFeatureValidation {
                     .failedFuture(exceptionBuilder.dittoHeaders(context.dittoHeaders()).build());
         }
 
-        return validateProperties(
+        return internalValidation.validateProperties(
                 featureThingModel,
                 categoryProperties,
                 categoryObject,

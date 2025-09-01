@@ -278,6 +278,14 @@ spec:
               value: "{{ .Values.things.config.wot.tmValidation.enabled }}"
             - name: THINGS_WOT_TM_MODEL_VALIDATION_LOG_WARNING_INSTEAD_OF_FAILING_API_CALLS
               value: "{{ index .Values.things.config.wot.tmValidation "log-warning-instead-of-failing-api-calls" }}"
+            - name: THINGS_WOT_TM_MODEL_VALIDATION_JSON_SCHEMA_CACHE_ENABLED
+              value: "{{ index .Values.things.config.wot.tmValidation "json-schema-cache-enabled" }}"
+            - name: THINGS_WOT_TM_MODEL_VALIDATION_JSON_SCHEMA_CACHE_SIZE
+              value: "{{ index .Values.things.config.wot.tmValidation.jsonSchemaCache.maxSize }}"
+            - name: THINGS_WOT_TM_MODEL_VALIDATION_JSON_SCHEMA_CACHE_EXPIRE_AFTER_WRITE
+              value: "{{ index .Values.things.config.wot.tmValidation.jsonSchemaCache.expireAfterWrite }}"
+            - name: THINGS_WOT_TM_MODEL_VALIDATION_JSON_SCHEMA_CACHE_EXPIRE_AFTER_ACCESS
+              value: "{{ index .Values.things.config.wot.tmValidation.jsonSchemaCache.expireAfterAccess }}"
             - name: THINGS_WOT_TM_MODEL_VALIDATION_THING_ENFORCE_TD_MODIFICATION
               value: "{{ index .Values.things.config.wot.tmValidation.thing.enforce "thing-description-modification" }}"
             - name: THINGS_WOT_TM_MODEL_VALIDATION_THING_ENFORCE_ATTRIBUTES
