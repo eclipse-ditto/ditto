@@ -18,6 +18,7 @@ import java.util.concurrent.Executor;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Attributes;
@@ -27,6 +28,8 @@ import org.eclipse.ditto.things.model.Features;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.wot.model.ThingModel;
 import org.eclipse.ditto.wot.validation.config.TmValidationConfig;
+
+import com.networknt.schema.JsonSchema;
 
 /**
  * Provides functionality to validate specific parts of a Ditto {@link Thing} and/or Ditto Thing {@link Features} and
@@ -337,6 +340,20 @@ public interface WotThingModelValidation {
      * @return the created WotThingModelValidation.
      */
     static WotThingModelValidation of(final TmValidationConfig validationConfig, final Executor executor) {
-        return new DefaultWotThingModelValidation(validationConfig, executor);
+        return new DefaultWotThingModelValidation(validationConfig, executor, null);
+    }
+
+    /**
+     * Creates a new instance of WotThingModelValidation with the given {@code validationConfig}.
+     *
+     * @param validationConfig the WoT TM validation config to use.
+     * @param executor the executor to use for async operations.
+     * @param jsonSchemaCache the JsonSchema cache to use for accessing generated JsonSchemas more efficiently.
+     * @return the created WotThingModelValidation.
+     * @since 3.8.0
+     */
+    static WotThingModelValidation of(final TmValidationConfig validationConfig, final Executor executor,
+            @Nullable final Cache<JsonSchemaCacheKey, JsonSchema> jsonSchemaCache) {
+        return new DefaultWotThingModelValidation(validationConfig, executor, jsonSchemaCache);
     }
 }

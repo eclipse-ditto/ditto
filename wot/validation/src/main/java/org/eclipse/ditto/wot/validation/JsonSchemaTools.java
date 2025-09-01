@@ -23,6 +23,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.json.CborFactoryLoader;
 import org.eclipse.ditto.json.CborFactory;
 import org.eclipse.ditto.json.JsonCollectors;
@@ -57,19 +58,23 @@ import com.networknt.schema.output.OutputUnit;
  */
 final class JsonSchemaTools {
 
+
     private static final String PROPERTIES = "properties";
 
     private final CborFactory cborFactory;
     private final ObjectMapper jacksonCborMapper;
     private final SchemaValidatorsConfig schemaValidatorsConfig;
+    @Nullable
+    private final Cache<JsonSchemaCacheKey, JsonSchema> jsonSchemaCache;
 
-    JsonSchemaTools() {
+    JsonSchemaTools(@Nullable final Cache<JsonSchemaCacheKey, JsonSchema> jsonSchemaCache) {
         final var cborFactoryLoader = CborFactoryLoader.getInstance();
         cborFactory = cborFactoryLoader.getCborFactoryOrThrow();
         jacksonCborMapper = new CBORMapper();
         schemaValidatorsConfig = SchemaValidatorsConfig.builder()
                 .pathType(PathType.JSON_POINTER)
                 .build();
+        this.jsonSchemaCache = jsonSchemaCache;
     }
 
     JsonSchema extractFromSingleDataSchema(final SingleDataSchema dataSchema,
@@ -154,8 +159,17 @@ final class JsonSchemaTools {
             @Nullable final JsonValue jsonValue,
             final DittoHeaders dittoHeaders
     ) {
-        final JsonSchema jsonSchema =
-                extractFromSingleDataSchema(dataSchema, validateRequiredObjectFields, dittoHeaders);
+        final JsonSchemaCacheKey schemaCacheKey = new JsonSchemaCacheKey(dataSchema, validateRequiredObjectFields);
+        final JsonSchema jsonSchema = Optional.ofNullable(jsonSchemaCache)
+                .flatMap(c -> c.getBlocking(schemaCacheKey))
+                .orElseGet(() -> {
+                    final JsonSchema extractedSchema =
+                            extractFromSingleDataSchema(dataSchema, validateRequiredObjectFields, dittoHeaders);
+                    if (jsonSchemaCache != null) {
+                        jsonSchemaCache.put(schemaCacheKey, extractedSchema);
+                    }
+                    return extractedSchema;
+                });
 
         JsonPointer relativePropertyPath = JsonPointer.empty();
         JsonSchema effectiveSchema = jsonSchema;

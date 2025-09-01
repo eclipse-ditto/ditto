@@ -12,19 +12,6 @@
  */
 package org.eclipse.ditto.wot.validation;
 
-import static org.eclipse.ditto.wot.validation.InternalFeatureValidation.enforceFeatureActionPayload;
-import static org.eclipse.ditto.wot.validation.InternalFeatureValidation.enforceFeatureEventPayload;
-import static org.eclipse.ditto.wot.validation.InternalFeatureValidation.enforceFeatureProperties;
-import static org.eclipse.ditto.wot.validation.InternalFeatureValidation.enforceFeaturePropertiesInAllSubmodels;
-import static org.eclipse.ditto.wot.validation.InternalFeatureValidation.enforceFeatureProperty;
-import static org.eclipse.ditto.wot.validation.InternalFeatureValidation.enforcePresenceOfModeledFeatures;
-import static org.eclipse.ditto.wot.validation.InternalFeatureValidation.enforcePresenceOfRequiredPropertiesUponFeatureLevelDeletion;
-import static org.eclipse.ditto.wot.validation.InternalFeatureValidation.forbidNonModeledFeatures;
-import static org.eclipse.ditto.wot.validation.InternalThingValidation.enforcePresenceOfRequiredPropertiesUponThingLevelDeletion;
-import static org.eclipse.ditto.wot.validation.InternalThingValidation.enforceThingActionPayload;
-import static org.eclipse.ditto.wot.validation.InternalThingValidation.enforceThingAttribute;
-import static org.eclipse.ditto.wot.validation.InternalThingValidation.enforceThingAttributes;
-import static org.eclipse.ditto.wot.validation.InternalThingValidation.enforceThingEventPayload;
 import static org.eclipse.ditto.wot.validation.InternalValidation.success;
 
 import java.util.Map;
@@ -35,6 +22,7 @@ import java.util.concurrent.Executor;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -46,6 +34,8 @@ import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.wot.model.ThingModel;
 import org.eclipse.ditto.wot.validation.config.TmValidationConfig;
 
+import com.networknt.schema.JsonSchema;
+
 /**
  * Default implementation for WoT ThingModel based validation/enforcement.
  */
@@ -53,10 +43,15 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
 
     private final TmValidationConfig validationConfig;
     private final Executor executor;
+    private final InternalThingValidation internalThingValidation;
+    private final InternalFeatureValidation internalFeatureValidation;
 
-    DefaultWotThingModelValidation(final TmValidationConfig validationConfig, final Executor executor) {
+    DefaultWotThingModelValidation(final TmValidationConfig validationConfig, final Executor executor,
+            @Nullable final Cache<JsonSchemaCacheKey, JsonSchema> jsonSchemaCache) {
         this.validationConfig = validationConfig;
         this.executor = executor;
+        internalThingValidation = new InternalThingValidation(jsonSchemaCache);
+        internalFeatureValidation = new InternalFeatureValidation(jsonSchemaCache);
     }
 
     @Override
@@ -66,7 +61,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
             final ValidationContext context
     ) {
         if (validationConfig.getThingValidationConfig().isEnforceAttributes() && attributes != null) {
-            return enforceThingAttributes(thingModel,
+            return internalThingValidation.enforceThingAttributes(thingModel,
                     attributes,
                     validationConfig.getThingValidationConfig().isForbidNonModeledAttributes(),
                     resourcePath,
@@ -84,7 +79,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
             final ValidationContext context
     ) {
         if (validationConfig.getThingValidationConfig().isEnforceAttributes()) {
-            return enforceThingAttribute(thingModel,
+            return internalThingValidation.enforceThingAttribute(thingModel,
                     attributePointer,
                     attributeValue,
                     validationConfig.getThingValidationConfig().isForbidNonModeledAttributes(),
@@ -104,7 +99,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
         if (resourcePath.getRoot().filter(DefaultWotThingModelValidation::isConcerningAttributes).isPresent() &&
                 validationConfig.getThingValidationConfig().isEnforceAttributes()
         ) {
-            return enforcePresenceOfRequiredPropertiesUponThingLevelDeletion(thingModel,
+            return internalThingValidation.enforcePresenceOfRequiredPropertiesUponThingLevelDeletion(thingModel,
                     resourcePath,
                     context
             );
@@ -143,7 +138,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
             final ValidationContext context
     ) {
         if (validationConfig.getThingValidationConfig().isEnforceInboxMessagesInput()) {
-            return enforceThingActionPayload(thingModel,
+            return internalThingValidation.enforceThingActionPayload(thingModel,
                     messageSubject,
                     inputPayload,
                     validationConfig.getThingValidationConfig().isForbidNonModeledInboxMessages(),
@@ -164,7 +159,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
             final ValidationContext context
     ) {
         if (validationConfig.getThingValidationConfig().isEnforceInboxMessagesOutput()) {
-            return enforceThingActionPayload(thingModel,
+            return internalThingValidation.enforceThingActionPayload(thingModel,
                     messageSubject,
                     outputPayload,
                     validationConfig.getThingValidationConfig().isForbidNonModeledInboxMessages(),
@@ -185,7 +180,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
             final ValidationContext context
     ) {
         if (validationConfig.getThingValidationConfig().isEnforceOutboxMessages()) {
-            return enforceThingEventPayload(thingModel,
+            return internalThingValidation.enforceThingEventPayload(thingModel,
                     messageSubject,
                     dataPayload,
                     validationConfig.getThingValidationConfig().isForbidNonModeledOutboxMessages(),
@@ -204,14 +199,14 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
     ) {
         final CompletableFuture<Void> firstStage;
         if (validationConfig.getFeatureValidationConfig().isEnforcePresenceOfModeledFeatures()) {
-            firstStage = enforcePresenceOfModeledFeatures(features, featureThingModels.keySet(), context);
+            firstStage = internalFeatureValidation.enforcePresenceOfModeledFeatures(features, featureThingModels.keySet(), context);
         } else {
             firstStage = success();
         }
 
         final CompletableFuture<Void> secondStage;
         if (validationConfig.getFeatureValidationConfig().isForbidNonModeledFeatures()) {
-            secondStage = forbidNonModeledFeatures(features, featureThingModels.keySet(), context);
+            secondStage = internalFeatureValidation.forbidNonModeledFeatures(features, featureThingModels.keySet(), context);
         } else {
             secondStage = success();
         }
@@ -226,7 +221,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
     ) {
         final CompletableFuture<Void> firstStage;
         if (validationConfig.getFeatureValidationConfig().isEnforceProperties() && features != null) {
-            firstStage = enforceFeaturePropertiesInAllSubmodels(
+            firstStage = internalFeatureValidation.enforceFeaturePropertiesInAllSubmodels(
                     featureThingModels,
                     features,
                     false,
@@ -240,7 +235,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
 
         final CompletableFuture<Void> secondStage;
         if (validationConfig.getFeatureValidationConfig().isEnforceDesiredProperties() && features != null) {
-            secondStage = enforceFeaturePropertiesInAllSubmodels(
+            secondStage = internalFeatureValidation.enforceFeaturePropertiesInAllSubmodels(
                     featureThingModels,
                     features,
                     true,
@@ -282,7 +277,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
     ) {
         final CompletableFuture<Void> firstStage;
         if (validationConfig.getFeatureValidationConfig().isEnforceProperties()) {
-            firstStage = enforceFeatureProperties(featureThingModel,
+            firstStage = internalFeatureValidation.enforceFeatureProperties(featureThingModel,
                     feature,
                     false,
                     validationConfig.getFeatureValidationConfig().isForbidNonModeledProperties(),
@@ -295,7 +290,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
 
         final CompletableFuture<Void> secondStage;
         if (validationConfig.getFeatureValidationConfig().isEnforceDesiredProperties()) {
-            secondStage = enforceFeatureProperties(featureThingModel,
+            secondStage = internalFeatureValidation.enforceFeatureProperties(featureThingModel,
                     feature,
                     true,
                     validationConfig.getFeatureValidationConfig().isForbidNonModeledDesiredProperties(),
@@ -322,7 +317,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                         (desiredProperties &&
                                 validationConfig.getFeatureValidationConfig().isEnforceDesiredProperties())
         ) {
-            return enforceFeatureProperties(featureThingModel,
+            return internalFeatureValidation.enforceFeatureProperties(featureThingModel,
                     desiredProperties ?
                             Feature.newBuilder().desiredProperties(featureProperties).withId(featureId).build() :
                             Feature.newBuilder().properties(featureProperties).withId(featureId).build(),
@@ -347,7 +342,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
             final ValidationContext context
     ) {
         if (validationConfig.getFeatureValidationConfig().isEnforceProperties()) {
-            return enforceFeatureProperty(featureThingModel,
+            return internalFeatureValidation.enforceFeatureProperty(featureThingModel,
                     featureId,
                     propertyPointer,
                     propertyValue,
@@ -383,7 +378,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
         }
 
         if (validationConfig.getFeatureValidationConfig().isEnforceProperties()) {
-            return enforcePresenceOfRequiredPropertiesUponFeatureLevelDeletion(featureThingModel,
+            return internalFeatureValidation.enforcePresenceOfRequiredPropertiesUponFeatureLevelDeletion(featureThingModel,
                     featureId,
                     resourcePath,
                     context,
@@ -404,7 +399,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
             final ValidationContext context
     ) {
         if (validationConfig.getFeatureValidationConfig().isEnforceInboxMessagesInput()) {
-            return enforceFeatureActionPayload(featureId,
+            return internalFeatureValidation.enforceFeatureActionPayload(featureId,
                     featureThingModel,
                     messageSubject,
                     inputPayload,
@@ -427,7 +422,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
             final ValidationContext context
     ) {
         if (validationConfig.getFeatureValidationConfig().isEnforceInboxMessagesOutput()) {
-            return enforceFeatureActionPayload(featureId,
+            return internalFeatureValidation.enforceFeatureActionPayload(featureId,
                     featureThingModel,
                     messageSubject,
                     outputPayload,
@@ -450,7 +445,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
             final ValidationContext context
     ) {
         if (validationConfig.getFeatureValidationConfig().isEnforceOutboxMessages()) {
-            return enforceFeatureEventPayload(featureId,
+            return internalFeatureValidation.enforceFeatureEventPayload(featureId,
                     featureThingModel,
                     messageSubject,
                     dataPayload,
