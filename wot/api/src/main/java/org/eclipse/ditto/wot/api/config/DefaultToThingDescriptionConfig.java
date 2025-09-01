@@ -41,6 +41,7 @@ final class DefaultToThingDescriptionConfig implements ToThingDescriptionConfig 
     private final Map<String, JsonValue> placeholders;
     private final boolean addCreated;
     private final boolean addModified;
+    private final boolean generateUriVariables;
 
     private DefaultToThingDescriptionConfig(final ScopedConfig scopedConfig) {
         basePrefix = scopedConfig.getString(ConfigValue.BASE_PREFIX.getConfigPath());
@@ -58,6 +59,7 @@ final class DefaultToThingDescriptionConfig implements ToThingDescriptionConfig 
                 .collect(Collectors.toMap(f -> f.getKey().toString(), JsonField::getValue));
         addCreated = scopedConfig.getBoolean(ConfigValue.ADD_CREATED.getConfigPath());
         addModified = scopedConfig.getBoolean(ConfigValue.ADD_MODIFIED.getConfigPath());
+        generateUriVariables = scopedConfig.getBoolean(ConfigValue.GENERATE_URI_VARIABLES.getConfigPath());
     }
 
     /**
@@ -95,6 +97,11 @@ final class DefaultToThingDescriptionConfig implements ToThingDescriptionConfig 
     @Override
     public boolean addModified() {
         return addModified;
+    }
+
+    @Override
+    public boolean generateUriVariables() {
+        return generateUriVariables;
     }
 
     @Override

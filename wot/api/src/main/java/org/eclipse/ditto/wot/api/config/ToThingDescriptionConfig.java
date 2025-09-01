@@ -67,6 +67,15 @@ public interface ToThingDescriptionConfig {
     boolean addModified();
 
     /**
+     * Returns whether to generate {@code "uriVariables"} to each TD and "property bag" for hrefs referencing the
+     * uriVariables.
+     * @return whether to generate {@code "uriVariables"} to each TD and "property bag" for hrefs referencing the
+     * uriVariables.
+     * @since 3.8.0
+     */
+    boolean generateUriVariables();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code ToThingDescriptionConfig}.
      */
@@ -95,7 +104,14 @@ public interface ToThingDescriptionConfig {
         /**
          * Whether to add {@code "modified"} to each TD.
          */
-        ADD_MODIFIED("add-modified", false);
+        ADD_MODIFIED("add-modified", false),
+
+        /**
+         * Whether to generate {@code "uriVariables"} to each TD and "property bag" for hrefs referencing the
+         * uriVariables.
+         * @since 3.8.0
+         */
+        GENERATE_URI_VARIABLES("generate-uri-variables", false);
 
         private final String path;
         private final Object defaultValue;

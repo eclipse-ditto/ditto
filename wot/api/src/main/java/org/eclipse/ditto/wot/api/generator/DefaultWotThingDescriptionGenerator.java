@@ -290,12 +290,14 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
                         addThingDescriptionForms(cleanedTm, tdBuilder, Feature.JsonFields.PROPERTIES.getPointer());
                     }
 
-                    tdBuilder.setUriVariables(provideUriVariables(
-                            DittoHeaderDefinition.CHANNEL.getKey(),
-                            DittoHeaderDefinition.TIMEOUT.getKey(),
-                            DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(),
-                            DITTO_FIELDS_URI_VARIABLE
-                    ));
+                    if (toThingDescriptionConfig.generateUriVariables()) {
+                        tdBuilder.setUriVariables(provideUriVariables(
+                                DittoHeaderDefinition.CHANNEL.getKey(),
+                                DittoHeaderDefinition.TIMEOUT.getKey(),
+                                DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(),
+                                DITTO_FIELDS_URI_VARIABLE
+                        ));
+                    }
                     tdBuilder.setSchemaDefinitions(SchemaDefinitions.of(
                             Map.of(SCHEMA_DITTO_ERROR, buildDittoErrorSchema())
                     ));
@@ -464,7 +466,7 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
                 .setHref(IRI.of(tmUrl.toString()))
                 .setType(ContentType.APPLICATION_TM_JSON.getValue())
                 .build();
-        newLinks.add(0, typeLink); // add at first position
+        newLinks.addFirst(typeLink);
 
         if (addCollectionLinkPointingToThingId) {
             final Link collectionLink = Link.newBuilder()
@@ -472,7 +474,7 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
                     .setHref(IRI.of(buildThingIdBasePath(thingId)))
                     .setType(ContentType.APPLICATION_TD_JSON.getValue())
                     .build();
-            newLinks.add(0, collectionLink); // add at first position
+            newLinks.addFirst(collectionLink);
         }
 
         tdBuilder.setLinks(newLinks);
@@ -516,6 +518,7 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
     private void addThingDescriptionForms(final ThingModel thingModel,
             final ThingDescription.Builder tdBuilder,
             final JsonPointer propertiesPath) {
+
         generateRootForms(thingModel, tdBuilder, propertiesPath);
         generatePropertiesForms(thingModel, tdBuilder, propertiesPath);
         generateActionsForms(thingModel, tdBuilder);
@@ -542,17 +545,23 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
             final JsonPointer propertiesPath) {
 
         final Optional<RootForms> thingModelForms = thingModel.getForms();
-        final String writeUriVariablesParams = provideUriVariablesBag(
-                DittoHeaderDefinition.CHANNEL.getKey(),
-                DittoHeaderDefinition.TIMEOUT.getKey(),
-                DittoHeaderDefinition.RESPONSE_REQUIRED.getKey());
-        final String readUriVariablesParams = provideUriVariablesBag(
-                DittoHeaderDefinition.CHANNEL.getKey(),
-                DittoHeaderDefinition.TIMEOUT.getKey());
-        final String readMultiplePropertiesUriVariablesParams = provideUriVariablesBag(
-                DITTO_FIELDS_URI_VARIABLE,
-                DittoHeaderDefinition.CHANNEL.getKey(),
-                DittoHeaderDefinition.TIMEOUT.getKey());
+        final String writeUriVariablesParams =  toThingDescriptionConfig.generateUriVariables() ?
+                provideUriVariablesBag(
+                    DittoHeaderDefinition.CHANNEL.getKey(),
+                    DittoHeaderDefinition.TIMEOUT.getKey(),
+                    DittoHeaderDefinition.RESPONSE_REQUIRED.getKey()
+                ) : "";
+        final String readUriVariablesParams = toThingDescriptionConfig.generateUriVariables() ?
+                provideUriVariablesBag(
+                    DittoHeaderDefinition.CHANNEL.getKey(),
+                    DittoHeaderDefinition.TIMEOUT.getKey()
+                ) : "";
+        final String readMultiplePropertiesUriVariablesParams = toThingDescriptionConfig.generateUriVariables() ?
+                provideUriVariablesBag(
+                    DITTO_FIELDS_URI_VARIABLE,
+                    DittoHeaderDefinition.CHANNEL.getKey(),
+                    DittoHeaderDefinition.TIMEOUT.getKey()
+                ) : "";
         final String hrefWithoutLeadingSlash = propertiesPath.toString().substring(1);
         if (thingModelForms.isPresent()) {
             tdBuilder.setForms(thingModelForms.get()
@@ -668,13 +677,17 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
                             .orElse(propertiesPointer);
 
                     final JsonPointer propertyHref = pointer.addLeaf(JsonKey.of(propertyName));
-                    final String writeUriVariablesParams = provideUriVariablesBag(
-                            DittoHeaderDefinition.CHANNEL.getKey(),
-                            DittoHeaderDefinition.TIMEOUT.getKey(),
-                            DittoHeaderDefinition.RESPONSE_REQUIRED.getKey());
-                    final String readUriVariablesParams = provideUriVariablesBag(
-                            DittoHeaderDefinition.CHANNEL.getKey(),
-                            DittoHeaderDefinition.TIMEOUT.getKey());
+                    final String writeUriVariablesParams = toThingDescriptionConfig.generateUriVariables() ?
+                            provideUriVariablesBag(
+                                DittoHeaderDefinition.CHANNEL.getKey(),
+                                DittoHeaderDefinition.TIMEOUT.getKey(),
+                                DittoHeaderDefinition.RESPONSE_REQUIRED.getKey()
+                            ) : "";
+                    final String readUriVariablesParams = toThingDescriptionConfig.generateUriVariables() ?
+                            provideUriVariablesBag(
+                                DittoHeaderDefinition.CHANNEL.getKey(),
+                                DittoHeaderDefinition.TIMEOUT.getKey()
+                            ) : "";
                     final String hrefWithoutLeadingSlash = propertyHref.toString().substring(1);
                     return property.getForms()
                             .map(propertyFormElements -> property.toBuilder()
@@ -845,9 +858,11 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
                     final String actionName = actionEntry.getKey();
                     final Action action = actionEntry.getValue();
                     final String actionHrefWithoutLeadingSlash = "inbox/messages/" + actionName;
-                    final String uriVariablesParams = provideUriVariablesBag(
-                            DittoHeaderDefinition.TIMEOUT.getKey(),
-                            DittoHeaderDefinition.RESPONSE_REQUIRED.getKey());
+                    final String uriVariablesParams = toThingDescriptionConfig.generateUriVariables() ?
+                            provideUriVariablesBag(
+                                DittoHeaderDefinition.TIMEOUT.getKey(),
+                                DittoHeaderDefinition.RESPONSE_REQUIRED.getKey()
+                            ) : "";
                     return action.getForms()
                             .map(actionFormElements -> action.toBuilder()
                                     .setSynchronous(true)
