@@ -12,16 +12,7 @@
  */
 package org.eclipse.ditto.wot.validation;
 
-import static org.eclipse.ditto.wot.validation.InternalValidation.enforceActionPayload;
-import static org.eclipse.ditto.wot.validation.InternalValidation.enforceEventPayload;
-import static org.eclipse.ditto.wot.validation.InternalValidation.enforcePresenceOfRequiredPropertiesUponDeletion;
-import static org.eclipse.ditto.wot.validation.InternalValidation.ensureOnlyDefinedActions;
-import static org.eclipse.ditto.wot.validation.InternalValidation.ensureOnlyDefinedEvents;
-import static org.eclipse.ditto.wot.validation.InternalValidation.ensureOnlyDefinedProperties;
-import static org.eclipse.ditto.wot.validation.InternalValidation.ensureRequiredProperties;
 import static org.eclipse.ditto.wot.validation.InternalValidation.success;
-import static org.eclipse.ditto.wot.validation.InternalValidation.validateProperties;
-import static org.eclipse.ditto.wot.validation.InternalValidation.validateProperty;
 
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -29,18 +20,23 @@ import java.util.concurrent.Executor;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.wot.model.ThingModel;
 
+import com.networknt.schema.JsonSchema;
+
 final class InternalThingValidation {
 
-    private InternalThingValidation() {
-        throw new AssertionError();
+    private final InternalValidation internalValidation;
+
+    InternalThingValidation(@Nullable final Cache<JsonSchemaCacheKey, JsonSchema> jsonSchemaCache) {
+        internalValidation = new InternalValidation(jsonSchemaCache);
     }
 
-    static CompletableFuture<Void> enforceThingAttributes(final ThingModel thingModel,
+    CompletableFuture<Void> enforceThingAttributes(final ThingModel thingModel,
             final Attributes attributes,
             final boolean forbidNonModeledAttributes,
             final JsonPointer resourcePath,
@@ -49,19 +45,20 @@ final class InternalThingValidation {
         return thingModel.getProperties()
                 .map(tdProperties -> {
                     final String containerNamePlural = "Thing's attributes";
-                    final CompletableFuture<Void> ensureRequiredPropertiesStage = ensureRequiredProperties(thingModel,
-                            tdProperties,
-                            attributes,
-                            containerNamePlural,
-                            "Thing's attribute",
-                            resourcePath,
-                            false,
-                            context
-                    );
+                    final CompletableFuture<Void> ensureRequiredPropertiesStage =
+                            internalValidation.ensureRequiredProperties(thingModel,
+                                    tdProperties,
+                                    attributes,
+                                    containerNamePlural,
+                                    "Thing's attribute",
+                                    resourcePath,
+                                    false,
+                                    context
+                            );
 
                     final CompletableFuture<Void> ensureOnlyDefinedPropertiesStage;
                     if (forbidNonModeledAttributes) {
-                        ensureOnlyDefinedPropertiesStage = ensureOnlyDefinedProperties(thingModel,
+                        ensureOnlyDefinedPropertiesStage = internalValidation.ensureOnlyDefinedProperties(thingModel,
                                 tdProperties,
                                 attributes,
                                 containerNamePlural,
@@ -72,15 +69,16 @@ final class InternalThingValidation {
                         ensureOnlyDefinedPropertiesStage = success();
                     }
 
-                    final CompletableFuture<Void> validatePropertiesStage = validateProperties(thingModel,
-                            tdProperties,
-                            attributes,
-                            true,
-                            containerNamePlural,
-                            resourcePath,
-                            false,
-                            context
-                    );
+                    final CompletableFuture<Void> validatePropertiesStage =
+                            internalValidation.validateProperties(thingModel,
+                                    tdProperties,
+                                    attributes,
+                                    true,
+                                    containerNamePlural,
+                                    resourcePath,
+                                    false,
+                                    context
+                            );
 
                     return CompletableFuture.allOf(
                             ensureRequiredPropertiesStage,
@@ -90,7 +88,7 @@ final class InternalThingValidation {
                 }).orElseGet(InternalValidation::success);
     }
 
-    static CompletableFuture<Void> enforceThingAttribute(final ThingModel thingModel,
+    CompletableFuture<Void> enforceThingAttribute(final ThingModel thingModel,
             final JsonPointer attributePath,
             final JsonValue attributeValue,
             final boolean forbidNonModeledAttributes,
@@ -102,7 +100,7 @@ final class InternalThingValidation {
                     final Attributes attributes = Attributes.newBuilder().set(attributePath, attributeValue).build();
                     final CompletableFuture<Void> ensureOnlyDefinedPropertiesStage;
                     if (forbidNonModeledAttributes) {
-                        ensureOnlyDefinedPropertiesStage = ensureOnlyDefinedProperties(thingModel,
+                        ensureOnlyDefinedPropertiesStage = internalValidation.ensureOnlyDefinedProperties(thingModel,
                                 tdProperties,
                                 attributes,
                                 "Thing's attributes",
@@ -113,16 +111,17 @@ final class InternalThingValidation {
                         ensureOnlyDefinedPropertiesStage = success();
                     }
 
-                    final CompletableFuture<Void> validatePropertiesStage = validateProperty(thingModel,
-                            tdProperties,
-                            attributePath,
-                            true,
-                            attributeValue,
-                            "Thing's attribute <" + attributePath + ">", resourcePath,
-                            false,
-                            Set.of(),
-                            context
-                    );
+                    final CompletableFuture<Void> validatePropertiesStage =
+                            internalValidation.validateProperty(thingModel,
+                                    tdProperties,
+                                    attributePath,
+                                    true,
+                                    attributeValue,
+                                    "Thing's attribute <" + attributePath + ">", resourcePath,
+                                    false,
+                                    Set.of(),
+                                    context
+                            );
 
                     return CompletableFuture.allOf(
                             ensureOnlyDefinedPropertiesStage,
@@ -131,12 +130,12 @@ final class InternalThingValidation {
                 }).orElseGet(InternalValidation::success);
     }
 
-    static CompletableFuture<Void> enforcePresenceOfRequiredPropertiesUponThingLevelDeletion(
+    CompletableFuture<Void> enforcePresenceOfRequiredPropertiesUponThingLevelDeletion(
             final ThingModel thingModel,
             final JsonPointer resourcePath,
             final ValidationContext context
     ) {
-        return enforcePresenceOfRequiredPropertiesUponDeletion(
+        return internalValidation.enforcePresenceOfRequiredPropertiesUponDeletion(
                 thingModel,
                 resourcePath,
                 false,
@@ -147,7 +146,7 @@ final class InternalThingValidation {
         );
     }
 
-    static CompletableFuture<Void> enforceThingActionPayload(final ThingModel thingModel,
+    CompletableFuture<Void> enforceThingActionPayload(final ThingModel thingModel,
             final String messageSubject,
             @Nullable final JsonValue payload,
             final boolean forbidNonModeledInboxMessages,
@@ -158,7 +157,7 @@ final class InternalThingValidation {
     ) {
         final CompletableFuture<Void> firstStage;
         if (isInput && forbidNonModeledInboxMessages) {
-            firstStage = ensureOnlyDefinedActions(thingModel.getActions().orElse(null),
+            firstStage = internalValidation.ensureOnlyDefinedActions(thingModel.getActions().orElse(null),
                     messageSubject,
                     "Thing's",
                     context
@@ -167,15 +166,15 @@ final class InternalThingValidation {
             firstStage = success();
         }
         return firstStage.thenComposeAsync(unused ->
-                enforceActionPayload(thingModel, messageSubject, payload, resourcePath, isInput,
-                        "Thing's action <" + messageSubject + "> " + (isInput ? "input" : "output"),
-                        context
-                ),
+                        internalValidation.enforceActionPayload(thingModel, messageSubject, payload, resourcePath, isInput,
+                                "Thing's action <" + messageSubject + "> " + (isInput ? "input" : "output"),
+                                context
+                        ),
                 executor
         );
     }
 
-    static CompletableFuture<Void> enforceThingEventPayload(final ThingModel thingModel,
+    CompletableFuture<Void> enforceThingEventPayload(final ThingModel thingModel,
             final String messageSubject,
             @Nullable final JsonValue payload,
             final boolean forbidNonModeledOutboxMessages,
@@ -185,15 +184,15 @@ final class InternalThingValidation {
     ) {
         final CompletableFuture<Void> firstStage;
         if (forbidNonModeledOutboxMessages) {
-            firstStage = ensureOnlyDefinedEvents(thingModel.getEvents().orElse(null),
+            firstStage = internalValidation.ensureOnlyDefinedEvents(thingModel.getEvents().orElse(null),
                     messageSubject, "Thing's", context);
         } else {
             firstStage = success();
         }
         return firstStage.thenComposeAsync(unused ->
-                enforceEventPayload(thingModel, messageSubject, payload, resourcePath,
-                        "Thing's event <" + messageSubject + "> data", context
-                ),
+                        internalValidation.enforceEventPayload(thingModel, messageSubject, payload, resourcePath,
+                                "Thing's event <" + messageSubject + "> data", context
+                        ),
                 executor
         );
     }

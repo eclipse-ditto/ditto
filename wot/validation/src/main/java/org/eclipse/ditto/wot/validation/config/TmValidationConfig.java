@@ -17,6 +17,7 @@ import java.util.List;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 import org.eclipse.ditto.things.model.devops.DynamicValidationConfig;
 import org.eclipse.ditto.wot.validation.ValidationContext;
@@ -65,6 +66,18 @@ public interface TmValidationConfig {
      */
     List<DynamicValidationConfig> getDynamicConfigs();
 
+    /**
+     * @return whether the generated JsonSchemas based on the WoT model properties should be cached.
+     * @since 3.8.0
+     */
+    boolean isJsonSchemaCacheEnabled();
+
+    /**
+     * @return the cache configuration for when {@link #isJsonSchemaCacheEnabled()} is enabled.
+     * @since 3.8.0
+     */
+    CacheConfig getJsonSchemaCacheConfig();
+
 
     /**
      * An enumeration of the known config path expressions and their associated default values for
@@ -80,7 +93,13 @@ public interface TmValidationConfig {
         /**
          * Whether to instead of to reject/fail API calls (when {@code enabled=true}), log a WARNING log instead.
          */
-        LOG_WARNING_INSTEAD_OF_FAILING_API_CALLS("log-warning-instead-of-failing-api-calls", false);
+        LOG_WARNING_INSTEAD_OF_FAILING_API_CALLS("log-warning-instead-of-failing-api-calls", false),
+
+        /**
+         * Whether the JsonSchema cache should be enabled.
+         * @since 3.8.0
+         */
+        JSON_SCHEMA_CACHE_ENABLED("json-schema-cache-enabled", true);
 
 
         private final String path;

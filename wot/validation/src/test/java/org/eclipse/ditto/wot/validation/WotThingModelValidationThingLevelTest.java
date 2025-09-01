@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.cache.config.DefaultCacheConfig;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -45,6 +46,8 @@ import org.eclipse.ditto.wot.validation.config.ThingValidationConfig;
 import org.eclipse.ditto.wot.validation.config.TmValidationConfig;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.typesafe.config.ConfigFactory;
 
 /**
  * Provides unit tests for testing the "thing" related functionality of {@link WotThingModelValidation}.
@@ -182,7 +185,8 @@ public final class WotThingModelValidationThingLevelTest {
         when(thingValidationConfig.isForbidNonModeledInboxMessages()).thenReturn(true);
         when(thingValidationConfig.isForbidNonModeledOutboxMessages()).thenReturn(true);
         when(validationConfig.getThingValidationConfig()).thenReturn(thingValidationConfig);
-
+        when(validationConfig.getJsonSchemaCacheConfig()).thenReturn(DefaultCacheConfig.of(
+                ConfigFactory.parseMap(Map.of("cache.maximum-size", "1")), "cache"));
 
         sut = WotThingModelValidation.of(validationConfig, new CurrentThreadExecutor());
     }
