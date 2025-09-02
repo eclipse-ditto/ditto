@@ -122,6 +122,8 @@ public final class ThingEnforcerActor
     private final WotThingModelValidator thingModelValidator;
     private final Executor wotValidationExecutor;
 
+    @Nullable private PolicyId policyId;
+
     @SuppressWarnings("unused")
     private ThingEnforcerActor(final ThingId thingId,
             final ThingEnforcement thingEnforcement,
@@ -460,10 +462,10 @@ public final class ThingEnforcerActor
             final var thing = createThing.getThing();
             final JsonObjectBuilder policyJsonBuilder = inlinedPolicy.toBuilder();
             if (thing.getPolicyId().isPresent() || !inlinedPolicy.contains(Policy.JsonFields.ID.getPointer())) {
-                final String policyId = thing.getPolicyId()
+                final String thingPolicyId = thing.getPolicyId()
                         .map(String::valueOf)
                         .orElse(createThing.getEntityId().toString());
-                policyJsonBuilder.set(Policy.JsonFields.ID, policyId);
+                policyJsonBuilder.set(Policy.JsonFields.ID, thingPolicyId);
             }
             final var initialPolicy = PoliciesModelFactory.newPolicy(policyJsonBuilder.build());
             final var policiesValidator = PoliciesValidator.newInstance(initialPolicy);
@@ -598,23 +600,38 @@ public final class ThingEnforcerActor
 
     @Override
     protected CompletionStage<PolicyId> providePolicyIdForEnforcement(final Signal<?> signal) {
-        final var startedSpan = DittoTracing.newPreparedSpan(
-                        signal.getDittoHeaders(),
-                        SpanOperationName.of("sudo_retrieve_thing")
-                )
-                .correlationId(signal.getDittoHeaders().getCorrelationId().orElse(null))
-                .start();
-        final SudoRetrieveThing sudoRetrieveThing = SudoRetrieveThing.of(entityId,
-                JsonFieldSelector.newInstance("policyId"),
-                DittoHeaders.of(startedSpan.propagateContext(DittoHeaders.newBuilder()
-                        .correlationId("sudoRetrieveThingFromThingEnforcerActor-" + UUID.randomUUID())
-                        .putHeader(DittoHeaderDefinition.DITTO_RETRIEVE_DELETED.getKey(),
-                                Boolean.TRUE.toString())
-                        .build()))
-        );
-        return Patterns.ask(getContext().getParent(), sudoRetrieveThing, DEFAULT_LOCAL_ASK_TIMEOUT)
-                .thenApply(
-                        response -> extractPolicyIdFromSudoRetrieveThingResponse(response, startedSpan).orElse(null));
+        if (policyId != null) {
+            final PolicyId cachedPolicyId = policyId;
+            if (signal instanceof ThingModifyCommand<?> thingModifyCommand &&
+                    thingModifyCommand.changesAuthorization()) {
+                policyId = null; // reset cached policyId, as the policyId could change after applying this command
+            }
+            return CompletableFuture.completedFuture(cachedPolicyId);
+        } else {
+            final var startedSpan = DittoTracing.newPreparedSpan(
+                            signal.getDittoHeaders(),
+                            SpanOperationName.of("sudo_retrieve_thing")
+                    )
+                    .correlationId(signal.getDittoHeaders().getCorrelationId().orElse(null))
+                    .start();
+            final SudoRetrieveThing sudoRetrieveThing = SudoRetrieveThing.of(entityId,
+                    JsonFieldSelector.newInstance("policyId"),
+                    DittoHeaders.of(startedSpan.propagateContext(DittoHeaders.newBuilder()
+                            .correlationId("sudoRetrieveThingFromThingEnforcerActor-" + UUID.randomUUID())
+                            .putHeader(DittoHeaderDefinition.DITTO_RETRIEVE_DELETED.getKey(),
+                                    Boolean.TRUE.toString())
+                            .build()))
+            );
+            return Patterns.ask(getContext().getParent(), sudoRetrieveThing, DEFAULT_LOCAL_ASK_TIMEOUT)
+                    .thenApply(
+                            response -> {
+                                final PolicyId retrievedPolicyId =
+                                        extractPolicyIdFromSudoRetrieveThingResponse(response, startedSpan)
+                                                .orElse(null);
+                                this.policyId = retrievedPolicyId;
+                                return retrievedPolicyId;
+                            });
+        }
     }
 
     private CompletionStage<Boolean> doesThingExist() {
