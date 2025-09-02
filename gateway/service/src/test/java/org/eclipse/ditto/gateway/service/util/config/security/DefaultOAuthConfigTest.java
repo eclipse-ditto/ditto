@@ -91,7 +91,8 @@ public final class DefaultOAuthConfigTest {
                                                 "{{ jwt:sub }}/{{ jwt:scope }}@{{ jwt:client_id }}",
                                                 "{{ jwt:sub }}/{{ jwt:scope }}@{{ jwt:non_existing }}",
                                                 "{{ jwt:roles/support }}"
-                                        )
+                                        ),
+                                        Map.of()
                                 ),
                                 SubjectIssuer.newInstance("some-other"),
                                 DefaultSubjectIssuerConfig.of(
@@ -102,6 +103,10 @@ public final class DefaultOAuthConfigTest {
                                         ),
                                         List.of(
                                                 "{{ jwt:sub }}"
+                                        ),
+                                        Map.of(
+                                                "user-email", "{{ jwt:email }}",
+                                                "user-name", "{{ jwt:name }}"
                                         )
                                 )
                         ));
@@ -112,7 +117,8 @@ public final class DefaultOAuthConfigTest {
                         SubjectIssuer.newInstance("additional"),
                         DefaultSubjectIssuerConfig.of(
                                 List.of("https://additional.google.com"),
-                                List.of("{{ jwt:sub }}")
+                                List.of("{{ jwt:sub }}"),
+                                Map.of()
                         )
                 ));
 
