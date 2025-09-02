@@ -17,7 +17,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -90,7 +89,7 @@ public class ResponseDiversionInterceptorTest {
         assertThatNullPointerException()
                 .isThrownBy(() -> ResponseDiversionInterceptor.of(null, pubSub))
                 .withMessage("The connection must not be null!");
-        
+
         assertThatNullPointerException()
                 .isThrownBy(() -> ResponseDiversionInterceptor.of(connection, null))
                 .withMessage("The pubSub must not be null!");
@@ -107,10 +106,10 @@ public class ResponseDiversionInterceptorTest {
 
         assertThat(diverted).isTrue();
 
-        final ArgumentCaptor<Signal<?>> signalCaptor = ArgumentCaptor.forClass(Signal.class);
-        verify(pubSub).publishSignalForDiversion(signalCaptor.capture(), eq(TARGET_CONNECTION_ID), eq(THING_ID.toString()), eq(null));
+        final ArgumentCaptor<CommandResponse<?>> responseCaptor = ArgumentCaptor.forClass(CommandResponse.class);
+        verify(pubSub).publishResponseForDiversion(responseCaptor.capture(), eq(TARGET_CONNECTION_ID), eq(THING_ID.toString()), eq(null));
 
-        final Signal<?> capturedSignal = signalCaptor.getValue();
+        final CommandResponse<?> capturedSignal = responseCaptor.getValue();
         assertThat(capturedSignal.getDittoHeaders())
                 .containsEntry(DittoHeaderDefinition.DIVERTED_RESPONSE_FROM_CONNECTION.getKey(), SOURCE_CONNECTION_ID.toString());
     }
@@ -129,7 +128,7 @@ public class ResponseDiversionInterceptorTest {
                 .putHeader(DittoHeaderDefinition.DIVERTED_RESPONSE_FROM_CONNECTION.getKey(), SOURCE_CONNECTION_ID.toString())
                 .build());
         assertThat(diverted).isTrue();
-        verify(pubSub).publishSignalForDiversion(eq(expectedResponse), eq(TARGET_CONNECTION_ID), eq(THING_ID.toString()), eq(null));
+        verify(pubSub).publishResponseForDiversion(eq(expectedResponse), eq(TARGET_CONNECTION_ID), eq(THING_ID.toString()), eq(null));
     }
 
     @Test
@@ -149,7 +148,7 @@ public class ResponseDiversionInterceptorTest {
         final boolean diverted = underTest.interceptAndDivert(outboundSignal);
 
         assertThat(diverted).isFalse();
-        verify(pubSub, never()).publishSignalForDiversion(eq(errorResponse), eq(TARGET_CONNECTION_ID), eq(THING_ID), any());
+        verify(pubSub, never()).publishResponseForDiversion(eq(errorResponse), eq(TARGET_CONNECTION_ID), eq(THING_ID), any());
     }
 
     @Test
@@ -165,7 +164,7 @@ public class ResponseDiversionInterceptorTest {
 
         assertThat(diverted).isTrue();
         final CommandResponse<?> expectedResponse = getExpectedResponse(response);
-        verify(pubSub).publishSignalForDiversion(eq(expectedResponse), eq(TARGET_CONNECTION_ID), eq(THING_ID.toString()), eq(null));
+        verify(pubSub).publishResponseForDiversion(eq(expectedResponse), eq(TARGET_CONNECTION_ID), eq(THING_ID.toString()), eq(null));
     }
 
     @Test
@@ -187,7 +186,7 @@ public class ResponseDiversionInterceptorTest {
         final boolean diverted = underTest.interceptAndDivert(outboundSignal);
 
         assertThat(diverted).isFalse();
-        verify(pubSub, never()).publishSignalForDiversion(eq(event), eq(TARGET_CONNECTION_ID), eq(THING_ID), any());
+        verify(pubSub, never()).publishResponseForDiversion(any(), eq(TARGET_CONNECTION_ID), eq(THING_ID), any());
     }
 
     @Test
@@ -202,7 +201,7 @@ public class ResponseDiversionInterceptorTest {
         final boolean diverted = underTest.interceptAndDivert(outboundSignal);
 
         assertThat(diverted).isFalse();
-        verify(pubSub, never()).publishSignalForDiversion(any(Signal.class), any(ConnectionId.class), any(CharSequence.class), any());
+        verify(pubSub, never()).publishResponseForDiversion(any(CommandResponse.class), any(ConnectionId.class), any(CharSequence.class), any());
     }
 
     @Test
@@ -217,7 +216,7 @@ public class ResponseDiversionInterceptorTest {
         final boolean diverted = underTest.interceptAndDivert(outboundSignal);
 
         assertThat(diverted).isFalse();
-        verify(pubSub, never()).publishSignalForDiversion(any(Signal.class), any(ConnectionId.class), any(CharSequence.class), any());
+        verify(pubSub, never()).publishResponseForDiversion(any(CommandResponse.class), any(ConnectionId.class), any(CharSequence.class), any());
     }
 
     @Test
@@ -232,7 +231,7 @@ public class ResponseDiversionInterceptorTest {
         final boolean diverted = underTest.interceptAndDivert(outboundSignal);
 
         assertThat(diverted).isFalse();
-        verify(pubSub, never()).publishSignalForDiversion(any(Signal.class), any(ConnectionId.class), any(CharSequence.class), any());
+        verify(pubSub, never()).publishResponseForDiversion(any(CommandResponse.class), any(ConnectionId.class), any(CharSequence.class), any());
     }
 
     @Test
@@ -255,12 +254,12 @@ public class ResponseDiversionInterceptorTest {
         final boolean diverted = underTest.interceptAndDivert(createOutboundSignal(response));
         final CommandResponse<?> expectedResponse = getExpectedResponse(response);
         assertThat(diverted).isTrue();
-        verify(pubSub, times(1)).publishSignalForDiversion(eq(expectedResponse), eq(TARGET_CONNECTION_ID), eq(THING_ID.toString()), eq(null));
+        verify(pubSub, times(1)).publishResponseForDiversion(eq(expectedResponse), eq(TARGET_CONNECTION_ID), eq(THING_ID.toString()), eq(null));
 
         final boolean divertedError = underTest.interceptAndDivert(createOutboundSignal(errorResponse));
         final CommandResponse<?> expectedErrorResponse = getExpectedResponse(errorResponse);
         assertThat(divertedError).isTrue();
-        verify(pubSub, times(1)).publishSignalForDiversion(eq(expectedErrorResponse), eq(TARGET_CONNECTION_ID), eq(THING_ID.toString()), eq(null));
+        verify(pubSub, times(1)).publishResponseForDiversion(eq(expectedErrorResponse), eq(TARGET_CONNECTION_ID), eq(THING_ID.toString()), eq(null));
 
         final boolean divertedWeak = underTest.interceptAndDivert(createOutboundSignal(weak));
         assertThat(divertedWeak).isFalse();

@@ -17,19 +17,19 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
-import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
-import org.eclipse.ditto.internal.utils.pubsub.DistributedSub;
-import org.eclipse.ditto.internal.utils.pubsub.api.SubAck;
-
 import org.apache.pekko.actor.AbstractExtensionId;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.ExtendedActorSystem;
 import org.apache.pekko.actor.Extension;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.internal.utils.pubsub.DistributedSub;
+import org.eclipse.ditto.internal.utils.pubsub.api.SubAck;
 
 /**
  * Pub-sub for messages between client actors of a connection.
@@ -37,6 +37,12 @@ import org.apache.pekko.actor.Extension;
 public final class ConnectionPubSub implements Extension {
 
     private static final ExtensionId EXTENSION_ID = new ExtensionId();
+
+    /**
+     * Topic prefix for response diversion.
+     * Topics are formatted as: "connection-response-diversion:targetConnectionId"
+     */
+    private static final String CONNECTION_RESPONSE_DIVERSION_PREFIX = "connection-response-diversion:";
 
     private final DistributedPub<Signal<?>> pub;
     private final DistributedSub sub;
@@ -70,23 +76,26 @@ public final class ConnectionPubSub implements Extension {
         pub.publish(setConnectionId(signal, connectionId), groupIndexKey, sender);
     }
     /**
-     * Publish a response signal for to another connection for diversion.
+     * Publish a response for to another connection for diversion.
      *
-     * @param signal the signal.
+     * @param response the command response.
      * @param connectionId the connection ID.
      * @param groupIndexKey the group index key to choose the responsible client actor, either the entity ID or the
      * subscription ID prefix.
-     * @param sender the sender of the signal.
+     * @param sender the sender of the command response.
      */
-    public void publishSignalForDiversion(final Signal<?> signal, final ConnectionId connectionId, final CharSequence groupIndexKey,
-            @Nullable final ActorRef sender) {
+    public void publishResponseForDiversion(final CommandResponse<?> response,
+            final ConnectionId connectionId,
+            final CharSequence groupIndexKey,
+            @Nullable final ActorRef sender
+    ) {
         // Header is needed by the pubSub.
-        final Signal<?> signalWithConnectionId = signal.setDittoHeaders(
-                signal.getDittoHeaders()
+        final CommandResponse<?> responseWithConnectionId = response.setDittoHeaders(
+                response.getDittoHeaders()
                         .toBuilder()
                         .putHeader(DittoHeaderDefinition.CONNECTION_ID.getKey(), connectionId)
                         .build());
-        pub.publish(signalWithConnectionId, groupIndexKey, sender);
+        pub.publish(responseWithConnectionId, groupIndexKey, sender);
     }
 
     /**
@@ -104,11 +113,7 @@ public final class ConnectionPubSub implements Extension {
         return sub.subscribeWithFilterAndGroup(List.of(idString), clientActor, null, idString, resubscribe)
                 .thenApply(SubAck::isConsistent);
     }
-    /**
-     * Topic prefix for response diversion.
-     * Topics are formatted as: "connection-response-diversion:targetConnectionId"
-     */
-    private static final String CONNECTION_RESPONSE_DIVERSION_PREFIX = "connection-response-diversion:";
+
     /**
      * Subscribe as a client actor.
      *
@@ -120,7 +125,7 @@ public final class ConnectionPubSub implements Extension {
      */
     public CompletionStage<Boolean> subscribeForDivertedResponses(final ConnectionId connectionId, final ActorRef clientActor,
             final boolean resubscribe) {
-        final var topic = CONNECTION_RESPONSE_DIVERSION_PREFIX + connectionId.toString();
+        final var topic = CONNECTION_RESPONSE_DIVERSION_PREFIX + connectionId;
         return sub.subscribeWithFilterAndGroup(List.of(topic), clientActor, null, topic, resubscribe)
                 .thenApply(SubAck::isConsistent);
     }
@@ -147,7 +152,7 @@ public final class ConnectionPubSub implements Extension {
      * otherwise.
      */
     public CompletionStage<Void> unsubscribeFromDivertedResponses(final ConnectionId connectionId, final ActorRef clientActor) {
-        final var idString = CONNECTION_RESPONSE_DIVERSION_PREFIX +  connectionId.toString();
+        final var idString = CONNECTION_RESPONSE_DIVERSION_PREFIX + connectionId;
         return sub.unsubscribeWithAck(List.of(idString), clientActor).thenApply(unsubAck -> null);
     }
 
