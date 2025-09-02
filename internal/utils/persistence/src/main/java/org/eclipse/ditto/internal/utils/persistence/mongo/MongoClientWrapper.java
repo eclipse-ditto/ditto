@@ -39,6 +39,9 @@ import com.mongodb.ReadConcern;
 import com.mongodb.ReadPreference;
 import com.mongodb.ServerAddress;
 import com.mongodb.WriteConcern;
+import com.mongodb.client.model.bulk.ClientBulkWriteOptions;
+import com.mongodb.client.model.bulk.ClientBulkWriteResult;
+import com.mongodb.client.model.bulk.ClientNamespacedWriteModel;
 import com.mongodb.connection.ClusterDescription;
 import com.mongodb.connection.ServerDescription;
 import com.mongodb.connection.TransportSettings;
@@ -260,6 +263,34 @@ public final class MongoClientWrapper implements DittoMongoClient {
             final List<? extends Bson> pipeline, final Class<TResult> tResultClass) {
 
         return mongoClient.watch(clientSession, pipeline, tResultClass);
+    }
+
+    @Override
+    public Publisher<ClientBulkWriteResult> bulkWrite(final List<? extends ClientNamespacedWriteModel> list) {
+
+        return mongoClient.bulkWrite(list);
+    }
+
+    @Override
+    public Publisher<ClientBulkWriteResult> bulkWrite(final List<? extends ClientNamespacedWriteModel> list,
+            final ClientBulkWriteOptions clientBulkWriteOptions) {
+
+        return mongoClient.bulkWrite(list, clientBulkWriteOptions);
+    }
+
+    @Override
+    public Publisher<ClientBulkWriteResult> bulkWrite(final ClientSession clientSession,
+            final List<? extends ClientNamespacedWriteModel> list) {
+
+        return mongoClient.bulkWrite(clientSession, list);
+    }
+
+    @Override
+    public Publisher<ClientBulkWriteResult> bulkWrite(final ClientSession clientSession,
+            final List<? extends ClientNamespacedWriteModel> list,
+            final ClientBulkWriteOptions clientBulkWriteOptions) {
+
+        return mongoClient.bulkWrite(clientSession, list, clientBulkWriteOptions);
     }
 
     @Override
