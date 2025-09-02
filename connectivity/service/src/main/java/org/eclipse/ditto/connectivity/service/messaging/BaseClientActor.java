@@ -83,7 +83,6 @@ import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.WithStreamingSubscriptionId;
 import org.eclipse.ditto.base.model.signals.WithType;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.streaming.StreamingSubscriptionCommand;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
@@ -587,52 +586,52 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return URLEncoder.encode(name, StandardCharsets.US_ASCII);
     }
 
-    private boolean isDivertedResponse(final Signal<?> signal, final BaseClientData data) {
-        return !connectionId().toString().equals(signal.getDittoHeaders().get(DittoHeaderDefinition.ORIGIN.getKey()));
+    private boolean isDivertedResponse(final CommandResponse<?> response, final BaseClientData data) {
+        return !connectionId().toString().equals(response.getDittoHeaders().get(DittoHeaderDefinition.ORIGIN.getKey()));
     }
 
-    private FSM.State<BaseClientState, BaseClientData> handleDivertedResponse(final Signal<?> signal,
+    private FSM.State<BaseClientState, BaseClientData> handleDivertedResponse(final CommandResponse<?> response,
             final BaseClientData data) {
         if (stateName() == CONNECTED) {
-            logger.withCorrelationId(signal)
+            logger.withCorrelationId(response)
                     .info("Received diverted response from connection: {}",
-                            signal.getDittoHeaders().get(DittoHeaderDefinition.DIVERTED_RESPONSE_FROM_CONNECTION.getKey()));
+                            response.getDittoHeaders().get(DittoHeaderDefinition.DIVERTED_RESPONSE_FROM_CONNECTION.getKey()));
 
-            final Optional<Target> diversionTarget = findTarget(signal);
+            final Optional<Target> diversionTarget = findDiversionTarget(response);
 
             if (diversionTarget.isPresent()) {
                 // Create an OutboundSignal with the matching targets
-                final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(signal, List.of(diversionTarget.get()));
+                final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(response, List.of(diversionTarget.get()));
 
                 // Forward to outbound dispatching actor
                 outboundDispatchingActor.tell(outboundSignal, getSelf());
 
-                logger.withCorrelationId(signal)
+                logger.withCorrelationId(response)
                         .debug("Forwarded diverted response to {} target", diversionTarget);
             } else {
-                logger.withCorrelationId(signal)
-                        .warning("No matching targets found for diverted response of type: {}", signal.getType());
+                logger.withCorrelationId(response)
+                        .warning("No matching targets found for diverted response of type: {}", response.getType());
             }
         } else {
-            logger.withCorrelationId(signal)
-                    .debug("Client state <{}> is not CONNECTED; stashing diverted response <{}>", stateName(), signal);
+            logger.withCorrelationId(response)
+                    .debug("Client state <{}> is not CONNECTED; stashing diverted response <{}>", stateName(), response);
             stash();
         }
         return stay();
     }
 
-    private Optional<Target> findTarget(final Signal<?> signal) {
+    private Optional<Target> findDiversionTarget(final CommandResponse<?> response) {
         final List<Target> allTargets = connection().getTargets();
         // If there's only one target, use it
         if (allTargets.isEmpty()) {
             logger.warning("No targets configured for connection <{}> to forward diverted response <{}>",
-                    connectionId(), signal);
+                    connectionId(), response);
             return Optional.empty();
         } else if (allTargets.size() == 1) {
             return Optional.of(allTargets.getFirst());
         } else {
             // Otherwise, take by index
-            return signal.getDittoHeaders().getReplyTarget().map(allTargets::get);
+            return response.getDittoHeaders().getReplyTarget().map(allTargets::get);
         }
     }
 
@@ -1886,8 +1885,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         // this one throws DittoRuntimeExceptions when the mapper could not be configured
         InboundMappingProcessor.of(connection, connectivityConfig, actorSystem, protocolAdapter, logger);
-        OutboundMappingProcessor.of(connection, connectivityConfig, actorSystem, protocolAdapter, logger
-        );
+        OutboundMappingProcessor.of(connection, connectivityConfig, actorSystem, protocolAdapter, logger);
         return CompletableFuture.completedFuture(new Status.Success("mapping"));
     }
 
