@@ -364,14 +364,14 @@ jobs:
       - name: List Test Result files
         if: always()
         run: |
-          ls -lah ./system*/**/target/failsafe-reports/*IT.xml
+          ls -lah ./system*/**/target/failsafe-reports/*.xml
         working-directory: ditto-testing
 
       - name: Publish Test Results
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@v2
         with:
           name: Test Results | ${{ env.DITTO_BRANCH_NO_SLASH }} ${{ github.run_number }}
-          path: ./system*/**/target/failsafe-reports/*IT.xml
+          path: ./system*/**/target/failsafe-reports/*.xml
           reporter: java-junit
           working-directory: ditto-testing
         
