@@ -15,15 +15,15 @@ package org.eclipse.ditto.gateway.service.security.authentication.jwt;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.List;
+import java.util.Map;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
 
 import com.typesafe.config.Config;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * A provider for {@link AuthorizationSubject}s contained in a {@link JsonWebToken}.
@@ -38,6 +38,17 @@ public interface JwtAuthorizationSubjectsProvider extends DittoExtensionPoint {
      * @throws NullPointerException if {@code jsonWebToken} is {@code null}.
      */
     List<AuthorizationSubject> getAuthorizationSubjects(JsonWebToken jsonWebToken);
+
+    /**
+     * Returns a map of additional headers to inject based on the {@code JsonWebToken} (configured statically in Ditto
+     * via {@code inject-claims-into-headers} config).
+     *
+     * @param jsonWebToken the token containing the claims to inject headers from.
+     * @return the map of additional headers to inject.
+     * @throws NullPointerException if {@code jsonWebToken} is {@code null}.
+     * @since 3.8.0
+     */
+    Map<String, String> getAdditionalHeadersInjectedFromClaims(JsonWebToken jsonWebToken);
 
     /**
      * Loads the implementation of {@code JwtAuthorizationSubjectsProvider} which is configured for the {@code ActorSystem}.

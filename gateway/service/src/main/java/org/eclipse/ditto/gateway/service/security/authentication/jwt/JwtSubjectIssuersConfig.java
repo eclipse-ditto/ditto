@@ -28,6 +28,7 @@ import java.util.stream.Stream;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.gateway.service.util.config.security.OAuthConfig;
+import org.eclipse.ditto.gateway.service.util.config.security.SubjectIssuerConfig;
 import org.eclipse.ditto.policies.model.SubjectIssuer;
 
 /**
@@ -66,8 +67,15 @@ public final class JwtSubjectIssuersConfig {
                 // merge the default and extension config
                 Stream.concat(config.getOpenIdConnectIssuers().entrySet().stream(),
                         config.getOpenIdConnectIssuersExtension().entrySet().stream())
-                        .map(entry -> new JwtSubjectIssuerConfig(entry.getKey(), entry.getValue().getIssuers(),
-                                entry.getValue().getAuthorizationSubjectTemplates()))
+                        .map(entry -> {
+                            final SubjectIssuerConfig issuerConfig = entry.getValue();
+                            return new JwtSubjectIssuerConfig(
+                                    entry.getKey(),
+                                    issuerConfig.getIssuers(),
+                                    issuerConfig.getAuthorizationSubjectTemplates(),
+                                    issuerConfig.getInjectClaimsIntoHeaders()
+                            );
+                        })
                         .collect(Collectors.toSet());
         return new JwtSubjectIssuersConfig(configItems, config.getProtocol());
     }

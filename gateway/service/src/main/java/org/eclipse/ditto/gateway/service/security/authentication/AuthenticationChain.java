@@ -134,12 +134,12 @@ public final class AuthenticationChain {
                 final AuthenticationResult nextResult) {
             if (nextResult.isSuccess()) {
                 logSuccess(authenticationProvider);
-                return new AuthResultAccumulator(nextResult, failureResults, requestContext, dittoHeaders);
+                return new AuthResultAccumulator(nextResult, failureResults, requestContext, nextResult.getDittoHeaders());
             } else {
                 logFailure(authenticationProvider, nextResult);
                 final var newFailureResults =
                         Stream.concat(failureResults.stream(), Stream.of(nextResult)).toList();
-                return new AuthResultAccumulator(successResult, newFailureResults, requestContext, dittoHeaders);
+                return new AuthResultAccumulator(successResult, newFailureResults, requestContext, nextResult.getDittoHeaders());
             }
         }
 

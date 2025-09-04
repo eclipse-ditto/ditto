@@ -164,6 +164,14 @@ When `auth-subjects` is not provided, the `"sub"` claim (`{%raw%}{{ jwt:sub }}{%
 Please read [more details on the OpenId Connect configuration placeholder](basic-placeholders.html#scope-openid-connect-configuration)
 to find out what is possible when defining the `auth-subjects`.
 
+Since Ditto 3.8.0, it is in addition possible to configure `inject-claims-into-headers`. This is a configuration which
+takes a map of HTTP header names to JWT claim placeholders. Valid JWT tokens will be resolved and added to the headers
+of the command as custom headers.  
+Ditto by default forwards custom headers and preserves them, e.g. when forwarding a [message](basic-messages.html) or
+when emitting an [event](basic-signals-event.html) after a command changes a thing.  
+Using `inject-claims-into-headers`, it e.g. is possible to add the email address of the authenticated user as a custom
+header to a command so that e.g. in logging it can be determined which user caused a change.
+
 
 ```
 ditto.gateway.authentication {
@@ -182,6 +190,10 @@ ditto.gateway.authentication {
             "{%raw%}{{ jwt:sub }}/{{ jwt:scp }}@{{ jwt:non_existing }}{%endraw%}",
             "{%raw%}{{ jwt:roles/support }}{%endraw%}"
           ]
+          inject-claims-into-headers = {
+            user-email = "{%raw%}{{ jwt:email }}{%endraw%}"
+            user-name = "{%raw%}{{ jwt:name }}{%endraw%}"
+          }
         }
       }
     }

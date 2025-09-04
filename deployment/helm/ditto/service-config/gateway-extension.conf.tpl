@@ -12,6 +12,11 @@ ditto {
               "{{$subject}}"
             {{- end }}
             ]
+            inject-claims-into-headers = {
+            {{- range $claimKey, $claimValue := $value.injectClaimsIntoHeaders }}
+              {{$claimKey}} = "{{$claimValue}}"
+            {{- end }}
+            }
           }
         {{- end }}
         }
@@ -28,6 +33,11 @@ ditto {
                 "{{$subject}}"
               {{- end }}
               ]
+              inject-claims-into-headers = {
+              {{- range $claimKey, $claimValue := $value.injectClaimsIntoHeaders }}
+                {{$claimKey}} = "{{$claimValue}}"
+              {{- end }}
+              }
             }
           {{- end }}
           }
