@@ -152,9 +152,9 @@ public final class OperatorMetricsProviderActor extends AbstractActorWithTimers 
                                         "custom metric <{}>: {}", metricName, dre.getMessage(), dre
                         );
                     } else {
-                        log.withCorrelationId(dittoHeaders).warning(
+                        log.withCorrelationId(dittoHeaders).warning(throwable,
                                 "Received unexpected result or throwable when gathering count for " +
-                                        "custom metric <{}>: {}", metricName, response, throwable
+                                        "custom metric <{}>: {}", metricName, response
                         );
                     }
                 });
