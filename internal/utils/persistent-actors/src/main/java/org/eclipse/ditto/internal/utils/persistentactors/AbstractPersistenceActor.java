@@ -277,9 +277,9 @@ public abstract class AbstractPersistenceActor<
     protected final void becomeCreatedOrDeletedHandler() {
         // accessible for subclasses; not an extension point.
         if (isEntityActive()) {
-            becomeCreatedHandler();
+            becomeCreatedHandler(getContext());
         } else {
-            becomeDeletedHandler();
+            becomeDeletedHandler(getContext());
         }
     }
 
@@ -328,7 +328,7 @@ public abstract class AbstractPersistenceActor<
     /**
      * Start handling messages for an existing entity and schedule maintenance messages to self.
      */
-    protected void becomeCreatedHandler() {
+    protected void becomeCreatedHandler(final ActorContext context) {
         final CommandStrategy<C, S, K, E> commandStrategy = getCreatedStrategy();
 
         final Receive receive = handleCleanups.orElse(ReceiveBuilder.create()
@@ -346,7 +346,7 @@ public abstract class AbstractPersistenceActor<
                         .build())
                 .orElse(matchAnyAfterInitialization());
 
-        getContext().become(receive);
+        context.become(receive);
 
         scheduleCheckForActivity(getActivityCheckConfig().getInactiveInterval());
         scheduleSnapshot();
@@ -550,8 +550,8 @@ public abstract class AbstractPersistenceActor<
         getSender().tell(PingCommandResponse.of(correlationId, JsonValue.nullLiteral()), getSelf());
     }
 
-    protected void becomeDeletedHandler() {
-        getContext().become(createDeletedBehavior());
+    protected void becomeDeletedHandler(final ActorContext context) {
+        context.become(createDeletedBehavior());
 
         /* check in the next X minutes and therefore
          * - stay in-memory for a short amount of minutes after deletion
@@ -751,16 +751,17 @@ public abstract class AbstractPersistenceActor<
     public void onMutation(final Command<?> command, final E event, final WithDittoHeaders response,
             final boolean becomeCreated, final boolean becomeDeleted, @Nullable final StartedSpan startedSpan) {
 
+        final ActorContext context = getContext();
         final ActorRef sender = getSender();
         persistAndApplyEvent(event, (persistedEvent, resultingEntity) -> {
             if (shouldSendResponse(command.getDittoHeaders())) {
                 notifySender(sender, response);
             }
             if (becomeDeleted) {
-                becomeDeletedHandler();
+                becomeDeletedHandler(context);
             }
             if (becomeCreated) {
-                becomeCreatedHandler();
+                becomeCreatedHandler(context);
             }
             if (startedSpan != null) {
                 startedSpan.finish();
@@ -776,16 +777,17 @@ public abstract class AbstractPersistenceActor<
             final boolean becomeDeleted,
             @Nullable final StartedSpan startedSpan) {
 
+        final ActorContext context = getContext();
         final ActorRef sender = getSender();
         persistAndApplyEventAsync(event, (persistedEvent, resultingEntity) -> {
             if (shouldSendResponse(command.getDittoHeaders())) {
-                notifySender(sender, response);
+                response.thenAccept(rsp -> notifySender(sender, rsp));
             }
             if (becomeDeleted) {
-                becomeDeletedHandler();
+                becomeDeletedHandler(context);
             }
             if (becomeCreated) {
-                becomeCreatedHandler();
+                becomeCreatedHandler(context);
             }
             if (startedSpan != null) {
                 startedSpan.finish();
@@ -808,6 +810,9 @@ public abstract class AbstractPersistenceActor<
         if (command.getDittoHeaders().isResponseRequired()) {
             final ActorRef sender = getSender();
             notifySender(sender, response);
+        } else {
+            getContext().getParent()
+                    .tell(new AbstractPersistenceSupervisor.ProcessNextTwinMessage(), getSelf());
         }
     }
 
@@ -864,6 +869,8 @@ public abstract class AbstractPersistenceActor<
     protected void notifySender(final ActorRef sender, final WithDittoHeaders message) {
         accessCounter++;
         sender.tell(message, getSelf());
+        getContext().getParent()
+                .tell(new AbstractPersistenceSupervisor.ProcessNextTwinMessage(), getSelf());
     }
 
     private long getNextRevisionNumber() {
@@ -907,6 +914,20 @@ public abstract class AbstractPersistenceActor<
         if (snapshotThresholdPassed()) {
             takeSnapshot("snapshot threshold is reached");
         }
+    }
+
+    @Override
+    public void onPersistFailure(final Throwable cause, final Object event, final long seqNr) {
+        super.onPersistFailure(cause, event, seqNr);
+        getContext().getParent()
+                .tell(new AbstractPersistenceSupervisor.ProcessNextTwinMessage(), getSelf());
+    }
+
+    @Override
+    public void onPersistRejected(final Throwable cause, final Object event, final long seqNr) {
+        super.onPersistRejected(cause, event, seqNr);
+        getContext().getParent()
+                .tell(new AbstractPersistenceSupervisor.ProcessNextTwinMessage(), getSelf());
     }
 
     private void takeSnapshot(final String reason) {

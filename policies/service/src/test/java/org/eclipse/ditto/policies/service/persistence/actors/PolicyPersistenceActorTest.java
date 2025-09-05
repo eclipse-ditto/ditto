@@ -186,6 +186,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     public void createPolicy() {
         new TestKit(actorSystem) {
             {
+                ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
                 final Policy policy = createPolicyWithRandomId();
                 final ActorRef policyPersistenceActor = createPersistenceActorFor(this, policy);
 
@@ -210,6 +211,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
         new TestKit(actorSystem) {
             {
+                ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
                 final ActorRef underTest = createPersistenceActorFor(this, policy);
                 underTest.tell(createPolicyCommand, getRef());
                 final CreatePolicyResponse createPolicyResponse = expectMsgClass(CreatePolicyResponse.class);
@@ -233,6 +235,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
         new TestKit(actorSystem) {
             {
+                ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
                 final ActorRef underTest = createPersistenceActorFor(this, policy);
                 underTest.tell(createPolicyCommand, getRef());
                 final CreatePolicyResponse createPolicy1Response = expectMsgClass(CreatePolicyResponse.class);
@@ -255,6 +258,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
         new TestKit(actorSystem) {
             {
+                ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
                 final ActorRef underTest = createPersistenceActorFor(this, policy);
                 underTest.tell(createPolicyCommand, getRef());
                 final CreatePolicyResponse createPolicy1Response = expectMsgClass(CreatePolicyResponse.class);
@@ -271,6 +275,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     public void deletePolicy() {
         new TestKit(actorSystem) {
             {
+                ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
                 final Policy policy = createPolicyWithRandomId();
                 final ActorRef policyPersistenceActor = createPersistenceActorFor(this, policy);
 
@@ -292,6 +297,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     public void createPolicyEntry() {
         new TestKit(actorSystem) {
             {
+                ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
                 final Policy policy = createPolicyWithRandomId();
                 final PolicyEntry policyEntryToAdd =
                         PoliciesModelFactory.newPolicyEntry(Label.of("anotherLabel"),
@@ -327,6 +333,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     public void modifyPolicyEntry() {
         new TestKit(actorSystem) {
             {
+                ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
                 final Policy policy = createPolicyWithRandomId();
                 final Subject newSubject = Subject.newInstance(SubjectIssuer.GOOGLE, "anotherOne");
                 final PolicyEntry policyEntryToModify = PoliciesModelFactory.newPolicyEntry(POLICY_LABEL,
@@ -362,6 +369,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     public void tryToModifyPolicyEntryWithInvalidPermissions() {
         new TestKit(actorSystem) {
             {
+                ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
                 final Policy policy = createPolicyWithRandomId();
                 final Subject newSubject = Subject.newInstance(SubjectIssuer.GOOGLE, "anotherOne");
 
@@ -392,6 +400,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     public void modifyPolicyEntrySoThatPolicyGetsTooLarge() {
         new TestKit(actorSystem) {
             {
+                ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
                 final PolicyBuilder policyBuilder = Policy.newBuilder(PolicyId.of("new", "policy"));
                 int i = 0;
                 Policy policy;
@@ -440,6 +449,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     public void removePolicyEntry() {
         new TestKit(actorSystem) {
             {
+                ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
                 final Policy policy = createPolicyWithRandomId();
 
                 final DittoHeaders headersMockWithOtherAuth =
@@ -475,6 +485,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     public void tryToRemoveLastPolicyEntry() {
         new TestKit(actorSystem) {
             {
+                ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
                 final Policy policy = createPolicyWithRandomId();
 
                 final DittoHeaders headersMockWithOtherAuth =
@@ -501,6 +512,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     public void createResource() {
         new TestKit(actorSystem) {
             {
+                ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
                 final Policy policy = createPolicyWithRandomId();
                 final Resource resourceToAdd = Resource.newInstance(PoliciesResourceType.policyResource(
                         "/attributes"), EffectedPermissions.newInstance(PoliciesModelFactory.noPermissions(),
@@ -538,6 +550,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     public void modifyResource() {
         new TestKit(actorSystem) {
             {
+                ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
                 final Policy policy = createPolicyWithRandomId();
                 final Resource resourceToModify = Resource.newInstance(PoliciesResourceType.policyResource(
                         POLICY_RESOURCE_PATH), EffectedPermissions.newInstance(TestConstants.Policy.PERMISSIONS_ALL,
@@ -574,6 +587,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     public void tryToModifyResource() {
         new TestKit(actorSystem) {
             {
+                ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
                 final Policy policy = createPolicyWithRandomId();
                 final Resource resourceToModify = Resource.newInstance(
                         PoliciesResourceType.policyResource(POLICY_RESOURCE_PATH),
@@ -604,6 +618,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     public void removeResource() {
         new TestKit(actorSystem) {
             {
+                ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
                 final Policy policy = createPolicyWithRandomId();
 
                 final DittoHeaders headersMockWithOtherAuth =
@@ -646,6 +661,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     public void createSubject() {
         new TestKit(actorSystem) {
             {
+                ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
                 final Policy policy = createPolicyWithRandomId();
                 final Subject subjectToAdd =
                         Subject.newInstance(SubjectIssuer.GOOGLE, "anotherSubjectId");
@@ -682,6 +698,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     public void modifySubject() {
         new TestKit(actorSystem) {
             {
+                ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
                 final Policy policy = createPolicyWithRandomId();
                 final Subject subjectToModify =
                         Subject.newInstance(POLICY_SUBJECT_ID, SUBJECT_TYPE);
@@ -717,6 +734,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     public void removeSubject() {
         new TestKit(actorSystem) {
             {
+                ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
                 final Policy policy = createPolicyWithRandomId();
 
                 final DittoHeaders headersMockWithOtherAuth =
@@ -756,6 +774,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     public void createSubjectWithExpiry() {
         new TestKit(actorSystem) {
             {
+                ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
                 waitPastTimeBorder();
                 final Policy policy = createPolicyWithRandomId();
                 final Instant expiryInstant = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
@@ -864,6 +883,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     public void sendAnnouncementAfterDeletion() {
         new TestKit(actorSystem) {
             {
+                ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
                 final SubjectAnnouncement subjectAnnouncement = SubjectAnnouncement.of(null, true);
                 final Subject subject1 =
                         Subject.newInstance(SubjectId.newInstance(SubjectIssuer.GOOGLE, "subject1"),
@@ -922,6 +942,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     public void sendAnnouncementBeforeExpiry() {
         new TestKit(actorSystem) {
             {
+                ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
                 // Do not wait past time border because no expiration will occur.
                 final Policy policy = createPolicyWithRandomId();
                 final Instant expiryInstant = Instant.now().plus(Duration.ofHours(2));
@@ -981,6 +1002,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     @Test
     public void createPolicyWith2SubjectsWithExpiry() {
         new TestKit(actorSystem) {{
+            ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
             waitPastTimeBorder();
             final Instant expiryInstant = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
                     .plus(2, ChronoUnit.SECONDS)
@@ -1060,6 +1082,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     @Test
     public void impossibleToMakePolicyInvalidByExpiringSubjects() {
         new TestKit(actorSystem) {{
+            ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
             final Instant futureInstant = Instant.now().plus(Duration.ofDays(1L));
             final SubjectExpiry subjectExpiry = SubjectExpiry.newInstance(futureInstant);
             final Subject subject1 =
@@ -1130,6 +1153,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     public void recoverPolicyCreated() {
         new TestKit(actorSystem) {
             {
+                ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
                 final Policy policy = createPolicyWithRandomId();
                 final ActorRef policyPersistenceActor = createPersistenceActorFor(this, policy);
 
@@ -1162,6 +1186,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     public void recoverPolicyDeleted() {
         new TestKit(actorSystem) {
             {
+                ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
                 final Policy policy = createPolicyWithRandomId();
                 final ActorRef policyPersistenceActor = createPersistenceActorFor(this, policy);
 
@@ -1193,6 +1218,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     public void recoverPolicyEntryModified() {
         new TestKit(actorSystem) {
             {
+                ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
                 final Policy policy = createPolicyWithRandomId();
                 final ActorRef policyPersistenceActor = createPersistenceActorFor(this, policy);
 
@@ -1255,6 +1281,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     public void recoverPolicyEntryDeleted() {
         new TestKit(actorSystem) {
             {
+                ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
                 final Policy policy = createPolicyWithRandomId();
                 final ActorRef policyPersistenceActor = createPersistenceActorFor(this, policy);
 
@@ -1294,6 +1321,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     public void ensureSubjectExpiryIsCleanedUpAfterRecovery() {
         new TestKit(actorSystem) {
             {
+                ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
                 waitPastTimeBorder();
                 final Policy policy = createPolicyWithRandomId();
                 final PolicyId policyId = policy.getEntityId().orElseThrow();
@@ -1387,6 +1415,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     public void ensureExpiredSubjectIsRemovedDuringRecovery() throws InterruptedException {
         new TestKit(actorSystem) {
             {
+                ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
                 waitPastTimeBorder();
                 final Policy policy = createPolicyWithRandomId();
                 final PolicyId policyId = policy.getEntityId().orElseThrow();
@@ -1517,6 +1546,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     public void ensureSequenceNumberCorrectness() {
         new TestKit(actorSystem) {
             {
+                ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
                 final Policy policy = createPolicyWithRandomId();
                 final ActorRef policyPersistenceActor = createPersistenceActorFor(this, policy);
 
@@ -1552,6 +1582,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     public void ensureSequenceNumberCorrectnessAfterRecovery() {
         new TestKit(actorSystem) {
             {
+                ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
                 final Policy policy = createPolicyWithRandomId();
                 final ActorRef policyPersistenceActor = createPersistenceActorFor(this, policy);
 
@@ -1598,6 +1629,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     @Test
     public void testPolicyPersistenceActorRespondsToCleanupCommandInCreatedState() {
         new TestKit(actorSystem) {{
+            ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
             final Policy policy = createPolicyWithRandomId();
             final ActorRef policyPersistenceActor = createPersistenceActorFor(this, policy);
 
@@ -1616,6 +1648,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     @Test
     public void testPolicyPersistenceActorRespondsToCleanupCommandInDeletedState() {
         new TestKit(actorSystem) {{
+            ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
             final Policy policy = createPolicyWithRandomId();
             final ActorRef policyPersistenceActor = createPersistenceActorFor(this, policy);
 
@@ -1703,6 +1736,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     public void stayAliveIfAndOnlyIfFutureAnnouncementsExist() {
         new TestKit(actorSystem) {
             {
+                ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
                 final Policy policy = createPolicyWithRandomId();
                 final Instant expiryInstant = Instant.now().plus(Duration.ofHours(2));
                 final SubjectExpiry subjectExpiry = SubjectExpiry.newInstance(expiryInstant);
@@ -1732,6 +1766,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 underTest.tell(modifySubject, getRef());
 
                 // THEN: the persisted event should have the "always-alive" tag
+                ignoreMsg(AbstractPersistenceSupervisor.ProcessNextTwinMessage.class::isInstance);
                 expectMsgClass(ModifySubjectResponse.class);
                 Assertions.assertThat(expectPolicyEvent().getDittoHeaders().getJournalTags())
                         .containsExactly(JOURNAL_TAG_ALWAYS_ALIVE);

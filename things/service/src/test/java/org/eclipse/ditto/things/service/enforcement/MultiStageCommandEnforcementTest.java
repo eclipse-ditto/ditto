@@ -30,6 +30,7 @@ import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -214,6 +215,7 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
             TestSetup.fishForMsgClass(this, ThingNotAccessibleException.class);
 
             // WHEN: Thing exists but Policy exists only in cache
+            supervisor.tell(new AbstractPersistenceSupervisor.ProcessNextTwinMessage(), getRef());
             supervisor.tell(retrieveThing, getRef());
 
             thingPersistenceActorProbe.expectMsg(expectedRetrieveThing);

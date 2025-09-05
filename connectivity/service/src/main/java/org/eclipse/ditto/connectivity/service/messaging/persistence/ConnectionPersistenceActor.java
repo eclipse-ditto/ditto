@@ -135,6 +135,7 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckCo
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceActor;
+import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.internal.utils.persistentactors.EmptyEvent;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.DefaultContext;
@@ -269,7 +270,6 @@ public final class ConnectionPersistenceActor
      * @param mongoReadJournal the ReadJournal used for gaining access to historical values of the connection.
      * @param commandForwarderActor the actor used to send signals into the ditto cluster.
      * @param pubSubMediator pub-sub-mediator for the shutdown behavior.
-     * @param pubSubMediator the pubSubMediator
      * @param connectivityConfigOverwrites the overwrites for the connectivity config for the given connection.
      * @return the Pekko configuration Props object.
      */
@@ -618,6 +618,8 @@ public final class ConnectionPersistenceActor
     private void interpretStagedCommand(final StagedCommand command) {
         if (!command.hasNext()) {
             // execution complete
+            getContext().getParent()
+                    .tell(new AbstractPersistenceSupervisor.ProcessNextTwinMessage(), getSelf());
             return;
         }
         switch (command.nextAction()) {
@@ -657,11 +659,11 @@ public final class ConnectionPersistenceActor
                 interpretStagedCommand(command.next());
             }
             case BECOME_CREATED -> {
-                becomeCreatedHandler();
+                becomeCreatedHandler(getContext());
                 interpretStagedCommand(command.next());
             }
             case BECOME_DELETED -> {
-                becomeDeletedHandler();
+                becomeDeletedHandler(getContext());
                 interpretStagedCommand(command.next());
             }
             case UPDATE_SUBSCRIPTIONS -> prepareForSignalForwarding(command.next());
@@ -722,9 +724,9 @@ public final class ConnectionPersistenceActor
     }
 
     @Override
-    protected void becomeDeletedHandler() {
+    protected void becomeDeletedHandler(final ActorContext context) {
         cancelPeriodicPriorityUpdate();
-        super.becomeDeletedHandler();
+        super.becomeDeletedHandler(context);
     }
 
     /**

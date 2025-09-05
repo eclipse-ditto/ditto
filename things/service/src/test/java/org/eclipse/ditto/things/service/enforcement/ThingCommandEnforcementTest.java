@@ -42,6 +42,7 @@ import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatcher;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -131,6 +132,7 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
 
             TestSetup.fishForMsgClass(this, ThingNotAccessibleException.class);
 
+            supervisor.tell(new AbstractPersistenceSupervisor.ProcessNextTwinMessage(), getRef());
             supervisor.tell(getModifyCommand(), getRef());
 
             expectMsgClass(FeatureNotModifiableException.class);
@@ -257,6 +259,7 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
             thingPersistenceActorProbe.reply(modifyFeatureResponse);
             expectMsg(modifyFeatureResponse);
 
+            supervisor.tell(new AbstractPersistenceSupervisor.ProcessNextTwinMessage(), getRef());
             final ThingCommand<?> read = getReadCommand();
             final RetrieveThingResponse retrieveThingResponse =
                     RetrieveThingResponse.of(THING_ID, JsonFactory.newObject(), DittoHeaders.empty());
@@ -365,6 +368,7 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
                     .isEmpty();
 
             // WHEN: Condition is set on an unreadable feature
+            supervisor.tell(new AbstractPersistenceSupervisor.ProcessNextTwinMessage(), getRef());
             final var conditionalRetrieveThing2 =
                     getRetrieveThing(builder -> builder.condition("exists(features/revokedFeature)"));
             supervisor.tell(conditionalRetrieveThing2, getRef());
@@ -373,6 +377,7 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
             expectMsgClass(ThingConditionFailedException.class);
 
             // WHEN: Live channel condition is set on an unreadable feature
+            supervisor.tell(new AbstractPersistenceSupervisor.ProcessNextTwinMessage(), getRef());
             final var conditionalRetrieveThing3 = getRetrieveThing(builder ->
                     builder.liveChannelCondition("exists(features/revokedFeature)").channel("live"));
             supervisor.tell(conditionalRetrieveThing3, getRef());
@@ -537,6 +542,8 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
             thingPersistenceActorProbe.expectMsgClass(CreateThing.class);
             thingPersistenceActorProbe.reply(createThingResponse);
 
+            supervisor.tell(new AbstractPersistenceSupervisor.ProcessNextTwinMessage(), getRef());
+
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectMsgClass(CreateThingResponse.class);
 
@@ -546,9 +553,13 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
 
             expectMsgClass(RetrieveThingResponse.class);
 
+            supervisor.tell(new AbstractPersistenceSupervisor.ProcessNextTwinMessage(), getRef());
+
             thingPersistenceActorProbe.expectMsgClass(ModifyPolicyId.class);
             final ActorRef modifyPolicyIdSender = thingPersistenceActorProbe.lastSender();
             modifyPolicyIdSender.tell(modifyPolicyIdResponse, ActorRef.noSender());
+
+            supervisor.tell(new AbstractPersistenceSupervisor.ProcessNextTwinMessage(), getRef());
 
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectMsgClass(ModifyPolicyIdResponse.class);
@@ -558,6 +569,8 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
             modifyAttributeSender.tell(modifyAttributeResponse, ActorRef.noSender());
 
             expectMsgClass(ModifyAttributeResponse.class);
+
+            supervisor.tell(new AbstractPersistenceSupervisor.ProcessNextTwinMessage(), getRef());
 
             thingPersistenceActorProbe.expectMsgClass(RetrieveAttribute.class);
             final ActorRef retrieveAttributeSender = thingPersistenceActorProbe.lastSender();

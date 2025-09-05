@@ -17,10 +17,19 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+
+import org.apache.pekko.stream.Attributes;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.cluster.StopShardedActor;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
@@ -37,15 +46,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-
-import org.apache.pekko.stream.Attributes;
-import org.apache.pekko.testkit.TestProbe;
-import org.apache.pekko.testkit.javadsl.TestKit;
-
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Tests {@link PolicySupervisorActor}.
@@ -103,7 +103,8 @@ public final class PolicySupervisorActorTest extends PersistenceActorTestBase {
 
             underTest.tell(retrievePolicy, probe.ref());
             underTest.tell(new StopShardedActor(), getRef());
-            expectTerminated(underTest);
+            underTest.tell(new AbstractPersistenceSupervisor.ProcessNextTwinMessage(), probe.ref());
+            expectTerminated(Duration.of(100, ChronoUnit.SECONDS), underTest);
             probe.expectMsgClass(PolicyNotAccessibleException.class);
         }};
     }
@@ -132,7 +133,8 @@ public final class PolicySupervisorActorTest extends PersistenceActorTestBase {
                 mockPolicyEnforcer(policyId);
                 underTest.tell(retrievePolicy, probe.ref());
                 underTest.tell(new StopShardedActor(), getRef());
-                expectTerminated(Duration.of(1200, ChronoUnit.SECONDS), underTest);
+                underTest.tell(new AbstractPersistenceSupervisor.ProcessNextTwinMessage(), probe.ref());
+                expectTerminated(Duration.of(100, ChronoUnit.SECONDS), underTest);
                 probe.expectMsgClass(PolicyNotAccessibleException.class);
             }
         };

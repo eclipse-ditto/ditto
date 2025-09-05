@@ -35,6 +35,7 @@ import org.apache.pekko.actor.ReceiveTimeout;
 import org.apache.pekko.actor.Status;
 import org.apache.pekko.actor.SupervisorStrategy;
 import org.apache.pekko.actor.Terminated;
+import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
 import org.apache.pekko.cluster.sharding.ShardRegion;
 import org.apache.pekko.japi.pf.DeciderBuilder;
 import org.apache.pekko.japi.pf.FI;
@@ -242,6 +243,9 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                 .match(WithDittoHeaders.class, w -> w.getDittoHeaders().isSudo(),
                         this::forwardDittoSudoToChildIfAvailable)
                 .match(SubscribeForPersistedEvents.class, this::handleStreamPersistedEvents)
+                .match(DistributedPubSubMediator.SubscribeAck.class, ack ->
+                    log.debug("Got pub/sub subscribe ack: {}", ack)
+                )
                 .matchAny(matchAnyBehavior)
                 .build();
     }
@@ -482,18 +486,16 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     /**
      * Decrement the op counter when receiving a non-sudo signal.
      *
-     * @param signal the signal.
      */
-    protected void decrementOpCounter(final Signal<?> signal) {
+    protected void decrementOpCounter() {
         --opCounter;
     }
 
     /**
      * Increment the op counter after completing processing a non-sudo signal.
      *
-     * @param signal the signal.
      */
-    protected void incrementOpCounter(final Signal<?> signal) {
+    protected void incrementOpCounter() {
         ++opCounter;
     }
 
@@ -513,9 +515,10 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     }
 
     private FI.UnitApply<ProcessNextTwinMessage> decrementOpCounter(
-            final Runnable matchProcessNextTwinMessageBehavior) {
+            final Runnable matchProcessNextTwinMessageBehavior
+    ) {
         return processNextTwinMessage -> {
-            decrementOpCounter(processNextTwinMessage.signal());
+            decrementOpCounter();
             matchProcessNextTwinMessageBehavior.run();
             if (inCoordinatedShutdown && opCounter == 0 && sudoOpCounter == 0) {
                 log.debug("Stopping after waiting for ongoing ops.");
@@ -599,7 +602,8 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     }
 
     protected void becomeTwinSignalProcessingAwaiting() {
-        getContext().become(
+        final ActorContext context = getContext();
+        context.become(
                 activeBehaviour(
                         () -> {
                             unstashAll();
@@ -794,7 +798,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                 if (shouldBecomeTwinSignalProcessingAwaiting(signal)) {
                     becomeTwinSignalProcessingAwaiting();
                 }
-                final var syncCs = signalTransformer.apply(signal)
+                signalTransformer.apply(signal)
                         .whenComplete((result, error) ->
                                 handleOptionalTransformationException(signal, error, sender)
                         )
@@ -805,10 +809,8 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                                     .whenComplete((response, throwable) ->
                                             handleSignalEnforcementResponse(response, throwable, transformed, sender)
                                     ), enforcementExecutor
-                        )
-                        .handle((response, throwable) -> new ProcessNextTwinMessage(signal));
-                incrementOpCounter(signal); // decremented by ProcessNextTwinMessage
-                Patterns.pipe(syncCs, getContext().getDispatcher()).pipeTo(getSelf(), getSelf());
+                        );
+                incrementOpCounter(); // decremented by ProcessNextTwinMessage
             }
         } else if (null != persistenceActorChild) {
             if (persistenceActorChild.equals(sender)) {
@@ -1084,6 +1086,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
             builder.dittoHeaders(withDittoHeaders.getDittoHeaders());
         }
         sender.tell(builder.build(), getSelf());
+        getSelf().tell(new AbstractPersistenceSupervisor.ProcessNextTwinMessage(), getSelf());
     }
 
     /**
@@ -1126,10 +1129,8 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
 
     /**
      * Signals the actor to process the next message.
-     *
-     * @param signal the previous message.
      */
-    private record ProcessNextTwinMessage(Signal<?> signal) {}
+    public record ProcessNextTwinMessage() {}
 
     private record EnforcedSignalAndTargetActorResponse(@Nullable Signal<?> enforcedSignal,
                                                         @Nullable Object response) {}

@@ -35,6 +35,7 @@ import org.eclipse.ditto.connectivity.model.signals.commands.modify.DeleteConnec
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -136,6 +137,7 @@ public class ErrorHandlingActorTest extends WithMockServers {
 
             // delete connection
             final ConnectivityModifyCommand<?> command = DeleteConnection.of(connectionId, DittoHeaders.empty());
+            underTest.tell(new AbstractPersistenceSupervisor.ProcessNextTwinMessage(), getRef());
             underTest.tell(command, getRef());
             expectMsg(dilated(DISCONNECT_TIMEOUT),
                     DeleteConnectionResponse.of(connectionId, DittoHeaders.newBuilder()
@@ -177,6 +179,7 @@ public class ErrorHandlingActorTest extends WithMockServers {
                 default:
                     throw new IllegalArgumentException("invalid action " + action);
             }
+            underTest.tell(new AbstractPersistenceSupervisor.ProcessNextTwinMessage(), getRef());
             underTest.tell(command, getRef());
             expectMsg(ConnectionFailedException
                     .newBuilder(connectionId)

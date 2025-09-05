@@ -958,6 +958,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final Exception exception = testProbe.expectMsgClass(ConnectionConfigurationInvalidException.class);
         assertThat(exception).hasMessageContaining("validation failed...");
         // supervisor gets passivate indicator because of internal failure
+        supervisor.expectMsg(new AbstractPersistenceSupervisor.ProcessNextTwinMessage());
         supervisor.expectMsg(AbstractPersistenceSupervisor.Control.PASSIVATE);
 
         // connection actor will stop after activity check.
@@ -986,6 +987,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final var exception = testProbe.expectMsgClass(ConnectionUnavailableException.class);
         assertThat(exception).hasMessageContaining("not valid");
         // supervisor gets passivate indicator because of internal failure
+        parent.expectMsg(new AbstractPersistenceSupervisor.ProcessNextTwinMessage());
         parent.expectMsg(AbstractPersistenceSupervisor.Control.PASSIVATE);
 
         // do not expect passivation; it only happens for graceful shutdown.
