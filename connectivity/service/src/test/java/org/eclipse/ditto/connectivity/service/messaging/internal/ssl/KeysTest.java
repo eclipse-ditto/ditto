@@ -37,6 +37,6 @@ public class KeysTest {
 
     @Test
     public void loadCertificate() {
-        Keys.getCertificate(TestConstants.Certificates.SERVER_CRT, EXCEPTION_MAPPER);
+        Keys.getCertificateChain(TestConstants.Certificates.SERVER_CRT, EXCEPTION_MAPPER);
     }
 }
