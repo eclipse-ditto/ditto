@@ -516,7 +516,7 @@ public final class NormalizedMessageMapperTest {
                         "    \"value\": null,\n" +
                         "    \"headers\": {\n" +
                         "      \"entity-revision\": \"7\",\n" +
-                        "      \"response-required\": \"false\",\n" +
+                        "      \"response-required\": \"false\"\n" +
                         "    }\n" +
                         "  }\n" +
                         "}"));
