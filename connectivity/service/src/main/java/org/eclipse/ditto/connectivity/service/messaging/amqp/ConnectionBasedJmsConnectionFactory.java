@@ -25,8 +25,10 @@ import javax.jms.JMSException;
 import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
+import javax.net.ssl.SSLContext;
 
 import org.apache.qpid.jms.JmsConnection;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.SSLContextCreator;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
@@ -85,8 +87,12 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
                 (org.apache.qpid.jms.JmsConnectionFactory) ctx.lookup(connection.getId().toString());
 
         if (isSecuredConnection(connection)) {
-            cf.setSslContext(SSLContextCreator.fromConnection(connection, null, connectionLogger)
-                    .withoutClientCertificate());
+            final SSLContextCreator sslContextCreator =
+                    SSLContextCreator.fromConnection(connection, DittoHeaders.empty(), connectionLogger);
+            final SSLContext sslContext = connection.getCredentials()
+                    .map(credentials -> credentials.accept(sslContextCreator))
+                    .orElse(sslContextCreator.withoutClientCertificate());
+            cf.setSslContext(sslContext);
         }
 
         @SuppressWarnings("squid:S2095") final JmsConnection jmsConnection = (JmsConnection) cf.createConnection();
