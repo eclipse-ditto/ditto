@@ -98,8 +98,10 @@ messages (e.g. events or responses) to arbitrary other formats.
 
 ### Normalized mapper
 
-This mapper transforms `created` and `modified` events (other type of messages are dropped) to a normalized view. 
+This mapper transforms `created`, `modified`, and `deleted` events (other type of messages are dropped) to a normalized view. 
 Events are mapped to a nested sparse JSON.
+
+**Note:** For deleted events, only complete thing deletions (`ThingDeleted`) are mapped with a special `_deleted` field. Partial deletions like `AttributeDeleted`, `FeatureDeleted`, etc. are not mapped and will be dropped.
 
 ```json
 {
@@ -137,6 +139,38 @@ would result in the following normalized JSON representation:
 }
 ```
 The `_context` field contains the original message content excluding the `value`.
+
+For `deleted` events, the mapper includes a `_deleted` field with the deletion timestamp:
+
+```json
+{
+  "topic": "thing/id/things/twin/events/deleted",
+  "headers": { "content-type": "application/json" },
+  "path": "/",
+  "value": null
+}
+```
+
+would result in the following normalized JSON representation:
+
+```json
+{
+  "thingId": "thing:id",
+  "_deleted": "2023-12-01T10:30:00Z",
+  "_context": {
+    "topic": "thing/id/things/twin/events/deleted",
+    "path": "/",
+    "value": null,
+    "headers": {
+      "content-type": "application/json"
+    }
+  }
+}
+```
+
+The `_deleted` field contains the timestamp when the thing was deleted in ISO-8601 format.
+
+**Note:** The `_deleted` field is only added for complete thing deletions (when the entire thing is deleted). Partial deletions like `AttributeDeleted`, `FeatureDeleted`, etc. are not mapped and will be dropped.
 
 #### Configuration options
 
