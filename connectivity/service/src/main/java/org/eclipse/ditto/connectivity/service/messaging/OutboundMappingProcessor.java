@@ -153,30 +153,28 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
      */
     @Override
     List<MappingOutcome<OutboundSignal.Mapped>> process(final OutboundSignal outboundSignal) {
-        // DIVERSION:
-        //  Check
-        //  if response diversion is configured
-        //      if not, continue processing
-        //      if so, check if response is already diverted
-        //          if not, check if response is for diversion
-        //              if so, divert response and return empty mapping outcomes
-        //              if not, continue processing
-        //      if response is already diverted, check if it is authorized
-        //          if not, return empty mapping outcomes and log warning
-        //          if so, continue processing
-        //  if response diversion is not configured, log that and continue processing
+        // DIVERSION FLOW:
+        //  1. Check if diversion is enabled
+        //  2. Check if response is already diverted
+        //      a. If yes, check if authorized
+        //          i. If authorized, continue normal flow
+        //          ii. If not authorized, drop response (return empty list)
+        //      b. If no, check if response is for diversion
+        //          i. If yes, divert response
+        //              - If diversion was successful and normal response should not be preserved, return empty list
+        //              - If diversion was successful and normal response should be preserved, continue normal flow
+        //          ii. If no, continue normal flow
+        //  3. If diversion is not enabled, continue normal flow
 
-        // Check if response diversion is enabled
         if (responseDiversionInterceptor != null) {
-            //  Check if response is already diverted
             if (responseDiversionInterceptor.isAlreadyDiverted(outboundSignal)) {
                  if (responseDiversionInterceptor.isAuthorized(outboundSignal)) {
                      logger.withCorrelationId(outboundSignal.getSource())
-                             .debug("Response was already diverted and is authorized: {}",
+                             .debug("Response was already diverted and is authorized. Continue normal flow. {}",
                                      outboundSignal.getSource().getDittoHeaders());
                  } else {
                         logger.withCorrelationId(outboundSignal.getSource())
-                                .debug("Response was already diverted but not authorized, dropping: {}",
+                                .warning("Response was diverted but not authorized, dropping: {}",
                                         outboundSignal.getSource().getDittoHeaders());
                         return Collections.emptyList();
                  }
@@ -186,9 +184,14 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
                             .debug("Response will be diverted: {}", outboundSignal);
                     final boolean wasDiverted = responseDiversionInterceptor.interceptAndDivert(outboundSignal);
                     if (wasDiverted) {
-                        logger.withCorrelationId(outboundSignal.getSource())
-                                .debug("Response diverted, returning empty mapping outcomes. {}", outboundSignal);
-                        return Collections.emptyList();
+                        if (!responseDiversionInterceptor.shouldPreserveNormalResponseViaSource()){
+                            logger.withCorrelationId(outboundSignal.getSource())
+                                    .debug("Response diverted, returning empty mapping outcomes. {}", outboundSignal);
+                            return Collections.emptyList();
+                        } else {
+                            logger.withCorrelationId(outboundSignal.getSource())
+                                    .debug("Response diverted, continuing normal processing to source reply target. {}", outboundSignal);
+                        }
                     }
                 }
             }

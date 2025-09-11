@@ -33,6 +33,8 @@ import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.Source;
+import org.eclipse.ditto.connectivity.model.Target;
+import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientActor;
 import org.junit.Before;
 import org.junit.Test;
@@ -89,6 +91,33 @@ public class ResponseDiversionValidatorTest {
                 .sources(Collections.singletonList(source))
                 .build();
 
+        assertThatNoException()
+                .isThrownBy(() -> ResponseDiversionValidator.validate(connection, DITTO_HEADERS));
+    }
+
+    @Test
+    public void validateNoTopicsInTargetWhenIsDiversionTargetIsTrue() {
+        final Target build = ConnectivityModelFactory.newTargetBuilder()
+                .authorizationContext(AUTHORIZATION_CONTEXT)
+                .topics(Topic.TWIN_EVENTS)
+                .address("test/address")
+                .build();
+        final Connection connection = connectionBuilder.targets(Collections.singletonList(build))
+                .specificConfig(Map.of(BaseClientActor.IS_DIVERSION_TARGET, "true"))
+                .build();
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> ResponseDiversionValidator.validate(connection, DITTO_HEADERS));
+    }
+
+    @Test
+    public void validateNoExceptionForTopicsInTargetWhenIsDiversionTargetIsFalse() {
+        final Target build = ConnectivityModelFactory.newTargetBuilder()
+                .authorizationContext(AUTHORIZATION_CONTEXT)
+                .topics(Topic.TWIN_EVENTS)
+                .address("test/address")
+                .build();
+        final Connection connection = connectionBuilder.targets(Collections.singletonList(build))
+                .build();
         assertThatNoException()
                 .isThrownBy(() -> ResponseDiversionValidator.validate(connection, DITTO_HEADERS));
     }

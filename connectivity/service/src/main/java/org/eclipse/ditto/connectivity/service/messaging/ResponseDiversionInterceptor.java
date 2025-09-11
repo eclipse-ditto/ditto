@@ -49,7 +49,28 @@ import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 @Immutable
 public final class ResponseDiversionInterceptor {
 
+    /**
+     * The specific configuration key for authorized connections as sources.
+     * This configuration is a comma-separated list of connection IDs that are allowed to divert responses to this connection.
+     * If this configuration is not set or empty, no connections are authorized to divert responses to this connection.
+     * If this configuration is set, only the connections listed are authorized to divert responses to this connection.
+     * Example: "conn-1, conn-2, conn-3"
+     */
     public static final String AUTHORIZED_CONNECTIONS_AS_SOURCES = "authorized-connections-as-sources";
+    /**
+     * Whether to preserve the normal response path via the source connection when this connection is configured as
+     * diversion source.
+     * If configured true, diverted responses will be sent both via the diversion target connection and via the source
+     * connection.
+     * If configured false, diverted responses will only be sent via the diversion target connection.
+     * Note: This setting has no effect if the connection is not configured as diversion source.
+     */
+    public static final String PRESERVE_NORMAL_RESPONSE_VIA_SOURCE = "preserve-normal-response-via-source";
+    /**
+     * Default value for {@link #PRESERVE_NORMAL_RESPONSE_VIA_SOURCE} (i.e. do not preserve the normal response path
+     * via the source connection).
+     */
+    public static final String PRESERVE_NORMAL_RESPONSE_VIA_SOURCE_DEFAULT = "false";
 
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(ResponseDiversionInterceptor.class);
     private static final Set<String> DEFAULT_RESPONSE_TYPES =
@@ -59,6 +80,7 @@ public final class ResponseDiversionInterceptor {
     private final Set<String> authorizedSources;
     private final ConnectionPubSub pubSub;
     private final String sourceConnectionId;
+    private final boolean preserveNormalResponseViaSource;
 
     private ResponseDiversionInterceptor(final Connection connection,
             final ConnectionPubSub pubSub) {
@@ -69,6 +91,11 @@ public final class ResponseDiversionInterceptor {
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .collect(Collectors.toSet());
+        this.preserveNormalResponseViaSource = Boolean.parseBoolean(
+                connection.getSpecificConfig()
+                        .getOrDefault(PRESERVE_NORMAL_RESPONSE_VIA_SOURCE,
+                                PRESERVE_NORMAL_RESPONSE_VIA_SOURCE_DEFAULT)
+                        .trim());
         this.pubSub = checkNotNull(pubSub, "pubSub");
         this.sourceConnectionId = connection.getId().toString();
     }
@@ -117,6 +144,19 @@ public final class ResponseDiversionInterceptor {
     }
 
     /**
+     * Indicates whether to preserve the normal response path via the source connection when this connection is
+     * configured as diversion source.
+     * If configured true, diverted responses will be sent both via the diversion target connection and via the source
+     * connection.
+     * If configured false, diverted responses will only be sent via the diversion target connection.
+     * Note: This setting has no effect if the connection is not configured as diversion source.
+     * @return true to preserve the normal response path via the source connection, false otherwise
+     */
+    public boolean shouldPreserveNormalResponseViaSource() {
+        return preserveNormalResponseViaSource;
+    }
+
+    /**
      * Intercepts an outbound signal and diverts it if configured.
      * Only command responses are eligible for diversion.
      *
@@ -128,12 +168,11 @@ public final class ResponseDiversionInterceptor {
         final Signal<?> signal = outboundSignal.getSource();
 
         // Divert instances of command responses.
-        if (!(signal instanceof CommandResponse)) {
+        if (!(signal instanceof final CommandResponse<?> response)) {
             LOGGER.withCorrelationId(signal)
                     .debug("Signal is not a CommandResponse, skipping diversion: {}", signal.getType());
             return false;
         }
-        final CommandResponse<?> response = (CommandResponse<?>) signal;
 
         // Check if this response type should be diverted
         final String origin = response.getDittoHeaders().getOrigin().map(String::trim).orElse("");

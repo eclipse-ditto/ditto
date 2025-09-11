@@ -167,9 +167,23 @@ import com.typesafe.config.Config;
  */
 public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientState, BaseClientData> {
 
+    /**
+     * Whether this connection is a target for diverted responses.
+     * If configured true, the diversion interceptor will be initialized and the client actor will subscribe to diverted responses.
+     */
     public static final String IS_DIVERSION_TARGET = "is-diversion-target";
-    public static final String IS_DIVERSION_SOURCE = "is-diversion-source";
+    /**
+     * Default value for {@link #IS_DIVERSION_TARGET} (i.e. not a diversion target).
+     */
     public static final String IS_DIVERSION_TARGET_DEFAULT = "false";
+    /**
+     * Whether this connection is a source for diverted responses.
+     * If configured true, the diversion interceptor will be initialized
+     */
+    public static final String IS_DIVERSION_SOURCE = "is-diversion-source";
+    /**
+     * Default value for {@link #IS_DIVERSION_SOURCE} (i.e. not a diversion source).
+     */
     public static final String IS_DIVERSION_SOURCE_DEFAULT = "false";
     /**
      * Common logger for all sub-classes of BaseClientActor as its MDC already contains the connection ID.
@@ -365,8 +379,9 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     }
 
-    private CompletionStage<Boolean> subscribeForDivertedResponses() {
-        if (dryRun || !isDiversionTarget()) {
+    private CompletionStage<Boolean> subscribeForDivertedResponses(final boolean isDryRun,
+            final boolean resubscribe) {
+        if (isDryRun || !isDiversionTarget()) {
             return CompletableFuture.completedFuture(false);
         }
         final ConnectionId connectionId = connectionId();
@@ -374,7 +389,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         // Note: Subscription happens in preStart but the actor might not be in CONNECTED state yet
         logger.info("Connection {} is configured as diversion target, subscribing to diverted responses",
                 connectionId);
-        return connectionPubSub.subscribeForDivertedResponses(connectionId, getSelf(), false).whenComplete((consistent, error) -> {
+        return connectionPubSub.subscribeForDivertedResponses(connectionId, getSelf(), resubscribe).whenComplete((consistent, error) -> {
             if (error != null) {
                 logger.error(error, "Failed to register client actor of connection <{}> for diverted responses", connectionId);
             } else {
@@ -1341,7 +1356,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return publisherReady
                 .thenCompose(unused -> consumersReady)
                 .thenCompose(unused -> subscribeAndDeclareAcknowledgementLabels(dryRun, false))
-                .thenCompose(unused -> subscribeForDivertedResponses())
+                .thenCompose(unused -> subscribeForDivertedResponses(dryRun, false))
                 .thenApply(unused -> InitializationResult.success())
                 .exceptionally(InitializationResult::failed);
     }
@@ -2055,6 +2070,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     private FSM.State<BaseClientState, BaseClientData> resubscribe(final Control trigger, final BaseClientData data) {
         subscribeAndDeclareAcknowledgementLabels(dryRun, true);
+        subscribeForDivertedResponses(dryRun, true);
         startSubscriptionRefreshTimer();
         return stay();
     }
