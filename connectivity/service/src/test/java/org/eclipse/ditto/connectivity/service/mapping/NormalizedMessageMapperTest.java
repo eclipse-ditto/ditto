@@ -492,6 +492,37 @@ public final class NormalizedMessageMapperTest {
     }
 
     @Test
+    public void thingDeletedIsMappedWithDeletedTimestamp() {
+        final Instant deletedAt = Instant.ofEpochSecond(10L);
+        final ThingDeleted event = ThingDeleted.of(
+                ThingId.of("thing:deleted"),
+                7L,
+                deletedAt,
+                DittoHeaders.empty(),
+                null
+        );
+
+        final Adaptable adaptable = ADAPTER.toAdaptable(event);
+
+        Assertions.assertThat(mapToJson(adaptable))
+                .isEqualTo(JsonObject.of("{\n" +
+                        "  \"thingId\": \"thing:deleted\",\n" +
+                        "  \"_modified\": \"1970-01-01T00:00:10Z\",\n" +
+                        "  \"_revision\": 7,\n" +
+                        "  \"_deleted\": \"1970-01-01T00:00:10Z\",\n" +
+                        "  \"_context\": {\n" +
+                        "    \"topic\": \"thing/deleted/things/twin/events/deleted\",\n" +
+                        "    \"path\": \"/\",\n" +
+                        "    \"value\": null,\n" +
+                        "    \"headers\": {\n" +
+                        "      \"entity-revision\": \"7\",\n" +
+                        "      \"response-required\": \"false\"\n" +
+                        "    }\n" +
+                        "  }\n" +
+                        "}"));
+    }
+
+    @Test
     public void deletedEventsAreNotMapped() {
         assertNotMapped(AttributeDeleted.of(ThingId.of("thing:id"), JsonPointer.of("/the/quick/brown/fox/"), 3L,
                 Instant.ofEpochSecond(3L), DittoHeaders.empty(), null));
@@ -499,7 +530,6 @@ public final class NormalizedMessageMapperTest {
                 JsonPointer.of("jumps/over/the/lazy/dog"), 4L, Instant.ofEpochSecond(4L), DittoHeaders.empty(), null));
         assertNotMapped(FeatureDeleted.of(ThingId.of("thing:id"), "featureId", 5L, Instant.EPOCH,
                 DittoHeaders.empty(), null));
-        assertNotMapped(ThingDeleted.of(ThingId.of("thing:id"), 6L, Instant.EPOCH, DittoHeaders.empty(), null));
     }
 
     @Test

@@ -21,6 +21,8 @@ import javax.annotation.Nullable;
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.model.Connection;
@@ -46,7 +48,9 @@ import com.typesafe.config.Config;
 
 /**
  * A message mapper implementation for normalized changes.
- * Create-,  modify- and merged-events are mapped to nested sparse JSON.
+ * Create-, modify-, merged- and deleted-events are mapped to nested sparse JSON.
+ * For complete thing deletions (ThingDeleted), a special `_deleted` field is included with the deletion timestamp.
+ * Partial deletions (AttributeDeleted, FeatureDeleted, etc.) are not mapped and will be dropped.
  * All other signals and incoming messages are dropped.
  */
 public final class NormalizedMessageMapper extends AbstractMessageMapper {
@@ -63,6 +67,13 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
     private static final JsonFieldDefinition<Long> REVISION = Thing.JsonFields.REVISION;
     private static final JsonFieldDefinition<JsonObject> ABRIDGED_ORIGINAL_MESSAGE =
             JsonFactory.newJsonObjectFieldDefinition("_context");
+    /**
+     * JSON field containing the Thing's deleted timestamp in ISO-8601 format.
+     */
+    private static final JsonFieldDefinition<String> DELETED = JsonFactory.newStringFieldDefinition("_deleted",
+            FieldType.SPECIAL,
+            FieldType.HIDDEN,
+            JsonSchemaVersion.V_2);
 
     @Nullable
     private JsonFieldSelector jsonFieldSelector;
@@ -118,7 +129,7 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
     @Override
     public List<ExternalMessage> map(final Adaptable adaptable) {
         final TopicPath topicPath = adaptable.getTopicPath();
-        return isCreatedModifiedOrMergedThingEvent(topicPath)
+        return isThingChangeEvent(topicPath, adaptable.getPayload())
                 ? Collections.singletonList(flattenAsThingChange(adaptable))
                 : Collections.emptyList();
     }
@@ -146,6 +157,15 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
 
         payload.getTimestamp().ifPresent(timestamp -> builder.set(MODIFIED, timestamp.toString()));
         payload.getRevision().ifPresent(revision -> builder.set(REVISION, revision));
+        
+        // Add _deleted field only for complete thing deletions (ThingDeleted events)
+        // Partial deletions (AttributeDeleted, FeatureDeleted, etc.) are not mapped
+        if (isThingDeleted(topicPath, payload)) {
+            payload.getTimestamp().ifPresent(timestamp ->
+                    builder.set(DELETED, timestamp.toString())
+            );
+        }
+        
         builder.set(ABRIDGED_ORIGINAL_MESSAGE, abridgeMessage(adaptable));
 
         final var json = builder.build();
@@ -177,13 +197,11 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
         final Payload payload = adaptable.getPayload();
         final JsonObjectBuilder builder = JsonObject.newBuilder();
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder(adaptable.getDittoHeaders()).build();
-        // add fields of an event protocol message excluding "value" and "status"
         builder.set(JsonifiableAdaptable.JsonFields.TOPIC, adaptable.getTopicPath().getPath());
         builder.set(Payload.JsonFields.PATH, payload.getPath().toString());
         builder.set(Payload.JsonFields.VALUE, adaptable.getPayload().getValue().orElse(JsonValue.nullLiteral()));
         payload.getFields().ifPresent(fields -> builder.set(Payload.JsonFields.FIELDS, fields.toString()));
         builder.set(JsonifiableAdaptable.JsonFields.HEADERS, dittoHeadersToJson(dittoHeaders));
-
         return builder.build();
     }
 
@@ -194,15 +212,21 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
                 .collect(JsonCollectors.fieldsToObject());
     }
 
-    private static boolean isCreatedModifiedOrMergedThingEvent(final TopicPath topicPath) {
+    private static boolean isThingChangeEvent(final TopicPath topicPath, final Payload payload) {
         final var isThingEvent =
                 topicPath.isGroup(TopicPath.Group.THINGS) && topicPath.isCriterion(TopicPath.Criterion.EVENTS);
 
-        final var isCreatedModifiedOrMerged = topicPath.isAction(TopicPath.Action.CREATED) ||
-                topicPath.isAction(TopicPath.Action.MODIFIED) ||
-                topicPath.isAction(TopicPath.Action.MERGED);
+        final var isChange = topicPath.isAction(TopicPath.Action.CREATED)
+                || topicPath.isAction(TopicPath.Action.MODIFIED)
+                || topicPath.isAction(TopicPath.Action.MERGED)
+                || isThingDeleted(topicPath, payload);
 
-        return isThingEvent && isCreatedModifiedOrMerged;
+        return isThingEvent && isChange;
+    }
+
+    private static boolean isThingDeleted(final TopicPath topicPath, final Payload payload) {
+        return topicPath.isAction(TopicPath.Action.DELETED) &&
+                JsonPointer.of(payload.getPath()).isEmpty();
     }
 
     private static JsonObject filterNullValuesAndEmptyObjects(final JsonObject jsonObject) {
