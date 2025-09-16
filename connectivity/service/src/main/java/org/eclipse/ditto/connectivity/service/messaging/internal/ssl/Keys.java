@@ -26,6 +26,7 @@ import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
@@ -109,19 +110,25 @@ final class Keys {
     }
 
     /**
-     * Loads a {@link java.security.cert.Certificate} from the given string. The private key must be given in PKCS#8 format.
+     * Loads a {@link java.security.cert.Certificate} chain from the given string.
      *
-     * @param certificatePem certificate in X.509 format
+     * @param certificatePem certificate chain in X.509 format
      * @param exceptionMapper maps ssl exceptions to ditto exceptions providing context information
-     * @return the certificate
+     * @return the certificate chain
      */
-    static Certificate getCertificate(final String certificatePem, final ExceptionMapper exceptionMapper) {
+    static Certificate[] getCertificateChain(final String certificatePem, final ExceptionMapper exceptionMapper) {
         final byte[] asciiBytes = certificatePem.getBytes(StandardCharsets.US_ASCII);
+        final Collection<? extends Certificate> chain;
         try {
-            return X509_CERTIFICATE_FACTORY.generateCertificate(new ByteArrayInputStream(asciiBytes));
+            chain = X509_CERTIFICATE_FACTORY.generateCertificates(new ByteArrayInputStream(asciiBytes));
         } catch (final CertificateException e) {
             throw exceptionMapper.badCertificateFormat("CERTIFICATE", "DER").build();
         }
+
+        if (chain.isEmpty())
+            throw exceptionMapper.badCertificateFormat("CERTIFICATE", "DER").build();
+
+        return chain.toArray(new Certificate[0]);
     }
 
     /**
