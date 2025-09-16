@@ -405,36 +405,36 @@ ingress:
       nginx.ingress.kubernetes.io/proxy-next-upstream-timeout: "50"
       nginx.ingress.kubernetes.io/proxy-buffer-size: "16k"
       nginx.ingress.kubernetes.io/configuration-snippet: |
-        set $cors '1';
+        set $cors $http_origin;
 
-        if ($request_method = 'OPTIONS') {
-          set $cors "${cors}o";
-        }
+        # Allow-listed origins for CORS - enforces https for those
+        #if ($http_origin ~ '^https://eclipse-ditto\.github\.io(:\d+)?)$') {
+        #  set $cors $http_origin;
+        #}
+        # Allows http for localhost (on any port)
+        #if ($http_origin ~ '^http://(localhost|127\.0\.0\.1)(:\d+)?') {
+        #  set $cors $http_origin;
+        #}
 
-        if ($cors = '1') {
-          add_header 'Access-Control-Allow-Origin' '$http_origin' always;
+        if ($cors != "") {
+          add_header 'Access-Control-Allow-Origin' '$cors' always;
           add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, PATCH, DELETE, OPTIONS' always;
           add_header 'Access-Control-Allow-Credentials' 'true' always;
           add_header 'Access-Control-Allow-Headers' '$http_access_control_request_headers' always;
-          add_header 'Access-Control-Expose-Headers' '*' always;
+          add_header 'Access-Control-Expose-Headers' 'correlation-id, response-required, dry-run, channel, etag, ditto-originator, requested-acks, timeout, location, ditto-metadata, traceparent, tracestate, entity-revision' always;
         }
 
-        if ($cors = '1o') {
+        if ($request_method = 'OPTIONS') {
           # Tell client that this pre-flight info is valid for 20 days
           add_header 'Access-Control-Max-Age' 1728000;
-          add_header 'Access-Control-Allow-Origin' '$http_origin' always;
+          add_header 'Access-Control-Allow-Origin' '$cors' always;
           add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, PATCH, DELETE, OPTIONS' always;
           add_header 'Access-Control-Allow-Credentials' 'true' always;
           add_header 'Access-Control-Allow-Headers' '$http_access_control_request_headers' always;
-          add_header 'Access-Control-Expose-Headers' '*' always;
+          add_header 'Access-Control-Expose-Headers' 'correlation-id, response-required, dry-run, channel, etag, ditto-originator, requested-acks, timeout, location, ditto-metadata, traceparent, tracestate, entity-revision' always;
           add_header 'Content-Type' 'text/plain charset=UTF-8';
           add_header 'Content-Length' 0;
-          return 200;
-        }
-
-        if ($request_method = 'OPTIONS') {
-          add_header 'Content-Type' 'text/plain charset=UTF-8';
-          return 405 "Origin $http_origin is not in CORS allow-list, contact your admin to get it added";
+          return 204;
         }
 
         # security relevant headers:
@@ -1151,6 +1151,8 @@ things:
       cache:
         # modelCacheSize configures the amount of TMs to hold in the cache
         modelCacheSize: 1000
+        # expireAfterWrite configures how long a single TM should remain cached after first writing it to the cache
+        expireAfterWrite: 2d
         # expireAfterAccess configures how long a single TM should remain cached after its last access
         expireAfterAccess: 1d
       # tdJsonTemplate contains a json template added to generated TDs, e.g. containing security information:
@@ -1172,6 +1174,16 @@ things:
         enabled: true
         # log-warning-instead-of-failing-api-calls whether to instead of to reject/fail API calls (when enabled=true), log a WARNING log instead
         log-warning-instead-of-failing-api-calls: false
+        # json-schema-cache-enabled whether to enable caching of JSON schemas created from WoT ThingModels
+        json-schema-cache-enabled: true
+        # jsonSchemaCache configuration of the JSON schema cache
+        jsonSchemaCache:
+          # maxSize the maximum size of JSON schemas to keep in the cache
+          maxSize: 10000
+          # expireAfterWrite the maximum duration of inconsistency after losing a cache invalidation
+          expireAfterWrite: 12h
+          # expireAfterAccess prolonged on each cache access by that duration
+          expireAfterAccess: 2h
         # thing provides configuration settings for WoT based validation of Things
         thing:
           # enforce holds all configuration relating to enforcing the model

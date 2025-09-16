@@ -22,6 +22,8 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
+import org.eclipse.ditto.internal.utils.cache.config.DefaultCacheConfig;
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
@@ -47,6 +49,7 @@ public final class DefaultTmValidationConfig implements TmValidationConfig {
     private static final String CONFIG_PATH = "tm-model-validation";
 
     private static final String CONFIG_KEY_DYNAMIC_CONFIGURATION = "dynamic-configuration";
+    private static final String JSON_SCHEMA_CACHE = "json-schema-cache";
 
     private final ScopedConfig scopedConfig;
     private final List<InternalDynamicTmValidationConfiguration> dynamicTmValidationConfigurations;
@@ -55,6 +58,8 @@ public final class DefaultTmValidationConfig implements TmValidationConfig {
     private final boolean logWarningInsteadOfFailingApiCalls;
     private final ThingValidationConfig thingValidationConfig;
     private final FeatureValidationConfig featureValidationConfig;
+    private final boolean jsonSchemaCacheEnabled;
+    private final CacheConfig jsonSchemaCacheConfig;
 
 
     private DefaultTmValidationConfig(final ScopedConfig scopedConfig,
@@ -73,6 +78,8 @@ public final class DefaultTmValidationConfig implements TmValidationConfig {
 
         thingValidationConfig = DefaultThingValidationConfig.of(effectiveConfig);
         featureValidationConfig = DefaultFeatureValidationConfig.of(effectiveConfig);
+        jsonSchemaCacheEnabled = effectiveConfig.getBoolean(ConfigValue.JSON_SCHEMA_CACHE_ENABLED.getConfigPath());
+        jsonSchemaCacheConfig = DefaultCacheConfig.of(effectiveConfig, JSON_SCHEMA_CACHE);
     }
 
     /**
@@ -115,55 +122,14 @@ public final class DefaultTmValidationConfig implements TmValidationConfig {
         return featureValidationConfig;
     }
 
-    /**
-     * Creates a new instance of this configuration with the specified validation context.
-     * If dynamic configurations are present, they will be evaluated against the provided context.
-     *
-     * @param context the validation context to use for dynamic configuration selection
-     * @return a new TmValidationConfig instance with context-specific settings applied
-     */
     @Override
-    public TmValidationConfig withValidationContext(@Nullable final ValidationContext context) {
-        if (dynamicTmValidationConfigurations.isEmpty()) {
-            return this;
-        } else {
-            return new DefaultTmValidationConfig(scopedConfig, dynamicTmValidationConfigurations, context);
-        }
+    public boolean isJsonSchemaCacheEnabled() {
+        return jsonSchemaCacheEnabled;
     }
 
     @Override
-    public boolean equals(final Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        final DefaultTmValidationConfig that = (DefaultTmValidationConfig) o;
-        return Objects.equals(dynamicTmValidationConfigurations, that.dynamicTmValidationConfigurations) &&
-                enabled == that.enabled &&
-                logWarningInsteadOfFailingApiCalls == that.logWarningInsteadOfFailingApiCalls &&
-                Objects.equals(thingValidationConfig, that.thingValidationConfig) &&
-                Objects.equals(featureValidationConfig, that.featureValidationConfig) &&
-                Objects.equals(scopedConfig, that.scopedConfig);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(dynamicTmValidationConfigurations, enabled, logWarningInsteadOfFailingApiCalls,
-                thingValidationConfig, featureValidationConfig, scopedConfig);
-    }
-
-    @Override
-    public String toString() {
-        return getClass().getSimpleName() + " [" +
-                "dynamicTmValidationConfiguration=" + dynamicTmValidationConfigurations +
-                ", enabled=" + enabled +
-                ", logWarningInsteadOfFailingApiCalls=" + logWarningInsteadOfFailingApiCalls +
-                ", thingValidationConfig=" + thingValidationConfig +
-                ", featureValidationConfig=" + featureValidationConfig +
-                ", scopedConfig=" + scopedConfig +
-                "]";
+    public CacheConfig getJsonSchemaCacheConfig() {
+        return jsonSchemaCacheConfig;
     }
 
     /**
@@ -239,4 +205,61 @@ public final class DefaultTmValidationConfig implements TmValidationConfig {
                 })
                 .toList();
     }
+
+    /**
+     * Creates a new instance of this configuration with the specified validation context.
+     * If dynamic configurations are present, they will be evaluated against the provided context.
+     *
+     * @param context the validation context to use for dynamic configuration selection
+     * @return a new TmValidationConfig instance with context-specific settings applied
+     */
+    @Override
+    public TmValidationConfig withValidationContext(@Nullable final ValidationContext context) {
+        if (dynamicTmValidationConfigurations.isEmpty()) {
+            return this;
+        } else {
+            return new DefaultTmValidationConfig(scopedConfig, dynamicTmValidationConfigurations, context);
+        }
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final DefaultTmValidationConfig that = (DefaultTmValidationConfig) o;
+        return Objects.equals(dynamicTmValidationConfigurations, that.dynamicTmValidationConfigurations) &&
+                enabled == that.enabled &&
+                logWarningInsteadOfFailingApiCalls == that.logWarningInsteadOfFailingApiCalls &&
+                Objects.equals(thingValidationConfig, that.thingValidationConfig) &&
+                Objects.equals(featureValidationConfig, that.featureValidationConfig) &&
+                Objects.equals(scopedConfig, that.scopedConfig) &&
+                Objects.equals(jsonSchemaCacheEnabled, that.jsonSchemaCacheEnabled) &&
+                Objects.equals(jsonSchemaCacheConfig, that.jsonSchemaCacheConfig);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(dynamicTmValidationConfigurations, enabled, logWarningInsteadOfFailingApiCalls,
+                thingValidationConfig, featureValidationConfig, scopedConfig, jsonSchemaCacheEnabled,
+                jsonSchemaCacheConfig);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "dynamicTmValidationConfiguration=" + dynamicTmValidationConfigurations +
+                ", enabled=" + enabled +
+                ", logWarningInsteadOfFailingApiCalls=" + logWarningInsteadOfFailingApiCalls +
+                ", thingValidationConfig=" + thingValidationConfig +
+                ", featureValidationConfig=" + featureValidationConfig +
+                ", scopedConfig=" + scopedConfig +
+                ", jsonSchemaCacheEnabled=" + jsonSchemaCacheEnabled +
+                ", jsonSchemaCacheConfig=" + jsonSchemaCacheConfig +
+                "]";
+    }
+
 }

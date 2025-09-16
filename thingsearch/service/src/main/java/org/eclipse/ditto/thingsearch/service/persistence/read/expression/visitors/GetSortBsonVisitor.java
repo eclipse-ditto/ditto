@@ -168,6 +168,10 @@ public final class GetSortBsonVisitor implements SortFieldExpressionVisitor<Stri
             return JsonFactory.readFrom((document).toJson());
         } else if (object instanceof BsonValue bsonValue) {
             return DittoBsonJson.getInstance().serialize(bsonValue);
+        } else if (object instanceof List<?> list) {
+            JsonArrayBuilder builder = JsonFactory.newArrayBuilder();
+            list.forEach(item -> builder.add(toJsonValue(item)));
+            return builder.build();
         } else {
             return JsonValue.of(object);
         }
