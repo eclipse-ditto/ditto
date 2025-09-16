@@ -66,9 +66,9 @@ public final class KeyManagerFactoryFactory implements CredentialsVisitor<KeyMan
 
         final KeyStore keystore = keyStoreFactory.newKeystore();
         final PrivateKey privateKey = Keys.getPrivateKey(clientKeyPem, exceptionMapper);
-        final Certificate certificate = Keys.getCertificate(clientCertificatePem, exceptionMapper);
+        final Certificate[] certificate = Keys.getCertificateChain(clientCertificatePem, exceptionMapper);
         keyStoreFactory.setPrivateKey(keystore, privateKey, certificate);
-        keyStoreFactory.setCertificate(keystore, certificate);
+        keyStoreFactory.setCertificate(keystore, certificate[0]);
 
         try {
             final KeyManagerFactory keyManagerFactory =

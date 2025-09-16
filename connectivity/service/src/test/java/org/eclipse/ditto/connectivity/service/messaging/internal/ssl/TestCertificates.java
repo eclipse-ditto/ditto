@@ -28,8 +28,8 @@ public class TestCertificates {
         return Keys.getPublicKey(publicKey, ExceptionMapper.forSshPublicKeyCredentials(DittoHeaders.empty()));
     }
 
-    public static Certificate getCertificate(final String certificate) {
-        return Keys.getCertificate(certificate, ExceptionMapper.forTrustedCertificates(DittoHeaders.empty()));
+    public static Certificate[] getCertificate(final String certificate) {
+        return Keys.getCertificateChain(certificate, ExceptionMapper.forTrustedCertificates(DittoHeaders.empty()));
     }
 
     public static void main(String[] args) {

@@ -28,6 +28,7 @@ import org.eclipse.ditto.base.service.UriEncoding;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.service.config.Amqp10Config;
+import org.eclipse.ditto.connectivity.service.messaging.validation.IsClientCertificateCredentialsVisitor;
 
 /**
  * AMQP connection specific config handling that renders a base URI into a JMS connection string.
@@ -77,7 +78,7 @@ public final class AmqpSpecificConfig {
 
         final var amqpParameters = new LinkedHashMap<>(filterForAmqpParameters(defaultConfig));
         final Optional<UserPasswordCredentials> credentialsOptional = plainCredentialsSupplier.get(connection);
-        addSaslMechanisms(amqpParameters, credentialsOptional.isPresent());
+        addSaslMechanisms(amqpParameters, connection, credentialsOptional.isPresent());
         addTransportParameters(amqpParameters, connection);
         addSpecificConfigParameters(amqpParameters, connection, AmqpSpecificConfig::isPermittedAmqpConfig);
 
@@ -147,13 +148,31 @@ public final class AmqpSpecificConfig {
         });
     }
 
-    private static void addSaslMechanisms(final LinkedHashMap<String, String> parameters,
+    private static void addSaslMechanisms(final LinkedHashMap<String, String> parameters, Connection connection,
             final boolean hasPlainCredentials) {
+        final StringBuilder mechanisms = new StringBuilder();
+
         if (hasPlainCredentials) {
-            addParameter(parameters, SASL_MECHANISMS, "PLAIN");
-        } else {
-            addParameter(parameters, SASL_MECHANISMS, "ANONYMOUS");
+            if (!mechanisms.isEmpty())
+                mechanisms.append(',');
+            mechanisms.append("PLAIN");
         }
+
+        final boolean hasClientCertificates = connection.getCredentials()
+                .map(credentials -> credentials.accept(new IsClientCertificateCredentialsVisitor()))
+                .orElse(false);
+
+        if (hasClientCertificates) {
+            if (!mechanisms.isEmpty())
+                mechanisms.append(',');
+            mechanisms.append("EXTERNAL");
+        }
+
+        if (mechanisms.isEmpty()) {
+            mechanisms.append("ANONYMOUS");
+        }
+
+        addParameter(parameters, SASL_MECHANISMS, mechanisms.toString());
     }
 
     private static void addCredentials(final LinkedHashMap<String, String> parameters,
