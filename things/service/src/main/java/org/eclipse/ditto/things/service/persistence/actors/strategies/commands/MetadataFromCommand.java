@@ -91,16 +91,18 @@ final class MetadataFromCommand implements Supplier<Metadata> {
             final var mergedThing = withOptionalEntity.getEntity()
                     .map(entity -> {
                         final var resourcePath = command.getResourcePath();
-                        if (command instanceof MergeThing) {
+                        if (command instanceof MergeThing && !resourcePath.isEmpty()) {
                             return ThingsModelFactory.newThing(
                                     JsonObject.newBuilder().set(resourcePath, entity).build()
                             );
                         } else if (resourcePath.isEmpty() && entity.isObject()) {
                             return ThingsModelFactory.newThing(entity.asObject());
-                        } else {
+                        } else if (!resourcePath.isEmpty()) {
                             return ThingsModelFactory.newThing(
                                     JsonObject.newBuilder().set(resourcePath, entity).build()
                             );
+                        } else {
+                            return Thing.newBuilder().build();
                         }
                     })
                     .orElse(existingOrEmptyThing);
