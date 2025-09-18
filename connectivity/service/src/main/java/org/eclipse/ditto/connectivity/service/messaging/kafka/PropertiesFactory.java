@@ -28,7 +28,14 @@ import org.apache.kafka.common.serialization.ByteBufferDeserializer;
 import org.apache.kafka.common.serialization.ByteBufferSerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.eclipse.ditto.connectivity.model.ClientCertificateCredentials;
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.CredentialsVisitor;
+import org.eclipse.ditto.connectivity.model.HmacCredentials;
+import org.eclipse.ditto.connectivity.model.OAuthClientCredentials;
+import org.eclipse.ditto.connectivity.model.OAuthPassword;
+import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
+import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.service.config.KafkaConfig;
 
 import com.typesafe.config.Config;
@@ -105,6 +112,7 @@ final class PropertiesFactory {
                         .withGroupId(connection.getId().toString())
                         .withClientId(clientId + "-consumer")
                         .withProperties(getTrustedSelfSignedCertificates())
+                        .withProperties(getClientCertificates())
                         .withProperties(getConsumerSpecificConfigProperties())
                         .withProperties(getSecurityProtocolProperties())
                         .withConnectionChecker(connectionCheckerSettings);
@@ -125,6 +133,7 @@ final class PropertiesFactory {
                 .withBootstrapServers(bootstrapServers)
                 .withProperties(getClientIdProperties())
                 .withProperties(getTrustedSelfSignedCertificates())
+                .withProperties(getClientCertificates())
                 .withProperties(getProducerSpecificConfigProperties())
                 .withProperties(getSecurityProtocolProperties());
     }
@@ -134,6 +143,45 @@ final class PropertiesFactory {
             return Map.of(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG, "PEM",
                     SslConfigs.SSL_TRUSTSTORE_CERTIFICATES_CONFIG, connection.getTrustedCertificates().orElse(""),
                     SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
+        }
+        return Map.of();
+    }
+
+    private Map<String, String> getClientCertificates() {
+        if (isConnectionSecure() && connection.getCredentials().isPresent()) {
+            return connection.getCredentials().get().accept(new CredentialsVisitor<>() {
+                @Override
+                public Map<String, String> clientCertificate(final ClientCertificateCredentials credentials) {
+                    return Map.of(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG, "PEM",
+                            SslConfigs.SSL_KEYSTORE_CERTIFICATE_CHAIN_CONFIG, credentials.getClientCertificate().orElse(""),
+                            SslConfigs.SSL_KEYSTORE_KEY_CONFIG, credentials.getClientKey().orElse(""));
+                }
+
+                @Override
+                public Map<String, String> usernamePassword(final UserPasswordCredentials credentials) {
+                    return Map.of();
+                }
+
+                @Override
+                public Map<String, String> sshPublicKeyAuthentication(final SshPublicKeyCredentials credentials) {
+                    return Map.of();
+                }
+
+                @Override
+                public Map<String, String> hmac(final HmacCredentials credentials) {
+                    return Map.of();
+                }
+
+                @Override
+                public Map<String, String> oauthClientCredentials(final OAuthClientCredentials credentials) {
+                    return Map.of();
+                }
+
+                @Override
+                public Map<String, String> oauthPassword(final OAuthPassword credentials) {
+                    return Map.of();
+                }
+            });
         }
         return Map.of();
     }
