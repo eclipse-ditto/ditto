@@ -145,6 +145,7 @@ public class MetadataFieldsWildcardResolverTest {
         final Set<JsonPointer> expectedValues = Set.of(
                 JsonPointer.of("/thingId/key"),
                 JsonPointer.of("/policyId/key"),
+                JsonPointer.of("/definition/key"),
                 JsonPointer.of("/attributes/location/latitude/key"),
                 JsonPointer.of("/attributes/location/longitude/key"),
                 JsonPointer.of("/attributes/maker/key"),
