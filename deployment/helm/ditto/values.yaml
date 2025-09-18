@@ -2013,6 +2013,9 @@ gateway:
         #    authSubjects:
         #    - "{{ jwt:sub }}"
         #    - "{{ jwt:groups }}"
+        #    injectClaimsIntoHeaders:
+        #      user_email: "{{ jwt:email }}"
+        #      user_name: "{{ jwt:name }}"
         # configure the subject to inject in policy action activateTokenIntegration
         tokenIntegrationSubject: "integration:{{policy-entry:label}}:{{jwt:aud}}"
       # devops contains the configuration of the gateway's "/devops" API, e.g. access to it
@@ -2034,6 +2037,9 @@ gateway:
           #    authSubjects:
           #    - "{{ jwt:sub }}"
           #    - "{{ jwt:groups }}"
+          #    injectClaimsIntoHeaders:
+          #      user_email: "{{ jwt:email }}"
+          #      user_name: "{{ jwt:name }}"
         # oauthSubjects contains list of subjects authorized to use "/devops" and "/api/2/connections" resources
         oauthSubjects:
         # - "example-ops:devops-admin"

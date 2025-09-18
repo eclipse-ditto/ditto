@@ -17,8 +17,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
@@ -27,8 +29,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Unit test for {@link DittoJwtAuthorizationSubjectsProvider}.
@@ -77,6 +77,30 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
         assertThat(authSubjects).hasSize(1);
         assertThat(authSubjects.get(0)).isEqualTo(
                 AuthorizationSubject.newInstance(subjectIssuer + ":test-" + tokenAudience));
+    }
+
+    @Test
+    public void verifyThatInjectedClaimHeadersWithSimplePlaceholderWorks() {
+        final String subjectIssuer = "testIssuer";
+        final String tokenAudience = "some-audience";
+        final String email = "ditto@eclipse.org";
+
+        final JsonWebToken jsonWebToken = createToken("{" +
+                "\"aud\": \"" + tokenAudience + "\", " +
+                "\"email\": \"" + email + "\"" +
+                "}");
+        final JwtSubjectIssuersConfig subjectIssuersConfig =
+                createSubjectIssuersConfig(subjectIssuer, List.of("test-{{ jwt:aud }}"),
+                        Map.of("user-email", "{{ jwt:email }}")
+                );
+
+        final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
+                .of(actorSystem, subjectIssuersConfig);
+
+        final Map<String, String> injectedFromClaims = underTest.getAdditionalHeadersInjectedFromClaims(jsonWebToken);
+
+        assertThat(injectedFromClaims).hasSize(1);
+        assertThat(injectedFromClaims.get("user-email")).isEqualTo(email);
     }
 
     @Test
@@ -301,7 +325,20 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
         final JwtSubjectIssuerConfig subjectIssuerConfig = new JwtSubjectIssuerConfig(
                 SubjectIssuer.newInstance(subjectIssuer),
                 List.of(JwtTestConstants.ISSUER),
-                subjectTemplates);
+                subjectTemplates,
+                Map.of()
+        );
+        return JwtSubjectIssuersConfig.fromJwtSubjectIssuerConfigs(List.of(subjectIssuerConfig));
+    }
+
+    private static JwtSubjectIssuersConfig createSubjectIssuersConfig(final String subjectIssuer,
+            final List<String> subjectTemplates, final Map<String, String> injectClaimsIntoHeaders) {
+        final JwtSubjectIssuerConfig subjectIssuerConfig = new JwtSubjectIssuerConfig(
+                SubjectIssuer.newInstance(subjectIssuer),
+                List.of(JwtTestConstants.ISSUER),
+                subjectTemplates,
+                injectClaimsIntoHeaders
+        );
         return JwtSubjectIssuersConfig.fromJwtSubjectIssuerConfigs(List.of(subjectIssuerConfig));
     }
 

@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -103,11 +104,15 @@ public final class JwtSubjectIssuersConfigTest {
                 "{{ jwt:sub }}/{{ jwt:scope }}@{{ jwt:client_id }}",
                 "{{ jwt:sub }}/{{ jwt:scope }}@{{ jwt:non_existing }}",
                 "{{ jwt:roles/support }}"
-            ));
+            ),
+            Map.of()
+        );
         final JwtSubjectIssuerConfig additionalItem = new JwtSubjectIssuerConfig(
             SubjectIssuer.newInstance("additional"),
             List.of("https://additional.google.com"),
-            List.of("{{ jwt:sub }}"));
+            List.of("{{ jwt:sub }}"),
+            Map.of()
+        );
         final OAuthConfig oAuthConfig = DefaultOAuthConfig.of(ConfigFactory.load("oauth-test.conf"));
 
         final JwtSubjectIssuersConfig jwtSubjectIssuersConfig = JwtSubjectIssuersConfig.fromOAuthConfig(oAuthConfig);
@@ -127,7 +132,12 @@ public final class JwtSubjectIssuersConfigTest {
             ),
             List.of(
                 "{{ jwt:sub }}"
-            ));
+            ),
+            Map.of(
+                    "user-email", "{{ jwt:email }}",
+                    "user-name", "{{ jwt:name }}"
+            )
+        );
         final OAuthConfig oAuthConfig = DefaultOAuthConfig.of(ConfigFactory.load("oauth-test.conf"));
 
         final JwtSubjectIssuersConfig jwtSubjectIssuersConfig = JwtSubjectIssuersConfig.fromOAuthConfig(oAuthConfig);

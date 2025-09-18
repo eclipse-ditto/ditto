@@ -13,6 +13,7 @@
 package org.eclipse.ditto.gateway.service.util.config.security;
 
 import java.util.List;
+import java.util.Map;
 
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
@@ -39,11 +40,19 @@ public interface SubjectIssuerConfig {
      */
     List<String> getAuthorizationSubjectTemplates();
 
+    /**
+     * Returns claims of a token to inject into DittoHeaders (using the map key as key for the custom header to inject).
+     *
+     * @return claims of a token to inject into DittoHeaders (using the map key as key for the custom header to inject).
+     */
+    Map<String, String> getInjectClaimsIntoHeaders();
+
 
     enum SubjectIssuerConfigValue implements KnownConfigValue {
         ISSUER("issuer", ""),
         ISSUERS("issuers", List.of()),
-        AUTH_SUBJECTS("auth-subjects", List.of("{{jwt:sub}}"));
+        AUTH_SUBJECTS("auth-subjects", List.of("{{jwt:sub}}")),
+        INJECT_CLAIMS_INTO_HEADERS("inject-claims-into-headers", Map.of());
 
         private final String path;
         private final Object defaultValue;
