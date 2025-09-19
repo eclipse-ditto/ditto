@@ -53,6 +53,46 @@ for the following browser based requests:
   browser
    * passing the `withCredentials: true` option when creating the SSE in the browser
 
+#### Silent Token Refresh
+
+The Ditto UI supports automatic silent token refresh to provide a seamless user experience without frequent redirects to the OIDC provider. This feature:
+
+* **Automatically refreshes JWT tokens** before they expire using refresh tokens
+* **Retries failed API calls** after successful token refresh
+* **Works transparently** without user interaction
+
+**Configuration Requirements:**
+
+The OIDC provider must support:
+- `offline_access` scope for refresh tokens
+- `refresh_token` grant type
+- Silent refresh callback endpoint
+
+**OIDC Provider Configuration:**
+
+Configure your OIDC provider in the environment settings:
+
+```json
+{
+  "oidc": {
+    "providers": {
+      "your-provider": {
+        "displayName": "Your OIDC Provider",
+        "extractBearerTokenFrom": "access_token",
+        "authority": "https://your-oidc-provider.com",
+        "client_id": "your-client-id",
+        "redirect_uri": "https://your-ditto-ui.com",
+        "post_logout_redirect_uri": "https://your-ditto-ui.com",
+        "silent_redirect_uri": "https://your-ditto-ui.com/silent-callback.html",
+        "response_type": "code",
+        "scope": "openid groups email offline_access",
+        "automaticSilentRenew": true
+      }
+    }
+  }
+}
+```
+
 ## Authorization
 
 Authorization is implemented with a <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.policy}}">Policy</a>

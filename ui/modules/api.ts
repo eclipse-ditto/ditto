@@ -13,10 +13,13 @@
  */
 
 import { EventSourcePolyfill } from 'event-source-polyfill';
+import { UserManager } from 'oidc-client-ts';
 import {
   devopsBearerToken,
   devopsOidcBearerToken,
   devopsUsernamePassword,
+  fillMainOidcBearerToken,
+  fillDevopsOidcBearerToken,
   mainBearerToken,
   mainOidcBearerToken,
   mainUsernamePassword
@@ -373,6 +376,35 @@ function shouldShowAuthDialog(dittoErr) {
     dittoErr.status === 401;
 }
 
+async function attemptTokenRefresh(): Promise<boolean> {
+  try {
+    const environment = Environments.current();
+    const mainAuthMethod = environment.authSettings?.main?.method;
+    const devopsAuthMethod = environment.authSettings?.devops?.method;
+    
+    if (mainAuthMethod === AuthMethod.oidc || devopsAuthMethod === AuthMethod.oidc) {
+      const oidcProvider = environment.authSettings.oidc.providers[environment.authSettings.main.oidc.provider];
+      const settings = oidcProvider;
+      
+      if (settings) {
+        const userManager = new UserManager(settings);
+        
+        const user = await userManager.getUser();
+        
+        if (user && user[oidcProvider.extractBearerTokenFrom]) {
+          fillMainOidcBearerToken(user[oidcProvider.extractBearerTokenFrom]);
+          fillDevopsOidcBearerToken(user[oidcProvider.extractBearerTokenFrom]);
+          setAuthHeader(false);
+          return true;
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Token refresh failed after 401 error:', error);
+  }
+  return false;
+}
+
 function showDittoError(dittoErr, response) {
   if (dittoErr.status && dittoErr.message) {
     Utils.showError(dittoErr.description + `\n(${dittoErr.error})`, dittoErr.message, dittoErr.status);
@@ -420,6 +452,37 @@ export async function callDittoREST(method: string,
       throw err;
     }
     if (!response.ok) {
+      if (response.status === 401) {
+        const refreshSuccess = await attemptTokenRefresh();
+        if (refreshSuccess) {
+          try {
+            response = await fetch(Environments.current().api_uri + (devOps ? '' : '/api/2') + path, {
+              method: method,
+              headers: {
+                'Content-Type': contentType,
+                [authHeaderKey]: authHeaderValue,
+                ...additionalHeaders,
+              },
+              ...(method !== 'GET' && method !== 'DELETE' && body !== undefined) && {body: JSON.stringify(body)},
+            });
+            
+            if (response.ok) {
+              if (response.status !== 204) {
+                if (returnHeaders) {
+                  return response;
+                } else {
+                  return response.json();
+                }
+              } else {
+                return null;
+              }
+            }
+          } catch (retryError) {
+            console.error('Retry after token refresh failed:', retryError);
+          }
+        }
+      }
+      
       if (returnErrorJson) {
         if (returnHeaders) {
           return response;

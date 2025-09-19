@@ -33,6 +33,6 @@
     "dompurify": "^3.2.4",
     "event-source-polyfill": "^1.0.31",
     "jsonpath-plus": "^10.3.0",
-    "oidc-client-ts": "^3.0.1"
+    "oidc-client-ts": "^3.3.0"
   }
 }
