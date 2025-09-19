@@ -24,4 +24,5 @@ spec:
       app.kubernetes.io/name: {{ include "ditto.name" . }}-swaggerui
       app.kubernetes.io/instance: {{ .Release.Name }}
   minAvailable: {{ .Values.swaggerui.podDisruptionBudget.minAvailable }}
+  maxUnavailable: {{ .Values.swaggerui.podDisruptionBudget.maxUnavailable }}
 {{- end }}

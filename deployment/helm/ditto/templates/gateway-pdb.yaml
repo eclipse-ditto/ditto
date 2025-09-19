@@ -24,4 +24,5 @@ spec:
       app.kubernetes.io/name: {{ include "ditto.name" . }}-gateway
       app.kubernetes.io/instance: {{ .Release.Name }}
   minAvailable: {{ .Values.gateway.podDisruptionBudget.minAvailable }}
+  maxUnavailable: {{ .Values.gateway.podDisruptionBudget.maxUnavailable }}
 {{- end }}
