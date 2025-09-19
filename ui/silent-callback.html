@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Silent Refresh Callback</title>
+</head>
+<body>
+    <script>
+        try {
+            import('oidc-client-ts').then(({ UserManager }) => {
+                const userManager = new UserManager();
+                
+                userManager.signinSilentCallback()
+                    .then(() => {
+                        if (window.opener) {
+                            window.close();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Silent refresh callback failed:', error);
+                    });
+            }).catch(error => {
+                console.error('Failed to load oidc-client-ts:', error);
+            });
+        } catch (error) {
+            console.error('Silent callback error:', error);
+        }
+    </script>
+</body>
+</html>
+
+
