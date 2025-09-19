@@ -2332,6 +2332,9 @@ swaggerui:
 mongodb:
   # enabled controls whether mongodb should be started as part of the Helm chart or not
   enabled: true
+  image:
+    repository: bitnamilegacy/mongodb
+    tag: "7.0.15"
   # fullnameOverride: ditto-mongodb
   auth:
     enabled: false

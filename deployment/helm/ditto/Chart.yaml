@@ -32,5 +32,5 @@ maintainers:
 dependencies:
   - name: mongodb
     repository: oci://registry-1.docker.io/bitnamicharts
-    version: ^13.x
+    version: ^16.x
     condition: mongodb.enabled
