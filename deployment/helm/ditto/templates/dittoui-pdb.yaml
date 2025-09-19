@@ -24,4 +24,5 @@ spec:
       app.kubernetes.io/name: {{ include "ditto.name" . }}-dittoui
       app.kubernetes.io/instance: {{ .Release.Name }}
   minAvailable: {{ .Values.dittoui.podDisruptionBudget.minAvailable }}
+  maxUnavailable: {{ .Values.dittoui.podDisruptionBudget.maxUnavailable }}
 {{- end }}

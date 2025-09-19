@@ -143,6 +143,7 @@ spec:
                 -XX:MaxRAMPercentage={{ .Values.policies.jvm.heapRamPercentage }}
                 -XX:InitialRAMPercentage={{ .Values.policies.jvm.heapRamPercentage }}
                 -XX:MaxGCPauseMillis={{ .Values.policies.jvm.maxGcPauseMillis }}
+                -XX:G1ReservePercent={{ .Values.policies.jvm.g1ReservePercent }}
                 {{ .Values.policies.additionalJvmOptions }}
                 {{- .Values.global.pekkoOptions }}
                 {{- if .Values.global.logging.customConfigFile.enabled }}
@@ -397,7 +398,7 @@ spec:
         {{- end }}
         {{- if .Values.policies.extraVolumes }}
           {{- toYaml .Values.policies.extraVolumes | nindent 8 }}
-        {{- end}}
+        {{- end }}
         - name: ditto-heap-dumps
           emptyDir: {}
 {{- end }}

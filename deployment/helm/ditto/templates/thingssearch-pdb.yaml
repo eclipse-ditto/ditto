@@ -24,4 +24,5 @@ spec:
       app.kubernetes.io/name: {{ include "ditto.name" . }}-thingssearch
       app.kubernetes.io/instance: {{ .Release.Name }}
   minAvailable: {{ .Values.thingsSearch.podDisruptionBudget.minAvailable }}
+  maxUnavailable: {{ .Values.thingsSearch.podDisruptionBudget.maxUnavailable }}
 {{- end }}

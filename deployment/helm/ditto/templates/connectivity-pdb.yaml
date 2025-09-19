@@ -24,4 +24,5 @@ spec:
       app.kubernetes.io/name: {{ include "ditto.name" . }}-connectivity
       app.kubernetes.io/instance: {{ .Release.Name }}
   minAvailable: {{ .Values.connectivity.podDisruptionBudget.minAvailable }}
+  maxUnavailable: {{ .Values.connectivity.podDisruptionBudget.maxUnavailable }}
 {{- end }}
