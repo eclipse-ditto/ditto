@@ -224,6 +224,8 @@ public final class ConnectionValidator {
                 .ifPresent(credentials -> credentials.accept(
                         CredentialsValidationVisitor.of(connection, dittoHeaders, connectivityConfig, hostValidator)));
 
+        ResponseDiversionValidator.validate(connection, dittoHeaders);
+
         // protocol specific validations
         final AbstractProtocolValidator spec = specMap.get(connection.getConnectionType());
         if (spec != null) {

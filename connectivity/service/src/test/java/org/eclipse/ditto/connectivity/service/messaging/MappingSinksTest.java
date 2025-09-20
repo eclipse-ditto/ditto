@@ -219,7 +219,7 @@ public final class MappingSinksTest {
         final var adapter = provider.getProtocolAdapter(null);
         final var logger = TestConstants.mockThreadSafeDittoLoggingAdapter();
         return OutboundMappingProcessor.of(connection, TestConstants.CONNECTIVITY_CONFIG, resource.getActorSystem(),
-                adapter, logger);
+                adapter, logger, null);
     }
 
     private InboundMappingProcessor getInboundMappingProcessor(final Connection connection) {
