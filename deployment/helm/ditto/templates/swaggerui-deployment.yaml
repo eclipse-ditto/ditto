@@ -54,29 +54,27 @@ spec:
             - sh
             - -ec
             - |
-               mkdir -p ~/openapi
-               curl -sL https://raw.githubusercontent.com/eclipse/ditto/{{ .Chart.AppVersion }}/documentation/src/main/resources/openapi/ditto-api-2.yml -o ~/openapi/ditto-api-2.yml
-               sed --in-place "\=- url: 'https://ditto.eclipseprojects.io/'=d" ~/openapi/ditto-api-2.yml
-               sed --in-place "/description: online Ditto Sandbox/d" ~/openapi/ditto-api-2.yml
-               echo "removing Google auth from ditto-api-2.yml"
-               sed --in-place "/- Google:/,+1d" ~/openapi/ditto-api-2.yml
-               sed --in-place "/    Google:/,+9d" ~/openapi/ditto-api-2.yml
-               {{- if or (not .Values.gateway.config.authentication.enablePreAuthentication) .Values.global.jwtOnly }}
-               echo "removing NginxBasic auth from ditto-api-2.yml"
-               sed --in-place "/- NginxBasic: \[]/d" ~/openapi/ditto-api-2.yml
-               sed --in-place "/    NginxBasic:/,+3d" ~/openapi/ditto-api-2.yml
-               {{- end }}
-               {{- if eq .Values.gateway.config.authentication.devops.authMethod "oauth2" }}
-               echo "removing DevOpsBasic auth from ditto-api-2.yml"
-               sed --in-place "/- DevOpsBasic: \[]/d" ~/openapi/ditto-api-2.yml
-               sed --in-place "/    DevOpsBasic:/,+3d" ~/openapi/ditto-api-2.yml
-               {{- else }}
-               echo "removing DevOpsBearer auth from ditto-api-2.yml"
-               sed --in-place "/- DevOpsBearer: \[]/d" ~/openapi/ditto-api-2.yml
-               sed --in-place "/    DevOpsBearer:/,+4d" ~/openapi/ditto-api-2.yml
-               {{- end }}
-               sed --in-place "s=- url: /=- url: {{ .Values.global.proxyPart }}/=g" ~/openapi/ditto-api-2.yml
-               cp -rv ~/openapi/. /init-config/
+              curl -sL https://raw.githubusercontent.com/eclipse/ditto/{{ .Chart.AppVersion }}/documentation/src/main/resources/openapi/ditto-api-2.yml -o /init-config/ditto-api-2.yml
+              sed --in-place "\=- url: 'https://ditto.eclipseprojects.io/'=d" /init-config/ditto-api-2.yml
+              sed --in-place "/description: online Ditto Sandbox/d" /init-config/ditto-api-2.yml
+              echo "removing Google auth from ditto-api-2.yml"
+              sed --in-place "/- Google:/,+1d" /init-config/ditto-api-2.yml
+              sed --in-place "/  Google:/,+9d" /init-config/ditto-api-2.yml
+              {{- if or (not .Values.gateway.config.authentication.enablePreAuthentication) .Values.global.jwtOnly }}
+              echo "removing NginxBasic auth from ditto-api-2.yml"
+              sed --in-place "/- NginxBasic: \[]/d" /init-config/ditto-api-2.yml
+              sed --in-place "/  NginxBasic:/,+3d" /init-config/ditto-api-2.yml
+              {{- end }}
+              {{- if eq .Values.gateway.config.authentication.devops.authMethod "oauth2" }}
+              echo "removing DevOpsBasic auth from ditto-api-2.yml"
+              sed --in-place "/- DevOpsBasic: \[]/d" /init-config/ditto-api-2.yml
+              sed --in-place "/  DevOpsBasic:/,+3d" /init-config/ditto-api-2.yml
+              {{- else }}
+              echo "removing DevOpsBearer auth from ditto-api-2.yml"
+              sed --in-place "/- DevOpsBearer: \[]/d" /init-config/ditto-api-2.yml
+              sed --in-place "/  DevOpsBearer:/,+4d" /init-config/ditto-api-2.yml
+              {{- end }}
+              sed --in-place "s=- url: /=- url: {{ .Values.global.proxyPart }}/=g" /init-config/ditto-api-2.yml
           volumeMounts:
             - name: swagger-ui-init-config
               mountPath: /init-config
