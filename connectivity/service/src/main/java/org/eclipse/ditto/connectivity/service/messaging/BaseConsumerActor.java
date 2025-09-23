@@ -24,6 +24,12 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.AbstractActorWithTimers;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.stream.javadsl.Flow;
+import org.apache.pekko.stream.javadsl.Sink;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -44,19 +50,13 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.DefaultConnec
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.CounterKey;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.MetricAlertRegistry;
 import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementConfig;
-import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanTagKey;
-
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.actor.AbstractActorWithTimers;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.pattern.Patterns;
-import org.apache.pekko.stream.javadsl.Flow;
-import org.apache.pekko.stream.javadsl.Sink;
 
 /**
  * Base class for consumer actors that holds common fields and handles the address status.
@@ -74,8 +74,8 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     protected final ConnectivityStatusResolver connectivityStatusResolver;
 
     private final Sink<Object, ?> inboundMappingSink;
-    private final ConnectivityConfig connectivityConfig;
     private final AcknowledgementConfig acknowledgementConfig;
+    private final Gauge ackCounter;
 
     @Nullable private ResourceStatus resourceStatus;
 
@@ -94,12 +94,18 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
         this.connectivityStatusResolver = checkNotNull(connectivityStatusResolver, "connectivityStatusResolver");
         resetResourceStatus();
 
-        this.connectivityConfig = connectivityConfig;
         acknowledgementConfig = connectivityConfig.getAcknowledgementConfig();
 
         final var connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig);
         inboundMonitor = connectionMonitorRegistry.forInboundConsumed(connection, sourceAddress);
         inboundAcknowledgedMonitor = connectionMonitorRegistry.forInboundAcknowledged(connection, sourceAddress);
+
+        ackCounter = MetricAlertRegistry.getMetricsAlertGaugeOrDefault(CounterKey.of(connectionId, sourceAddress),
+                        MetricAlertRegistry.COUNTER_ACK_HANDLING,
+                        connectionType,
+                        connectivityConfig)
+                .tag(SpanTagKey.CONNECTION_ID.getTagForValue(connectionId.toString()))
+                .tag(SpanTagKey.CONNECTION_TYPE.getTagForValue(connectionType.toString()));
     }
 
     protected void resetResourceStatus() {
@@ -136,14 +142,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                 .tag(SpanTagKey.CONNECTION_ID.getTagForValue(connectionId.toString()))
                 .tag(SpanTagKey.CONNECTION_TYPE.getTagForValue(connectionType.getName()))
                 .start();
-        final var ackCounter =
-                MetricAlertRegistry.getMetricsAlertGaugeOrDefault(CounterKey.of(connectionId, sourceAddress),
-                                MetricAlertRegistry.COUNTER_ACK_HANDLING,
-                                connectionType,
-                                connectivityConfig)
-                        .tag(SpanTagKey.CONNECTION_ID.getTagForValue(connectionId.toString()))
-                        .tag(SpanTagKey.CONNECTION_TYPE.getTagForValue(connectionType.toString()))
-                        .increment();
+        ackCounter.increment();
 
         final var acknowledgeableExternalMessage = acknowledgeableMessage.getMessage();
         DittoTracing.newStartedSpanByTimer(acknowledgeableExternalMessage.getHeaders(), ackTimer);
