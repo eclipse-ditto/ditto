@@ -143,6 +143,7 @@ spec:
                 -XX:MaxRAMPercentage={{ .Values.connectivity.jvm.heapRamPercentage }}
                 -XX:InitialRAMPercentage={{ .Values.connectivity.jvm.heapRamPercentage }}
                 -XX:MaxGCPauseMillis={{ .Values.connectivity.jvm.maxGcPauseMillis }}
+                -XX:G1ReservePercent={{ .Values.connectivity.jvm.g1ReservePercent }}
                 {{ .Values.connectivity.additionalJvmOptions }}
                 {{ .Values.global.pekkoOptions }}
                 {{- if .Values.global.logging.customConfigFile.enabled }}

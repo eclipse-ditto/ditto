@@ -40,15 +40,9 @@ import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidExcept
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.Credentials;
-import org.eclipse.ditto.connectivity.model.CredentialsVisitor;
-import org.eclipse.ditto.connectivity.model.HmacCredentials;
-import org.eclipse.ditto.connectivity.model.OAuthClientCredentials;
-import org.eclipse.ditto.connectivity.model.OAuthPassword;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.Source;
-import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
 import org.eclipse.ditto.connectivity.model.Target;
-import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.mapping.MapperLimitsConfig;
@@ -391,36 +385,4 @@ public final class ConnectionValidator {
                 .build();
     }
 
-    private static final class IsClientCertificateCredentialsVisitor implements CredentialsVisitor<Boolean> {
-
-        @Override
-        public Boolean clientCertificate(final ClientCertificateCredentials credentials) {
-            return true;
-        }
-
-        @Override
-        public Boolean usernamePassword(final UserPasswordCredentials credentials) {
-            return false;
-        }
-
-        @Override
-        public Boolean sshPublicKeyAuthentication(final SshPublicKeyCredentials credentials) {
-            return false;
-        }
-
-        @Override
-        public Boolean hmac(final HmacCredentials credentials) {
-            return false;
-        }
-
-        @Override
-        public Boolean oauthClientCredentials(final OAuthClientCredentials credentials) {
-            return false;
-        }
-
-        @Override
-        public Boolean oauthPassword(final OAuthPassword credentials) {
-            return false;
-        }
-    }
 }

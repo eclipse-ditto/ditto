@@ -45,7 +45,7 @@
 
         <pekko-bom.version>1.2.0</pekko-bom.version>
         <pekko-http-bom.version>1.2.0</pekko-http-bom.version>
-        <pekko-persistence-mongodb.version>1.3.0</pekko-persistence-mongodb.version>
+        <pekko-persistence-mongodb.version>1.3.1</pekko-persistence-mongodb.version>
         <pekko-persistence-inmemory.version>1.3.0</pekko-persistence-inmemory.version>
         <pekko-management.version>1.1.1</pekko-management.version>
         <pekko-connector-kafka.version>1.1.0</pekko-connector-kafka.version>
@@ -55,7 +55,7 @@
         <metrics4-scala.version>4.3.5</metrics4-scala.version>
 
         <!-- Keep these version consistent with pekko-persistence-mongodb.version's build.sbt -->
-        <mongo-java-driver.version>5.5.1</mongo-java-driver.version>
+        <mongo-java-driver.version>5.6.0</mongo-java-driver.version>
 
         <!-- AWS SDK version needed for MongoDB AWS IAM authentication -->
         <awssdk.version>2.33.0</awssdk.version>

@@ -21,7 +21,7 @@ import org.eclipse.ditto.connectivity.model.MetricType;
 /**
  * The MetricsAlert interface defines a condition to check whether the given action should be executed.
  */
-interface MetricsAlert {
+public interface MetricsAlert {
 
     /**
      * Evaluates if the given action {@link #triggerAction} should be called.

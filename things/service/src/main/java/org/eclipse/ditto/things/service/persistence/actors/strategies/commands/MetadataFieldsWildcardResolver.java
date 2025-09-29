@@ -72,6 +72,10 @@ final class MetadataFieldsWildcardResolver {
             return replaceWildcardForFeaturesBasedCommands(thing, jsonPointerWithWildcard, metadataHeaderKey);
         } else if (levelCount == 2 && resourcePathAsString.matches(MetadataWildcardValidator.FEATURE_PATH)) {
             return replaceWildcardForFeatureBasedCommands(thing, jsonPointerWithWildcard, metadataHeaderKey, command);
+        } else if (MetadataWildcardValidator.matchesLeafWildcard(jsonPointerWithWildcard.toString())) {
+            final Set<String> featureIds = getFeatureIdsFromThing(thing);
+            return replaceLeafWildcard(thing, jsonPointerWithWildcard, metadataHeaderKey,
+                    jsonPointerWithWildcard.toString(), featureIds);
         }
 
         return Set.of();
@@ -132,11 +136,7 @@ final class MetadataFieldsWildcardResolver {
             );
             return replacedWildcardPointersForAttributeIds(attributeIds, metadataKey.asPointer());
         } else if (MetadataWildcardValidator.matchesLeafWildcard(wildcardExpression)) {
-            final JsonKey metadataKey = jsonPointerWithWildcard.get(1).orElseThrow(() ->
-                    MetadataWildcardValidator.getDittoHeaderInvalidException(wildcardExpression, metadataHeaderKey)
-            );
-
-            return getReplacedWildcardsPointersForLeafs(featureIds, thing, metadataKey);
+            return replaceLeafWildcard(thing, jsonPointerWithWildcard, metadataHeaderKey, wildcardExpression, featureIds);
         }
 
         return Set.of();
@@ -356,12 +356,17 @@ final class MetadataFieldsWildcardResolver {
     private static Set<JsonPointer> getReplacedWildcardsPointersForLeafs(final Set<String> featureIds,
             final Thing thing, final JsonKey metadataKey) {
         final Set<JsonPointer> replacedWildcardsPointers = new LinkedHashSet<>();
-        replacedWildcardsPointers.add(JsonPointer.of("thingId/" + metadataKey));
-        replacedWildcardsPointers.add(JsonPointer.of("policyId/" + metadataKey));
+        thing.getEntityId()
+                .ifPresent(entityId -> replacedWildcardsPointers.add(JsonPointer.of("thingId/" + metadataKey)));
+        thing.getPolicyId()
+                .ifPresent(policyId -> replacedWildcardsPointers.add(JsonPointer.of("policyId/" + metadataKey)));
+        thing.getDefinition()
+                .ifPresent(definition -> replacedWildcardsPointers.add(JsonPointer.of("definition/" + metadataKey)));
 
         thing.getAttributes().ifPresent(attributes -> replacedWildcardsPointers.addAll(
                 getReplacedWildcardPointersForAttributeIds(getAttributesLeafsFromThing(attributes),
-                        metadataKey.asPointer())));
+                        metadataKey.asPointer())
+        ));
 
         featureIds.forEach(featureId -> {
                     if (isFeatureDefinitionPresent(thing, featureId)) {
@@ -412,6 +417,18 @@ final class MetadataFieldsWildcardResolver {
                                 .append(JsonPointer.of(attributeId))
                                 .append(metadataKey))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    private static Set<JsonPointer> replaceLeafWildcard(final Thing thing,
+            final JsonPointer jsonPointerWithWildcard,
+            final String metadataHeaderKey,
+            final String wildcardExpression,
+            final Set<String> featureIds
+    ) {
+        final JsonKey metadataKey = jsonPointerWithWildcard.get(1).orElseThrow(() ->
+                MetadataWildcardValidator.getDittoHeaderInvalidException(wildcardExpression, metadataHeaderKey)
+        );
+        return getReplacedWildcardsPointersForLeafs(featureIds, thing, metadataKey);
     }
 
     private static boolean containsProperties(final JsonPointer wildcardPointer) {

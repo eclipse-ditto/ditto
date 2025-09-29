@@ -74,8 +74,8 @@ final class MetadataWildcardValidator {
             validateWildcardExpressionOnFeaturesLevel(metaDataWildcardExpression, headerKey);
         } else if (levelCount == 2 && resourcePathAsString.matches(FEATURE_PATH)) {
             validateWildcardExpressionOnFeatureLevel(metaDataWildcardExpression, headerKey);
-        } else {
-            throw getDittoHeaderNotSupportedException(metaDataWildcardExpression, headerKey);
+        } else if (!Pattern.matches(LEAF_WILDCARD_REGEX, metaDataWildcardExpression)) {
+            throw getDittoHeaderInvalidException(metaDataWildcardExpression, headerKey);
         }
     }
 

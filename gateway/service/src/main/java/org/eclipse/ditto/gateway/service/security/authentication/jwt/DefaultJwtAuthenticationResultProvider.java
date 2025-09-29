@@ -13,6 +13,7 @@
 package org.eclipse.ditto.gateway.service.security.authentication.jwt;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -44,7 +45,15 @@ public final class DefaultJwtAuthenticationResultProvider implements JwtAuthenti
             final DittoHeaders dittoHeaders) {
 
         final List<AuthorizationSubject> authSubjects = authSubjectsProvider.getAuthorizationSubjects(jwt);
-        return CompletableFuture.completedFuture(JwtAuthenticationResult.successful(dittoHeaders,
+        final Map<String, String> additionalHeadersToInject =
+                authSubjectsProvider.getAdditionalHeadersInjectedFromClaims(jwt);
+        final DittoHeaders adjustedHeaders;
+        if (!additionalHeadersToInject.isEmpty()) {
+            adjustedHeaders = dittoHeaders.toBuilder().putHeaders(additionalHeadersToInject).build();
+        } else {
+            adjustedHeaders = dittoHeaders;
+        }
+        return CompletableFuture.completedFuture(JwtAuthenticationResult.successful(adjustedHeaders,
                 AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.JWT, authSubjects),
                 jwt));
     }

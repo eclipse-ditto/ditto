@@ -82,8 +82,12 @@ The server identity is verified directly or indirectly.
 
 ## Authenticate by client certificate
 
-_Client-certificate authentication is available for [MQTT connections](connectivity-protocol-bindings-mqtt.html)
- and [HTTP connections](connectivity-protocol-bindings-http.html) only._
+_Client-certificate authentication is available for
+[MQTT connections](connectivity-protocol-bindings-mqtt.html),
+[HTTP connections](connectivity-protocol-bindings-http.html),
+[AMQP 1.0](connectivity-protocol-bindings-amqp10.html), and
+[Kafka 2.x](connectivity-protocol-bindings-kafka2.html)
+connections only._
 
 ### Connection configuration
 

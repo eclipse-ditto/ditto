@@ -23,6 +23,7 @@ import java.util.concurrent.ConcurrentMap;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.japi.Pair;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.MetricDirection;
 import org.eclipse.ditto.connectivity.model.MetricType;
@@ -30,8 +31,6 @@ import org.eclipse.ditto.connectivity.service.config.ConnectionThrottlingConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.KamonGauge;
-
-import org.apache.pekko.japi.Pair;
 
 /**
  * Registry to keep track and update existing {@code MetricsAlerts}.
@@ -114,7 +113,7 @@ public final class MetricAlertRegistry {
         return Optional.ofNullable(GAUGE_ALERT_DEFINITIONS.get(Pair.apply(connectionType, gaugeName)))
                 .map(alertFactory -> alertFactory.create(counterKey, connectionType, connectivityConfig, true))
                 .map(alert -> MetricsAlertGauge.newGauge(gaugeName, alert, THROTTLING_DETECTION_WINDOW))
-                .orElse(KamonGauge.newGauge(gaugeName));
+                .orElseGet(() -> KamonGauge.newGauge(gaugeName));
     }
 
     private static long calculateThrottlingLimitFromConfig(final ConnectionType connectionType,

@@ -504,7 +504,7 @@ public final class TestConstants {
         public static final String SERVER_KEY = getCert("server.key");
         public static final String SERVER_CRT = getCert("server.crt");
         public static final String SERVER_PUB = getCert("server.pub");
-        public static final PublicKey SERVER_PUBLIC_KEY = TestCertificates.getCertificate(SERVER_CRT).getPublicKey();
+        public static final PublicKey SERVER_PUBLIC_KEY = TestCertificates.getCertificate(SERVER_CRT)[0].getPublicKey();
         public static final String SERVER_PUBKEY_FINGERPRINT_SHA256 =
                 "SHA256:MEULjymCqsBH6TkmQzKmA+G2qd+AJwarKwr84vUsQ+Y";
         public static final String SERVER_PUBKEY_FINGERPRINT_MD5 =

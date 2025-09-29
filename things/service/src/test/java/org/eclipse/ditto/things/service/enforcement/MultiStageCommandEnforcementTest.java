@@ -130,6 +130,9 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
             policiesShardRegionProbe.expectMsgClass(RetrievePolicy.class);
             policiesShardRegionProbe.reply(RetrievePolicyResponse.of(policyId, policy, DEFAULT_HEADERS));
 
+            // THEN: Load enforcer to filter response
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+
             // THEN: initial requester receives Thing with inline policy
             final RetrieveThingResponse response = TestSetup.fishForMsgClass(this, RetrieveThingResponse.class);
             assertThat((CharSequence) response.getEntityId()).isEqualTo(thingId);
@@ -175,6 +178,9 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
             policiesShardRegionProbe.expectMsgClass(RetrievePolicy.class);
             policiesShardRegionProbe.reply(PolicyNotAccessibleException.newBuilder(policyId).build());
 
+            // THEN:: Retrieve enforcer for filtering of response
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+
             // THEN: initial requester receives Thing with inline policy
             final RetrieveThingResponse response = expectMsgClass(RetrieveThingResponse.class);
             assertThat((CharSequence) response.getEntityId()).isEqualTo(thingId);
@@ -216,12 +222,18 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
             // WHEN: Thing exists but Policy exists only in cache
             supervisor.tell(retrieveThing, getRef());
 
+            // THEN: Load enforcer to authorize retrieve thing
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+
             thingPersistenceActorProbe.expectMsg(expectedRetrieveThing);
             thingPersistenceActorProbe.reply(RetrieveThingResponse.of(thingId, thing, null, null, DEFAULT_HEADERS));
 
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             policiesShardRegionProbe.expectMsgClass(RetrievePolicy.class);
             policiesShardRegionProbe.reply(PolicyNotAccessibleException.newBuilder(policyId).build());
+
+            // THEN: Load enforcer to filter response
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
 
             // THEN: initial requester receives Thing without Policy
             final RetrieveThingResponse response = expectMsgClass(RetrieveThingResponse.class);
@@ -266,6 +278,9 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
             // WHEN: Thing is responsive but Policy times out
             supervisor.tell(retrieveThing, getRef());
 
+            // THEN: Load enforcer to authorize retrieve thing
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+
             thingPersistenceActorProbe.expectMsg(expectedRetrieveThing);
             thingPersistenceActorProbe.reply(RetrieveThingResponse.of(thingId, thing, null, null, DEFAULT_HEADERS));
 
@@ -273,6 +288,9 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
 
             policiesShardRegionProbe.expectMsgClass(RetrievePolicy.class);
             policiesShardRegionProbe.reply(new AskTimeoutException("policy timeout"));
+
+            // THEN: Load enforcer to filter response
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
 
             // THEN: initial requester receives Thing without Policy
             final RetrieveThingResponse response = expectMsgClass(RetrieveThingResponse.class);

@@ -35,6 +35,7 @@ import org.reactivestreams.Publisher;
 import com.mongodb.ClientSessionOptions;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
+import com.mongodb.MongoDriverInformation;
 import com.mongodb.ReadConcern;
 import com.mongodb.ReadPreference;
 import com.mongodb.ServerAddress;
@@ -321,6 +322,11 @@ public final class MongoClientWrapper implements DittoMongoClient {
     @Override
     public ClusterDescription getClusterDescription() {
         return mongoClient.getClusterDescription();
+    }
+
+    @Override
+    public void appendMetadata(final MongoDriverInformation mongoDriverInformation) {
+        mongoClient.appendMetadata(mongoDriverInformation);
     }
 
     @Override

@@ -140,7 +140,7 @@ public final class ModifyFeaturePropertyStrategyTest extends AbstractCommandStra
     }
 
     @Test
-    public void restrictMetadataUnderExistingFields() {
+    public void ensureMetadataSetAsExpected() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final JsonObject propertyObject = JsonObject.newBuilder()
                 .set("a", 1)
@@ -169,7 +169,8 @@ public final class ModifyFeaturePropertyStrategyTest extends AbstractCommandStra
         assertThat(event.getMetadata()).contains(Metadata.newMetadata(JsonObject.of("{" +
                 "  \"m0\":0," +
                 "  \"a\":{\"m1\":1}," +
-                "  \"b\":{\"m2\":2}" +
+                "  \"b\":{\"c\":3,\"m2\":2}," +
+                "  \"e\":{\"f\":4}" +
                 "}")));
     }
 

@@ -125,6 +125,8 @@ public final class SmartChannelEnforcementTest extends AbstractThingEnforcementT
             expectLiveQueryCommandOnPubSub(retrieveThing);
             pubSubMediatorProbe.reply(getRetrieveThingResponse(retrieveThing, true, b -> b.channel("live")));
 
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+
             assertLiveChannel(expectMsgClass(RetrieveThingResponse.class));
         }};
     }
@@ -141,6 +143,8 @@ public final class SmartChannelEnforcementTest extends AbstractThingEnforcementT
             thingPersistenceActorProbe.expectMsg(addReadSubjectHeader(retrieveThing, TestSetup.GOOGLE_SUBJECT));
             final var twinResponse = getRetrieveThingResponse(retrieveThing, true, b -> {});
             thingPersistenceActorProbe.reply(twinResponse);
+
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
 
             expectLiveQueryCommandOnPubSub(retrieveThing);
             assertTwinChannel(expectMsgClass(RetrieveThingResponse.class));
@@ -228,6 +232,8 @@ public final class SmartChannelEnforcementTest extends AbstractThingEnforcementT
             thingPersistenceActorProbe.expectMsg(expectedRetrieveThing);
             final var twinResponse = getRetrieveThingResponse(retrieveThing, true, b -> {});
             thingPersistenceActorProbe.reply(twinResponse);
+
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
 
             expectLiveQueryCommandOnPubSub(retrieveThing);
             assertTwinChannel(expectMsgClass(RetrieveThingResponse.class));

@@ -18,8 +18,11 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
@@ -33,8 +36,8 @@ import com.typesafe.config.Config;
 public final class DefaultSubjectIssuerConfig implements SubjectIssuerConfig {
 
     private final List<String> issuers;
-
     private final List<String> authSubjectTemplates;
+    private final Map<String, String> injectClaimsIntoHeaders;
 
     private DefaultSubjectIssuerConfig(final String issuerConfigKey, final ConfigWithFallback configWithFallback) {
         final List<String> issuersList =
@@ -52,12 +55,20 @@ public final class DefaultSubjectIssuerConfig implements SubjectIssuerConfig {
             }
         }
         authSubjectTemplates = configWithFallback.getStringList(SubjectIssuerConfigValue.AUTH_SUBJECTS.getConfigPath());
+        injectClaimsIntoHeaders = configWithFallback
+                .getObject(SubjectIssuerConfigValue.INJECT_CLAIMS_INTO_HEADERS.getConfigPath())
+                .unwrapped()
+                .entrySet()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> String.valueOf(e.getValue())));
     }
 
     private DefaultSubjectIssuerConfig(final Collection<String> issuers,
-            final Collection<String> authSubjectTemplates) {
+            final Collection<String> authSubjectTemplates,
+            final Map<String, String> injectClaimsIntoHeaders) {
         this.issuers = Collections.unmodifiableList(new ArrayList<>(issuers));
         this.authSubjectTemplates = Collections.unmodifiableList(new ArrayList<>(authSubjectTemplates));
+        this.injectClaimsIntoHeaders = Collections.unmodifiableMap(new HashMap<>(injectClaimsIntoHeaders));
     }
 
     /**
@@ -78,24 +89,34 @@ public final class DefaultSubjectIssuerConfig implements SubjectIssuerConfig {
      *
      * @param issuers the list of issuers' endpoint {@code issuers}.
      * @param authSubjectTemplates list of authorizationsubject placeholder strings.
+     * @param injectClaimsIntoHeaders map of header-key to JWT claim placeholder to inject JWT claims into headers.
      * @return a new SubjectIssuerConfig.
      * @throws NullPointerException if {@code issuers} or {@code authSubjectTemplates} is {@code null}.
      * @throws IllegalArgumentException if {@code issuers} or {@code authSubjectTemplates} is empty.
      */
     public static DefaultSubjectIssuerConfig of(final Collection<String> issuers,
-            final Collection<String> authSubjectTemplates) {
+            final Collection<String> authSubjectTemplates,
+            final Map<String, String> injectClaimsIntoHeaders) {
         checkNotNull(issuers, "issuers");
         argumentNotEmpty(authSubjectTemplates, "authSubjectTemplates");
+        checkNotNull(injectClaimsIntoHeaders, "injectClaimsIntoHeaders");
 
-        return new DefaultSubjectIssuerConfig(issuers, authSubjectTemplates);
+        return new DefaultSubjectIssuerConfig(issuers, authSubjectTemplates, injectClaimsIntoHeaders);
     }
 
+    @Override
     public List<String> getIssuers() {
         return issuers;
     }
 
+    @Override
     public List<String> getAuthorizationSubjectTemplates() {
         return authSubjectTemplates;
+    }
+
+    @Override
+    public Map<String, String> getInjectClaimsIntoHeaders() {
+        return injectClaimsIntoHeaders;
     }
 
     @Override
@@ -107,12 +128,14 @@ public final class DefaultSubjectIssuerConfig implements SubjectIssuerConfig {
             return false;
         }
         final DefaultSubjectIssuerConfig that = (DefaultSubjectIssuerConfig) o;
-        return Objects.equals(issuers, that.issuers) && authSubjectTemplates.equals(that.authSubjectTemplates);
+        return Objects.equals(issuers, that.issuers) &&
+                Objects.equals(authSubjectTemplates, that.authSubjectTemplates) &&
+                Objects.equals(injectClaimsIntoHeaders, that.injectClaimsIntoHeaders);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(issuers, authSubjectTemplates);
+        return Objects.hash(issuers, authSubjectTemplates, injectClaimsIntoHeaders);
     }
 
     @Override
@@ -120,6 +143,7 @@ public final class DefaultSubjectIssuerConfig implements SubjectIssuerConfig {
         return getClass().getSimpleName() + " [" +
                 "issuers=" + issuers +
                 ", authSubjectTemplates=" + authSubjectTemplates +
+                ", injectClaimsIntoHeaders=" + injectClaimsIntoHeaders +
                 "]";
     }
 }

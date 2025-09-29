@@ -17,7 +17,9 @@ import static java.util.Objects.requireNonNull;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
@@ -34,6 +36,7 @@ public final class JwtSubjectIssuerConfig {
     private final SubjectIssuer subjectIssuer;
     private final List<String> issuers;
     private final List<String> authSubjectTemplates;
+    private final Map<String, String> injectClaimsIntoHeaders;
 
     private static final List<String> DEFAULT_AUTH_SUBJECT = Collections.singletonList("{{jwt:sub}}");
 
@@ -45,23 +48,26 @@ public final class JwtSubjectIssuerConfig {
      *
      */
     public JwtSubjectIssuerConfig(final SubjectIssuer subjectIssuer, final Collection<String> issuers) {
-        this(subjectIssuer, issuers, DEFAULT_AUTH_SUBJECT);
+        this(subjectIssuer, issuers, DEFAULT_AUTH_SUBJECT, Map.of());
     }
 
     /**
      * Constructs a new {@code JwtSubjectIssuerConfig}.
      *
      * @param subjectIssuer the subject issuer.
-     * @param issuers        the list of issuers.
-     * @param authSubjectTemplates  the authorization subject templates
-     *
+     * @param issuers the list of issuers.
+     * @param authSubjectTemplates the authorization subject templates
+     * @param injectClaimsIntoHeaders map of header-key to JWT claim placeholder to inject JWT claims into headers.
      */
     public JwtSubjectIssuerConfig(final SubjectIssuer subjectIssuer,
             final Collection<String> issuers,
-            final Collection<String> authSubjectTemplates) {
+            final Collection<String> authSubjectTemplates,
+            final Map<String, String> injectClaimsIntoHeaders) {
         this.subjectIssuer = requireNonNull(subjectIssuer);
         this.issuers = Collections.unmodifiableList(new ArrayList<>(requireNonNull(issuers)));
         this.authSubjectTemplates = Collections.unmodifiableList(new ArrayList<>(requireNonNull(authSubjectTemplates)));
+        this.injectClaimsIntoHeaders =
+                Collections.unmodifiableMap(new HashMap<>(requireNonNull(injectClaimsIntoHeaders)));
     }
 
     /**
@@ -91,6 +97,15 @@ public final class JwtSubjectIssuerConfig {
         return authSubjectTemplates;
     }
 
+    /**
+     * Returns claims of a token to inject into DittoHeaders (using the map key as key for the custom header to inject).
+     *
+     * @return claims of a token to inject into DittoHeaders (using the map key as key for the custom header to inject).
+     */
+    public Map<String, String> getInjectClaimsIntoHeaders() {
+        return injectClaimsIntoHeaders;
+    }
+
     @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) return true;
@@ -98,12 +113,13 @@ public final class JwtSubjectIssuerConfig {
         final JwtSubjectIssuerConfig that = (JwtSubjectIssuerConfig) o;
         return Objects.equals(issuers, that.issuers) &&
                 Objects.equals(subjectIssuer, that.subjectIssuer) &&
-                Objects.equals(authSubjectTemplates, that.authSubjectTemplates);
+                Objects.equals(authSubjectTemplates, that.authSubjectTemplates) &&
+                Objects.equals(injectClaimsIntoHeaders, that.injectClaimsIntoHeaders);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(issuers, subjectIssuer, authSubjectTemplates);
+        return Objects.hash(issuers, subjectIssuer, authSubjectTemplates, injectClaimsIntoHeaders);
     }
 
     @Override
@@ -112,6 +128,7 @@ public final class JwtSubjectIssuerConfig {
                 "subjectIssuer=" + subjectIssuer +
                 ", issuers=" + issuers +
                 ", authSubjectTemplates=" + authSubjectTemplates +
+                ", injectClaimsIntoHeaders=" + injectClaimsIntoHeaders +
                 "]";
     }
 

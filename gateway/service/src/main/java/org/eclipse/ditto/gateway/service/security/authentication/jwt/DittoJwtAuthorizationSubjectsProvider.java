@@ -15,7 +15,9 @@ package org.eclipse.ditto.gateway.service.security.authentication.jwt;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -104,6 +106,29 @@ public final class DittoJwtAuthorizationSubjectsProvider implements JwtAuthoriza
                 .map(subject -> SubjectId.newInstance(jwtSubjectIssuerConfig.getSubjectIssuer(), subject))
                 .map(AuthorizationSubject::newInstance)
                 .toList();
+    }
+
+    @Override
+    public Map<String, String> getAdditionalHeadersInjectedFromClaims(final JsonWebToken jsonWebToken) {
+        checkNotNull(jsonWebToken);
+
+        final String issuer = jsonWebToken.getIssuer();
+        final JwtSubjectIssuerConfig jwtSubjectIssuerConfig = jwtSubjectIssuersConfig.getConfigItem(issuer)
+                .orElseThrow(() -> GatewayJwtIssuerNotSupportedException.newBuilder(issuer).build());
+
+        final Map<String, String> injectClaimsIntoHeaders = jwtSubjectIssuerConfig.getInjectClaimsIntoHeaders();
+        if (!injectClaimsIntoHeaders.isEmpty()) {
+            final ExpressionResolver expressionResolver = PlaceholderFactory.newExpressionResolver(
+                    PlaceholderFactory.newPlaceholderResolver(JwtPlaceholder.getInstance(), jsonWebToken));
+
+            return injectClaimsIntoHeaders.entrySet().stream()
+                    .collect(Collectors.toMap(
+                            Map.Entry::getKey,
+                            entry -> expressionResolver.resolve(entry.getValue()).findFirst().orElse(entry.getValue())
+                    ));
+        } else {
+            return Map.of();
+        }
     }
 
     @Override

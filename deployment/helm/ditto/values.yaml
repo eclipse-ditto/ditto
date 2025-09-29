@@ -643,7 +643,10 @@ policies:
     heapRamPercentage: 60
     # maxGcPauseMillis configures the used G1 GC "target for the maximum GC pause time"
     #  default (by JVM if not set): 200
-    maxGcPauseMillis: 150
+    maxGcPauseMillis: 200
+    # g1ReservePercent configures the used G1 GC "amount of heap to keep free after a mixed GC"
+    #  default (by JVM if not set): 10
+    g1ReservePercent: 10
   # startupProbe configuration for policies
   #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
   startupProbe:
@@ -674,6 +677,8 @@ policies:
     enabled: true
     # minAvailable number of replicas during voluntary disruptions
     minAvailable: 1
+    # maxUnavailable number of replicas during voluntary disruptions
+    maxUnavailable: 1
   # priorityClassName configuration for policies
   #  ref: https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass
   priorityClassName: ""
@@ -916,7 +921,10 @@ things:
     heapRamPercentage: 60
     # maxGcPauseMillis configures the used G1 GC "target for the maximum GC pause time"
     #  default (by JVM if not set): 200
-    maxGcPauseMillis: 150
+    maxGcPauseMillis: 200
+    # g1ReservePercent configures the used G1 GC "amount of heap to keep free after a mixed GC"
+    #  default (by JVM if not set): 10
+    g1ReservePercent: 10
   # startupProbe configuration for things
   #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
   startupProbe:
@@ -947,6 +955,8 @@ things:
     enabled: true
     # minAvailable number of replicas during voluntary disruptions
     minAvailable: 1
+    # maxUnavailable number of replicas during voluntary disruptions
+    maxUnavailable: 1
   # priorityClassName configuration for policies
   #  ref: https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass
   priorityClassName: ""
@@ -1332,7 +1342,10 @@ thingsSearch:
     heapRamPercentage: 60
     # maxGcPauseMillis configures the used G1 GC "target for the maximum GC pause time"
     #  default (by JVM if not set): 200
-    maxGcPauseMillis: 150
+    maxGcPauseMillis: 200
+    # g1ReservePercent configures the used G1 GC "amount of heap to keep free after a mixed GC"
+    #  default (by JVM if not set): 10
+    g1ReservePercent: 10
   # startupProbe configuration for policies
   #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
   startupProbe:
@@ -1363,6 +1376,8 @@ thingsSearch:
     enabled: true
     # minAvailable number of replicas during voluntary disruptions
     minAvailable: 1
+    # maxUnavailable number of replicas during voluntary disruptions
+    maxUnavailable: 1
   # priorityClassName configuration for policies
   #  ref: https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass
   priorityClassName: ""
@@ -1603,7 +1618,10 @@ connectivity:
     heapRamPercentage: 60
     # maxGcPauseMillis configures the used G1 GC "target for the maximum GC pause time"
     #  default (by JVM if not set): 200
-    maxGcPauseMillis: 150
+    maxGcPauseMillis: 200
+    # g1ReservePercent configures the used G1 GC "amount of heap to keep free after a mixed GC"
+    #  default (by JVM if not set): 10
+    g1ReservePercent: 10
   # startupProbe configuration for connectivity
   #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
   startupProbe:
@@ -1634,6 +1652,8 @@ connectivity:
     enabled: true
     # minAvailable number of replicas during voluntary disruptions
     minAvailable: 1
+    # maxUnavailable number of replicas during voluntary disruptions
+    maxUnavailable: 1
   # priorityClassName configuration for policies
   #  ref: https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass
   priorityClassName: ""
@@ -1933,7 +1953,10 @@ gateway:
     heapRamPercentage: 60
     # maxGcPauseMillis configures the used G1 GC "target for the maximum GC pause time"
     #  default (by JVM if not set): 200
-    maxGcPauseMillis: 150
+    maxGcPauseMillis: 200
+    # g1ReservePercent configures the used G1 GC "amount of heap to keep free after a mixed GC"
+    #  default (by JVM if not set): 10
+    g1ReservePercent: 10
   # startupProbe configuration for gateway
   #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
   startupProbe:
@@ -1970,6 +1993,8 @@ gateway:
     enabled: true
     # minAvailable number of replicas during voluntary disruptions
     minAvailable: 1
+    # maxUnavailable number of replicas during voluntary disruptions
+    maxUnavailable: 1
   # priorityClassName configuration for policies
   #  ref: https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass
   priorityClassName: ""
@@ -2013,6 +2038,9 @@ gateway:
         #    authSubjects:
         #    - "{{ jwt:sub }}"
         #    - "{{ jwt:groups }}"
+        #    injectClaimsIntoHeaders:
+        #      user_email: "{{ jwt:email }}"
+        #      user_name: "{{ jwt:name }}"
         # configure the subject to inject in policy action activateTokenIntegration
         tokenIntegrationSubject: "integration:{{policy-entry:label}}:{{jwt:aud}}"
       # devops contains the configuration of the gateway's "/devops" API, e.g. access to it
@@ -2034,6 +2062,9 @@ gateway:
           #    authSubjects:
           #    - "{{ jwt:sub }}"
           #    - "{{ jwt:groups }}"
+          #    injectClaimsIntoHeaders:
+          #      user_email: "{{ jwt:email }}"
+          #      user_name: "{{ jwt:name }}"
         # oauthSubjects contains list of subjects authorized to use "/devops" and "/api/2/connections" resources
         oauthSubjects:
         # - "example-ops:devops-admin"
@@ -2231,6 +2262,8 @@ dittoui:
     enabled: true
     # minAvailable number of replicas during voluntary disruptions
     minAvailable: 1
+    # maxUnavailable number of replicas during voluntary disruptions
+    maxUnavailable: 1
   # service configuration of the k8s service of the Ditto UI
   service:
     # port of the Ditto UI service
@@ -2285,6 +2318,8 @@ swaggerui:
     enabled: true
     # minAvailable number of replicas during voluntary disruptions
     minAvailable: 1
+    # maxUnavailable number of replicas during voluntary disruptions
+    maxUnavailable: 1
   # service configuration of the k8s service of the swagger ui
   service:
     # port of the swagger ui service
@@ -2297,6 +2332,9 @@ swaggerui:
 mongodb:
   # enabled controls whether mongodb should be started as part of the Helm chart or not
   enabled: true
+  image:
+    repository: bitnamilegacy/mongodb
+    tag: "7.0.15"
   # fullnameOverride: ditto-mongodb
   auth:
     enabled: false
