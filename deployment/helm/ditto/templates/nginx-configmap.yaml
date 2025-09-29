@@ -20,12 +20,15 @@ metadata:
 {{ include "ditto.labels" . | indent 4 }}
 data:
   nginx.conf: |-
+    {{- if .Values.openshift.enabled -}}
+    pid /tmp/nginx.pid;
+    {{- end }}
     worker_processes {{ .Values.nginx.config.workerProcesses }};
 
     events {
       worker_connections {{ .Values.nginx.config.workerConnections }};
     }
-    
+
     http {
       charset utf-8;
       default_type application/json;
@@ -44,10 +47,10 @@ data:
       proxy_next_upstream_timeout 20;
 
       send_timeout {{ .Values.nginx.config.timeout }}; # seconds, default: 60
-    
+
       client_header_buffer_size 8k; # allow longer URIs + headers (default: 1k)
       large_client_header_buffers 4 16k;
-    
+
       merge_slashes off; # allow multiple slashes for CRS Authentication
 
       map $http_authorization $authentication {
@@ -60,7 +63,7 @@ data:
         default "nginx:${remote_user}";
         "~Bearer" "";
       }
-    
+
       upstream {{ include "ditto.fullname" . }}-gateway {
         server {{ include "ditto.fullname" . }}-gateway:8080;
       }
@@ -99,7 +102,7 @@ data:
         location / {
           index index.html;
         }
-    
+
         # api
         location /api {
           include nginx-cors.conf;
@@ -113,19 +116,19 @@ data:
           proxy_set_header              X-Forwarded-User          $remote_user;
           proxy_set_header              x-ditto-pre-authenticated $nginx_auth_user;
           {{- end }}
-        
+
           proxy_pass                    http://{{ include "ditto.fullname" . }}-gateway;
           proxy_http_version            1.1;
           proxy_set_header              Host                      $http_host;
           proxy_set_header              X-Real-IP                 $remote_addr;
           proxy_set_header              X-Forwarded-For           $proxy_add_x_forwarded_for;
-    
+
           proxy_set_header Connection  '';
           chunked_transfer_encoding    off;
           proxy_buffering              off;
           proxy_cache                  off;
         }
-    
+
         # ws
         location /ws {
 
@@ -138,26 +141,26 @@ data:
           proxy_set_header              X-Forwarded-User          $remote_user;
           proxy_set_header              x-ditto-pre-authenticated $nginx_auth_user;
           {{- end }}
-          
+
           proxy_pass                    http://{{ include "ditto.fullname" . }}-gateway;
           proxy_http_version            1.1;
           proxy_set_header              Host                      $http_host;
           proxy_set_header              X-Real-IP                 $remote_addr;
           proxy_set_header              X-Forwarded-For           $proxy_add_x_forwarded_for;
-    
+
           proxy_set_header              Upgrade                   $http_upgrade;
           proxy_set_header              Connection                "upgrade";
           proxy_read_timeout            1d;
           proxy_send_timeout            1d;
         }
-    
+
         # health
         location /health {
           include nginx-cors.conf;
 
           # exclude health checks from being logged in access log:
           access_log off;
-    
+
           proxy_pass                    http://{{ include "ditto.fullname" . }}-gateway/health;
           proxy_http_version            1.1;
           proxy_set_header              Host                      $http_host;
@@ -165,14 +168,14 @@ data:
           proxy_set_header              X-Forwarded-For           $proxy_add_x_forwarded_for;
           proxy_set_header              X-Forwarded-User          $remote_user;
         }
-    
+
         # status
         location /status {
           include nginx-cors.conf;
 
           # exclude status access from being logged in access log:
           access_log off;
-    
+
           proxy_pass                    http://{{ include "ditto.fullname" . }}-gateway/overall/status;
           proxy_http_version            1.1;
           proxy_set_header              Host                      $http_host;
@@ -195,7 +198,7 @@ data:
           proxy_set_header              X-Forwarded-For           $proxy_add_x_forwarded_for;
           proxy_set_header              X-Forwarded-User          $remote_user;
         }
-    
+
         # devops
         location /devops {
           include nginx-cors.conf;
