@@ -50,6 +50,10 @@ on:
         required: false
         default: ''
 
+run-name: >-
+  System Tests • Ditto: ${{ inputs.ditto_repo }}@${{ inputs.ditto_branch }}
+  • Testing: ${{ inputs.ditto_testing_repo }}@${{ inputs.ditto_testing_branch }}
+
 jobs:
   system-tests:
     runs-on: ditto-runner
