@@ -160,6 +160,154 @@ was introduced.
 Upon activation, the digital twin stored in Eclipse Ditto will implicitly be updated with the latest data from the 
 _live response_ sent by the device.
 
+## Path-specific conditions (Since 3.8.0)
+
+In addition to global conditions, Ditto supports path-specific conditions for merge operations using the `patch-conditions` header. This feature allows you to apply different RQL conditions to different parts of a merge patch, enabling fine-grained control over which parts of the patch are applied based on the current state of the Thing.
+
+The `patch-conditions` header contains a JSON object where each key represents a JSON pointer path and each value is an RQL expression that must evaluate to `true` for that path to be included in the merge.
+
+* If a path-specific condition is fulfilled, that part of the merge patch will be applied.
+* If a path-specific condition is not fulfilled, that part of the merge patch will be skipped.
+* Paths without conditions will always be applied.
+
+Path-specific conditions are supported by HTTP API, WebSocket, Ditto protocol and Ditto Java Client.
+
+### Permissions for path-specific conditions
+
+READ permission is necessary on all resources referenced in the path-specific conditions, otherwise, the request will fail.
+
+### Examples
+
+In this part, we will show how to use path-specific conditions via HTTP API, Ditto protocol, and Ditto Java Client.
+The below examples assume that we have the following thing state:
+
+```json
+{
+  "thingId": "org.eclipse.ditto:fancy-thing",
+  "policyId": "org.eclipse.ditto:fancy-thing",
+  "attributes": {
+    "location": "kitchen",
+    "manufacturer": "ACME Corp",
+    "lastMaintenance": "2023-01-15T10:30:00Z"
+  },
+  "features": {
+    "temperature": {
+      "properties": {
+        "value": 15,
+        "unit": "celsius",
+        "lastUpdated": "2023-01-20T14:30:00Z"
+      }
+    },
+    "humidity": {
+      "properties": {
+        "value": 90,
+        "unit": "percent",
+        "lastUpdated": "2023-01-20T14:30:00Z"
+      }
+    },
+    "status": {
+      "properties": {
+        "state": "active",
+        "mode": "automatic"
+      }
+    }
+  }
+}
+```
+
+### HTTP API
+
+Using the HTTP API it is possible to specify path-specific conditions via HTTP header
+
+```
+curl -X PATCH -H 'Content-Type: application/merge-patch+json' -H 'patch-conditions: {"features/temperature/properties/value": "gt(features/temperature/properties/value,20)", "features/humidity/properties/value": "lt(features/humidity/properties/value,80)"}' /api/2/things/org.eclipse.ditto:fancy-thing -d '{"features": {"temperature": {"properties": {"value": 25}}, "humidity": {"properties": {"value": 60}}, "status": {"properties": {"state": "updated"}}}}'
+```
+
+In this example:
+- `temperature` will only be updated if the current temperature is greater than 20 (condition fails, so temperature won't be updated)
+- `humidity` will only be updated if the current humidity is less than 80 (condition fails, so humidity won't be updated)  
+- `status` will always be updated (no condition specified)
+
+### Ditto protocol
+
+The Ditto protocol supports also path-specific conditions for merge operations.
+This is an example how to do a conditional merge via [Ditto Protocol](protocol-specification.html) message:
+
+```json
+{
+  "topic": "org.eclipse.ditto/fancy-thing/things/twin/commands/merge",
+  "headers": {
+    "patch-conditions": "{\"features/temperature/properties/value\":\"gt(features/temperature/properties/value,20)\",\"features/humidity/properties/value\":\"lt(features/humidity/properties/value,80)\"}"
+  },
+  "path": "/",
+  "value": {
+    "attributes": {
+      "lastMaintenance": "2023-01-20T15:00:00Z"
+    },
+    "features": {
+      "temperature": {
+        "properties": {
+          "value": 25
+        }
+      },
+      "humidity": {
+        "properties": {
+          "value": 60
+        }
+      },
+      "status": {
+        "properties": {
+          "state": "updated"
+        }
+      }
+    }
+  }
+}
+```
+
+### Ditto Java Client
+
+The third option to use path-specific conditions is the ditto-client.
+The following code snippet demonstrates how to achieve this.
+
+```java
+final Map<String, String> patchConditions = new HashMap<>();
+patchConditions.put("features/temperature/properties/value", "gt(features/temperature/properties/value,20)");
+patchConditions.put("features/humidity/properties/value", "lt(features/humidity/properties/value,80)");
+
+final Option<Map<String, String>> patchConditionsOption = Options.patchConditions(patchConditions);
+
+client.twin().forId(ThingId.of("org.eclipse.ditto:fancy-thing"))
+        .merge(JsonObject.newBuilder()
+                .set("attributes", JsonObject.newBuilder()
+                        .set("lastMaintenance", "2023-01-20T15:00:00Z")
+                        .build())
+                .set("features", JsonObject.newBuilder()
+                        .set("temperature", JsonObject.newBuilder()
+                                .set("properties", JsonObject.newBuilder()
+                                        .set("value", 25)
+                                        .build())
+                                .build())
+                        .set("humidity", JsonObject.newBuilder()
+                                .set("properties", JsonObject.newBuilder()
+                                        .set("value", 60)
+                                        .build())
+                                .build())
+                        .set("status", JsonObject.newBuilder()
+                                .set("properties", JsonObject.newBuilder()
+                                        .set("state", "updated")
+                                        .build())
+                                .build())
+                        .build())
+                .build(), patchConditionsOption)
+        .whenComplete((unused, throwable) -> {
+            if (throwable != null) {
+                System.out.println("Merge was not successful: " + throwable.getMessage());
+            } else {
+                System.out.println("Merge was successful.");
+            }
+        });
+```
 
 ## Further reading on RQL expressions
 

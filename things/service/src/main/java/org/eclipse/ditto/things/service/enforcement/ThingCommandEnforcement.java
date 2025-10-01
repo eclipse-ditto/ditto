@@ -44,6 +44,7 @@ import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonKey;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonPointerInvalidException;
@@ -365,6 +366,12 @@ final class ThingCommandEnforcement
                                     dittoHeaders).build()));
         }
 
+        if (command instanceof MergeThing mergeThing) {
+            mergeThing.getPatchConditions()
+                    .ifPresent(patchConditions -> enforceReadPermissionOnPatchConditions(patchConditions, enforcer,
+                            dittoHeaders));
+        }
+
         if (commandAuthorized) {
             return addEffectedReadSubjectsToThingSignal(command, enforcer);
         } else {
@@ -458,6 +465,43 @@ final class ThingCommandEnforcement
 
         if (!enforcer.hasUnrestrictedPermissions(resourceKeys, authorizationContext, Permission.READ)) {
             throw exceptionSupplier.get();
+        }
+    }
+
+    /**
+     * Enforces read permissions for all RQL expressions in patch conditions.
+     * This method ensures that the user has READ permission on all resources
+     * referenced in the patch conditions before allowing the merge operation.
+     * 
+     * <p>
+     * The method collects all resource keys from all RQL expressions in the
+     * patch conditions and checks if the user has unrestricted READ permissions
+     * on all of them.
+     * </p>
+     * 
+     * @param patchConditions the JSON object containing path-to-condition mappings
+     * @param enforcer the policy enforcer to check permissions against
+     * @param dittoHeaders the Ditto headers for error reporting
+     * @throws ThingConditionFailedException if the user lacks READ permission on any referenced resource
+     * @since 3.8.0
+     */
+    private static void enforceReadPermissionOnPatchConditions(final JsonObject patchConditions,
+            final Enforcer enforcer,
+            final DittoHeaders dittoHeaders) {
+
+        final var authorizationContext = dittoHeaders.getAuthorizationContext();
+        final Set<ResourceKey> allResourceKeys = new HashSet<>();
+
+        // Collect all resource keys from all patch conditions
+        for (final JsonField field : patchConditions) {
+            final String conditionExpression = field.getValue().asString();
+            final var rootNode = tryParseRqlCondition(conditionExpression, dittoHeaders);
+            final var resourceKeys = determineResourceKeys(rootNode, dittoHeaders);
+            allResourceKeys.addAll(resourceKeys);
+        }
+
+        if (!enforcer.hasUnrestrictedPermissions(allResourceKeys, authorizationContext, Permission.READ)) {
+            throw ThingConditionFailedException.newBuilderForInsufficientPermission(dittoHeaders).build();
         }
     }
 
