@@ -77,15 +77,18 @@ import org.eclipse.ditto.base.model.acks.PubSubTerminatedException;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.WithStreamingSubscriptionId;
 import org.eclipse.ditto.base.model.signals.WithType;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.streaming.StreamingSubscriptionCommand;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.api.InboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
+import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
 import org.eclipse.ditto.connectivity.api.messaging.monitoring.logs.LogEntryFactory;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
@@ -164,6 +167,24 @@ import com.typesafe.config.Config;
  */
 public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientState, BaseClientData> {
 
+    /**
+     * Whether this connection is a target for diverted responses.
+     * If configured true, the diversion interceptor will be initialized and the client actor will subscribe to diverted responses.
+     */
+    public static final String IS_DIVERSION_TARGET = "is-diversion-target";
+    /**
+     * Default value for {@link #IS_DIVERSION_TARGET} (i.e. not a diversion target).
+     */
+    public static final String IS_DIVERSION_TARGET_DEFAULT = "false";
+    /**
+     * Whether this connection is a source for diverted responses.
+     * If configured true, the diversion interceptor will be initialized
+     */
+    public static final String IS_DIVERSION_SOURCE = "is-diversion-source";
+    /**
+     * Default value for {@link #IS_DIVERSION_SOURCE} (i.e. not a diversion source).
+     */
+    public static final String IS_DIVERSION_SOURCE_DEFAULT = "false";
     /**
      * Common logger for all sub-classes of BaseClientActor as its MDC already contains the connection ID.
      */
@@ -358,6 +379,35 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     }
 
+    private CompletionStage<Boolean> subscribeForDivertedResponses(final boolean isDryRun,
+            final boolean resubscribe) {
+        if (isDryRun || !isDiversionTarget()) {
+            return CompletableFuture.completedFuture(false);
+        }
+        final ConnectionId connectionId = connectionId();
+        // Subscribe to receive diverted responses if this connection is configured as a target
+        // Note: Subscription happens in preStart but the actor might not be in CONNECTED state yet
+        logger.info("Connection {} is configured as diversion target, subscribing to diverted responses",
+                connectionId);
+        return connectionPubSub.subscribeForDivertedResponses(connectionId, getSelf(), resubscribe).whenComplete((consistent, error) -> {
+            if (error != null) {
+                logger.error(error, "Failed to register client actor of connection <{}> for diverted responses", connectionId);
+            } else {
+                logger.info("Client actor registered for diverted responses: <{}>", connectionId);
+            }
+        });
+    }
+
+    private boolean isDiversionTarget() {
+        return Boolean.parseBoolean(connection.getSpecificConfig().getOrDefault(IS_DIVERSION_TARGET,
+                IS_DIVERSION_TARGET_DEFAULT));
+    }
+
+    private boolean isDiversionSource() {
+        return Boolean.parseBoolean(connection.getSpecificConfig().getOrDefault(IS_DIVERSION_SOURCE,
+                IS_DIVERSION_SOURCE_DEFAULT));
+    }
+
     private void addCoordinatedShutdownTasks() {
         final var system = getContext().getSystem();
         final var coordinatedShutdown = CoordinatedShutdown.get(system);
@@ -524,6 +574,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 .event(InboundSignal.class, this::handleInboundSignal)
                 .event(PublishMappedMessage.class, this::publishMappedMessage)
                 .event(ConnectivityCommand.class, this::onUnknownEvent) // relevant connectivity commands were handled
+                .event(CommandResponse.class, this::isDivertedResponse, this::handleDivertedResponse)
                 .event(Signal.class, this::handleSignal)
                 .event(FatalPubSubException.class, this::failConnectionDueToPubSubException)
                 .eventEquals(Control.ACKREGATOR_STARTED, this::ackregatorStarted)
@@ -548,6 +599,55 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      */
     protected static String escapeActorName(final String name) {
         return URLEncoder.encode(name, StandardCharsets.US_ASCII);
+    }
+
+    private boolean isDivertedResponse(final CommandResponse<?> response, final BaseClientData data) {
+        return !connectionId().toString().equals(response.getDittoHeaders().get(DittoHeaderDefinition.ORIGIN.getKey()));
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> handleDivertedResponse(final CommandResponse<?> response,
+            final BaseClientData data) {
+        if (stateName() == CONNECTED) {
+            logger.withCorrelationId(response)
+                    .info("Received diverted response from connection: {}",
+                            response.getDittoHeaders().get(DittoHeaderDefinition.DIVERTED_RESPONSE_FROM_CONNECTION.getKey()));
+
+            final Optional<Target> diversionTarget = findDiversionTarget(response);
+
+            if (diversionTarget.isPresent()) {
+                // Create an OutboundSignal with the matching targets
+                final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(response, List.of(diversionTarget.get()));
+
+                // Forward to outbound dispatching actor
+                outboundDispatchingActor.tell(outboundSignal, getSelf());
+
+                logger.withCorrelationId(response)
+                        .debug("Forwarded diverted response to {} target", diversionTarget);
+            } else {
+                logger.withCorrelationId(response)
+                        .warning("No matching targets found for diverted response of type: {}", response.getType());
+            }
+        } else {
+            logger.withCorrelationId(response)
+                    .debug("Client state <{}> is not CONNECTED; stashing diverted response <{}>", stateName(), response);
+            stash();
+        }
+        return stay();
+    }
+
+    private Optional<Target> findDiversionTarget(final CommandResponse<?> response) {
+        final List<Target> allTargets = connection().getTargets();
+        // If there's only one target, use it
+        if (allTargets.isEmpty()) {
+            logger.warning("No targets configured for connection <{}> to forward diverted response <{}>",
+                    connectionId(), response);
+            return Optional.empty();
+        } else if (allTargets.size() == 1) {
+            return Optional.of(allTargets.getFirst());
+        } else {
+            // Otherwise, take by index
+            return response.getDittoHeaders().getReplyTarget().map(allTargets::get);
+        }
     }
 
     private FSM.State<BaseClientState, BaseClientData> failConnectionDueToPubSubException(
@@ -878,8 +978,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         log().info("ServiceUnbind State=<{}> unsubscribing from pubsub and stopping consumers", stateName());
         final var dittoProtocolUnsub = dittoProtocolSub.removeSubscriber(getSelf(), getTargetAuthSubjects());
         final var connectionUnsub = connectionPubSub.unsubscribe(connectionId(), getSelf());
+        final var divertedResponsesUnsub =
+                connectionPubSub.unsubscribeFromDivertedResponses(connectionId(), getSelf());
         final var stopConsumers = stopConsuming();
         final var resultFuture = dittoProtocolUnsub.thenCompose(_void -> connectionUnsub)
+                .thenCompose(_void -> divertedResponsesUnsub)
                 .thenCompose(_void -> stopConsumers)
                 .handle((result, error) -> Done.getInstance());
         Patterns.pipe(resultFuture, getContext().dispatcher()).to(getSender());
@@ -1253,6 +1356,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return publisherReady
                 .thenCompose(unused -> consumersReady)
                 .thenCompose(unused -> subscribeAndDeclareAcknowledgementLabels(dryRun, false))
+                .thenCompose(unused -> subscribeForDivertedResponses(dryRun, false))
                 .thenApply(unused -> InitializationResult.success())
                 .exceptionally(InitializationResult::failed);
     }
@@ -1808,8 +1912,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             // this one throws DittoRuntimeExceptions when the mapper could not be configured
             settings = OutboundMappingSettings.of(connection, connectivityConfig, getContext().getSystem(),
                     commandForwarderActorSelection, protocolAdapter, logger);
+            final ResponseDiversionInterceptor diversionInterceptor = isDiversionSource() || isDiversionTarget() ?
+                    ResponseDiversionInterceptor.of(connection, connectionPubSub) : null;
             outboundMappingProcessors = IntStream.range(0, processorPoolSize)
-                    .mapToObj(i -> OutboundMappingProcessor.of(settings))
+                    .mapToObj(i -> OutboundMappingProcessor.of(connection, connectivityConfig,
+                            getContext().getSystem(), protocolAdapter, logger, diversionInterceptor))
                     .toList();
         } catch (final DittoRuntimeException dre) {
             connectionLogger.failure("Failed to start message mapping processor due to: {0}", dre.getMessage());
@@ -1963,6 +2070,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     private FSM.State<BaseClientState, BaseClientData> resubscribe(final Control trigger, final BaseClientData data) {
         subscribeAndDeclareAcknowledgementLabels(dryRun, true);
+        subscribeForDivertedResponses(dryRun, true);
         startSubscriptionRefreshTimer();
         return stay();
     }
