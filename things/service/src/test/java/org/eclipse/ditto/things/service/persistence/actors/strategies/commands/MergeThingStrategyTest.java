@@ -107,8 +107,8 @@ public final class MergeThingStrategyTest extends AbstractCommandStrategyTest {
         final JsonObject thingJson = thingToMerge.toJson();
 
         final JsonObject patchConditions = JsonObject.newBuilder()
-                .set("attributes/maker", "eq(attributes/maker,\"Bosch\")")
-                .set("attributes/location/latitude", "gt(attributes/location/latitude,40.0)")
+                .set("attributes/maker", "eq(attributes/maker,\"Bosch\")")  // Should fail (existing != "Bosch")
+                .set("attributes/location/latitude", "gt(attributes/location/latitude,40.0)")  // Should pass (existing > 40)
                 .build();
 
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
@@ -120,7 +120,16 @@ public final class MergeThingStrategyTest extends AbstractCommandStrategyTest {
         final MergeThingResponse expectedCommandResponse =
                 ETagTestUtils.mergeThingResponse(existing, path, mergeThing.getDittoHeaders());
 
-        assertStagedModificationResult(underTest, existing, mergeThing, ThingMerged.class, expectedCommandResponse);
+        final ThingMerged event = assertStagedModificationResult(underTest, existing, mergeThing, ThingMerged.class, expectedCommandResponse);
+        
+        final JsonValue mergedValue = event.getValue();
+        assertThat(mergedValue.isObject()).isTrue();
+        final JsonObject mergedObject = mergedValue.asObject();
+        
+        assertThat(mergedObject.getValue("attributes/maker")).isEmpty();
+        assertThat(mergedObject.getValue("attributes/location/latitude")).contains(JsonValue.of(50.0));
+        assertThat(mergedObject.getValue("attributes/location/longitude")).contains(JsonValue.of(10.0));
+        assertThat(mergedObject.getValue("attributes/status")).contains(JsonValue.of("updated"));
     }
 
     @Test
@@ -146,9 +155,9 @@ public final class MergeThingStrategyTest extends AbstractCommandStrategyTest {
         final JsonObject thingJson = thingToMerge.toJson();
 
         final JsonObject patchConditions = JsonObject.newBuilder()
-                .set("features/FluxCapacitor/properties/target_year_1", "gt(features/FluxCapacitor/properties/target_year_1,1900)")
-                .set("features/FluxCapacitor/properties/target_year_2", "lt(features/FluxCapacitor/properties/target_year_2,2000)")
-                .set("features/FluxCapacitor/properties/target_year_3", "gt(features/FluxCapacitor/properties/target_year_3,1800)")
+                .set("features/FluxCapacitor/properties/target_year_1", "gt(features/FluxCapacitor/properties/target_year_1,1900)")  // Should pass (1955 > 1900)
+                .set("features/FluxCapacitor/properties/target_year_2", "lt(features/FluxCapacitor/properties/target_year_2,2000)")  // Should fail (2015 >= 2000)
+                .set("features/FluxCapacitor/properties/target_year_3", "gt(features/FluxCapacitor/properties/target_year_3,1800)")  // Should pass (1885 > 1800)
                 .build();
 
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
@@ -160,6 +169,17 @@ public final class MergeThingStrategyTest extends AbstractCommandStrategyTest {
         final MergeThingResponse expectedCommandResponse =
                 ETagTestUtils.mergeThingResponse(existing, path, mergeThing.getDittoHeaders());
 
-        assertStagedModificationResult(underTest, existing, mergeThing, ThingMerged.class, expectedCommandResponse);
+        final ThingMerged event = assertStagedModificationResult(underTest, existing, mergeThing, ThingMerged.class, expectedCommandResponse);
+        
+        final JsonValue mergedValue = event.getValue();
+        assertThat(mergedValue.isObject()).isTrue();
+        final JsonObject mergedObject = mergedValue.asObject();
+
+        assertThat(mergedObject.getValue("features/FluxCapacitor/properties/target_year_1")).contains(JsonValue.of(1985));
+        assertThat(mergedObject.getValue("features/FluxCapacitor/properties/target_year_2")).isEmpty();
+        assertThat(mergedObject.getValue("features/FluxCapacitor/properties/target_year_3")).contains(JsonValue.of(1900));
+        assertThat(mergedObject.getValue("features/newFeature/properties/state")).contains(JsonValue.of("updated"));
     }
+
+
 }

@@ -134,15 +134,16 @@ final class MergeThingStrategy extends AbstractThingModifyCommandStrategy<MergeT
         // (this is required e.g. for updating the search-index)
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final JsonPointer path = command.getPath();
-        final JsonValue value = command.getEntity().orElseGet(command::getValue);
+        final JsonValue originalValue = command.getEntity().orElseGet(command::getValue);
+        final JsonValue filteredValue = evaluatePatchConditions(thing, originalValue, command);
 
-        final Thing mergedThing = wrapException(() -> mergeThing(context, command, thing, eventTs, nextRevision),
+        final Thing mergedThing = wrapException(() -> mergeThing(context, command, thing, eventTs, nextRevision, filteredValue),
                 command.getDittoHeaders());
 
         final CompletionStage<MergeThing> validatedStage = buildValidatedStage(command, thing, mergedThing);
 
         final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(mergeThing ->
-                ThingMerged.of(mergeThing.getEntityId(), path, value, nextRevision, eventTs, dittoHeaders, metadata)
+                ThingMerged.of(mergeThing.getEntityId(), path, filteredValue, nextRevision, eventTs, dittoHeaders, metadata)
         );
         final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(mergeThing ->
                 appendETagHeaderIfProvided(mergeThing, MergeThingResponse.of(command.getEntityId(), path,
@@ -155,12 +156,10 @@ final class MergeThingStrategy extends AbstractThingModifyCommandStrategy<MergeT
             final MergeThing command,
             final Thing thing,
             final Instant eventTs,
-            final long nextRevision
+            final long nextRevision,
+            final JsonValue filteredValue
     ) {
         final JsonObject existingThingJson = thing.toJson(FieldType.all());
-        final JsonValue originalValue = command.getEntity().orElseGet(command::getValue);
-        
-        final JsonValue filteredValue = evaluatePatchConditions(thing, originalValue, command);
         
         final JsonMergePatch jsonMergePatch = JsonMergePatch.of(command.getPath(), filteredValue);
         final JsonObject mergedJson = jsonMergePatch.applyOn(existingThingJson).asObject();
