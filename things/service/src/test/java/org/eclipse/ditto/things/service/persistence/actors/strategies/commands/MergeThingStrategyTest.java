@@ -19,6 +19,7 @@ import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 import java.util.UUID;
 
 import org.apache.pekko.actor.ActorSystem;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.json.JsonObject;
@@ -85,5 +86,80 @@ public final class MergeThingStrategyTest extends AbstractCommandStrategyTest {
         assertThatExceptionOfType(ThingTooLargeException.class)
                 .isThrownBy(() -> underTest.apply(context, existing, NEXT_REVISION, mergeThing))
                 .satisfies(e -> assertThat(e.getDittoHeaders()).containsAllEntriesOf(dittoHeaders));
+    }
+
+    @Test
+    public void mergeThingWithPatchConditions() {
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final ThingId thingId = context.getState();
+
+        final Thing existing = THING_V2.toBuilder().setRevision(NEXT_REVISION - 1).build();
+
+        final Thing thingToMerge = ThingsModelFactory.newThingBuilder()
+                .setId(thingId)
+                .setAttribute(JsonPointer.of("maker"), JsonValue.of("ACME Corp"))
+                .setAttribute(JsonPointer.of("location/latitude"), JsonValue.of(50.0))
+                .setAttribute(JsonPointer.of("location/longitude"), JsonValue.of(10.0))
+                .setAttribute(JsonPointer.of("status"), JsonValue.of("updated"))
+                .build();
+
+        final JsonPointer path = JsonPointer.of("/");
+        final JsonObject thingJson = thingToMerge.toJson();
+
+        final JsonObject patchConditions = JsonObject.newBuilder()
+                .set("attributes/maker", "eq(attributes/maker,\"Bosch\")")
+                .set("attributes/location/latitude", "gt(attributes/location/latitude,40.0)")
+                .build();
+
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .correlationId(UUID.randomUUID().toString())
+                .putHeader(DittoHeaderDefinition.PATCH_CONDITIONS.getKey(), patchConditions.toString())
+                .build();
+
+        final MergeThing mergeThing = MergeThing.of(thingId, path, thingJson, dittoHeaders);
+        final MergeThingResponse expectedCommandResponse =
+                ETagTestUtils.mergeThingResponse(existing, path, mergeThing.getDittoHeaders());
+
+        assertStagedModificationResult(underTest, existing, mergeThing, ThingMerged.class, expectedCommandResponse);
+    }
+
+    @Test
+    public void mergeThingWithPatchConditionsForFeatures() {
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final ThingId thingId = context.getState();
+
+        final Thing existing = THING_V2.toBuilder().setRevision(NEXT_REVISION - 1).build();
+
+        final Thing thingToMerge = ThingsModelFactory.newThingBuilder()
+                .setId(thingId)
+                .setFeature("FluxCapacitor", ThingsModelFactory.newFeaturePropertiesBuilder()
+                        .set("target_year_1", 1985)
+                        .set("target_year_2", 2020)
+                        .set("target_year_3", 1900)
+                        .build())
+                .setFeature("newFeature", ThingsModelFactory.newFeaturePropertiesBuilder()
+                        .set("state", "updated")
+                        .build())
+                .build();
+
+        final JsonPointer path = JsonPointer.of("/");
+        final JsonObject thingJson = thingToMerge.toJson();
+
+        final JsonObject patchConditions = JsonObject.newBuilder()
+                .set("features/FluxCapacitor/properties/target_year_1", "gt(features/FluxCapacitor/properties/target_year_1,1900)")
+                .set("features/FluxCapacitor/properties/target_year_2", "lt(features/FluxCapacitor/properties/target_year_2,2000)")
+                .set("features/FluxCapacitor/properties/target_year_3", "gt(features/FluxCapacitor/properties/target_year_3,1800)")
+                .build();
+
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .correlationId(UUID.randomUUID().toString())
+                .putHeader(DittoHeaderDefinition.PATCH_CONDITIONS.getKey(), patchConditions.toString())
+                .build();
+
+        final MergeThing mergeThing = MergeThing.of(thingId, path, thingJson, dittoHeaders);
+        final MergeThingResponse expectedCommandResponse =
+                ETagTestUtils.mergeThingResponse(existing, path, mergeThing.getDittoHeaders());
+
+        assertStagedModificationResult(underTest, existing, mergeThing, ThingMerged.class, expectedCommandResponse);
     }
 }
