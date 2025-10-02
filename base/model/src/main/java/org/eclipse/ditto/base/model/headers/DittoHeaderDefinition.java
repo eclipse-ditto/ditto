@@ -583,6 +583,21 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
             JsonObject.class,
             false,
             false,
+            HeaderValueValidators.getJsonObjectValidator()),
+
+    /**
+     * Header definition for patch conditions in merge operations.
+     * <p>
+     * Key: {@code "patch-conditions"}, Java type: {@link JsonObject}.
+     * Contains a JSON object mapping JsonPointer paths to RQL condition expressions.
+     * </p>
+     *
+     * @since 3.8.0
+     */
+    PATCH_CONDITIONS("patch-conditions",
+            JsonObject.class,
+            true,
+            false,
             HeaderValueValidators.getJsonObjectValidator());
 
     /**
