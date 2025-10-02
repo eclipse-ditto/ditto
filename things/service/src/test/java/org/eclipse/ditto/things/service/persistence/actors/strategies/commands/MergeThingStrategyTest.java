@@ -107,7 +107,7 @@ public final class MergeThingStrategyTest extends AbstractCommandStrategyTest {
         final JsonObject thingJson = thingToMerge.toJson();
 
         final JsonObject patchConditions = JsonObject.newBuilder()
-                .set("attributes/maker", "eq(attributes/maker,\"Bosch\")")  // Should fail (existing != "Bosch")
+                .set("attributes/maker", "eq(attributes/maker,\"ACME Corp\")")  // Should fail (existing != "ACME Corp")
                 .set("attributes/location/latitude", "gt(attributes/location/latitude,40.0)")  // Should pass (existing > 40)
                 .build();
 
