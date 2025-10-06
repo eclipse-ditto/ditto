@@ -594,7 +594,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 3.8.0
      */
-    PATCH_CONDITIONS("merge-thing-patch-conditions",
+    MERGE_THING_PATCH_CONDITIONS("merge-thing-patch-conditions",
             JsonObject.class,
             true,
             false,

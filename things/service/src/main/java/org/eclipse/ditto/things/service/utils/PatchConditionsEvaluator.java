@@ -135,7 +135,7 @@ public final class PatchConditionsEvaluator {
             final boolean conditionMatches = evaluateCondition(existingThing, conditionExpression, dittoHeaders);
 
             final JsonPointer resourcePointer = JsonFactory.newPointer(resourceKey.getResourcePath());
-            if (!conditionMatches && doesMigrationPayloadContainResourceKey(migrationPayload, resourcePointer)) {
+                    if (!conditionMatches && containsResourceKey(migrationPayload, resourcePointer)) {
                 adjustedPayloadBuilder.remove(resourcePointer);
             }
         }
@@ -173,8 +173,8 @@ public final class PatchConditionsEvaluator {
         }
     }
 
-    private static boolean doesMigrationPayloadContainResourceKey(final JsonObject migrationPayload,
+    private static boolean containsResourceKey(final JsonObject payload,
             final JsonPointer pointer) {
-        return migrationPayload.getValue(pointer).isPresent();
+        return payload.getValue(pointer).isPresent();
     }
 }

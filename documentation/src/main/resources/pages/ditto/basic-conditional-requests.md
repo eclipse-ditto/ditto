@@ -220,7 +220,7 @@ The below examples assume that we have the following thing state:
 Using the HTTP API it is possible to specify path-specific conditions via HTTP header
 
 ```
-curl -X PATCH -H 'Content-Type: application/merge-patch+json' -H 'patch-conditions: {"features/temperature/properties/value": "gt(features/temperature/properties/value,20)", "features/humidity/properties/value": "lt(features/humidity/properties/value,80)"}' /api/2/things/org.eclipse.ditto:fancy-thing -d '{"features": {"temperature": {"properties": {"value": 25}}, "humidity": {"properties": {"value": 60}}, "status": {"properties": {"state": "updated"}}}}'
+curl -X PATCH -H 'Content-Type: application/merge-patch+json' -H 'merge-thing-patch-conditions: {"features/temperature/properties/value": "gt(features/temperature/properties/value,20)", "features/humidity/properties/value": "lt(features/humidity/properties/value,80)"}' /api/2/things/org.eclipse.ditto:fancy-thing -d '{"features": {"temperature": {"properties": {"value": 25}}, "humidity": {"properties": {"value": 60}}, "status": {"properties": {"state": "updated"}}}}'
 ```
 
 In this example:

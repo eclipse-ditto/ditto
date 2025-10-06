@@ -608,7 +608,7 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
      * @since 3.8.0
      */
     public Optional<JsonObject> getPatchConditions() {
-        final String patchConditionsString = getDittoHeaders().get(DittoHeaderDefinition.PATCH_CONDITIONS.getKey());
+        final String patchConditionsString = getDittoHeaders().get(DittoHeaderDefinition.MERGE_THING_PATCH_CONDITIONS.getKey());
         if (patchConditionsString != null) {
             return Optional.of(JsonObject.of(patchConditionsString));
         }

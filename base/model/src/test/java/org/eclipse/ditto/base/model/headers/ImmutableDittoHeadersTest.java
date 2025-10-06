@@ -212,7 +212,7 @@ public final class ImmutableDittoHeadersTest {
                 .putHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey(), KNOWN_TRACEPARENT)
                 .putHeader(DittoHeaderDefinition.W3C_TRACESTATE.getKey(), KNOWN_TRACESTATE)
                 .condition(KNOWN_CONDITION)
-                .putHeader(DittoHeaderDefinition.PATCH_CONDITIONS.getKey(), KNOWN_PATCH_CONDITIONS)
+                .putHeader(DittoHeaderDefinition.MERGE_THING_PATCH_CONDITIONS.getKey(), KNOWN_PATCH_CONDITIONS)
                 .liveChannelCondition(KNOWN_LIVE_CHANNEL_CONDITION)
                 .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(),
                         String.valueOf(KNOWN_LIVE_CHANNEL_CONDITION_MATCHED))
@@ -551,7 +551,7 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.W3C_TRACEPARENT.getKey(), KNOWN_TRACEPARENT)
                 .set(DittoHeaderDefinition.W3C_TRACESTATE.getKey(), KNOWN_TRACESTATE)
                 .set(DittoHeaderDefinition.CONDITION.getKey(), KNOWN_CONDITION)
-                .set(DittoHeaderDefinition.PATCH_CONDITIONS.getKey(), KNOWN_PATCH_CONDITIONS_JSON)
+                .set(DittoHeaderDefinition.MERGE_THING_PATCH_CONDITIONS.getKey(), KNOWN_PATCH_CONDITIONS_JSON)
                 .set(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION.getKey(), KNOWN_LIVE_CHANNEL_CONDITION)
                 .set(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(),
                         KNOWN_LIVE_CHANNEL_CONDITION_MATCHED)
@@ -799,7 +799,7 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.W3C_TRACEPARENT.getKey(), KNOWN_TRACEPARENT);
         result.put(DittoHeaderDefinition.W3C_TRACESTATE.getKey(), KNOWN_TRACESTATE);
         result.put(DittoHeaderDefinition.CONDITION.getKey(), KNOWN_CONDITION);
-        result.put(DittoHeaderDefinition.PATCH_CONDITIONS.getKey(), KNOWN_PATCH_CONDITIONS);
+        result.put(DittoHeaderDefinition.MERGE_THING_PATCH_CONDITIONS.getKey(), KNOWN_PATCH_CONDITIONS);
         result.put(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION.getKey(), KNOWN_LIVE_CHANNEL_CONDITION);
         result.put(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(),
                 String.valueOf(KNOWN_LIVE_CHANNEL_CONDITION_MATCHED));

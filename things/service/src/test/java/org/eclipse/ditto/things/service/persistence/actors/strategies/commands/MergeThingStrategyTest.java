@@ -113,7 +113,7 @@ public final class MergeThingStrategyTest extends AbstractCommandStrategyTest {
 
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .correlationId(UUID.randomUUID().toString())
-                .putHeader(DittoHeaderDefinition.PATCH_CONDITIONS.getKey(), patchConditions.toString())
+                .putHeader(DittoHeaderDefinition.MERGE_THING_PATCH_CONDITIONS.getKey(), patchConditions.toString())
                 .build();
 
         final MergeThing mergeThing = MergeThing.of(thingId, path, thingJson, dittoHeaders);
@@ -162,7 +162,7 @@ public final class MergeThingStrategyTest extends AbstractCommandStrategyTest {
 
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .correlationId(UUID.randomUUID().toString())
-                .putHeader(DittoHeaderDefinition.PATCH_CONDITIONS.getKey(), patchConditions.toString())
+                .putHeader(DittoHeaderDefinition.MERGE_THING_PATCH_CONDITIONS.getKey(), patchConditions.toString())
                 .build();
 
         final MergeThing mergeThing = MergeThing.of(thingId, path, thingJson, dittoHeaders);
