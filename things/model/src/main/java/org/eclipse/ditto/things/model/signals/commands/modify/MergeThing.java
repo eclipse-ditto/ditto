@@ -601,7 +601,7 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
     }
 
     /**
-     * Returns the patch conditions from the patch-conditions header as an Optional JsonObject.
+     * Returns the patch conditions from the merge-thing-patch-conditions header as an Optional JsonObject.
      * The patch conditions map JSON pointer paths to RQL condition expressions.
      * 
      * @return Optional containing the patch conditions JsonObject, or empty if the header is not present

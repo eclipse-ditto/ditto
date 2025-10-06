@@ -162,9 +162,9 @@ _live response_ sent by the device.
 
 ## Path-specific conditions (Since 3.8.0)
 
-In addition to global conditions, Ditto supports path-specific conditions for merge operations using the `patch-conditions` header. This feature allows you to apply different RQL conditions to different parts of a merge patch, enabling fine-grained control over which parts of the patch are applied based on the current state of the Thing.
+In addition to global conditions, Ditto supports path-specific conditions for merge operations using the `merge-thing-patch-conditions` header. This feature allows you to apply different RQL conditions to different parts of a merge patch, enabling fine-grained control over which parts of the patch are applied based on the current state of the Thing.
 
-The `patch-conditions` header contains a JSON object where each key represents a JSON pointer path and each value is an RQL expression that must evaluate to `true` for that path to be included in the merge.
+The `merge-thing-patch-conditions` header contains a JSON object where each key represents a JSON pointer path and each value is an RQL expression that must evaluate to `true` for that path to be included in the merge.
 
 * If a path-specific condition is fulfilled, that part of the merge patch will be applied.
 * If a path-specific condition is not fulfilled, that part of the merge patch will be skipped.
@@ -237,7 +237,7 @@ This is an example how to do a conditional merge via [Ditto Protocol](protocol-s
 {
   "topic": "org.eclipse.ditto/fancy-thing/things/twin/commands/merge",
   "headers": {
-    "patch-conditions": "{\"features/temperature/properties/value\":\"gt(features/temperature/properties/value,20)\",\"features/humidity/properties/value\":\"lt(features/humidity/properties/value,80)\"}"
+    "merge-thing-patch-conditions": "{\"features/temperature/properties/value\":\"gt(features/temperature/properties/value,20)\",\"features/humidity/properties/value\":\"lt(features/humidity/properties/value,80)\"}"
   },
   "path": "/",
   "value": {
@@ -275,7 +275,7 @@ final Map<String, String> patchConditions = new HashMap<>();
 patchConditions.put("features/temperature/properties/value", "gt(features/temperature/properties/value,20)");
 patchConditions.put("features/humidity/properties/value", "lt(features/humidity/properties/value,80)");
 
-final Option<Map<String, String>> patchConditionsOption = Options.patchConditions(patchConditions);
+final Option<Map<String, String>> patchConditionsOption = Options.mergeThingPatchConditions(patchConditions);
 
 client.twin().forId(ThingId.of("org.eclipse.ditto:fancy-thing"))
         .merge(JsonObject.newBuilder()

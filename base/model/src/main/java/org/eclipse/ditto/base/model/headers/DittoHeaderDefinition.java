@@ -588,13 +588,13 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
     /**
      * Header definition for patch conditions in merge operations.
      * <p>
-     * Key: {@code "patch-conditions"}, Java type: {@link JsonObject}.
+     * Key: {@code "merge-thing-patch-conditions"}, Java type: {@link JsonObject}.
      * Contains a JSON object mapping JsonPointer paths to RQL condition expressions.
      * </p>
      *
      * @since 3.8.0
      */
-    PATCH_CONDITIONS("patch-conditions",
+    PATCH_CONDITIONS("merge-thing-patch-conditions",
             JsonObject.class,
             true,
             false,
