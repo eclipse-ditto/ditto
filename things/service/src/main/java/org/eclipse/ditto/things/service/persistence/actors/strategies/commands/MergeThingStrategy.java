@@ -28,19 +28,11 @@ import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
-import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonMergePatch;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.placeholders.PlaceholderFactory;
-import org.eclipse.ditto.placeholders.TimePlaceholder;
-import org.eclipse.ditto.rql.model.ParserException;
-import org.eclipse.ditto.rql.parser.RqlPredicateParser;
-import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
-import org.eclipse.ditto.rql.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
@@ -51,7 +43,7 @@ import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThingResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingMerged;
-import org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException;
+import org.eclipse.ditto.things.service.utils.PatchConditionsEvaluator;
 
 /**
  * This strategy handles the {@link MergeThing} command for an already existing Thing.
@@ -62,7 +54,6 @@ final class MergeThingStrategy extends AbstractThingModifyCommandStrategy<MergeT
     private static final ThingResourceMapper<Thing, Optional<EntityTag>> ENTITY_TAG_MAPPER =
             ThingResourceMapper.from(EntityTagCalculator.getInstance());
 
-    private static final TimePlaceholder TIME_PLACEHOLDER = TimePlaceholder.getInstance();
 
     /**
      * Constructs a new {@code MergeThingStrategy} object.
@@ -198,57 +189,7 @@ final class MergeThingStrategy extends AbstractThingModifyCommandStrategy<MergeT
     JsonValue evaluatePatchConditions(final Thing existingThing,
             final JsonValue mergeValue,
             final MergeThing command) {
-        
-        final Optional<JsonObject> patchConditionsOpt = command.getPatchConditions();
-        if (patchConditionsOpt.isEmpty()) {
-            return mergeValue;
-        }
-
-        if (!mergeValue.isObject()) {
-            return mergeValue;
-        }
-
-        final JsonObject patchConditions = patchConditionsOpt.get();
-        final JsonObject mergeObject = mergeValue.asObject();
-
-        final JsonObjectBuilder adjustedPayloadBuilder = mergeObject.toBuilder();
-
-        for (final JsonField field : patchConditions) {
-            final String conditionPath = field.getKeyName();
-            final String conditionExpression = field.getValue().asString();
-
-            final boolean conditionMatches = evaluateCondition(existingThing, conditionExpression, command.getDittoHeaders());
-            final JsonPointer resourcePointer = JsonPointer.of(conditionPath);
-            final boolean containsResource = mergeObject.getValue(resourcePointer).isPresent();
-
-            if (!conditionMatches && containsResource) {
-                adjustedPayloadBuilder.remove(resourcePointer);
-            }
-        }
-
-        return adjustedPayloadBuilder.build();
-    }
-
-
-    private boolean evaluateCondition(final Thing existingThing,
-            final String conditionExpression,
-            final DittoHeaders dittoHeaders) {
-        try {
-            final var criteria = QueryFilterCriteriaFactory
-                    .modelBased(RqlPredicateParser.getInstance())
-                    .filterCriteria(conditionExpression, dittoHeaders);
-
-            final var predicate = ThingPredicateVisitor.apply(criteria,
-                    PlaceholderFactory.newPlaceholderResolver(TIME_PLACEHOLDER, new Object()));
-
-            return predicate.test(existingThing);
-        } catch (final ParserException | IllegalArgumentException e) {
-            throw InvalidRqlExpressionException.newBuilder()
-                    .message(e.getMessage())
-                    .cause(e)
-                    .dittoHeaders(dittoHeaders)
-                    .build();
-        }
+        return PatchConditionsEvaluator.evaluatePatchConditions(existingThing, mergeValue, command);
     }
 
     @Override

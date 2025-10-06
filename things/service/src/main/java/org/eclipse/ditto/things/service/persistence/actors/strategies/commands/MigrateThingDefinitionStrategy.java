@@ -13,7 +13,6 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import java.time.Instant;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
@@ -23,7 +22,6 @@ import javax.annotation.concurrent.Immutable;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.japi.Pair;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
-import org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
@@ -37,13 +35,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.placeholders.PlaceholderFactory;
-import org.eclipse.ditto.placeholders.TimePlaceholder;
-import org.eclipse.ditto.policies.model.ResourceKey;
-import org.eclipse.ditto.rql.model.ParserException;
-import org.eclipse.ditto.rql.parser.RqlPredicateParser;
-import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
-import org.eclipse.ditto.rql.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.things.model.FeatureDefinition;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
@@ -54,6 +45,7 @@ import org.eclipse.ditto.things.model.signals.commands.modify.MigrateThingDefini
 import org.eclipse.ditto.things.model.signals.commands.modify.MigrateThingDefinitionResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingDefinitionMigrated;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.things.service.utils.PatchConditionsEvaluator;
 import org.eclipse.ditto.wot.model.SkeletonGenerationFailedException;
 
 
@@ -87,7 +79,6 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
     private static final ThingResourceMapper<Thing, Optional<EntityTag>> ENTITY_TAG_MAPPER =
             ThingResourceMapper.from(EntityTagCalculator.getInstance());
 
-    private static final TimePlaceholder TIME_PLACEHOLDER = TimePlaceholder.getInstance();
 
     /**
      * Constructs a new {@code MigrateThingDefinitionStrategy} object.
@@ -122,7 +113,7 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
         final boolean isDryRun = dittoHeaders.isExternalDryRun();
 
         // 1. Evaluate Patch Conditions and modify the migrationPayload
-        final JsonObject adjustedMigrationPayload = evaluatePatchConditions(
+        final JsonObject adjustedMigrationPayload = PatchConditionsEvaluator.evaluatePatchConditions(
                 existingThing,
                 command.getMigrationPayload(),
                 command.getPatchConditions(),
@@ -185,52 +176,6 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
                 .build();
     }
 
-    private JsonObject evaluatePatchConditions(final Thing existingThing,
-            final JsonObject migrationPayload,
-            final Map<ResourceKey, String> patchConditions,
-            final DittoHeaders dittoHeaders) {
-        final JsonObjectBuilder adjustedPayloadBuilder = migrationPayload.toBuilder();
-
-        for (final Map.Entry<ResourceKey, String> entry : patchConditions.entrySet()) {
-            final ResourceKey resourceKey = entry.getKey();
-            final String conditionExpression = entry.getValue();
-
-            final boolean conditionMatches = evaluateCondition(existingThing, conditionExpression, dittoHeaders);
-
-            final JsonPointer resourcePointer = JsonFactory.newPointer(resourceKey.getResourcePath());
-            if (!conditionMatches && doesMigrationPayloadContainResourceKey(migrationPayload, resourcePointer)) {
-                adjustedPayloadBuilder.remove(resourcePointer);
-            }
-        }
-
-        return adjustedPayloadBuilder.build();
-    }
-
-    private static boolean doesMigrationPayloadContainResourceKey(final JsonObject migrationPayload,
-            final JsonPointer pointer) {
-        return migrationPayload.getValue(pointer).isPresent();
-    }
-
-    private boolean evaluateCondition(final Thing existingThing,
-            final String conditionExpression,
-            final DittoHeaders dittoHeaders) {
-        try {
-            final var criteria = QueryFilterCriteriaFactory
-                    .modelBased(RqlPredicateParser.getInstance())
-                    .filterCriteria(conditionExpression, dittoHeaders);
-
-            final var predicate = ThingPredicateVisitor.apply(criteria,
-                    PlaceholderFactory.newPlaceholderResolver(TIME_PLACEHOLDER, new Object()));
-
-            return predicate.test(existingThing);
-        } catch (final ParserException | IllegalArgumentException e) {
-            throw InvalidRqlExpressionException.newBuilder()
-                    .message(e.getMessage())
-                    .cause(e)
-                    .dittoHeaders(dittoHeaders)
-                    .build();
-        }
-    }
 
     private CompletionStage<Thing> generateSkeleton(
             final MigrateThingDefinition command,
