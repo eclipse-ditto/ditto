@@ -230,6 +230,15 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     Optional<String> getCondition();
 
     /**
+     * Returns the merge thing patch conditions from the merge-thing-patch-conditions header.
+     * The patch conditions map JSON pointer paths to RQL condition expressions.
+     *
+     * @return Optional containing the patch conditions as a map of JsonPointer to RQL expressions, or empty if the header is not present
+     * @since 3.8.0
+     */
+    Optional<Map<JsonPointer, String>> getThingMergePatchConditions();
+
+    /**
      * Returns the channel condition, if the live-channel shall be used for the request.
      *
      * @return the condition contained in the Condition header.

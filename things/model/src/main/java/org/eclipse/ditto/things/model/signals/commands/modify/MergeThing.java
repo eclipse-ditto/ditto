@@ -14,6 +14,7 @@ package org.eclipse.ditto.things.model.signals.commands.modify;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -22,7 +23,6 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.common.Placeholders;
-import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommand;
@@ -601,18 +601,14 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
     }
 
     /**
-     * Returns the patch conditions from the merge-thing-patch-conditions header as an Optional JsonObject.
+     * Returns the patch conditions from the merge-thing-patch-conditions header.
      * The patch conditions map JSON pointer paths to RQL condition expressions.
      * 
-     * @return Optional containing the patch conditions JsonObject, or empty if the header is not present
+     * @return Optional containing the patch conditions as a map of JsonPointer to RQL expressions, or empty if the header is not present
      * @since 3.8.0
      */
-    public Optional<JsonObject> getPatchConditions() {
-        final String patchConditionsString = getDittoHeaders().get(DittoHeaderDefinition.MERGE_THING_PATCH_CONDITIONS.getKey());
-        if (patchConditionsString != null) {
-            return Optional.of(JsonObject.of(patchConditionsString));
-        }
-        return Optional.empty();
+    public Optional<Map<JsonPointer, String>> getPatchConditions() {
+        return getDittoHeaders().getThingMergePatchConditions();
     }
 
     /**

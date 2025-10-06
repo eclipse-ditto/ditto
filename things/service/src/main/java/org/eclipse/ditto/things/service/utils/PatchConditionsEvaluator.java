@@ -82,21 +82,20 @@ public final class PatchConditionsEvaluator {
             return mergeValue;
         }
 
-        final JsonObject patchConditions = patchConditionsOpt.get();
+        final Map<JsonPointer, String> patchConditions = patchConditionsOpt.get();
         final JsonObject mergeObject = mergeValue.asObject();
 
         final JsonObjectBuilder adjustedPayloadBuilder = mergeObject.toBuilder();
 
-        for (final var field : patchConditions) {
-            final String conditionPath = field.getKeyName();
-            final String conditionExpression = field.getValue().asString();
+        for (final Map.Entry<JsonPointer, String> entry : patchConditions.entrySet()) {
+            final JsonPointer conditionPath = entry.getKey();
+            final String conditionExpression = entry.getValue();
 
             final boolean conditionMatches = evaluateCondition(existingThing, conditionExpression, command.getDittoHeaders());
-            final JsonPointer resourcePointer = JsonPointer.of(conditionPath);
-            final boolean containsResource = mergeObject.getValue(resourcePointer).isPresent();
+            final boolean containsResource = mergeObject.getValue(conditionPath).isPresent();
 
             if (!conditionMatches && containsResource) {
-                adjustedPayloadBuilder.remove(resourcePointer);
+                adjustedPayloadBuilder.remove(conditionPath);
             }
         }
 

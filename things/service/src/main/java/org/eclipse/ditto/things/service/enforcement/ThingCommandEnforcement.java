@@ -44,7 +44,6 @@ import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonKey;
-import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonPointerInvalidException;
@@ -368,8 +367,7 @@ final class ThingCommandEnforcement
 
         if (command instanceof MergeThing mergeThing) {
             mergeThing.getPatchConditions()
-                    .ifPresent(patchConditions -> enforceReadPermissionOnPatchConditions(patchConditions, enforcer,
-                            dittoHeaders));
+                    .ifPresent(patchConditions -> enforceReadPermissionOnPatchConditions(patchConditions, enforcer, dittoHeaders));
         }
 
         if (commandAuthorized) {
@@ -479,22 +477,21 @@ final class ThingCommandEnforcement
      * on all of them.
      * </p>
      * 
-     * @param patchConditions the JSON object containing path-to-condition mappings
+     * @param patchConditions the map containing JsonPointer-to-RQL-condition mappings
      * @param enforcer the policy enforcer to check permissions against
      * @param dittoHeaders the Ditto headers for error reporting
      * @throws ThingConditionFailedException if the user lacks READ permission on any referenced resource
      * @since 3.8.0
      */
-    private static void enforceReadPermissionOnPatchConditions(final JsonObject patchConditions,
+    private static void enforceReadPermissionOnPatchConditions(final Map<JsonPointer, String> patchConditions,
             final Enforcer enforcer,
             final DittoHeaders dittoHeaders) {
 
         final var authorizationContext = dittoHeaders.getAuthorizationContext();
         final Set<ResourceKey> allResourceKeys = new HashSet<>();
 
-        // Collect all resource keys from all patch conditions
-        for (final JsonField field : patchConditions) {
-            final String conditionExpression = field.getValue().asString();
+        for (final Map.Entry<JsonPointer, String> entry : patchConditions.entrySet()) {
+            final String conditionExpression = entry.getValue();
             final var rootNode = tryParseRqlCondition(conditionExpression, dittoHeaders);
             final var resourceKeys = determineResourceKeys(rootNode, dittoHeaders);
             allResourceKeys.addAll(resourceKeys);
