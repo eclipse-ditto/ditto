@@ -309,6 +309,59 @@ client.twin().forId(ThingId.of("org.eclipse.ditto:fancy-thing"))
         });
 ```
 
+### Configuration for path-specific conditions
+
+When using path-specific conditions, it's possible that all parts of a merge payload are filtered out, resulting in empty JSON objects being persisted to the database. Ditto provides a configuration option to handle this scenario.
+
+#### Empty object removal
+
+**Configuration option:** `MERGE_REMOVE_EMPTY_OBJECTS_AFTER_PATCH_CONDITION_FILTERING`
+
+**Default behavior:** `false` (empty objects are preserved for backward compatibility)
+
+**When enabled:** Empty objects created by patch condition filtering are removed recursively, preventing unnecessary database operations and improving performance.
+
+**Example scenario - Complete filtering:**
+
+```json
+// Current Thing state
+{
+  "features": {
+    "temperature": {"properties": {"value": 15}},  // Current: 15
+    "humidity": {"properties": {"value": 70}}      // Current: 70
+  }
+}
+
+// Merge payload
+{
+  "features": {
+    "temperature": {"properties": {"value": 25}},
+    "humidity": {"properties": {"value": 60}}
+  }
+}
+
+// Patch conditions (both will fail)
+{
+  "features/temperature/properties/value": "gt(features/temperature/properties/value,30)",  // 15 > 30 = false
+  "features/humidity/properties/value": "lt(features/humidity/properties/value,50)"        // 70 < 50 = false
+}
+
+// Result with configuration disabled (default)
+{
+  "features": {
+    "temperature": {"properties": {}},  // Empty object preserved
+    "humidity": {"properties": {}}      // Empty object preserved
+  }
+}
+// → Database operation still occurs, empty objects stored
+
+// Result with configuration enabled
+{}  // Completely empty payload
+// → Database operation skipped entirely, no storage, no event emission, no new revision
+```
+
+For configuration details, see [Merge operations configuration](installation-operating.html#merge-operations-configuration).
+
 ## Further reading on RQL expressions
 
 See [RQL expressions](basic-rql.html).

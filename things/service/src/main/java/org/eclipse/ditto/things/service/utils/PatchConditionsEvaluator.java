@@ -35,11 +35,9 @@ import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 
 /**
  * Utility class for evaluating patch conditions in Thing operations.
- * <p>
- * This class provides methods to evaluate RQL-based conditions against existing Things
- * and filter payloads based on those conditions. It eliminates code duplication between
- * different command strategies that need to handle patch conditions.
- * </p>
+ *
+ * <p>Provides methods to evaluate RQL-based conditions against existing Things
+ * and filter payloads accordingly.</p>
  *
  * @since 3.8.0
  */
@@ -53,105 +51,134 @@ public final class PatchConditionsEvaluator {
     }
 
     /**
-     * Evaluates patch conditions for a MergeThing command and filters the merge value accordingly.
-     * This method applies RQL conditions to filter out parts of the merge payload
-     * that should not be applied based on the current state of the Thing.
-     * 
-     * <p>
-     * The patch conditions are provided as a JSON object where each key represents
-     * a JSON pointer path and each value is an RQL expression. If the RQL expression
-     * evaluates to {@code false} against the existing Thing, the corresponding part
-     * of the merge payload at that path will be removed.
-     * </p>
-     *
-     * @param existingThing the current state of the Thing
-     * @param mergeValue the original merge value to be filtered
-     * @param command the MergeThing command containing patch conditions
-     * @return the filtered merge value with parts removed based on failed conditions
+     * Result of patch condition evaluation that indicates whether the payload became empty.
      */
-    public static JsonValue evaluatePatchConditions(final Thing existingThing,
+    public static final class PatchConditionResult {
+        private final JsonValue filteredValue;
+        private final boolean empty;
+
+        private PatchConditionResult(final JsonValue filteredValue, final boolean empty) {
+            this.filteredValue = filteredValue;
+            this.empty = empty;
+        }
+
+        public static PatchConditionResult of(final JsonValue value) {
+            final boolean isEmpty = value.isNull() || (value.isObject() && value.asObject().isEmpty());
+            return new PatchConditionResult(value, isEmpty);
+        }
+
+        public JsonValue getFilteredValue() {
+            return filteredValue;
+        }
+
+        public boolean isEmpty() {
+            return empty;
+        }
+    }
+
+
+    /**
+     * Evaluates patch conditions for a {@link MergeThing} command and returns the filtered payload
+     * together with a flag indicating if it became empty.
+     */
+    public static PatchConditionResult evaluatePatchConditionsWithResult(final Thing existingThing,
             final JsonValue mergeValue,
-            final MergeThing command) {
-        
-        final var patchConditionsOpt = command.getPatchConditions();
-        if (patchConditionsOpt.isEmpty()) {
-            return mergeValue;
-        }
+            final MergeThing command,
+            final boolean removeEmptyObjects) {
 
-        if (!mergeValue.isObject()) {
-            return mergeValue;
-        }
-
-        final Map<JsonPointer, String> patchConditions = patchConditionsOpt.get();
-        final JsonObject mergeObject = mergeValue.asObject();
-
-        final JsonObjectBuilder adjustedPayloadBuilder = mergeObject.toBuilder();
-
-        for (final Map.Entry<JsonPointer, String> entry : patchConditions.entrySet()) {
-            final JsonPointer conditionPath = entry.getKey();
-            final String conditionExpression = entry.getValue();
-
-            final boolean conditionMatches = evaluateCondition(existingThing, conditionExpression, command.getDittoHeaders());
-            final boolean containsResource = mergeObject.getValue(conditionPath).isPresent();
-
-            if (!conditionMatches && containsResource) {
-                adjustedPayloadBuilder.remove(conditionPath);
-            }
-        }
-
-        return adjustedPayloadBuilder.build();
+        final JsonValue filtered = evaluatePatchConditions(existingThing, mergeValue, command, removeEmptyObjects);
+        return PatchConditionResult.of(filtered);
     }
 
     /**
-     * Evaluates patch conditions for a migration payload and filters it accordingly.
-     * This method applies RQL conditions to filter out parts of the migration payload
-     * that should not be applied based on the current state of the Thing.
-     * 
-     * <p>
-     * The patch conditions are provided as a map where each key represents
-     * a ResourceKey and each value is an RQL expression. If the RQL expression
-     * evaluates to {@code false} against the existing Thing, the corresponding part
-     * of the migration payload at that path will be removed.
-     * </p>
-     *
-     * @param existingThing the current state of the Thing
-     * @param migrationPayload the original migration payload to be filtered
-     * @param patchConditions the map of resource keys to RQL condition expressions
-     * @param dittoHeaders the Ditto headers for error reporting
-     * @return the filtered migration payload with parts removed based on failed conditions
+     * Evaluates patch conditions for a {@link MergeThing} command and returns the filtered payload.
+     */
+    public static JsonValue evaluatePatchConditions(final Thing existingThing,
+            final JsonValue mergeValue,
+            final MergeThing command,
+            final boolean removeEmptyObjects) {
+
+        final var patchConditionsOpt = command.getPatchConditions();
+        if (patchConditionsOpt.isEmpty() || !mergeValue.isObject()) {
+            return mergeValue;
+        }
+
+        return filterByConditions(
+                existingThing,
+                mergeValue.asObject(),
+                patchConditionsOpt.get(),
+                command.getDittoHeaders(),
+                removeEmptyObjects
+        );
+    }
+
+    /**
+     * Evaluates patch conditions for a migration payload and returns the filtered payload.
      */
     public static JsonObject evaluatePatchConditions(final Thing existingThing,
             final JsonObject migrationPayload,
             final Map<ResourceKey, String> patchConditions,
             final DittoHeaders dittoHeaders) {
-        
-        final JsonObjectBuilder adjustedPayloadBuilder = migrationPayload.toBuilder();
 
-        for (final Map.Entry<ResourceKey, String> entry : patchConditions.entrySet()) {
-            final ResourceKey resourceKey = entry.getKey();
-            final String conditionExpression = entry.getValue();
+        if (patchConditions.isEmpty() || migrationPayload.isEmpty()) {
+            return migrationPayload;
+        }
 
-            final boolean conditionMatches = evaluateCondition(existingThing, conditionExpression, dittoHeaders);
+        final var pointerMapBuilder = new java.util.LinkedHashMap<JsonPointer, String>(patchConditions.size());
+        for (final var e : patchConditions.entrySet()) {
+            pointerMapBuilder.put(JsonFactory.newPointer(e.getKey().getResourcePath()), e.getValue());
+        }
 
-            final JsonPointer resourcePointer = JsonFactory.newPointer(resourceKey.getResourcePath());
-                    if (!conditionMatches && containsResourceKey(migrationPayload, resourcePointer)) {
-                adjustedPayloadBuilder.remove(resourcePointer);
+        return filterByConditions(
+                existingThing,
+                migrationPayload,
+                pointerMapBuilder,
+                dittoHeaders,
+                true
+        ).asObject();
+    }
+
+    private static JsonValue filterByConditions(final Thing existingThing,
+            final JsonObject originalPayload,
+            final Map<JsonPointer, String> patchConditions,
+            final DittoHeaders headers,
+            final boolean removeEmptyObjects) {
+
+        if (patchConditions.isEmpty() || originalPayload.isEmpty()) {
+            return originalPayload;
+        }
+
+        JsonObjectBuilder maybeBuilder = null;
+        boolean modified = false;
+
+        for (final var entry : patchConditions.entrySet()) {
+            final JsonPointer path = entry.getKey();
+            final String conditionExpr = entry.getValue();
+
+            if (originalPayload.getValue(path).isEmpty()) {
+                continue;
+            }
+
+            final boolean matches = evaluateCondition(existingThing, conditionExpr, headers);
+            if (!matches) {
+                if (maybeBuilder == null) {
+                    maybeBuilder = originalPayload.toBuilder();
+                }
+                maybeBuilder.remove(path);
+                modified = true;
             }
         }
 
-        return adjustedPayloadBuilder.build();
+        final JsonValue result = modified ? maybeBuilder.build() : originalPayload;
+
+        if (removeEmptyObjects && result.isObject()) {
+            return removeEmptyObjectsRecursively(result.asObject());
+        }
+        return result;
     }
 
-    /**
-     * Evaluates a single RQL condition against an existing Thing.
-     * 
-     * @param existingThing the current state of the Thing
-     * @param conditionExpression the RQL expression to evaluate
-     * @param dittoHeaders the Ditto headers for error reporting
-     * @return {@code true} if the condition matches, {@code false} otherwise
-     * @throws InvalidRqlExpressionException if the RQL expression is invalid
-     */
-    public static boolean evaluateCondition(final Thing existingThing,
+
+    private static boolean evaluateCondition(final Thing existingThing,
             final String conditionExpression,
             final DittoHeaders dittoHeaders) {
         try {
@@ -172,8 +199,34 @@ public final class PatchConditionsEvaluator {
         }
     }
 
-    private static boolean containsResourceKey(final JsonObject payload,
-            final JsonPointer pointer) {
-        return payload.getValue(pointer).isPresent();
+
+    /**
+     * Recursively removes empty JSON objects from a JsonObject.
+     * An object is considered empty if it has no fields or if all its fields resolve to null
+     * after cleanup. Empty objects are replaced with {@code null}.
+     */
+    private static JsonValue removeEmptyObjectsRecursively(final JsonObject jsonObject) {
+        if (jsonObject.isEmpty()) {
+            return JsonFactory.nullLiteral();
+        }
+
+        final JsonObjectBuilder builder = JsonFactory.newObjectBuilder();
+        boolean hasNonNull = false;
+
+        for (final var field : jsonObject) {
+            final String key = field.getKeyName();
+            final JsonValue value = field.getValue();
+
+            final JsonValue cleaned = value.isObject()
+                    ? removeEmptyObjectsRecursively(value.asObject())
+                    : value;
+
+            if (!cleaned.isNull()) {
+                builder.set(key, cleaned);
+                hasNonNull = true;
+            }
+        }
+
+        return hasNonNull ? builder.build() : JsonFactory.nullLiteral();
     }
 }

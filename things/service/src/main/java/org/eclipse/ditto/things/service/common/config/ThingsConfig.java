@@ -51,6 +51,16 @@ public interface ThingsConfig extends ServiceSpecificConfig, WithHealthCheckConf
     WotConfig getWotConfig();
 
     /**
+     * Indicates whether empty JSON objects should be removed from merge payloads when patch conditions filter out all content.
+     * When enabled, empty objects created by patch condition filtering will be removed recursively,
+     * preventing unnecessary database operations for empty merge payloads.
+     *
+     * @return {@code true} if empty objects should be removed, {@code false} else.
+     */
+    boolean isMergeRemoveEmptyObjectsAfterPatchConditionFiltering();
+
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for {@code ThingsConfig}.
      */
     enum ThingsConfigValue implements KnownConfigValue {
@@ -59,7 +69,14 @@ public interface ThingsConfig extends ServiceSpecificConfig, WithHealthCheckConf
          * Determines whether minimal information for all incoming messages should be logged.
          * This enables message tracing throughout the system.
          */
-        LOG_INCOMING_MESSAGES("log-incoming-messages", true);
+        LOG_INCOMING_MESSAGES("log-incoming-messages", true),
+
+        /**
+         * Determines whether to remove empty JSON objects from merge payloads when patch conditions filter out all content.
+         * When enabled, empty objects created by patch condition filtering will be removed recursively,
+         * preventing unnecessary database operations for empty merge payloads.
+         */
+        MERGE_REMOVE_EMPTY_OBJECTS_AFTER_PATCH_CONDITION_FILTERING("thing.merge.remove-empty-objects-after-patch-condition-filtering", false);
 
         private final String path;
         private final Object defaultValue;

@@ -14,6 +14,7 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import java.time.Instant;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
@@ -43,6 +44,8 @@ import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThingResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingMerged;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
 import org.eclipse.ditto.things.service.utils.PatchConditionsEvaluator;
 
 /**
@@ -54,6 +57,8 @@ final class MergeThingStrategy extends AbstractThingModifyCommandStrategy<MergeT
     private static final ThingResourceMapper<Thing, Optional<EntityTag>> ENTITY_TAG_MAPPER =
             ThingResourceMapper.from(EntityTagCalculator.getInstance());
 
+    private final ActorSystem actorSystem;
+
 
     /**
      * Constructs a new {@code MergeThingStrategy} object.
@@ -62,6 +67,7 @@ final class MergeThingStrategy extends AbstractThingModifyCommandStrategy<MergeT
      */
     MergeThingStrategy(final ActorSystem actorSystem) {
         super(MergeThing.class, actorSystem);
+        this.actorSystem = actorSystem;
     }
 
     @Override
@@ -126,8 +132,17 @@ final class MergeThingStrategy extends AbstractThingModifyCommandStrategy<MergeT
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final JsonPointer path = command.getPath();
         final JsonValue originalValue = command.getEntity().orElseGet(command::getValue);
-        final JsonValue filteredValue = evaluatePatchConditions(thing, originalValue, command);
+        final PatchConditionsEvaluator.PatchConditionResult patchResult = evaluatePatchConditionsWithResult(thing, originalValue, command);
 
+        if (patchResult.isEmpty()) {
+            final CompletionStage<WithDittoHeaders> responseStage = CompletableFuture.completedFuture(
+                    appendETagHeaderIfProvided(command, MergeThingResponse.of(command.getEntityId(), path,
+                            createCommandResponseDittoHeaders(dittoHeaders, nextRevision)), thing)
+            );
+            return ResultFactory.newQueryResult(command, responseStage);
+        }
+
+        final JsonValue filteredValue = patchResult.getFilteredValue();
         final Thing mergedThing = wrapException(() -> mergeThing(context, command, thing, eventTs, nextRevision, filteredValue),
                 command.getDittoHeaders());
 
@@ -169,27 +184,23 @@ final class MergeThingStrategy extends AbstractThingModifyCommandStrategy<MergeT
     }
 
     /**
-     * Evaluates patch conditions and filters the merge value accordingly.
-     * This method applies RQL conditions to filter out parts of the merge payload
-     * that should not be applied based on the current state of the Thing.
+     * Evaluates patch conditions for a MergeThing command and returns the result with empty payload detection.
      * 
-     * <p>
-     * The patch conditions are provided as a JSON object where each key represents
-     * a JSON pointer path and each value is an RQL expression. If the RQL expression
-     * evaluates to {@code false} against the existing Thing, the corresponding part
-     * of the merge payload at that path will be removed.
-     * </p>
-     *
      * @param existingThing the current state of the Thing
      * @param mergeValue the original merge value to be filtered
      * @param command the MergeThing command containing patch conditions
-     * @return the filtered merge value with parts removed based on failed conditions
+     * @return the result containing the filtered merge value and whether it became empty
      * @since 3.8.0
      */
-    JsonValue evaluatePatchConditions(final Thing existingThing,
+    PatchConditionsEvaluator.PatchConditionResult evaluatePatchConditionsWithResult(final Thing existingThing,
             final JsonValue mergeValue,
             final MergeThing command) {
-        return PatchConditionsEvaluator.evaluatePatchConditions(existingThing, mergeValue, command);
+        final DittoThingsConfig thingsConfig = DittoThingsConfig.of(
+                DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
+        );
+        final boolean removeEmptyObjects = thingsConfig.isMergeRemoveEmptyObjectsAfterPatchConditionFiltering();
+        
+        return PatchConditionsEvaluator.evaluatePatchConditionsWithResult(existingThing, mergeValue, command, removeEmptyObjects);
     }
 
     @Override
