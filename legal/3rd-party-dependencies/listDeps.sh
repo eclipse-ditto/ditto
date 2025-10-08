@@ -11,7 +11,7 @@
 # SPDX-License-Identifier: EPL-2.0
 cd ../../
 
-mvn dependency:list -DexcludeGroupIds=org.eclipse.ditto,rubygems -Dsort=true -DoutputFile=dependencies.txt
+mvn dependency:list -pl '!internal/utils/test' -DexcludeGroupIds=org.eclipse.ditto,rubygems -Dsort=true -DoutputFile=dependencies.txt
 find . -name dependencies.txt|while read i; do cat $i;done|grep '.*:.*:compile'| tr -d '[:blank:]'| sed -e 's/(optional)//' -e 's/:compile.*/:compile/'|sort|uniq > legal/3rd-party-dependencies//compile.txt
 find . -name dependencies.txt|while read i; do cat $i;done|grep '.*:.*:runtime'| tr -d '[:blank:]'| sed -e 's/(optional)//' -e 's/:runtime.*/:runtime/'|sort|uniq > legal/3rd-party-dependencies//runtime.txt
 find . -name dependencies.txt|while read i; do cat $i;done|grep '.*:.*:test'| tr -d '[:blank:]'| sed -e 's/(optional)//' -e 's/:test.*/:test/'|sort|uniq > legal/3rd-party-dependencies//test.txt
