@@ -63,7 +63,7 @@ public final class PatchConditionsEvaluator {
         }
 
         public static PatchConditionResult of(final JsonValue value) {
-            final boolean isEmpty = value.isNull() || (value.isObject() && value.asObject().isEmpty());
+            final boolean isEmpty = value.isObject() && value.asObject().isEmpty();
             return new PatchConditionResult(value, isEmpty);
         }
 
@@ -99,14 +99,23 @@ public final class PatchConditionsEvaluator {
             final boolean removeEmptyObjects) {
 
         final var patchConditionsOpt = command.getPatchConditions();
-        if (patchConditionsOpt.isEmpty() || !mergeValue.isObject()) {
+        
+        if (patchConditionsOpt.isEmpty()) {
+            if (removeEmptyObjects && mergeValue.isObject()) {
+                return removeEmptyObjectsRecursively(mergeValue.asObject());
+            }
+            return mergeValue;
+        }
+        
+        if (!mergeValue.isObject()) {
             return mergeValue;
         }
 
+        final Map<JsonPointer, String> patchConditions = patchConditionsOpt.get();
         return filterByConditions(
                 existingThing,
                 mergeValue.asObject(),
-                patchConditionsOpt.get(),
+                patchConditions,
                 command.getDittoHeaders(),
                 removeEmptyObjects
         );
