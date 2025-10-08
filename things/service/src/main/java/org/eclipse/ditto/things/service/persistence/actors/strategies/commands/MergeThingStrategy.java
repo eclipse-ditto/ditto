@@ -132,31 +132,30 @@ final class MergeThingStrategy extends AbstractThingModifyCommandStrategy<MergeT
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final JsonPointer path = command.getPath();
         final JsonValue originalValue = command.getEntity().orElseGet(command::getValue);
-        
+
         final DittoThingsConfig thingsConfig = DittoThingsConfig.of(
                 DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
         );
         final boolean removeEmptyObjects = thingsConfig.isMergeRemoveEmptyObjectsAfterPatchConditionFiltering();
-        
+
         final JsonValue mergeValue;
         if (command.getPatchConditions().isPresent()) {
             final PatchConditionsEvaluator.PatchConditionResult patchResult = evaluatePatchConditionsWithResult(thing, originalValue, command);
-            
-            if (patchResult.isEmpty()) {
-                final CompletionStage<WithDittoHeaders> responseStage = CompletableFuture.completedFuture(
-                        appendETagHeaderIfProvided(command, MergeThingResponse.of(command.getEntityId(), path,
-                                createCommandResponseDittoHeaders(dittoHeaders, nextRevision)), thing)
-                );
-                return ResultFactory.newQueryResult(command, responseStage);
-            }
-            
             mergeValue = patchResult.getFilteredValue();
         } else {
             mergeValue = originalValue;
         }
-        
+
         final JsonValue finalMergeValue = applyEmptyObjectRemovalIfConfigured(mergeValue, removeEmptyObjects);
-        
+
+        if (removeEmptyObjects && finalMergeValue.asObject().isEmpty()) {
+            final CompletionStage<WithDittoHeaders> responseStage = CompletableFuture.completedFuture(
+                    appendETagHeaderIfProvided(command, MergeThingResponse.of(command.getEntityId(), path,
+                            createCommandResponseDittoHeaders(dittoHeaders, nextRevision)), thing)
+            );
+            return ResultFactory.newQueryResult(command, responseStage);
+        }
+
         final Thing mergedThing = wrapException(() -> mergeThing(context, command, thing, eventTs, nextRevision, finalMergeValue),
                 command.getDittoHeaders());
 
@@ -167,7 +166,7 @@ final class MergeThingStrategy extends AbstractThingModifyCommandStrategy<MergeT
         );
         final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(mergeThing ->
                 appendETagHeaderIfProvided(mergeThing, MergeThingResponse.of(command.getEntityId(), path,
-                                createCommandResponseDittoHeaders(dittoHeaders, nextRevision)), mergedThing)
+                        createCommandResponseDittoHeaders(dittoHeaders, nextRevision)), mergedThing)
         );
         return ResultFactory.newMutationResult(command, eventStage, responseStage);
     }

@@ -99,11 +99,11 @@ public final class PatchConditionsEvaluator {
             final boolean removeEmptyObjects) {
 
         final var patchConditionsOpt = command.getPatchConditions();
-        
+
         if (patchConditionsOpt.isEmpty()) {
             return mergeValue;
         }
-        
+
         if (!mergeValue.isObject()) {
             return mergeValue;
         }
@@ -209,6 +209,7 @@ public final class PatchConditionsEvaluator {
     /**
      * Recursively removes empty JSON objects from a JsonObject.
      * An object is considered empty if it has no fields.
+     * If all nested objects are empty, the entire structure is reduced to an empty object.
      */
     public static JsonValue removeEmptyObjectsRecursively(final JsonObject jsonObject) {
         if (jsonObject.isEmpty()) {
@@ -216,7 +217,7 @@ public final class PatchConditionsEvaluator {
         }
 
         final JsonObjectBuilder builder = JsonFactory.newObjectBuilder();
-        boolean hasAnyField = false;
+        boolean hasAnyNonEmptyField = false;
 
         for (final var field : jsonObject) {
             final String key = field.getKeyName();
@@ -226,10 +227,12 @@ public final class PatchConditionsEvaluator {
                     ? removeEmptyObjectsRecursively(value.asObject())
                     : value;
 
-            builder.set(key, cleaned);
-            hasAnyField = true;
+            if (!cleaned.isNull()) {
+                builder.set(key, cleaned);
+                hasAnyNonEmptyField = true;
+            }
         }
 
-        return hasAnyField ? builder.build() : JsonFactory.nullLiteral();
+        return hasAnyNonEmptyField ? builder.build() : JsonFactory.nullLiteral();
     }
 }
