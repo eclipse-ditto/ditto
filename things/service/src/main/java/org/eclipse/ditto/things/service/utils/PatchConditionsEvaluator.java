@@ -53,26 +53,11 @@ public final class PatchConditionsEvaluator {
     /**
      * Result of patch condition evaluation that indicates whether the payload became empty.
      */
-    public static final class PatchConditionResult {
-        private final JsonValue filteredValue;
-        private final boolean empty;
-
-        private PatchConditionResult(final JsonValue filteredValue, final boolean empty) {
-            this.filteredValue = filteredValue;
-            this.empty = empty;
-        }
+    public record PatchConditionResult(JsonValue filteredValue, boolean empty) {
 
         public static PatchConditionResult of(final JsonValue value) {
-            final boolean isEmpty = value.isObject() && value.asObject().isEmpty();
-            return new PatchConditionResult(value, isEmpty);
-        }
-
-        public JsonValue getFilteredValue() {
-            return filteredValue;
-        }
-
-        public boolean isEmpty() {
-            return empty;
+                final boolean isEmpty = value.isObject() && value.asObject().isEmpty();
+                return new PatchConditionResult(value, isEmpty);
         }
     }
 
@@ -83,10 +68,9 @@ public final class PatchConditionsEvaluator {
      */
     public static PatchConditionResult evaluatePatchConditionsWithResult(final Thing existingThing,
             final JsonValue mergeValue,
-            final MergeThing command,
-            final boolean removeEmptyObjects) {
-
-        final JsonValue filtered = evaluatePatchConditions(existingThing, mergeValue, command, removeEmptyObjects);
+            final MergeThing command
+    ) {
+        final JsonValue filtered = evaluatePatchConditions(existingThing, mergeValue, command);
         return PatchConditionResult.of(filtered);
     }
 
@@ -95,9 +79,8 @@ public final class PatchConditionsEvaluator {
      */
     public static JsonValue evaluatePatchConditions(final Thing existingThing,
             final JsonValue mergeValue,
-            final MergeThing command,
-            final boolean removeEmptyObjects) {
-
+            final MergeThing command
+    ) {
         final var patchConditionsOpt = command.getPatchConditions();
 
         if (patchConditionsOpt.isEmpty()) {
@@ -114,7 +97,7 @@ public final class PatchConditionsEvaluator {
                 mergeValue.asObject(),
                 patchConditions,
                 command.getDittoHeaders(),
-                removeEmptyObjects
+                false
         );
     }
 
@@ -148,8 +131,8 @@ public final class PatchConditionsEvaluator {
             final JsonObject originalPayload,
             final Map<JsonPointer, String> patchConditions,
             final DittoHeaders headers,
-            final boolean removeEmptyObjects) {
-
+            final boolean removeEmptyObjects
+    ) {
         if (patchConditions.isEmpty() || originalPayload.isEmpty()) {
             return originalPayload;
         }

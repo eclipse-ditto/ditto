@@ -304,6 +304,7 @@ public abstract class AbstractDittoHeaders implements DittoHeaders {
                         .withInvalidHeaderKey(DittoHeaderDefinition.MERGE_THING_PATCH_CONDITIONS.getKey())
                         .message("Failed to parse merge-thing-patch-conditions header: " + e.getMessage())
                         .cause(e)
+                        .dittoHeaders(this)
                         .build();
             }
         }

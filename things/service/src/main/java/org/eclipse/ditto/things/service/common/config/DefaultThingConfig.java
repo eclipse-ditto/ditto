@@ -44,6 +44,7 @@ public final class DefaultThingConfig implements ThingConfig {
     private final ThingEventConfig eventConfig;
     private final ThingMessageConfig messageConfig;
     private final CleanupConfig cleanupConfig;
+    private final boolean mergeRemoveEmptyObjectsAfterPatchConditionFiltering;
 
     private DefaultThingConfig(final ScopedConfig scopedConfig) {
         shutdownTimeout = scopedConfig.getDuration(ConfigValue.SHUTDOWN_TIMEOUT.getConfigPath());
@@ -53,6 +54,8 @@ public final class DefaultThingConfig implements ThingConfig {
         eventConfig = DefaultThingEventConfig.of(scopedConfig);
         messageConfig = DefaultThingMessageConfig.of(scopedConfig);
         cleanupConfig = CleanupConfig.of(scopedConfig);
+        mergeRemoveEmptyObjectsAfterPatchConditionFiltering = scopedConfig.getBoolean(
+                ThingConfig.ConfigValue.MERGE_REMOVE_EMPTY_OBJECTS_AFTER_PATCH_CONDITION_FILTERING.getConfigPath());
     }
 
     /**
@@ -97,6 +100,11 @@ public final class DefaultThingConfig implements ThingConfig {
     }
 
     @Override
+    public boolean isMergeRemoveEmptyObjectsAfterPatchConditionFiltering() {
+        return mergeRemoveEmptyObjectsAfterPatchConditionFiltering;
+    }
+
+    @Override
     public Duration getShutdownTimeout() {
         return shutdownTimeout;
     }
@@ -115,13 +123,15 @@ public final class DefaultThingConfig implements ThingConfig {
                 Objects.equals(snapshotConfig, that.snapshotConfig) &&
                 Objects.equals(eventConfig, that.eventConfig) &&
                 Objects.equals(cleanupConfig, that.cleanupConfig) &&
-                Objects.equals(shutdownTimeout, that.shutdownTimeout);
+                Objects.equals(shutdownTimeout, that.shutdownTimeout) &&
+                mergeRemoveEmptyObjectsAfterPatchConditionFiltering ==
+                        that.mergeRemoveEmptyObjectsAfterPatchConditionFiltering;
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(supervisorConfig, activityCheckConfig, snapshotConfig, eventConfig, messageConfig,
-                cleanupConfig, shutdownTimeout);
+                cleanupConfig, shutdownTimeout, mergeRemoveEmptyObjectsAfterPatchConditionFiltering);
     }
 
     @Override
@@ -134,6 +144,8 @@ public final class DefaultThingConfig implements ThingConfig {
                 ", messageConfig=" + messageConfig +
                 ", cleanupConfig=" + cleanupConfig +
                 ", shutdownTimeout=" + shutdownTimeout +
+                ", mergeRemoveEmptyObjectsAfterPatchConditionFiltering=" +
+                mergeRemoveEmptyObjectsAfterPatchConditionFiltering +
                 "]";
     }
 }

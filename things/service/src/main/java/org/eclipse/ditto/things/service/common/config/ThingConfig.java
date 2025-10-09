@@ -51,6 +51,15 @@ public interface ThingConfig extends WithSupervisorConfig, WithActivityCheckConf
     Duration getShutdownTimeout();
 
     /**
+     * Indicates whether empty JSON objects should be removed from merge payloads when patch conditions filter out all content.
+     * When enabled, empty objects created by patch condition filtering will be removed recursively,
+     * preventing unnecessary database operations for empty merge payloads.
+     *
+     * @return {@code true} if empty objects should be removed, {@code false} else.
+     */
+    boolean isMergeRemoveEmptyObjectsAfterPatchConditionFiltering();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for {@code ThingConfig}.
      */
     enum ConfigValue implements KnownConfigValue {
@@ -58,7 +67,14 @@ public interface ThingConfig extends WithSupervisorConfig, WithActivityCheckConf
         /**
          * Timeout waiting for responses and acknowledgements during coordinated shutdown.
          */
-        SHUTDOWN_TIMEOUT("shutdown-timeout", Duration.ofSeconds(3));
+        SHUTDOWN_TIMEOUT("shutdown-timeout", Duration.ofSeconds(3)),
+
+        /**
+         * Determines whether to remove empty JSON objects from merge payloads when patch conditions filter out all content.
+         * When enabled, empty objects created by patch condition filtering will be removed recursively,
+         * preventing unnecessary database operations for empty merge payloads.
+         */
+        MERGE_REMOVE_EMPTY_OBJECTS_AFTER_PATCH_CONDITION_FILTERING("merge.remove-empty-objects-after-patch-condition-filtering", false);
 
         private final String path;
         private final Object defaultValue;

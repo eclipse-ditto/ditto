@@ -27,6 +27,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.json.JsonMergePatch;
@@ -44,7 +45,6 @@ import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThingResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingMerged;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
 import org.eclipse.ditto.things.service.utils.PatchConditionsEvaluator;
 
@@ -57,8 +57,7 @@ final class MergeThingStrategy extends AbstractThingModifyCommandStrategy<MergeT
     private static final ThingResourceMapper<Thing, Optional<EntityTag>> ENTITY_TAG_MAPPER =
             ThingResourceMapper.from(EntityTagCalculator.getInstance());
 
-    private final ActorSystem actorSystem;
-
+    private final boolean removeEmptyObjectsAfterPatchConditionFiltering;
 
     /**
      * Constructs a new {@code MergeThingStrategy} object.
@@ -67,7 +66,11 @@ final class MergeThingStrategy extends AbstractThingModifyCommandStrategy<MergeT
      */
     MergeThingStrategy(final ActorSystem actorSystem) {
         super(MergeThing.class, actorSystem);
-        this.actorSystem = actorSystem;
+        final DittoThingsConfig thingsConfig = DittoThingsConfig.of(
+                DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
+        );
+        removeEmptyObjectsAfterPatchConditionFiltering =
+                thingsConfig.getThingConfig().isMergeRemoveEmptyObjectsAfterPatchConditionFiltering();
     }
 
     @Override
@@ -133,22 +136,19 @@ final class MergeThingStrategy extends AbstractThingModifyCommandStrategy<MergeT
         final JsonPointer path = command.getPath();
         final JsonValue originalValue = command.getEntity().orElseGet(command::getValue);
 
-        final DittoThingsConfig thingsConfig = DittoThingsConfig.of(
-                DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
-        );
-        final boolean removeEmptyObjects = thingsConfig.isMergeRemoveEmptyObjectsAfterPatchConditionFiltering();
 
         final JsonValue mergeValue;
         if (command.getPatchConditions().isPresent()) {
-            final PatchConditionsEvaluator.PatchConditionResult patchResult = evaluatePatchConditionsWithResult(thing, originalValue, command);
-            mergeValue = patchResult.getFilteredValue();
+            final PatchConditionsEvaluator.PatchConditionResult patchResult =
+                    evaluatePatchConditionsWithResult(thing, originalValue, command);
+            mergeValue = patchResult.filteredValue();
         } else {
             mergeValue = originalValue;
         }
 
-        final JsonValue finalMergeValue = applyEmptyObjectRemovalIfConfigured(mergeValue, removeEmptyObjects);
+        final JsonValue finalMergeValue = applyEmptyObjectRemovalIfConfigured(mergeValue);
 
-        if (removeEmptyObjects && finalMergeValue.asObject().isEmpty()) {
+        if (removeEmptyObjectsAfterPatchConditionFiltering && finalMergeValue.asObject().isEmpty()) {
             final CompletionStage<WithDittoHeaders> responseStage = CompletableFuture.completedFuture(
                     appendETagHeaderIfProvided(command, MergeThingResponse.of(command.getEntityId(), path,
                             createCommandResponseDittoHeaders(dittoHeaders, nextRevision)), thing)
@@ -156,13 +156,15 @@ final class MergeThingStrategy extends AbstractThingModifyCommandStrategy<MergeT
             return ResultFactory.newQueryResult(command, responseStage);
         }
 
-        final Thing mergedThing = wrapException(() -> mergeThing(context, command, thing, eventTs, nextRevision, finalMergeValue),
-                command.getDittoHeaders());
+        final Thing mergedThing =
+                wrapException(() -> mergeThing(context, command, thing, eventTs, nextRevision, finalMergeValue),
+                        command.getDittoHeaders());
 
         final CompletionStage<MergeThing> validatedStage = buildValidatedStage(command, thing, mergedThing);
 
         final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(mergeThing ->
-                ThingMerged.of(mergeThing.getEntityId(), path, finalMergeValue, nextRevision, eventTs, dittoHeaders, metadata)
+                ThingMerged.of(mergeThing.getEntityId(), path, finalMergeValue, nextRevision, eventTs, dittoHeaders,
+                        metadata)
         );
         final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(mergeThing ->
                 appendETagHeaderIfProvided(mergeThing, MergeThingResponse.of(command.getEntityId(), path,
@@ -179,7 +181,7 @@ final class MergeThingStrategy extends AbstractThingModifyCommandStrategy<MergeT
             final JsonValue filteredValue
     ) {
         final JsonObject existingThingJson = thing.toJson(FieldType.all());
-        
+
         final JsonMergePatch jsonMergePatch = JsonMergePatch.of(command.getPath(), filteredValue);
         final JsonObject mergedJson = jsonMergePatch.applyOn(existingThingJson).asObject();
 
@@ -198,28 +200,28 @@ final class MergeThingStrategy extends AbstractThingModifyCommandStrategy<MergeT
 
     /**
      * Evaluates patch conditions for a MergeThing command and returns the result with empty payload detection.
-     * 
+     *
      * @param existingThing the current state of the Thing
      * @param mergeValue the original merge value to be filtered
      * @param command the MergeThing command containing patch conditions
      * @return the result containing the filtered merge value and whether it became empty
      * @since 3.8.0
      */
-    PatchConditionsEvaluator.PatchConditionResult evaluatePatchConditionsWithResult(final Thing existingThing,
+    private PatchConditionsEvaluator.PatchConditionResult evaluatePatchConditionsWithResult(final Thing existingThing,
             final JsonValue mergeValue,
-            final MergeThing command) {
-        return PatchConditionsEvaluator.evaluatePatchConditionsWithResult(existingThing, mergeValue, command, false);
+            final MergeThing command
+    ) {
+        return PatchConditionsEvaluator.evaluatePatchConditionsWithResult(existingThing, mergeValue, command);
     }
 
     /**
      * Applies empty object removal to the merge value if configured.
      *
      * @param mergeValue the merge value to potentially clean up
-     * @param removeEmptyObjects whether to remove empty objects
      * @return the cleaned merge value
      */
-    private JsonValue applyEmptyObjectRemovalIfConfigured(final JsonValue mergeValue, final boolean removeEmptyObjects) {
-        if (removeEmptyObjects && mergeValue.isObject()) {
+    private JsonValue applyEmptyObjectRemovalIfConfigured(final JsonValue mergeValue) {
+        if (removeEmptyObjectsAfterPatchConditionFiltering && mergeValue.isObject()) {
             return PatchConditionsEvaluator.removeEmptyObjectsRecursively(mergeValue.asObject());
         }
         return mergeValue;

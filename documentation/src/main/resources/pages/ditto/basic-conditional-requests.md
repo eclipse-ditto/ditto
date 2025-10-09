@@ -160,11 +160,15 @@ was introduced.
 Upon activation, the digital twin stored in Eclipse Ditto will implicitly be updated with the latest data from the 
 _live response_ sent by the device.
 
-## Path-specific conditions (Since 3.8.0)
+## Path-specific conditions
 
-In addition to global conditions, Ditto supports path-specific conditions for merge operations using the `merge-thing-patch-conditions` header. This feature allows you to apply different RQL conditions to different parts of a merge patch, enabling fine-grained control over which parts of the patch are applied based on the current state of the Thing.
+In addition to global conditions, Ditto supports since version 3.8.0 path-specific conditions for 
+[merge operations](protocol-specification-things-merge.html) using the `merge-thing-patch-conditions` header.  
+This feature allows you to apply different [RQL conditions](basic-rql.html) to different parts of a merge patch, 
+enabling fine-grained control over which parts of the patch are applied based on the current state of the Thing.
 
-The `merge-thing-patch-conditions` header contains a JSON object where each key represents a JSON pointer path and each value is an RQL expression that must evaluate to `true` for that path to be included in the merge.
+The `merge-thing-patch-conditions` header contains a JSON object where each key represents a JSON pointer path and each 
+value is an RQL expression that must evaluate to `true` for that path to be included in the merge.
 
 * If a path-specific condition is fulfilled, that part of the merge patch will be applied.
 * If a path-specific condition is not fulfilled, that part of the merge patch will be skipped.
@@ -178,8 +182,8 @@ READ permission is necessary on all resources referenced in the path-specific co
 
 ### Examples
 
-In this part, we will show how to use path-specific conditions via HTTP API, Ditto protocol, and Ditto Java Client.
-The below examples assume that we have the following thing state:
+This part shows how to use path-specific conditions via HTTP API, Ditto protocol, and Ditto Java Client.
+The below examples assume that there is a thing with the following thing state:
 
 ```json
 {
@@ -215,12 +219,15 @@ The below examples assume that we have the following thing state:
 }
 ```
 
-### HTTP API
+#### HTTP API
 
-Using the HTTP API it is possible to specify path-specific conditions via HTTP header
+Using the HTTP API it is possible to specify path-specific conditions via HTTP header `merge-thing-patch-conditions`:
 
-```
-curl -X PATCH -H 'Content-Type: application/merge-patch+json' -H 'merge-thing-patch-conditions: {"features/temperature/properties/value": "gt(features/temperature/properties/value,20)", "features/humidity/properties/value": "lt(features/humidity/properties/value,80)"}' /api/2/things/org.eclipse.ditto:fancy-thing -d '{"features": {"temperature": {"properties": {"value": 25}}, "humidity": {"properties": {"value": 60}}, "status": {"properties": {"state": "updated"}}}}'
+```shell
+curl -X PATCH -H 'Content-Type: application/merge-patch+json' \
+    -H 'merge-thing-patch-conditions: {"features/temperature/properties/value": "gt(features/temperature/properties/value,20)", "features/humidity/properties/value": "lt(features/humidity/properties/value,80)"}' \
+    http://localhost:8080/api/2/things/org.eclipse.ditto:fancy-thing \
+    -d '{"features": {"temperature": {"properties": {"value": 25}}, "humidity": {"properties": {"value": 60}}, "status": {"properties": {"state": "updated"}}}}'
 ```
 
 In this example:
@@ -228,7 +235,7 @@ In this example:
 - `humidity` will only be updated if the current humidity is less than 80 (condition fails, so humidity won't be updated)  
 - `status` will always be updated (no condition specified)
 
-### Ditto protocol
+#### Ditto protocol
 
 The Ditto protocol supports also path-specific conditions for merge operations.
 This is an example how to do a conditional merge via [Ditto Protocol](protocol-specification.html) message:
@@ -265,17 +272,17 @@ This is an example how to do a conditional merge via [Ditto Protocol](protocol-s
 }
 ```
 
-### Ditto Java Client
+#### Ditto Java Client
 
-The third option to use path-specific conditions is the ditto-client.
+The third option to use path-specific conditions is the [ditto-client](client-sdk-java.html).  
 The following code snippet demonstrates how to achieve this.
 
 ```java
-final Map<String, String> patchConditions = new HashMap<>();
-patchConditions.put("features/temperature/properties/value", "gt(features/temperature/properties/value,20)");
-patchConditions.put("features/humidity/properties/value", "lt(features/humidity/properties/value,80)");
+Map<String, String> cond = new HashMap<>();
+cond.put("features/temperature/properties/value", "gt(features/temperature/properties/value,20)");
+cond.put("features/humidity/properties/value", "lt(features/humidity/properties/value,80)");
 
-final Option<Map<String, String>> patchConditionsOption = Options.mergeThingPatchConditions(patchConditions);
+Option<Map<String, String>> condOption = Options.mergeThingPatchConditions(patchConditions);
 
 client.twin().forId(ThingId.of("org.eclipse.ditto:fancy-thing"))
         .merge(JsonObject.newBuilder()
@@ -299,7 +306,7 @@ client.twin().forId(ThingId.of("org.eclipse.ditto:fancy-thing"))
                                         .build())
                                 .build())
                         .build())
-                .build(), patchConditionsOption)
+                .build(), condOption)
         .whenComplete((unused, throwable) -> {
             if (throwable != null) {
                 System.out.println("Merge was not successful: " + throwable.getMessage());
@@ -311,7 +318,10 @@ client.twin().forId(ThingId.of("org.eclipse.ditto:fancy-thing"))
 
 ### Configuration for path-specific conditions
 
-When using path-specific conditions, it's possible that all parts of a merge payload are filtered out, resulting in empty JSON objects being persisted to the database. Ditto provides a configuration option to handle this scenario.
+When using path-specific conditions, it's possible that all parts of a merge payload are filtered out, resulting in 
+empty JSON objects being persisted to the database.  
+Ditto provides a configuration option to avoid persisting events in case that only empty objects are left after applying 
+the conditions.
 
 #### Empty object removal
 
@@ -319,7 +329,8 @@ When using path-specific conditions, it's possible that all parts of a merge pay
 
 **Default behavior:** `false` (empty objects are preserved for backward compatibility)
 
-**When enabled:** Empty objects created by patch condition filtering are removed recursively, preventing unnecessary database operations and improving performance.
+**When enabled:** Empty objects created by patch condition filtering are removed recursively, preventing unnecessary 
+database operations and saving database I/O.
 
 **Example scenario - Complete filtering:**
 
@@ -327,30 +338,30 @@ When using path-specific conditions, it's possible that all parts of a merge pay
 // Current Thing state
 {
   "features": {
-    "temperature": {"properties": {"value": 15}},  // Current: 15
-    "humidity": {"properties": {"value": 70}}      // Current: 70
+    "temp": {"properties": {"value": 15}},  // Current: 15
+    "hum": {"properties": {"value": 70}}    // Current: 70
   }
 }
 
 // Merge payload
 {
   "features": {
-    "temperature": {"properties": {"value": 25}},
-    "humidity": {"properties": {"value": 60}}
+    "temp": {"properties": {"value": 25}},
+    "hum": {"properties": {"value": 60}}
   }
 }
 
-// Patch conditions (both will fail)
+// Patch conditions (both will evaluate to false)
 {
-  "features/temperature/properties/value": "gt(features/temperature/properties/value,30)",  // 15 > 30 = false
-  "features/humidity/properties/value": "lt(features/humidity/properties/value,50)"        // 70 < 50 = false
+  "features/temp/properties/value": "gt(features/temp/properties/value,30)",  // 15 > 30 = false
+  "features/hum/properties/value": "lt(features/hum/properties/value,50)"     // 70 < 50 = false
 }
 
 // Result with configuration disabled (default)
 {
   "features": {
-    "temperature": {"properties": {}},  // Empty object preserved
-    "humidity": {"properties": {}}      // Empty object preserved
+    "temp": {"properties": {}},  // Empty object preserved
+    "hum": {"properties": {}}    // Empty object preserved
   }
 }
 // → Database operation still occurs, empty objects stored

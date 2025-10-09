@@ -103,10 +103,6 @@ ditto {
         {{- end }}
         ]
       }
-
-      merge {
-        remove-empty-objects-after-patch-condition-filtering = {{ .Values.things.config.merge.removeEmptyObjectsAfterPatchConditionFiltering | default false }}
-      }
     }
 
     wot {

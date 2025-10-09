@@ -43,7 +43,6 @@ public final class DittoThingsConfig implements ThingsConfig {
 
     private final DittoServiceConfig serviceSpecificConfig;
     private final boolean logIncomingMessages;
-    private final boolean mergeRemoveEmptyObjectsAfterPatchConditionFiltering;
     private final PersistenceOperationsConfig persistenceOperationsConfig;
     private final MongoDbConfig mongoDbConfig;
     private final HealthCheckConfig healthCheckConfig;
@@ -53,7 +52,6 @@ public final class DittoThingsConfig implements ThingsConfig {
     private DittoThingsConfig(final ScopedConfig dittoScopedConfig) {
         serviceSpecificConfig = DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH);
         logIncomingMessages = serviceSpecificConfig.getBoolean(ThingsConfigValue.LOG_INCOMING_MESSAGES.getConfigPath());
-        mergeRemoveEmptyObjectsAfterPatchConditionFiltering = serviceSpecificConfig.getBoolean(ThingsConfigValue.MERGE_REMOVE_EMPTY_OBJECTS_AFTER_PATCH_CONDITION_FILTERING.getConfigPath());
         persistenceOperationsConfig = DefaultPersistenceOperationsConfig.of(dittoScopedConfig);
         mongoDbConfig = DefaultMongoDbConfig.of(dittoScopedConfig);
         healthCheckConfig = DefaultHealthCheckConfig.of(dittoScopedConfig);
@@ -119,11 +117,6 @@ public final class DittoThingsConfig implements ThingsConfig {
     }
 
     @Override
-    public boolean isMergeRemoveEmptyObjectsAfterPatchConditionFiltering() {
-        return mergeRemoveEmptyObjectsAfterPatchConditionFiltering;
-    }
-
-    @Override
     public ThingConfig getThingConfig() {
         return thingConfig;
     }
@@ -143,7 +136,6 @@ public final class DittoThingsConfig implements ThingsConfig {
         }
         final DittoThingsConfig that = (DittoThingsConfig) o;
         return logIncomingMessages == that.logIncomingMessages &&
-                mergeRemoveEmptyObjectsAfterPatchConditionFiltering == that.mergeRemoveEmptyObjectsAfterPatchConditionFiltering &&
                 Objects.equals(serviceSpecificConfig, that.serviceSpecificConfig) &&
                 Objects.equals(persistenceOperationsConfig, that.persistenceOperationsConfig) &&
                 Objects.equals(mongoDbConfig, that.mongoDbConfig) &&
@@ -154,7 +146,7 @@ public final class DittoThingsConfig implements ThingsConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(serviceSpecificConfig, logIncomingMessages, mergeRemoveEmptyObjectsAfterPatchConditionFiltering, persistenceOperationsConfig, mongoDbConfig,
+        return Objects.hash(serviceSpecificConfig, logIncomingMessages, persistenceOperationsConfig, mongoDbConfig,
                 healthCheckConfig, thingConfig, wotConfig);
     }
 
@@ -163,7 +155,6 @@ public final class DittoThingsConfig implements ThingsConfig {
         return getClass().getSimpleName() + " [" +
                 "serviceSpecificConfig=" + serviceSpecificConfig +
                 ", logIncomingMessages=" + logIncomingMessages +
-                ", mergeRemoveEmptyObjectsAfterPatchConditionFiltering=" + mergeRemoveEmptyObjectsAfterPatchConditionFiltering +
                 ", persistenceOperationsConfig=" + persistenceOperationsConfig +
                 ", mongoDbConfig=" + mongoDbConfig +
                 ", healthCheckConfig=" + healthCheckConfig +
