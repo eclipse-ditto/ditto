@@ -272,7 +272,7 @@
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>license-maven-plugin</artifactId>
-                    <version>2.4.0</version>
+                    <version>2.7.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -638,7 +638,11 @@
                                     <goal>aggregate-add-third-party</goal>
                                 </goals>
                                 <configuration>
+                                    <force>true</force>
                                     <outputDirectory>./legal</outputDirectory>
+                                    <excludeModules>
+                                        <excludedModule>ditto-internal-utils-test</excludedModule>
+                                    </excludeModules>
                                     <excludedGroups>${ditto.thirdPartyLicences.excludedGroups}</excludedGroups>
                                     <includedScopes>compile,runtime</includedScopes>
                                     <failOnMissing>true</failOnMissing>
