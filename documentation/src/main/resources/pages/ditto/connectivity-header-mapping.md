@@ -44,7 +44,7 @@ Example source configuration with response diversion:
   "headerMapping": {
     "divert-response-to-connection": "webhook-connection",
     "divert-expected-response-types": "response,error",
-    "device-id": "{{ header:device_id }}"
+    "device-id": "{%raw%}{{ header:device_id }}{%endraw%}"
   }
 }
 ```

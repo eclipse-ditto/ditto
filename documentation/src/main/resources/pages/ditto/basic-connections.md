@@ -184,7 +184,7 @@ an error. The declared labels must be prefixed by the connection ID followed by 
   ],
   "authorizationContext": ["ditto:inbound-auth-subject"],
   "declaredAcks": [
-    "{{connection:id}}:my-custom-ack"
+    "{%raw%}{{connection:id}}{%endraw%}:my-custom-ack"
   ]
 }
 ```
@@ -451,7 +451,7 @@ The JSON for a target with issued acknowledgement labels could look like this:
     "_/_/things/twin/events"
   ],
   "authorizationContext": ["ditto:inbound-auth-subject"],
-  "issuedAcknowledgementLabel": "{{connection:id}}:my-custom-ack"
+  "issuedAcknowledgementLabel": "{%raw%}{{connection:id}}{%endraw%}:my-custom-ack"
 }
 ```
 

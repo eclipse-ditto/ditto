@@ -158,7 +158,7 @@ First, create the Kafka connection that consumes device commands:
     "addresses": ["device-commands"],
     "authorizationContext": ["ditto:kafka-consumer"],
     "headerMapping": {
-      "device-id": "{{ header:device-id }}",
+      "device-id": "{%raw%}{{ header:device-id }}{%endraw%}",
       "divert-response-to-connection": "aws-iot-mqtt-connection",
       "divert-expected-response-types": "response,error"
     }
@@ -177,11 +177,11 @@ Next, create the MQTT connection that will handle diverted responses:
   "sources": [],
   "targets": [
       {
-    "address": "device/{{ header:device-id }}/response",
+    "address": "device/{%raw%}{{ header:device-id }}{%endraw%}/response",
     "topics": [],
     "headerMapping": {
-      "device-id": "{{ header:device-id }}",
-      "correlation-id": "{{ header:correlation-id }}"
+      "device-id": "{%raw%}{{ header:device-id }}{%endraw%}",
+      "correlation-id": "{%raw%}{{ header:correlation-id }}{%endraw%}"
     }
   }
   ],

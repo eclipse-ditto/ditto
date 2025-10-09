@@ -119,7 +119,7 @@ Configure the target connection to accept diverted responses:
     "sources": [],
     "targets": [
         {
-            "address": "POST:/api/v1/device-responses/{{ thing:id }}",
+            "address": "POST:/api/v1/device-responses/{%raw%}{{ thing:id }}{%endraw%}",
             "topics": [],
             "authorizationContext": [
                 "ditto:response-publisher"
