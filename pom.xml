@@ -68,18 +68,6 @@
 
     <developers>
         <developer>
-            <id>geglocker</id>
-            <name>Gerald Glocker</name>
-            <email>gerald.glocker@bosch.io</email>
-            <url>https://github.com/geglock</url>
-            <organization>Bosch.IO GmbH</organization>
-            <organizationUrl>https://www.bosch.io</organizationUrl>
-            <roles>
-                <role>Lead</role>
-                <role>Committer</role>
-            </roles>
-        </developer>
-        <developer>
             <id>tjaeckle</id>
             <name>Thomas Jaeckle</name>
             <email>thomas.jaeckle@beyonnex.io</email>
@@ -91,100 +79,13 @@
                 <role>Committer</role>
             </roles>
         </developer>
-
         <developer>
-            <id>yucai</id>
-            <name>Yufei Cai</name>
-            <email>yufei.cai@bosch.io</email>
-            <url>https://github.com/yufei-cai</url>
-            <organization>Bosch.IO GmbH</organization>
-            <organizationUrl>https://www.bosch.io</organizationUrl>
-            <roles>
-                <role>Committer</role>
-            </roles>
-        </developer>
-        <developer>
-            <id>dfesenmeyer</id>
-            <name>Daniel Fesenmeyer</name>
-            <email>daniel.fesenmeyer@bosch.io</email>
-            <url>https://github.com/danielFesenmeyer</url>
-            <organization>Bosch.IO GmbH</organization>
-            <organizationUrl>https://www.bosch.io</organizationUrl>
-            <roles>
-                <role>Committer</role>
-            </roles>
-        </developer>
-        <developer>
-            <id>dguggemos</id>
-            <name>Dominik Guggemos</name>
-            <email>dominik.guggemos@bosch.io</email>
-            <url>https://github.com/dguggemos</url>
-            <organization>Bosch.IO GmbH</organization>
-            <organizationUrl>https://www.bosch.io</organizationUrl>
-            <roles>
-                <role>Committer</role>
-            </roles>
-        </developer>
-        <developer>
-            <id>jfickel</id>
-            <name>Juergen Fickel</name>
-            <email>eclipse-foundation@retujo.de</email>
-            <url>https://github.com/jufickel-b</url>
-            <roles>
-                <role>Committer</role>
-            </roles>
-        </developer>
-        <developer>
-            <id>jkraeher</id>
-            <name>Johannes Schneider</name>
-            <email>johannes.schneider@bosch.io</email>
-            <url>https://github.com/jokraehe</url>
-            <organization>Bosch.IO GmbH</organization>
-            <organizationUrl>https://www.bosch.io</organizationUrl>
-            <roles>
-                <role>Committer</role>
-            </roles>
-        </developer>
-        <developer>
-            <id>ffendt</id>
-            <name>Florian Fendt</name>
-            <email>florian.fendt@bosch.io</email>
-            <url>https://github.com/ffendt</url>
-            <organization>Bosch.IO GmbH</organization>
-            <organizationUrl>https://www.bosch.io</organizationUrl>
-            <roles>
-                <role>Committer</role>
-            </roles>
-        </developer>
-        <developer>
-            <id>smaute</id>
-            <name>Stefan Maute</name>
-            <email>stefan.maute@bosch.io</email>
-            <url>https://github.com/stmaute</url>
-            <organization>Bosch.IO GmbH</organization>
-            <organizationUrl>https://www.bosch.io</organizationUrl>
-            <roles>
-                <role>Committer</role>
-            </roles>
-        </developer>
-        <developer>
-            <id>yklem</id>
-            <name>Yannic Klem</name>
-            <email>yannic.klem@bosch.io</email>
-            <url>https://github.com/Yannic92</url>
-            <organization>Bosch.IO GmbH</organization>
-            <organizationUrl>https://www.bosch.io</organizationUrl>
-            <roles>
-                <role>Committer</role>
-            </roles>
-        </developer>
-        <developer>
-            <id>dschwilk</id>
-            <name>David Schwilk</name>
-            <email>david.schwilk@bosch.io</email>
-            <url>https://github.com/DerSchwilk</url>
-            <organization>Bosch.IO GmbH</organization>
-            <organizationUrl>https://www.bosch.io</organizationUrl>
+            <id>astanchevsdt</id>
+            <name>Aleksandar Stanchev</name>
+            <email>aleksandar.stanchev@bosch.com</email>
+            <url>https://github.com/alstanchev</url>
+            <organization>Bosch Digital</organization>
+            <organizationUrl>https://www.bosch-digital.com</organizationUrl>
             <roles>
                 <role>Committer</role>
             </roles>
