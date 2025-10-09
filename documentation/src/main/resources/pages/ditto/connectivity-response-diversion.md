@@ -27,14 +27,14 @@ The following special headers control the diversion behavior:
 
 #### Header mapping keys
 
-#### divert-response-to-connection
+##### divert-response-to-connection
 
 Specifies the target connection ID where responses should be diverted.
 
 - **Static configuration**: Set to a specific connection ID (e.g., `"target-connection-123"`)
 - **Dynamic configuration**: Don't set as header mapping but in a payload mapper.
 
-#### divert-expected-response-types
+##### divert-expected-response-types
 
 Specify which response types should be diverted. Value should be a comma-separated list of response types.
 

@@ -1,7 +1,7 @@
 ---
 title: "Response diversion - Multi-protocol workflows made easy"
 published: true
-permalink: 2025-06-23-response-diversion.html
+permalink: 2025-10-09-response-diversion.html
 layout: post
 author: aleksandar_stanchev
 tags: [blog, connectivity]
