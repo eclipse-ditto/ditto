@@ -260,7 +260,7 @@ public abstract class AbstractConsumerActorTest<M> {
         final InboundMappingProcessor inboundMappingProcessor =
                 InboundMappingProcessor.of(connection, connectivityConfig, actorSystem, protocolAdapter, logger);
         final OutboundMappingProcessor outboundMappingProcessor =
-                OutboundMappingProcessor.of(connection, connectivityConfig, actorSystem, protocolAdapter, logger);
+                OutboundMappingProcessor.of(connection, connectivityConfig, actorSystem, protocolAdapter, logger, null);
         final Props props = OutboundMappingProcessorActor.props(clientActor, List.of(outboundMappingProcessor),
                 CONNECTION, connectivityConfig, 43);
         final ActorRef outboundProcessorActor = actorSystem.actorOf(props,

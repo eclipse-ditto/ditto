@@ -23,3 +23,37 @@ The supported placeholders for header mapping are defined in the
 [Placeholders - Scope: Connections](basic-placeholders.html#scope-connections) section.
 If a placeholder fails to resolve for a header value, then that header is not set. Placeholder resolution failure
 does not prevent sending of the message or setting other headers with resolved values.
+
+## Special header mapping keys
+
+In addition to general header mapping capabilities, Ditto recognizes several special header mapping keys that control connectivity behavior:
+
+### Response diversion headers
+
+These headers control [response diversion](connectivity-response-diversion.html) functionality:
+
+| Header Key | Description | Example Values                                                 |
+|------------|-------------|----------------------------------------------------------------|
+| `divert-response-to-connection` | Target connection ID for response diversion | `"target-connection-id"`, `"target-connection-id"` |
+| `divert-expected-response-types` | Response types to divert (comma-separated) | `"response"`, `"error"`, `"nack"`                |
+| `diverted-response-from-connection` | Source connection of diverted response (automatically set) | `"source-connection-id"`                                       |
+
+Example source configuration with response diversion:
+```json
+{
+  "headerMapping": {
+    "divert-response-to-connection": "webhook-connection",
+    "divert-expected-response-types": "response,error",
+    "device-id": "{{ header:device_id }}"
+  }
+}
+```
+
+### Protocol-specific headers
+
+Different protocols support different sets of headers. Some protocols also have special header behavior:
+
+{% include note.html content="Response diversion headers (`ditto-divert-*`)
+are processed by Ditto internally and are not sent as external protocol headers.
+They control internal routing behavior only."
+%}

@@ -19,6 +19,11 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabelNotDeclaredException;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
@@ -33,18 +38,13 @@ import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.events.streaming.StreamingSubscriptionEvent;
 import org.eclipse.ditto.connectivity.api.InboundSignal;
+import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementForwarderActor;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
-
-import org.apache.pekko.actor.AbstractActor;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSelection;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.japi.pf.ReceiveBuilder;
 
 /**
  * This Actor makes the decision whether to dispatch outbound signals and their acknowledgements or to drop them.
@@ -82,6 +82,7 @@ final class OutboundDispatchingActor extends AbstractActor {
                 .match(SubscriptionEvent.class, this::forwardWithoutCheck)
                 .match(StreamingSubscriptionEvent.class, this::forwardWithoutCheck)
                 .match(DittoRuntimeException.class, this::forwardWithoutCheck)
+                .match(OutboundSignal.class, this::forwardWithoutCheck)
                 .match(Signal.class, this::handleSignal)
                 .matchAny(message -> logger.warning("Unknown message: <{}>", message))
                 .build();
@@ -92,6 +93,10 @@ final class OutboundDispatchingActor extends AbstractActor {
     }
 
     private void forwardWithoutCheck(final Object message) {
+        if (message instanceof OutboundSignal signal) {
+            logger.withCorrelationId(signal.getSource())
+                    .debug("forwardWithoutCheck {} {}", getContext().getSelf().path().toString(), message);
+        }
         outboundMappingProcessorActor.tell(message, getSender());
     }
 

@@ -178,7 +178,6 @@ If the label of an acknowledgement is not in the `declaredAcks` array, then the 
 an error. The declared labels must be prefixed by the connection ID followed by a colon or the 
 `{%raw%}{{connection:id}}{%endraw%}` placeholder followed by a colon. For example:
 ```json
-{%raw%}
 {
   "addresses": [
     "<source>"
@@ -188,7 +187,6 @@ an error. The declared labels must be prefixed by the connection ID followed by 
     "{{connection:id}}:my-custom-ack"
   ]
 }
-{%endraw%}
 ```
 
 #### Source header mapping
@@ -259,6 +257,91 @@ This is an example `"replyTarget"` containing both header mapping and expected r
       "error",
       "nack"
     ]
+  }
+}
+```
+
+
+Additionally,
+sources can be configured with special response diversion headers to redirect responses to other connections.
+
+#### Response diversion configuration
+
+Sources can configure [response diversion](connectivity-response-diversion.html)
+to redirect responses to different connections instead of the configured reply target.
+This is done through special header mapping keys:
+
+```json
+{
+  "headerMapping": {
+    "divert-response-to-connection": "target-connection-id",
+    "divert-expected-response-types": "response,error,nack"
+  }
+}
+```
+
+Where:
+- `divert-response-to-connection`: Target connection ID for diversion
+- `divert-expected-response-types`: Comma-separated list of response types to divert
+
+This enables advanced multi-protocol workflows and response routing scenarios.
+See the [Response diversion](connectivity-response-diversion.html) documentation for detailed configuration examples
+and use cases.
+
+## Sources examples with response diversion
+
+### Static response diversion
+```json
+{
+  "addresses": ["commands/sensor"],
+  "authorizationContext": ["ditto:sensor-commands"],
+  "headerMapping": {
+    "divert-response-to-connection": "analytics-connection",
+    "divert-expected-response-types": "response,error"
+  },
+  "replyTarget": {
+    "enabled": true,
+    "address": "responses/sensor"
+  }
+}
+```
+
+### Dynamic response diversion
+```json
+{
+  "addresses": ["commands/+"],
+  "authorizationContext": ["ditto:device-commands"],
+  "headerMapping": {
+      "divert-expected-response-types": "response,error"
+  },
+  "payloadMapping": ["response-router"]
+}
+```
+With a corresponding JavaScript mapper that sets the target connection dynamically based on message content or headers.
+
+```javascript
+function mapToDittoProtocolMsg(headers, textPayload, bytePayload, contentType) {
+  // ... mapping logic ...
+  
+  let dittoHeaders = {
+    "correlation-id": headers["correlation-id"],
+    "divert-response-to": determineTargetConnection(headers, parsedPayload),
+    "divert-expected-response-types": "response,error"
+  };
+  
+  return Ditto.buildDittoProtocolMsg(
+    namespace, name, group, channel, criterion, action, path,
+    dittoHeaders, value
+  );
+}
+
+function determineTargetConnection(headers, payload) {
+  if (payload.priority === "high") {
+    return "priority-processing-connection";
+  } else if (payload.deviceType === "sensor") {
+    return "sensor-analytics-connection";
+  } else {
+    return "default-processing-connection";
   }
 }
 ```
@@ -362,7 +445,6 @@ The issued acknowledgement label must be prefixed by the connection ID followed 
 `{%raw%}{{connection:id}}{%endraw%}` placeholder followed by a colon.<br/>
 The JSON for a target with issued acknowledgement labels could look like this:
 ```json
-{%raw%}
 {
   "address": "<target>",
   "topics": [
@@ -371,7 +453,6 @@ The JSON for a target with issued acknowledgement labels could look like this:
   "authorizationContext": ["ditto:inbound-auth-subject"],
   "issuedAcknowledgementLabel": "{{connection:id}}:my-custom-ack"
 }
-{%endraw%}
 ```
 
 #### Target header mapping
