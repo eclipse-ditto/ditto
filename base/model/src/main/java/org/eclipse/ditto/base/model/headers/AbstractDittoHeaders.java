@@ -21,6 +21,7 @@ import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -40,6 +41,7 @@ import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.common.DittoDuration;
 import org.eclipse.ditto.base.model.common.ResponseType;
+import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
@@ -47,6 +49,7 @@ import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseOptions;
@@ -281,6 +284,31 @@ public abstract class AbstractDittoHeaders implements DittoHeaders {
     @Override
     public Optional<String> getCondition() {
         return getStringForDefinition(DittoHeaderDefinition.CONDITION);
+    }
+
+    @Override
+    public Optional<Map<JsonPointer, String>> getThingMergePatchConditions() {
+        final String patchConditionsString = getStringForDefinition(DittoHeaderDefinition.MERGE_THING_PATCH_CONDITIONS).orElse(null);
+        if (patchConditionsString != null) {
+            try {
+                final JsonObject patchConditionsJson = JsonObject.of(patchConditionsString);
+                final Map<JsonPointer, String> result = new HashMap<>();
+                for (final JsonField field : patchConditionsJson) {
+                    final JsonPointer pointer = JsonPointer.of(field.getKeyName());
+                    final String condition = field.getValue().asString();
+                    result.put(pointer, condition);
+                }
+                return Optional.of(result);
+            } catch (final Exception e) {
+                throw DittoHeaderInvalidException.newBuilder()
+                        .withInvalidHeaderKey(DittoHeaderDefinition.MERGE_THING_PATCH_CONDITIONS.getKey())
+                        .message("Failed to parse merge-thing-patch-conditions header: " + e.getMessage())
+                        .cause(e)
+                        .dittoHeaders(this)
+                        .build();
+            }
+        }
+        return Optional.empty();
     }
 
     @Override

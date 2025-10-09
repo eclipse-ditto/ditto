@@ -14,6 +14,7 @@ package org.eclipse.ditto.things.model.signals.commands.modify;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -597,6 +598,17 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
      */
     public JsonValue getValue() {
         return value;
+    }
+
+    /**
+     * Returns the patch conditions from the merge-thing-patch-conditions header.
+     * The patch conditions map JSON pointer paths to RQL condition expressions.
+     * 
+     * @return Optional containing the patch conditions as a map of JsonPointer to RQL expressions, or empty if the header is not present
+     * @since 3.8.0
+     */
+    public Optional<Map<JsonPointer, String>> getPatchConditions() {
+        return getDittoHeaders().getThingMergePatchConditions();
     }
 
     /**

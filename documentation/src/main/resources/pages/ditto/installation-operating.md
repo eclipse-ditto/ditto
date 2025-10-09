@@ -575,6 +575,62 @@ Gathering logs for a running Ditto installation can be achieved by:
    * when running Ditto in Kubernetes apply the `ditto-log-files.yaml` to your Kubernetes cluster in order to 
      mount log files to the host system.
 
+### Merge operations configuration
+
+Starting with Ditto `3.8.0`, the Things service supports configuration for merge operations with patch conditions.
+
+#### Empty object removal after patch condition filtering
+
+When using [conditional merge requests](basic-conditional-requests.html) with patch conditions, it's possible that all parts of a merge payload are filtered out, resulting in empty JSON objects being persisted to the database.
+
+**Configuration option:**
+* `MERGE_REMOVE_EMPTY_OBJECTS_AFTER_PATCH_CONDITION_FILTERING`: Controls whether to remove empty JSON objects from merge payloads when patch conditions filter out all content.
+
+**Default behavior:**
+* `false` - Empty objects are preserved (backward compatible)
+
+**When enabled:**
+* Empty objects created by patch condition filtering are removed recursively
+* Prevents unnecessary database operations for empty merge payloads
+* Improves performance by avoiding storage of empty objects
+* No new revision is created when the payload becomes completely empty
+
+**Configuration examples:**
+
+**Environment variable:**
+```bash
+export MERGE_REMOVE_EMPTY_OBJECTS_AFTER_PATCH_CONDITION_FILTERING=true
+```
+
+**Configuration file (`things.conf`):**
+```hocon
+ditto {
+  things {
+    thing {
+      merge {
+        remove-empty-objects-after-patch-condition-filtering = true
+        remove-empty-objects-after-patch-condition-filtering = ${?MERGE_REMOVE_EMPTY_OBJECTS_AFTER_PATCH_CONDITION_FILTERING}
+      }
+    }
+  }
+}
+```
+
+**Helm values:**
+```yaml
+things:
+  config:
+    merge:
+      removeEmptyObjectsAfterPatchConditionFiltering: true
+```
+
+**Kubernetes environment variable:**
+```yaml
+env:
+- name: MERGE_REMOVE_EMPTY_OBJECTS_AFTER_PATCH_CONDITION_FILTERING
+  value: "true"
+```
+
 ## Monitoring
 
 In addition to logging, the Ditto images include monitoring features. Specific metrics are

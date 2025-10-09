@@ -160,6 +160,218 @@ was introduced.
 Upon activation, the digital twin stored in Eclipse Ditto will implicitly be updated with the latest data from the 
 _live response_ sent by the device.
 
+## Path-specific conditions
+
+In addition to global conditions, Ditto supports since version 3.8.0 path-specific conditions for 
+[merge operations](protocol-specification-things-merge.html) using the `merge-thing-patch-conditions` header.  
+This feature allows you to apply different [RQL conditions](basic-rql.html) to different parts of a merge patch, 
+enabling fine-grained control over which parts of the patch are applied based on the current state of the Thing.
+
+The `merge-thing-patch-conditions` header contains a JSON object where each key represents a JSON pointer path and each 
+value is an RQL expression that must evaluate to `true` for that path to be included in the merge.
+
+* If a path-specific condition is fulfilled, that part of the merge patch will be applied.
+* If a path-specific condition is not fulfilled, that part of the merge patch will be skipped.
+* Paths without conditions will always be applied.
+
+Path-specific conditions are supported by HTTP API, WebSocket, Ditto protocol and Ditto Java Client.
+
+### Permissions for path-specific conditions
+
+READ permission is necessary on all resources referenced in the path-specific conditions, otherwise, the request will fail.
+
+### Examples
+
+This part shows how to use path-specific conditions via HTTP API, Ditto protocol, and Ditto Java Client.
+The below examples assume that there is a thing with the following thing state:
+
+```json
+{
+  "thingId": "org.eclipse.ditto:fancy-thing",
+  "policyId": "org.eclipse.ditto:fancy-thing",
+  "attributes": {
+    "location": "kitchen",
+    "manufacturer": "ACME Corp",
+    "lastMaintenance": "2023-01-15T10:30:00Z"
+  },
+  "features": {
+    "temperature": {
+      "properties": {
+        "value": 15,
+        "unit": "celsius",
+        "lastUpdated": "2023-01-20T14:30:00Z"
+      }
+    },
+    "humidity": {
+      "properties": {
+        "value": 90,
+        "unit": "percent",
+        "lastUpdated": "2023-01-20T14:30:00Z"
+      }
+    },
+    "status": {
+      "properties": {
+        "state": "active",
+        "mode": "automatic"
+      }
+    }
+  }
+}
+```
+
+#### HTTP API
+
+Using the HTTP API it is possible to specify path-specific conditions via HTTP header `merge-thing-patch-conditions`:
+
+```shell
+curl -X PATCH -H 'Content-Type: application/merge-patch+json' \
+    -H 'merge-thing-patch-conditions: {"features/temperature/properties/value": "gt(features/temperature/properties/value,20)", "features/humidity/properties/value": "lt(features/humidity/properties/value,80)"}' \
+    http://localhost:8080/api/2/things/org.eclipse.ditto:fancy-thing \
+    -d '{"features": {"temperature": {"properties": {"value": 25}}, "humidity": {"properties": {"value": 60}}, "status": {"properties": {"state": "updated"}}}}'
+```
+
+In this example:
+- `temperature` will only be updated if the current temperature is greater than 20 (condition fails, so temperature won't be updated)
+- `humidity` will only be updated if the current humidity is less than 80 (condition fails, so humidity won't be updated)  
+- `status` will always be updated (no condition specified)
+
+#### Ditto protocol
+
+The Ditto protocol supports also path-specific conditions for merge operations.
+This is an example how to do a conditional merge via [Ditto Protocol](protocol-specification.html) message:
+
+```json
+{
+  "topic": "org.eclipse.ditto/fancy-thing/things/twin/commands/merge",
+  "headers": {
+    "merge-thing-patch-conditions": "{\"features/temperature/properties/value\":\"gt(features/temperature/properties/value,20)\",\"features/humidity/properties/value\":\"lt(features/humidity/properties/value,80)\"}"
+  },
+  "path": "/",
+  "value": {
+    "attributes": {
+      "lastMaintenance": "2023-01-20T15:00:00Z"
+    },
+    "features": {
+      "temperature": {
+        "properties": {
+          "value": 25
+        }
+      },
+      "humidity": {
+        "properties": {
+          "value": 60
+        }
+      },
+      "status": {
+        "properties": {
+          "state": "updated"
+        }
+      }
+    }
+  }
+}
+```
+
+#### Ditto Java Client
+
+The third option to use path-specific conditions is the [ditto-client](client-sdk-java.html).  
+The following code snippet demonstrates how to achieve this.
+
+```java
+Map<String, String> cond = new HashMap<>();
+cond.put("features/temperature/properties/value", "gt(features/temperature/properties/value,20)");
+cond.put("features/humidity/properties/value", "lt(features/humidity/properties/value,80)");
+
+Option<Map<String, String>> condOption = Options.mergeThingPatchConditions(patchConditions);
+
+client.twin().forId(ThingId.of("org.eclipse.ditto:fancy-thing"))
+        .merge(JsonObject.newBuilder()
+                .set("attributes", JsonObject.newBuilder()
+                        .set("lastMaintenance", "2023-01-20T15:00:00Z")
+                        .build())
+                .set("features", JsonObject.newBuilder()
+                        .set("temperature", JsonObject.newBuilder()
+                                .set("properties", JsonObject.newBuilder()
+                                        .set("value", 25)
+                                        .build())
+                                .build())
+                        .set("humidity", JsonObject.newBuilder()
+                                .set("properties", JsonObject.newBuilder()
+                                        .set("value", 60)
+                                        .build())
+                                .build())
+                        .set("status", JsonObject.newBuilder()
+                                .set("properties", JsonObject.newBuilder()
+                                        .set("state", "updated")
+                                        .build())
+                                .build())
+                        .build())
+                .build(), condOption)
+        .whenComplete((unused, throwable) -> {
+            if (throwable != null) {
+                System.out.println("Merge was not successful: " + throwable.getMessage());
+            } else {
+                System.out.println("Merge was successful.");
+            }
+        });
+```
+
+### Configuration for path-specific conditions
+
+When using path-specific conditions, it's possible that all parts of a merge payload are filtered out, resulting in 
+empty JSON objects being persisted to the database.  
+Ditto provides a configuration option to avoid persisting events in case that only empty objects are left after applying 
+the conditions.
+
+#### Empty object removal
+
+**Configuration option:** `MERGE_REMOVE_EMPTY_OBJECTS_AFTER_PATCH_CONDITION_FILTERING`
+
+**Default behavior:** `false` (empty objects are preserved for backward compatibility)
+
+**When enabled:** Empty objects created by patch condition filtering are removed recursively, preventing unnecessary 
+database operations and saving database I/O.
+
+**Example scenario - Complete filtering:**
+
+```json
+// Current Thing state
+{
+  "features": {
+    "temp": {"properties": {"value": 15}},  // Current: 15
+    "hum": {"properties": {"value": 70}}    // Current: 70
+  }
+}
+
+// Merge payload
+{
+  "features": {
+    "temp": {"properties": {"value": 25}},
+    "hum": {"properties": {"value": 60}}
+  }
+}
+
+// Patch conditions (both will evaluate to false)
+{
+  "features/temp/properties/value": "gt(features/temp/properties/value,30)",  // 15 > 30 = false
+  "features/hum/properties/value": "lt(features/hum/properties/value,50)"     // 70 < 50 = false
+}
+
+// Result with configuration disabled (default)
+{
+  "features": {
+    "temp": {"properties": {}},  // Empty object preserved
+    "hum": {"properties": {}}    // Empty object preserved
+  }
+}
+// → Database operation still occurs, empty objects stored
+
+// Result with configuration enabled
+{}  // Completely empty payload
+// → Database operation skipped entirely, no storage, no event emission, no new revision
+```
+
+For configuration details, see [Merge operations configuration](installation-operating.html#merge-operations-configuration).
 
 ## Further reading on RQL expressions
 

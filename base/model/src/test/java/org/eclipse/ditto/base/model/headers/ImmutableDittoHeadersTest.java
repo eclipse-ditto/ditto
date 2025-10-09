@@ -112,6 +112,10 @@ public final class ImmutableDittoHeadersTest {
     private static final List<String> KNOWN_JOURNAL_TAGS = Lists.list("tag-a", "tag-b");
     private static final boolean KNOWN_IS_SUDO = true;
     private static final String KNOWN_CONDITION = "eq(attributes/value)";
+    private static final String KNOWN_PATCH_CONDITIONS = "{\"attributes/maker\":\"eq(attributes/maker,\\\"Bosch\\\")\"}";
+    private static final JsonObject KNOWN_PATCH_CONDITIONS_JSON = JsonObject.newBuilder()
+            .set("attributes/maker", "eq(attributes/maker,\"Bosch\")")
+            .build();
     private static final String KNOWN_LIVE_CHANNEL_CONDITION = "eq(attributes/value,\"livePolling\")";
     private static final boolean KNOWN_LIVE_CHANNEL_CONDITION_MATCHED = true;
     private static final String KNOWN_TRACEPARENT = "00-dfca0d990402884d22e909a87ac677ec-94fc4da95e842f96-01";
@@ -208,6 +212,7 @@ public final class ImmutableDittoHeadersTest {
                 .putHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey(), KNOWN_TRACEPARENT)
                 .putHeader(DittoHeaderDefinition.W3C_TRACESTATE.getKey(), KNOWN_TRACESTATE)
                 .condition(KNOWN_CONDITION)
+                .putHeader(DittoHeaderDefinition.MERGE_THING_PATCH_CONDITIONS.getKey(), KNOWN_PATCH_CONDITIONS)
                 .liveChannelCondition(KNOWN_LIVE_CHANNEL_CONDITION)
                 .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(),
                         String.valueOf(KNOWN_LIVE_CHANNEL_CONDITION_MATCHED))
@@ -546,6 +551,7 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.W3C_TRACEPARENT.getKey(), KNOWN_TRACEPARENT)
                 .set(DittoHeaderDefinition.W3C_TRACESTATE.getKey(), KNOWN_TRACESTATE)
                 .set(DittoHeaderDefinition.CONDITION.getKey(), KNOWN_CONDITION)
+                .set(DittoHeaderDefinition.MERGE_THING_PATCH_CONDITIONS.getKey(), KNOWN_PATCH_CONDITIONS_JSON)
                 .set(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION.getKey(), KNOWN_LIVE_CHANNEL_CONDITION)
                 .set(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(),
                         KNOWN_LIVE_CHANNEL_CONDITION_MATCHED)
@@ -793,6 +799,7 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.W3C_TRACEPARENT.getKey(), KNOWN_TRACEPARENT);
         result.put(DittoHeaderDefinition.W3C_TRACESTATE.getKey(), KNOWN_TRACESTATE);
         result.put(DittoHeaderDefinition.CONDITION.getKey(), KNOWN_CONDITION);
+        result.put(DittoHeaderDefinition.MERGE_THING_PATCH_CONDITIONS.getKey(), KNOWN_PATCH_CONDITIONS);
         result.put(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION.getKey(), KNOWN_LIVE_CHANNEL_CONDITION);
         result.put(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(),
                 String.valueOf(KNOWN_LIVE_CHANNEL_CONDITION_MATCHED));

@@ -1153,6 +1153,12 @@ things:
         expireAfterWrite: 4h
         # expireAfterAccess prolonged on each cache access by that duration
         expireAfterAccess: 2h
+    # merge contains configuration for merge operations with patch conditions
+    merge:
+      # removeEmptyObjectsAfterPatchConditionFiltering controls whether to remove empty JSON objects from merge payloads when patch conditions filter out all content.
+      # When enabled, empty objects created by patch condition filtering will be removed recursively,
+      # preventing unnecessary database operations for empty merge payloads.
+      removeEmptyObjectsAfterPatchConditionFiltering: false
     # wot contains Web of Things (WoT) specific configuration
     wot:
       # tdBasePrefix is the base to use where the Ditto endpoint is located in order to be injected into TDs:

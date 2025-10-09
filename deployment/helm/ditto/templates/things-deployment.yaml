@@ -269,6 +269,8 @@ spec:
               value: "{{ .Values.things.config.policiesEnforcer.cache.expireAfterWrite }}"
             - name: DITTO_POLICIES_ENFORCER_CACHE_EXPIRE_AFTER_ACCESS
               value: "{{ .Values.things.config.policiesEnforcer.cache.expireAfterAccess }}"
+            - name: MERGE_REMOVE_EMPTY_OBJECTS_AFTER_PATCH_CONDITION_FILTERING
+              value: "{{ .Values.things.config.merge.removeEmptyObjectsAfterPatchConditionFiltering }}"
             - name: THINGS_WOT_TO_THING_DESCRIPTION_BASE_PREFIX
               value: "{{ .Values.things.config.wot.tdBasePrefix }}"
             - name: THINGS_WOT_THING_MODEL_CACHE_SIZE
