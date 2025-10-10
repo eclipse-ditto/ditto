@@ -46,6 +46,9 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- if .Values.rbac.enabled }}
+      serviceAccountName: {{ template "ditto.serviceAccountName" . }}
+      {{- end }}
       initContainers:
         - name: {{ .Chart.Name }}-swaggerui-init
           image: "docker.io/curlimages/curl:8.13.0"
@@ -110,6 +113,17 @@ spec:
               # cpu: # don't limit
               memory: {{ .Values.swaggerui.resources.memoryMi }}Mi
               ephemeral-storage: {{ .Values.swaggerui.resources.ephemeralStorageMi }}Mi
+          {{- if .Values.openshift.enabled }}
+          {{- with .Values.openshift.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- else }}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 101
+            runAsGroup: 101
+          {{- end }}
           volumeMounts:
             - name: swagger-ui-init-config
               mountPath: /usr/share/nginx/html/openapi
