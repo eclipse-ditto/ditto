@@ -148,7 +148,8 @@ final class MergeThingStrategy extends AbstractThingModifyCommandStrategy<MergeT
 
         final JsonValue finalMergeValue = applyEmptyObjectRemovalIfConfigured(mergeValue);
 
-        if (removeEmptyObjectsAfterPatchConditionFiltering && finalMergeValue.asObject().isEmpty()) {
+        if (removeEmptyObjectsAfterPatchConditionFiltering &&
+                finalMergeValue.isObject() && finalMergeValue.asObject().isEmpty()) {
             final CompletionStage<WithDittoHeaders> responseStage = CompletableFuture.completedFuture(
                     appendETagHeaderIfProvided(command, MergeThingResponse.of(command.getEntityId(), path,
                             createCommandResponseDittoHeaders(dittoHeaders, nextRevision)), thing)

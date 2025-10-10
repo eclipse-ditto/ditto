@@ -203,6 +203,15 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                         ackCounter.decrement();
                         acknowledgeableMessage.reject(shouldRedeliver);
                     }
+                } else {
+                    log().warning(error, "Rejecting [redeliver=true] - got non-Ditto error <{}: {}>. " +
+                                    "ResponseCollector=<{}>", error.getClass().getSimpleName(), error.getMessage());
+                    final boolean shouldRedeliver = true;
+                    ackTimer.tag(getAckSuccessTag(false));
+                    ackTimer.tag(getAckRedeliverTag(shouldRedeliver));
+                    ackTimer.stop();
+                    ackCounter.decrement();
+                    acknowledgeableMessage.reject(shouldRedeliver);
                 }
             }
             return null;
