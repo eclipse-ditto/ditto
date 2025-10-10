@@ -8,7 +8,7 @@
 # http://www.eclipse.org/legal/epl-2.0
 #
 # SPDX-License-Identifier: EPL-2.0
-{{- if .Values.nginx.enabled -}}
+{{ if .Values.nginx.enabled -}}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -20,7 +20,7 @@ metadata:
 {{ include "ditto.labels" . | indent 4 }}
 data:
   nginx.conf: |-
-    {{- if .Values.openshift.enabled -}}
+    {{ if .Values.openshift.enabled -}}
     pid /tmp/nginx.pid;
     {{- end }}
     worker_processes {{ .Values.nginx.config.workerProcesses }};
