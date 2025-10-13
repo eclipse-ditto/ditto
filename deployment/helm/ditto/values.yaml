@@ -2340,7 +2340,7 @@ mongodb:
   enabled: true
   image:
     repository: bitnamilegacy/mongodb
-    tag: "7.0.15"
+    tag: "7.0.9"
   # fullnameOverride: ditto-mongodb
   auth:
     enabled: false
