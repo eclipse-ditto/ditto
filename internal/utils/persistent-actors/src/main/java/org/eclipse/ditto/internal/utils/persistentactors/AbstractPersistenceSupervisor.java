@@ -133,6 +133,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     @Nullable protected ActorRef enforcerChild;
 
     protected final Duration localAskTimeout;
+    protected final Duration localAskTimeoutDuringRecovery;
 
     private final ExponentialBackOffConfig exponentialBackOffConfig;
     private final SignalTransformer signalTransformer;
@@ -141,6 +142,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     private boolean inCoordinatedShutdown = false;
     private int opCounter = 0;
     private int sudoOpCounter = 0;
+    private boolean paRecovered = false;
 
     protected AbstractPersistenceSupervisor(@Nullable final BlockedNamespaces blockedNamespaces,
             final MongoReadJournal mongoReadJournal) {
@@ -160,7 +162,8 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         this.blockedNamespaces = blockedNamespaces;
         this.mongoReadJournal = mongoReadJournal;
         this.enforcementExecutor = system.dispatchers().lookup(AbstractEnforcerActor.ENFORCEMENT_DISPATCHER);
-        this.localAskTimeout = getLocalAskTimeoutConfig().getLocalAckTimeout();
+        this.localAskTimeout = getLocalAskTimeoutConfig().getLocalAskTimeout();
+        this.localAskTimeoutDuringRecovery = getLocalAskTimeoutConfig().getLocalAskTimeoutDuringRecovery();
         this.exponentialBackOffConfig = getExponentialBackOffConfig();
         this.backOff = ExponentialBackOff.initial(exponentialBackOffConfig);
         this.supervisorStrategy = new OneForOneStrategy(
@@ -235,6 +238,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                 .match(Terminated.class, this::childTerminated)
                 .matchEquals(Control.START_CHILDREN, this::startChildren)
                 .matchEquals(Control.PASSIVATE, this::passivate)
+                .matchEquals(Control.PA_RECOVERED, this::paRecovered)
                 .matchEquals(Control.SUDO_COMMAND_DONE, this::decrementSudoOpCounter)
                 .match(ProcessNextTwinMessage.class, decrementOpCounter(matchProcessNextTwinMessageBehavior))
                 .match(StopShardedActor.class, this::stopShardedActor)
@@ -575,11 +579,23 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                     new TargetActorWithMessage(
                             persistenceActorChild,
                             message,
-                            shouldSendResponse ? localAskTimeout : Duration.ZERO,
+                            determineAskTimeoutForPersistenceActorForwarding(shouldSendResponse),
                             Function.identity()
                     ));
         } else {
             return CompletableFuture.completedFuture(null);
+        }
+    }
+
+    private Duration determineAskTimeoutForPersistenceActorForwarding(final boolean shouldSendResponse) {
+        if (shouldSendResponse) {
+            if (paRecovered) {
+                return localAskTimeout;
+            } else {
+                return localAskTimeoutDuringRecovery;
+            }
+        } else {
+            return Duration.ZERO;
         }
     }
 
@@ -618,6 +634,11 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     private void passivate(final Control passivationTrigger) {
         getContext().cancelReceiveTimeout();
         getContext().getParent().tell(new ShardRegion.Passivate(PoisonPill.getInstance()), getSelf());
+    }
+
+    private void paRecovered(final Control paRecoveredTrigger) {
+        log.debug("Persistence actor for entity with ID <{}> signaled it was recovered", entityId);
+        paRecovered = true;
     }
 
     private void startChildren(final Control startChild) {
@@ -1117,6 +1138,11 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
          * Signals initialization is done, child actors can be started.
          */
         INIT_DONE,
+
+        /**
+         * Signals that the PA (PersistenceActor) has been recovered from the database.
+         */
+        PA_RECOVERED,
 
         /**
          * Signals completion of a sudo command.

@@ -50,17 +50,24 @@ public class DefaultLocalAskTimeoutConfigTest {
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
         final DefaultLocalAskTimeoutConfig underTest = DefaultLocalAskTimeoutConfig.of(ConfigFactory.empty());
 
-        softly.assertThat(underTest.getLocalAckTimeout())
+        softly.assertThat(underTest.getLocalAskTimeout())
                 .as(LocalAskTimeoutConfig.LocalAskTimeoutConfigValue.ASK_TIMEOUT.getConfigPath())
                 .isEqualTo(LocalAskTimeoutConfig.LocalAskTimeoutConfigValue.ASK_TIMEOUT.getDefaultValue());
+
+        softly.assertThat(underTest.getLocalAskTimeoutDuringRecovery())
+                .as(LocalAskTimeoutConfig.LocalAskTimeoutConfigValue.ASK_TIMEOUT_DURING_RECOVERY.getConfigPath())
+                .isEqualTo(LocalAskTimeoutConfig.LocalAskTimeoutConfigValue.ASK_TIMEOUT_DURING_RECOVERY.getDefaultValue());
     }
 
     @Test
     public void underTestReturnsValuesOfConfigFile() {
         final DefaultLocalAskTimeoutConfig underTest = DefaultLocalAskTimeoutConfig.of(supervisorLocalAskTimeoutConfig);
 
-        softly.assertThat(underTest.getLocalAckTimeout())
+        softly.assertThat(underTest.getLocalAskTimeout())
                 .as(LocalAskTimeoutConfig.LocalAskTimeoutConfigValue.ASK_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(10L));
+        softly.assertThat(underTest.getLocalAskTimeoutDuringRecovery())
+                .as(LocalAskTimeoutConfig.LocalAskTimeoutConfigValue.ASK_TIMEOUT_DURING_RECOVERY.getConfigPath())
+                .isEqualTo(Duration.ofSeconds(25L));
     }
 }

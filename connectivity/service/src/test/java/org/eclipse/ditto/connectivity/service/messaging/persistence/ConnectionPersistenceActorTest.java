@@ -953,6 +953,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 .putHeader("should-throw-exception", "true")
                 .build();
         connectionActorRef.tell(createConnection.setDittoHeaders(headersIndicatingException), testProbe.ref());
+        supervisor.expectMsg(AbstractPersistenceSupervisor.Control.PA_RECOVERED);
 
         // expect ConnectionConfigurationInvalidException as response
         final Exception exception = testProbe.expectMsgClass(ConnectionConfigurationInvalidException.class);
@@ -981,6 +982,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 .putHeader("validator-should-throw-exception", "true")
                 .build();
         connectionActorRef.tell(createConnection.setDittoHeaders(headersIndicatingException), testProbe.ref());
+        parent.expectMsg(AbstractPersistenceSupervisor.Control.PA_RECOVERED);
 
         // expect ConnectionUnavailableException as response
         final var exception = testProbe.expectMsgClass(ConnectionUnavailableException.class);
