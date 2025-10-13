@@ -31,9 +31,12 @@ public class DefaultLocalAskTimeoutConfig implements LocalAskTimeoutConfig {
 
     private static final String CONFIG_PATH = "local-ask";
     private final Duration askTimeout;
+    private final Duration askTimeoutDuringRecovery;
 
     private DefaultLocalAskTimeoutConfig(final ScopedConfig config) {
         askTimeout = config.getNonNegativeAndNonZeroDurationOrThrow(LocalAskTimeoutConfigValue.ASK_TIMEOUT);
+        askTimeoutDuringRecovery =
+                config.getNonNegativeAndNonZeroDurationOrThrow(LocalAskTimeoutConfigValue.ASK_TIMEOUT_DURING_RECOVERY);
     }
 
     /**
@@ -49,8 +52,13 @@ public class DefaultLocalAskTimeoutConfig implements LocalAskTimeoutConfig {
     }
 
     @Override
-    public Duration getLocalAckTimeout() {
+    public Duration getLocalAskTimeout() {
         return askTimeout;
+    }
+
+    @Override
+    public Duration getLocalAskTimeoutDuringRecovery() {
+        return askTimeoutDuringRecovery;
     }
 
     @Override
@@ -62,18 +70,20 @@ public class DefaultLocalAskTimeoutConfig implements LocalAskTimeoutConfig {
             return false;
         }
         final DefaultLocalAskTimeoutConfig that = (DefaultLocalAskTimeoutConfig) o;
-        return Objects.equals(askTimeout, that.askTimeout);
+        return Objects.equals(askTimeout, that.askTimeout) &&
+            Objects.equals(askTimeoutDuringRecovery, that.askTimeoutDuringRecovery);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(askTimeout);
+        return Objects.hash(askTimeout, askTimeoutDuringRecovery);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + "[" +
                 "askTimeout=" + askTimeout +
+                ", askTimeoutDuringRecovery=" + askTimeoutDuringRecovery +
                 ']';
     }
 }
