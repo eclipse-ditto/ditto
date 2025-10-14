@@ -112,6 +112,7 @@ spec:
           {{- else }}
           securityContext:
             runAsNonRoot: true
+            runAsUser: 101
           {{- end }}
           volumeMounts:
             - name: nginx-conf
