@@ -275,7 +275,6 @@ public final class ThingPersistenceActor
     protected void recoveryCompleted(final RecoveryCompleted event) {
         if (entity != null) {
             entity = enhanceThingWithLifecycle(entity);
-            log.info("Thing <{}> was recovered.", entityId);
         }
         super.recoveryCompleted(event);
     }

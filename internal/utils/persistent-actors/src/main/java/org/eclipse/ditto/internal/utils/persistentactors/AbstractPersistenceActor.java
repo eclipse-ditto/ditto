@@ -54,6 +54,9 @@ import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
 import org.eclipse.ditto.base.model.signals.events.GlobalEventRegistry;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
+import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
+import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StoppedTimer;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.pekko.PingCommand;
 import org.eclipse.ditto.internal.utils.pekko.PingCommandResponse;
@@ -107,6 +110,7 @@ public abstract class AbstractPersistenceActor<
     private final Receive handleEvents;
     private final Receive handleCleanups;
     private final MongoReadJournal mongoReadJournal;
+    private final StartedTimer paRecoveryTimer;
     private long lastSnapshotRevision;
     private long confirmedSnapshotRevision;
 
@@ -120,6 +124,7 @@ public abstract class AbstractPersistenceActor<
      * The entity ID.
      */
     protected final I entityId;
+
 
     private long accessCounter = 0L;
     private final BlockedNamespaces blockedNamespaces;
@@ -137,6 +142,10 @@ public abstract class AbstractPersistenceActor<
         final var actorSystem = context().system();
         final var dittoExtensionsConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
         this.snapshotAdapter = SnapshotAdapter.get(actorSystem, dittoExtensionsConfig);
+        paRecoveryTimer = DittoMetrics.timer("pa_recovery")
+                .tag(SpanTagKey.SIGNAL_TYPE.getTagForValue(entityId.getEntityType()))
+                .start();
+
         entity = null;
 
         lastSnapshotRevision = 0L;
@@ -269,6 +278,9 @@ public abstract class AbstractPersistenceActor<
     protected void recoveryCompleted(final RecoveryCompleted event) {
         // override to introduce additional logging and other side effects
         becomeCreatedOrDeletedHandler();
+        final StoppedTimer stoppedTimer = paRecoveryTimer.stop();
+        log.info("Entity <{}> was recovered in <{}ms>", entityId, stoppedTimer.getDuration().toMillis());
+        getContext().getParent().tell(AbstractPersistenceSupervisor.Control.PA_RECOVERED, getSelf());
     }
 
     /**

@@ -28,9 +28,17 @@ public interface LocalAskTimeoutConfig {
     /**
      * Timeout for local actor invocations - a small timeout should be more than sufficient as those are just method
      * calls.
-     * @return the duration for a local ACK timeout calls.
+     * @return the duration for local ask timeout calls.
      */
-    Duration getLocalAckTimeout();
+    Duration getLocalAskTimeout();
+
+    /**
+     * Timeout for local actor invocations during Persistence Actor recovery - then a bigger timeout than the default
+     * {@link #getLocalAskTimeout()} is needed as the persistence actor's state has first to be recovered from the DB.
+     *
+     * @return the duration for local ask timeout calls where the persistence actor is in recovery.
+     */
+    Duration getLocalAskTimeoutDuringRecovery();
 
 
     /**
@@ -40,9 +48,14 @@ public interface LocalAskTimeoutConfig {
     enum LocalAskTimeoutConfigValue implements KnownConfigValue {
 
         /**
-         * The local ACK timeout duration.
+         * The local ask timeout duration.
          */
-        ASK_TIMEOUT("timeout", Duration.ofSeconds(5L));
+        ASK_TIMEOUT("timeout", Duration.ofSeconds(2L)),
+
+        /**
+         * The local ask timeout duration during persistence actor recovery.
+         */
+        ASK_TIMEOUT_DURING_RECOVERY("timeout-during-recovery", Duration.ofSeconds(45L));
 
         private final String path;
         private final Duration defaultValue;
