@@ -20,9 +20,7 @@ metadata:
 {{ include "ditto.labels" . | indent 4 }}
 data:
   nginx.conf: |-
-    {{ if .Values.openshift.enabled -}}
     pid /tmp/nginx.pid;
-    {{- end }}
     worker_processes {{ .Values.nginx.config.workerProcesses }};
 
     events {
@@ -34,6 +32,12 @@ data:
       default_type application/json;
       include mime.types;
       server_tokens off;
+
+      client_body_temp_path /tmp/client_temp;
+      proxy_temp_path       /tmp/proxy_temp_path;
+      fastcgi_temp_path     /tmp/fastcgi_temp;
+      uwsgi_temp_path       /tmp/uwsgi_temp;
+      scgi_temp_path        /tmp/scgi_temp;
 
       proxy_connect_timeout {{ .Values.nginx.config.timeout }}; # seconds, default: 60
       proxy_send_timeout {{ .Values.nginx.config.timeout }}; # seconds, default: 60

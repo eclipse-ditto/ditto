@@ -49,6 +49,9 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- if .Values.rbac.enabled }}
+      serviceAccountName: {{ template "ditto.serviceAccountName" . }}
+      {{- end }}
       {{- if .Values.nginx.initContainers.waitForGateway.enabled }}
       initContainers:
         - name: {{ .Values.nginx.initContainers.waitForGateway.name }}
@@ -101,6 +104,17 @@ spec:
               # cpu: # don't limit
               memory: {{ .Values.nginx.resources.memoryMi }}Mi
               ephemeral-storage: {{ .Values.nginx.resources.ephemeralStorageMi }}Mi
+          {{- if .Values.openshift.enabled }}
+          {{- with .Values.openshift.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- else }}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 101
+            runAsGroup: 101
+          {{- end }}
           volumeMounts:
             - name: nginx-conf
               mountPath: /etc/nginx/nginx.conf

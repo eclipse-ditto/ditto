@@ -46,6 +46,9 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- if .Values.rbac.enabled }}
+      serviceAccountName: {{ template "ditto.serviceAccountName" . }}
+      {{- end }}
       topologySpreadConstraints:
       {{- range .Values.dittoui.topologySpreadConstraints }}
         - maxSkew: {{ .maxSkew }}
@@ -76,10 +79,17 @@ spec:
               # cpu: # don't limit
               memory: {{ .Values.dittoui.resources.memoryMi }}Mi
               ephemeral-storage: {{ .Values.dittoui.resources.ephemeralStorageMi }}Mi
+          {{- if .Values.openshift.enabled }}
+          {{- with .Values.openshift.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- else }}
           securityContext:
             runAsNonRoot: true
             runAsUser: 101
             runAsGroup: 101
+          {{- end }}
           volumeMounts:
             - name: dittoui-nginx-conf
               mountPath: /etc/nginx/nginx.conf
