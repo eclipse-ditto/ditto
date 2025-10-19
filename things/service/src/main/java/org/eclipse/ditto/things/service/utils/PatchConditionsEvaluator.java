@@ -192,6 +192,7 @@ public final class PatchConditionsEvaluator {
     /**
      * Recursively removes empty JSON objects from a JsonObject.
      * An object is considered empty if it has no fields.
+     * Literal null values are preserved as they indicate explicit deletion intent.
      * If all nested objects are empty, the entire structure is reduced to an empty object.
      */
     public static JsonValue removeEmptyObjectsRecursively(final JsonObject jsonObject) {
@@ -206,12 +207,17 @@ public final class PatchConditionsEvaluator {
             final String key = field.getKeyName();
             final JsonValue value = field.getValue();
 
-            final JsonValue cleaned = value.isObject()
-                    ? removeEmptyObjectsRecursively(value.asObject())
-                    : value;
-
-            if (!cleaned.isNull()) {
-                builder.set(key, cleaned);
+            if (value.isNull()) {
+                builder.set(key, value);
+                hasAnyNonEmptyField = true;
+            } else if (value.isObject()) {
+                final JsonValue cleaned = removeEmptyObjectsRecursively(value.asObject());
+                if (!cleaned.isNull()) {
+                    builder.set(key, cleaned);
+                    hasAnyNonEmptyField = true;
+                }
+            } else {
+                builder.set(key, value);
                 hasAnyNonEmptyField = true;
             }
         }
