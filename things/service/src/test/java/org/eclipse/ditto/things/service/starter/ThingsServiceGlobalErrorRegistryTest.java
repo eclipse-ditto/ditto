@@ -24,6 +24,7 @@ import org.eclipse.ditto.base.model.signals.acks.AcknowledgementCorrelationIdMis
 import org.eclipse.ditto.base.model.signals.commands.CommandNotSupportedException;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.CommandTimeoutException;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.PathUnknownException;
+import org.eclipse.ditto.internal.utils.cacheloaders.ServiceTimeoutException;
 import org.eclipse.ditto.internal.utils.test.GlobalErrorRegistryTestCases;
 import org.eclipse.ditto.messages.model.AuthorizationSubjectBlockedException;
 import org.eclipse.ditto.placeholders.PlaceholderFunctionUnknownException;
@@ -31,12 +32,12 @@ import org.eclipse.ditto.policies.model.PolicyEntryInvalidException;
 import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyConflictException;
 import org.eclipse.ditto.things.model.ThingIdInvalidException;
+import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.AttributePointerInvalidException;
 import org.eclipse.ditto.thingsearch.api.QueryTimeExceededException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidOptionException;
 import org.eclipse.ditto.wot.model.WotThingModelInvalidException;
 import org.eclipse.ditto.wot.validation.WotThingModelPayloadValidationException;
-import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigNotAccessibleException;
 
 public final class ThingsServiceGlobalErrorRegistryTest extends GlobalErrorRegistryTestCases {
 
@@ -64,7 +65,8 @@ public final class ThingsServiceGlobalErrorRegistryTest extends GlobalErrorRegis
                 InvalidOptionException.class,
                 QueryTimeExceededException.class,
                 WotThingModelPayloadValidationException.class,
-                WotValidationConfigNotAccessibleException.class
+                WotValidationConfigNotAccessibleException.class,
+                ServiceTimeoutException.class
         );
 
     }

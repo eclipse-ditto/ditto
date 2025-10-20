@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.internal.models.signalenrichment;
 
-import java.time.Duration;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -31,12 +30,10 @@ public final class DefaultSignalEnrichmentProviderConfig implements SignalEnrich
 
     private static final String CACHE_CONFIG_PATH = "cache";
 
-    private final Duration askTimeout;
     private final CacheConfig cacheConfig;
     private final boolean cachingEnabled;
 
     private DefaultSignalEnrichmentProviderConfig(final ConfigWithFallback configWithFallback) {
-        askTimeout = configWithFallback.getDuration(ConfigValue.ASK_TIMEOUT.getConfigPath());
         cacheConfig = DefaultCacheConfig.of(configWithFallback, CACHE_CONFIG_PATH);
         cachingEnabled = configWithFallback.getBoolean(ConfigValue.CACHE_ENABLED.getConfigPath());
     }
@@ -50,11 +47,6 @@ public final class DefaultSignalEnrichmentProviderConfig implements SignalEnrich
      */
     public static DefaultSignalEnrichmentProviderConfig of(final Config config) {
         return new DefaultSignalEnrichmentProviderConfig(ConfigWithFallback.newInstance(config, ConfigValue.values()));
-    }
-
-    @Override
-    public Duration getAskTimeout() {
-        return askTimeout;
     }
 
     @Override
@@ -76,21 +68,19 @@ public final class DefaultSignalEnrichmentProviderConfig implements SignalEnrich
             return false;
         }
         final DefaultSignalEnrichmentProviderConfig that = (DefaultSignalEnrichmentProviderConfig) o;
-        return Objects.equals(askTimeout, that.askTimeout) &&
-                Objects.equals(cacheConfig, that.cacheConfig) &&
+        return Objects.equals(cacheConfig, that.cacheConfig) &&
                 cachingEnabled == that.cachingEnabled;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(askTimeout, cacheConfig, cachingEnabled);
+        return Objects.hash(cacheConfig, cachingEnabled);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "askTimeout=" + askTimeout +
-                ", cacheConfig=" + cacheConfig +
+                "cacheConfig=" + cacheConfig +
                 ", cachingEnabled=" + cachingEnabled +
                 "]";
     }

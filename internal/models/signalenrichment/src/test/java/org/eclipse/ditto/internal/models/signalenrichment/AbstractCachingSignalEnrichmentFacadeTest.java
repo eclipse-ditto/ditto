@@ -74,7 +74,7 @@ abstract class AbstractCachingSignalEnrichmentFacadeTest extends AbstractSignalE
 
     @Test
     public void alreadyLoadedCacheEntryIsReused() {
-        DittoTestSystem.run(this, kit -> {
+        DittoTestSystem.run(this, CONFIG, kit -> {
             // GIVEN: SignalEnrichmentFacade.retrievePartialThing()
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
@@ -112,7 +112,7 @@ abstract class AbstractCachingSignalEnrichmentFacadeTest extends AbstractSignalE
 
     @Test
     public void alreadyLoadedCacheEntryIsReusedForMergedEvent() {
-        DittoTestSystem.run(this, kit -> {
+        DittoTestSystem.run(this, CONFIG,kit -> {
             // GIVEN: SignalEnrichmentFacade.retrievePartialThing()
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
@@ -183,7 +183,7 @@ abstract class AbstractCachingSignalEnrichmentFacadeTest extends AbstractSignalE
 
     @Test
     public void alreadyLoadedCacheEntryIsReusedForMergedEventOnRootLevel() {
-        DittoTestSystem.run(this, kit -> {
+        DittoTestSystem.run(this, CONFIG,kit -> {
             // GIVEN: SignalEnrichmentFacade.retrievePartialThing()
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
@@ -232,7 +232,7 @@ abstract class AbstractCachingSignalEnrichmentFacadeTest extends AbstractSignalE
 
     @Test
     public void alreadyLoadedCacheEntryIsInvalidatedForUnexpectedEventRevision() {
-        DittoTestSystem.run(this, kit -> {
+        DittoTestSystem.run(this, CONFIG,kit -> {
             // GIVEN: SignalEnrichmentFacade.retrievePartialThing()
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
@@ -272,7 +272,7 @@ abstract class AbstractCachingSignalEnrichmentFacadeTest extends AbstractSignalE
 
     @Test
     public void differentAuthSubjectsLeadToCacheRetrievals() {
-        DittoTestSystem.run(this, kit -> {
+        DittoTestSystem.run(this, CONFIG,kit -> {
             // GIVEN: SignalEnrichmentFacade.retrievePartialThing()
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
@@ -317,7 +317,7 @@ abstract class AbstractCachingSignalEnrichmentFacadeTest extends AbstractSignalE
 
     @Test
     public void differentFieldSelectorsLeadToCacheRetrievals() {
-        DittoTestSystem.run(this, kit -> {
+        DittoTestSystem.run(this, CONFIG,kit -> {
             // GIVEN: SignalEnrichmentFacade.retrievePartialThing()
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
@@ -357,7 +357,7 @@ abstract class AbstractCachingSignalEnrichmentFacadeTest extends AbstractSignalE
 
     @Test
     public void metadataIsUpdatedForMergedEvent() {
-        DittoTestSystem.run(this, kit -> {
+        DittoTestSystem.run(this, CONFIG,kit -> {
             // GIVEN: SignalEnrichmentFacade.retrievePartialThing()
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
@@ -419,7 +419,7 @@ abstract class AbstractCachingSignalEnrichmentFacadeTest extends AbstractSignalE
 
     @Test
     public void metadataIsDeletedForDeletedEvent() {
-        DittoTestSystem.run(this, kit -> {
+        DittoTestSystem.run(this, CONFIG,kit -> {
             // GIVEN: SignalEnrichmentFacade.retrievePartialThing()
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
@@ -489,7 +489,7 @@ abstract class AbstractCachingSignalEnrichmentFacadeTest extends AbstractSignalE
                 DefaultCacheConfig.of(ConfigFactory.parseString(CACHE_CONFIG), CACHE_CONFIG_KEY);
         final ActorSelection commandHandler = ActorSelection.apply(kit.getRef(), "");
         final ByRoundTripSignalEnrichmentFacade cacheLoaderFacade =
-                ByRoundTripSignalEnrichmentFacade.of(commandHandler, Duration.ofSeconds(10L));
+                ByRoundTripSignalEnrichmentFacade.of(kit.getSystem(), commandHandler);
         return createCachingSignalEnrichmentFacade(kit, cacheLoaderFacade, cacheConfig);
     }
 

@@ -29,7 +29,7 @@ import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.Connecti
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionTimeoutException;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigUnavailableException;
 import org.eclipse.ditto.connectivity.service.messaging.kafka.MessageRejectedException;
-import org.eclipse.ditto.edge.service.EdgeServiceTimeoutException;
+import org.eclipse.ditto.internal.utils.cacheloaders.ServiceTimeoutException;
 import org.eclipse.ditto.internal.utils.test.GlobalErrorRegistryTestCases;
 import org.eclipse.ditto.jwt.model.JwtInvalidException;
 import org.eclipse.ditto.messages.model.AuthorizationSubjectBlockedException;
@@ -87,12 +87,12 @@ public final class ConnectivityServiceGlobalErrorRegistryTest extends GlobalErro
                 JwtInvalidException.class,
                 IllegalAdaptableException.class,
                 WotThingModelInvalidException.class,
-                EdgeServiceTimeoutException.class,
                 WotThingModelPayloadValidationException.class,
                 WotValidationConfigErrorException.class,
                 WotValidationConfigHistoryNotAccessibleException.class,
                 WotValidationConfigInvalidException.class,
-                WotValidationConfigNotAccessibleException.class
+                WotValidationConfigNotAccessibleException.class,
+                ServiceTimeoutException.class
         );
     }
 
