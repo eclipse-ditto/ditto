@@ -15,8 +15,8 @@ package org.eclipse.ditto.connectivity.service.mapping;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
-import java.time.Duration;
-
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.internal.models.signalenrichment.ByRoundTripSignalEnrichmentFacade;
 import org.eclipse.ditto.internal.models.signalenrichment.DittoCachingSignalEnrichmentFacade;
@@ -26,12 +26,8 @@ import org.junit.After;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
-
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link DefaultConnectivitySignalEnrichmentProvider}.
@@ -41,8 +37,6 @@ public final class DefaultConnectivitySignalEnrichmentProviderTest {
     private static final Config CONFIG = ConfigFactory.empty()
             .withValue("ditto.extensions.signal-enrichment-provider.extension-class",
                     ConfigValueFactory.fromAnyRef(DefaultConnectivitySignalEnrichmentProvider.class.getCanonicalName()))
-            .withValue("ditto.extensions.signal-enrichment-provider.extension-config.ask-timeout",
-                    ConfigValueFactory.fromAnyRef(Duration.ofDays(1L)))
             .withValue("ditto.extensions.signal-enrichment-provider.extension-config.cache.enabled",
                     ConfigValueFactory.fromAnyRef(false));
 
@@ -112,15 +106,6 @@ public final class DefaultConnectivitySignalEnrichmentProviderTest {
         createActorSystem(withValue("ditto.extensions.signal-enrichment-provider", "java.lang.Object"));
         final var dittoExtensionsConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
         assertThatExceptionOfType(ClassCastException.class)
-                .isThrownBy(() -> ConnectivitySignalEnrichmentProvider.get(actorSystem, dittoExtensionsConfig));
-    }
-
-    @Test
-    public void loadProviderWithIncorrectConfig() {
-        createActorSystem(withValue("ditto.extensions.signal-enrichment-provider.extension-config.ask-timeout",
-                "This is not a duration"));
-        final var dittoExtensionsConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
-        assertThatExceptionOfType(ConfigException.class)
                 .isThrownBy(() -> ConnectivitySignalEnrichmentProvider.get(actorSystem, dittoExtensionsConfig));
     }
 

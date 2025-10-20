@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.mapping;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.edge.service.dispatching.EdgeCommandForwarderActor;
 import org.eclipse.ditto.internal.models.signalenrichment.ByRoundTripSignalEnrichmentFacade;
@@ -20,8 +21,6 @@ import org.eclipse.ditto.internal.models.signalenrichment.DittoCachingSignalEnri
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
 
 import com.typesafe.config.Config;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Provider for Connectivity-service of signal-enriching facades that uses an async Caffeine cache in order to load
@@ -43,7 +42,7 @@ public final class DefaultConnectivitySignalEnrichmentProvider implements Connec
     public DefaultConnectivitySignalEnrichmentProvider(final ActorSystem actorSystem, final Config config) {
         final var commandHandler = actorSystem.actorSelection(COMMAND_FORWARDER_ACTOR_PATH);
         final var providerConfig = DefaultSignalEnrichmentProviderConfig.of(config);
-        final var delegate = ByRoundTripSignalEnrichmentFacade.of(commandHandler, providerConfig.getAskTimeout());
+        final var delegate = ByRoundTripSignalEnrichmentFacade.of(actorSystem, commandHandler);
         if (providerConfig.isCachingEnabled()) {
             final var cacheLoaderExecutor = actorSystem.dispatchers().lookup(CACHE_DISPATCHER);
             facade = DittoCachingSignalEnrichmentFacade.newInstance(

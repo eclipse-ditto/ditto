@@ -95,7 +95,7 @@ public final class DittoCachingSignalEnrichmentFacadeTest extends AbstractCachin
 
     @Test
     public void enrichedEventWithPreDefinedExtraFieldsDoesNotLeadToCacheLookup() {
-        DittoTestSystem.run(this, kit -> {
+        DittoTestSystem.run(this, CONFIG,kit -> {
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
             final ThingId thingId = ThingId.generateRandom();
@@ -124,7 +124,7 @@ public final class DittoCachingSignalEnrichmentFacadeTest extends AbstractCachin
 
     @Test
     public void enrichedEventWithPreDefinedExtraFieldsAndAdditionalRequestedOnesLeadToPartialCacheLookup() {
-        DittoTestSystem.run(this, kit -> {
+        DittoTestSystem.run(this, CONFIG,kit -> {
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
             final ThingId thingId = ThingId.generateRandom();
@@ -171,7 +171,7 @@ public final class DittoCachingSignalEnrichmentFacadeTest extends AbstractCachin
 
     @Test
     public void enrichedEventWithPreDefinedExtraFieldsWithMoreComplexStructure() {
-        DittoTestSystem.run(this, kit -> {
+        DittoTestSystem.run(this, CONFIG,kit -> {
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
             final ThingId thingId = ThingId.generateRandom();
@@ -201,7 +201,7 @@ public final class DittoCachingSignalEnrichmentFacadeTest extends AbstractCachin
 
     @Test
     public void enrichedEventWithPreDefinedExtraFieldsWithMoreComplexStructureLimitedUser() {
-        DittoTestSystem.run(this, kit -> {
+        DittoTestSystem.run(this, CONFIG,kit -> {
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
             final ThingId thingId = ThingId.generateRandom();

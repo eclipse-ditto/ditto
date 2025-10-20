@@ -27,6 +27,7 @@ import org.eclipse.ditto.base.model.signals.commands.exceptions.CommandTimeoutEx
 import org.eclipse.ditto.base.model.signals.commands.exceptions.PathUnknownException;
 import org.eclipse.ditto.connectivity.model.ConnectionIdInvalidException;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionConflictException;
+import org.eclipse.ditto.internal.utils.cacheloaders.ServiceTimeoutException;
 import org.eclipse.ditto.internal.utils.test.GlobalErrorRegistryTestCases;
 import org.eclipse.ditto.messages.model.AuthorizationSubjectBlockedException;
 import org.eclipse.ditto.placeholders.PlaceholderFunctionSignatureInvalidException;
@@ -36,11 +37,11 @@ import org.eclipse.ditto.protocol.UnknownSignalException;
 import org.eclipse.ditto.protocol.adapter.UnknownTopicPathException;
 import org.eclipse.ditto.protocol.mappingstrategies.IllegalAdaptableException;
 import org.eclipse.ditto.things.model.FeatureDefinitionEmptyException;
+import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.AttributePointerInvalidException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.thingsearch.api.QueryTimeExceededException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidNamespacesException;
-import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigNotAccessibleException;
 
 public final class ThingSearchServiceGlobalErrorRegistryTest extends GlobalErrorRegistryTestCases {
 
@@ -72,7 +73,8 @@ public final class ThingSearchServiceGlobalErrorRegistryTest extends GlobalError
                 UnknownTopicPathException.class,
                 UnknownSignalException.class,
                 IllegalAdaptableException.class,
-                WotValidationConfigNotAccessibleException.class
+                WotValidationConfigNotAccessibleException.class,
+                ServiceTimeoutException.class
         );
     }
 

@@ -46,7 +46,7 @@ public final class DefaultGatewaySignalEnrichmentProvider implements GatewaySign
     public DefaultGatewaySignalEnrichmentProvider(final ActorSystem actorSystem, final Config config) {
         final var commandHandler = actorSystem.actorSelection(COMMAND_FORWARDER);
         final var providerConfig = DefaultSignalEnrichmentProviderConfig.of(config);
-        final var delegate = ByRoundTripSignalEnrichmentFacade.of(commandHandler, providerConfig.getAskTimeout());
+        final var delegate = ByRoundTripSignalEnrichmentFacade.of(actorSystem, commandHandler);
         if (providerConfig.isCachingEnabled()) {
             final Executor cacheLoaderExecutor = actorSystem.dispatchers().lookup(CACHE_LOADER_DISPATCHER);
             facade = DittoCachingSignalEnrichmentFacade.newInstance(
