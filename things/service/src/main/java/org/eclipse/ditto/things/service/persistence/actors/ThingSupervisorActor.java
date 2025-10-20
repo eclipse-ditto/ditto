@@ -253,7 +253,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
 
         if (signal instanceof CreateThing createThing && createThing.getThing().getDefinition().isPresent()) {
             // for thing creations containing a "definition", retrieving WoT model from URL is involved, give more time:
-            return Patterns.ask(enforcerChild, signal, localAskTimeout.multipliedBy(3));
+            return Patterns.ask(enforcerChild, signal, localEnforcerAskTimeout.multipliedBy(3));
         } else if (signal instanceof ThingCommandResponse<?> thingCommandResponse &&
                 CommandResponse.isLiveCommandResponse(thingCommandResponse)) {
 

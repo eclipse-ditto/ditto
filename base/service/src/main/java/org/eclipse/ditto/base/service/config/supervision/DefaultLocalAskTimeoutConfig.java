@@ -32,11 +32,14 @@ public class DefaultLocalAskTimeoutConfig implements LocalAskTimeoutConfig {
     private static final String CONFIG_PATH = "local-ask";
     private final Duration askTimeout;
     private final Duration askTimeoutDuringRecovery;
+    private final Duration enforcerAskTimeout;
 
     private DefaultLocalAskTimeoutConfig(final ScopedConfig config) {
         askTimeout = config.getNonNegativeAndNonZeroDurationOrThrow(LocalAskTimeoutConfigValue.ASK_TIMEOUT);
         askTimeoutDuringRecovery =
                 config.getNonNegativeAndNonZeroDurationOrThrow(LocalAskTimeoutConfigValue.ASK_TIMEOUT_DURING_RECOVERY);
+        enforcerAskTimeout = config
+                .getNonNegativeAndNonZeroDurationOrThrow(LocalAskTimeoutConfigValue.ENFORCER_ASK_TIMEOUT);
     }
 
     /**
@@ -62,6 +65,11 @@ public class DefaultLocalAskTimeoutConfig implements LocalAskTimeoutConfig {
     }
 
     @Override
+    public Duration getLocalEnforcerAskTimeout() {
+        return enforcerAskTimeout;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -71,12 +79,13 @@ public class DefaultLocalAskTimeoutConfig implements LocalAskTimeoutConfig {
         }
         final DefaultLocalAskTimeoutConfig that = (DefaultLocalAskTimeoutConfig) o;
         return Objects.equals(askTimeout, that.askTimeout) &&
-            Objects.equals(askTimeoutDuringRecovery, that.askTimeoutDuringRecovery);
+            Objects.equals(askTimeoutDuringRecovery, that.askTimeoutDuringRecovery) &&
+                Objects.equals(enforcerAskTimeout, that.enforcerAskTimeout);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(askTimeout, askTimeoutDuringRecovery);
+        return Objects.hash(askTimeout, askTimeoutDuringRecovery, enforcerAskTimeout);
     }
 
     @Override
@@ -84,6 +93,7 @@ public class DefaultLocalAskTimeoutConfig implements LocalAskTimeoutConfig {
         return getClass().getSimpleName() + "[" +
                 "askTimeout=" + askTimeout +
                 ", askTimeoutDuringRecovery=" + askTimeoutDuringRecovery +
+                ", enforcerAskTimeout=" + enforcerAskTimeout +
                 ']';
     }
 }

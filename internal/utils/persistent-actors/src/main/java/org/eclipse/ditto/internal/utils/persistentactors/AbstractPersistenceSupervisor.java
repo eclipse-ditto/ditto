@@ -132,6 +132,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     @Nullable protected ActorRef persistenceActorChild;
     @Nullable protected ActorRef enforcerChild;
 
+    protected final Duration localEnforcerAskTimeout;
     protected final Duration localAskTimeout;
     protected final Duration localAskTimeoutDuringRecovery;
 
@@ -164,6 +165,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         this.enforcementExecutor = system.dispatchers().lookup(AbstractEnforcerActor.ENFORCEMENT_DISPATCHER);
         this.localAskTimeout = getLocalAskTimeoutConfig().getLocalAskTimeout();
         this.localAskTimeoutDuringRecovery = getLocalAskTimeoutConfig().getLocalAskTimeoutDuringRecovery();
+        this.localEnforcerAskTimeout = getLocalAskTimeoutConfig().getLocalEnforcerAskTimeout();
         this.exponentialBackOffConfig = getExponentialBackOffConfig();
         this.backOff = ExponentialBackOff.initial(exponentialBackOffConfig);
         this.supervisorStrategy = new OneForOneStrategy(
@@ -444,7 +446,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
      * failed due to lacking permissions.
      */
     protected CompletionStage<Object> askEnforcerChild(final Signal<?> signal) {
-        return Patterns.ask(enforcerChild, signal, localAskTimeout);
+        return Patterns.ask(enforcerChild, signal, localEnforcerAskTimeout);
     }
 
     /**
