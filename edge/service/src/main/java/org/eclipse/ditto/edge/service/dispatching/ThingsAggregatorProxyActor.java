@@ -35,6 +35,7 @@ import org.apache.pekko.japi.pf.PFBuilder;
 import org.apache.pekko.japi.pf.ReceiveBuilder;
 import org.apache.pekko.pattern.Patterns;
 import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.RemoteStreamRefActorTerminatedException;
 import org.apache.pekko.stream.SourceRef;
 import org.apache.pekko.stream.javadsl.Sink;
 import org.apache.pekko.stream.javadsl.Source;
@@ -196,14 +197,15 @@ public final class ThingsAggregatorProxyActor extends AbstractActorWithShutdownB
         );
 
         final CompletionStage<List<PlainJson>> o =
-                sourceRef.getSource()
-                        .<Jsonifiable<?>>map(Jsonifiable.class::cast)
-                        .orElse(thingNotAccessibleExceptionSource)
-                        .filterNot(DittoRuntimeException.class::isInstance)
-                        .map(thingPlainJsonSupplier::apply)
+                provideSource(sourceRef, thingNotAccessibleExceptionSource, thingPlainJsonSupplier)
                         .log("retrieve-thing-response", log)
-                        .recoverWithRetries(1, new PFBuilder<Throwable, Source<PlainJson, NotUsed>>()
+                        .recoverWithRetries(5, new PFBuilder<Throwable, Source<PlainJson, NotUsed>>()
                                 .match(NoSuchElementException.class, nsee -> Source.single(PlainJson.empty()))
+                                .match(RemoteStreamRefActorTerminatedException.class, rsrate -> {
+                                    log.warning("Remote stream terminated, retrying...");
+                                    return provideSource(sourceRef, thingNotAccessibleExceptionSource,
+                                            thingPlainJsonSupplier);
+                                })
                                 .build()
                         )
                         .runWith(Sink.seq(), materializer);
@@ -220,6 +222,17 @@ public final class ThingsAggregatorProxyActor extends AbstractActorWithShutdownB
                 Patterns.pipe(commandResponseCompletionStage, getContext().dispatcher()).to(originatingSender)
                         .future().toCompletableFuture()
         );
+    }
+
+    private static Source<PlainJson, NotUsed> provideSource(final SourceRef<?> sourceRef,
+            final Source<Jsonifiable<?>, NotUsed> thingNotAccessibleExceptionSource,
+            final Function<Jsonifiable<?>, PlainJson> thingPlainJsonSupplier
+    ) {
+        return sourceRef.getSource()
+                .<Jsonifiable<?>>map(Jsonifiable.class::cast)
+                .orElse(thingNotAccessibleExceptionSource)
+                .filterNot(DittoRuntimeException.class::isInstance)
+                .map(thingPlainJsonSupplier::apply);
     }
 
     private Function<Jsonifiable<?>, PlainJson> supplyPlainJsonFromRetrieveThingResponse() {

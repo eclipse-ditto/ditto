@@ -44,6 +44,10 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-cache-loaders</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-models-signal</artifactId>
         </dependency>
         <dependency>

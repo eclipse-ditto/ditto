@@ -19,9 +19,9 @@ import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 
-import org.apache.pekko.pattern.AskTimeoutException;
 import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.entity.metadata.MetadataModelFactory;
+import org.eclipse.ditto.base.model.exceptions.AskException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.DittoTestSystem;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
@@ -46,6 +46,9 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+
 /**
  * Abstract base test for different {@link SignalEnrichmentFacade} implementations.
  */
@@ -65,6 +68,8 @@ abstract class AbstractSignalEnrichmentFacadeTest {
                     .set("type", "x attribute")
                     .build());
 
+    protected static final Config CONFIG = ConfigFactory.load("signal-enrichment-facade-test");
+
     @BeforeClass
     public static void beforeClass() {
         final TracingConfig tracingConfigMock = Mockito.mock(TracingConfig.class);
@@ -81,7 +86,7 @@ abstract class AbstractSignalEnrichmentFacadeTest {
 
     @Test
     public void success() {
-        DittoTestSystem.run(this, kit -> {
+        DittoTestSystem.run(this, CONFIG,kit -> {
             // GIVEN: SignalEnrichmentFacade.retrievePartialThing()
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
@@ -127,7 +132,7 @@ abstract class AbstractSignalEnrichmentFacadeTest {
 
     @Test
     public void thingNotAccessible() {
-        DittoTestSystem.run(this, kit -> {
+        DittoTestSystem.run(this, CONFIG,kit -> {
             // GIVEN: SignalEnrichmentFacade.retrievePartialThing()
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
@@ -151,7 +156,7 @@ abstract class AbstractSignalEnrichmentFacadeTest {
 
     @Test
     public void unexpectedMessage() {
-        DittoTestSystem.run(this, kit -> {
+        DittoTestSystem.run(this, CONFIG,kit -> {
             // GIVEN: SignalEnrichmentFacade.retrievePartialThing()
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
@@ -176,7 +181,7 @@ abstract class AbstractSignalEnrichmentFacadeTest {
 
     @Test
     public void timeout() {
-        DittoTestSystem.run(this, kit -> {
+        DittoTestSystem.run(this, ConfigFactory.load("signal-enrichment-facade-test-short-timeout"), kit -> {
             // GIVEN: SignalEnrichmentFacade.retrievePartialThing() with a short timeout
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofMillis(1L));
@@ -192,13 +197,13 @@ abstract class AbstractSignalEnrichmentFacadeTest {
             // THEN: The result future fails with an AskTimeoutException.
             askResult.toCompletableFuture().exceptionally(e -> null).join();
             assertThat(askResult).hasFailedWithThrowableThat()
-                    .isInstanceOf(AskTimeoutException.class);
+                    .isInstanceOf(AskException.class);
         });
     }
 
     @Test
     public void enrichThingDeleted() {
-        DittoTestSystem.run(this, kit -> {
+        DittoTestSystem.run(this, CONFIG, kit -> {
             // GIVEN: SignalEnrichmentFacade.retrievePartialThing()
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
@@ -221,7 +226,7 @@ abstract class AbstractSignalEnrichmentFacadeTest {
 
     @Test
     public void enrichThingDefinitionMigrated() {
-        DittoTestSystem.run(this, kit -> {
+        DittoTestSystem.run(this, CONFIG, kit -> {
             // GIVEN: SignalEnrichmentFacade.retrievePartialThing()
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));

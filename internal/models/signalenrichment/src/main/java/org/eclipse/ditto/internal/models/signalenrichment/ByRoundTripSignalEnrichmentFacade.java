@@ -14,7 +14,6 @@ package org.eclipse.ditto.internal.models.signalenrichment;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -23,12 +22,13 @@ import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
 
 import org.apache.pekko.actor.ActorSelection;
-import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetryCommandForwarder;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -43,23 +43,24 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingRespon
 public final class ByRoundTripSignalEnrichmentFacade implements SignalEnrichmentFacade {
 
     private final ActorSelection commandHandler;
-    private final Duration askTimeout;
+    private final AskWithRetryCommandForwarder askWithRetryCommandForwarder;
 
-    private ByRoundTripSignalEnrichmentFacade(final ActorSelection commandHandler, final Duration askTimeout) {
+    private ByRoundTripSignalEnrichmentFacade(final ActorSystem actorSystem, final ActorSelection commandHandler) {
         this.commandHandler = checkNotNull(commandHandler, "commandHandler");
-        this.askTimeout = checkNotNull(askTimeout, "askTimeout");
+        askWithRetryCommandForwarder = AskWithRetryCommandForwarder.get(actorSystem);
     }
 
     /**
      * Create a signal-enriching facade that retrieves partial things by round-trip.
      *
+     * @param actorSystem the actor system we run in.
      * @param commandHandler The recipient of retrieve-thing commands.
-     * @param askTimeout How long to wait for each response.
      * @return The facade.
      * @throws java.lang.NullPointerException if any argument is null.
      */
-    public static ByRoundTripSignalEnrichmentFacade of(final ActorSelection commandHandler, final Duration askTimeout) {
-        return new ByRoundTripSignalEnrichmentFacade(commandHandler, askTimeout);
+    public static ByRoundTripSignalEnrichmentFacade of(final ActorSystem actorSystem,
+            final ActorSelection commandHandler) {
+        return new ByRoundTripSignalEnrichmentFacade(actorSystem, commandHandler);
     }
 
     @Override
@@ -96,7 +97,7 @@ public final class ByRoundTripSignalEnrichmentFacade implements SignalEnrichment
                         .withSelectedFields(jsonFieldSelector)
                         .build();
 
-        final CompletionStage<Object> askResult = Patterns.ask(commandHandler, command, askTimeout);
+        final var askResult = askWithRetryCommandForwarder.askCommand(command, commandHandler);
 
         return askResult.thenCompose(ByRoundTripSignalEnrichmentFacade::extractPartialThing);
     }

@@ -25,6 +25,6 @@ public final class ByRoundTripSignalEnrichmentFacadeTest extends AbstractSignalE
     @Override
     protected SignalEnrichmentFacade createSignalEnrichmentFacadeUnderTest(final TestKit kit, final Duration duration) {
         final ActorSelection commandHandler = ActorSelection.apply(kit.getRef(), "");
-        return ByRoundTripSignalEnrichmentFacade.of(commandHandler, duration);
+        return ByRoundTripSignalEnrichmentFacade.of(kit.getSystem(), commandHandler);
     }
 }

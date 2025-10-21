@@ -24,6 +24,7 @@ import org.eclipse.ditto.base.model.signals.acks.AcknowledgementCorrelationIdMis
 import org.eclipse.ditto.base.model.signals.commands.CommandNotSupportedException;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.CommandTimeoutException;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.PathUnknownException;
+import org.eclipse.ditto.internal.utils.cacheloaders.ServiceTimeoutException;
 import org.eclipse.ditto.internal.utils.test.GlobalErrorRegistryTestCases;
 import org.eclipse.ditto.placeholders.PlaceholderFunctionUnknownException;
 import org.eclipse.ditto.policies.model.PolicyEntryInvalidException;
@@ -53,7 +54,8 @@ public final class PoliciesServiceGlobalErrorRegistryTest extends GlobalErrorReg
                 PolicyImportNotAccessibleException.class,
 
                 // added due to ditto-model-placeholders
-                PlaceholderFunctionUnknownException.class
+                PlaceholderFunctionUnknownException.class,
+                ServiceTimeoutException.class
         );
     }
 

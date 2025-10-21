@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.internal.models.signalenrichment;
 
-import java.time.Duration;
-
 import javax.annotation.Nonnull;
 
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
@@ -23,13 +21,6 @@ import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
  * Configuration for SignalEnrichmentProviders.
  */
 public interface SignalEnrichmentProviderConfig {
-
-    /**
-     * Returns the duration to wait for cache retrievals.
-     *
-     * @return the internal ask timeout duration.
-     */
-    Duration getAskTimeout();
 
     /**
      * Returns the cache config to apply for each connection scoped signal enrichment cache.
@@ -48,11 +39,6 @@ public interface SignalEnrichmentProviderConfig {
      * {@code CachingSignalEnrichmentFacadeConfig}.
      */
     enum ConfigValue implements KnownConfigValue {
-
-        /**
-         * The ask timeout duration: the duration to wait for cache retrievals.
-         */
-        ASK_TIMEOUT("ask-timeout", Duration.ofSeconds(10)),
 
         CACHE_ENABLED("cache.enabled", true);
 

@@ -57,6 +57,10 @@ public class DefaultLocalAskTimeoutConfigTest {
         softly.assertThat(underTest.getLocalAskTimeoutDuringRecovery())
                 .as(LocalAskTimeoutConfig.LocalAskTimeoutConfigValue.ASK_TIMEOUT_DURING_RECOVERY.getConfigPath())
                 .isEqualTo(LocalAskTimeoutConfig.LocalAskTimeoutConfigValue.ASK_TIMEOUT_DURING_RECOVERY.getDefaultValue());
+
+        softly.assertThat(underTest.getLocalEnforcerAskTimeout())
+                .as(LocalAskTimeoutConfig.LocalAskTimeoutConfigValue.ENFORCER_ASK_TIMEOUT.getConfigPath())
+                .isEqualTo(LocalAskTimeoutConfig.LocalAskTimeoutConfigValue.ENFORCER_ASK_TIMEOUT.getDefaultValue());
     }
 
     @Test
@@ -69,5 +73,8 @@ public class DefaultLocalAskTimeoutConfigTest {
         softly.assertThat(underTest.getLocalAskTimeoutDuringRecovery())
                 .as(LocalAskTimeoutConfig.LocalAskTimeoutConfigValue.ASK_TIMEOUT_DURING_RECOVERY.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(25L));
+        softly.assertThat(underTest.getLocalEnforcerAskTimeout())
+                .as(LocalAskTimeoutConfig.LocalAskTimeoutConfigValue.ENFORCER_ASK_TIMEOUT.getConfigPath())
+                .isEqualTo(Duration.ofSeconds(7L));
     }
 }

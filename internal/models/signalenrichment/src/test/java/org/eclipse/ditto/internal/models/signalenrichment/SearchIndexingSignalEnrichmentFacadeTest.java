@@ -109,7 +109,7 @@ public final class SearchIndexingSignalEnrichmentFacadeTest extends AbstractCach
 
     @Test
     public void determineRightSelectorForMultipleNamespacesConfigured() {
-        DittoTestSystem.run(this, kit -> {
+        DittoTestSystem.run(this, CONFIG,kit -> {
             final SearchIndexingSignalEnrichmentFacade underTest =
                     (SearchIndexingSignalEnrichmentFacade) createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
 

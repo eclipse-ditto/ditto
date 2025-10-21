@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Contributors to the Eclipse Foundation
+ * Copyright (c) 2025 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,21 +10,23 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.edge.service.dispatching;
+package org.eclipse.ditto.internal.utils.cacheloaders;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
 import org.apache.pekko.actor.AbstractExtensionId;
 import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSelection;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.ExtendedActorSystem;
 import org.apache.pekko.actor.Extension;
-import org.apache.pekko.cluster.pubsub.DistributedPubSubMessage;
 import org.apache.pekko.pattern.AskTimeoutException;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.HttpStatus;
@@ -35,8 +37,6 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.edge.service.EdgeServiceTimeoutException;
-import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.DefaultAskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
@@ -51,6 +51,7 @@ import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 public final class AskWithRetryCommandForwarder implements Extension {
 
     private static final ExtensionId EXTENSION_ID = new ExtensionId();
+    private static final String ASK_WITH_RETRY_CONFIG_KEY = "ask-with-retry";
 
     private static final ThreadSafeDittoLogger LOGGER =
             DittoLoggerFactory.getThreadSafeLogger(AskWithRetryCommandForwarder.class);
@@ -61,8 +62,8 @@ public final class AskWithRetryCommandForwarder implements Extension {
     public AskWithRetryCommandForwarder(final ActorSystem actorSystem) {
         system = actorSystem;
         askWithRetryConfig = DefaultAskWithRetryConfig.of(
-                DefaultScopedConfig.dittoScoped(actorSystem.settings().config()),
-                "ask-with-retry");
+                DefaultScopedConfig.dittoScoped(actorSystem.settings().config()), ASK_WITH_RETRY_CONFIG_KEY
+        );
     }
 
     /**
@@ -97,25 +98,36 @@ public final class AskWithRetryCommandForwarder implements Extension {
     }
 
     /**
-     * Asks the given {@code pubSubMediator} for a response by telling {@code message}.
-     * This method uses {@link AskWithRetry}. Forwards the response to the {@code sender}.
+     * Asks the given {@code receiver} for a response by telling {@code command}.
+     * This method uses {@link AskWithRetry}. Returns the response as a {@link CompletionStage}.
      *
-     * @param command the command that the message contains.
-     * @param message the message that is used to ask.
-     * @param pubSubMediator the pubSub mediator that should be asked
-     * @param sender the sender to which the response should be forwarded.
+     * @param command the command that is used to ask.
+     * @param receiver the actor that should be asked.
+     * @return the response as a CompletionStage.
      */
-    public void forwardCommandViaPubSub(final Command<?> command,
-            final DistributedPubSubMessage message,
-            final ActorRef pubSubMediator,
-            final ActorRef sender) {
-
+    public CompletionStage<CommandResponse<?>> askCommand(final Command<?> command, final ActorRef receiver) {
         if (shouldSendResponse(command.getDittoHeaders())) {
-            AskWithRetry.askWithRetry(pubSubMediator, message, askWithRetryConfig, system, getResponseCaster(command))
-                    .exceptionally(t -> handleException(t, sender))
-                    .thenAccept(response -> handleResponse(response, sender));
+            return AskWithRetry.askWithRetry(receiver, command, askWithRetryConfig, system, getResponseCaster(command));
         } else {
-            pubSubMediator.tell(message, sender);
+            receiver.tell(command, null);
+            return CompletableFuture.completedFuture(null);
+        }
+    }
+
+    /**
+     * Asks the given {@code receiver} for a response by telling {@code command}.
+     * This method uses {@link AskWithRetry}. Returns the response as a {@link CompletionStage}.
+     *
+     * @param command the command that is used to ask.
+     * @param receiver the actor that should be asked.
+     * @return the response as a CompletionStage.
+     */
+    public CompletionStage<CommandResponse<?>> askCommand(final Command<?> command, final ActorSelection receiver) {
+        if (shouldSendResponse(command.getDittoHeaders())) {
+            return AskWithRetry.askWithRetry(receiver, command, askWithRetryConfig, system, getResponseCaster(command));
+        } else {
+            receiver.tell(command, null);
+            return CompletableFuture.completedFuture(null);
         }
     }
 
@@ -238,7 +250,9 @@ public final class AskWithRetryCommandForwarder implements Extension {
             final Object response) {
 
         LOGGER.error("Unexpected response: <{}>", response);
-        return DittoInternalErrorException.newBuilder().dittoHeaders(command.getDittoHeaders()).build();
+        return DittoInternalErrorException.newBuilder().message("Unexpected response: " + response)
+                .dittoHeaders(command.getDittoHeaders())
+                .build();
     }
 
     /**
@@ -251,7 +265,7 @@ public final class AskWithRetryCommandForwarder implements Extension {
             final Throwable askTimeout) {
 
         LOGGER.withCorrelationId(command.getDittoHeaders()).error("Encountered timeout in edge forwarding", askTimeout);
-        return Optional.of(EdgeServiceTimeoutException.newBuilder()
+        return Optional.of(ServiceTimeoutException.newBuilder()
                 .dittoHeaders(command.getDittoHeaders())
                 .build());
     }

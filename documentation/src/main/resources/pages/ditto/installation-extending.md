@@ -30,8 +30,6 @@ The configuration for an extension consists of two parts:
 ditto.extensions.signal-enrichment-provider {
   extension-class = org.eclipse.ditto.gateway.service.endpoints.utils.DefaultGatewaySignalEnrichmentProvider
   extension-config = {
-    ask-timeout = 10s
-
     cache {
       enabled = true
       maximum-size = 20000

@@ -15,6 +15,8 @@ package org.eclipse.ditto.base.model.signals;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.testkit.javadsl.TestKit;
 
+import com.typesafe.config.Config;
+
 
 /**
  * Manage creation and termination of actor systems for tests.
@@ -25,6 +27,24 @@ public final class DittoTestSystem implements AutoCloseable {
 
     private DittoTestSystem(final ActorSystem actorSystem) {
         this.actorSystem = actorSystem;
+    }
+
+    /**
+     * Run a unit test in its own actor system and test kit.
+     *
+     * @param test the JUnit test object.
+     * @param config the config to load into the actorSystem created for the test.
+     * @param assertions the assertions to run.
+     */
+    public static void run(final Object test, final Config config, final TestConsumer assertions) {
+        final String actorSystemName = test.getClass().getSimpleName();
+        try (final DittoTestSystem testSystem = new DittoTestSystem(ActorSystem.create(actorSystemName, config))) {
+            new TestKit(testSystem.actorSystem) {{
+                assertions.accept(this);
+            }};
+        } catch (final Exception e) {
+            throw new AssertionError(e);
+        }
     }
 
     /**

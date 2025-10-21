@@ -27,9 +27,9 @@ import org.eclipse.ditto.base.model.signals.commands.CommandNotSupportedExceptio
 import org.eclipse.ditto.base.model.signals.commands.exceptions.PathUnknownException;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionConflictException;
-import org.eclipse.ditto.edge.service.EdgeServiceTimeoutException;
 import org.eclipse.ditto.gateway.api.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.PublicKeyProviderUnavailableException;
+import org.eclipse.ditto.internal.utils.cacheloaders.ServiceTimeoutException;
 import org.eclipse.ditto.internal.utils.test.GlobalErrorRegistryTestCases;
 import org.eclipse.ditto.jwt.model.JwtAudienceInvalidException;
 import org.eclipse.ditto.messages.model.AuthorizationSubjectBlockedException;
@@ -41,12 +41,12 @@ import org.eclipse.ditto.protocol.UnknownCommandException;
 import org.eclipse.ditto.protocol.adapter.UnknownTopicPathException;
 import org.eclipse.ditto.protocol.mappingstrategies.IllegalAdaptableException;
 import org.eclipse.ditto.things.model.ThingIdInvalidException;
+import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.AttributePointerInvalidException;
 import org.eclipse.ditto.thingsearch.api.QueryTimeExceededException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidNamespacesException;
 import org.eclipse.ditto.wot.model.WotThingModelInvalidException;
 import org.eclipse.ditto.wot.validation.WotThingModelPayloadValidationException;
-import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigNotAccessibleException;
 
 public final class GatewayServiceGlobalErrorRegistryTest extends GlobalErrorRegistryTestCases {
 
@@ -83,7 +83,7 @@ public final class GatewayServiceGlobalErrorRegistryTest extends GlobalErrorRegi
                 UnknownTopicPathException.class,
                 IllegalAdaptableException.class,
                 WotThingModelInvalidException.class,
-                EdgeServiceTimeoutException.class,
+                ServiceTimeoutException.class,
                 WotThingModelPayloadValidationException.class,
                 WotValidationConfigNotAccessibleException.class
         );
