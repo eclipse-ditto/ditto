@@ -19,6 +19,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.DittoServiceConfig;
 import org.eclipse.ditto.base.service.config.http.HttpConfig;
+import org.eclipse.ditto.base.service.config.json.JsonConfig;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.internal.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
@@ -82,6 +83,11 @@ public final class DittoPoliciesConfig implements PoliciesConfig {
     @Override
     public HttpConfig getHttpConfig() {
         return serviceSpecificConfig.getHttpConfig();
+    }
+
+    @Override
+    public JsonConfig getJsonConfig() {
+        return serviceSpecificConfig.getJsonConfig();
     }
 
     @Override

@@ -15,6 +15,7 @@ package org.eclipse.ditto.gateway.service.util.config;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.DittoServiceConfig;
+import org.eclipse.ditto.base.service.config.json.JsonConfig;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.CloudEventsConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
@@ -145,6 +146,11 @@ public final class DittoGatewayConfig implements GatewayConfig, WithConfigPath {
     @Override
     public HttpConfig getHttpConfig() {
         return httpConfig;
+    }
+
+    @Override
+    public JsonConfig getJsonConfig() {
+        return dittoServiceConfig.getJsonConfig();
     }
 
     @Override

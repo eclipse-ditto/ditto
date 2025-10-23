@@ -25,6 +25,8 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.http.DefaultHttpConfig;
 import org.eclipse.ditto.base.service.config.http.HttpConfig;
+import org.eclipse.ditto.base.service.config.json.DefaultJsonConfig;
+import org.eclipse.ditto.base.service.config.json.JsonConfig;
 import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.internal.utils.cluster.config.ClusterConfig;
@@ -61,6 +63,7 @@ public final class DittoServiceConfig implements ScopedConfig, ServiceSpecificCo
     private final DefaultLimitsConfig limitsConfig;
     private final DefaultClusterConfig clusterConfig;
     private final DefaultHttpConfig httpConfig;
+    private final JsonConfig jsonConfig;
     private final DefaultMetricsConfig metricsConfig;
     private final DefaultTracingConfig tracingConfig;
 
@@ -69,6 +72,7 @@ public final class DittoServiceConfig implements ScopedConfig, ServiceSpecificCo
         limitsConfig = DefaultLimitsConfig.of(dittoScopedConfig);
         clusterConfig = DefaultClusterConfig.of(dittoScopedConfig);
         httpConfig = DefaultHttpConfig.of(dittoScopedConfig);
+        jsonConfig = DefaultJsonConfig.of(dittoScopedConfig);
         metricsConfig = DefaultMetricsConfig.of(dittoScopedConfig);
         tracingConfig = DefaultTracingConfig.of(dittoScopedConfig);
     }
@@ -109,6 +113,11 @@ public final class DittoServiceConfig implements ScopedConfig, ServiceSpecificCo
     @Override
     public HttpConfig getHttpConfig() {
         return httpConfig;
+    }
+
+    @Override
+    public JsonConfig getJsonConfig() {
+        return jsonConfig;
     }
 
     @Override
@@ -413,6 +422,7 @@ public final class DittoServiceConfig implements ScopedConfig, ServiceSpecificCo
         return limitsConfig.equals(that.limitsConfig) &&
                 clusterConfig.equals(that.clusterConfig) &&
                 httpConfig.equals(that.httpConfig) &&
+                jsonConfig.equals(that.jsonConfig) &&
                 metricsConfig.equals(that.metricsConfig) &&
                 tracingConfig.equals(that.tracingConfig) &&
                 serviceScopedConfig.equals(that.serviceScopedConfig);
@@ -420,7 +430,8 @@ public final class DittoServiceConfig implements ScopedConfig, ServiceSpecificCo
 
     @Override
     public int hashCode() {
-        return Objects.hash(limitsConfig, clusterConfig, httpConfig, metricsConfig, tracingConfig, serviceScopedConfig);
+        return Objects.hash(limitsConfig, clusterConfig, httpConfig, jsonConfig, metricsConfig, tracingConfig,
+                serviceScopedConfig);
     }
 
     @Override
@@ -429,6 +440,7 @@ public final class DittoServiceConfig implements ScopedConfig, ServiceSpecificCo
                 "limitsConfig=" + limitsConfig +
                 ", clusterConfig=" + clusterConfig +
                 ", httpConfig=" + httpConfig +
+                ", jsonConfig=" + jsonConfig +
                 ", metricsConfig=" + metricsConfig +
                 ", tracingConfig=" + tracingConfig +
                 ", config=" + serviceScopedConfig +

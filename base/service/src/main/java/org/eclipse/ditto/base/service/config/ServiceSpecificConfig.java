@@ -13,6 +13,7 @@
 package org.eclipse.ditto.base.service.config;
 
 import org.eclipse.ditto.base.service.config.http.HttpConfig;
+import org.eclipse.ditto.base.service.config.json.JsonConfig;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.internal.utils.cluster.config.WithClusterConfig;
 import org.eclipse.ditto.internal.utils.metrics.config.WithMetricsConfig;
@@ -37,5 +38,12 @@ public interface ServiceSpecificConfig extends WithClusterConfig, WithMetricsCon
      * @return the HTTP config.
      */
     HttpConfig getHttpConfig();
+
+    /**
+     * Returns the JSON config.
+     *
+     * @return the JSON config.
+     */
+    JsonConfig getJsonConfig();
 
 }

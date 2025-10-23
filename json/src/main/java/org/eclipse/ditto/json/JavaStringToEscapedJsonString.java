@@ -31,7 +31,16 @@ final class JavaStringToEscapedJsonString implements UnaryOperator<String> {
     private static final JavaStringToEscapedJsonString INSTANCE =
             new JavaStringToEscapedJsonString(JsonCharEscaper.getInstance());
 
+    private static final int NUM_ENCLOSING_QUOTES = 2;
+    private static final double ESCAPING_BUFFER_FACTOR;
+
     private static final char QUOTE = '\"';
+
+    static {
+        ESCAPING_BUFFER_FACTOR = Double.parseDouble(
+                System.getProperty("ditto.json.escaping-buffer-factor",  "1.0")
+        );
+    }
 
     private final IntFunction<String> jsonCharEscaper;
 
@@ -51,7 +60,8 @@ final class JavaStringToEscapedJsonString implements UnaryOperator<String> {
     @Override
     public String apply(final String javaString) {
         requireNonNull(javaString, "The Java String to be converted must not be null");
-        final StringBuilder stringBuilder = new StringBuilder(javaString.length() + 2);
+        final StringBuilder stringBuilder =
+                new StringBuilder((int) (javaString.length() * ESCAPING_BUFFER_FACTOR) + NUM_ENCLOSING_QUOTES);
         stringBuilder.append(QUOTE);
         stringBuilder.append(javaString);
         int i = 1; // offset of starting " char
