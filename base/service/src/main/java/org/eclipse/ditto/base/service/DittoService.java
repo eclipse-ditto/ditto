@@ -412,6 +412,14 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
                 Long.toString(limitsConfig.getMessagesMaxSize()));
         System.setProperty(FeatureToggle.MERGE_THINGS_ENABLED,
                 Boolean.toString(rawConfig.getBoolean(FeatureToggle.MERGE_THINGS_ENABLED)));
+        System.setProperty(FeatureToggle.WOT_INTEGRATION_ENABLED,
+                Boolean.toString(rawConfig.getBoolean(FeatureToggle.WOT_INTEGRATION_ENABLED)));
+        System.setProperty(FeatureToggle.HISTORICAL_APIS_ENABLED,
+                Boolean.toString(rawConfig.getBoolean(FeatureToggle.HISTORICAL_APIS_ENABLED)));
+        System.setProperty(FeatureToggle.PRESERVE_KNOWN_MQTT_HEADERS_ENABLED,
+                Boolean.toString(rawConfig.getBoolean(FeatureToggle.PRESERVE_KNOWN_MQTT_HEADERS_ENABLED)));
+        System.setProperty(FeatureToggle.JSON_KEY_VALIDATION_ENABLED,
+                Boolean.toString(rawConfig.getBoolean(FeatureToggle.JSON_KEY_VALIDATION_ENABLED)));
         System.setProperty(DittoSystemProperties.DITTO_LIMITS_POLICY_IMPORTS_LIMIT,
                 Integer.toString(limitsConfig.getPolicyImportsLimit()));
         final MetricsConfig metricsConfig = serviceSpecificConfig.getMetricsConfig();
