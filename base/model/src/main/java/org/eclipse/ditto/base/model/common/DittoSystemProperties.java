@@ -44,6 +44,13 @@ public final class DittoSystemProperties {
      */
     public static final String DITTO_METRICS_METRIC_PREFIX = "ditto.metrics.metric-prefix";
 
+    /**
+     * System property name of the property defining a factor to multiply the reserved size of StringBuffers in
+     * class JavaStringToEscapedJsonString. Assumed default: {@code 1.0} - higher values can reduce CPU load but will
+     * cause higher memory demands.
+     */
+    public static final String DITTO_JSON_ESCAPING_BUFFER_FACTOR = "ditto.json.escaping-buffer-factor";
+
     private DittoSystemProperties() {
         throw new AssertionError();
     }

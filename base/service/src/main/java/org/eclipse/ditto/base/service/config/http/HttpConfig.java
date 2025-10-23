@@ -47,7 +47,7 @@ public interface HttpConfig {
 
     /**
      * An enumeration of the known config path expressions and their associated default values for
-     * {@code HttpConfig}.
+     * {@code JsonConfig}.
      */
     enum HttpConfigValue implements KnownConfigValue {
 

@@ -19,6 +19,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.DittoServiceConfig;
 import org.eclipse.ditto.base.service.config.http.HttpConfig;
+import org.eclipse.ditto.base.service.config.json.JsonConfig;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.connectivity.service.config.mapping.DefaultMappingConfig;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
@@ -129,6 +130,11 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
     @Override
     public HttpConfig getHttpConfig() {
         return serviceSpecificConfig.getHttpConfig();
+    }
+
+    @Override
+    public JsonConfig getJsonConfig() {
+        return serviceSpecificConfig.getJsonConfig();
     }
 
     @Override

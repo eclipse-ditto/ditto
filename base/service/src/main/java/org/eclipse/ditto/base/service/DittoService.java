@@ -38,6 +38,7 @@ import org.apache.pekko.management.javadsl.PekkoManagement;
 import org.eclipse.ditto.base.model.common.DittoSystemProperties;
 import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.base.service.config.ServiceSpecificConfig;
+import org.eclipse.ditto.base.service.config.json.JsonConfig;
 import org.eclipse.ditto.base.service.devops.DevOpsCommandsActor;
 import org.eclipse.ditto.base.service.devops.LogbackLoggingFacade;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
@@ -416,6 +417,9 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
                 Integer.toString(limitsConfig.getPolicyImportsLimit()));
         final MetricsConfig metricsConfig = serviceSpecificConfig.getMetricsConfig();
         System.setProperty(DittoSystemProperties.DITTO_METRICS_METRIC_PREFIX, metricsConfig.getMetricPrefix());
+        final JsonConfig jsonConfig = serviceSpecificConfig.getJsonConfig();
+        System.setProperty(DittoSystemProperties.DITTO_JSON_ESCAPING_BUFFER_FACTOR,
+                Double.toString(jsonConfig.getEscapingBufferFactor()));
     }
 
     private static ActorRef getDistributedPubSubMediatorActor(final ActorSystem actorSystem) {
