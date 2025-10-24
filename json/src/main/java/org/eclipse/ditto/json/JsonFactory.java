@@ -683,7 +683,7 @@ public final class JsonFactory {
         requireNonNull(pointer, "The JSON pointer must not be null!");
         requireNonNull(furtherPointers, "The optional JSON keys must not be null!");
 
-        final Collection<JsonPointer> jsonPointers = new LinkedHashSet<>(1 + furtherPointers.length);
+        final Collection<JsonPointer> jsonPointers = new LinkedHashSet<>(1 + furtherPointers.length, 1.0f);
         jsonPointers.add(pointer);
         Collections.addAll(jsonPointers, furtherPointers);
 

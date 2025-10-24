@@ -68,7 +68,7 @@ final class ImmutableImportedLabels extends AbstractSet<Label> implements Import
         checkNotNull(entryLabel, "entryLabel");
         checkNotNull(furtherEntryLabels, "furtherEntryLabels");
 
-        final Set<Label> entryLabels = new LinkedHashSet<>(1 + furtherEntryLabels.length);
+        final Set<Label> entryLabels = new LinkedHashSet<>(1 + furtherEntryLabels.length, 1.0f);
         entryLabels.add(Label.of(entryLabel));
         Collections.addAll(entryLabels,
                 Arrays.stream(furtherEntryLabels).map(Label::of).toArray(Label[]::new));

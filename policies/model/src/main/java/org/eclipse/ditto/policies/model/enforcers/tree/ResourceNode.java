@@ -145,7 +145,7 @@ final class ResourceNode implements PolicyTreeNode {
         checkNotNull(possiblyGrantedPermission, "permission to be evaluated");
         checkNotNull(furtherPossiblyGrantedPermissions, "further permissions to be evaluated");
 
-        final Collection<String> p = new HashSet<>(1 + furtherPossiblyGrantedPermissions.length);
+        final Collection<String> p = new HashSet<>(1 + furtherPossiblyGrantedPermissions.length, 1.0f);
         p.add(possiblyGrantedPermission);
         Collections.addAll(p, furtherPossiblyGrantedPermissions);
 
