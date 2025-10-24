@@ -144,6 +144,9 @@ spec:
                 -XX:InitialRAMPercentage={{ .Values.things.jvm.heapRamPercentage }}
                 -XX:MaxGCPauseMillis={{ .Values.things.jvm.maxGcPauseMillis }}
                 -XX:G1ReservePercent={{ .Values.things.jvm.g1ReservePercent }}
+                -XX:+UnlockExperimentalVMOptions
+                -XX:G1NewSizePercent={{ .Values.things.jvm.g1NewSizePercent }}
+                -XX:G1MaxNewSizePercent={{ .Values.things.jvm.g1MaxNewSizePercent }}
                 {{ .Values.things.additionalJvmOptions }}
                 {{ .Values.global.pekkoOptions }}
                 {{- if .Values.global.logging.customConfigFile.enabled }}
@@ -273,6 +276,12 @@ spec:
               value: "{{ .Values.things.config.policiesEnforcer.cache.expireAfterAccess }}"
             - name: MERGE_REMOVE_EMPTY_OBJECTS_AFTER_PATCH_CONDITION_FILTERING
               value: "{{ .Values.things.config.merge.removeEmptyObjectsAfterPatchConditionFiltering }}"
+            - name: THINGS_SUPERVISOR_LOCAL_ASK_TIMEOUT
+              value: "{{ .Values.things.config.supervisor.localAskTimeout }}"
+            - name: THINGS_SUPERVISOR_LOCAL_ASK_TIMEOUT_DURING_RECOVERY
+              value: "{{ .Values.things.config.supervisor.localAskTimeoutDuringRecovery }}"
+            - name: THINGS_SUPERVISOR_LOCAL_ASK_ENFORCER_TIMEOUT
+              value: "{{ .Values.things.config.supervisor.localAskEnforcerTimeout }}"
             - name: THINGS_WOT_TO_THING_DESCRIPTION_BASE_PREFIX
               value: "{{ .Values.things.config.wot.tdBasePrefix }}"
             - name: THINGS_WOT_THING_MODEL_CACHE_SIZE

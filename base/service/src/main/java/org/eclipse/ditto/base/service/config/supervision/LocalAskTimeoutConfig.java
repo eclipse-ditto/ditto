@@ -59,7 +59,7 @@ public interface LocalAskTimeoutConfig {
         /**
          * The local ask timeout duration.
          */
-        ASK_TIMEOUT("timeout", Duration.ofSeconds(2L)),
+        ASK_TIMEOUT("timeout", Duration.ofSeconds(5L)),
 
         /**
          * The local ask timeout duration during persistence actor recovery.

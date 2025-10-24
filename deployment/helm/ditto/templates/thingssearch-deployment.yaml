@@ -144,6 +144,9 @@ spec:
                 -XX:InitialRAMPercentage={{ .Values.thingsSearch.jvm.heapRamPercentage }}
                 -XX:MaxGCPauseMillis={{ .Values.thingsSearch.jvm.maxGcPauseMillis }}
                 -XX:G1ReservePercent={{ .Values.thingsSearch.jvm.g1ReservePercent }}
+                -XX:+UnlockExperimentalVMOptions
+                -XX:G1NewSizePercent={{ .Values.thingsSearch.jvm.g1NewSizePercent }}
+                -XX:G1MaxNewSizePercent={{ .Values.thingsSearch.jvm.g1MaxNewSizePercent }}
                 {{ .Values.thingsSearch.additionalJvmOptions }}
                 {{ .Values.global.pekkoOptions }}
                 {{- if .Values.global.logging.customConfigFile.enabled }}

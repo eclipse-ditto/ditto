@@ -144,6 +144,9 @@ spec:
                 -XX:InitialRAMPercentage={{ .Values.policies.jvm.heapRamPercentage }}
                 -XX:MaxGCPauseMillis={{ .Values.policies.jvm.maxGcPauseMillis }}
                 -XX:G1ReservePercent={{ .Values.policies.jvm.g1ReservePercent }}
+                -XX:+UnlockExperimentalVMOptions
+                -XX:G1NewSizePercent={{ .Values.policies.jvm.g1NewSizePercent }}
+                -XX:G1MaxNewSizePercent={{ .Values.policies.jvm.g1MaxNewSizePercent }}
                 {{ .Values.policies.additionalJvmOptions }}
                 {{- .Values.global.pekkoOptions }}
                 {{- if .Values.global.logging.customConfigFile.enabled }}
