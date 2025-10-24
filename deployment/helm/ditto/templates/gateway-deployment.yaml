@@ -166,6 +166,8 @@ spec:
             - name: PROMETHEUS_PORT
               value: "{{ .Values.global.prometheus.port }}"
             {{- end }}
+            - name: JSON_ESCAPING_BUFFER_FACTOR
+              value: "{{ .Values.global.json.escapingBufferFactor }}"
             - name: REMOTE_MAX_FRAMESIZE
               value: "{{ .Values.global.limits.clusterMaxFramesize }}"
             - name: LIMITS_THINGS_MAX_SIZE
