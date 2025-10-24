@@ -179,6 +179,8 @@ spec:
               value: "{{ .Values.global.cluster.downingStableAfter }}"
             - name: CLUSTER_DOWNING_DOWN_ALL_WHEN_UNSTABLE
               value: "{{ .Values.global.cluster.downAllWhenUnstable }}"
+            - name: JSON_ESCAPING_BUFFER_FACTOR
+              value: "{{ .Values.global.json.escapingBufferFactor }}"
             - name: REMOTE_MAX_FRAMESIZE
               value: "{{ .Values.global.limits.clusterMaxFramesize }}"
             - name: LIMITS_THINGS_MAX_SIZE
