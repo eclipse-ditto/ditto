@@ -660,7 +660,7 @@ public final class PoliciesModelFactory {
         checkNotNull(entry, "mandatory entry");
         checkNotNull(furtherEntries, "additional policy entries");
 
-        final Collection<PolicyEntry> allEntries = new HashSet<>(1 + furtherEntries.length);
+        final Collection<PolicyEntry> allEntries = new HashSet<>(1 + furtherEntries.length, 1.0f);
         allEntries.add(entry);
         Collections.addAll(allEntries, furtherEntries);
 

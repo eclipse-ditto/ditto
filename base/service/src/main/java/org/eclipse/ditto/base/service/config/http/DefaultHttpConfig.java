@@ -43,7 +43,7 @@ public final class DefaultHttpConfig implements HttpConfig, WithConfigPath {
     }
 
     /**
-     * Returns an instance of {@code DefaultHttpConfig} based on the settings of the specified Config.
+     * Returns an instance of {@code DefaultJsonConfig} based on the settings of the specified Config.
      *
      * @param config is supposed to provide the settings of the HTTP config at {@value #CONFIG_PATH}.
      * @return the instance.

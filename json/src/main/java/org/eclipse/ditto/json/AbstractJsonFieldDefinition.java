@@ -68,7 +68,7 @@ abstract class AbstractJsonFieldDefinition<T> implements JsonFieldDefinition<T> 
                 requireNonNull(checkJavaTypeFunction, "The Java type checking function must not be null!");
         this.mappingFunction = requireNonNull(mappingFunction, "The mapping function must not be null!");
 
-        final Set<JsonFieldMarker> mutableMarkersSet = new HashSet<>(markers.length);
+        final Set<JsonFieldMarker> mutableMarkersSet = new HashSet<>(markers.length, 1.0f);
         Collections.addAll(mutableMarkersSet, markers);
 
         this.markers = Collections.unmodifiableSet(mutableMarkersSet);
@@ -94,7 +94,7 @@ abstract class AbstractJsonFieldDefinition<T> implements JsonFieldDefinition<T> 
         requireNonNull(fieldMarker, "At least one marker has to be specified!");
         requireNonNull(furtherFieldMarkers, "The further field markers must not be null!");
 
-        final Collection<JsonFieldMarker> askedMarkers = new HashSet<>(1 + furtherFieldMarkers.length);
+        final Collection<JsonFieldMarker> askedMarkers = new HashSet<>(1 + furtherFieldMarkers.length, 1.0f);
         askedMarkers.add(fieldMarker);
         Collections.addAll(askedMarkers, furtherFieldMarkers);
 

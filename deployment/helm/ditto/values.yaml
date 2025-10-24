@@ -60,6 +60,12 @@ global:
     downingStableAfter: 15s
     # downAllWhenUnstable is a configuration of the Pekko SBR (split brain resolver)
     downAllWhenUnstable: "on"
+  # json holds the Ditto JSON specific configuration
+  json:
+    # escapingBufferFactor is the factor of the buffer size used when escaping JSON strings -
+    #  higher factors can improve CPU usage (as a StringBuilder does not need to be resized as often),
+    #  but will use more memory.
+    escapingBufferFactor: 1.0
   # limits contains information about limit configuration, e.g. towards max. entity and payload sizes
   limits:
     # clusterMaxFramesize the maximum serialized message size in the cluster, including header data, default: 256 KiB
