@@ -66,7 +66,7 @@ final class ImmutablePermissions extends AbstractSet<String> implements Permissi
         checkNotNull(permission, "permission");
         checkNotNull(furtherPermissions, "further permissions");
 
-        final HashSet<String> permissions = new HashSet<>(1 + furtherPermissions.length);
+        final HashSet<String> permissions = new HashSet<>(1 + furtherPermissions.length, 1.0f);
         permissions.add(permission);
         Collections.addAll(permissions, furtherPermissions);
 

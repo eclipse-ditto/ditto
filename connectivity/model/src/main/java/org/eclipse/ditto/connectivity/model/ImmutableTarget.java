@@ -319,7 +319,7 @@ final class ImmutableTarget implements Target {
 
         @Override
         public TargetBuilder topics(final FilteredTopic requiredTopic, final FilteredTopic... additionalTopics) {
-            final Set<FilteredTopic> theTopics = new LinkedHashSet<>(1 + additionalTopics.length);
+            final Set<FilteredTopic> theTopics = new LinkedHashSet<>(1 + additionalTopics.length, 1.0f);
             theTopics.add(requiredTopic);
             Collections.addAll(theTopics, additionalTopics);
 

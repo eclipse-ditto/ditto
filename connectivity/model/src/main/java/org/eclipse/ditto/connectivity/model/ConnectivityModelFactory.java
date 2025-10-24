@@ -885,7 +885,7 @@ public final class ConnectivityModelFactory {
     public static Enforcement newEnforcement(final String input, final String requiredFilter,
             final String... additionalFilters) {
 
-        final Set<String> filters = new LinkedHashSet<>(1 + additionalFilters.length);
+        final Set<String> filters = new LinkedHashSet<>(1 + additionalFilters.length, 1.0f);
         filters.add(requiredFilter);
         Collections.addAll(filters, additionalFilters);
 
