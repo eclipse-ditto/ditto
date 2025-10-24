@@ -32,6 +32,7 @@ data:
       default_type application/json;
       include mime.types;
       server_tokens off;
+      merge_slashes on;
 
       client_body_temp_path /tmp/client_temp;
       proxy_temp_path       /tmp/proxy_temp_path;
@@ -54,8 +55,6 @@ data:
 
       client_header_buffer_size 8k; # allow longer URIs + headers (default: 1k)
       large_client_header_buffers 4 16k;
-
-      merge_slashes off; # allow multiple slashes for CRS Authentication
 
       map $http_authorization $authentication {
         default "Authentication required";
