@@ -110,6 +110,7 @@ global:
     -Xss512k
     -XX:MaxMetaspaceSize=256m
     -XX:+UseG1GC
+    -XX:+ParallelRefProcEnabled
     -Djava.net.preferIPv4Stack=true
   pekkoOptions: >
     -Dpekko.management.cluster.bootstrap.contact-point-discovery.port-name=management
@@ -653,6 +654,14 @@ policies:
     # g1ReservePercent configures the used G1 GC "amount of heap to keep free after a mixed GC"
     #  default (by JVM if not set): 10
     g1ReservePercent: 10
+    # g1NewSizePercent sets the percentage of the heap size to use as default minimum young (new) generation
+    #  default (by JVM if not set): 5
+    g1NewSizePercent: 5
+    # g1MaxNewSizePercent sets the maximum percentage of the heap that can be allocated to the young (new) generation
+    #  when using the G1 garbage collector. This helps control the size of the young generation, affecting GC pause times
+    #  and overall memory management.
+    #  default (by JVM if not set): 60
+    g1MaxNewSizePercent: 60
   # startupProbe configuration for policies
   #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
   startupProbe:
@@ -931,6 +940,14 @@ things:
     # g1ReservePercent configures the used G1 GC "amount of heap to keep free after a mixed GC"
     #  default (by JVM if not set): 10
     g1ReservePercent: 10
+    # g1NewSizePercent sets the percentage of the heap size to use as default minimum young (new) generation
+    #  default (by JVM if not set): 5
+    g1NewSizePercent: 5
+    # g1MaxNewSizePercent sets the maximum percentage of the heap that can be allocated to the young (new) generation
+    #  when using the G1 garbage collector. This helps control the size of the young generation, affecting GC pause times
+    #  and overall memory management.
+    #  default (by JVM if not set): 60
+    g1MaxNewSizePercent: 60
   # startupProbe configuration for things
   #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
   startupProbe:
@@ -1023,6 +1040,15 @@ things:
         timeout: 20s
         # reset after this time in "Open" state, the circuit breaker is "Half-opened" again
         reset: 8s
+    # supervisor contains configuration about things supervisor actors
+    supervisor:
+      # localAskTimeout the local ask timeout duration
+      localAskTimeout: 5s
+      # localAskTimeoutDuringRecovery the local ask timeout duration during persistence actor recovery
+      localAskTimeoutDuringRecovery: 45s
+      # localAskEnforcerTimeout the local ask timeout duration for interaction with enforcer child
+      #  needs to be higher than localAskTimeout as policies have to be loaded from cache via remoting
+      localAskEnforcerTimeout: 10s
     # cleanup contains the configuration for the background cleanup of stale snapshots and events
     cleanup:
       # enabled configures whether background cleanup is enabled or not
@@ -1358,6 +1384,14 @@ thingsSearch:
     # g1ReservePercent configures the used G1 GC "amount of heap to keep free after a mixed GC"
     #  default (by JVM if not set): 10
     g1ReservePercent: 10
+    # g1NewSizePercent sets the percentage of the heap size to use as default minimum young (new) generation
+    #  default (by JVM if not set): 5
+    g1NewSizePercent: 5
+    # g1MaxNewSizePercent sets the maximum percentage of the heap that can be allocated to the young (new) generation
+    #  when using the G1 garbage collector. This helps control the size of the young generation, affecting GC pause times
+    #  and overall memory management.
+    #  default (by JVM if not set): 60
+    g1MaxNewSizePercent: 60
   # startupProbe configuration for policies
   #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
   startupProbe:
@@ -1634,6 +1668,14 @@ connectivity:
     # g1ReservePercent configures the used G1 GC "amount of heap to keep free after a mixed GC"
     #  default (by JVM if not set): 10
     g1ReservePercent: 10
+    # g1NewSizePercent sets the percentage of the heap size to use as default minimum young (new) generation
+    #  default (by JVM if not set): 5
+    g1NewSizePercent: 5
+    # g1MaxNewSizePercent sets the maximum percentage of the heap that can be allocated to the young (new) generation
+    #  when using the G1 garbage collector. This helps control the size of the young generation, affecting GC pause times
+    #  and overall memory management.
+    #  default (by JVM if not set): 60
+    g1MaxNewSizePercent: 60
   # startupProbe configuration for connectivity
   #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
   startupProbe:
@@ -1969,6 +2011,14 @@ gateway:
     # g1ReservePercent configures the used G1 GC "amount of heap to keep free after a mixed GC"
     #  default (by JVM if not set): 10
     g1ReservePercent: 10
+    # g1NewSizePercent sets the percentage of the heap size to use as default minimum young (new) generation
+    #  default (by JVM if not set): 5
+    g1NewSizePercent: 5
+    # g1MaxNewSizePercent sets the maximum percentage of the heap that can be allocated to the young (new) generation
+    #  when using the G1 garbage collector. This helps control the size of the young generation, affecting GC pause times
+    #  and overall memory management.
+    #  default (by JVM if not set): 60
+    g1MaxNewSizePercent: 60
   # startupProbe configuration for gateway
   #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
   startupProbe:
