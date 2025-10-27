@@ -14,12 +14,17 @@ package org.eclipse.ditto.connectivity.service.messaging;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
@@ -57,11 +62,6 @@ import org.junit.FixMethodOrder;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
-
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.testkit.TestProbe;
-import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests in addition to {@link MessageMappingProcessorActorTest}
@@ -144,7 +144,7 @@ public final class OutboundMappingProcessorActorTest {
             underTest.tell(outboundSignal, getRef());
             proxyActorProbe.expectMsgClass(RetrieveThing.class);
 
-            final Acknowledgements acks = expectMsgClass(Acknowledgements.class);
+            final Acknowledgements acks = expectMsgClass(Duration.ofSeconds(5), Acknowledgements.class);
             final List<String> fackLabels = acks.getFailedAcknowledgements()
                     .stream()
                     .map(ack -> ack.getLabel().toString())

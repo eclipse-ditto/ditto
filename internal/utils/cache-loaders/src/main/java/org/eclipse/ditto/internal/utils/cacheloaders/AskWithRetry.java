@@ -18,6 +18,7 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.BiFunction;
@@ -340,11 +341,14 @@ public final class AskWithRetry {
 
         return (askResult, throwable) -> {
             if (null != throwable) {
-                final Throwable cause;
-                if (throwable instanceof UnknownAskRuntimeException) {
-                    cause = throwable.getCause();
+                Throwable cause;
+                if (throwable instanceof CompletionException ce) {
+                    cause = ce.getCause();
                 } else {
                     cause = throwable;
+                }
+                if (cause instanceof UnknownAskRuntimeException) {
+                    cause = cause.getCause();
                 }
                 throw DittoRuntimeException.asDittoRuntimeException(cause,
                         t -> {
