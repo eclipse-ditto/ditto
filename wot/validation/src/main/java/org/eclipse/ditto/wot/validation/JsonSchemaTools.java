@@ -40,6 +40,7 @@ import org.eclipse.ditto.wot.model.WotInternalErrorException;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.util.ByteBufferBackedInputStream;
 import com.fasterxml.jackson.dataformat.cbor.databind.CBORMapper;
 import com.networknt.schema.JsonMetaSchema;
 import com.networknt.schema.JsonNodePath;
@@ -89,8 +90,8 @@ final class JsonSchemaTools {
             } else {
                 dataSchemaJson = dataSchema.toJson();
             }
-            final byte[] bytes = cborFactory.toByteArray(dataSchemaJson);
-            jsonNode = jacksonCborMapper.reader().readTree(bytes);
+            final ByteBufferBackedInputStream bbis = new ByteBufferBackedInputStream(cborFactory.toByteBuffer(dataSchemaJson));
+            jsonNode = jacksonCborMapper.reader().readTree(bbis);
         } catch (final JsonParseException e) {
             throw DittoRuntimeException.asDittoRuntimeException(e, t -> WotInternalErrorException.newBuilder()
                             .message("Error during parsing input JSON")
@@ -219,8 +220,8 @@ final class JsonSchemaTools {
 
         final JsonNode jsonNode;
         try {
-            final byte[] bytes = cborFactory.toByteArray(jsonValue);
-            jsonNode = jacksonCborMapper.reader().readTree(bytes);
+            final ByteBufferBackedInputStream bbis = new ByteBufferBackedInputStream(cborFactory.toByteBuffer(jsonValue));
+            jsonNode = jacksonCborMapper.reader().readTree(bbis);
         } catch (final JsonParseException e) {
             throw DittoRuntimeException.asDittoRuntimeException(e, t -> WotInternalErrorException.newBuilder()
                             .message("Error during parsing input JSON")
