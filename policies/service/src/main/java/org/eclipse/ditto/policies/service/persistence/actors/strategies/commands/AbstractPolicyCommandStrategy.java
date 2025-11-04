@@ -288,11 +288,24 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
 
         return StreamSupport.stream(entries.spliterator(), false)
                 .map(PolicyEntry::getSubjects)
-                .flatMap(Subjects::stream)
-                .map(Subject::getExpiry)
+                .map(subjects -> AbstractPolicyCommandStrategy.<T>checkForAlreadyExpiredSubject(subjects, dittoHeaders,
+                        command))
                 .flatMap(Optional::stream)
+                .findFirst();
+    }
+
+    protected static <T extends PolicyEvent<?>> Optional<Result<T>> checkForAlreadyExpiredSubject(Subjects subjects,
+            DittoHeaders dittoHeaders, final Command<?> command) {
+        return StreamSupport.stream(subjects.spliterator(), false)
+                .map(subject -> AbstractPolicyCommandStrategy.<T>checkForAlreadyExpiredSubject(subject, dittoHeaders, command))
+                .flatMap(Optional::stream)
+                .findFirst();
+    }
+
+    protected static <T extends PolicyEvent<?>> Optional<Result<T>> checkForAlreadyExpiredSubject(Subject subject,
+            DittoHeaders dittoHeaders, final Command<?> command) {
+        return subject.getExpiry()
                 .filter(SubjectExpiry::isExpired)
-                .findFirst()
                 .map(subjectExpiry -> {
                     final var expiryString = subjectExpiry.getTimestamp().toString();
                     return ResultFactory.newErrorResult(
