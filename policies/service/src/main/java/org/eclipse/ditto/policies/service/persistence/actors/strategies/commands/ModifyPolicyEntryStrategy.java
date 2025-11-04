@@ -75,7 +75,7 @@ final class ModifyPolicyEntryStrategy extends AbstractPolicyCommandStrategy<Modi
         final Policy newPolicy = nonNullPolicy.setEntry(adjustedPolicyEntry);
 
         final Optional<Result<PolicyEvent<?>>> alreadyExpiredSubject =
-                checkForAlreadyExpiredSubject(newPolicy, commandHeaders, command);
+                checkForAlreadyExpiredSubject(adjustedPolicyEntry.getSubjects(), commandHeaders, command);
         if (alreadyExpiredSubject.isPresent()) {
             return alreadyExpiredSubject.get();
         }

@@ -23,6 +23,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.AbstractFSM;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Address;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.cluster.Cluster;
+import org.apache.pekko.japi.pf.FSMStateFunctionBuilder;
 import org.eclipse.ditto.base.model.common.DittoDuration;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -45,13 +52,6 @@ import org.eclipse.ditto.policies.model.signals.announcements.SubjectDeletionAnn
 import org.eclipse.ditto.policies.service.common.config.PolicyAnnouncementConfig;
 import org.eclipse.ditto.policies.service.persistence.actors.strategies.commands.SudoDeleteExpiredSubject;
 
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.actor.AbstractFSM;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.Address;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.cluster.Cluster;
-import org.apache.pekko.japi.pf.FSMStateFunctionBuilder;
 import scala.util.Random$;
 
 /**
@@ -176,8 +176,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
             scheduleAnnouncement(now, getAnnouncementInstant().orElse(now));
         } else {
             log.debug("Starting in <{}>", TO_DELETE);
-            startWith(TO_DELETE, NULL);
-            subject.getExpiry().ifPresent(this::scheduleDeleteExpiredSubject);
+            startWith(subject.getExpiry().map(this::scheduleDeleteExpiredSubject).orElse(TO_DELETE), NULL);
         }
         initialize();
     }

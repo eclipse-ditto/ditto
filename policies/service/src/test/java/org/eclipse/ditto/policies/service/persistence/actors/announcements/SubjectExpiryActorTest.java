@@ -28,6 +28,11 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.FSM;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.common.DittoDuration;
@@ -49,12 +54,6 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
 import com.typesafe.config.ConfigFactory;
-
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.FSM;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link SubjectExpiryActor}.
@@ -331,6 +330,48 @@ public final class SubjectExpiryActorTest {
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
 
             verify(policiesPub, timeout(30_000))
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
+            final var announcement = announcementCaptor.getValue();
+
+            assertThat(announcement).isInstanceOf(SubjectDeletionAnnouncement.class);
+            final var subjectDeletionAnnouncement = (SubjectDeletionAnnouncement) announcement;
+            assertThat(subjectDeletionAnnouncement.getSubjectIds())
+                    .containsExactly(SUBJECT_DITTO_DITTO);
+            assertThat(subjectDeletionAnnouncement.getDittoHeaders().getAcknowledgementRequests())
+                    .isEmpty();
+
+            expectTerminated(underTest);
+            expectNoMessage();
+            verifyNoMoreInteractions(policiesPub);
+        }};
+    }
+
+    @Test
+    public void test1010purge2() {
+        new TestKit(system) {{
+            // Create subject with expiry in the past, the expiry actor should retry to delete the subject
+            // on timeout
+            final Subject subject = createSubject(Instant.now().minusSeconds(1),
+                    null,
+                    true,
+                    Duration.ofSeconds(1),
+                    null
+            );
+
+            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub,
+                    Duration.ofSeconds(3), getTestActor(), config);
+            final ActorRef underTest = watch(childActorOf(props));
+
+            // Will not send SUBJECT_DELETED message to simulate failure of deletion
+            final var deleteCommand1 = expectMsgClass(Duration.ofSeconds(1), SudoDeleteExpiredSubject.class);
+            assertThat(deleteCommand1.getSubject()).isEqualTo(subject);
+
+            final var deleteCommand2 = expectMsgClass(Duration.ofSeconds(4), SudoDeleteExpiredSubject.class);
+            assertThat(deleteCommand2.getSubject()).isEqualTo(subject);
+
+            // On retry, we send SUBJECT_DELETED message, and the deletion succeeds
+            underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
+            verify(policiesPub, timeout(1000))
                     .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             final var announcement = announcementCaptor.getValue();
 
