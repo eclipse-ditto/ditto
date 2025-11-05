@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -70,7 +71,8 @@ public class ResponseDiversionIntegrationTest {
     @ClassRule
     public static final ActorSystemResource ACTOR_SYSTEM_RESOURCE = ActorSystemResource.newInstance(
             ConfigFactory.parseMap(Map.ofEntries(
-                    Map.entry("pekko.actor.provider", "cluster")
+                    Map.entry("pekko.actor.provider", "cluster"),
+                    Map.entry("pekko.cluster.roles", List.of("connectivity"))
             ))
     );
 
