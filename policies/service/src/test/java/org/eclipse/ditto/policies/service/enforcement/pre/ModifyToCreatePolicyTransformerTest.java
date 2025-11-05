@@ -32,22 +32,17 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnitRunner;
 
 import com.typesafe.config.ConfigFactory;
 
-@RunWith(MockitoJUnitRunner.class)
 public final class ModifyToCreatePolicyTransformerTest {
 
-    private ActorSystem system;
+    private static final ActorSystem system = ActorSystem.create("test", ConfigFactory.load("test"));
+
     private ModifyToCreatePolicyTransformer underTest;
 
     @Before
     public void setup() {
-        system = ActorSystem.create("test", ConfigFactory.parseMap(Map.of("pekko.actor.provider",
-                "org.apache.pekko.cluster.ClusterActorRefProvider")).withFallback(ConfigFactory.load(
-                "test")));
         underTest = new ModifyToCreatePolicyTransformer(system, system.settings().config());
     }
 
