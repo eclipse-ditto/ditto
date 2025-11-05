@@ -38,7 +38,7 @@ public interface JsonConfig {
         /**
          * The factor of the buffer size used when escaping JSON strings.
          */
-        ESCAPING_BUFFER_FACTOR("escaping-buffer-factor", 1.0);
+        ESCAPING_BUFFER_FACTOR("escaping-buffer-factor", 1.5);
 
         private final String path;
         private final Object defaultValue;

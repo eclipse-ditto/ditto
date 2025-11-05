@@ -12,20 +12,29 @@
  */
 package org.eclipse.ditto.things.service.enforcement.pre;
 
+import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.pattern.Patterns;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
+import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
+import org.eclipse.ditto.things.model.WithThingId;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
@@ -38,20 +47,18 @@ import com.typesafe.config.Config;
  */
 public final class ModifyToCreateThingTransformer implements SignalTransformer {
 
-    private final ThingExistenceChecker existenceChecker;
+    private static final Duration LOCAL_ASK_TIMEOUT = Duration.ofSeconds(5);
 
+    @SuppressWarnings("unused")
     ModifyToCreateThingTransformer(final ActorSystem actorSystem, final Config config) {
-        this(new ThingExistenceChecker(actorSystem));
-    }
-
-    ModifyToCreateThingTransformer(final ThingExistenceChecker existenceChecker) {
-        this.existenceChecker = existenceChecker;
+        // no-op
     }
 
     @Override
-    public CompletionStage<Signal<?>> apply(final Signal<?> signal) {
+    public CompletionStage<Signal<?>> apply(final Signal<?> signal, final ActorRef thisRef) {
+
         return calculateInputParams(signal)
-                .map(input -> existenceChecker.checkExistence(input.thingModifyCommand())
+                .map(input -> checkExistence((WithThingId) signal, thisRef)
                         .thenApply(exists -> {
                             if (Boolean.FALSE.equals(exists)) {
                                 final var newThing = input.thing().toBuilder()
@@ -64,6 +71,26 @@ public final class ModifyToCreateThingTransformer implements SignalTransformer {
                             }
                         })
                 ).orElse(CompletableFuture.completedFuture(signal));
+    }
+
+    private static CompletionStage<Boolean> checkExistence(final WithThingId signal, final ActorRef thisRef) {
+        return Patterns.ask(thisRef, SudoRetrieveThing.of(signal.getEntityId(),
+                        JsonFieldSelector.newInstance(
+                                Thing.JsonFields.POLICY_ID.getPointer(), Thing.JsonFields.REVISION.getPointer()
+                        ),
+                        DittoHeaders.empty()
+                ), LOCAL_ASK_TIMEOUT
+        ).thenApply(ModifyToCreateThingTransformer::handleSudoRetrieveThingResponse);
+    }
+
+    private static Boolean handleSudoRetrieveThingResponse(final Object response) {
+        if (response instanceof SudoRetrieveThingResponse) {
+            return Boolean.TRUE;
+        } else if (response instanceof ThingNotAccessibleException) {
+            return Boolean.FALSE;
+        } else {
+            throw new IllegalStateException("expect SudoRetrieveThingResponse, got: " + response);
+        }
     }
 
     private static Optional<InputParams> calculateInputParams(final Signal<?> signal) {
@@ -109,6 +136,6 @@ public final class ModifyToCreateThingTransformer implements SignalTransformer {
     }
 
     private record InputParams(ThingModifyCommand<?> thingModifyCommand, Thing thing,
-            @Nullable JsonObject initialPolicy,
-            @Nullable String policyIdOrPlaceholder) {}
+                               @Nullable JsonObject initialPolicy,
+                               @Nullable String policyIdOrPlaceholder) {}
 }

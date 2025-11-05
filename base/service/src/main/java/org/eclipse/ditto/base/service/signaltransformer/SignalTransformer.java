@@ -13,8 +13,9 @@
 package org.eclipse.ditto.base.service.signaltransformer;
 
 import java.util.concurrent.CompletionStage;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
+import org.apache.pekko.actor.ActorRef;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
 
@@ -23,4 +24,4 @@ import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
  * e.g. in order to enhance the Signal.
  */
 @FunctionalInterface
-public interface SignalTransformer extends Function<Signal<?>, CompletionStage<Signal<?>>>, DittoExtensionPoint {}
+public interface SignalTransformer extends BiFunction<Signal<?>, ActorRef, CompletionStage<Signal<?>>>, DittoExtensionPoint {}

@@ -767,7 +767,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                 }
                 ++sudoOpCounter;
                 if (withDittoHeaders instanceof Signal<?> signal) {
-                    signalTransformer.apply(signal)
+                    signalTransformer.apply(signal, persistenceActorChild)
                             .whenComplete(
                                     (result, error) -> handleOptionalTransformationException(signal, error, sender))
                             .thenAccept(transformed -> persistenceActorChild.tell(transformed, sender));
@@ -817,7 +817,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                 if (shouldBecomeTwinSignalProcessingAwaiting(signal)) {
                     becomeTwinSignalProcessingAwaiting();
                 }
-                final var syncCs = signalTransformer.apply(signal)
+                final var syncCs = signalTransformer.apply(signal, persistenceActorChild)
                         .whenComplete((result, error) ->
                                 handleOptionalTransformationException(signal, error, sender)
                         )
