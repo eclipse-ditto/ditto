@@ -24,6 +24,7 @@ import java.util.List;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
+import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.Resource;
 import org.eclipse.ditto.policies.model.Subject;
@@ -142,6 +143,33 @@ public final class ModifyPolicyEntryStrategyTest extends AbstractPolicyCommandSt
                         .description("It must not be in the past, please adjust to a timestamp in the future.")
                         .dittoHeaders(dittoHeaders)
                         .build());
+    }
+
+    @Test
+    public void modifyPolicyEntryWithAnotherEntryHavingExpiredSubject() {
+        // copy the test policy and set the expired subject in different entry
+        Policy testPolicy = TestConstants.Policy.POLICY.setSubjectFor(TestConstants.Policy.EXPIRED_POLICY_LABEL,
+                TestConstants.Policy.EXPIRED_SUBJECT);
+
+        // modifying specific policy entry, should only try to validate subjects for the modified entry
+        final DittoHeaders dittoHeaders = DittoHeaders.empty();
+        final Subject subject = Subject.newInstance(SubjectId.newInstance("foo-issuer:bar-subject"),
+                SubjectType.GENERATED);
+        final PolicyEntry policyEntry =
+                PolicyEntry.newInstance(TestConstants.Policy.LABEL, Collections.singleton(subject),
+                        Collections.emptyList());
+
+        final ModifyPolicyEntry command = ModifyPolicyEntry.of(TestConstants.Policy.POLICY_ID, policyEntry,
+                dittoHeaders);
+
+        assertModificationResult(underTest, testPolicy, command,
+                PolicyEntryModified.class,
+                event -> {
+                    assertThat(event.getPolicyEntry().getSubjects())
+                            .containsOnly(subject);
+                },
+                ModifyPolicyEntryResponse.class,
+                response -> {});
     }
 
 }

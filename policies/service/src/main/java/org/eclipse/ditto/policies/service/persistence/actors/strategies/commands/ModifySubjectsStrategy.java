@@ -79,7 +79,7 @@ final class ModifySubjectsStrategy extends AbstractPolicyCommandStrategy<ModifyS
             final Policy newPolicy = nonNullPolicy.setSubjectsFor(label, adjustedSubjects);
 
             final Optional<Result<PolicyEvent<?>>> alreadyExpiredSubject =
-                    checkForAlreadyExpiredSubject(newPolicy, commandHeaders, command);
+                    checkForAlreadyExpiredSubject(adjustedSubjects, commandHeaders, command);
             if (alreadyExpiredSubject.isPresent()) {
                 return alreadyExpiredSubject.get();
             }

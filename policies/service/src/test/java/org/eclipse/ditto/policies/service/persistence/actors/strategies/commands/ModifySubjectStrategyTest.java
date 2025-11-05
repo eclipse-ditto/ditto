@@ -19,12 +19,14 @@ import java.time.temporal.ChronoUnit;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
+import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.SubjectExpiry;
 import org.eclipse.ditto.policies.model.SubjectExpiryInvalidException;
 import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.SubjectIssuer;
+import org.eclipse.ditto.policies.model.SubjectType;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubject;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjectResponse;
 import org.eclipse.ditto.policies.model.signals.events.SubjectCreated;
@@ -109,6 +111,24 @@ public final class ModifySubjectStrategyTest extends AbstractPolicyCommandStrate
                         .description("It must not be in the past, please adjust to a timestamp in the future.")
                         .dittoHeaders(command.getDittoHeaders())
                         .build());
+    }
+
+    @Test
+    public void modifySubjectOfPolicyHavingExpiredSubject() {
+        // copy the test policy and set the expired subject in the same label
+        Policy testPolicy = TestConstants.Policy.POLICY.setSubjectFor(TestConstants.Policy.LABEL, TestConstants.Policy.EXPIRED_SUBJECT);
+
+        // modifying specific subject inside policy entry should only try to validate that subject
+        final DittoHeaders dittoHeaders = DittoHeaders.empty();
+        final Subject subject = Subject.newInstance(SubjectId.newInstance("foo-issuer:bar-subject"),
+                SubjectType.GENERATED);
+
+        final var command = ModifySubject.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.LABEL, subject, dittoHeaders);
+
+        assertModificationResult(underTest, testPolicy, command,
+                SubjectCreated.class,
+                ModifySubjectResponse.created(TestConstants.Policy.POLICY_ID, TestConstants.Policy.LABEL, subject,
+                        appendETagToDittoHeaders(subject, dittoHeaders)));
     }
 
 }

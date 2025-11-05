@@ -199,6 +199,16 @@ public final class TestConstants {
                         .setPolicyImports(POLICY_IMPORTS_WITH_ENTRIES)
                         .build();
 
+        /**
+         * Expired subject to be used in persistence tests.
+         */
+
+        public static final Label EXPIRED_POLICY_LABEL = Label.of("expired");
+
+        public static final Subject EXPIRED_SUBJECT = Subject.newInstance(SubjectId.newInstance("foo:expired"),
+                SubjectType.GENERATED,
+                SubjectExpiry.newInstance(Instant.now().minusSeconds(30)));
+
         public static PolicyImport policyImportWithId(final String importedPolicyId) {
             return PolicyImport.newInstance(PolicyId.of("com.example", importedPolicyId), EffectedImports.newInstance(null));
         }
