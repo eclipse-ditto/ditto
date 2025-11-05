@@ -24,6 +24,7 @@ import java.util.function.Function;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorRef;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
@@ -48,7 +49,7 @@ public abstract class AbstractPlaceholderSubstitution implements SignalTransform
 
     @Override
     @SuppressWarnings("unchecked")
-    public CompletionStage<Signal<?>> apply(final Signal<?> signal) {
+    public CompletionStage<Signal<?>> apply(final Signal<?> signal, final ActorRef thisRef) {
         requireNonNull(signal);
 
         final Optional<SubstitutionStrategy<? extends Signal<?>>> firstMatchingStrategyOpt =

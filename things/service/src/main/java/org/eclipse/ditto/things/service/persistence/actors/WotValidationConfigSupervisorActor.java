@@ -82,7 +82,7 @@ public final class WotValidationConfigSupervisorActor extends AbstractActorWithT
 
     private void handleWotValidationConfigCommand(final WotValidationConfigCommand<?> command) {
         if (null != persistenceActorChild) {
-            signalTransformer.apply(command).thenAccept(transformed ->
+            signalTransformer.apply(command, persistenceActorChild).thenAccept(transformed ->
                     persistenceActorChild.tell(transformed, getSender())
             );
         } else {

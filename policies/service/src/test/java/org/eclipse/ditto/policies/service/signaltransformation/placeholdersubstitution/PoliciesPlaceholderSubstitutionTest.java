@@ -21,6 +21,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
@@ -41,8 +42,6 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import com.typesafe.config.ConfigFactory;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Tests specifics of {@link PoliciesPlaceholderSubstitution}.
@@ -132,7 +131,7 @@ public final class PoliciesPlaceholderSubstitutionTest {
 
     private Signal<?> applyBlocking(final Signal<?> input,
             final PoliciesPlaceholderSubstitution substitution) {
-        final CompletionStage<Signal<?>> responseFuture = substitution.apply(input);
+        final CompletionStage<Signal<?>> responseFuture = substitution.apply(input, null);
         try {
             return responseFuture.toCompletableFuture().get();
         } catch (final InterruptedException | ExecutionException e) {

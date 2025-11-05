@@ -137,7 +137,7 @@ public class CreateThingSubstitutionStrategyTest {
     }
 
     private final Signal<?> applyBlocking(final Signal<?> input) {
-        final CompletionStage<Signal<?>> responseFuture = substitution.apply(input);
+        final CompletionStage<Signal<?>> responseFuture = substitution.apply(input, null);
         try {
             return responseFuture.toCompletableFuture().get();
         } catch (final InterruptedException | ExecutionException e) {
