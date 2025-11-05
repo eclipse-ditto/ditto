@@ -17,6 +17,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
@@ -36,7 +37,7 @@ public final class EdgeCommandForwarderActorTestSignalTransformer implements Sig
     }
 
     @Override
-    public CompletionStage<Signal<?>> apply(final Signal<?> signal) {
+    public CompletionStage<Signal<?>> apply(final Signal<?> signal, final ActorRef thisRef) {
         if (signal instanceof CreateThing) {
             return new CompletableFuture<Signal<?>>()
                     .completeOnTimeout(signal, CREATE_THING_TRANSFORMATION_DURATION.toMillis(), TimeUnit.MILLISECONDS);

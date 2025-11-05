@@ -239,7 +239,7 @@ public class EdgeCommandForwarderActor extends AbstractActor {
     }
 
     private CompletionStage<Signal<?>> applySignalTransformation(final Signal<?> signal, final ActorRef sender) {
-        return signalTransformer.apply(signal)
+        return signalTransformer.apply(signal, getSelf())
                 .whenComplete((transformed, error) -> {
                     if (error != null) {
                         final var dre = DittoRuntimeException.asDittoRuntimeException(error,

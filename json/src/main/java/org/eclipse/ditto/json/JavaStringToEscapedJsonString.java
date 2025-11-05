@@ -38,7 +38,7 @@ final class JavaStringToEscapedJsonString implements UnaryOperator<String> {
 
     static {
         ESCAPING_BUFFER_FACTOR = Double.parseDouble(
-                System.getProperty("ditto.json.escaping-buffer-factor",  "1.0")
+                System.getProperty("ditto.json.escaping-buffer-factor", "1.5")
         );
     }
 

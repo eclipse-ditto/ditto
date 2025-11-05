@@ -12,14 +12,24 @@
  */
 package org.eclipse.ditto.connectivity.service.enforcement.pre;
 
+import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.pattern.Patterns;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
+import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.WithConnectionId;
+import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CreateConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.ModifyConnection;
+import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnection;
+import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionResponse;
+import org.eclipse.ditto.json.JsonFieldSelector;
 
 import com.typesafe.config.Config;
 
@@ -28,21 +38,16 @@ import com.typesafe.config.Config;
  */
 public final class ModifyToCreateConnectionTransformer implements SignalTransformer {
 
-    private final ConnectionExistenceChecker existenceChecker;
+    private static final Duration LOCAL_ASK_TIMEOUT = Duration.ofSeconds(5);
 
     @SuppressWarnings("unused")
     ModifyToCreateConnectionTransformer(final ActorSystem actorSystem, final Config config) {
-        this(new ConnectionExistenceChecker(actorSystem));
-    }
-
-    ModifyToCreateConnectionTransformer(final ConnectionExistenceChecker existenceChecker) {
-        this.existenceChecker = existenceChecker;
     }
 
     @Override
-    public CompletionStage<Signal<?>> apply(final Signal<?> signal) {
+    public CompletionStage<Signal<?>> apply(final Signal<?> signal, final ActorRef thisRef) {
         if (signal instanceof ModifyConnection modifyConnection) {
-            return existenceChecker.checkExistence(modifyConnection)
+            return checkExistence(modifyConnection, thisRef)
                     .thenApply(exists -> {
                         if (Boolean.FALSE.equals(exists)) {
                             return CreateConnection.of(
@@ -55,6 +60,23 @@ public final class ModifyToCreateConnectionTransformer implements SignalTransfor
                     });
         } else {
             return CompletableFuture.completedFuture(signal);
+        }
+    }
+
+    private static CompletionStage<Boolean> checkExistence(final WithConnectionId signal, final ActorRef thisRef) {
+        return Patterns.ask(thisRef, RetrieveConnection.of(signal.getEntityId(),
+                        JsonFieldSelector.newInstance(Connection.JsonFields.REVISION.getPointer()), DittoHeaders.empty()
+                ), LOCAL_ASK_TIMEOUT
+        ).thenApply(ModifyToCreateConnectionTransformer::handleRetrieveConnectionResponse);
+    }
+
+    private static Boolean handleRetrieveConnectionResponse(final Object response) {
+        if (response instanceof RetrieveConnectionResponse) {
+            return Boolean.TRUE;
+        } else if (response instanceof ConnectionNotAccessibleException) {
+            return Boolean.FALSE;
+        } else {
+            throw new IllegalStateException("expect RetrieveConnectionResponse, got: " + response);
         }
     }
 

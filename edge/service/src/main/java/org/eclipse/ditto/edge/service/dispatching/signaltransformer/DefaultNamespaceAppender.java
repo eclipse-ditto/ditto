@@ -18,6 +18,7 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.japi.pf.PFBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -74,7 +75,7 @@ public final class DefaultNamespaceAppender implements SignalTransformer {
     }
 
     @Override
-    public CompletionStage<Signal<?>> apply(final Signal<?> signal) {
+    public CompletionStage<Signal<?>> apply(final Signal<?> signal, final ActorRef thisRef) {
         return CompletableFuture.completedFuture(signalTransformer.apply(signal));
     }
 

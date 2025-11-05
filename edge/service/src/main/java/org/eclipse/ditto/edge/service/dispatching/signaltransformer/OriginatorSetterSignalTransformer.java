@@ -17,6 +17,8 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
@@ -26,8 +28,6 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
 
 import com.typesafe.config.Config;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Pre-Enforcer which sets additional headers to a signal.
@@ -47,7 +47,7 @@ public final class OriginatorSetterSignalTransformer implements SignalTransforme
     }
 
     @Override
-    public CompletionStage<Signal<?>> apply(final Signal<?> signal) {
+    public CompletionStage<Signal<?>> apply(final Signal<?> signal, final ActorRef thisRef) {
         return CompletableFuture.completedFuture(setOriginatorHeader(signal));
     }
 

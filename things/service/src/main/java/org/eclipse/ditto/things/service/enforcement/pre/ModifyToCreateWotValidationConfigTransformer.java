@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
@@ -53,7 +54,7 @@ public final class ModifyToCreateWotValidationConfigTransformer implements Signa
     }
 
     @Override
-    public CompletionStage<Signal<?>> apply(final Signal<?> signal) {
+    public CompletionStage<Signal<?>> apply(final Signal<?> signal, final ActorRef thisRef) {
         if (signal instanceof ModifyWotValidationConfig modifyCmd) {
             return handleModifyWotValidationConfig(modifyCmd);
         } else if (signal instanceof MergeDynamicConfigSection mergeCmd) {
