@@ -100,14 +100,18 @@ public final class JacksonCborFactory implements CborFactory {
 
     @Override
     public byte[] toByteArray(final JsonValue jsonValue) throws IOException {
-        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream((int) jsonValue.getUpperBoundForStringSize());
         writeToOutputStream(jsonValue, baos);
         return baos.toByteArray();
     }
 
     @Override
     public ByteBuffer toByteBuffer(final JsonValue jsonValue) throws IOException {
-        return ByteBuffer.wrap(toByteArray(jsonValue));
+        final ByteBuffer buffer = ByteBuffer.allocate((int) jsonValue.getUpperBoundForStringSize());
+        final ByteBufferOutputStream outputStream = new ByteBufferOutputStream(buffer);
+        writeToOutputStream(jsonValue, outputStream);
+        buffer.flip();
+        return buffer;
     }
 
     @Override
@@ -214,12 +218,12 @@ public final class JacksonCborFactory implements CborFactory {
             case END_OBJECT:
                 throw new IOException(
                         "Encountered unexpected token " + parser.currentToken()
-                                + " at position " + parser.getCurrentLocation()
+                                + " at position " + parser.currentTokenLocation()
                                 + " while parsing CBOR value.");
 
-                // Programming errors:
-            default:
+            // Programming errors:
             case NOT_AVAILABLE:
+            default:
                 // This is a blocking parser that should never return this value.
                 throw new IOException("CBORParser returned unexpected token type: " + parser.currentToken());
 
@@ -228,24 +232,24 @@ public final class JacksonCborFactory implements CborFactory {
 
     private static JsonObject parseObject(final CBORParser parser, final ByteBuffer byteBuffer) throws IOException {
         final LinkedHashMap<String, JsonField> map = new LinkedHashMap<>();
-        final long startOffset = parser.getTokenLocation().getByteOffset();
+        final long startOffset = parser.currentTokenLocation().getByteOffset();
         while (parser.nextToken() == JsonToken.FIELD_NAME) {
             final String key = parser.currentName();
             final JsonField jsonField = JsonField.newInstance(key, parseValue(parser, byteBuffer));
             map.put(key, jsonField);
         }
-        final long endOffset = parser.getTokenLocation().getByteOffset();
+        final long endOffset = parser.currentTokenLocation().getByteOffset();
         return JsonFactory.createJsonObject(map, getBytesFromInputSource(startOffset, endOffset, byteBuffer));
     }
 
     private static JsonArray parseArray(final CBORParser parser, final ByteBuffer byteBuffer) throws IOException {
         final LinkedList<JsonValue> list = new LinkedList<>();
-        final long startOffset = parser.getTokenLocation().getByteOffset();
+        final long startOffset = parser.currentTokenLocation().getByteOffset();
         while (parser.nextToken() != JsonToken.END_ARRAY) {
             final JsonValue jsonValue = parseValue(parser, byteBuffer, parser.currentToken());
             list.add(jsonValue);
         }
-        final long endOffset = parser.getTokenLocation().getByteOffset();
+        final long endOffset = parser.currentTokenLocation().getByteOffset();
         return JsonFactory.createJsonArray(list, getBytesFromInputSource(startOffset, endOffset, byteBuffer));
     }
 
