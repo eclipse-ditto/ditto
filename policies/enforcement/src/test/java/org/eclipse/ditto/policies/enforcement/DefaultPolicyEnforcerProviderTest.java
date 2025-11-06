@@ -13,12 +13,15 @@
 package org.eclipse.ditto.policies.enforcement;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
+import org.apache.pekko.dispatch.MessageDispatcher;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.junit.Before;
@@ -29,8 +32,6 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
-
-import org.apache.pekko.dispatch.MessageDispatcher;
 
 @RunWith(MockitoJUnitRunner.class)
 public final class DefaultPolicyEnforcerProviderTest {
@@ -82,23 +83,15 @@ public final class DefaultPolicyEnforcerProviderTest {
     }
 
     @Test
-    public void getPolicyEnforcerWhenCacheLoaderThrowsException() throws Exception {
+    public void getPolicyEnforcerWhenCacheLoaderThrowsUnknownException() throws Exception {
         final PolicyId policyId = PolicyId.generateRandom();
+        final IllegalStateException cause = new IllegalStateException("This is expected");
         when(cacheLoader.asyncLoad(policyId, messageDispatcher))
-                .thenThrow(new IllegalStateException("This is expected"));
-        final Optional<PolicyEnforcer> optionalPolicyEnforcer =
-                underTest.getPolicyEnforcer(policyId).toCompletableFuture().join();
-        assertThat(optionalPolicyEnforcer).isEmpty();
-    }
-
-    @Test
-    public void getPolicyEnforcerWhenCacheLoaderReturnsFailedFuture() throws Exception {
-        final PolicyId policyId = PolicyId.generateRandom();
-        when(cacheLoader.asyncLoad(policyId, messageDispatcher))
-                .thenReturn(CompletableFuture.failedFuture(new IllegalStateException("This is expected")));
-        final Optional<PolicyEnforcer> optionalPolicyEnforcer =
-                underTest.getPolicyEnforcer(policyId).toCompletableFuture().join();
-        assertThat(optionalPolicyEnforcer).isEmpty();
+                .thenThrow(cause);
+        assertThatThrownBy(() ->
+                underTest.getPolicyEnforcer(policyId).toCompletableFuture().join()
+        ).isInstanceOf(CompletionException.class)
+                .hasCause(cause);
     }
 
 }
