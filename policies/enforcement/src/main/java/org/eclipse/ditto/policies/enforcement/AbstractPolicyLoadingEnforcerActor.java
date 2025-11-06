@@ -13,6 +13,7 @@
 package org.eclipse.ditto.policies.enforcement;
 
 import java.util.Optional;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
@@ -21,6 +22,7 @@ import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
 
 /**
  * Abstract enforcer of commands performing authorization / enforcement of incoming signals based on policy
@@ -46,6 +48,21 @@ public abstract class AbstractPolicyLoadingEnforcerActor<I extends EntityId, S e
     @Override
     protected CompletionStage<Optional<PolicyEnforcer>> providePolicyEnforcer(@Nullable final PolicyId policyId) {
         return policyEnforcerProvider.getPolicyEnforcer(policyId)
-                .exceptionally(error -> Optional.empty());
+                .exceptionally(exception -> {
+                    final Throwable cause;
+                    if (exception instanceof CompletionException completionException) {
+                        cause = completionException.getCause();
+                    } else {
+                        cause = exception;
+                    }
+
+                    if (cause instanceof PolicyNotAccessibleException) {
+                        return Optional.empty();
+                    } else if (cause instanceof RuntimeException runtimeException) {
+                        throw runtimeException;
+                    } else {
+                        throw new CompletionException(cause);
+                    }
+                });
     }
 }

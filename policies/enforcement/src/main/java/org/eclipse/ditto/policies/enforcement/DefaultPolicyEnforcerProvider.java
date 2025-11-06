@@ -58,14 +58,13 @@ final class DefaultPolicyEnforcerProvider extends AbstractPolicyEnforcerProvider
         } else {
             try {
                 return policyEnforcerCacheLoader.asyncLoad(policyId, cacheDispatcher)
-                        .thenApply(Entry::get)
-                        .exceptionally(error -> Optional.empty());
+                        .thenApply(Entry::get);
             } catch (final Exception e) {
                 LOGGER.warn(
                         "Got exception when trying to load the policy enforcer via cache loader. This is " +
                                 "unexpected", e
                 );
-                return CompletableFuture.completedFuture(Optional.empty());
+                return CompletableFuture.failedFuture(e);
             }
         }
     }
