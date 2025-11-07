@@ -83,6 +83,7 @@ spec:
             matchLabels:
               app.kubernetes.io/name: {{ $name }}-gateway
       {{- end }}
+      terminationGracePeriodSeconds: {{ .Values.gateway.terminationGracePeriodSeconds }}
       containers:
         - name: {{ .Chart.Name }}-gateway
           image: {{ printf "%s:%s" .Values.gateway.image.repository ( default .Chart.AppVersion ( default .Values.dittoTag .Values.gateway.image.tag ) ) }}
@@ -147,6 +148,9 @@ spec:
                 -XX:+UnlockExperimentalVMOptions
                 -XX:G1NewSizePercent={{ .Values.gateway.jvm.g1NewSizePercent }}
                 -XX:G1MaxNewSizePercent={{ .Values.gateway.jvm.g1MaxNewSizePercent }}
+                {{- if .Values.gateway.activateGcLogging }}
+                {{ .Values.global.gcLoggingConfig }}
+                {{- end }}
                 {{ .Values.gateway.additionalJvmOptions }}
                 {{ .Values.global.pekkoOptions }}
                 {{- if .Values.global.logging.customConfigFile.enabled }}
@@ -193,6 +197,24 @@ spec:
               value: "{{ .Values.global.featureFlags.historicalApisEnabled }}"
             - name: DITTO_DEVOPS_FEATURE_JSON_KEY_VALIDATION_ENABLED
               value: "{{ .Values.global.featureFlags.jsonKeyValidationEnabled }}"
+            - name: PEKKO_COORDINATED_SHUTDOWN_PHASES_CLUSTER_SHARDING_SHUTDOWN_REGION
+              value: "{{ .Values.gateway.config.cluster.coordinatedShutdown.phases.clusterShardingShutdownRegion.timeout }}"
+            - name: PEKKO_COORDINATED_SHUTDOWN_PHASES_CLUSTER_EXITING_TIMEOUT
+              value: "{{ .Values.gateway.config.cluster.coordinatedShutdown.phases.clusterExiting.timeout }}"
+            - name: EDGE_ASK_WITH_RETRY_ASK_TIMEOUT
+              value: "{{ .Values.gateway.config.edge.askWithRetry.askTimeout }}"
+            - name: EDGE_ASK_WITH_RETRY_ASK_RETRY_STRATEGY
+              value: "{{ .Values.gateway.config.edge.askWithRetry.retryStrategy }}"
+            - name: EDGE_ASK_WITH_RETRY_ASK_TIMEOUT_RETRIES
+              value: "{{ .Values.gateway.config.edge.askWithRetry.retryAttempts }}"
+            - name: EDGE_ASK_WITH_RETRY_ASK_FIXED_DELAY
+              value: "{{ .Values.gateway.config.edge.askWithRetry.fixedDelay }}"
+            - name: EDGE_ASK_WITH_RETRY_ASK_BACKOFF_DELAY_MIN
+              value: "{{ .Values.gateway.config.edge.askWithRetry.backOffDelay.min }}"
+            - name: EDGE_ASK_WITH_RETRY_ASK_BACKOFF_DELAY_MAX
+              value: "{{ .Values.gateway.config.edge.askWithRetry.backOffDelay.max }}"
+            - name: EDGE_ASK_WITH_RETRY_ASK_BACKOFF_DELAY_RANDOM_FACTOR
+              value: "{{ .Values.gateway.config.edge.askWithRetry.backOffDelay.randomFactor }}"
             - name: ENABLE_PRE_AUTHENTICATION
               value: "{{ or .Values.gateway.config.authentication.enablePreAuthentication (not .Values.global.jwtOnly) }}"
             - name: DEVOPS_SECURED
@@ -354,7 +376,7 @@ spec:
         {{- end }}
         {{- if .Values.gateway.extraVolumes }}
           {{- toYaml .Values.gateway.extraVolumes | nindent 8 }}
-        {{- end}}
+        {{- end }}
         - name: ditto-heap-dumps
           emptyDir: {}
 {{- end }}
