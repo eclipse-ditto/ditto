@@ -111,6 +111,7 @@ global:
     -XX:MaxMetaspaceSize=256m
     -XX:+UseG1GC
     -XX:+ParallelRefProcEnabled
+    -XX:+DisableExplicitGC
     -Djava.net.preferIPv4Stack=true
   pekkoOptions: >
     -Dpekko.management.cluster.bootstrap.contact-point-discovery.port-name=management
@@ -122,6 +123,9 @@ global:
     -Dpekko.persistence.max-concurrent-recoveries=100
     -Dpekko.cluster.sharding.updating-state-timeout=20s
     -Dpekko.cluster.shutdown-after-unsuccessful-join-seed-nodes=180s
+  # gcLoggingConfig defines the GC logging configuration applied to all Ditto services running in the JVM
+  gcLoggingConfig: >
+    -Xlog:gc*,gc+heap=debug:stdout:time,uptime,level,tags
   # timezone defines the timezone to configure the JVM with
   timezone: Europe/Berlin
   # additionalAnnotations contains additional annotations to apply to the deployment template of Ditto services
@@ -615,6 +619,8 @@ policies:
     # tag: 3.3.0
     # pullPolicy for the policies docker image
     pullPolicy: IfNotPresent
+  # activateGcLogging whether to enable GC logging for the policies service
+  activateGcLogging: false
   # additionalJvmOptions JVM options to put into JAVA_TOOL_OPTIONS
   additionalJvmOptions: ""
   # systemProps used to define arbitrary system properties for policies service
@@ -712,6 +718,8 @@ policies:
     - maxSkew: 1
       topologyKey: topology.kubernetes.io/zone
       whenUnsatisfiable: ScheduleAnyway
+  # terminationGracePeriodSeconds how much time to give the application to gracefully leave
+  terminationGracePeriodSeconds: 300
   # podMonitor configuration for policies
   podMonitor:
     # enabled configures whether Pod Monitor is enabled, then a resource to scrape policies metrics will be created
@@ -720,6 +728,20 @@ policies:
     # scrapeTimeout: 15s
   # config holds policies specific configuration
   config:
+    # cluster contains policies specific clustering config
+    cluster:
+      # coordinatedShutdown holds configuration for Pekko coordinated shutdown phases
+      coordinatedShutdown:
+        # phases contains the shutdown phases
+        phases:
+          # clusterShardingShutdownRegion configures graceful shutdown of the Cluster Sharding regions
+          clusterShardingShutdownRegion:
+            # timeout the phase-timeout for this phase
+            timeout: 15s
+          # clusterExiting configures shutdown of cluster singletons
+          clusterExiting:
+            # timeout the phase-timeout for this phase
+            timeout: 15s
     # mongodb holds mongodb specific configuration of policies
     mongodb:
       # minPoolSize configures the minimum number of connections in the connection pool
@@ -860,6 +882,24 @@ policies:
       #   authSubjects: []
     # policiesEnforcer contains configuration for Ditto "Policy Enforcers", e.g. regarding caching
     policiesEnforcer:
+      # askWithRetry contains configuration regarding "ask with retry" for policy enforcement in policies service
+      askWithRetry:
+        # askTimeout the timeout for each individual ask - when no answer to an "ask" is returned after this, a retry is done
+        askTimeout: 10s
+        # retryStrategy the strategy to apply when retrying an ask, one of: OFF, NO_DELAY, FIXED_DELAY, BACKOFF_DELAY
+        retryStrategy: BACKOFF_DELAY
+        # retryAttempts how often to retry an ask when no answer is received within the configured "askTimeout"
+        retryAttempts: 3
+        # fixedDelay the fixed delay between retries when "retryStrategy" is FIXED_DELAY
+        fixedDelay: 5s
+        # backOffDelay the backoff delay configuration when "retryStrategy" is BACKOFF_DELAY
+        backOffDelay:
+          # min the minimum delay before retrying
+          min: 100ms
+          # max the maximum delay before retrying
+          max: 10s
+          # randomFactor the randomization factor to apply to the backoff delay
+          randomFactor: 0.5
       # cache holds the configuration of policy enforcer caching
       cache:
         # enabled whether caching of policy enforcers should be enabled
@@ -901,6 +941,8 @@ things:
     # tag: 3.3.0
     # pullPolicy for the things docker image
     pullPolicy: IfNotPresent
+  # activateGcLogging whether to enable GC logging for the things service
+  activateGcLogging: false
   # additionalJvmOptions JVM options to put into JAVA_TOOL_OPTIONS
   additionalJvmOptions: ""
   # systemProps used to define arbitrary system properties for things service
@@ -998,6 +1040,8 @@ things:
     - maxSkew: 1
       topologyKey: topology.kubernetes.io/zone
       whenUnsatisfiable: ScheduleAnyway
+  # terminationGracePeriodSeconds how much time to give the application to gracefully leave
+  terminationGracePeriodSeconds: 300
   # podMonitor configuration for things
   podMonitor:
     # enabled configures whether Pod Monitor is enabled, then a resource to scrape things metrics will be created
@@ -1006,6 +1050,20 @@ things:
     # scrapeTimeout: 15s
   # config holds things specific configuration
   config:
+    # cluster contains things specific clustering config
+    cluster:
+      # coordinatedShutdown holds configuration for Pekko coordinated shutdown phases
+      coordinatedShutdown:
+        # phases contains the shutdown phases
+        phases:
+          # clusterShardingShutdownRegion configures graceful shutdown of the Cluster Sharding regions
+          clusterShardingShutdownRegion:
+            # timeout the phase-timeout for this phase
+            timeout: 15s
+          # clusterExiting configures shutdown of cluster singletons
+          clusterExiting:
+            # timeout the phase-timeout for this phase
+            timeout: 15s
     # mongodb holds mongodb specific configuration of things
     mongodb:
       # minPoolSize configures the minimum number of connections in the connection pool
@@ -1175,6 +1233,24 @@ things:
       #   thingDefinitions: []
     # policiesEnforcer contains configuration for Ditto "Policy Enforcers", e.g. regarding caching
     policiesEnforcer:
+      # askWithRetry contains configuration regarding "ask with retry" for policy enforcement in things service
+      askWithRetry:
+        # askTimeout the timeout for each individual ask - when no answer to an "ask" is returned after this, a retry is done
+        askTimeout: 10s
+        # retryStrategy the strategy to apply when retrying an ask, one of: OFF, NO_DELAY, FIXED_DELAY, BACKOFF_DELAY
+        retryStrategy: BACKOFF_DELAY
+        # retryAttempts how often to retry an ask when no answer is received within the configured "askTimeout"
+        retryAttempts: 3
+        # fixedDelay the fixed delay between retries when "retryStrategy" is FIXED_DELAY
+        fixedDelay: 5s
+        # backOffDelay the backoff delay configuration when "retryStrategy" is BACKOFF_DELAY
+        backOffDelay:
+          # min the minimum delay before retrying
+          min: 100ms
+          # max the maximum delay before retrying
+          max: 10s
+          # randomFactor the randomization factor to apply to the backoff delay
+          randomFactor: 0.5
       # cache holds the configuration of policy enforcer caching
       cache:
         # enabled whether caching of policy enforcers should be enabled
@@ -1345,6 +1421,8 @@ thingsSearch:
     # tag: 3.3.0
     # pullPolicy for the things-search docker image
     pullPolicy: IfNotPresent
+  # activateGcLogging whether to enable GC logging for the things-search service
+  activateGcLogging: false
   # additional JVM options to put into JAVA_TOOL_OPTIONS
   additionalJvmOptions: ""
   # systemProps used to define arbitrary system properties for things-search service
@@ -1442,6 +1520,8 @@ thingsSearch:
     - maxSkew: 1
       topologyKey: topology.kubernetes.io/zone
       whenUnsatisfiable: ScheduleAnyway
+  # terminationGracePeriodSeconds how much time to give the application to gracefully leave
+  terminationGracePeriodSeconds: 300
   # podMonitor configuration for things-search
   podMonitor:
     # enabled configures whether Pod Monitor is enabled, then a resource to scrape things search metrics will be created
@@ -1450,6 +1530,20 @@ thingsSearch:
     # scrapeTimeout: 15s
   # config holds things-search specific configuration
   config:
+    # cluster contains things-search specific clustering config
+    cluster:
+      # coordinatedShutdown holds configuration for Pekko coordinated shutdown phases
+      coordinatedShutdown:
+        # phases contains the shutdown phases
+        phases:
+          # clusterShardingShutdownRegion configures graceful shutdown of the Cluster Sharding regions
+          clusterShardingShutdownRegion:
+            # timeout the phase-timeout for this phase
+            timeout: 15s
+          # clusterExiting configures shutdown of cluster singletons
+          clusterExiting:
+            # timeout the phase-timeout for this phase
+            timeout: 15s
     # mongodb holds mongodb specific configuration of things-search
     mongodb:
       # maxQueryTime configures MONGO_DB_QUERY_TIMEOUT - by default 60s
@@ -1629,6 +1723,8 @@ connectivity:
     # tag: 3.3.0
     # pullPolicy for the connectivity docker image
     pullPolicy: IfNotPresent
+  # activateGcLogging whether to enable GC logging for the connectivity service
+  activateGcLogging: false
   # additional JVM options to put into JAVA_TOOL_OPTIONS
   additionalJvmOptions: ""
   # systemProps used to define arbitrary system properties for connectivity service
@@ -1726,6 +1822,8 @@ connectivity:
     - maxSkew: 1
       topologyKey: topology.kubernetes.io/zone
       whenUnsatisfiable: ScheduleAnyway
+  # terminationGracePeriodSeconds how much time to give the application to gracefully leave
+  terminationGracePeriodSeconds: 300
   # podMonitor configuration for connectivity
   podMonitor:
     # enabled configures whether Pod Monitor is enabled, then a resource to scrape connectivity metrics will be created
@@ -1734,6 +1832,20 @@ connectivity:
     # scrapeTimeout: 15s
   # config holds connectivity specific configuration
   config:
+    # cluster contains connectivity specific clustering config
+    cluster:
+      # coordinatedShutdown holds configuration for Pekko coordinated shutdown phases
+      coordinatedShutdown:
+        # phases contains the shutdown phases
+        phases:
+          # clusterShardingShutdownRegion configures graceful shutdown of the Cluster Sharding regions
+          clusterShardingShutdownRegion:
+            # timeout the phase-timeout for this phase
+            timeout: 15s
+          # clusterExiting configures shutdown of cluster singletons
+          clusterExiting:
+            # timeout the phase-timeout for this phase
+            timeout: 15s
     # mongodb holds mongodb specific configuration of connectivity
     mongodb:
       # minPoolSize configures the minimum number of connections in the connection pool
@@ -1780,6 +1892,26 @@ connectivity:
         expireAfterWrite: 4h
         # expireAfterAccess prolonged on each cache access by that duration
         expireAfterAccess: 2h
+    # edge contains edge service configuration
+    edge:
+      # askWithRetry contains configuration regarding "ask with retry" for gateway service
+      askWithRetry:
+        # askTimeout the timeout for each individual ask - when no answer to an "ask" is returned after this, a retry is done
+        askTimeout: 10s
+        # retryStrategy the strategy to apply when retrying an ask, one of: OFF, NO_DELAY, FIXED_DELAY, BACKOFF_DELAY
+        retryStrategy: BACKOFF_DELAY
+        # retryAttempts how often to retry an ask when no answer is received within the configured "askTimeout"
+        retryAttempts: 3
+        # fixedDelay the fixed delay between retries when "retryStrategy" is FIXED_DELAY
+        fixedDelay: 5s
+        # backOffDelay the backoff delay configuration when "retryStrategy" is BACKOFF_DELAY
+        backOffDelay:
+          # min the minimum delay before retrying
+          min: 100ms
+          # max the maximum delay before retrying
+          max: 10s
+          # randomFactor the randomization factor to apply to the backoff delay
+          randomFactor: 0.5
     # signalEnrichment contains configuration regarding signal enrichment (retrieval of "extra" fields to e.g. enrich events)
     signalEnrichment:
       # cache holds the configuration of signal enrichment caching
@@ -1945,6 +2077,8 @@ gateway:
   additionalLabels: {}
   # additionalAnnotations configuration for gateway
   additionalAnnotations: {}
+  # activateGcLogging whether to enable GC logging for the gateway service
+  activateGcLogging: false
   # additional JVM options to put into JAVA_TOOL_OPTIONS
   additionalJvmOptions: ""
   image:
@@ -2075,6 +2209,8 @@ gateway:
     - maxSkew: 1
       topologyKey: topology.kubernetes.io/zone
       whenUnsatisfiable: ScheduleAnyway
+  # terminationGracePeriodSeconds how much time to give the application to gracefully leave
+  terminationGracePeriodSeconds: 300
   # podMonitor configuration for gateway
   podMonitor:
     # enabled configures whether Pod Monitor is enabled, then a resource to scrape gateway metrics will be created
@@ -2083,6 +2219,20 @@ gateway:
     # scrapeTimeout: 15s
   # config holds gateway specific configuration
   config:
+    # cluster contains gateway specific clustering config
+    cluster:
+      # coordinatedShutdown holds configuration for Pekko coordinated shutdown phases
+      coordinatedShutdown:
+        # phases contains the shutdown phases
+        phases:
+          # clusterShardingShutdownRegion configures graceful shutdown of the Cluster Sharding regions
+          clusterShardingShutdownRegion:
+            # timeout the phase-timeout for this phase
+            timeout: 15s
+          # clusterExiting configures shutdown of cluster singletons
+          clusterExiting:
+            # timeout the phase-timeout for this phase
+            timeout: 15s
     # authentication contains the settings regarding authentication against the gateway
     authentication:
       # enablePreAuthentication whether Ditto "pre-authentication" should be enabled
@@ -2180,6 +2330,26 @@ gateway:
         # limit is the maximum number of messages the SSE session is allowed to receive within the configured
         #  throttling interval e.g. 100 msgs/s
         limit: 100
+    # edge contains edge service configuration
+    edge:
+      # askWithRetry contains configuration regarding "ask with retry" for gateway service
+      askWithRetry:
+        # askTimeout the timeout for each individual ask - when no answer to an "ask" is returned after this, a retry is done
+        askTimeout: 10s
+        # retryStrategy the strategy to apply when retrying an ask, one of: OFF, NO_DELAY, FIXED_DELAY, BACKOFF_DELAY
+        retryStrategy: BACKOFF_DELAY
+        # retryAttempts how often to retry an ask when no answer is received within the configured "askTimeout"
+        retryAttempts: 3
+        # fixedDelay the fixed delay between retries when "retryStrategy" is FIXED_DELAY
+        fixedDelay: 5s
+        # backOffDelay the backoff delay configuration when "retryStrategy" is BACKOFF_DELAY
+        backOffDelay:
+          # min the minimum delay before retrying
+          min: 100ms
+          # max the maximum delay before retrying
+          max: 10s
+          # randomFactor the randomization factor to apply to the backoff delay
+          randomFactor: 0.5
     # signalEnrichment contains configuration regarding signal enrichment (retrieval of "extra" fields to e.g. enrich events)
     signalEnrichment:
       # cache holds the configuration of signal enrichment caching
