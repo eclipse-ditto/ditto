@@ -12,11 +12,10 @@
  */
 package org.eclipse.ditto.edge.service.dispatching;
 
-import org.eclipse.ditto.internal.utils.cluster.ShardRegionProxyActorFactory;
-import org.eclipse.ditto.internal.utils.cluster.config.ClusterConfig;
-
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
+import org.eclipse.ditto.internal.utils.cluster.ShardRegionProxyActorFactory;
+import org.eclipse.ditto.internal.utils.cluster.config.ClusterConfig;
 
 /**
  * Create and retrieve shard region proxies.
@@ -31,7 +30,7 @@ public final class ShardRegions {
     private static final String WOT_VALIDATION_CONFIG_SHARD_REGION = "wot-validation-config";
 
     private static final String SEARCH_CLUSTER_ROLE = "things-search";
-    private static final String SEARCH_SHARD_REGION = "search-updater";
+    private static final String SEARCH_SHARD_REGION = "search-wildcard-updater";
 
     private static final String CONNECTIVITY_CLUSTER_ROLE = "connectivity";
     private static final String CONNECTIVITY_SHARD_REGION = "connection";
