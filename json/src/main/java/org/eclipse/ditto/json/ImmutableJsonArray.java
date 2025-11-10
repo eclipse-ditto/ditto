@@ -493,14 +493,17 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
         }
 
         public long upperBoundForStringSize() {
+            long max = 0L;
             if (jsonArrayStringRepresentation != null) {
-                return jsonArrayStringRepresentation.length();
+                max = jsonArrayStringRepresentation.length();
             }
             if (cborArrayRepresentation != null) {
-                return cborArrayRepresentation.length * CBOR_MAX_COMPRESSION_RATIO;
+                final long cborSize = cborArrayRepresentation.length * CBOR_MAX_COMPRESSION_RATIO;
+                if (cborSize > max) {
+                    max = cborSize;
+                }
             }
-            assert false; // this should never happen
-            return Long.MAX_VALUE;
+            return max;
         }
     }
 
