@@ -607,6 +607,7 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
                     .orElseGet(NoopCborFactory::new); // when no Service could be found -> CBOR not available
         }
 
+
         private String jsonObjectStringRepresentation;
         private byte[] cborObjectRepresentation;
         private int hashCode;
@@ -815,16 +816,18 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
         }
 
         public long upperBoundForStringSize() {
+            long max = 0L;
             if (jsonObjectStringRepresentation != null) {
-                return jsonObjectStringRepresentation.length();
+                max = jsonObjectStringRepresentation.length();
             }
             if (cborObjectRepresentation != null) {
-                return cborObjectRepresentation.length * CBOR_MAX_COMPRESSION_RATIO;
+                final long cborSize = cborObjectRepresentation.length * CBOR_MAX_COMPRESSION_RATIO;
+                if (cborSize > max) {
+                    max = cborSize;
+                }
             }
-            assert false; // this should never happen
-            return Long.MAX_VALUE;
+            return max;
         }
-
     }
 
     /**

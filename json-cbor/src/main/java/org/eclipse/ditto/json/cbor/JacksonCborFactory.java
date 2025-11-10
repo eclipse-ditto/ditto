@@ -15,6 +15,7 @@ package org.eclipse.ditto.json.cbor;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.text.MessageFormat;
 import java.util.LinkedHashMap;
@@ -100,18 +101,32 @@ public final class JacksonCborFactory implements CborFactory {
 
     @Override
     public byte[] toByteArray(final JsonValue jsonValue) throws IOException {
-        final ByteArrayOutputStream baos = new ByteArrayOutputStream((int) jsonValue.getUpperBoundForStringSize());
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream(determineSize(jsonValue));
         writeToOutputStream(jsonValue, baos);
         return baos.toByteArray();
     }
 
     @Override
     public ByteBuffer toByteBuffer(final JsonValue jsonValue) throws IOException {
-        final ByteBuffer buffer = ByteBuffer.allocate((int) jsonValue.getUpperBoundForStringSize());
+
+        final int capacity = determineSize(jsonValue);
+        final ByteBuffer buffer = ByteBuffer.allocate(capacity);
         final ByteBufferOutputStream outputStream = new ByteBufferOutputStream(buffer);
-        writeToOutputStream(jsonValue, outputStream);
-        buffer.flip();
-        return buffer;
+        try {
+            writeToOutputStream(jsonValue, outputStream);
+            buffer.flip();
+            return buffer;
+        } catch (final BufferOverflowException bufferOverflowException) {
+            System.err.println("Buffer overflow when serializing CBOR value with determined size " +
+                    "<" + capacity + ">: " + jsonValue);
+            // retry with a bigger buffer
+            final int capacityAfterOverflow = capacity * 2;
+            final ByteBuffer bufferAfterOverflow = ByteBuffer.allocate(capacityAfterOverflow);
+            final ByteBufferOutputStream outputStreamAfterOverflow = new ByteBufferOutputStream(bufferAfterOverflow);
+            writeToOutputStream(jsonValue, outputStreamAfterOverflow);
+            bufferAfterOverflow.flip();
+            return bufferAfterOverflow;
+        }
     }
 
     @Override
@@ -148,6 +163,10 @@ public final class JacksonCborFactory implements CborFactory {
             serializationContext.getJacksonGenerator().writeEndArray();
         }
         return baos.toByteArray();
+    }
+
+    private static int determineSize(final JsonValue jsonValue) {
+        return (int) jsonValue.getUpperBoundForStringSize();
     }
 
     private static void writeStartObjectWithLength(final JacksonSerializationContext serializationContext, int length)
