@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.things.service.aggregation;
 
-import java.time.Duration;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -30,12 +29,9 @@ public final class DefaultThingsAggregatorConfig implements ThingsAggregatorConf
 
     private static final String CONFIG_PATH = "things-aggregator";
 
-    private final Duration singleRetrieveThingTimeout;
     private final int maxParallelism;
 
     private DefaultThingsAggregatorConfig(final ScopedConfig config) {
-        singleRetrieveThingTimeout =
-                config.getNonNegativeAndNonZeroDurationOrThrow(ThingsAggregatorConfigValue.SINGLE_RETRIEVE_THING_TIMEOUT);
         maxParallelism = config.getPositiveIntOrThrow(ThingsAggregatorConfigValue.MAX_PARALLELISM);
     }
 
@@ -52,11 +48,6 @@ public final class DefaultThingsAggregatorConfig implements ThingsAggregatorConf
     }
 
     @Override
-    public Duration getSingleRetrieveThingTimeout() {
-        return singleRetrieveThingTimeout;
-    }
-
-    @Override
     public int getMaxParallelism() {
         return maxParallelism;
     }
@@ -70,20 +61,18 @@ public final class DefaultThingsAggregatorConfig implements ThingsAggregatorConf
             return false;
         }
         final DefaultThingsAggregatorConfig that = (DefaultThingsAggregatorConfig) o;
-        return maxParallelism == that.maxParallelism &&
-                Objects.equals(singleRetrieveThingTimeout, that.singleRetrieveThingTimeout);
+        return maxParallelism == that.maxParallelism;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(singleRetrieveThingTimeout, maxParallelism);
+        return Objects.hash(maxParallelism);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "singleRetrieveThingTimeout=" + singleRetrieveThingTimeout +
-                ", maxParallelism=" + maxParallelism +
+                "maxParallelism=" + maxParallelism +
                 "]";
     }
 

@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.things.service.aggregation;
 
-import java.time.Duration;
-
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -50,10 +48,6 @@ public final class DefaultThingsAggregatorConfigTest {
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
         final DefaultThingsAggregatorConfig underTest = DefaultThingsAggregatorConfig.of(ConfigFactory.empty());
 
-        softly.assertThat(underTest.getSingleRetrieveThingTimeout())
-                .as(ThingsAggregatorConfig.ThingsAggregatorConfigValue.SINGLE_RETRIEVE_THING_TIMEOUT.getConfigPath())
-                .isEqualTo(ThingsAggregatorConfig.ThingsAggregatorConfigValue.SINGLE_RETRIEVE_THING_TIMEOUT.getDefaultValue());
-
         softly.assertThat(underTest.getMaxParallelism())
                 .as(ThingsAggregatorConfig.ThingsAggregatorConfigValue.MAX_PARALLELISM.getConfigPath())
                 .isEqualTo(ThingsAggregatorConfig.ThingsAggregatorConfigValue.MAX_PARALLELISM.getDefaultValue());
@@ -62,10 +56,6 @@ public final class DefaultThingsAggregatorConfigTest {
     @Test
     public void underTestReturnsValuesOfConfigFile() {
         final DefaultThingsAggregatorConfig underTest = DefaultThingsAggregatorConfig.of(thingsAggregatorTestConf);
-
-        softly.assertThat(underTest.getSingleRetrieveThingTimeout())
-                .as(ThingsAggregatorConfig.ThingsAggregatorConfigValue.SINGLE_RETRIEVE_THING_TIMEOUT.getConfigPath())
-                .isEqualTo(Duration.ofSeconds(60L));
 
         softly.assertThat(underTest.getMaxParallelism())
                 .as(ThingsAggregatorConfig.ThingsAggregatorConfigValue.MAX_PARALLELISM.getConfigPath())
