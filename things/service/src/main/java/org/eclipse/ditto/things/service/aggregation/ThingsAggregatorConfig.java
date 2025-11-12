@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.things.service.aggregation;
 
-import java.time.Duration;
-
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
@@ -23,13 +21,6 @@ import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
  */
 @Immutable
 public interface ThingsAggregatorConfig {
-
-    /**
-     * Returns the timeout how long the {@code ThingsAggregatorActor} should wait for a single retrieve thing.
-     *
-     * @return the timeout.
-     */
-    Duration getSingleRetrieveThingTimeout();
 
     /**
      * Returns the maximum parallelism, that is how many {@code RetrieveThing} commands can be "in flight" at the
@@ -44,11 +35,6 @@ public interface ThingsAggregatorConfig {
      * {@code ThingsAggregatorConfig}.
      */
     enum ThingsAggregatorConfigValue implements KnownConfigValue {
-
-        /**
-         * The timeout how long the {@code ThingsAggregatorActor} should wait for a single retrieve thing.
-         */
-        SINGLE_RETRIEVE_THING_TIMEOUT("single-retrieve-thing-timeout", Duration.ofSeconds(30L)),
 
         /**
          * The maximum parallelism.
