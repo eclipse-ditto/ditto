@@ -198,7 +198,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActorWithShutdownB
 
         final CompletionStage<List<PlainJson>> o =
                 provideSource(sourceRef, thingNotAccessibleExceptionSource, thingPlainJsonSupplier)
-                        .log("retrieve-thing-response", log)
+                        .log("things-aggregator-proxy-response", log)
                         .recoverWithRetries(5, new PFBuilder<Throwable, Source<PlainJson, NotUsed>>()
                                 .match(NoSuchElementException.class, nsee -> Source.single(PlainJson.empty()))
                                 .match(RemoteStreamRefActorTerminatedException.class, rsrate -> {

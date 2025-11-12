@@ -18,24 +18,8 @@ import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
-
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
-import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
-import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.internal.utils.pekko.actors.AbstractActorWithShutdownBehavior;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
-import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThings;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
-import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 
 import org.apache.pekko.Done;
 import org.apache.pekko.actor.ActorRef;
@@ -48,7 +32,24 @@ import org.apache.pekko.stream.SourceRef;
 import org.apache.pekko.stream.SystemMaterializer;
 import org.apache.pekko.stream.javadsl.Source;
 import org.apache.pekko.stream.javadsl.StreamRefs;
-import org.apache.pekko.util.Timeout;
+import org.eclipse.ditto.base.model.entity.id.WithEntityId;
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetryCommandForwarder;
+import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.pekko.actors.AbstractActorWithShutdownBehavior;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
+import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThings;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 
 /**
  * Actor to aggregate the retrieved Things from persistence.
@@ -62,17 +63,17 @@ public final class ThingsAggregatorActor extends AbstractActorWithShutdownBehavi
 
     private final ThreadSafeDittoLoggingAdapter log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
     private final ActorRef targetActor;
-    private final java.time.Duration retrieveSingleThingTimeout;
     private final int maxParallelism;
     private final ActorRef pubSubMediator;
+    private final AskWithRetryCommandForwarder askWithRetryCommandForwarder;
 
     @SuppressWarnings("unused")
     private ThingsAggregatorActor(final ActorRef targetActor, final ThingsAggregatorConfig aggregatorConfig,
             final ActorRef pubSubMediator) {
         this.targetActor = targetActor;
         this.pubSubMediator = pubSubMediator;
-        retrieveSingleThingTimeout = aggregatorConfig.getSingleRetrieveThingTimeout();
         maxParallelism = aggregatorConfig.getMaxParallelism();
+        askWithRetryCommandForwarder = AskWithRetryCommandForwarder.get(getContext().getSystem());
     }
 
     /**
@@ -196,9 +197,24 @@ public final class ThingsAggregatorActor extends AbstractActorWithShutdownBehavi
 
                     return retrieveThing;
                 })
-                .ask(calculateParallelism(thingIds), targetActor, Jsonifiable.class,
-                        Timeout.apply(retrieveSingleThingTimeout.toMillis(), TimeUnit.MILLISECONDS))
-                .log("command-response", log)
+                .map(Command.class::cast)
+                .mapAsync(calculateParallelism(thingIds), signal ->
+                        askWithRetryCommandForwarder.askCommand(signal, targetActor)
+                            .thenApply(Jsonifiable.class::cast)
+                            .exceptionally(e ->
+                                    DittoRuntimeException.asDittoRuntimeException(e, t ->
+                                            DittoInternalErrorException.newBuilder()
+                                                    .message("Unexpected error during retrieval of Thing with ID <"
+                                                            + ((WithEntityId) signal).getEntityId() + ">: " +
+                                                            t.getMessage()
+                                                    )
+                                                    .dittoHeaders(command.getDittoHeaders())
+                                                    .cause(t)
+                                                    .build()
+                                    )
+                            )
+                )
+                .log("things-aggregator-response", log)
                 .runWith(StreamRefs.sourceRef(), SystemMaterializer.get(getContext().getSystem()).materializer());
 
         resultReceiver.tell(commandResponseSource, getSelf());
