@@ -44,9 +44,12 @@ import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOutcome;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.protocol.AdaptablePartialAccessFilter;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
+import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 
 /**
@@ -246,31 +249,102 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
             signalToMap = outboundSignalSource;
         }
 
-        final Adaptable adaptableWithoutExtra = mappingTimer.protocol(() -> protocolAdapter.toAdaptable(signalToMap));
-        final Adaptable adaptable = outboundSignal.getExtra()
-                .map(extra -> ProtocolFactory.setExtra(adaptableWithoutExtra, extra))
-                .orElse(adaptableWithoutExtra);
-
-        final var adaptableWithInternalCorrelationId = mappableSignals.stream()
-                .findFirst()
-                .map(signal -> setInternalCorrelationIdToAdaptable(adaptable, signal.getSource()))
-                .orElse(adaptable);
+        final boolean hasPartialAccessPaths = outboundSignalSource.getDittoHeaders()
+                .containsKey(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey());
 
         return mappingTimer.overall(() -> mappableSignals.stream()
                 .flatMap(mappableSignal -> {
-                    final Signal<?> source = mappableSignal.getSource();
+                    final Signal<?> source = signalToMap;
                     final List<Target> targets = mappableSignal.getTargets();
                     final List<MessageMapper> mappers = getMappers(mappableSignal.getPayloadMapping());
-                    logger.withCorrelationId(adaptableWithInternalCorrelationId)
+                    logger.withCorrelationId(source)
                             .debug("Resolved mappers for message {} to targets {}: {}", source, targets, mappers);
-                    // convert messages in the order of payload mapping and forward to result handler
-                    return mappers.stream()
-                            .flatMap(mapper -> runMapper(
-                                    mappableSignal,
-                                    adaptableWithInternalCorrelationId,
-                                    mapper,
-                                    mappingTimer
-                            ));
+                    
+                    if (targets.isEmpty()) {
+                        final TopicPath.Channel channel = ProtocolAdapter.determineChannel(source);
+                        final Adaptable adaptableForTarget = mappingTimer.protocol(() ->
+                                protocolAdapter.toAdaptable(source, channel, null));
+                        final Adaptable adaptableWithExtra = outboundSignal.getExtra()
+                                .map(extra -> ProtocolFactory.setExtra(adaptableForTarget, extra))
+                                .orElse(adaptableForTarget);
+                        final Adaptable adaptableWithCorrelationId = setInternalCorrelationIdToAdaptable(
+                                adaptableWithExtra, source);
+                        return mappers.stream()
+                                .flatMap(mapper -> runMapper(
+                                        mappableSignal,
+                                        adaptableWithCorrelationId,
+                                        mapper,
+                                        mappingTimer
+                                ));
+                    }
+                    
+                    if (hasPartialAccessPaths) {
+                        return targets.stream()
+                                .flatMap(target -> {
+                                    final AuthorizationContext targetAuthContext = target.getAuthorizationContext();
+                                    
+                                    final TopicPath.Channel channel = ProtocolAdapter.determineChannel(source);
+                                    
+                                    final Adaptable adaptableForTarget = mappingTimer.protocol(() ->
+                                            protocolAdapter.toAdaptable(source, channel, targetAuthContext));
+                                    
+                                    final Adaptable adaptableWithExtra = outboundSignal.getExtra()
+                                            .map(extra -> ProtocolFactory.setExtra(adaptableForTarget, extra))
+                                            .orElse(adaptableForTarget);
+                                    
+                                    final Adaptable adaptableWithCorrelationId = setInternalCorrelationIdToAdaptable(
+                                            adaptableWithExtra, source);
+                                    
+                                    final Adaptable filteredAdaptable = AdaptablePartialAccessFilter
+                                            .filterAdaptableForPartialAccess(adaptableWithCorrelationId, targetAuthContext);
+                                    
+                                    final TopicPath topicPath = filteredAdaptable.getTopicPath();
+                                    final boolean isThingEvent = TopicPath.Group.THINGS.equals(topicPath.getGroup()) &&
+                                            TopicPath.Criterion.EVENTS.equals(topicPath.getCriterion());
+                                    
+                                    if (isThingEvent) {
+                                        final boolean isEmptyPayload = filteredAdaptable.getPayload().getValue()
+                                                .map(v -> v.isObject() && v.asObject().isEmpty())
+                                                .orElse(true);
+                                        
+                                        if (isEmptyPayload) {
+                                            logger.withCorrelationId(source)
+                                                    .debug("Skipping event for target {} - filtered payload is empty (no access)",
+                                                            target.getAddress());
+                                            return Stream.empty();
+                                        }
+                                    }
+                                    
+                                    final Adaptable adaptableWithExternalHeaders = convertToExternalHeaders(filteredAdaptable);
+                                    
+                                    final OutboundSignal.Mappable targetMappableSignal =
+                                            OutboundSignalFactory.newMappableOutboundSignal(source,
+                                                    List.of(target), mappableSignal.getPayloadMapping());
+                                    return mappers.stream()
+                                            .flatMap(mapper -> runMapper(
+                                                    targetMappableSignal,
+                                                    adaptableWithExternalHeaders,
+                                                    mapper,
+                                                    mappingTimer
+                                            ));
+                                });
+                    } else {
+                        final TopicPath.Channel channel = ProtocolAdapter.determineChannel(source);
+                        final Adaptable adaptableForTarget = mappingTimer.protocol(() ->
+                                protocolAdapter.toAdaptable(source, channel, null));
+                        final Adaptable adaptableWithExtra = outboundSignal.getExtra()
+                                .map(extra -> ProtocolFactory.setExtra(adaptableForTarget, extra))
+                                .orElse(adaptableForTarget);
+                        final Adaptable adaptableWithCorrelationId = setInternalCorrelationIdToAdaptable(
+                                adaptableWithExtra, source);
+                        return mappers.stream()
+                                .flatMap(mapper -> runMapper(
+                                        mappableSignal,
+                                        adaptableWithCorrelationId,
+                                        mapper,
+                                        mappingTimer
+                                ));
+                    }
                 })
                 .toList());
     }
@@ -281,6 +355,23 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
         final Adaptable result;
         result = optionalCorrelationId.map(s -> adaptable.setDittoHeaders(
                 adaptable.getDittoHeaders().toBuilder().correlationId(s).build())).orElse(adaptable);
+        return result;
+    }
+
+    /**
+     * Converts internal headers in the Adaptable to external headers.
+     * This removes internal headers like PARTIAL_ACCESS_PATHS before mapping to external messages.
+     *
+     * @param adaptable the Adaptable with internal headers
+     * @return the Adaptable with external headers only
+     */
+    private Adaptable convertToExternalHeaders(final Adaptable adaptable) {
+        final org.eclipse.ditto.base.model.headers.translator.HeaderTranslator headerTranslator =
+                org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter.getHeaderTranslator();
+        final java.util.Map<String, String> externalHeaders = headerTranslator.toExternalHeaders(
+                adaptable.getDittoHeaders());
+        
+        final Adaptable result = adaptable.setDittoHeaders(DittoHeaders.of(externalHeaders));
         return result;
     }
 

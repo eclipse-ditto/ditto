@@ -62,9 +62,11 @@ import org.apache.pekko.stream.KillSwitch;
 import org.apache.pekko.stream.KillSwitches;
 import org.apache.pekko.stream.javadsl.Keep;
 import org.apache.pekko.stream.javadsl.Source;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.SignalEnrichmentFailedException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
@@ -85,6 +87,7 @@ import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
+import org.eclipse.ditto.internal.utils.protocol.JsonPartialAccessFilter;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.search.SearchSource;
 import org.eclipse.ditto.json.JsonCollectors;
@@ -642,28 +645,31 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
             if (!isLiveEvent && namespaceMatches(event, namespaces) &&
                     targetThingIdMatches(event, targetThingIds)) {
                 return jsonifiable.getSession()
-                        .map(session -> jsonifiable.retrieveExtraFields(facade)
-                                .thenApply(extra ->
-                                        Optional.of(session.mergeThingWithExtra(event, extra))
-                                                .filter(thing -> session.matchesFilter(thing, event))
-                                                .map(thing -> toNonemptyValue(thing, event, fieldPointer, fields))
-                                                .orElseGet(Collections::emptyList)
-                                )
-                                .exceptionally(error -> {
-                                    final var errorToReport =
-                                            DittoRuntimeException.asDittoRuntimeException(error, t ->
-                                                    SignalEnrichmentFailedException.newBuilder().cause(t).build());
-                                    jsonifiable.getSession().map(StreamingSession::getLogger).ifPresent(logger ->
-                                            logger.withCorrelationId(event)
-                                                    .warning("During extra fields retrieval in <SSE> session got " +
-                                                                    "exception <{}>: <{}> - emitting: <{}>",
-                                                            error.getClass().getSimpleName(), error.getMessage(),
-                                                            errorToReport
-                                                    )
-                                    );
-                                    return Collections.singletonList(errorToReport.toJson());
-                                })
-                        )
+                        .map(session -> {
+                            final AuthorizationContext subscriberAuthContext = jsonifiable.getSessionAuthorizationContext()
+                                    .orElse(null);
+                            return jsonifiable.retrieveExtraFields(facade)
+                                    .thenApply(extra ->
+                                            Optional.of(session.mergeThingWithExtra(event, extra))
+                                                    .filter(thing -> session.matchesFilter(thing, event))
+                                                    .map(thing -> toNonemptyValue(thing, event, fieldPointer, fields, subscriberAuthContext))
+                                                    .orElseGet(Collections::emptyList)
+                                    )
+                                    .exceptionally(error -> {
+                                        final var errorToReport =
+                                                DittoRuntimeException.asDittoRuntimeException(error, t ->
+                                                        SignalEnrichmentFailedException.newBuilder().cause(t).build());
+                                        jsonifiable.getSession().map(StreamingSession::getLogger).ifPresent(logger ->
+                                                logger.withCorrelationId(event)
+                                                        .warning("During extra fields retrieval in <SSE> session got " +
+                                                                        "exception <{}>: <{}> - emitting: <{}>",
+                                                                error.getClass().getSimpleName(), error.getMessage(),
+                                                                errorToReport
+                                                        )
+                                        );
+                                        return Collections.singletonList(errorToReport.toJson());
+                                    });
+                        })
                         .orElseGet(emptySupplier);
             }
         }
@@ -723,7 +729,8 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
 
     private Collection<JsonValue> toNonemptyValue(final Thing thing, final ThingEvent<?> event,
             final JsonPointer fieldPointer,
-            @Nullable final JsonFieldSelector fields) {
+            @Nullable final JsonFieldSelector fields,
+            @Nullable final AuthorizationContext subscriberAuthContext) {
         final var jsonSchemaVersion = event.getDittoHeaders()
                 .getSchemaVersion()
                 .orElse(event.getImplementedSchemaVersion());
@@ -731,9 +738,11 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                 ? thing.toJson(jsonSchemaVersion, fields)
                 : thing.toJson(jsonSchemaVersion);
 
+        final JsonObject filteredThingJson = filterJsonByPartialAccessPaths(thingJson, event, subscriberAuthContext);
+
         @Nullable final JsonValue returnValue;
         if (!fieldPointer.isEmpty()) {
-            returnValue = thingJson.getValue(fieldPointer).orElse(null);
+            returnValue = filteredThingJson.getValue(fieldPointer).orElse(null);
         } else {
             final boolean includeContext = Optional.ofNullable(fields)
                     .filter(field -> field.getPointers().stream()
@@ -741,12 +750,12 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                             .anyMatch(p -> p.equals(CONTEXT.getPointer().getRoot()))
                     ).isPresent();
             if (includeContext) {
-                returnValue = addContext(thingJson.toBuilder(), event).get(fields);
+                returnValue = addContext(filteredThingJson.toBuilder(), event).get(fields);
             } else {
-                returnValue = thingJson;
+                returnValue = filteredThingJson;
             }
         }
-        return (thingJson.isEmpty() || null == returnValue) ? Collections.emptyList() :
+        return (filteredThingJson.isEmpty() || null == returnValue) ? Collections.emptyList() :
                 Collections.singletonList(returnValue);
     }
 
@@ -821,6 +830,71 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                 .stream()
                 .map(entry -> JsonFactory.newField(JsonKey.of(entry.getKey()), JsonFactory.newValue(entry.getValue())))
                 .collect(JsonCollectors.fieldsToObject());
+    }
+
+    private JsonObject filterJsonByPartialAccessPaths(final JsonObject thingJson, final ThingEvent<?> event,
+            @Nullable final AuthorizationContext subscriberAuthContext) {
+
+        final DittoHeaders headers = event.getDittoHeaders();
+        @Nullable final String partialAccessPathsHeader = headers.get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey());
+
+        if (partialAccessPathsHeader == null || partialAccessPathsHeader.isEmpty()) {
+            return thingJson;
+        }
+
+        final JsonObject partialAccessPathsJson = JsonObject.of(partialAccessPathsHeader);
+        final Map<String, List<JsonPointer>> partialAccessPaths = JsonPartialAccessFilter.parsePartialAccessPaths(partialAccessPathsJson);
+
+        if (partialAccessPaths.isEmpty()) {
+            return thingJson;
+        }
+
+        final Set<String> subscriberSubjectIds = new java.util.LinkedHashSet<>();
+        final Set<String> allSubscriberSubjectIds = new java.util.LinkedHashSet<>();
+
+        if (subscriberAuthContext != null && !subscriberAuthContext.getAuthorizationSubjects().isEmpty()) {
+            subscriberAuthContext.getAuthorizationSubjects().forEach(subject -> {
+                final String subjectId = subject.getId();
+                allSubscriberSubjectIds.add(subjectId);
+                if (partialAccessPaths.containsKey(subjectId)) {
+                    subscriberSubjectIds.add(subjectId);
+                }
+            });
+        } else {
+            return JsonFactory.newObject();
+        }
+
+        final Set<String> readGrantedSubjectIds = new java.util.LinkedHashSet<>();
+        headers.getReadGrantedSubjects().forEach(subject -> readGrantedSubjectIds.add(subject.getId()));
+
+        if (subscriberSubjectIds.isEmpty()) {
+            final boolean hasUnrestrictedAccess = allSubscriberSubjectIds.stream()
+                    .anyMatch(subjectId ->
+                            readGrantedSubjectIds.contains(subjectId) &&
+                                    !partialAccessPaths.containsKey(subjectId)
+                    );
+
+            if (hasUnrestrictedAccess) {
+                return thingJson;
+            } else {
+                return JsonFactory.newObject();
+            }
+        }
+
+        final Set<JsonPointer> accessiblePaths = new java.util.LinkedHashSet<>();
+        for (final String subjectId : subscriberSubjectIds) {
+            final List<JsonPointer> subjectPaths = partialAccessPaths.get(subjectId);
+            if (subjectPaths != null && !subjectPaths.isEmpty()) {
+                accessiblePaths.addAll(subjectPaths);
+            }
+        }
+
+        if (accessiblePaths.isEmpty()) {
+            return JsonFactory.newObject();
+        }
+
+        final JsonObject filteredJson = JsonPartialAccessFilter.filterJsonByPaths(thingJson, accessiblePaths);
+        return filteredJson;
     }
 
 }

@@ -104,6 +104,7 @@ import org.eclipse.ditto.internal.utils.pekko.controlflow.Filter;
 import org.eclipse.ditto.internal.utils.pekko.controlflow.LimitRateByRejection;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.protocol.AdaptablePartialAccessFilter;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
@@ -121,6 +122,7 @@ import org.eclipse.ditto.policies.model.signals.commands.PolicyErrorResponse;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.JsonifiableAdaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
+import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.protocol.mappingstrategies.IllegalAdaptableException;
 import org.eclipse.ditto.things.model.ThingId;
@@ -762,11 +764,36 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 );
             }
 
-            final Adaptable adaptable = jsonifiableToAdaptable(jsonifiable, adapter);
+            @Nullable final AuthorizationContext subscriberAuthContext = sessionedJsonifiable.getSession()
+                    .map(session -> sessionedJsonifiable.getSessionAuthorizationContext()
+                            .orElse(sessionedJsonifiable.getDittoHeaders().getAuthorizationContext()))
+                    .orElse(null);
+            
+            final Adaptable adaptable = jsonifiableToAdaptable(jsonifiable, adapter, subscriberAuthContext);
+            
             final CompletionStage<JsonObject> extraFuture = sessionedJsonifiable.retrieveExtraFields(facade);
             return extraFuture.<Collection<String>>thenApply(extra -> {
                 if (matchesFilter(sessionedJsonifiable, extra)) {
-                    return Collections.singletonList(toJsonStringWithExtra(adaptable, extra));
+                    final Adaptable filteredAdaptable = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+                            adaptable, subscriberAuthContext);
+                    
+                    final boolean isEmptyPayload = filteredAdaptable.getPayload().getValue()
+                            .map(value -> {
+                                if (value.isObject()) {
+                                    final JsonObject obj = value.asObject();
+                                    return obj.isEmpty();
+                                }
+                                return false;
+                            })
+                            .orElse(true);
+                    
+                    if (isEmptyPayload) {
+                        issuePotentialWeakAcknowledgements(sessionedJsonifiable);
+                        sessionedJsonifiable.finishSpan();
+                        return Collections.emptyList();
+                    }
+                    
+                    return Collections.singletonList(toJsonStringWithExtra(filteredAdaptable, extra));
                 }
                 issuePotentialWeakAcknowledgements(sessionedJsonifiable);
                 sessionedJsonifiable.finishSpan();
@@ -826,9 +853,12 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         return Collections.singletonList(errorAdaptable.toJsonString());
     }
 
-    private static String toJsonStringWithExtra(final Adaptable adaptable, final JsonObject extra) {
+    private String toJsonStringWithExtra(final Adaptable adaptable, final JsonObject extra) {
         final Adaptable enrichedAdaptable = extra.isEmpty() ? adaptable : ProtocolFactory.setExtra(adaptable, extra);
-        return ProtocolFactory.wrapAsJsonifiableAdaptable(enrichedAdaptable).toJsonString();
+        final DittoHeaders internalHeaders = enrichedAdaptable.getDittoHeaders();
+        final Map<String, String> externalHeaders = headerTranslator.toExternalHeaders(internalHeaders);
+        final Adaptable adaptableWithExternalHeaders = enrichedAdaptable.setDittoHeaders(DittoHeaders.of(externalHeaders));
+        return ProtocolFactory.wrapAsJsonifiableAdaptable(adaptableWithExternalHeaders).toJsonString();
     }
 
     /**
@@ -884,10 +914,14 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     }
 
     private static Adaptable jsonifiableToAdaptable(final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable,
-            final ProtocolAdapter adapter) {
+            final ProtocolAdapter adapter, @Nullable final AuthorizationContext subscriberContext) {
         final Adaptable adaptable;
-        if (jsonifiable instanceof Signal) {
-            adaptable = adapter.toAdaptable((Signal<?>) jsonifiable);
+        final TopicPath.Channel channel = jsonifiable instanceof Signal signal 
+                ? ProtocolAdapter.determineChannel(signal) 
+                : TopicPath.Channel.TWIN;
+        
+        if (jsonifiable instanceof Signal signal) {
+            adaptable = adapter.toAdaptable(signal, channel, subscriberContext);
         } else if (jsonifiable instanceof DittoRuntimeException dittoRuntimeException) {
             final Signal<?> signal;
             if (jsonifiable instanceof PolicyException) {
@@ -897,7 +931,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             } else {
                 signal = buildThingErrorResponse(dittoRuntimeException);
             }
-            adaptable = adapter.toAdaptable(signal);
+            adaptable = adapter.toAdaptable(signal, channel);
         } else {
             throw new IllegalArgumentException("Jsonifiable was neither Signal nor DittoRuntimeException: " +
                     jsonifiable.getClass().getSimpleName());

@@ -15,6 +15,7 @@ package org.eclipse.ditto.things.service.persistence.actors.enrichment;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -31,6 +32,7 @@ import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLogger;
@@ -58,7 +60,9 @@ import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.rql.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.common.config.PreDefinedExtraFieldsConfig;
+import org.eclipse.ditto.things.service.utils.PartialAccessPathCalculator;
 
 /**
  * Encapsulates functionality in order to perform a "pre-defined" {@code extraFields} enrichment via DittoHeaders of
@@ -92,6 +96,21 @@ public record PreDefinedExtraFieldsEnricher(PolicyEnforcerProvider policyEnforce
             @Nullable final PolicyId policyId,
             final T withDittoHeaders
     ) {
+        final CompletionStage<T> partialAccessPathsStage;
+        if (null != thing && withDittoHeaders instanceof ThingEvent<?> thingEvent) {
+            partialAccessPathsStage = enrichWithPartialAccessPaths(thingEvent, thing, policyId)
+                    .thenApply(partialAccessPathsJson -> {
+                        final DittoHeaders newHeaders = withDittoHeaders.getDittoHeaders()
+                                .toBuilder()
+                                .putHeader(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey(),
+                                        partialAccessPathsJson.toString())
+                                .build();
+                        return withDittoHeaders.setDittoHeaders(newHeaders);
+                    });
+        } else {
+            partialAccessPathsStage = CompletableFuture.completedStage(withDittoHeaders);
+        }
+
         if (null != thing && !preDefinedExtraFieldsConfigs.isEmpty()) {
             final List<PreDefinedExtraFieldsConfig> matchingPreDefinedFieldsConfigs =
                     preDefinedExtraFieldsConfigs.stream()
@@ -111,26 +130,29 @@ public record PreDefinedExtraFieldsEnricher(PolicyEnforcerProvider policyEnforce
                         combinedPointerSet.addAll(b.getPointers());
                         return JsonFactory.newFieldSelector(combinedPointerSet);
                     });
-            return buildPredefinedExtraFieldsHeaderReadGrantObject(policyId, combinedPredefinedExtraFields, thing)
-                    .thenApply(predefinedExtraFieldsHeaderReadGrantObject ->
-                            withDittoHeaders.setDittoHeaders(withDittoHeaders.getDittoHeaders()
-                                    .toBuilder()
-                                    .putHeader(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS.getKey(),
-                                            buildPredefinedExtraFieldsHeaderList(combinedPredefinedExtraFields)
+            return partialAccessPathsStage.thenCompose(enrichedWithPartialAccessPaths ->
+                    buildPredefinedExtraFieldsHeaderReadGrantObject(policyId, combinedPredefinedExtraFields, thing)
+                            .thenApply(result ->
+                                    enrichedWithPartialAccessPaths.setDittoHeaders(
+                                            enrichedWithPartialAccessPaths.getDittoHeaders()
+                                                    .toBuilder()
+                                                    .putHeader(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS.getKey(),
+                                                            buildPredefinedExtraFieldsHeaderList(combinedPredefinedExtraFields)
+                                                    )
+                                                    .putHeader(
+                                                            DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT.getKey(),
+                                                            result
+                                                    )
+                                                    .putHeader(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_OBJECT.getKey(),
+                                                            buildPredefinedExtraFieldsHeaderObject(thing,
+                                                                    combinedPredefinedExtraFields).toString()
+                                                    )
+                                                    .build()
                                     )
-                                    .putHeader(
-                                            DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT.getKey(),
-                                            predefinedExtraFieldsHeaderReadGrantObject
-                                    )
-                                    .putHeader(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_OBJECT.getKey(),
-                                            buildPredefinedExtraFieldsHeaderObject(thing,
-                                                    combinedPredefinedExtraFields).toString()
-                                    )
-                                    .build()
                             )
-                    );
+            );
         } else {
-            return CompletableFuture.completedStage(withDittoHeaders);
+            return partialAccessPathsStage;
         }
     }
 
@@ -271,6 +293,38 @@ public record PreDefinedExtraFieldsEnricher(PolicyEnforcerProvider policyEnforce
                     )
             );
         }
+    }
+
+    /**
+     * Enriches a ThingEvent with partial access paths header.
+     *
+     * @param thingEvent the ThingEvent to enrich
+     * @param thing the current Thing state
+     * @param policyId the Policy ID
+     * @return CompletionStage with the partial access paths JSON object
+     */
+    private CompletionStage<JsonObject> enrichWithPartialAccessPaths(
+            final ThingEvent<?> thingEvent,
+            final Thing thing,
+            @Nullable final PolicyId policyId
+    ) {
+        LOGGER.debug("Enriching event '{}' (thingId: {}) with partial access paths, policyId: {}",
+                thingEvent.getType(), thingEvent.getEntityId(), policyId);
+        return policyEnforcerProvider.getPolicyEnforcer(policyId)
+                .thenApply(policyEnforcerOpt -> {
+                    if (policyEnforcerOpt.isEmpty()) {
+                        LOGGER.warn("No policy enforcer found for policyId: {}, returning empty partial access paths",
+                                policyId);
+                        return JsonFactory.newObject();
+                    }
+                    final Map<String, List<JsonPointer>> partialAccessPaths =
+                            PartialAccessPathCalculator.calculatePartialAccessPaths(
+                                    thingEvent, thing, policyEnforcerOpt.get());
+                    final JsonObject result = PartialAccessPathCalculator.toJsonObject(partialAccessPaths);
+                    LOGGER.debug("Calculated partial access paths for event '{}' (thingId: {}): {} subjects with partial access, result: {}",
+                            thingEvent.getType(), thingEvent.getEntityId(), partialAccessPaths.size(), result);
+                    return result;
+                });
     }
 
     private static JsonObject buildPredefinedExtraFieldsHeaderObject(

@@ -624,6 +624,23 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
             HeaderValueValidators.getJsonObjectValidator()),
 
     /**
+     * Internal header containing partial access paths for subjects with partial READ permissions.
+     * Maps subject IDs to arrays of JsonPointer paths that each subject can read.
+     * Used to enable partial change notifications for subjects with restricted READ permissions.
+     * <p>
+     * Key: {@code "ditto-partial-access-paths"}, Java type: {@link JsonObject}.
+     * Format: {@code {"subject1": ["/path1", "/path2"], "subject2": ["/path3"]}}
+     * </p>
+     *
+     * @since 3.9.0
+     */
+    PARTIAL_ACCESS_PATHS("ditto-partial-access-paths",
+            JsonObject.class,
+            false,
+            false,
+            HeaderValueValidators.getJsonObjectValidator()),
+
+    /**
      * Internal header containing pre-defined {@code extraFields} as JSON object sent along for emitted thing event.
      *
      * @since 3.7.0

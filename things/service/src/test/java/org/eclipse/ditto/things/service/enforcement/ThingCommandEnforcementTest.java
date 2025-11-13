@@ -353,7 +353,8 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
 
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
 
-            final ThingCommand<?> expectedReadCommand = addReadSubjectHeader(conditionalRetrieveThing1);
+            final ThingCommand<?> expectedReadCommand = addReadSubjectHeader(conditionalRetrieveThing1,
+                    SubjectId.newInstance(GOOGLE, TestSetup.SUBJECT_ID));
             thingPersistenceActorProbe.expectMsg(expectedReadCommand);
             final RetrieveThingResponse retrieveThingResponse = RetrieveThingResponse.of(THING_ID, thing, headers());
             thingPersistenceActorProbe.reply(retrieveThingResponse);

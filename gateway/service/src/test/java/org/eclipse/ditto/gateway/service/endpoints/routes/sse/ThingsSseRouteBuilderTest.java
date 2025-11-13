@@ -36,16 +36,29 @@ import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.things.model.Attributes;
+import org.eclipse.ditto.things.model.Feature;
+import org.eclipse.ditto.things.model.FeatureProperties;
+import org.eclipse.ditto.things.model.Features;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
+import org.eclipse.ditto.things.model.signals.events.ThingModified;
+import org.eclipse.ditto.things.model.signals.events.ThingModifiedEvent;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.StreamThings;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import java.lang.reflect.Method;
+import java.util.List;
 
 import com.typesafe.config.ConfigFactory;
 
@@ -311,6 +324,130 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                                         Collections.emptySet()))
                         .withExtraFields(extraFields)
                         .build());
+    }
+
+    @Test
+    public void filterJsonByPartialAccessPathsFiltersCorrectlyForPartialReader() throws Exception {
+        final Thing thing = Thing.newBuilder()
+                .setId(ThingId.of("test:thing"))
+                .setAttributes(Attributes.newBuilder().set("foo", "bar").build())
+                .setFeatures(Features.newBuilder()
+                        .set(Feature.newBuilder()
+                                .properties(FeatureProperties.newBuilder()
+                                        .set("baz", 42)
+                                        .set("qux", 100)
+                                        .build())
+                                .withId("fluxCompensator")
+                                .build())
+                        .build())
+                .build();
+        final AuthorizationSubject partialReader = AuthorizationSubject.newInstance("test:partial-reader");
+
+        final DittoHeaders headers = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey(),
+                        "{\"test:partial-reader\":[\"/attributes\",\"/attributes/foo\",\"/features/fluxCompensator/properties/baz\"]}")
+                .readGrantedSubjects(Collections.singletonList(partialReader))
+                .build();
+
+        final ThingModifiedEvent<?> event = ThingModified.of(thing, 1L, null, headers, null);
+
+        final AuthorizationContext subscriberAuthContext = AuthorizationContext.newInstance(
+                DittoAuthorizationContextType.UNSPECIFIED, partialReader);
+
+        final JsonObject filtered = filterJsonByPartialAccessPaths(thing, event, subscriberAuthContext);
+
+        assertThat(filtered.getValue("thingId")).isEmpty(); // Not in accessible paths
+        assertThat(filtered.getValue("attributes")).isPresent();
+        assertThat(filtered.getValue("attributes").get().asObject().getValue("foo")).isPresent();
+        assertThat(filtered.getValue("features")).isPresent();
+        assertThat(filtered.getValue("features").get().asObject().getValue("fluxCompensator")).isPresent();
+        assertThat(filtered.getValue("features").get().asObject()
+                .getValue("fluxCompensator").get().asObject()
+                .getValue("properties").get().asObject()
+                .getValue("baz")).isPresent();
+        assertThat(filtered.getValue("policyId")).isEmpty();
+    }
+
+    @Test
+    public void filterJsonByPartialAccessPathsReturnsFullPayloadForUnrestrictedReader() throws Exception {
+        final Thing thing = Thing.newBuilder().setId(ThingId.of("test:thing")).build();
+        final AuthorizationSubject fullReader = AuthorizationSubject.newInstance("test:full-reader");
+        final AuthorizationSubject partialReader = AuthorizationSubject.newInstance("test:partial-reader");
+
+        final DittoHeaders headers = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey(),
+                        "{\"test:partial-reader\":[\"/attributes\"]}")
+                .readGrantedSubjects(List.of(fullReader, partialReader))
+                .build();
+
+        final ThingModifiedEvent<?> event = ThingModified.of(thing, 1L, null, headers, null);
+
+        final AuthorizationContext subscriberAuthContext = AuthorizationContext.newInstance(
+                DittoAuthorizationContextType.UNSPECIFIED, fullReader);
+
+        final JsonObject filtered = filterJsonByPartialAccessPaths(thing, event, subscriberAuthContext);
+
+        assertThat(filtered).isEqualTo(thing.toJson());
+    }
+
+    @Test
+    public void filterJsonByPartialAccessPathsReturnsEmptyForNoAccessReader() throws Exception {
+        final Thing thing = Thing.newBuilder().setId(ThingId.of("test:thing")).build();
+        final AuthorizationSubject partialReader = AuthorizationSubject.newInstance("test:partial-reader");
+        final AuthorizationSubject noAccessReader = AuthorizationSubject.newInstance("test:no-access");
+
+        final DittoHeaders headers = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey(),
+                        "{\"test:partial-reader\":[\"/attributes\"]}")
+                .readGrantedSubjects(Collections.singletonList(partialReader))
+                .build();
+
+        final ThingModifiedEvent<?> event = ThingModified.of(thing, 1L, null, headers, null);
+
+        final AuthorizationContext subscriberAuthContext = AuthorizationContext.newInstance(
+                DittoAuthorizationContextType.UNSPECIFIED, noAccessReader);
+
+        final JsonObject filtered = filterJsonByPartialAccessPaths(thing, event, subscriberAuthContext);
+
+        assertThat(filtered).isEmpty();
+    }
+
+    @Test
+    public void filterJsonByPartialAccessPathsReturnsOriginalWhenNoHeader() throws Exception {
+        final Thing thing = Thing.newBuilder().setId(ThingId.of("test:thing")).build();
+        final AuthorizationSubject reader = AuthorizationSubject.newInstance("test:reader");
+
+        final DittoHeaders headers = DittoHeaders.newBuilder()
+                .readGrantedSubjects(Collections.singletonList(reader))
+                .build();
+
+        final ThingModifiedEvent<?> event = ThingModified.of(thing, 1L, null, headers, null);
+
+        final AuthorizationContext subscriberAuthContext = AuthorizationContext.newInstance(
+                DittoAuthorizationContextType.UNSPECIFIED, reader);
+
+        final JsonObject filtered = filterJsonByPartialAccessPaths(thing, event, subscriberAuthContext);
+
+        assertThat(filtered).isEqualTo(thing.toJson());
+    }
+
+    /**
+     * Helper method to test the private filterJsonByPartialAccessPaths method using reflection.
+     */
+    private JsonObject filterJsonByPartialAccessPaths(final Thing thing,
+            final ThingModifiedEvent<?> event,
+            final AuthorizationContext subscriberAuthContext) throws Exception {
+        final ThingsSseRouteBuilder routeBuilder = ThingsSseRouteBuilder.getInstance(
+                actorSystem, streamingActor.ref(), streamingConfig, proxyActor.ref(), HeaderTranslator.empty());
+        final Method filterMethod = ThingsSseRouteBuilder.class.getDeclaredMethod(
+                "filterJsonByPartialAccessPaths",
+                JsonObject.class,
+                org.eclipse.ditto.things.model.signals.events.ThingEvent.class,
+                AuthorizationContext.class);
+        filterMethod.setAccessible(true);
+
+        final JsonObject thingJson = thing.toJson();
+        return (JsonObject) filterMethod.invoke(routeBuilder, thingJson, event, subscriberAuthContext);
     }
 
     /*
