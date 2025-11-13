@@ -16,10 +16,15 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Map;
 
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
@@ -159,6 +164,40 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
         final Map<String, String> externalHeaders = headerTranslator.toExternalHeaders(adaptable.getDittoHeaders());
 
         return adaptable.setDittoHeaders(DittoHeaders.of(externalHeaders));
+    }
+
+    @Override
+    public Adaptable toAdaptable(final T signal, final TopicPath.Channel channel,
+            @Nullable final AuthorizationContext subscriberContext) {
+        final Adaptable adaptable = mapSignalToAdaptable(signal, channel);
+
+        final DittoHeaders originalHeaders;
+        if (signal instanceof Signal) {
+            originalHeaders = ((Signal<?>) signal).getDittoHeaders();
+        } else {
+            originalHeaders = adaptable.getDittoHeaders();
+        }
+        final DittoHeaders adaptableHeaders = adaptable.getDittoHeaders();
+        final DittoHeadersBuilder mergedHeadersBuilder = adaptableHeaders.toBuilder();
+
+        originalHeaders.entrySet().stream()
+                .filter(entry -> !adaptableHeaders.containsKey(entry.getKey()))
+                .forEach(entry -> mergedHeadersBuilder.putHeader(entry.getKey(), entry.getValue()));
+
+        final Adaptable adaptableWithPreservedHeaders = ProtocolFactory.newAdaptableBuilder(adaptable)
+                .withHeaders(mergedHeadersBuilder.build())
+                .build();
+
+        // When subscriberContext is provided, preserve internal headers for filtering
+        // They will be converted to external headers after filtering is applied
+        if (subscriberContext != null) {
+            return adaptableWithPreservedHeaders;
+        }
+
+        final Map<String, String> externalHeaders = headerTranslator.toExternalHeaders(
+                adaptableWithPreservedHeaders.getDittoHeaders());
+        final Adaptable result = adaptableWithPreservedHeaders.setDittoHeaders(DittoHeaders.of(externalHeaders));
+        return result;
     }
 
     /**
