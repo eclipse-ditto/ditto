@@ -88,6 +88,7 @@ import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.protocol.JsonPartialAccessFilter;
+import org.eclipse.ditto.internal.utils.protocol.PartialAccessPathResolver;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.search.SearchSource;
 import org.eclipse.ditto.json.JsonCollectors;
@@ -842,57 +843,19 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
             return thingJson;
         }
 
-        final JsonObject partialAccessPathsJson = JsonObject.of(partialAccessPathsHeader);
-        final Map<String, List<JsonPointer>> partialAccessPaths = JsonPartialAccessFilter.parsePartialAccessPaths(partialAccessPathsJson);
+        final PartialAccessPathResolver.AccessiblePathsResult result =
+                PartialAccessPathResolver.resolveAccessiblePathsFromHeader(
+                        partialAccessPathsHeader, subscriberAuthContext, headers);
 
-        if (partialAccessPaths.isEmpty()) {
+        if (result.hasUnrestrictedAccess()) {
             return thingJson;
         }
 
-        final Set<String> subscriberSubjectIds = new java.util.LinkedHashSet<>();
-        final Set<String> allSubscriberSubjectIds = new java.util.LinkedHashSet<>();
-
-        if (subscriberAuthContext != null && !subscriberAuthContext.getAuthorizationSubjects().isEmpty()) {
-            subscriberAuthContext.getAuthorizationSubjects().forEach(subject -> {
-                final String subjectId = subject.getId();
-                allSubscriberSubjectIds.add(subjectId);
-                if (partialAccessPaths.containsKey(subjectId)) {
-                    subscriberSubjectIds.add(subjectId);
-                }
-            });
-        } else {
+        if (!result.shouldFilter()) {
             return JsonFactory.newObject();
         }
 
-        final Set<String> readGrantedSubjectIds = new java.util.LinkedHashSet<>();
-        headers.getReadGrantedSubjects().forEach(subject -> readGrantedSubjectIds.add(subject.getId()));
-
-        if (subscriberSubjectIds.isEmpty()) {
-            final boolean hasUnrestrictedAccess = allSubscriberSubjectIds.stream()
-                    .anyMatch(subjectId ->
-                            readGrantedSubjectIds.contains(subjectId) &&
-                                    !partialAccessPaths.containsKey(subjectId)
-                    );
-
-            if (hasUnrestrictedAccess) {
-                return thingJson;
-            } else {
-                return JsonFactory.newObject();
-            }
-        }
-
-        final Set<JsonPointer> accessiblePaths = new java.util.LinkedHashSet<>();
-        for (final String subjectId : subscriberSubjectIds) {
-            final List<JsonPointer> subjectPaths = partialAccessPaths.get(subjectId);
-            if (subjectPaths != null && !subjectPaths.isEmpty()) {
-                accessiblePaths.addAll(subjectPaths);
-            }
-        }
-
-        if (accessiblePaths.isEmpty()) {
-            return JsonFactory.newObject();
-        }
-
+        final Set<JsonPointer> accessiblePaths = result.getAccessiblePaths();
         final JsonObject filteredJson = JsonPartialAccessFilter.filterJsonByPaths(thingJson, accessiblePaths);
         return filteredJson;
     }
