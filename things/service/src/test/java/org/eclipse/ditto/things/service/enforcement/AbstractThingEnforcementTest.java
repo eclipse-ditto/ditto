@@ -20,7 +20,9 @@ import java.nio.charset.Charset;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.pekko.actor.ActorIdentity;
@@ -70,6 +72,8 @@ abstract class AbstractThingEnforcementTest {
                 "org.apache.pekko.cluster.ClusterActorRefProvider")).withFallback(ConfigFactory.load(
                 "test")));
         policyEnforcerProvider = Mockito.mock(PolicyEnforcerProvider.class);
+        Mockito.when(policyEnforcerProvider.getPolicyEnforcer(Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(Optional.empty()));
         pubSubMediatorProbe = createPubSubMediatorProbe();
         thingPersistenceActorProbe = createThingPersistenceActorProbe();
         policiesShardRegionProbe = getTestProbe(createUniqueName("policiesShardRegionProbe-"));
