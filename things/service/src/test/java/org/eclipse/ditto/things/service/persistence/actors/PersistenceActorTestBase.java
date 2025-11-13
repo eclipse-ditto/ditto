@@ -75,9 +75,6 @@ import org.slf4j.Logger;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-
 /**
  * Base test class for testing persistence actors of the things persistence.
  */
@@ -171,8 +168,6 @@ public abstract class PersistenceActorTestBase {
     @Before
     public void setup() {
         policyEnforcerProvider = Mockito.mock(PolicyEnforcerProvider.class);
-        Mockito.when(policyEnforcerProvider.getPolicyEnforcer(Mockito.any()))
-                .thenReturn(CompletableFuture.completedFuture(Optional.empty()));
     }
 
     protected static ThingConfig getThingConfig(final Config testConfig) {

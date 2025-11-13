@@ -13,7 +13,6 @@
 package org.eclipse.ditto.things.service.persistence.actors.enrichment;
 
 import static org.assertj.core.api.CompletableFutureAssert.assertThatCompletionStage;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -103,8 +102,6 @@ public final class PreDefinedExtraFieldsEnricherTest {
     @Before
     public void setupTest() {
         policyEnforcerProvider = mock(PolicyEnforcerProvider.class);
-        when(policyEnforcerProvider.getPolicyEnforcer(any()))
-                .thenReturn(CompletableFuture.completedFuture(Optional.empty()));
         when(policyEnforcerProvider.getPolicyEnforcer(KNOWN_POLICY_ID))
                 .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(KNOWN_POLICY))));
     }

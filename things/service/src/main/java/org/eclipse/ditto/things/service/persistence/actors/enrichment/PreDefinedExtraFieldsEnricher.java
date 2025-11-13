@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -199,7 +200,13 @@ public record PreDefinedExtraFieldsEnricher(PolicyEnforcerProvider policyEnforce
             final JsonFieldSelector preDefinedExtraFields,
             final Thing thing
     ) {
-        return policyEnforcerProvider.getPolicyEnforcer(policyId)
+        final CompletionStage<Optional<PolicyEnforcer>> policyEnforcerStage = policyEnforcerProvider.getPolicyEnforcer(policyId);
+        if (policyEnforcerStage == null) {
+            LOGGER.warn("PolicyEnforcerProvider.getPolicyEnforcer returned null for policyId: {}, returning empty read grant object",
+                    policyId);
+            return CompletableFuture.completedFuture(JsonFactory.newObject().toString());
+        }
+        return policyEnforcerStage
                 .thenApply(policyEnforcerOpt ->
                         policyEnforcerOpt.map(policyEnforcer ->
                                 StreamSupport.stream(preDefinedExtraFields.spliterator(), false)
@@ -310,7 +317,13 @@ public record PreDefinedExtraFieldsEnricher(PolicyEnforcerProvider policyEnforce
     ) {
         LOGGER.debug("Enriching event '{}' (thingId: {}) with partial access paths, policyId: {}",
                 thingEvent.getType(), thingEvent.getEntityId(), policyId);
-        return policyEnforcerProvider.getPolicyEnforcer(policyId)
+        final CompletionStage<Optional<PolicyEnforcer>> policyEnforcerStage = policyEnforcerProvider.getPolicyEnforcer(policyId);
+        if (policyEnforcerStage == null) {
+            LOGGER.warn("PolicyEnforcerProvider.getPolicyEnforcer returned null for policyId: {}, returning empty partial access paths",
+                    policyId);
+            return CompletableFuture.completedFuture(JsonFactory.newObject());
+        }
+        return policyEnforcerStage
                 .thenApply(policyEnforcerOpt -> {
                     if (policyEnforcerOpt.isEmpty()) {
                         LOGGER.warn("No policy enforcer found for policyId: {}, returning empty partial access paths",
