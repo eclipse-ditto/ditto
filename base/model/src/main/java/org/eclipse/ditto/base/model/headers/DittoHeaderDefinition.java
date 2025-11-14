@@ -116,7 +116,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * </p>
      * @since 2.4.0
      */
-    ACCEPT("accept", String.class, true, true, HeaderValueValidators.getNoOpValidator()),
+    ACCEPT("accept", String.class, true, false, HeaderValueValidators.getNoOpValidator()),
 
     /**
      * Header definition for the reply to address. MUST be lower-case.
