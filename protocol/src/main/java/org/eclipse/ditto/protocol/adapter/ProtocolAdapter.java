@@ -16,6 +16,9 @@ import static org.eclipse.ditto.protocol.TopicPath.Channel.LIVE;
 import static org.eclipse.ditto.protocol.TopicPath.Channel.NONE;
 import static org.eclipse.ditto.protocol.TopicPath.Channel.TWIN;
 
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.announcements.Announcement;
@@ -63,6 +66,18 @@ public interface ProtocolAdapter {
      * @since 1.1.0
      */
     Adaptable toAdaptable(Signal<?> signal, TopicPath.Channel channel);
+
+    /**
+     * Maps the given {@code Signal} to an {@code Adaptable} and optionally preserves internal headers for filtering.
+     *
+     * @param signal the signal.
+     * @param channel the channel to use when converting toAdaptable. This will overwrite any channel header in {@code signal}.
+     * @param subscriberContext the authorization context of the subscriber (may be null).
+     * @return the adaptable with preserved internal headers if subscriberContext is provided.
+     * @throws org.eclipse.ditto.protocol.UnknownSignalException if the passed Signal was not supported by the ProtocolAdapter
+     * @since 3.9.0
+     */
+    Adaptable toAdaptable(Signal<?> signal, TopicPath.Channel channel, @Nullable AuthorizationContext subscriberContext);
 
     /**
      * Maps the given {@code Signal} to its {@code TopicPath}.
