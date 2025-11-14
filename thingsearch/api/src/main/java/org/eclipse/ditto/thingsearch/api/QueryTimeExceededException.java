@@ -38,11 +38,11 @@ public final class QueryTimeExceededException extends DittoRuntimeException impl
      */
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "query.time.exceeded";
 
-    private static final HttpStatus STATUS_CODE = HttpStatus.GATEWAY_TIMEOUT;
+    private static final HttpStatus STATUS_CODE = HttpStatus.REQUEST_TIMEOUT;
 
-    private static final String DEFAULT_MESSAGE = "The request took too long to process.";
+    private static final String DEFAULT_MESSAGE = "The search request took too long to process.";
 
-    private static final String DEFAULT_DESCRIPTION = "Optimize the request and try again later.";
+    private static final String DEFAULT_DESCRIPTION = "Optimize the query, e.g. reducing use of wildcards in 'like' or amount of predicates and/or try again later.";
 
     private QueryTimeExceededException(final DittoHeaders dittoHeaders,
             @Nullable final String message,

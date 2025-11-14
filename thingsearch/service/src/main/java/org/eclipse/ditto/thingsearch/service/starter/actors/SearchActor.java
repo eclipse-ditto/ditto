@@ -315,10 +315,11 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
                             final Source<Long, NotUsed> countResultSource =
                                     DittoJsonException.wrapJsonRuntimeException(query, tracedCountCommand.getDittoHeaders(),
                                             (theQuery, headers) -> isSudo
-                                                    ? searchPersistence.sudoCount(theQuery)
+                                                    ? searchPersistence.sudoCount(theQuery, headers)
                                                     : searchPersistence.count(theQuery,
-                                                    headers.getAuthorizationContext()
-                                                            .getAuthorizationSubjectIds())
+                                                    headers.getAuthorizationContext().getAuthorizationSubjectIds(),
+                                                    headers
+                                            )
                                     );
 
                             return processSearchPersistenceResult(countResultSource, dittoHeaders)
@@ -368,7 +369,7 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
                         final Source<ThingId, NotUsed> findAllUnlimitedResult =
                                 DittoJsonException.wrapJsonRuntimeException(query, tracedStreamThings.getDittoHeaders(),
                                         (theQuery, headers) ->
-                                                searchPersistence.findAllUnlimited(theQuery, subjectIds, namespaces)
+                                                searchPersistence.findAllUnlimited(theQuery, subjectIds, namespaces, headers)
                                 );
 
                         return findAllUnlimitedResult
@@ -495,7 +496,7 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
                                                 .getAuthorizationSubjectIds();
                                 final Source<ResultList<TimestampedThingId>, NotUsed> findAllResult =
                                         DittoJsonException.wrapJsonRuntimeException(query, dittoHeaders, (theQuery, headers) ->
-                                            searchPersistence.findAll(theQuery, subjectIds, namespaces)
+                                            searchPersistence.findAll(theQuery, subjectIds, namespaces, headers)
                                 );
 
                                 return processSearchPersistenceResult(findAllResult, dittoHeaders)
