@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.pekko.stream.javadsl.Sink;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.internal.models.streaming.LowerBound;
 import org.eclipse.ditto.json.JsonArray;
@@ -82,17 +83,17 @@ public final class SudoIT extends AbstractReadPersistenceITBase {
     @Test
     public void sudoCount() {
         final Query anyQuery = qbf.newUnlimitedBuilder(cf.any()).build();
-        assertThat(waitFor(readPersistence.sudoCount(anyQuery))).containsExactly(2L);
+        assertThat(waitFor(readPersistence.sudoCount(anyQuery, DittoHeaders.empty()))).containsExactly(2L);
 
         final Query queryByPolicyId =
                 qbf.newUnlimitedBuilder(
                         cf.fieldCriteria(ef.filterBy("policyId"), cf.eq(THING2_ID.toString())))
                         .build();
-        assertThat(waitFor(readPersistence.sudoCount(queryByPolicyId))).containsExactly(1L);
+        assertThat(waitFor(readPersistence.sudoCount(queryByPolicyId, DittoHeaders.empty()))).containsExactly(1L);
 
         final Query matchNothingQuery =
                 qbf.newUnlimitedBuilder(cf.existsCriteria(ef.existsBy("attributes/nonexistent"))).build();
-        assertThat(waitFor(readPersistence.sudoCount(matchNothingQuery))).containsExactly(0L);
+        assertThat(waitFor(readPersistence.sudoCount(matchNothingQuery, DittoHeaders.empty()))).containsExactly(0L);
     }
 
     @Test

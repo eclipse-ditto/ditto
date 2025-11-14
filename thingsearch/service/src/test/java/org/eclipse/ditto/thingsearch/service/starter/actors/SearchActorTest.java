@@ -18,13 +18,23 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
+import org.apache.pekko.Done;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.PoisonPill;
+import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
+import org.apache.pekko.stream.CompletionStrategy;
+import org.apache.pekko.stream.OverflowStrategy;
+import org.apache.pekko.stream.SystemMaterializer;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.internal.utils.pekko.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.pekko.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
@@ -44,17 +54,6 @@ import org.mockito.Mockito;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-
-import org.apache.pekko.Done;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.PoisonPill;
-import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
-import org.apache.pekko.stream.CompletionStrategy;
-import org.apache.pekko.stream.OverflowStrategy;
-import org.apache.pekko.stream.SystemMaterializer;
-import org.apache.pekko.stream.javadsl.Source;
-import org.apache.pekko.testkit.TestProbe;
-import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests the graceful shutdown behavior of {@code SearchActor}.
@@ -119,9 +118,9 @@ public final class SearchActorTest {
             reply(new DistributedPubSubMediator.SubscribeAck(expectedSubscribe));
 
             final var serviceRequestsDone = SearchActor.Control.SERVICE_REQUESTS_DONE;
-            final var countActor = use(p -> p.count(any(), any()));
-            final var sudoCountActor = use(p -> p.sudoCount(any()));
-            final var queryActor = use(p -> p.findAll(any(), any(), any()));
+            final var countActor = use(p -> p.count(any(), any(), any()));
+            final var sudoCountActor = use(p -> p.sudoCount(any(), any()));
+            final var queryActor = use(p -> p.findAll(any(), any(), any(), any()));
             final var shutdownProbe = TestProbe.apply(actorSystemResource.getActorSystem());
 
             final var headers = DittoHeaders.newBuilder()

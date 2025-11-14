@@ -29,7 +29,7 @@ public final class ShardRegions {
     private static final String THINGS_SHARD_REGION = "thing";
     private static final String WOT_VALIDATION_CONFIG_SHARD_REGION = "wot-validation-config";
 
-    private static final String SEARCH_CLUSTER_ROLE = "things-search";
+    private static final String SEARCH_CLUSTER_ROLE = "search";
     private static final String SEARCH_SHARD_REGION = "search-wildcard-updater";
 
     private static final String CONNECTIVITY_CLUSTER_ROLE = "connectivity";

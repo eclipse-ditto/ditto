@@ -31,6 +31,7 @@ import org.apache.pekko.stream.javadsl.Sink;
 import org.apache.pekko.stream.javadsl.Source;
 import org.apache.pekko.testkit.javadsl.TestKit;
 import org.bson.Document;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
@@ -186,7 +187,7 @@ public abstract class AbstractThingSearchPersistenceITBase {
     }
 
     protected Long count(final Query query, @Nullable final List<String> subjectIds) {
-        return readPersistence.count(query, subjectIds)
+        return readPersistence.count(query, subjectIds, DittoHeaders.empty())
                 .runWith(Sink.head(), actorSystem)
                 .toCompletableFuture()
                 .join();
@@ -197,7 +198,7 @@ public abstract class AbstractThingSearchPersistenceITBase {
     }
 
     protected ResultList<ThingId> findAll(final Query query, final List<String> subjectIds) {
-        return readPersistence.findAll(query, subjectIds)
+        return readPersistence.findAll(query, subjectIds, DittoHeaders.empty())
                 .runWith(Sink.head(), actorSystem)
                 .toCompletableFuture()
                 .join();

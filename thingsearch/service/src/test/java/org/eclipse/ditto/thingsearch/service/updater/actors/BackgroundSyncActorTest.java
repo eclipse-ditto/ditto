@@ -468,25 +468,27 @@ public final class BackgroundSyncActorTest {
         }
 
         @Override
-        public Source<Long, NotUsed> count(final Query query, final List<String> authorizationSubjectIds) {
+        public Source<Long, NotUsed> count(final Query query, final List<String> authorizationSubjectIds,
+                final DittoHeaders dittoHeaders) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public Source<Long, NotUsed> sudoCount(final Query query) {
+        public Source<Long, NotUsed> sudoCount(final Query query, final DittoHeaders dittoHeaders) {
             throw new UnsupportedOperationException();
         }
 
         @Override
         public Source<ResultList<TimestampedThingId>, NotUsed> findAll(final Query query,
                 final List<String> authorizationSubjectIds,
-                @Nullable final Set<String> namespaces) {
+                @Nullable final Set<String> namespaces,
+                final DittoHeaders dittoHeaders) {
             throw new UnsupportedOperationException();
         }
 
         @Override
         public Source<ThingId, NotUsed> findAllUnlimited(final Query query, final List<String> authorizationSubjectIds,
-                @Nullable final Set<String> namespaces) {
+                @Nullable final Set<String> namespaces, final DittoHeaders headers) {
             throw new UnsupportedOperationException();
         }
 
