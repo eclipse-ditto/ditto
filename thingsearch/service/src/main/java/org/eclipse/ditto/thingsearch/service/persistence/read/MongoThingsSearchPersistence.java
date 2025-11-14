@@ -29,16 +29,20 @@ import javax.annotation.Nullable;
 
 import org.apache.pekko.NotUsed;
 import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.event.Logging;
-import org.apache.pekko.event.LoggingAdapter;
 import org.apache.pekko.japi.pf.PFBuilder;
+import org.apache.pekko.stream.ActorAttributes;
+import org.apache.pekko.stream.Supervision;
 import org.apache.pekko.stream.SystemMaterializer;
 import org.apache.pekko.stream.javadsl.Source;
 import org.bson.BsonDocument;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.models.streaming.LowerBound;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLogger;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.persistence.mongo.BsonUtil;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
@@ -87,8 +91,9 @@ import scala.PartialFunction;
  */
 public final class MongoThingsSearchPersistence implements ThingsSearchPersistence {
 
+    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(MongoThingsSearchPersistence.class);
+
     private final MongoCollection<Document> collection;
-    private final LoggingAdapter log;
 
     private final IndexInitializer indexInitializer;
     private final Duration maxQueryTime;
@@ -113,18 +118,17 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
         collection = database.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME)
                 .withReadConcern(readConcern.getMongoReadConcern())
                 .withReadPreference(readPreference);
-        log = Logging.getLogger(actorSystem, getClass());
         indexInitializer = IndexInitializer.of(database, SystemMaterializer.get(actorSystem).materializer());
         maxQueryTime = mongoClient.getDittoSettings().getMaxQueryTime();
         documentDbCompatibilityMode = mongoClient.getDittoSettings().isDocumentDbCompatibilityMode();
         hints = searchConfig.getMongoHintsByNamespace()
                 .map(mongoHintsByNamespace -> {
-                    log.info("Applying MongoDB hints <{}>.", mongoHintsByNamespace);
+                    LOGGER.info("Applying MongoDB hints <{}>.", mongoHintsByNamespace);
                     return MongoHints.byNamespace(mongoHintsByNamespace);
                 })
                 .orElseGet(MongoHints::empty);
         countHintIndexName = searchConfig.getMongoCountHintIndexName().orElse(null);
-        log.info("Query readConcern=<{}> readPreference=<{}>", readConcern, readPreference);
+        LOGGER.info("Query readConcern=<{}> readPreference=<{}>", readConcern, readPreference);
     }
 
     @Override
@@ -134,7 +138,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
                         indexInitializationConfig.getActivatedIndexNames()
                 )
                 .exceptionally(t -> {
-                    log.error(t, "Index-Initialization failed: {}", t.getMessage());
+                    LOGGER.error("Index-Initialization failed: {}", t.getMessage(), t);
                     return null;
                 });
     }
@@ -167,12 +171,13 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
 
     @Override
     public Source<Long, NotUsed> count(final Query query,
-            @Nullable final List<String> authorizationSubjectIds) {
+            @Nullable final List<String> authorizationSubjectIds,
+            final DittoHeaders dittoHeaders) {
 
         checkNotNull(query, "query");
 
         final BsonDocument queryFilter = getMongoFilter(query, authorizationSubjectIds);
-        log.debug("count with query filter <{}>.", queryFilter);
+        LOGGER.withCorrelationId(dittoHeaders).debug("count with query filter <{}>.", queryFilter);
 
         final CountOptions countOptions = new CountOptions()
                 .skip(query.getSkip())
@@ -181,38 +186,50 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
                 .maxTime(maxQueryTime.getSeconds(), TimeUnit.SECONDS);
 
         return Source.fromPublisher(collection.countDocuments(queryFilter, countOptions))
-                .mapError(handleMongoExecutionTimeExceededException())
+                .mapError(handleMongoExecutionTimeExceededException(dittoHeaders))
                 .log("count");
     }
 
     @Override
-    public Source<Long, NotUsed> sudoCount(final Query query) {
-        return count(query, null);
+    public Source<Long, NotUsed> sudoCount(final Query query, final DittoHeaders dittoHeaders) {
+        return count(query, null, dittoHeaders);
     }
 
     @Override
     public Source<ResultList<TimestampedThingId>, NotUsed> findAll(final Query query,
             @Nullable final List<String> authorizationSubjectIds,
-            @Nullable final Set<String> namespaces) {
+            @Nullable final Set<String> namespaces,
+            final DittoHeaders dittoHeaders) {
 
         final int skip = query.getSkip();
         final int limit = query.getLimit();
         final int limitPlusOne = limit + 1;
 
-        return findAllInternal(query, authorizationSubjectIds, namespaces, limitPlusOne, maxQueryTime)
+        return findAllInternal(query, authorizationSubjectIds, namespaces, limitPlusOne, maxQueryTime, dittoHeaders)
                 .grouped(limitPlusOne)
                 .orElse(Source.single(Collections.emptyList()))
-                .map(resultsPlus0ne -> toResultList(resultsPlus0ne, skip, limit, query.getSortOptions()))
-                .mapError(handleMongoExecutionTimeExceededException())
-                .log("findAll");
+                .map(resultsPlus0ne -> toResultList(resultsPlus0ne, skip, limit, query.getSortOptions(), dittoHeaders))
+                .mapError(handleMongoExecutionTimeExceededException(dittoHeaders))
+                .withAttributes(ActorAttributes.supervisionStrategy(exc -> {
+                            if (exc instanceof DittoRuntimeException dre) {
+                                LOGGER.withCorrelationId(dittoHeaders)
+                                        .warn("DittoRuntimeException during <findAll>: [{}] {}",
+                                                dre.getClass().getSimpleName(), dre.getMessage());
+                            } else {
+                                LOGGER.withCorrelationId(dittoHeaders)
+                                        .error("Exception during during <findAll>: {}", exc.getMessage(), exc);
+                            }
+                            return Supervision.stop();
+                        })
+                );
     }
 
     @Override
     public Source<ThingId, NotUsed> findAllUnlimited(final Query query, final List<String> authorizationSubjectIds,
-            @Nullable final Set<String> namespaces) {
+            @Nullable final Set<String> namespaces, final DittoHeaders headers) {
 
         final Integer limit = query.getLimit() == Integer.MAX_VALUE ? null : query.getLimit();
-        return findAllInternal(query, authorizationSubjectIds, namespaces, limit, null)
+        return findAllInternal(query, authorizationSubjectIds, namespaces, limit, null, headers)
                 .map(MongoThingsSearchPersistence::toThingId)
                 .idleTimeout(maxQueryTime);
     }
@@ -238,13 +255,14 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
     private Source<Document, NotUsed> findAllInternal(final Query query, final List<String> authorizationSubjectIds,
             @Nullable final Set<String> namespaces,
             @Nullable final Integer limit,
-            @Nullable final Duration maxQueryTime) {
+            @Nullable final Duration maxQueryTime,
+            final DittoHeaders dittoHeaders) {
 
         checkNotNull(query, "query");
 
         final BsonDocument queryFilter = getMongoFilter(query, authorizationSubjectIds);
-        if (log.isDebugEnabled()) {
-            log.debug("findAll with query filter <{}>.", queryFilter);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.withCorrelationId(dittoHeaders).debug("findAll with query filter <{}>.", queryFilter);
         }
 
         final Bson sortOptions = getMongoSort(query);
@@ -292,10 +310,14 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
 
     private ResultList<TimestampedThingId> toResultList(final List<Document> resultsPlus0ne, final int skip,
             final int limit,
-            final List<SortOption> sortOptions) {
+            final List<SortOption> sortOptions,
+            final DittoHeaders headers) {
 
-        log.debug("Creating paged ResultList from parameters: resultsPlusOne=<{}>,skip={},limit={}",
-                resultsPlus0ne, skip, limit);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.withCorrelationId(headers)
+                    .debug("Creating paged ResultList from parameters: resultsPlusOne=<{}>,skip={},limit={}",
+                            resultsPlus0ne, skip, limit);
+        }
 
         final ResultList<TimestampedThingId> pagedResultList;
         if (resultsPlus0ne.size() <= limit || limit <= 0) {
@@ -309,7 +331,9 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
             pagedResultList = new ResultListImpl<>(toTimestampedThingIds(results), nextPageOffset, sortValues);
         }
 
-        log.debug("Returning paged ResultList: {}", pagedResultList);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.withCorrelationId(headers).debug("Returning paged ResultList: {}", pagedResultList);
+        }
         return pagedResultList;
     }
 
@@ -355,11 +379,12 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
         return mongoQuery.getSortOptionsAsBson();
     }
 
-    private static PartialFunction<Throwable, Throwable> handleMongoExecutionTimeExceededException() {
+    private static PartialFunction<Throwable, Throwable> handleMongoExecutionTimeExceededException(
+            final DittoHeaders dittoHeaders) {
         return new PFBuilder<Throwable, Throwable>()
                 .match(Throwable.class, error ->
                         error instanceof MongoExecutionTimeoutException
-                                ? QueryTimeExceededException.newBuilder().build()
+                                ? QueryTimeExceededException.newBuilder().dittoHeaders(dittoHeaders).build()
                                 : error
                 )
                 .build();

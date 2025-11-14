@@ -21,6 +21,7 @@ import javax.annotation.Nullable;
 import org.apache.pekko.NotUsed;
 import org.apache.pekko.stream.javadsl.Source;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.IndexInitializationConfig;
 import org.eclipse.ditto.rql.query.Query;
 import org.eclipse.ditto.things.model.ThingId;
@@ -57,19 +58,21 @@ public interface ThingsSearchPersistence {
      *
      * @param query the query for matching.
      * @param authorizationSubjectIds authorization subject IDs.
+     * @param dittoHeaders the headers of the request.
      * @return an {@link Source} which emits the count.
      * @throws NullPointerException if {@code query} is {@code null}.
      */
-    Source<Long, NotUsed> count(Query query, List<String> authorizationSubjectIds);
+    Source<Long, NotUsed> count(Query query, List<String> authorizationSubjectIds, DittoHeaders dittoHeaders);
 
     /**
      * Returns the count of documents found by the given {@code query} regardless of visibility.
      *
      * @param query the query for matching.
+     * @param dittoHeaders the headers of the request.
      * @return an {@link Source} which emits the count.
      * @throws NullPointerException if {@code query} is {@code null}.
      */
-    Source<Long, NotUsed> sudoCount(Query query);
+    Source<Long, NotUsed> sudoCount(Query query, DittoHeaders dittoHeaders);
 
     /**
      * Returns the IDs for all found documents.
@@ -77,11 +80,13 @@ public interface ThingsSearchPersistence {
      * @param query the query for matching.
      * @param authorizationSubjectIds authorization subject IDs.
      * @param namespaces namespaces to execute searches in, or null to search in all namespaces.
+     * @param dittoHeaders the headers of the request.
      * @return an {@link Source} which emits the IDs.
      * @throws NullPointerException if {@code query} is {@code null}.
      */
     Source<ResultList<TimestampedThingId>, NotUsed> findAll(Query query, @Nullable List<String> authorizationSubjectIds,
-            @Nullable Set<String> namespaces);
+            @Nullable Set<String> namespaces,
+            DittoHeaders dittoHeaders);
 
     /**
      * Stream the IDs for all found documents without result size limit.
@@ -89,12 +94,13 @@ public interface ThingsSearchPersistence {
      * @param query the query for matching.
      * @param authorizationSubjectIds authorization subject IDs.
      * @param namespaces namespaces to execute searches in, or null to search in all namespaces.
+     * @param headers the headers of the request.
      * @return an {@link Source} which emits the IDs.
      * @throws NullPointerException if {@code query} is {@code null}.
      * @since 1.1.0
      */
     Source<ThingId, NotUsed> findAllUnlimited(Query query, List<String> authorizationSubjectIds,
-            @Nullable Set<String> namespaces);
+            @Nullable Set<String> namespaces, DittoHeaders headers);
 
     /**
      * Start a stream of metadata of all search index entries not marked for deletion.
@@ -111,12 +117,13 @@ public interface ThingsSearchPersistence {
      *
      * @param query the query for matching.
      * @param authorizationSubjectIds authorization subject IDs.
+     * @param dittoHeaders the headers of the request.
      * @return an {@link Source} which emits the IDs.
      * @throws NullPointerException if {@code query} is {@code null}.
      */
     default Source<ResultList<ThingId>, NotUsed> findAll(final Query query,
-            final List<String> authorizationSubjectIds) {
-        return findAll(query, authorizationSubjectIds, null)
+            final List<String> authorizationSubjectIds, final DittoHeaders dittoHeaders) {
+        return findAll(query, authorizationSubjectIds, null, dittoHeaders)
                 .map(resultList -> {
                     final var thingIds = resultList.stream().map(TimestampedThingId::thingId).toList();
                     return new ResultListImpl<>(thingIds, resultList.nextPageOffset(),
