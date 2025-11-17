@@ -14,7 +14,6 @@ package org.eclipse.ditto.policies.service.persistence.actors;
 
 import java.time.Instant;
 import java.util.Set;
-import java.util.concurrent.CompletionStage;
 import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
@@ -23,11 +22,8 @@ import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.Props;
 import org.apache.pekko.persistence.RecoveryCompleted;
-import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
-import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
@@ -39,7 +35,6 @@ import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceActo
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
-import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
@@ -245,59 +240,6 @@ public final class PolicyPersistenceActor
                 DistPubSubAccess.publish(PolicyTag.PUB_SUB_TOPIC_INVALIDATE_ENFORCERS, policyTag),
                 getSelf()
         );
-    }
-
-    @Override
-    public void onMutation(final Command<?> command, final PolicyEvent<?> event, final WithDittoHeaders response,
-            final boolean becomeCreated, final boolean becomeDeleted, @Nullable final StartedSpan startedSpan) {
-
-        final ActorRef sender = getSender();
-        persistAndApplyEvent(event, (persistedEvent, resultingEntity) -> {
-            if (shouldSendResponse(command.getDittoHeaders())) {
-                notifySender(sender, response);
-            }
-            if (becomeDeleted) {
-                becomeDeletedHandler();
-            }
-            if (becomeCreated) {
-                becomeCreatedHandler();
-            }
-            if (startedSpan != null) {
-                startedSpan.finish();
-            }
-        });
-    }
-
-    @Override
-    public void onStagedMutation(final Command<?> command, final CompletionStage<PolicyEvent<?>> event,
-            final CompletionStage<WithDittoHeaders> response,
-            final boolean becomeCreated, final boolean becomeDeleted, @Nullable final StartedSpan startedSpan) {
-
-        final ActorRef sender = getSender();
-        persistAndApplyEventAsync(event, (persistedEvent, resultingEntity) -> {
-            if (shouldSendResponse(command.getDittoHeaders())) {
-                response.thenAccept(rsp -> notifySender(sender, rsp));
-            }
-            if (becomeDeleted) {
-                becomeDeletedHandler();
-            }
-            if (becomeCreated) {
-                becomeCreatedHandler();
-            }
-            if (startedSpan != null) {
-                startedSpan.finish();
-            }
-        }, throwable -> {
-            final DittoRuntimeException dittoRuntimeException =
-                    DittoRuntimeException.asDittoRuntimeException(throwable, t ->
-                            DittoInternalErrorException.newBuilder()
-                                    .cause(t)
-                                    .dittoHeaders(command.getDittoHeaders())
-                                    .build());
-            if (shouldSendResponse(command.getDittoHeaders())) {
-                notifySender(sender, dittoRuntimeException);
-            }
-        });
     }
 
     @Override

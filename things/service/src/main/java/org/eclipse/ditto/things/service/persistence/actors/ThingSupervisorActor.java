@@ -479,7 +479,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
                 .matchEquals(Control.SHUTDOWN_TIMEOUT, this::shutdownActor)
                 .match(ThingPolicyCreated.class, msg -> {
                     log.withCorrelationId(msg.dittoHeaders())
-                            .info("ThingPolicyCreated msg received: <{}>", msg.policyId());
+                            .debug("ThingPolicyCreated msg received: <{}>", msg.policyId());
                     this.policyCreatedEvent = msg;
                 })
                 .match(RollbackCreatedPolicy.class, this::handleRollbackCreatedPolicy)

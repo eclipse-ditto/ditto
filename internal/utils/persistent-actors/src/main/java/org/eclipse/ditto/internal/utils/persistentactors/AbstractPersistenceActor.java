@@ -27,6 +27,7 @@ import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.Cancellable;
 import org.apache.pekko.japi.pf.ReceiveBuilder;
 import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.pattern.StatusReply;
 import org.apache.pekko.persistence.RecoveryCompleted;
 import org.apache.pekko.persistence.RecoveryTimedOut;
 import org.apache.pekko.persistence.SaveSnapshotFailure;
@@ -767,6 +768,8 @@ public abstract class AbstractPersistenceActor<
         persistAndApplyEvent(event, (persistedEvent, resultingEntity) -> {
             if (shouldSendResponse(command.getDittoHeaders())) {
                 notifySender(sender, response);
+            } else {
+                sender.tell(StatusReply.ack(), getSelf());
             }
             if (becomeDeleted) {
                 becomeDeletedHandler();
@@ -792,6 +795,8 @@ public abstract class AbstractPersistenceActor<
         persistAndApplyEventAsync(event, (persistedEvent, resultingEntity) -> {
             if (shouldSendResponse(command.getDittoHeaders())) {
                 notifySender(sender, response);
+            } else {
+                sender.tell(StatusReply.ack(), getSelf());
             }
             if (becomeDeleted) {
                 becomeDeletedHandler();
@@ -811,6 +816,8 @@ public abstract class AbstractPersistenceActor<
                                     .build());
             if (shouldSendResponse(command.getDittoHeaders())) {
                 notifySender(sender, dittoRuntimeException);
+            } else {
+                sender.tell(StatusReply.error(dittoRuntimeException), getSelf());
             }
         });
     }
@@ -849,6 +856,8 @@ public abstract class AbstractPersistenceActor<
     public void onError(final DittoRuntimeException error, final Command<?> errorCausingCommand) {
         if (shouldSendResponse(errorCausingCommand.getDittoHeaders())) {
             notifySender(error);
+        } else {
+            getSender().tell(StatusReply.error(error), getSelf());
         }
     }
 
@@ -1224,6 +1233,8 @@ public abstract class AbstractPersistenceActor<
                 final Command<?> errorCausingCommand) {
             if (shouldSendResponse(errorCausingCommand.getDittoHeaders())) {
                 notifySender(sender, error);
+            } else {
+                getSender().tell(StatusReply.error(error), getSelf());
             }
         }
     }
