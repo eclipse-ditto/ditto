@@ -87,6 +87,7 @@ final class CachingPolicyEnforcerProvider extends AbstractPolicyEnforcerProvider
     @Override
     public CompletionStage<Optional<PolicyEnforcer>> getPolicyEnforcer(@Nullable final PolicyId policyId) {
         if (policyId == null) {
+            LOGGER.warn("Returning empty loaded PolicyEnforcer for provided <null> PolicyId");
             return CompletableFuture.completedFuture(Optional.empty());
         }
         return Patterns.ask(cachingPolicyEnforcerProviderActor, policyId, LOCAL_POLICY_RETRIEVAL_TIMEOUT)

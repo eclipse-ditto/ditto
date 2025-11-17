@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.internal.utils.persistentactors;
 
-import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
@@ -25,6 +24,7 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.Done;
 import org.apache.pekko.NotUsed;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
@@ -35,6 +35,7 @@ import org.apache.pekko.actor.ReceiveTimeout;
 import org.apache.pekko.actor.Status;
 import org.apache.pekko.actor.SupervisorStrategy;
 import org.apache.pekko.actor.Terminated;
+import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
 import org.apache.pekko.cluster.sharding.ShardRegion;
 import org.apache.pekko.japi.pf.DeciderBuilder;
 import org.apache.pekko.japi.pf.FI;
@@ -248,6 +249,9 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                 .match(WithDittoHeaders.class, w -> w.getDittoHeaders().isSudo(),
                         this::forwardDittoSudoToChildIfAvailable)
                 .match(SubscribeForPersistedEvents.class, this::handleStreamPersistedEvents)
+                .match(DistributedPubSubMediator.SubscribeAck.class, ack ->
+                        log.debug("Got pub/sub subscribe ack: {}", ack)
+                )
                 .matchAny(matchAnyBehavior)
                 .build();
     }
@@ -551,10 +555,14 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                         .thenApply(targetActorWithMessage.responseOrErrorConverter())
                         .exceptionally(throwable -> targetActorWithMessage.responseOrErrorConverter().apply(throwable));
             } else {
-                targetActorWithMessage.targetActor().tell(targetActorWithMessage.message(), getSelf());
-                return CompletableFuture.completedFuture(new Status.Success(MessageFormat.format(
-                        "message <{0}> sent via tell", targetActorWithMessage.message().getClass().getSimpleName()))
-                );
+                // special case: no response expected
+                return Patterns.askWithStatus(
+                                targetActorWithMessage.targetActor(),
+                                targetActorWithMessage.message(),
+                                determineAskTimeoutForPersistenceActorForwarding(true) // calculate timeout for ACK only
+                        )
+                        .thenApply(targetActorWithMessage.responseOrErrorConverter())
+                        .exceptionally(throwable -> targetActorWithMessage.responseOrErrorConverter().apply(throwable));
             }
         } else {
             return CompletableFuture.completedFuture(null);
@@ -818,18 +826,23 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                     becomeTwinSignalProcessingAwaiting();
                 }
                 final var syncCs = signalTransformer.apply(signal, persistenceActorChild)
-                        .whenComplete((result, error) ->
-                                handleOptionalTransformationException(signal, error, sender)
+                        .whenCompleteAsync((result, error) ->
+                                handleOptionalTransformationException(signal, error, sender),
+                                enforcementExecutor
                         )
                         .thenComposeAsync(transformed ->
                                 enforceSignalAndForwardToTargetActor((S) transformed, sender)
                                     .exceptionallyComposeAsync(error ->
                                             handleTargetActorAndEnforcerException(transformed, error), enforcementExecutor)
-                                    .whenComplete((response, throwable) ->
-                                            handleSignalEnforcementResponse(response, throwable, transformed, sender)
-                                    ), enforcementExecutor
+                                    .whenCompleteAsync((response, throwable) ->
+                                            handleSignalEnforcementResponse(response, throwable, transformed, sender),
+                                            enforcementExecutor
+                                    ),
+                                enforcementExecutor
                         )
-                        .handle((response, throwable) -> new ProcessNextTwinMessage(signal));
+                        .handleAsync((response, throwable) -> new ProcessNextTwinMessage(signal),
+                                enforcementExecutor
+                        );
                 incrementOpCounter(signal); // decremented by ProcessNextTwinMessage
                 Patterns.pipe(syncCs, getContext().getDispatcher()).pipeTo(getSelf(), getSelf());
             }
@@ -883,6 +896,9 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         } else if (response instanceof Status.Success success) {
             log.withCorrelationId(signal)
                     .debug("Ignoring Status.Success message as expected 'to be ignored' outcome: <{}>", success);
+        } else if (response instanceof Done done) {
+            log.withCorrelationId(signal)
+                    .debug("Ignoring Done message as expected 'to be ignored' outcome: <{}>", done);
         } else if (null != response) {
             log.withCorrelationId(signal)
                     .debug("Sending response: <{}> back to sender: <{}>", response, sender.path());
@@ -1083,8 +1099,12 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
             return CompletableFuture.failedFuture(dre);
         } else if (targetActorResponse.response() instanceof Status.Success success) {
             log.withCorrelationId(targetActorResponse.enforcedSignal())
-                    .info("Got success message from target actor: {}", success);
+                    .debug("Got success message from target actor: {}", success);
             return CompletableFuture.completedFuture(success);
+        } else if (targetActorResponse.response() instanceof Done done) {
+            log.withCorrelationId(targetActorResponse.enforcedSignal())
+                    .debug("Got done from target actor: {}", done);
+            return CompletableFuture.completedFuture(done);
         } else if (targetActorResponse.response() instanceof AskTimeoutException askTimeoutException) {
             log.withCorrelationId(targetActorResponse.enforcedSignal())
                     .warning("Encountered ask timeout from target actor: {}", askTimeoutException.getMessage());

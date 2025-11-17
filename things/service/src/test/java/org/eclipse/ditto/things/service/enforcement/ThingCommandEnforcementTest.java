@@ -133,8 +133,6 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
 
             supervisor.tell(getModifyCommand(), getRef());
 
-            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-
             expectMsgClass(FeatureNotModifiableException.class);
         }};
     }
@@ -264,14 +262,10 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
                     RetrieveThingResponse.of(THING_ID, JsonFactory.newObject(), DittoHeaders.empty());
             supervisor.tell(read, getRef());
 
-            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-
             final ThingCommand<?> expectedReadCommand = addReadSubjectHeader(read,
                     SubjectId.newInstance(GOOGLE, TestSetup.SUBJECT_ID));
             thingPersistenceActorProbe.expectMsg(expectedReadCommand);
             thingPersistenceActorProbe.reply(retrieveThingResponse);
-
-            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
 
             expectMsg(retrieveThingResponse);
         }};
@@ -312,8 +306,6 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
 
             supervisor.tell(getReadCommand(), getRef());
             thingPersistenceActorProbe.reply(retrieveThingResponseWithAttr);
-
-            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
 
             final JsonObject jsonObjectWithoutAttr = JsonObject.newBuilder()
                     .set("thingId", "thing:id") // this is re-added as first field being a "special" field always visible after enforcement
@@ -366,8 +358,6 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
             final RetrieveThingResponse retrieveThingResponse = RetrieveThingResponse.of(THING_ID, thing, headers());
             thingPersistenceActorProbe.reply(retrieveThingResponse);
 
-            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-
             // THEN: The command is authorized and response is forwarded
             final var response1 = expectMsgClass(RetrieveThingResponse.class);
             Assertions.assertThat(response1.getThing().toJson().get(revokedFeaturePointer))
@@ -379,8 +369,6 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
                     getRetrieveThing(builder -> builder.condition("exists(features/revokedFeature)"));
             supervisor.tell(conditionalRetrieveThing2, getRef());
 
-            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-
             // THEN: The command is rejected
             expectMsgClass(ThingConditionFailedException.class);
 
@@ -388,8 +376,6 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
             final var conditionalRetrieveThing3 = getRetrieveThing(builder ->
                     builder.liveChannelCondition("exists(features/revokedFeature)").channel("live"));
             supervisor.tell(conditionalRetrieveThing3, getRef());
-
-            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
 
             // THEN: The command is rejected
             expectMsgClass(ThingConditionFailedException.class);
@@ -551,16 +537,13 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
             thingPersistenceActorProbe.expectMsgClass(CreateThing.class);
             thingPersistenceActorProbe.reply(createThingResponse);
 
-            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectMsgClass(CreateThingResponse.class);
 
             thingPersistenceActorProbe.expectMsgClass(RetrieveThing.class);
             final ActorRef retrieveThingSender = thingPersistenceActorProbe.lastSender();
             retrieveThingSender.tell(retrieveThingResponse, ActorRef.noSender());
 
-            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectMsgClass(RetrieveThingResponse.class);
-            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
 
             thingPersistenceActorProbe.expectMsgClass(ModifyPolicyId.class);
             final ActorRef modifyPolicyIdSender = thingPersistenceActorProbe.lastSender();
@@ -573,14 +556,12 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
             final ActorRef modifyAttributeSender = thingPersistenceActorProbe.lastSender();
             modifyAttributeSender.tell(modifyAttributeResponse, ActorRef.noSender());
 
-            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectMsgClass(ModifyAttributeResponse.class);
 
             thingPersistenceActorProbe.expectMsgClass(RetrieveAttribute.class);
             final ActorRef retrieveAttributeSender = thingPersistenceActorProbe.lastSender();
             retrieveAttributeSender.tell(retrieveAttributeResponse, ActorRef.noSender());
 
-            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectMsgClass(RetrieveAttributeResponse.class);
         }};
     }
