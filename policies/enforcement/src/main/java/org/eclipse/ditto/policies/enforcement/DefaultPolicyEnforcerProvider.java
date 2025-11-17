@@ -54,6 +54,7 @@ final class DefaultPolicyEnforcerProvider extends AbstractPolicyEnforcerProvider
     @Override
     public CompletionStage<Optional<PolicyEnforcer>> getPolicyEnforcer(@Nullable final PolicyId policyId) {
         if (null == policyId) {
+            LOGGER.warn("Returning empty loaded PolicyEnforcer for provided <null> PolicyId");
             return CompletableFuture.completedFuture(Optional.empty());
         } else {
             try {
