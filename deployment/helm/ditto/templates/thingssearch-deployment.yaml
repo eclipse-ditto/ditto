@@ -101,6 +101,10 @@ spec:
               value: "{{ .Values.global.metrics.systemMetrics.enabled }}"
             - name: DITTO_TRACING_ENABLED
               value: "{{ .Values.global.tracing.enabled }}"
+            - name: DITTO_TRACING_TICK_INTERVAL
+              value: "{{ .Values.global.tracing.tickInterval }}"
+            - name: DITTO_TRACING_REPORTER_QUEUE_SIZE
+              value: "{{ .Values.global.tracing.reporterQueueSize }}"
             - name: DITTO_TRACING_OTEL_TRACE_REPORTER_ENABLED
               value: "{{ .Values.global.tracing.otelTraceReporterEnabled }}"
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
