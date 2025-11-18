@@ -195,6 +195,12 @@ global:
   tracing:
     # enabled whether tracing (via OpenTelemetry) is enabled
     enabled: false
+    # tickInterval the interval at which tracing metrics are reported
+    tickInterval: 10s
+    # reporterQueueSize size of the internal queue where sampled spans will stay until they get flushed.
+    #  If the queue becomes full then sampled finished spans will be dropped in order to avoid consuming excessive
+    #  amounts of memory. Each configured reporter has a separate queue.
+    reporterQueueSize: 4096
     # otelTraceReporterEnabled whether reporting traces via the OLTP endpoint should be activated
     otelTraceReporterEnabled: false
     # otelExporterOtlpEndpoint the OTLP endpoint to report traces to
