@@ -18,7 +18,6 @@ import static org.mockito.Mockito.when;
 
 import java.time.Instant;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -53,7 +52,7 @@ import org.junit.Test;
 import com.typesafe.config.ConfigFactory;
 
 /**
- * Unit tests for {@link PreDefinedExtraFieldsEnricher}.
+ * Unit tests for {@link ThingEventEnricher}.
  */
 public final class PreDefinedExtraFieldsEnricherTest {
 
@@ -109,11 +108,7 @@ public final class PreDefinedExtraFieldsEnricherTest {
     @Test
     public void ensureDefinitionIsEnrichedAsPreDefinedFromConfiguration() {
         // GIVEN: the configuration to enrich all things with their definition
-        final var sut = providePreDefinedFieldsEnricher();
-
-        // WHEN: enriched headers are getting calculated
-        final CompletionStage<DittoHeaders> resultHeadersStage = calculateEnrichedSignalHeaders(sut,
-                """
+        final var sut = providePreDefinedFieldsEnricher("""
                 {
                   namespaces = [
                     "*"
@@ -124,6 +119,9 @@ public final class PreDefinedExtraFieldsEnricherTest {
                 }
                 """
         );
+
+        // WHEN: enriched headers are getting calculated
+        final CompletionStage<DittoHeaders> resultHeadersStage = calculateEnrichedSignalHeaders(sut);
 
         // THEN: the expected pre-defined fields are present in the headers
         assertExpectations(resultHeadersStage,
@@ -140,11 +138,7 @@ public final class PreDefinedExtraFieldsEnricherTest {
     @Test
     public void ensureDefinitionAndAdditionalNamespaceSpecificIsEnrichedAsPreDefinedFromConfiguration() {
         // GIVEN: the configuration to enrich all things with their definition and some with an attribute public1
-        final var sut = providePreDefinedFieldsEnricher();
-
-        // WHEN: enriched headers are getting calculated
-        final CompletionStage<DittoHeaders> resultHeadersStage = calculateEnrichedSignalHeaders(sut,
-                """
+        final var sut = providePreDefinedFieldsEnricher("""
                 {
                   namespaces = [
                     "*"
@@ -176,6 +170,9 @@ public final class PreDefinedExtraFieldsEnricherTest {
                 """
         );
 
+        // WHEN: enriched headers are getting calculated
+        final CompletionStage<DittoHeaders> resultHeadersStage = calculateEnrichedSignalHeaders(sut);
+
         // THEN: the expected pre-defined fields are present in the headers
         assertExpectations(resultHeadersStage,
                 predefinedExtraFields -> predefinedExtraFields
@@ -206,11 +203,7 @@ public final class PreDefinedExtraFieldsEnricherTest {
     @Test
     public void ensureConditionBasedEnrichmentAsPreDefinedFromConfiguration() {
         // GIVEN: the configuration to enrich all things with their definition and some with an attribute public1
-        final var sut = providePreDefinedFieldsEnricher();
-
-        // WHEN: enriched headers are getting calculated
-        final CompletionStage<DittoHeaders> resultHeadersStage = calculateEnrichedSignalHeaders(sut,
-                """
+        final var sut = providePreDefinedFieldsEnricher("""
                 {
                   namespaces = [
                     "*"
@@ -245,6 +238,9 @@ public final class PreDefinedExtraFieldsEnricherTest {
                 """
         );
 
+        // WHEN: enriched headers are getting calculated
+        final CompletionStage<DittoHeaders> resultHeadersStage = calculateEnrichedSignalHeaders(sut);
+
         // THEN: the expected pre-defined fields are present in the headers
         assertExpectations(resultHeadersStage,
                 predefinedExtraFields -> predefinedExtraFields
@@ -273,30 +269,27 @@ public final class PreDefinedExtraFieldsEnricherTest {
         );
     }
 
-    private PreDefinedExtraFieldsEnricher providePreDefinedFieldsEnricher() {
-        return new PreDefinedExtraFieldsEnricher(policyEnforcerProvider);
-    }
-
-    private static List<PreDefinedExtraFieldsConfig> getPreDefinedExtraFieldsConfigs(final String... configurations) {
-        return Arrays.stream(configurations)
-                .map(configString ->
-                        DefaultPreDefinedExtraFieldsConfig.of(ConfigFactory.parseString(configString))
-                )
-                .map(PreDefinedExtraFieldsConfig.class::cast)
-                .toList();
+    private ThingEventEnricher providePreDefinedFieldsEnricher(final String... configurations) {
+        return new ThingEventEnricher(
+                Arrays.stream(configurations)
+                        .map(configString ->
+                                DefaultPreDefinedExtraFieldsConfig.of(ConfigFactory.parseString(configString))
+                        )
+                        .map(PreDefinedExtraFieldsConfig.class::cast)
+                        .toList()
+                , policyEnforcerProvider
+        );
     }
 
     private static CompletionStage<DittoHeaders> calculateEnrichedSignalHeaders(
-            final PreDefinedExtraFieldsEnricher sut,
-            final String... configurations
+            final ThingEventEnricher sut
     ) {
         final AttributeModified event = AttributeModified.of(
                 KNOWN_THING_ID, JsonPointer.of("something"), JsonValue.of(true), 4L,
                 Instant.now(), DittoHeaders.empty(), null);
 
         final CompletionStage<AttributeModified> resultStage =
-                sut.enrichWithPredefinedExtraFields(getPreDefinedExtraFieldsConfigs(configurations),
-                        KNOWN_THING_ID, KNOWN_THING, KNOWN_POLICY_ID, event);
+                sut.enrichWithPredefinedExtraFields(KNOWN_THING_ID, KNOWN_THING, KNOWN_POLICY_ID, event);
         return resultStage.thenApply(AttributeModified::getDittoHeaders);
     }
 
