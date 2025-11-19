@@ -47,6 +47,7 @@ import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
@@ -254,22 +255,45 @@ public final class ThingEventEnricher {
                         return CompletableFuture.completedFuture("{}");
                     }
                     
+                    final Map<String, String> pointerStringMap = new HashMap<>();
+                    final List<String> pointerOrder = new ArrayList<>();
+                    for (final JsonPointer pointer : pointers) {
+                        final String pointerString = pointer.toString();
+                        final String keyWithoutSlash = pointerString.startsWith("/") ? pointerString.substring(1) : pointerString;
+                        final String normalizedPointer = pointerString.startsWith("/") ? pointerString : "/" + pointerString;
+                        pointerStringMap.put(keyWithoutSlash, normalizedPointer);
+                        pointerOrder.add(normalizedPointer);
+                    }
+                    final List<String> finalPointerOrder = pointerOrder;
+                    
                     final List<CompletableFuture<Stream<JsonField>>> futures = pointers.stream()
                             .map(pointer -> CompletableFuture.supplyAsync(() ->
-                                    buildReadGrantFieldsForPointer(pointer, thing, policyEnforcer, preDefinedExtraFields)
+                                    buildReadGrantFieldsForPointer(pointer, thing, policyEnforcer, preDefinedExtraFields),
+                                    Runnable::run
                             ))
                             .toList();
                     
                     return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
                             .thenApply(ignored -> {
-                                final Map<JsonPointer, Set<String>> mergedFields = new HashMap<>();
+                                final Map<String, Set<String>> mergedFields = new HashMap<>();
                                 
                                 futures.stream()
                                         .flatMap(CompletableFuture::join)
                                         .forEach(field -> {
-                                            final JsonPointer fieldKey = JsonPointer.of(field.getKey().toString());
+                                            String fieldKeyString = field.getKey().toString();
+                                            if (!fieldKeyString.startsWith("/")) {
+                                                fieldKeyString = "/" + fieldKeyString;
+                                            }
+                                            
+                                            final String normalizedKey = pointerStringMap.values().contains(fieldKeyString)
+                                                    ? fieldKeyString 
+                                                    : (pointerStringMap.getOrDefault(
+                                                            fieldKeyString.substring(1), // Try without leading slash
+                                                            fieldKeyString
+                                                    ));
+                                            
                                             if (field.getValue().isArray()) {
-                                                mergedFields.computeIfAbsent(fieldKey, k -> new LinkedHashSet<>())
+                                                mergedFields.computeIfAbsent(normalizedKey, k -> new LinkedHashSet<>())
                                                         .addAll(field.getValue().asArray().stream()
                                                                 .filter(JsonValue::isString)
                                                                 .map(JsonValue::asString)
@@ -278,11 +302,26 @@ public final class ThingEventEnricher {
                                         });
                                 
                                 final JsonObjectBuilder builder = JsonFactory.newObjectBuilder();
-                                mergedFields.forEach((pointer, subjectIds) -> {
-                                    final JsonArrayBuilder arrayBuilder = JsonFactory.newArrayBuilder();
-                                    subjectIds.forEach(arrayBuilder::add);
-                                    builder.set(pointer.toString(), arrayBuilder.build());
+                                finalPointerOrder.forEach(normalizedKey -> {
+                                    final Set<String> subjectIds = mergedFields.get(normalizedKey);
+                                    if (subjectIds != null && !subjectIds.isEmpty()) {
+                                        final JsonArrayBuilder arrayBuilder = JsonFactory.newArrayBuilder();
+                                        subjectIds.stream().sorted().forEach(arrayBuilder::add);
+                                        builder.set(JsonKey.of(normalizedKey), arrayBuilder.build());
+                                    }
                                 });
+                                mergedFields.entrySet().stream()
+                                        .filter(entry -> !finalPointerOrder.contains(entry.getKey()))
+                                        .sorted(Map.Entry.comparingByKey())
+                                        .forEach(entry -> {
+                                            final String key = entry.getKey();
+                                            final Set<String> subjectIds = entry.getValue();
+                                            if (subjectIds != null && !subjectIds.isEmpty()) {
+                                                final JsonArrayBuilder arrayBuilder = JsonFactory.newArrayBuilder();
+                                                subjectIds.forEach(arrayBuilder::add);
+                                                builder.set(JsonKey.of(key), arrayBuilder.build());
+                                            }
+                                        });
                                 
                                 return builder.build().toString();
                             });
@@ -322,7 +361,7 @@ public final class ThingEventEnricher {
 
         if (!subjectsWithPartialPermission.equals(subjectsWithUnrestrictedPermission)) {
             final Set<AuthorizationSubject> partialSubjects =
-                    new HashSet<>(subjectsWithPartialPermission);
+                    new LinkedHashSet<>(subjectsWithPartialPermission);
             partialSubjects.removeAll(subjectsWithUnrestrictedPermission);
             return Stream.concat(simpleReadGrantStream,
                     calculatePartialReadFieldsAndSubjects(preDefinedExtraFields,

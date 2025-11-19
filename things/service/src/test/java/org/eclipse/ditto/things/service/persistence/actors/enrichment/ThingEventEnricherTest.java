@@ -54,7 +54,7 @@ import com.typesafe.config.ConfigFactory;
 /**
  * Unit tests for {@link ThingEventEnricher}.
  */
-public final class PreDefinedExtraFieldsEnricherTest {
+public final class ThingEventEnricherTest {
 
     private static final ThingId KNOWN_THING_ID = ThingId.of("org.eclipse.ditto.some:thing");
     private static final String KNOWN_DEFINITION = "some:known:definition";
