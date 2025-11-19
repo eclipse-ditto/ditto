@@ -14,7 +14,6 @@ package org.eclipse.ditto.things.service.utils;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -26,7 +25,6 @@ import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.json.JsonArrayBuilder;
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
@@ -43,8 +41,6 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
  * This is used to enable partial change notifications for subjects with restricted READ permissions.
  */
 public final class PartialAccessPathCalculator {
-
-    private static final String THING_RESOURCE_TYPE = "thing";
 
     private PartialAccessPathCalculator() {
         // No instantiation
@@ -104,45 +100,17 @@ public final class PartialAccessPathCalculator {
             final JsonObject thingJson,
             final Enforcer enforcer) {
 
-        final JsonObject accessibleJson = enforcer.buildJsonView(
+        final Set<JsonPointer> accessiblePaths = enforcer.getAccessiblePaths(
+                PoliciesResourceType.thingResource(JsonPointer.empty()),
                 thingJson,
-                THING_RESOURCE_TYPE,
                 AuthorizationContext.newInstance(
                         DittoAuthorizationContextType.UNSPECIFIED,
                         subject
                 ),
-                Permission.READ
+                Permissions.newInstance(Permission.READ)
         );
 
-        final Set<JsonPointer> accessiblePaths = new LinkedHashSet<>();
-        collectAccessiblePaths(accessibleJson, JsonPointer.empty(), accessiblePaths);
-
         return new ArrayList<>(accessiblePaths);
-    }
-
-    /**
-     * Recursively collects all accessible paths from a JSON object.
-     *
-     * @param jsonObject the JSON object to traverse
-     * @param currentPath the current path being traversed
-     * @param accessiblePaths the set to collect paths into
-     */
-    private static void collectAccessiblePaths(
-            final JsonObject jsonObject,
-            final JsonPointer currentPath,
-            final Set<JsonPointer> accessiblePaths) {
-
-        for (final JsonField field : jsonObject) {
-            final JsonPointer fieldPath = currentPath.isEmpty()
-                    ? JsonPointer.of("/" + field.getKey())
-                    : currentPath.append(JsonPointer.of("/" + field.getKey()));
-
-            accessiblePaths.add(fieldPath);
-
-            if (field.getValue().isObject()) {
-                collectAccessiblePaths(field.getValue().asObject(), fieldPath, accessiblePaths);
-            }
-        }
     }
 
     /**

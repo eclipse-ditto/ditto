@@ -20,6 +20,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.ResourceKey;
 
@@ -311,6 +312,22 @@ public interface Enforcer {
      * @throws NullPointerException if any argument is {@code null}.
      */
     JsonObject buildJsonView(ResourceKey resourceKey, Iterable<JsonField> jsonFields,
+            AuthorizationContext authorizationContext, Permissions permissions);
+
+    /**
+     * Returns the set of accessible JSON paths for the given {@code authorizationContext} and {@code permissions}
+     * based on the provided {@code jsonFields}. This method is more efficient than {@link #buildJsonView} when only
+     * the paths are needed, as it avoids building the full JSON object.
+     *
+     * @param resourceKey the ResourceKey (containing Resource type and path) to start from
+     * @param jsonFields the full JsonFields from which to determine accessible paths
+     * @param authorizationContext the AuthorizationContext containing the AuthorizationSubjects
+     * @param permissions the permissions to check
+     * @return a set of JsonPointer paths that are accessible for the given authorization context and permissions
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 3.0.0
+     */
+    Set<JsonPointer> getAccessiblePaths(ResourceKey resourceKey, Iterable<JsonField> jsonFields,
             AuthorizationContext authorizationContext, Permissions permissions);
 
 }

@@ -64,7 +64,7 @@ import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
 import org.eclipse.ditto.things.service.common.config.ThingConfig;
 import org.eclipse.ditto.things.service.persistence.actors.enrichment.EnrichSignalWithPreDefinedExtraFields;
 import org.eclipse.ditto.things.service.persistence.actors.enrichment.EnrichSignalWithPreDefinedExtraFieldsResponse;
-import org.eclipse.ditto.things.service.persistence.actors.enrichment.PreDefinedExtraFieldsEnricher;
+import org.eclipse.ditto.things.service.persistence.actors.enrichment.ThingEventEnricher;
 import org.eclipse.ditto.things.service.persistence.actors.strategies.commands.ThingCommandStrategies;
 import org.eclipse.ditto.things.service.persistence.actors.strategies.events.ThingEventStrategies;
 
@@ -95,8 +95,8 @@ public final class ThingPersistenceActor
     private final ThingConfig thingConfig;
     private final DistributedPub<ThingEvent<?>> distributedPub;
     @Nullable private final ActorRef searchShardRegionProxy;
-    private final PreDefinedExtraFieldsEnricher eventPreDefinedExtraFieldsEnricher;
-    private final PreDefinedExtraFieldsEnricher messagePreDefinedExtraFieldsEnricher;
+    private final ThingEventEnricher eventPreDefinedExtraFieldsEnricher;
+    private final ThingEventEnricher messagePreDefinedExtraFieldsEnricher;
 
     @SuppressWarnings("unused")
     private ThingPersistenceActor(final ThingId thingId,
@@ -112,11 +112,11 @@ public final class ThingPersistenceActor
         thingConfig = thingsConfig.getThingConfig();
         this.distributedPub = distributedPub;
         this.searchShardRegionProxy = searchShardRegionProxy;
-        this.eventPreDefinedExtraFieldsEnricher = new PreDefinedExtraFieldsEnricher(
+        this.eventPreDefinedExtraFieldsEnricher = new ThingEventEnricher(
                 thingConfig.getEventConfig().getPredefinedExtraFieldsConfigs(),
                 policyEnforcerProvider
         );
-        this.messagePreDefinedExtraFieldsEnricher = new PreDefinedExtraFieldsEnricher(
+        this.messagePreDefinedExtraFieldsEnricher = new ThingEventEnricher(
                 thingConfig.getMessageConfig().getPredefinedExtraFieldsConfigs(),
                 policyEnforcerProvider
         );

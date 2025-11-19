@@ -52,7 +52,7 @@ import org.junit.Test;
 import com.typesafe.config.ConfigFactory;
 
 /**
- * Unit tests for {@link PreDefinedExtraFieldsEnricher}.
+ * Unit tests for {@link ThingEventEnricher}.
  */
 public final class PreDefinedExtraFieldsEnricherTest {
 
@@ -269,8 +269,8 @@ public final class PreDefinedExtraFieldsEnricherTest {
         );
     }
 
-    private PreDefinedExtraFieldsEnricher providePreDefinedFieldsEnricher(final String... configurations) {
-        return new PreDefinedExtraFieldsEnricher(
+    private ThingEventEnricher providePreDefinedFieldsEnricher(final String... configurations) {
+        return new ThingEventEnricher(
                 Arrays.stream(configurations)
                         .map(configString ->
                                 DefaultPreDefinedExtraFieldsConfig.of(ConfigFactory.parseString(configString))
@@ -282,7 +282,7 @@ public final class PreDefinedExtraFieldsEnricherTest {
     }
 
     private static CompletionStage<DittoHeaders> calculateEnrichedSignalHeaders(
-            final PreDefinedExtraFieldsEnricher sut
+            final ThingEventEnricher sut
     ) {
         final AttributeModified event = AttributeModified.of(
                 KNOWN_THING_ID, JsonPointer.of("something"), JsonValue.of(true), 4L,
