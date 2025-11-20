@@ -579,6 +579,8 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS.getKey(), KNOWN_PRE_DEFINED_EXTRA_FIELDS)
                 .set(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT.getKey(),
                         KNOWN_PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT)
+                .set(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_SUBJECTS.getKey(),
+                        KNOWN_PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_SUBJECTS)
                 .set(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_OBJECT.getKey(),
                         KNOWN_PRE_DEFINED_EXTRA_FIELDS_OBJECT)
                 .set(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey(),
