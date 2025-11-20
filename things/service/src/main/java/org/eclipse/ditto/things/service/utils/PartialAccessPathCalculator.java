@@ -118,30 +118,6 @@ public final class PartialAccessPathCalculator {
     }
 
     /**
-     * Converts a map of subject IDs to accessible paths into a JSON object.
-     *
-     * @param partialAccessPaths the map to convert
-     * @return a JSON object with subject IDs as keys and arrays of path strings as values
-     */
-    public static JsonObject toJsonObject(final Map<String, List<JsonPointer>> partialAccessPaths) {
-        final JsonObjectBuilder builder = JsonFactory.newObjectBuilder();
-
-        for (final Map.Entry<String, List<JsonPointer>> entry : partialAccessPaths.entrySet()) {
-            final String subjectId = entry.getKey();
-            final List<JsonPointer> paths = entry.getValue();
-
-            final JsonArrayBuilder arrayBuilder = JsonFactory.newArrayBuilder();
-            for (final JsonPointer path : paths) {
-                arrayBuilder.add(path.toString());
-            }
-
-            builder.set(subjectId, arrayBuilder.build());
-        }
-
-        return builder.build();
-    }
-
-    /**
      * Converts a map of subject IDs to accessible paths into an indexed JSON object format.
      * This format uses indices to avoid repeating subject IDs, significantly reducing header size.
      *
