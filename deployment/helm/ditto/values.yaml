@@ -155,6 +155,10 @@ global:
     # jsonKeyValidationEnabled controls whether for each json object, each JSON key should be validated against a regex pattern
     #  excluding control characters to be used as JSON keys. This can have quite a performance impact.
     jsonKeyValidationEnabled: true
+    # tracingSpanMetricsEnabled controls whether when tracing is enabled, spans should automatically create metrics for span durations
+    #  reported as Prometheus histogram "span_processing_time_seconds".
+    #  As Ditto tracks a lot of spans, enabling those metrics can cause a lot of additional metrics and overhead.
+    tracingSpanMetricsEnabled: true
   # logging the logging configuration for Ditto
   logging:
     # sysout holds the logging to SYSOUT config
