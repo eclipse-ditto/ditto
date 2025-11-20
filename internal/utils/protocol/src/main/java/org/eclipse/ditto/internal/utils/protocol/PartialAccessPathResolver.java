@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.internal.utils.protocol;
 
+import java.time.Duration;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -27,6 +29,8 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 
@@ -36,11 +40,17 @@ import com.github.benmanes.caffeine.cache.Caffeine;
  */
 public final class PartialAccessPathResolver {
 
-    // TODO add a config for it
+    private static final Logger LOGGER = LoggerFactory.getLogger(PartialAccessPathResolver.class);
+
+    // TODO check if needed to be configurable
     private static final int MAX_CACHE_SIZE = 1000;
+    private static final Duration CACHE_EXPIRE_AFTER_ACCESS = Duration.ofMinutes(15);
+    private static final Duration CACHE_EXPIRE_AFTER_WRITE = Duration.ofMinutes(15);
     private static final com.github.benmanes.caffeine.cache.Cache<String, Map<String, List<JsonPointer>>> PARSED_HEADER_CACHE =
             Caffeine.newBuilder()
                     .maximumSize(MAX_CACHE_SIZE)
+                    .expireAfterWrite(CACHE_EXPIRE_AFTER_WRITE)
+                    .expireAfterAccess(CACHE_EXPIRE_AFTER_ACCESS)
                     .build();
 
     private PartialAccessPathResolver() {
@@ -117,8 +127,8 @@ public final class PartialAccessPathResolver {
                         final JsonObject partialAccessPathsJson = JsonFactory.readFrom(header).asObject();
                         return JsonPartialAccessFilter.parsePartialAccessPaths(partialAccessPathsJson);
                     } catch (final JsonParseException e) {
-                        throw new IllegalArgumentException(
-                                "Failed to parse partial access paths header as JSON: " + e.getMessage(), e);
+                        LOGGER.warn("Failed to parse partial access paths header as JSON: {}", e.getMessage(), e);
+                        return Collections.emptyMap();
                     }
                 });
     }
