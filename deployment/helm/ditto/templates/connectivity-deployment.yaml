@@ -216,6 +216,8 @@ spec:
               value: "{{ .Values.global.featureFlags.preserveKnownMqttHeadersEnabled }}"
             - name: DITTO_DEVOPS_FEATURE_JSON_KEY_VALIDATION_ENABLED
               value: "{{ .Values.global.featureFlags.jsonKeyValidationEnabled }}"
+            - name: DITTO_DEVOPS_FEATURE_TRACING_SPAN_METRICS_ENABLED
+              value: "{{ .Values.global.featureFlags.tracingSpanMetricsEnabled }}"
             - name: PEKKO_COORDINATED_SHUTDOWN_PHASES_CLUSTER_SHARDING_SHUTDOWN_REGION
               value: "{{ .Values.connectivity.config.cluster.coordinatedShutdown.phases.clusterShardingShutdownRegion.timeout }}"
             - name: PEKKO_COORDINATED_SHUTDOWN_PHASES_CLUSTER_EXITING_TIMEOUT
