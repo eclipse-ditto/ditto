@@ -55,6 +55,15 @@ public final class FeatureToggle {
     public static final String JSON_KEY_VALIDATION_ENABLED = "ditto.devops.feature.json-key-validation-enabled";
 
     /**
+     * System property name of the property defining whether when tracing is activated span metrics are also recorded
+     * and exposed as Prometheus metrics. This is a built-in default of Kamon, Ditto's used tracing library, but can
+     * be deactivated to reduce the amount of recorded metrics.
+     *
+     * @since 3.8.7
+     */
+    public static final String TRACING_SPAN_METRICS_ENABLED = "ditto.devops.feature.tracing-span-metrics-enabled";
+
+    /**
      * Resolves the system property {@value MERGE_THINGS_ENABLED}.
      */
     private static final boolean IS_MERGE_THINGS_ENABLED = resolveProperty(MERGE_THINGS_ENABLED);
@@ -78,6 +87,11 @@ public final class FeatureToggle {
      * Resolves the system property {@value JSON_KEY_VALIDATION_ENABLED}.
      */
     private static final boolean IS_JSON_KEY_VALIDATION_ENABLED = resolveProperty(JSON_KEY_VALIDATION_ENABLED);
+
+    /**
+     * Resolves the system property {@value TRACING_SPAN_METRICS_ENABLED}.
+     */
+    private static final boolean IS_TRACING_SPAN_METRICS_ENABLED = resolveProperty(TRACING_SPAN_METRICS_ENABLED);
 
     private static boolean resolveProperty(final String propertyName) {
         final String propertyValue = System.getProperty(propertyName, Boolean.TRUE.toString());
@@ -183,10 +197,21 @@ public final class FeatureToggle {
     /**
      * Returns whether JSON key validation is enabled based on the system property {@value JSON_KEY_VALIDATION_ENABLED}.
      *
-     * @return whether JSON key validation is enabled based on the system property
+     * @return whether JSON key validation is enabled.
      * @since 3.7.5
      */
     public static boolean isJsonKeyValidationEnabled() {
         return IS_JSON_KEY_VALIDATION_ENABLED;
+    }
+
+    /**
+     * Returns whether tracing span metric reporting is enabled based on the system property
+     * {@value TRACING_SPAN_METRICS_ENABLED}.
+     *
+     * @return whether tracing span metric reporting is enabled.
+     * @since 3.8.7
+     */
+    public static boolean isTracingSpanMetricsEnabled() {
+        return IS_TRACING_SPAN_METRICS_ENABLED;
     }
 }

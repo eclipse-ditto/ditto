@@ -19,6 +19,7 @@ import java.util.Map;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.KamonTagSetConverter;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
@@ -45,6 +46,11 @@ final class PreparedKamonSpan implements PreparedSpan {
     ) {
         final var context = httpContextPropagation.getContextFromHeaders(headers);
         spanBuilder = Kamon.spanBuilder(operationName.toString()).asChildOf(context.get(Span.Key()));
+        if (FeatureToggle.isTracingSpanMetricsEnabled()) {
+            spanBuilder.trackMetrics();
+        } else {
+            spanBuilder.doNotTrackMetrics();
+        }
         this.httpContextPropagation = httpContextPropagation;
     }
 
