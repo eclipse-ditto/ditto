@@ -43,17 +43,16 @@ public final class JsonPartialAccessFilter {
 
     /**
      * Parses a JSON object containing partial access paths from headers.
-     * Supports both legacy format (subject -> paths) and indexed format (subjects array + paths -> indices).
+     * Supports indexed format: { "subjects": ["subj1", "subj2"], "paths": { "/path1": [0, 1], "/path2": [1] } }
      *
-     * @param jsonObject the JSON object from headers
+     * @param jsonObject the JSON object from headers (must contain "subjects" and "paths" keys)
      * @return map of subject IDs to accessible paths
      */
     public static Map<String, List<JsonPointer>> parsePartialAccessPaths(final JsonObject jsonObject) {
-        if (jsonObject.contains(SUBJECTS_KEY) && jsonObject.contains(PATHS_KEY)) {
-            return parseIndexedPartialAccessPaths(jsonObject);
-        } else {
-            return parseLegacyPartialAccessPaths(jsonObject);
+        if (!jsonObject.contains(SUBJECTS_KEY) || !jsonObject.contains(PATHS_KEY)) {
+            return Map.of();
         }
+        return parseIndexedPartialAccessPaths(jsonObject);
     }
 
     /**
@@ -125,29 +124,6 @@ public final class JsonPartialAccessFilter {
                 extractPathsFromNestedObject(value.asObject(), fullPath, result, indexToSubject);
             }
         }
-    }
-
-    /**
-     * Parses the legacy format of partial access paths.
-     * Format: { "subject1": ["/path1", "/path2"], "subject2": ["/path3"] }
-     *
-     * @param jsonObject the legacy JSON object
-     * @return map of subject IDs to accessible paths
-     */
-    private static Map<String, List<JsonPointer>> parseLegacyPartialAccessPaths(final JsonObject jsonObject) {
-        final Map<String, List<JsonPointer>> result = new LinkedHashMap<>();
-        for (final JsonField field : jsonObject) {
-            final String subjectId = field.getKey().toString();
-            if (field.getValue().isArray()) {
-                final List<JsonPointer> paths = field.getValue().asArray().stream()
-                        .filter(JsonValue::isString)
-                        .map(JsonValue::asString)
-                        .map(JsonPointer::of)
-                        .toList();
-                result.put(subjectId, paths);
-            }
-        }
-        return result;
     }
 
     /**
