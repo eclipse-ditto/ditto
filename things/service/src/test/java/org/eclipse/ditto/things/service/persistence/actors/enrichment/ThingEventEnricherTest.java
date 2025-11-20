@@ -27,6 +27,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonArrayBuilder;
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
@@ -128,7 +129,7 @@ public final class ThingEventEnricherTest {
                 predefinedExtraFields -> predefinedExtraFields.add("/definition"),
                 preDefinedExtraFieldsReadGrantObject -> preDefinedExtraFieldsReadGrantObject
                         .set(JsonKey.of("/definition"), JsonArray.newBuilder()
-                                .add(KNOWN_ISSUER_FULL_SUBJECT)
+                                .add(0)
                                 .build()
                         ),
                 preDefinedFieldsObject -> preDefinedFieldsObject.set("definition", KNOWN_DEFINITION)
@@ -180,17 +181,17 @@ public final class ThingEventEnricherTest {
                         .add("/attributes/public1")
                         .add("/attributes/private"),
                 preDefinedExtraFieldsReadGrantObject -> preDefinedExtraFieldsReadGrantObject
-                        .set(JsonKey.of("/definition"), JsonArray.newBuilder()
-                                .add(KNOWN_ISSUER_FULL_SUBJECT)
+                        .set(JsonKey.of("/attributes/public1"), JsonArray.newBuilder()
+                                .add(0)
+                                .add(1)
                                 .build()
                         )
-                        .set(JsonKey.of("/attributes/public1"), JsonArray.newBuilder()
-                                .add(KNOWN_ISSUER_FULL_SUBJECT)
-                                .add(KNOWN_ISSUER_RESTRICTED_SUBJECT) // also include the restricted subject to read public1
+                        .set(JsonKey.of("/definition"), JsonArray.newBuilder()
+                                .add(0)
                                 .build()
                         )
                         .set(JsonKey.of("/attributes/private"), JsonArray.newBuilder()
-                                .add(KNOWN_ISSUER_FULL_SUBJECT)
+                                .add(0)
                                 .build()
                         ),
                 preDefinedFieldsObject -> preDefinedFieldsObject
@@ -248,18 +249,17 @@ public final class ThingEventEnricherTest {
                         .add("/attributes/folder"),
                 preDefinedExtraFieldsReadGrantObject -> preDefinedExtraFieldsReadGrantObject
                         .set(JsonKey.of("/attributes/public1"), JsonArray.newBuilder()
-                                .add(KNOWN_ISSUER_FULL_SUBJECT)
-                                .add(KNOWN_ISSUER_RESTRICTED_SUBJECT) // also include the restricted subject to read public1
+                                .add(0)
+                                .add(1)
                                 .build()
                         )
                         .set(JsonKey.of("/attributes/folder"), JsonArray.newBuilder()
-                                .add(KNOWN_ISSUER_FULL_SUBJECT)
+                                .add(0)
                                 .build()
                         )
                         .set(JsonKey.of("/attributes/folder/public"), JsonArray.newBuilder()
-//                                .add(KNOWN_ISSUER_FULL_SUBJECT) // KNOWN_ISSUER_FULL_SUBJECT is not added again, because it already has access to the folder
-                                .add(KNOWN_ISSUER_RESTRICTED_SUBJECT) // also include the restricted subject to read folder/public
-                                .add(KNOWN_ISSUER_ANOTHER_SUBJECT) // also include the another subject to read folder/public
+                                .add(2)
+                                .add(1)
                                 .build()
                         ),
                 preDefinedFieldsObject -> preDefinedFieldsObject
@@ -303,10 +303,14 @@ public final class ThingEventEnricherTest {
         )).isNotCompletedExceptionally().isCompletedWithValue(
                 expectedPreDefinedExtraFields.apply(JsonArray.newBuilder()).build().toString()
         );
-        assertThatCompletionStage(resultHeadersStage.thenApply(headers ->
-                headers.get(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT.getKey())
-        )).isNotCompletedExceptionally().isCompletedWithValue(
-                expectedPreDefinedExtraFieldsReadGrantObject.apply(JsonObject.newBuilder()).build().toString()
+        assertThatCompletionStage(resultHeadersStage.thenApply(headers -> {
+            final String headerValue = headers.get(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT.getKey());
+            if (headerValue == null) {
+                return JsonFactory.newObject();
+            }
+            return JsonFactory.readFrom(headerValue).asObject();
+        })).isNotCompletedExceptionally().isCompletedWithValue(
+                expectedPreDefinedExtraFieldsReadGrantObject.apply(JsonObject.newBuilder()).build()
         );
         assertThatCompletionStage(resultHeadersStage.thenApply(headers ->
                 headers.get(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_OBJECT.getKey())

@@ -115,5 +115,69 @@ public final class JsonPartialAccessFilterTest {
 
         assertThat(filtered).isEmpty();
     }
+
+    @Test
+    public void parseIndexedPartialAccessPaths() {
+        // Test indexed format: { "subjects": ["subj1", "subj2"], "paths": { "/path1": [0, 1], "/path2": [1] } }
+        final JsonObject indexedHeader = JsonFactory.newObjectBuilder()
+                .set("subjects", JsonFactory.newArrayBuilder()
+                        .add("nginx:partial-access")
+                        .add("nginx:another-subject")
+                        .build())
+                .set("paths", JsonFactory.newObjectBuilder()
+                        .set("/attributes/public", JsonFactory.newArrayBuilder()
+                                .add(0) // nginx:partial-access
+                                .build())
+                        .set("/attributes/nested/data", JsonFactory.newArrayBuilder()
+                                .add(0) // nginx:partial-access
+                                .build())
+                        .set("/features/sensor/properties/temperature", JsonFactory.newArrayBuilder()
+                                .add(0) // nginx:partial-access
+                                .add(1) // nginx:another-subject
+                                .build())
+                        .build())
+                .build();
+
+        final var result = JsonPartialAccessFilter.parsePartialAccessPaths(indexedHeader);
+
+        assertThat(result).isNotEmpty();
+        assertThat(result).containsKey("nginx:partial-access");
+        assertThat(result.get("nginx:partial-access")).containsExactlyInAnyOrder(
+                JsonPointer.of("/attributes/public"),
+                JsonPointer.of("/attributes/nested/data"),
+                JsonPointer.of("/features/sensor/properties/temperature")
+        );
+        assertThat(result).containsKey("nginx:another-subject");
+        assertThat(result.get("nginx:another-subject")).containsExactly(
+                JsonPointer.of("/features/sensor/properties/temperature")
+        );
+    }
+
+    @Test
+    public void parseLegacyPartialAccessPaths() {
+        // Test legacy format: { "subject1": ["/path1", "/path2"], "subject2": ["/path3"] }
+        final JsonObject legacyHeader = JsonFactory.newObjectBuilder()
+                .set("nginx:partial-access", JsonFactory.newArrayBuilder()
+                        .add("/attributes/public")
+                        .add("/attributes/nested/data")
+                        .build())
+                .set("nginx:another-subject", JsonFactory.newArrayBuilder()
+                        .add("/features/sensor/properties/temperature")
+                        .build())
+                .build();
+
+        final var result = JsonPartialAccessFilter.parsePartialAccessPaths(legacyHeader);
+
+        assertThat(result).isNotEmpty();
+        assertThat(result).containsKey("nginx:partial-access");
+        assertThat(result.get("nginx:partial-access")).containsExactlyInAnyOrder(
+                JsonPointer.of("/attributes/public"),
+                JsonPointer.of("/attributes/nested/data")
+        );
+        assertThat(result).containsKey("nginx:another-subject");
+        assertThat(result.get("nginx:another-subject")).containsExactly(
+                JsonPointer.of("/features/sensor/properties/temperature")
+        );
+    }
 }
 

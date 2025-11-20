@@ -14,6 +14,7 @@ package org.eclipse.ditto.things.service.utils;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,6 +42,9 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
  * This is used to enable partial change notifications for subjects with restricted READ permissions.
  */
 public final class PartialAccessPathCalculator {
+
+    private static final String SUBJECTS_KEY = "subjects";
+    private static final String PATHS_KEY = "paths";
 
     private PartialAccessPathCalculator() {
         // No instantiation
@@ -135,6 +139,67 @@ public final class PartialAccessPathCalculator {
         }
 
         return builder.build();
+    }
+
+    /**
+     * Converts a map of subject IDs to accessible paths into an indexed JSON object format.
+     * This format uses indices to avoid repeating subject IDs, significantly reducing header size.
+     *
+     * Format:
+     * {
+     *   "subjects": ["subject1", "subject2", ...],
+     *   "paths": {
+     *     "/path1": [0, 1],
+     *     "/path2": [1],
+     *     ...
+     *   }
+     * }
+     *
+     * @param partialAccessPaths the map to convert
+     * @return an indexed JSON object with subjects array and paths mapping to indices
+     */
+    public static JsonObject toIndexedJsonObject(final Map<String, List<JsonPointer>> partialAccessPaths) {
+        if (partialAccessPaths.isEmpty()) {
+            return JsonFactory.newObjectBuilder()
+                    .set(SUBJECTS_KEY, JsonFactory.newArray())
+                    .set(PATHS_KEY, JsonFactory.newObject())
+                    .build();
+        }
+
+        final JsonArrayBuilder subjectsArray = JsonFactory.newArrayBuilder();
+        final Map<String, Integer> subjectIndex = new LinkedHashMap<>();
+        int index = 0;
+        for (final String subjectId : partialAccessPaths.keySet()) {
+            subjectIndex.put(subjectId, index++);
+            subjectsArray.add(subjectId);
+        }
+
+        final Map<String, Set<Integer>> pathToIndices = new LinkedHashMap<>();
+        for (final Map.Entry<String, List<JsonPointer>> entry : partialAccessPaths.entrySet()) {
+            final String subjectId = entry.getKey();
+            final Integer idx = subjectIndex.get(subjectId);
+            if (idx == null) {
+                continue;
+            }
+
+            for (final JsonPointer path : entry.getValue()) {
+                final String pathString = PointerUtils.toStringWithoutLeadingSlash(path);
+                pathToIndices.computeIfAbsent(pathString, k -> new LinkedHashSet<>()).add(idx);
+            }
+        }
+
+        final JsonObjectBuilder pathsBuilder = JsonFactory.newObjectBuilder();
+        for (final Map.Entry<String, Set<Integer>> entry : pathToIndices.entrySet()) {
+            final String pathString = entry.getKey();
+            final JsonArrayBuilder idxArrayBuilder = JsonFactory.newArrayBuilder();
+            entry.getValue().stream().sorted().forEach(idxArrayBuilder::add);
+            pathsBuilder.set(pathString, idxArrayBuilder.build());
+        }
+
+        return JsonFactory.newObjectBuilder()
+                .set(SUBJECTS_KEY, subjectsArray.build())
+                .set(PATHS_KEY, pathsBuilder.build())
+                .build();
     }
 }
 

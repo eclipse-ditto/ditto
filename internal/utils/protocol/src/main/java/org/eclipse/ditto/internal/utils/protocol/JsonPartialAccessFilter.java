@@ -12,11 +12,13 @@
  */
 package org.eclipse.ditto.internal.utils.protocol;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
@@ -32,17 +34,107 @@ public final class JsonPartialAccessFilter {
 
     private static final JsonPointer ROOT_PATH = JsonPointer.empty();
 
+    private static final String SUBJECTS_KEY = "subjects";
+    private static final String PATHS_KEY = "paths";
+
     private JsonPartialAccessFilter() {
         // No instantiation
     }
 
     /**
      * Parses a JSON object containing partial access paths from headers.
+     * Supports both legacy format (subject -> paths) and indexed format (subjects array + paths -> indices).
      *
      * @param jsonObject the JSON object from headers
      * @return map of subject IDs to accessible paths
      */
     public static Map<String, List<JsonPointer>> parsePartialAccessPaths(final JsonObject jsonObject) {
+        if (jsonObject.contains(SUBJECTS_KEY) && jsonObject.contains(PATHS_KEY)) {
+            return parseIndexedPartialAccessPaths(jsonObject);
+        } else {
+            return parseLegacyPartialAccessPaths(jsonObject);
+        }
+    }
+
+    /**
+     * Parses the indexed format of partial access paths.
+     * Format: { "subjects": ["subj1", "subj2"], "paths": { "/path1": [0, 1], "/path2": [1] } }
+     *
+     * @param jsonObject the indexed JSON object
+     * @return map of subject IDs to accessible paths
+     */
+    private static Map<String, List<JsonPointer>> parseIndexedPartialAccessPaths(final JsonObject jsonObject) {
+        final Map<String, List<JsonPointer>> result = new LinkedHashMap<>();
+
+        final JsonArray subjectsArray = jsonObject.getValue(SUBJECTS_KEY)
+                .filter(JsonValue::isArray)
+                .map(JsonValue::asArray)
+                .orElse(JsonFactory.newArray());
+
+        final Map<Integer, String> indexToSubject = new LinkedHashMap<>();
+        for (int i = 0; i < subjectsArray.getSize(); i++) {
+            final JsonValue subjectValue = subjectsArray.get(i).orElse(null);
+            if (subjectValue != null && subjectValue.isString()) {
+                indexToSubject.put(i, subjectValue.asString());
+            }
+        }
+
+        final JsonObject pathsObject = jsonObject.getValue(PATHS_KEY)
+                .filter(JsonValue::isObject)
+                .map(JsonValue::asObject)
+                .orElse(JsonFactory.newObject());
+
+        extractPathsFromNestedObject(pathsObject, "", result, indexToSubject);
+
+        return result;
+    }
+
+    /**
+     * Recursively extracts paths and indices from a potentially nested JSON object.
+     * Handles the case where JsonKey.of("/path") creates nested structure.
+     *
+     * @param jsonObject the JSON object (may be nested)
+     * @param currentPath the current path prefix (for recursion)
+     * @param result the result map to populate
+     * @param indexToSubject the index to subject ID mapping
+     */
+    private static void extractPathsFromNestedObject(
+            final JsonObject jsonObject,
+            final String currentPath,
+            final Map<String, List<JsonPointer>> result,
+            final Map<Integer, String> indexToSubject) {
+
+        for (final JsonField field : jsonObject) {
+            final String key = field.getKey().toString();
+            final String fullPath = currentPath.isEmpty() ? "/" + key : currentPath + "/" + key;
+            final JsonValue value = field.getValue();
+
+            if (value.isArray()) {
+                final JsonArray indicesArray = value.asArray();
+                final JsonPointer path = JsonPointer.of(fullPath);
+                for (final JsonValue idxValue : indicesArray) {
+                    if (idxValue.isNumber()) {
+                        final int idx = idxValue.asInt();
+                        final String subjectId = indexToSubject.get(idx);
+                        if (subjectId != null) {
+                            result.computeIfAbsent(subjectId, k -> new ArrayList<>()).add(path);
+                        }
+                    }
+                }
+            } else if (value.isObject()) {
+                extractPathsFromNestedObject(value.asObject(), fullPath, result, indexToSubject);
+            }
+        }
+    }
+
+    /**
+     * Parses the legacy format of partial access paths.
+     * Format: { "subject1": ["/path1", "/path2"], "subject2": ["/path3"] }
+     *
+     * @param jsonObject the legacy JSON object
+     * @return map of subject IDs to accessible paths
+     */
+    private static Map<String, List<JsonPointer>> parseLegacyPartialAccessPaths(final JsonObject jsonObject) {
         final Map<String, List<JsonPointer>> result = new LinkedHashMap<>();
         for (final JsonField field : jsonObject) {
             final String subjectId = field.getKey().toString();
