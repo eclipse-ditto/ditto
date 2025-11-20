@@ -345,7 +345,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
 
         final DittoHeaders headers = DittoHeaders.newBuilder()
                 .putHeader(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey(),
-                        "{\"test:partial-reader\":[\"/attributes\",\"/attributes/foo\",\"/features/fluxCompensator/properties/baz\"]}")
+                        "{\"subjects\":[\"test:partial-reader\"],\"paths\":{\"attributes\":[0],\"attributes/foo\":[0],\"features/fluxCompensator/properties/baz\":[0]}}")
                 .readGrantedSubjects(Collections.singletonList(partialReader))
                 .build();
 
@@ -376,7 +376,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
 
         final DittoHeaders headers = DittoHeaders.newBuilder()
                 .putHeader(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey(),
-                        "{\"test:partial-reader\":[\"/attributes\"]}")
+                        "{\"subjects\":[\"test:partial-reader\"],\"paths\":{\"attributes\":[0]}}")
                 .readGrantedSubjects(List.of(fullReader, partialReader))
                 .build();
 
@@ -398,7 +398,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
 
         final DittoHeaders headers = DittoHeaders.newBuilder()
                 .putHeader(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey(),
-                        "{\"test:partial-reader\":[\"/attributes\"]}")
+                        "{\"subjects\":[\"test:partial-reader\"],\"paths\":{\"attributes\":[0]}}")
                 .readGrantedSubjects(Collections.singletonList(partialReader))
                 .build();
 
