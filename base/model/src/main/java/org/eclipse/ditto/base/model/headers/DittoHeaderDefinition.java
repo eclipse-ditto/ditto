@@ -647,6 +647,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * <p>
      * Key: {@code "ditto-partial-access-paths"}, Java type: {@link JsonObject}.
      * Format (indexed):
+     * </p>
      * <pre>{@code
      * {
      *   "subjects": [
@@ -659,6 +660,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *   }
      * }
      * }</pre>
+     * <p>
      * Each path maps to integer indices referring to entries in the {@code subjects} array.
      * This indexed format reduces header size when multiple subjects share the same paths.
      * </p>
