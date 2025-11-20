@@ -33,7 +33,8 @@ public interface Descriptions extends Map<Locale, Description>, Jsonifiable<Json
                 field -> new Locale(field.getKey().toString()),
                 field -> Description.of(field.getValue().asString()),
                 (u, v) -> {
-                    throw new IllegalStateException(String.format("Duplicate key %s", u));
+                    throw WotThingModelInvalidException.newBuilder(String.format("Descriptions: Duplicate key %s", u))
+                            .build();
                 },
                 LinkedHashMap::new)
         ));

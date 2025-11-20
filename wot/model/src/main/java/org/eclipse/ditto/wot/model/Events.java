@@ -34,7 +34,8 @@ public interface Events extends Map<String, Event>, Jsonifiable<JsonObject> {
                 field -> field.getKey().toString(),
                 field -> Event.fromJson(field.getKey().toString(), field.getValue().asObject()),
                 (u, v) -> {
-                    throw new IllegalStateException(String.format("Duplicate key %s", u));
+                    throw WotThingModelInvalidException.newBuilder(String.format("Events: Duplicate key %s", u))
+                            .build();
                 },
                 LinkedHashMap::new)
         ));
@@ -45,7 +46,8 @@ public interface Events extends Map<String, Event>, Jsonifiable<JsonObject> {
                 Event::getEventName,
                 e -> e,
                 (u, v) -> {
-                    throw new IllegalStateException(String.format("Duplicate key %s", u));
+                    throw WotThingModelInvalidException.newBuilder(String.format("Events: Duplicate key %s", u))
+                            .build();
                 },
                 LinkedHashMap::new)
         ));

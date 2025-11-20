@@ -34,7 +34,8 @@ public interface Titles extends Map<Locale, Title>, Jsonifiable<JsonObject> {
                 field -> new Locale(field.getKey().toString()),
                 field -> Title.of(field.getValue().asString()),
                 (u, v) -> {
-                    throw new IllegalStateException(String.format("Duplicate key %s", u));
+                    throw WotThingModelInvalidException.newBuilder(String.format("Titles: Duplicate key %s", u))
+                            .build();
                 },
                 LinkedHashMap::new)
         ));

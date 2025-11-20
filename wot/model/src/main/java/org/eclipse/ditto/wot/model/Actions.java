@@ -34,7 +34,8 @@ public interface Actions extends Map<String, Action>, Jsonifiable<JsonObject> {
                 field -> field.getKey().toString(),
                 field -> Action.fromJson(field.getKey().toString(), field.getValue().asObject()),
                 (u, v) -> {
-                    throw new IllegalStateException(String.format("Duplicate key %s", u));
+                    throw WotThingModelInvalidException.newBuilder(String.format("Actions: Duplicate key %s", u))
+                            .build();
                 },
                 LinkedHashMap::new)
         ));
@@ -45,7 +46,8 @@ public interface Actions extends Map<String, Action>, Jsonifiable<JsonObject> {
                 Action::getActionName,
                 a -> a,
                 (u, v) -> {
-                    throw new IllegalStateException(String.format("Duplicate key %s", u));
+                    throw WotThingModelInvalidException.newBuilder(String.format("Actions: Duplicate key %s", u))
+                            .build();
                 },
                 LinkedHashMap::new)
         ));

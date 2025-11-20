@@ -45,6 +45,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.wot.model.WotException;
+import org.eclipse.ditto.wot.model.WotThingModelInvalidException;
 
 /**
  * Exception thrown when a Ditto Thing (or parts of it), so the payload, could not be validated against the WoT Model.
@@ -105,7 +106,7 @@ public final class WotThingModelPayloadValidationException extends DittoRuntimeE
             final DittoHeaders dittoHeaders) {
 
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders,
-                new Builder(readValidationDetails(jsonObject))
+                new Builder(readValidationDetails(jsonObject, dittoHeaders))
         );
     }
 
@@ -120,7 +121,8 @@ public final class WotThingModelPayloadValidationException extends DittoRuntimeE
                 .build();
     }
 
-    private static Map<JsonPointer, List<String>> readValidationDetails(final JsonObject jsonObject) {
+    private static Map<JsonPointer, List<String>> readValidationDetails(final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
         checkNotNull(jsonObject, "JSON object");
         return jsonObject.getValue(JsonFields.VALIDATION_DETAILS)
                 .map(validationDetails -> validationDetails.stream()
@@ -131,7 +133,9 @@ public final class WotThingModelPayloadValidationException extends DittoRuntimeE
                 ).stream()
                 .flatMap(Function.identity())
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (u, v) -> {
-                    throw new IllegalStateException(String.format("Duplicate key %s", u));
+                    throw WotThingModelInvalidException.newBuilder(String.format("Validation details: Duplicate key %s", u))
+                            .dittoHeaders(dittoHeaders)
+                            .build();
                 }, LinkedHashMap::new));
     }
 

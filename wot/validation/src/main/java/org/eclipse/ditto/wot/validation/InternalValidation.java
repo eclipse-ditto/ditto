@@ -41,6 +41,7 @@ import org.eclipse.ditto.wot.model.SingleDataSchema;
 import org.eclipse.ditto.wot.model.SingleUriAtContext;
 import org.eclipse.ditto.wot.model.ThingModel;
 import org.eclipse.ditto.wot.model.TmOptionalElement;
+import org.eclipse.ditto.wot.model.WotThingModelInvalidException;
 
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.output.OutputUnit;
@@ -465,7 +466,9 @@ final class InternalValidation {
                                 .filter(entry -> !entry.getValue().isValid())
                                 .stream()
                 ).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (u, v) -> {
-                    throw new IllegalStateException(String.format("Duplicate key %s", u));
+                    throw WotThingModelInvalidException.newBuilder(String.format("Invalid properties: Duplicate key %s", u))
+                            .dittoHeaders(context.dittoHeaders())
+                            .build();
                 }, LinkedHashMap::new));
     }
 

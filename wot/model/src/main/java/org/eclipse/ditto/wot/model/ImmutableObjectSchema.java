@@ -52,7 +52,8 @@ final class ImmutableObjectSchema extends AbstractSingleDataSchema implements Ob
                         f -> f.getKey().toString(),
                         f -> SingleDataSchema.fromJson(f.getValue().asObject()),
                         (u, v) -> {
-                            throw new IllegalStateException(String.format("Duplicate key %s", u));
+                            throw WotThingModelInvalidException.newBuilder(String.format("Object properties: Duplicate key %s", u))
+                                    .build();
                         },
                         LinkedHashMap::new
                 ));

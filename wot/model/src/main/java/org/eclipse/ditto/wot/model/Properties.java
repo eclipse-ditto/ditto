@@ -34,7 +34,8 @@ public interface Properties extends Map<String, Property>, Jsonifiable<JsonObjec
                 field -> field.getKey().toString(),
                 field -> Property.fromJson(field.getKey().toString(), field.getValue().asObject()),
                 (u, v) -> {
-                    throw new IllegalStateException(String.format("Duplicate key %s", u));
+                    throw WotThingModelInvalidException.newBuilder(String.format("Properties: Duplicate key %s", u))
+                            .build();
                 },
                 LinkedHashMap::new)
         ));
@@ -45,7 +46,8 @@ public interface Properties extends Map<String, Property>, Jsonifiable<JsonObjec
                 Property::getPropertyName,
                 p -> p,
                 (u, v) -> {
-                    throw new IllegalStateException(String.format("Duplicate key %s", u));
+                    throw WotThingModelInvalidException.newBuilder(String.format("Properties: Duplicate key %s", u))
+                            .build();
                 },
                 LinkedHashMap::new)
         ));

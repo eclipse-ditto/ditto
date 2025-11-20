@@ -16,6 +16,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Duration;
 import java.util.AbstractMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -130,7 +131,11 @@ final class DefaultWotThingModelResolver implements WotThingModelResolver {
         return CompletableFuture.allOf(futureList.toArray(CompletableFuture<?>[]::new))
                 .thenApplyAsync(aVoid -> futureList.stream()
                         .map(CompletableFuture::join) // joining does not block anything here as "allOf" already guaranteed that all futures are ready
-                        .collect(Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue))
+                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (u, v) -> {
+                            throw WotThingModelInvalidException.newBuilder(String.format("Thing submodels: Duplicate key %s", u))
+                                    .dittoHeaders(dittoHeaders)
+                                    .build();
+                        }, LinkedHashMap::new))
                 );
     }
 
