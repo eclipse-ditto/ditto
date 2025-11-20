@@ -780,8 +780,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                     final boolean isEmptyPayload = filteredAdaptable.getPayload().getValue()
                             .map(value -> {
                                 if (value.isObject()) {
-                                    final JsonObject obj = value.asObject();
-                                    return obj.isEmpty();
+                                    return value.asObject().isEmpty();
                                 }
                                 return false;
                             })

@@ -17,15 +17,18 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
+
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 /**
  * Utility class for resolving accessible paths for a subscriber based on partial access paths header.
@@ -35,8 +38,10 @@ public final class PartialAccessPathResolver {
 
     // TODO add a config for it
     private static final int MAX_CACHE_SIZE = 1000;
-    private static final Map<String, Map<String, List<JsonPointer>>> PARSED_HEADER_CACHE = 
-            new ConcurrentHashMap<>(MAX_CACHE_SIZE);
+    private static final com.github.benmanes.caffeine.cache.Cache<String, Map<String, List<JsonPointer>>> PARSED_HEADER_CACHE =
+            Caffeine.newBuilder()
+                    .maximumSize(MAX_CACHE_SIZE)
+                    .build();
 
     private PartialAccessPathResolver() {
         // No instantiation
@@ -105,17 +110,16 @@ public final class PartialAccessPathResolver {
             return Map.of();
         }
 
-        return PARSED_HEADER_CACHE.computeIfAbsent(
+        return PARSED_HEADER_CACHE.get(
                 partialAccessPathsHeader,
                 header -> {
-                    final JsonObject partialAccessPathsJson = JsonObject.of(header);
-                    final Map<String, List<JsonPointer>> parsedPaths = 
-                            JsonPartialAccessFilter.parsePartialAccessPaths(partialAccessPathsJson);
-                    
-                    if (PARSED_HEADER_CACHE.size() >= MAX_CACHE_SIZE) {
-                        PARSED_HEADER_CACHE.clear();
+                    try {
+                        final JsonObject partialAccessPathsJson = JsonFactory.readFrom(header).asObject();
+                        return JsonPartialAccessFilter.parsePartialAccessPaths(partialAccessPathsJson);
+                    } catch (final JsonParseException e) {
+                        throw new IllegalArgumentException(
+                                "Failed to parse partial access paths header as JSON: " + e.getMessage(), e);
                     }
-                    return parsedPaths;
                 });
     }
 

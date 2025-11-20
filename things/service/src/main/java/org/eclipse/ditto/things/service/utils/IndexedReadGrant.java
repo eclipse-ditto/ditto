@@ -54,7 +54,7 @@ public record IndexedReadGrant(
             final String pathWithSlash = "/" + path;
             final JsonKey pathKey = JsonKey.of(pathWithSlash);
             final JsonArrayBuilder indicesBuilder = JsonFactory.newArrayBuilder();
-            entry.getValue().stream().sorted().forEach(indicesBuilder::add);
+            entry.getValue().forEach(indicesBuilder::add);
             builder.set(pathKey, indicesBuilder.build());
         }
         return builder.build();
