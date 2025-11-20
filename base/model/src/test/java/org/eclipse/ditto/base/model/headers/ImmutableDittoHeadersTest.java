@@ -153,6 +153,9 @@ public final class ImmutableDittoHeadersTest {
     private static final JsonObject KNOWN_PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT = JsonObject.newBuilder()
             .set("/definition", "known:subject")
             .build();
+    private static final JsonObject KNOWN_PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_SUBJECTS = JsonObject.newBuilder()
+            .set("0", "known:subject")
+            .build();
     private static final JsonObject KNOWN_PRE_DEFINED_EXTRA_FIELDS_OBJECT = JsonObject.newBuilder()
             .set("definition", "foo:bar:123")
             .build();
@@ -231,6 +234,8 @@ public final class ImmutableDittoHeadersTest {
                         KNOWN_PRE_DEFINED_EXTRA_FIELDS.formatAsString())
                 .putHeader(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT.getKey(),
                         KNOWN_PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT.formatAsString())
+                .putHeader(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_SUBJECTS.getKey(),
+                        KNOWN_PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_SUBJECTS.formatAsString())
                 .putHeader(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_OBJECT.getKey(),
                         KNOWN_PRE_DEFINED_EXTRA_FIELDS_OBJECT.formatAsString())
                 .putHeader(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey(),
@@ -832,6 +837,8 @@ public final class ImmutableDittoHeadersTest {
                 KNOWN_PRE_DEFINED_EXTRA_FIELDS.formatAsString());
         result.put(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT.getKey(),
                 KNOWN_PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT.formatAsString());
+        result.put(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_SUBJECTS.getKey(),
+                KNOWN_PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_SUBJECTS.formatAsString());
         result.put(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_OBJECT.getKey(),
                 KNOWN_PRE_DEFINED_EXTRA_FIELDS_OBJECT.formatAsString());
         result.put(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey(),
