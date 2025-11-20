@@ -643,11 +643,24 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
 
     /**
      * Internal header containing partial access paths for subjects with partial READ permissions.
-     * Maps subject IDs to arrays of JsonPointer paths that each subject can read.
      * Used to enable partial change notifications for subjects with restricted READ permissions.
      * <p>
      * Key: {@code "ditto-partial-access-paths"}, Java type: {@link JsonObject}.
-     * Format: {@code {"subject1": ["/path1", "/path2"], "subject2": ["/path3"]}}
+     * Format (indexed):
+     * <pre>{@code
+     * {
+     *   "subjects": [
+     *     "foo-idp:groupA",
+     *     "foo-idp:user1"
+     *   ],
+     *   "paths": {
+     *     "attributes/location": [0],
+     *     "features/A/properties/status": [0, 1]
+     *   }
+     * }
+     * }</pre>
+     * Each path maps to integer indices referring to entries in the {@code subjects} array.
+     * This indexed format reduces header size when multiple subjects share the same paths.
      * </p>
      *
      * @since 3.9.0
