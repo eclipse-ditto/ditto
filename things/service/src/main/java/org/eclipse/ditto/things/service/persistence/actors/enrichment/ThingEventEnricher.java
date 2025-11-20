@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors.enrichment;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -24,30 +21,21 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
-import org.apache.pekko.japi.Pair;
-import org.eclipse.ditto.base.model.auth.AuthorizationContext;
-import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
-import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonArrayBuilder;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
@@ -55,20 +43,22 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.placeholders.HeadersPlaceholder;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.TimePlaceholder;
-import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
-import org.eclipse.ditto.policies.model.Permissions;
-import org.eclipse.ditto.policies.model.PoliciesResourceType;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
+import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.rql.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.common.config.PreDefinedExtraFieldsConfig;
+import org.eclipse.ditto.things.service.utils.IndexedReadGrant;
 import org.eclipse.ditto.things.service.utils.PartialAccessPathCalculator;
+import org.eclipse.ditto.things.service.utils.ReadGrant;
+import org.eclipse.ditto.things.service.utils.ReadGrantCollector;
+import org.eclipse.ditto.things.service.utils.ReadGrantIndexer;
 
 /**
  * Encapsulates functionality in order to enrich ThingEvents with pre-defined {@code extraFields} via DittoHeaders
@@ -82,7 +72,7 @@ public final class ThingEventEnricher {
     private static final TimePlaceholder TIME_PLACEHOLDER = TimePlaceholder.getInstance();
     private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
 
-    private static final Map<String, Predicate<Thing>> RQL_PREDICATE_CACHE = new ConcurrentHashMap<>(16);
+    private static final Map<String, Criteria> RQL_CRITERIA_CACHE = new ConcurrentHashMap<>(32);
 
     private final List<PreDefinedExtraFieldsConfig> preDefinedExtraFieldsConfigs;
     private final PolicyEnforcerProvider policyEnforcerProvider;
@@ -157,22 +147,27 @@ public final class ThingEventEnricher {
                     });
             return partialAccessPathsStage.thenCompose(enrichedWithPartialAccessPaths ->
                     buildPredefinedExtraFieldsHeaderReadGrantObject(policyId, combinedPredefinedExtraFields, thing)
-                            .thenApply(result -> {
+                            .thenApply(indexedGrants -> {
                                 final DittoHeaders currentHeaders = enrichedWithPartialAccessPaths.getDittoHeaders();
                                 
                                 final String extraFieldsKey = DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS.getKey();
                                 final String readGrantKey = DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT.getKey();
+                                final String readGrantSubjectsKey = DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_SUBJECTS.getKey();
                                 final String extraFieldsObjectKey = DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_OBJECT.getKey();
                                 
-                                return enrichedWithPartialAccessPaths.setDittoHeaders(
-                                        currentHeaders.toBuilder()
-                                                .putHeader(extraFieldsKey,
-                                                        buildPredefinedExtraFieldsHeaderList(combinedPredefinedExtraFields))
-                                                .putHeader(readGrantKey, result)
-                                                .putHeader(extraFieldsObjectKey,
-                                                        buildPredefinedExtraFieldsHeaderObject(thing,
-                                                                combinedPredefinedExtraFields).toString())
-                                                .build());
+                                final DittoHeadersBuilder<?, ?> headersBuilder = currentHeaders.toBuilder()
+                                        .putHeader(extraFieldsKey,
+                                                buildPredefinedExtraFieldsHeaderList(combinedPredefinedExtraFields))
+                                        .putHeader(readGrantKey, indexedGrants.pathsToJson().toString())
+                                        .putHeader(extraFieldsObjectKey,
+                                                buildPredefinedExtraFieldsHeaderObject(thing,
+                                                        combinedPredefinedExtraFields).toString());
+                                
+                                if (!indexedGrants.isEmpty()) {
+                                    headersBuilder.putHeader(readGrantSubjectsKey, indexedGrants.subjectsToJson().toString());
+                                }
+                                
+                                return enrichedWithPartialAccessPaths.setDittoHeaders(headersBuilder.build());
                             })
             );
         } else {
@@ -181,41 +176,56 @@ public final class ThingEventEnricher {
     }
 
     /**
-     * Applies RQL condition from config, using cached compiled predicates for performance.
+     * Applies RQL condition from config, using cached parsed criteria for performance.
+     * Caches only the Criteria (RQL AST), not the Predicate<Thing>, to allow building
+     * fresh predicates with current headers for each event.
      */
     private Predicate<PreDefinedExtraFieldsConfig> applyPredefinedExtraFieldsCondition(
             final Thing thing,
             final WithDittoHeaders withDittoHeaders
     ) {
         return conf -> {
-            if (conf.getCondition().isEmpty()) {
+            final Optional<String> optCondition = conf.getCondition();
+            if (optCondition.isEmpty()) {
                 return true;
-            } else {
-                final String rqlCondition = conf.getCondition().get();
-                try {
-                    final Predicate<Thing> predicate = RQL_PREDICATE_CACHE.computeIfAbsent(rqlCondition, rql -> {
-                        try {
-                            final var criteria = QueryFilterCriteriaFactory
-                                    .modelBased(RqlPredicateParser.getInstance())
-                                    .filterCriteria(rql, withDittoHeaders.getDittoHeaders());
+            }
 
-                            return ThingPredicateVisitor.apply(
-                                    criteria,
-                                    PlaceholderFactory.newPlaceholderResolver(TIME_PLACEHOLDER, new Object()),
-                                    PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER,
-                                            withDittoHeaders.getDittoHeaders())
-                            );
-                        } catch (final InvalidRqlExpressionException e) {
-                            LOGGER.warn("Encountered invalid RQL condition <{}> for enriching " +
-                                    "predefined extra fields: <{}>", rql, e.getMessage(), e);
-                            return t -> true;
-                        }
-                    });
-                    return predicate.test(thing);
-                } catch (final Exception e) {
-                    LOGGER.warn("Error evaluating RQL condition <{}>: {}", rqlCondition, e.getMessage(), e);
+            final String rqlCondition = optCondition.get();
+
+            try {
+                final Criteria criteria = RQL_CRITERIA_CACHE.computeIfAbsent(rqlCondition, rql -> {
+                    try {
+                        return QueryFilterCriteriaFactory
+                                .modelBased(RqlPredicateParser.getInstance())
+                                .filterCriteria(rql, DittoHeaders.empty());
+                    } catch (final InvalidRqlExpressionException e) {
+                        LOGGER.warn("Invalid RQL condition <{}> - ignoring: {}", rql, e.getMessage());
+                        return null;
+                    }
+                });
+
+                if (criteria == null) {
                     return true;
                 }
+
+                final Predicate<Thing> predicate =
+                        ThingPredicateVisitor.apply(
+                                criteria,
+                                PlaceholderFactory.newPlaceholderResolver(TIME_PLACEHOLDER, new Object()),
+                                PlaceholderFactory.newPlaceholderResolver(
+                                        HEADERS_PLACEHOLDER,
+                                        withDittoHeaders.getDittoHeaders()
+                                )
+                        );
+
+                return predicate.test(thing);
+
+            } catch (final Exception e) {
+                LOGGER.warn(
+                        "Error evaluating RQL condition <{}> for predefined extra fields - treating as match: {}",
+                        rqlCondition, e.getMessage(), e
+                );
+                return true;
             }
         };
     }
@@ -229,9 +239,10 @@ public final class ThingEventEnricher {
     }
 
     /**
-     * Builds the read grant object with parallelized permission calculations for better performance.
+     * Builds the read grant object using the new helper classes.
+     * Returns indexed format to reduce header size.
      */
-    private CompletionStage<String> buildPredefinedExtraFieldsHeaderReadGrantObject(
+    private CompletionStage<IndexedReadGrant> buildPredefinedExtraFieldsHeaderReadGrantObject(
             @Nullable final PolicyId policyId,
             final JsonFieldSelector preDefinedExtraFields,
             final Thing thing
@@ -240,182 +251,25 @@ public final class ThingEventEnricher {
         if (policyEnforcerStage == null) {
             LOGGER.warn("PolicyEnforcerProvider.getPolicyEnforcer returned null for policyId: {}, returning empty read grant object",
                     policyId);
-            return CompletableFuture.completedFuture(JsonFactory.newObject().toString());
+            return CompletableFuture.completedFuture(IndexedReadGrant.empty());
         }
-        return policyEnforcerStage
-                .thenCompose(policyEnforcerOpt -> {
-                    if (policyEnforcerOpt.isEmpty()) {
-                        return CompletableFuture.completedFuture("{}");
-                    }
-                    final PolicyEnforcer policyEnforcer = policyEnforcerOpt.get();
 
-                    final List<JsonPointer> pointers = new ArrayList<>(preDefinedExtraFields.getPointers());
-                    
-                    if (pointers.isEmpty()) {
-                        return CompletableFuture.completedFuture("{}");
-                    }
-                    
-                    final Map<String, String> pointerStringMap = new HashMap<>();
-                    final List<String> pointerOrder = new ArrayList<>();
-                    for (final JsonPointer pointer : pointers) {
-                        final String pointerString = pointer.toString();
-                        final String keyWithoutSlash = pointerString.startsWith("/") ? pointerString.substring(1) : pointerString;
-                        final String normalizedPointer = pointerString.startsWith("/") ? pointerString : "/" + pointerString;
-                        pointerStringMap.put(keyWithoutSlash, normalizedPointer);
-                        pointerOrder.add(normalizedPointer);
-                    }
-                    final List<String> finalPointerOrder = pointerOrder;
-                    
-                    final List<CompletableFuture<Stream<JsonField>>> futures = pointers.stream()
-                            .map(pointer -> CompletableFuture.supplyAsync(() ->
-                                    buildReadGrantFieldsForPointer(pointer, thing, policyEnforcer, preDefinedExtraFields),
-                                    Runnable::run
-                            ))
-                            .toList();
-                    
-                    return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-                            .thenApply(ignored -> {
-                                final Map<String, Set<String>> mergedFields = new HashMap<>();
-                                
-                                futures.stream()
-                                        .flatMap(CompletableFuture::join)
-                                        .forEach(field -> {
-                                            String fieldKeyString = field.getKey().toString();
-                                            if (!fieldKeyString.startsWith("/")) {
-                                                fieldKeyString = "/" + fieldKeyString;
-                                            }
-                                            
-                                            final String normalizedKey = pointerStringMap.values().contains(fieldKeyString)
-                                                    ? fieldKeyString 
-                                                    : (pointerStringMap.getOrDefault(
-                                                            fieldKeyString.substring(1), // Try without leading slash
-                                                            fieldKeyString
-                                                    ));
-                                            
-                                            if (field.getValue().isArray()) {
-                                                mergedFields.computeIfAbsent(normalizedKey, k -> new LinkedHashSet<>())
-                                                        .addAll(field.getValue().asArray().stream()
-                                                                .filter(JsonValue::isString)
-                                                                .map(JsonValue::asString)
-                                                                .collect(Collectors.toSet()));
-                                            }
-                                        });
-                                
-                                final JsonObjectBuilder builder = JsonFactory.newObjectBuilder();
-                                finalPointerOrder.forEach(normalizedKey -> {
-                                    final Set<String> subjectIds = mergedFields.get(normalizedKey);
-                                    if (subjectIds != null && !subjectIds.isEmpty()) {
-                                        final JsonArrayBuilder arrayBuilder = JsonFactory.newArrayBuilder();
-                                        subjectIds.stream().sorted().forEach(arrayBuilder::add);
-                                        builder.set(JsonKey.of(normalizedKey), arrayBuilder.build());
-                                    }
-                                });
-                                mergedFields.entrySet().stream()
-                                        .filter(entry -> !finalPointerOrder.contains(entry.getKey()))
-                                        .sorted(Map.Entry.comparingByKey())
-                                        .forEach(entry -> {
-                                            final String key = entry.getKey();
-                                            final Set<String> subjectIds = entry.getValue();
-                                            if (subjectIds != null && !subjectIds.isEmpty()) {
-                                                final JsonArrayBuilder arrayBuilder = JsonFactory.newArrayBuilder();
-                                                subjectIds.forEach(arrayBuilder::add);
-                                                builder.set(JsonKey.of(key), arrayBuilder.build());
-                                            }
-                                        });
-                                
-                                return builder.build().toString();
-                            });
-                });
-    }
+        return policyEnforcerStage.thenApply(policyEnforcerOpt -> {
+            if (policyEnforcerOpt.isEmpty()) {
+                LOGGER.warn("No policy enforcer found for policyId: {}, returning empty read grant object", policyId);
+                return IndexedReadGrant.empty();
+            }
 
-    /**
-     * Extracted helper method to build read grant fields for a single pointer.
-     * This reduces complexity of the main flatMap chain.
-     */
-    private static Stream<JsonField> buildReadGrantFieldsForPointer(
-            final JsonPointer pointer,
-            final Thing thing,
-            final PolicyEnforcer policyEnforcer,
-            final JsonFieldSelector preDefinedExtraFields
-    ) {
-        final Set<AuthorizationSubject> subjectsWithUnrestrictedPermission =
-                policyEnforcer.getEnforcer().getSubjectsWithUnrestrictedPermission(
-                        PoliciesResourceType.thingResource(pointer),
-                        Permissions.newInstance(Permission.READ)
-                );
-        final Set<AuthorizationSubject> subjectsWithPartialPermission =
-                policyEnforcer.getEnforcer().getSubjectsWithPartialPermission(
-                        PoliciesResourceType.thingResource(pointer),
-                        Permissions.newInstance(Permission.READ)
-                );
+            final PolicyEnforcer policyEnforcer = policyEnforcerOpt.get();
 
-        final JsonArray unrestrictedReadSubjects =
-                subjectsWithUnrestrictedPermission
-                        .stream()
-                        .map(AuthorizationSubject::getId)
-                        .map(JsonValue::of)
-                        .collect(JsonCollectors.valuesToArray());
-        final Stream<JsonField> simpleReadGrantStream = Stream.of(
-                JsonField.newInstance(pointer.toString(), unrestrictedReadSubjects)
-        );
-
-        if (!subjectsWithPartialPermission.equals(subjectsWithUnrestrictedPermission)) {
-            final Set<AuthorizationSubject> partialSubjects =
-                    new LinkedHashSet<>(subjectsWithPartialPermission);
-            partialSubjects.removeAll(subjectsWithUnrestrictedPermission);
-            return Stream.concat(simpleReadGrantStream,
-                    calculatePartialReadFieldsAndSubjects(preDefinedExtraFields,
-                            thing, policyEnforcer, partialSubjects
-                    )
+            final ReadGrant readGrant = ReadGrantCollector.collect(
+                    preDefinedExtraFields,
+                    thing,
+                    policyEnforcer
             );
-        } else {
-            return simpleReadGrantStream;
-        }
-    }
 
-    private static Stream<JsonField> calculatePartialReadFieldsAndSubjects(
-            final JsonFieldSelector preDefinedExtraFields,
-            final Thing thing,
-            final PolicyEnforcer policyEnforcer,
-            final Set<AuthorizationSubject> partialSubjects
-    ) {
-        final JsonObject predefinedFieldsObject = buildPredefinedExtraFieldsHeaderObject(thing, preDefinedExtraFields);
-        
-        return partialSubjects.stream()
-                .map(partialReadSubject ->
-                        Pair.create(partialReadSubject, policyEnforcer.getEnforcer()
-                                .buildJsonView(
-                                        predefinedFieldsObject,
-                                        "thing",
-                                        AuthorizationContext.newInstance(
-                                                DittoAuthorizationContextType.UNSPECIFIED,
-                                                partialReadSubject
-                                        ),
-                                        Permission.READ
-                                )
-                        )
-                )
-                .flatMap(pair -> pair.second().stream()
-                        .flatMap(field -> collectFields(pair.first(), field, JsonPointer.empty()))
-                );
-    }
-
-    private static Stream<JsonField> collectFields(final AuthorizationSubject authorizationSubject,
-            final JsonField field,
-            final JsonPointer prefix
-    ) {
-        if (field.getValue().isObject()) {
-            return field.getValue().asObject().stream()
-                    .flatMap(subField ->
-                            collectFields(authorizationSubject, subField, prefix.append(field.getKey().asPointer())) // recurse!
-                    );
-        } else {
-            return Stream.of(
-                    JsonField.newInstance(prefix.addLeaf(field.getKey()),
-                            JsonArray.newBuilder().add(authorizationSubject.getId()).build()
-                    )
-            );
-        }
+            return ReadGrantIndexer.index(readGrant);
+        });
     }
 
     /**
@@ -448,7 +302,7 @@ public final class ThingEventEnricher {
                     final Map<String, List<JsonPointer>> partialAccessPaths =
                             PartialAccessPathCalculator.calculatePartialAccessPaths(
                                     thingEvent, thing, policyEnforcerOpt.get());
-                    final JsonObject result = PartialAccessPathCalculator.toJsonObject(partialAccessPaths);
+                    final JsonObject result = PartialAccessPathCalculator.toIndexedJsonObject(partialAccessPaths);
                     LOGGER.debug("Calculated partial access paths for event '{}' (thingId: {}): {} subjects with partial access, result: {}",
                             thingEvent.getType(), thingEvent.getEntityId(), partialAccessPaths.size(), result);
                     return result;
