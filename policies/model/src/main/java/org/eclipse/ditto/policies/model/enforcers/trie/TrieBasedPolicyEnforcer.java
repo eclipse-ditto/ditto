@@ -14,6 +14,7 @@ package org.eclipse.ditto.policies.model.enforcers.trie;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
 import java.util.Set;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
@@ -22,6 +23,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.ResourceKey;
@@ -201,6 +203,28 @@ public final class TrieBasedPolicyEnforcer implements Enforcer {
             return start.buildJsonView(jsonFields, authorizationContext.getAuthorizationSubjectIds(), permissions);
         } else {
             return JsonFactory.newObject();
+        }
+    }
+
+    @Override
+    public Set<JsonPointer> getAccessiblePaths(
+            final ResourceKey resourceKey,
+            final Iterable<JsonField> jsonFields,
+            final AuthorizationContext authorizationContext,
+            final Permissions permissions) {
+
+        checkResourceKey(resourceKey);
+        checkNotNull(jsonFields, "JSON fields");
+        checkPermissions(permissions);
+
+        final JsonKey typeKey = JsonKey.of(resourceKey.getResourceType());
+
+        if (inheritedTrie.hasChild(typeKey)) {
+            final PolicyTrie start = inheritedTrie.seekToLeastAncestor(PolicyTrie.getJsonKeyIterator(resourceKey));
+            return start.getAccessiblePaths(jsonFields, authorizationContext.getAuthorizationSubjectIds(), permissions,
+                    resourceKey.getResourcePath());
+        } else {
+            return Collections.emptySet();
         }
     }
 

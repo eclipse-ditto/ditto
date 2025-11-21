@@ -613,6 +613,56 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
             HeaderValueValidators.getJsonObjectValidator()),
 
     /**
+     * Internal header containing the subject index mapping for pre-defined extra fields read grants.
+     * Maps integer indices (as strings) to subject IDs.
+     * Used together with {@link #PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT} to reduce header size
+     * by using indices instead of repeating subject IDs.
+     * <p>
+     * Key: {@code "ditto-pre-defined-extra-fields-read-grant-subjects"}, Java type: {@link JsonObject}.
+     * Format: {@code {"0": "subject1", "1": "subject2", ...}}
+     * </p>
+     *
+     * @since 3.9.0
+     */
+    PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_SUBJECTS("ditto-pre-defined-extra-fields-read-grant-subjects",
+            JsonObject.class,
+            false,
+            false,
+            HeaderValueValidators.getJsonObjectValidator()),
+
+    /**
+     * Internal header containing partial access paths for subjects with partial READ permissions.
+     * Used to enable partial change notifications for subjects with restricted READ permissions.
+     * <p>
+     * Key: {@code "ditto-partial-access-paths"}, Java type: {@link JsonObject}.
+     * Format (indexed):
+     * </p>
+     * <pre>{@code
+     * {
+     *   "subjects": [
+     *     "foo-idp:groupA",
+     *     "foo-idp:user1"
+     *   ],
+     *   "paths": {
+     *     "attributes/location": [0],
+     *     "features/A/properties/status": [0, 1]
+     *   }
+     * }
+     * }</pre>
+     * <p>
+     * Each path maps to integer indices referring to entries in the {@code subjects} array.
+     * This indexed format reduces header size when multiple subjects share the same paths.
+     * </p>
+     *
+     * @since 3.9.0
+     */
+    PARTIAL_ACCESS_PATHS("ditto-partial-access-paths",
+            JsonObject.class,
+            false,
+            false,
+            HeaderValueValidators.getJsonObjectValidator()),
+
+    /**
      * Internal header containing pre-defined {@code extraFields} as JSON object sent along for emitted thing event.
      *
      * @since 3.7.0
