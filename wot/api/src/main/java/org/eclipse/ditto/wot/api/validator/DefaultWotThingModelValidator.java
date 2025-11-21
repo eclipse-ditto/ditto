@@ -53,6 +53,7 @@ import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.wot.api.resolver.ThingSubmodel;
 import org.eclipse.ditto.wot.api.resolver.WotThingModelResolver;
 import org.eclipse.ditto.wot.model.ThingModel;
+import org.eclipse.ditto.wot.model.WotThingModelInvalidException;
 import org.eclipse.ditto.wot.validation.JsonSchemaCacheKey;
 import org.eclipse.ditto.wot.validation.ValidationContext;
 import org.eclipse.ditto.wot.validation.WotThingModelPayloadValidationException;
@@ -991,7 +992,11 @@ public final class DefaultWotThingModelValidator implements WotThingModelValidat
                 .filter(subModel ->
                         affectedFeatures.contains(subModel.getKey().instanceName())
                 )
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (u, v) -> {
+                    throw WotThingModelInvalidException.newBuilder(String.format("Thing submodels: Duplicate key %s", u))
+                            .dittoHeaders(context.dittoHeaders())
+                            .build();
+                }, LinkedHashMap::new));
         final Features filteredFeatures = thing.getFeatures()
                 .map(features -> Features.newBuilder()
                         .setAll(features.stream()

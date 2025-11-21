@@ -33,7 +33,8 @@ public interface SecurityDefinitions extends Map<String, SecurityScheme>, Jsonif
                 field -> field.getKey().toString(),
                 field -> SecurityScheme.fromJson(field.getKey().toString(), field.getValue().asObject()),
                 (u, v) -> {
-                    throw new IllegalStateException(String.format("Duplicate key %s", u));
+                    throw WotThingModelInvalidException.newBuilder(String.format("SecuritySchemes: Duplicate key %s", u))
+                            .build();
                 },
                 LinkedHashMap::new)
         ));
@@ -44,7 +45,8 @@ public interface SecurityDefinitions extends Map<String, SecurityScheme>, Jsonif
                 SecurityScheme::getSecuritySchemeName,
                 s -> s,
                 (u, v) -> {
-                    throw new IllegalStateException(String.format("Duplicate key %s", u));
+                    throw WotThingModelInvalidException.newBuilder(String.format("SecuritySchemes: Duplicate key %s", u))
+                            .build();
                 },
                 LinkedHashMap::new)
         ));

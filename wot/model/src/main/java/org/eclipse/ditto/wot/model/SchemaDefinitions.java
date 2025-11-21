@@ -33,7 +33,8 @@ public interface SchemaDefinitions extends Map<String, SingleDataSchema>, Jsonif
                 field -> field.getKey().toString(),
                 field -> SingleDataSchema.fromJson(field.getValue().asObject()),
                 (u, v) -> {
-                    throw new IllegalStateException(String.format("Duplicate key %s", u));
+                    throw WotThingModelInvalidException.newBuilder(String.format("SingleDataSchemas: Duplicate key %s", u))
+                            .build();
                 },
                 LinkedHashMap::new)
         ));
