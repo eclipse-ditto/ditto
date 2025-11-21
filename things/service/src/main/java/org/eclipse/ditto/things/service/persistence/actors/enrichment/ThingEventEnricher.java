@@ -239,6 +239,21 @@ public final class ThingEventEnricher {
     }
 
     /**
+     * Safely gets the policy enforcer stage, handling null cases defensively.
+     *
+     * @param policyId the policy ID to get the enforcer for
+     * @return a non-null CompletionStage, completed with empty Optional if the provider returns null
+     */
+    private CompletionStage<Optional<PolicyEnforcer>> getPolicyEnforcerSafely(@Nullable final PolicyId policyId) {
+        final CompletionStage<Optional<PolicyEnforcer>> stage = policyEnforcerProvider.getPolicyEnforcer(policyId);
+        if (stage == null) {
+            LOGGER.error("PolicyEnforcerProvider returned null CompletionStage for policyId: {}", policyId);
+            return CompletableFuture.completedFuture(Optional.empty());
+        }
+        return stage;
+    }
+
+    /**
      * Builds the read grant object using the new helper classes.
      * Returns indexed format to reduce header size.
      */
@@ -247,8 +262,7 @@ public final class ThingEventEnricher {
             final JsonFieldSelector preDefinedExtraFields,
             final Thing thing
     ) {
-        return policyEnforcerProvider.getPolicyEnforcer(policyId)
-                .thenApply(policyEnforcerOpt -> {
+        return getPolicyEnforcerSafely(policyId).thenApply(policyEnforcerOpt -> {
             if (policyEnforcerOpt.isEmpty()) {
                 LOGGER.warn("No policy enforcer found for policyId: {}, returning empty read grant object", policyId);
                 return IndexedReadGrant.empty();
@@ -281,8 +295,7 @@ public final class ThingEventEnricher {
     ) {
         LOGGER.debug("Enriching event '{}' (thingId: {}) with partial access paths, policyId: {}",
                 thingEvent.getType(), thingEvent.getEntityId(), policyId);
-        return policyEnforcerProvider.getPolicyEnforcer(policyId)
-                .thenApply(policyEnforcerOpt -> {
+        return getPolicyEnforcerSafely(policyId).thenApply(policyEnforcerOpt -> {
                     if (policyEnforcerOpt.isEmpty()) {
                         LOGGER.warn("No policy enforcer found for policyId: {}, returning empty partial access paths",
                                 policyId);
