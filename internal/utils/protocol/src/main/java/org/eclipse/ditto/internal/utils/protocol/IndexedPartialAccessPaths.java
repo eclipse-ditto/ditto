@@ -21,8 +21,7 @@ import org.eclipse.ditto.json.JsonPointer;
  * Immutable model representing indexed partial access paths.
  * This format uses integer indices to reference subjects, reducing header size.
  *
- * <p>
- * Format:
+ * <p>Format:</p>
  * <pre>{@code
  * {
  *   "subjects": ["subject1", "subject2"],
@@ -32,8 +31,9 @@ import org.eclipse.ditto.json.JsonPointer;
  *   }
  * }
  * }</pre>
- * </p>
  *
+ * @param subjects the list of subject IDs (sorted alphabetically)
+ * @param paths the map of JsonPointer paths to lists of subject indices
  * @since 3.9.0
  */
 public record IndexedPartialAccessPaths(
