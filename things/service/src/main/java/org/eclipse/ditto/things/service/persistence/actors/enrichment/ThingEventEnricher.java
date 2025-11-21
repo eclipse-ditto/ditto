@@ -247,14 +247,8 @@ public final class ThingEventEnricher {
             final JsonFieldSelector preDefinedExtraFields,
             final Thing thing
     ) {
-        final CompletionStage<Optional<PolicyEnforcer>> policyEnforcerStage = policyEnforcerProvider.getPolicyEnforcer(policyId);
-        if (policyEnforcerStage == null) {
-            LOGGER.warn("PolicyEnforcerProvider.getPolicyEnforcer returned null for policyId: {}, returning empty read grant object",
-                    policyId);
-            return CompletableFuture.completedFuture(IndexedReadGrant.empty());
-        }
-
-        return policyEnforcerStage.thenApply(policyEnforcerOpt -> {
+        return policyEnforcerProvider.getPolicyEnforcer(policyId)
+                .thenApply(policyEnforcerOpt -> {
             if (policyEnforcerOpt.isEmpty()) {
                 LOGGER.warn("No policy enforcer found for policyId: {}, returning empty read grant object", policyId);
                 return IndexedReadGrant.empty();
@@ -287,12 +281,7 @@ public final class ThingEventEnricher {
     ) {
         LOGGER.debug("Enriching event '{}' (thingId: {}) with partial access paths, policyId: {}",
                 thingEvent.getType(), thingEvent.getEntityId(), policyId);
-        final CompletionStage<Optional<PolicyEnforcer>> policyEnforcerStage = policyEnforcerProvider.getPolicyEnforcer(policyId);
-        if (policyEnforcerStage == null) {
-            LOGGER.error("BUG: PolicyEnforcerProvider returned null CompletionStage for policyId: {}", policyId);
-            return CompletableFuture.completedFuture(JsonFactory.newObject());
-        }
-        return policyEnforcerStage
+        return policyEnforcerProvider.getPolicyEnforcer(policyId)
                 .thenApply(policyEnforcerOpt -> {
                     if (policyEnforcerOpt.isEmpty()) {
                         LOGGER.warn("No policy enforcer found for policyId: {}, returning empty partial access paths",

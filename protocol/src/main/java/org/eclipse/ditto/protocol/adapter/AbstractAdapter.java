@@ -188,16 +188,13 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
                 .withHeaders(mergedHeadersBuilder.build())
                 .build();
 
-        // When subscriberContext is provided, preserve internal headers for filtering
-        // They will be converted to external headers after filtering is applied
         if (subscriberContext != null) {
             return adaptableWithPreservedHeaders;
         }
 
         final Map<String, String> externalHeaders = headerTranslator.toExternalHeaders(
                 adaptableWithPreservedHeaders.getDittoHeaders());
-        final Adaptable result = adaptableWithPreservedHeaders.setDittoHeaders(DittoHeaders.of(externalHeaders));
-        return result;
+        return adaptableWithPreservedHeaders.setDittoHeaders(DittoHeaders.of(externalHeaders));
     }
 
     /**

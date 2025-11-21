@@ -22,10 +22,7 @@ import java.util.stream.Collectors;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -131,7 +128,7 @@ public final class ReadGrantCollector {
                 
                 for (final AuthorizationSubject subject : partialOnly) {
                     final ResourceKey resourceKey = PoliciesResourceType.thingResource(pointer);
-                    final JsonObject view = enforcer.buildJsonView(
+                    final Set<JsonPointer> accessiblePaths = enforcer.getAccessiblePaths(
                             resourceKey,
                             pointerObject,
                             AuthorizationContext.newInstance(
@@ -141,7 +138,9 @@ public final class ReadGrantCollector {
                             Permissions.newInstance(Permission.READ)
                     );
 
-                    collectAccessiblePathsFromView(pointer, view, subject.getId(), result);
+                    for (final JsonPointer accessiblePath : accessiblePaths) {
+                        result.computeIfAbsent(accessiblePath, k -> new LinkedHashSet<>()).add(subject.getId());
+                    }
                 }
             }
         }
@@ -149,34 +148,6 @@ public final class ReadGrantCollector {
         return result;
     }
 
-    /**
-     * Recursively collects all accessible paths from a subject's view.
-     * Only collects paths that are direct children or descendants of the base pointer.
-     *
-     * @param basePointer the base pointer being checked
-     * @param view the subject's filtered JSON view
-     * @param subjectId the subject ID
-     * @param result the map to populate with path -> subject mappings
-     */
-    private static void collectAccessiblePathsFromView(
-            final JsonPointer basePointer,
-            final JsonObject view,
-            final String subjectId,
-            final Map<JsonPointer, Set<String>> result
-    ) {
-        for (final JsonField field : view) {
-            final JsonKey fieldKey = field.getKey();
-            final JsonPointer fullPath = PointerUtils.isRoot(basePointer)
-                    ? fieldKey.asPointer()
-                    : basePointer.append(fieldKey.asPointer());
-
-            result.computeIfAbsent(fullPath, k -> new LinkedHashSet<>()).add(subjectId);
-
-            if (field.getValue().isObject()) {
-                collectAccessiblePathsFromView(fullPath, field.getValue().asObject(), subjectId, result);
-            }
-        }
-    }
 
 }
 
