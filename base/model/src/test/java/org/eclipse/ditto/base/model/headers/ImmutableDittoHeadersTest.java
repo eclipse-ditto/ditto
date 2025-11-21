@@ -241,7 +241,7 @@ public final class ImmutableDittoHeadersTest {
                 .putHeader(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_OBJECT.getKey(),
                         KNOWN_PRE_DEFINED_EXTRA_FIELDS_OBJECT.formatAsString())
                 .putHeader(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey(),
-                        "{\"test:subject\":[\"/attributes\",\"/features/fluxCompensator/properties/baz\"]}")
+                        "{\"subjects\":[\"test:subject\"],\"paths\":{\"attributes\":[0],\"features/fluxCompensator/properties/baz\":[0]}}")
                 .putHeader(DittoHeaderDefinition.EXTERNAL_DRY_RUN.getKey(), String.valueOf(KNOWN_DITTO_EXTERNAL_DRY_RUN))
                 .putHeader(DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey(), KNOWN_DITTO_DIVERT_RESPONSE_TO)
                 .putHeader(DittoHeaderDefinition.DIVERTED_RESPONSE_FROM_CONNECTION.getKey(), KNOWN_DITTO_DIVERTED_RESPONSE_FROM)
@@ -585,9 +585,16 @@ public final class ImmutableDittoHeadersTest {
                         KNOWN_PRE_DEFINED_EXTRA_FIELDS_OBJECT)
                 .set(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey(),
                         JsonObject.newBuilder()
-                                .set("test:subject", JsonArray.newBuilder()
-                                        .add("/attributes")
-                                        .add("/features/fluxCompensator/properties/baz")
+                                .set("subjects", JsonArray.newBuilder()
+                                        .add("test:subject")
+                                        .build())
+                                .set("paths", JsonObject.newBuilder()
+                                        .set("attributes", JsonArray.newBuilder()
+                                                .add(0)
+                                                .build())
+                                        .set("features/fluxCompensator/properties/baz", JsonArray.newBuilder()
+                                                .add(0)
+                                                .build())
                                         .build())
                                 .build())
                 .set(DittoHeaderDefinition.EXTERNAL_DRY_RUN.getKey(), KNOWN_DITTO_EXTERNAL_DRY_RUN)
@@ -848,7 +855,7 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_OBJECT.getKey(),
                 KNOWN_PRE_DEFINED_EXTRA_FIELDS_OBJECT.formatAsString());
         result.put(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey(),
-                "{\"test:subject\":[\"/attributes\",\"/features/fluxCompensator/properties/baz\"]}");
+                "{\"subjects\":[\"test:subject\"],\"paths\":{\"attributes\":[0],\"features/fluxCompensator/properties/baz\":[0]}}");
         result.put(DittoHeaderDefinition.EXTERNAL_DRY_RUN.getKey(),
                 String.valueOf(KNOWN_DITTO_EXTERNAL_DRY_RUN));
         result.put(DittoHeaderDefinition.DIVERT_RESPONSE_TO_CONNECTION.getKey(), KNOWN_DITTO_DIVERT_RESPONSE_TO);

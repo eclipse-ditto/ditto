@@ -52,7 +52,34 @@ public final class JsonPartialAccessFilter {
         if (!jsonObject.contains(SUBJECTS_KEY) || !jsonObject.contains(PATHS_KEY)) {
             return Map.of();
         }
-        return parseIndexedPartialAccessPaths(jsonObject);
+        final IndexedPartialAccessPaths indexed = parseIndexedPartialAccessPaths(jsonObject);
+        return expandIndexed(indexed);
+    }
+
+    /**
+     * Expands an IndexedPartialAccessPaths into a map of subject IDs to their accessible paths.
+     *
+     * @param indexed the indexed partial access paths
+     * @return map of subject IDs to accessible paths
+     */
+    public static Map<String, List<JsonPointer>> expandIndexed(final IndexedPartialAccessPaths indexed) {
+        if (indexed == null || indexed.isEmpty()) {
+            return Map.of();
+        }
+
+        final Map<String, List<JsonPointer>> subjectMap = new LinkedHashMap<>();
+
+        for (final Map.Entry<JsonPointer, List<Integer>> entry : indexed.paths().entrySet()) {
+            final JsonPointer pointer = entry.getKey();
+            for (final Integer idx : entry.getValue()) {
+                if (idx >= 0 && idx < indexed.subjects().size()) {
+                    final String subject = indexed.subjects().get(idx);
+                    subjectMap.computeIfAbsent(subject, k -> new ArrayList<>()).add(pointer);
+                }
+            }
+        }
+
+        return subjectMap;
     }
 
     /**
@@ -60,32 +87,27 @@ public final class JsonPartialAccessFilter {
      * Format: { "subjects": ["subj1", "subj2"], "paths": { "/path1": [0, 1], "/path2": [1] } }
      *
      * @param jsonObject the indexed JSON object
-     * @return map of subject IDs to accessible paths
+     * @return IndexedPartialAccessPaths model
      */
-    private static Map<String, List<JsonPointer>> parseIndexedPartialAccessPaths(final JsonObject jsonObject) {
-        final Map<String, List<JsonPointer>> result = new LinkedHashMap<>();
-
-        final JsonArray subjectsArray = jsonObject.getValue(SUBJECTS_KEY)
+    static IndexedPartialAccessPaths parseIndexedPartialAccessPaths(final JsonObject jsonObject) {
+        final List<String> subjects = jsonObject.getValue(SUBJECTS_KEY)
                 .filter(JsonValue::isArray)
                 .map(JsonValue::asArray)
-                .orElse(JsonFactory.newArray());
-
-        final Map<Integer, String> indexToSubject = new LinkedHashMap<>();
-        for (int i = 0; i < subjectsArray.getSize(); i++) {
-            final JsonValue subjectValue = subjectsArray.get(i).orElse(null);
-            if (subjectValue != null && subjectValue.isString()) {
-                indexToSubject.put(i, subjectValue.asString());
-            }
-        }
+                .orElse(JsonFactory.newArray())
+                .stream()
+                .filter(JsonValue::isString)
+                .map(JsonValue::asString)
+                .toList();
 
         final JsonObject pathsObject = jsonObject.getValue(PATHS_KEY)
                 .filter(JsonValue::isObject)
                 .map(JsonValue::asObject)
                 .orElse(JsonFactory.newObject());
 
-        extractPathsFromNestedObject(pathsObject, "", result, indexToSubject);
+        final Map<JsonPointer, List<Integer>> paths = new LinkedHashMap<>();
+        extractPathsRecursively(pathsObject, JsonPointer.empty(), paths);
 
-        return result;
+        return new IndexedPartialAccessPaths(subjects, paths);
     }
 
     /**
@@ -94,34 +116,41 @@ public final class JsonPartialAccessFilter {
      *
      * @param jsonObject the JSON object (may be nested)
      * @param currentPath the current path prefix (for recursion)
-     * @param result the result map to populate
-     * @param indexToSubject the index to subject ID mapping
+     * @param paths the result map to populate
      */
-    private static void extractPathsFromNestedObject(
+    private static void extractPathsRecursively(
             final JsonObject jsonObject,
-            final String currentPath,
-            final Map<String, List<JsonPointer>> result,
-            final Map<Integer, String> indexToSubject) {
+            final JsonPointer currentPath,
+            final Map<JsonPointer, List<Integer>> paths) {
 
         for (final JsonField field : jsonObject) {
-            final String key = field.getKey().toString();
-            final String fullPath = currentPath.isEmpty() ? "/" + key : currentPath + "/" + key;
+            final String keyString = field.getKey().toString();
+            if (keyString.isEmpty()) {
+                if (field.getValue().isObject()) {
+                    extractPathsRecursively(field.getValue().asObject(), currentPath, paths);
+                }
+                continue;
+            }
+            
+            final JsonPointer fieldPath;
+            if (currentPath.isEmpty()) {
+                fieldPath = JsonPointer.of("/" + keyString);
+            } else {
+                fieldPath = currentPath.append(JsonPointer.of("/" + keyString));
+            }
             final JsonValue value = field.getValue();
 
             if (value.isArray()) {
-                final JsonArray indicesArray = value.asArray();
-                final JsonPointer path = JsonPointer.of(fullPath);
-                for (final JsonValue idxValue : indicesArray) {
-                    if (idxValue.isNumber()) {
-                        final int idx = idxValue.asInt();
-                        final String subjectId = indexToSubject.get(idx);
-                        if (subjectId != null) {
-                            result.computeIfAbsent(subjectId, k -> new ArrayList<>()).add(path);
-                        }
-                    }
+                final List<Integer> indexes = value.asArray()
+                        .stream()
+                        .filter(JsonValue::isNumber)
+                        .map(JsonValue::asInt)
+                        .toList();
+                if (!indexes.isEmpty()) {
+                    paths.put(fieldPath, indexes);
                 }
             } else if (value.isObject()) {
-                extractPathsFromNestedObject(value.asObject(), fullPath, result, indexToSubject);
+                extractPathsRecursively(value.asObject(), fieldPath, paths);
             }
         }
     }

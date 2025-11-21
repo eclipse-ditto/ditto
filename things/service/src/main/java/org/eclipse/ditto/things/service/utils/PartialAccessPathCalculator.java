@@ -142,15 +142,19 @@ public final class PartialAccessPathCalculator {
                     .build();
         }
 
-        final JsonArrayBuilder subjectsArray = JsonFactory.newArrayBuilder();
+        final List<String> subjects = partialAccessPaths.keySet().stream()
+                .sorted()
+                .toList();
+
         final Map<String, Integer> subjectIndex = new LinkedHashMap<>();
-        int index = 0;
-        for (final String subjectId : partialAccessPaths.keySet()) {
-            subjectIndex.put(subjectId, index++);
-            subjectsArray.add(subjectId);
+        for (int i = 0; i < subjects.size(); i++) {
+            subjectIndex.put(subjects.get(i), i);
         }
 
-        final Map<String, Set<Integer>> pathToIndices = new LinkedHashMap<>();
+        final JsonArrayBuilder subjectsArray = JsonFactory.newArrayBuilder();
+        subjects.forEach(subjectsArray::add);
+
+        final Map<JsonPointer, Set<Integer>> pointerToSubjectIndexes = new LinkedHashMap<>();
         for (final Map.Entry<String, List<JsonPointer>> entry : partialAccessPaths.entrySet()) {
             final String subjectId = entry.getKey();
             final Integer idx = subjectIndex.get(subjectId);
@@ -159,17 +163,18 @@ public final class PartialAccessPathCalculator {
             }
 
             for (final JsonPointer path : entry.getValue()) {
-                final String pathString = PointerUtils.toStringWithoutLeadingSlash(path);
-                pathToIndices.computeIfAbsent(pathString, k -> new LinkedHashSet<>()).add(idx);
+                pointerToSubjectIndexes.computeIfAbsent(path, k -> new LinkedHashSet<>()).add(idx);
             }
         }
 
         final JsonObjectBuilder pathsBuilder = JsonFactory.newObjectBuilder();
-        for (final Map.Entry<String, Set<Integer>> entry : pathToIndices.entrySet()) {
-            final String pathString = entry.getKey();
+        for (final Map.Entry<JsonPointer, Set<Integer>> entry : pointerToSubjectIndexes.entrySet()) {
+            final JsonPointer pointer = entry.getKey();
             final JsonArrayBuilder idxArrayBuilder = JsonFactory.newArrayBuilder();
             entry.getValue().stream().sorted().forEach(idxArrayBuilder::add);
-            pathsBuilder.set(pathString, idxArrayBuilder.build());
+            final String pathString = pointer.toString();
+            final String keyString = pathString.startsWith("/") ? pathString.substring(1) : pathString;
+            pathsBuilder.set(JsonFactory.newKey(keyString), idxArrayBuilder.build());
         }
 
         return JsonFactory.newObjectBuilder()
