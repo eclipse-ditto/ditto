@@ -119,6 +119,17 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
     ACCEPT("accept", String.class, true, false, HeaderValueValidators.getNoOpValidator()),
 
     /**
+     * Header definition for the authorization header of a command.
+     * Making sure that it is not written to external headers to not unintentionally leak authorization information
+     * (bearer token or basic auth).
+     * <p>
+     * Key: {@code "authorization"}, Java type: {@link String}.
+     * </p>
+     * @since 3.8.7
+     */
+    AUTHORIZATION("authorization", String.class, true, false, HeaderValueValidators.getNoOpValidator()),
+
+    /**
      * Header definition for the reply to address. MUST be lower-case.
      * "reply-to" is a standard internet message header (RFC-5322).
      * <p>
