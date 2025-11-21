@@ -74,6 +74,8 @@ public final class PartialAccessPathResolver {
         }
 
         /**
+         * Gets the set of accessible JsonPointer paths for the subscriber.
+         *
          * @return the set of accessible JsonPointer paths for the subscriber
          */
         public Set<JsonPointer> getAccessiblePaths() {
@@ -81,6 +83,8 @@ public final class PartialAccessPathResolver {
         }
 
         /**
+         * Checks if the subscriber has unrestricted access (no filtering needed).
+         *
          * @return true if the subscriber has unrestricted access (no filtering needed)
          */
         public boolean hasUnrestrictedAccess() {
@@ -88,6 +92,8 @@ public final class PartialAccessPathResolver {
         }
 
         /**
+         * Checks if filtering should be applied.
+         *
          * @return true if filtering should be applied, false if subscriber has no access
          */
         public boolean shouldFilter() {
