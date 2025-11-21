@@ -43,10 +43,10 @@ public final class PartialAccessPathResolver {
     private static final Logger LOGGER = LoggerFactory.getLogger(PartialAccessPathResolver.class);
 
     // TODO check if needed to be configurable
-    private static final int MAX_CACHE_SIZE = 1000;
+    private static final int MAX_CACHE_SIZE = 5000;
     private static final Duration CACHE_EXPIRE_AFTER_ACCESS = Duration.ofMinutes(15);
     private static final Duration CACHE_EXPIRE_AFTER_WRITE = Duration.ofMinutes(15);
-    private static final com.github.benmanes.caffeine.cache.Cache<String, Map<String, List<JsonPointer>>> PARSED_HEADER_CACHE =
+    private static final com.github.benmanes.caffeine.cache.Cache<String, IndexedPartialAccessPaths> PARSED_HEADER_CACHE =
             Caffeine.newBuilder()
                     .maximumSize(MAX_CACHE_SIZE)
                     .expireAfterWrite(CACHE_EXPIRE_AFTER_WRITE)
@@ -111,13 +111,13 @@ public final class PartialAccessPathResolver {
      * Parses and caches the partial access paths from the header.
      *
      * @param partialAccessPathsHeader the header value containing partial access paths JSON
-     * @return map of subject IDs to their accessible paths, or empty map if header is null/empty
+     * @return IndexedPartialAccessPaths model, or EMPTY if header is null/empty
      */
-    public static Map<String, List<JsonPointer>> parseAndCachePartialAccessPaths(
+    public static IndexedPartialAccessPaths parseAndCachePartialAccessPaths(
             @Nullable final String partialAccessPathsHeader) {
 
         if (partialAccessPathsHeader == null || partialAccessPathsHeader.isEmpty()) {
-            return Map.of();
+            return IndexedPartialAccessPaths.EMPTY;
         }
 
         return PARSED_HEADER_CACHE.get(
@@ -125,12 +125,25 @@ public final class PartialAccessPathResolver {
                 header -> {
                     try {
                         final JsonObject partialAccessPathsJson = JsonFactory.readFrom(header).asObject();
-                        return JsonPartialAccessFilter.parsePartialAccessPaths(partialAccessPathsJson);
+                        return JsonPartialAccessFilter.parseIndexedPartialAccessPaths(partialAccessPathsJson);
                     } catch (final JsonParseException e) {
                         LOGGER.warn("Failed to parse partial access paths header as JSON: {}", e.getMessage(), e);
-                        return Collections.emptyMap();
+                        return IndexedPartialAccessPaths.EMPTY;
                     }
                 });
+    }
+
+    /**
+     * Parses and caches the partial access paths from the header, returning as a map.
+     * This is a convenience method for backwards compatibility.
+     *
+     * @param partialAccessPathsHeader the header value containing partial access paths JSON
+     * @return map of subject IDs to their accessible paths, or empty map if header is null/empty
+     */
+    public static Map<String, List<JsonPointer>> parseAndCachePartialAccessPathsAsMap(
+            @Nullable final String partialAccessPathsHeader) {
+        final IndexedPartialAccessPaths indexed = parseAndCachePartialAccessPaths(partialAccessPathsHeader);
+        return JsonPartialAccessFilter.expandIndexed(indexed);
     }
 
     /**
@@ -213,7 +226,7 @@ public final class PartialAccessPathResolver {
             final Set<AuthorizationSubject> readGrantedSubjects) {
 
         final Map<String, List<JsonPointer>> partialAccessPaths = 
-                parseAndCachePartialAccessPaths(partialAccessPathsHeader);
+                parseAndCachePartialAccessPathsAsMap(partialAccessPathsHeader);
         return resolveAccessiblePaths(partialAccessPaths, subscriberAuthContext, readGrantedSubjects);
     }
 
