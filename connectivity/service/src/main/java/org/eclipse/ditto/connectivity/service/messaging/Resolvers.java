@@ -35,7 +35,6 @@ import org.eclipse.ditto.placeholders.ExpressionResolver;
 import org.eclipse.ditto.placeholders.Placeholder;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.PlaceholderResolver;
-import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.events.ThingEventToThingConverter;
@@ -103,10 +102,9 @@ public final class Resolvers {
 
         final Signal<?> signal = mappedOutboundSignal.getSource();
         final ExternalMessage externalMessage = mappedOutboundSignal.getExternalMessage();
-        final Adaptable adaptable = mappedOutboundSignal.getAdaptable();
         return PlaceholderFactory.newExpressionResolver(
                 RESOLVER_CREATORS.stream()
-                        .map(creator -> creator.create(adaptable.getDittoHeaders(),
+                        .map(creator -> creator.create(signal.getDittoHeaders(),
                                 signal,
                                 externalMessage.getTopicPath().orElse(null),
                                 signal.getDittoHeaders().getAuthorizationContext(),
