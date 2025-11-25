@@ -24,6 +24,7 @@ import java.util.function.UnaryOperator;
 
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorRefFactory;
+import org.apache.pekko.actor.ActorSelection;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.pattern.AskTimeoutException;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
@@ -81,7 +82,7 @@ final class SupervisorLiveChannelDispatching {
     private final ResponseReceiverCache responseReceiverCache;
     private final LiveSignalPub liveSignalPub;
     private final ActorRefFactory actorRefFactory;
-    private final ActorRef thingsShardRegion;
+    private final ActorSelection thingsPersistenceActor;
     private final ActorSystem actorSystem;
     private final AskWithRetryConfig askWithRetryConfig;
 
@@ -90,7 +91,7 @@ final class SupervisorLiveChannelDispatching {
             final ResponseReceiverCache responseReceiverCache,
             final LiveSignalPub liveSignalPub,
             final ActorRefFactory actorRefFactory,
-            final ActorRef thingsShardRegion,
+            final ActorSelection thingsPersistenceActor,
             final ActorSystem actorSystem) {
 
         this.log = log;
@@ -98,7 +99,7 @@ final class SupervisorLiveChannelDispatching {
         this.responseReceiverCache = responseReceiverCache;
         this.liveSignalPub = liveSignalPub;
         this.actorRefFactory = actorRefFactory;
-        this.thingsShardRegion = thingsShardRegion;
+        this.thingsPersistenceActor = thingsPersistenceActor;
         this.actorSystem = actorSystem;
         this.askWithRetryConfig = getAskWithRetryConfig(actorSystem);
     }
@@ -232,7 +233,7 @@ final class SupervisorLiveChannelDispatching {
         if (condition.isPresent()) {
             final var retrieveThing = getRetrieveThing(signal);
             if (retrieveThing.isPresent()) {
-                final var thing = AskWithRetry.askWithRetry(thingsShardRegion, retrieveThing.get(), askWithRetryConfig,
+                final var thing = AskWithRetry.askWithRetry(thingsPersistenceActor, retrieveThing.get(), askWithRetryConfig,
                         actorSystem,
                         response -> handleRetrieveThingResponse(response, signal.getDittoHeaders())
                 );

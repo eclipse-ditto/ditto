@@ -18,6 +18,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.testkit.TestProbe;
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -39,9 +41,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
-
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.testkit.TestProbe;
 
 /**
  * Tests {@link PolicyIdReferencePlaceholderResolver}.

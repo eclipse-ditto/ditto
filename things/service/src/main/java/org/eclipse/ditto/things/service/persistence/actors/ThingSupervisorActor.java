@@ -180,7 +180,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
             throw new IllegalStateException("Entity Id could not be retrieved", e);
         }
         liveChannelDispatching = new SupervisorLiveChannelDispatching(log, enforcementConfig, responseReceiverCache,
-                liveSignalPub, getContext(), thingsShardRegion, system);
+                liveSignalPub, getContext(), thingPersistenceActorSelection, system);
         smartChannelDispatching = new SupervisorSmartChannelDispatching(log, thingPersistenceActorSelection,
                 liveChannelDispatching);
     }
