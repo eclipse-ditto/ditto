@@ -24,11 +24,13 @@ import java.util.function.UnaryOperator;
 
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorRefFactory;
+import org.apache.pekko.actor.ActorSelection;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.pattern.AskTimeoutException;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
@@ -50,13 +52,13 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.policies.enforcement.config.DefaultEnforcementConfig;
 import org.eclipse.ditto.policies.enforcement.config.EnforcementConfig;
-import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
-import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.persistence.actors.strategies.commands.ThingConditionValidator;
@@ -80,7 +82,7 @@ final class SupervisorLiveChannelDispatching {
     private final ResponseReceiverCache responseReceiverCache;
     private final LiveSignalPub liveSignalPub;
     private final ActorRefFactory actorRefFactory;
-    private final ActorRef thingsShardRegion;
+    private final ActorSelection thingsPersistenceActor;
     private final ActorSystem actorSystem;
     private final AskWithRetryConfig askWithRetryConfig;
 
@@ -89,7 +91,7 @@ final class SupervisorLiveChannelDispatching {
             final ResponseReceiverCache responseReceiverCache,
             final LiveSignalPub liveSignalPub,
             final ActorRefFactory actorRefFactory,
-            final ActorRef thingsShardRegion,
+            final ActorSelection thingsPersistenceActor,
             final ActorSystem actorSystem) {
 
         this.log = log;
@@ -97,7 +99,7 @@ final class SupervisorLiveChannelDispatching {
         this.responseReceiverCache = responseReceiverCache;
         this.liveSignalPub = liveSignalPub;
         this.actorRefFactory = actorRefFactory;
-        this.thingsShardRegion = thingsShardRegion;
+        this.thingsPersistenceActor = thingsPersistenceActor;
         this.actorSystem = actorSystem;
         this.askWithRetryConfig = getAskWithRetryConfig(actorSystem);
     }
@@ -231,7 +233,7 @@ final class SupervisorLiveChannelDispatching {
         if (condition.isPresent()) {
             final var retrieveThing = getRetrieveThing(signal);
             if (retrieveThing.isPresent()) {
-                final var thing = AskWithRetry.askWithRetry(thingsShardRegion, retrieveThing.get(), askWithRetryConfig,
+                final var thing = AskWithRetry.askWithRetry(thingsPersistenceActor, retrieveThing.get(), askWithRetryConfig,
                         actorSystem,
                         response -> handleRetrieveThingResponse(response, signal.getDittoHeaders())
                 );
@@ -249,11 +251,20 @@ final class SupervisorLiveChannelDispatching {
         return CompletableFuture.completedFuture(signal);
     }
 
-    private Optional<SudoRetrieveThing> getRetrieveThing(final Signal<?> signal) {
-        final Optional<SudoRetrieveThing> result;
+    private Optional<RetrieveThing> getRetrieveThing(final Signal<?> signal) {
+        final Optional<RetrieveThing> result;
         if (signal instanceof WithEntityId withEntityId) {
             if (withEntityId.getEntityId() instanceof ThingId thingId) {
-                result = Optional.of(SudoRetrieveThing.of(thingId, signal.getDittoHeaders()));
+                // don't use SudoRetrieveThing in order to make sure that only the parts of the thing are visible
+                //  according to the user's permissions in the policy:
+                result = Optional.of(RetrieveThing.of(thingId, signal.getDittoHeaders()
+                        .toBuilder()
+                        .removePreconditionHeaders()
+                        .removeHeader(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey())
+                        .removeHeader(DittoHeaderDefinition.TIMEOUT.getKey())
+                        .removeHeader(DittoHeaderDefinition.CONDITION.getKey())
+                        .build()
+                ));
             } else {
                 result = Optional.empty();
                 log.withCorrelationId(signal).error("Skipping live-message condition validation, because entityId " +
@@ -269,11 +280,11 @@ final class SupervisorLiveChannelDispatching {
 
     private Thing handleRetrieveThingResponse(final Object response, final DittoHeaders dittoHeaders) {
 
-        if (response instanceof SudoRetrieveThingResponse retrieveThingResponse) {
+        if (response instanceof RetrieveThingResponse retrieveThingResponse) {
             final JsonValue entity = retrieveThingResponse.getEntity();
             if (!entity.isObject()) {
                 log.withCorrelationId(dittoHeaders)
-                        .error("Expected SudoRetrieveThingResponse to contain a JsonObject as Entity but was: {}",
+                        .error("Expected RetrieveThingResponse to contain a JsonObject as Entity but was: {}",
                                 entity);
                 throw DittoInternalErrorException.newBuilder().dittoHeaders(dittoHeaders).build();
             }

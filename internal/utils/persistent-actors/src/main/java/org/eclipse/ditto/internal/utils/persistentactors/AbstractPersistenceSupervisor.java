@@ -693,7 +693,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
             opCounter = 0;
             sudoOpCounter = 0;
             if (inCoordinatedShutdown) {
-                log.info("Terminating self after persistence actor <{}>", persistenceActorChild);
+                log.info("Terminating self after persistence actor <{}>", message.getActor());
                 getContext().stop(getSelf());
             } else if (waitingForStopBeforeRestart) {
                 log.info("Persistence actor for entity with ID <{}> was stopped and will now be started again.",
