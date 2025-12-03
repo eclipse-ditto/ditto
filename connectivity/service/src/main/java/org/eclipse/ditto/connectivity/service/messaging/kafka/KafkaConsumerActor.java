@@ -20,6 +20,12 @@ import java.util.concurrent.TimeoutException;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.Done;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.javadsl.Sink;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
@@ -31,16 +37,9 @@ import org.eclipse.ditto.connectivity.service.messaging.BaseConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
+import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
-
-import org.apache.pekko.Done;
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.stream.Materializer;
-import org.apache.pekko.stream.javadsl.Sink;
 
 /**
  * Actor which streams messages from Kafka.
@@ -149,16 +148,22 @@ final class KafkaConsumerActor extends BaseConsumerActor {
                     .toCompletableFuture()
                     .orTimeout(MAX_SHUTDOWN_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
                     .handle((done, error) -> {
-                        final var isTimeout = error != null &&
-                                (error instanceof TimeoutException || error.getCause() instanceof TimeoutException);
-                        if (isTimeout) {
-                            final var timeoutTemplate =
-                                    "Timeout when shutting down the kafka consumer stream for Connection with ID <{}>";
-                            log.warning(timeoutTemplate, connectionId);
+                        if (error != null) {
+                            final var isTimeout = error instanceof TimeoutException || error.getCause() instanceof TimeoutException;
+                            if (isTimeout) {
+                                final var timeoutTemplate =
+                                        "Timeout when shutting down the kafka consumer stream for Connection with ID <{}>";
+                                log.warning(timeoutTemplate, connectionId);
+                            } else {
+                                final var errorTemplate =
+                                        "Error when shutting down the kafka consumer stream for Connection" +
+                                                " with ID <{}> due to: <{}: {}";
+                                log.warning(error, errorTemplate, connectionId, error.getClass().getSimpleName(),
+                                        error.getMessage());
+                            }
                         } else {
-                            final var errorTemplate =
-                                    "Error when shutting down the kafka consumer stream for connection with ID <{}>";
-                            log.warning(error, errorTemplate, connectionId);
+                            log.info("Shutting down Kafka consumer stream for Connection with ID <{}> done.",
+                                    connectionId);
                         }
                         return Done.getInstance();
                     })
