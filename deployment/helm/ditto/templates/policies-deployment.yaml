@@ -145,10 +145,17 @@ spec:
               value: >
                 {{ .Values.global.jvmOptions }}
                 -XX:ActiveProcessorCount={{ .Values.policies.jvm.activeProcessorCount }}
+                {{- if gt (int .Values.policies.jvm.parallelGcThreads) 0 }}
+                -XX:ParallelGCThreads={{ .Values.policies.jvm.parallelGcThreads }}
+                {{- end }}
+                {{- if gt (int .Values.policies.jvm.concGcThreads) 0 }}
+                -XX:ConcGCThreads={{ .Values.policies.jvm.concGcThreads }}
+                {{- end }}
                 -XX:MaxRAMPercentage={{ .Values.policies.jvm.heapRamPercentage }}
                 -XX:InitialRAMPercentage={{ .Values.policies.jvm.heapRamPercentage }}
                 -XX:MaxGCPauseMillis={{ .Values.policies.jvm.maxGcPauseMillis }}
                 -XX:G1ReservePercent={{ .Values.policies.jvm.g1ReservePercent }}
+                -XX:InitiatingHeapOccupancyPercent={{ .Values.policies.jvm.initiatingHeapOccupancyPercent }}
                 -XX:+UnlockExperimentalVMOptions
                 -XX:G1NewSizePercent={{ .Values.policies.jvm.g1NewSizePercent }}
                 -XX:G1MaxNewSizePercent={{ .Values.policies.jvm.g1MaxNewSizePercent }}
