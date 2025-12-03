@@ -145,10 +145,17 @@ spec:
               value: >
                 {{ .Values.global.jvmOptions }}
                 -XX:ActiveProcessorCount={{ .Values.thingsSearch.jvm.activeProcessorCount }}
+                {{- if gt (int .Values.thingsSearch.jvm.parallelGcThreads) 0 }}
+                -XX:ParallelGCThreads={{ .Values.thingsSearch.jvm.parallelGcThreads }}
+                {{- end }}
+                {{- if gt (int .Values.thingsSearch.jvm.concGcThreads) 0 }}
+                -XX:ConcGCThreads={{ .Values.thingsSearch.jvm.concGcThreads }}
+                {{- end }}
                 -XX:MaxRAMPercentage={{ .Values.thingsSearch.jvm.heapRamPercentage }}
                 -XX:InitialRAMPercentage={{ .Values.thingsSearch.jvm.heapRamPercentage }}
                 -XX:MaxGCPauseMillis={{ .Values.thingsSearch.jvm.maxGcPauseMillis }}
                 -XX:G1ReservePercent={{ .Values.thingsSearch.jvm.g1ReservePercent }}
+                -XX:InitiatingHeapOccupancyPercent={{ .Values.thingsSearch.jvm.initiatingHeapOccupancyPercent }}
                 -XX:+UnlockExperimentalVMOptions
                 -XX:G1NewSizePercent={{ .Values.thingsSearch.jvm.g1NewSizePercent }}
                 -XX:G1MaxNewSizePercent={{ .Values.thingsSearch.jvm.g1MaxNewSizePercent }}
