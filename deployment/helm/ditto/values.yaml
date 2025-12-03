@@ -661,6 +661,12 @@ policies:
     # activeProcessorCount defines how many processors the JVM should be configured to use
     #  this is e.g. relevant for the GC which calculates the amount of asynchronous threads for GC based on the processor count
     activeProcessorCount: 2
+    # parallelGcThreads defines how many threads the G1 garbage collector should use for parallel GC operations
+    #  if configured < 1, the JVM chooses according to its own logic
+    parallelGcThreads: 0
+    # concGcThreads defines how many threads the G1 garbage collector should use for concurrent GC operations
+    #  if configured < 1, the JVM chooses according to its own logic
+    concGcThreads: 0
     # heapRamPercentage defines how much memory of the configured "resources.memoryMi" can be used by the JVM heap space
     #  be aware that the JVM also requires memory for "off heap" (and also stack) space + the container needs memory as well
     heapRamPercentage: 60
@@ -670,6 +676,9 @@ policies:
     # g1ReservePercent configures the used G1 GC "amount of heap to keep free after a mixed GC"
     #  default (by JVM if not set): 10
     g1ReservePercent: 10
+    # initiatingHeapOccupancyPercent configures the G1 GC "heap occupancy threshold" to start a concurrent GC cycle
+    #  default (by JVM if not set): 45
+    initiatingHeapOccupancyPercent: 45
     # g1NewSizePercent sets the percentage of the heap size to use as default minimum young (new) generation
     #  default (by JVM if not set): 5
     g1NewSizePercent: 5
@@ -983,6 +992,12 @@ things:
     # activeProcessorCount defines how many processors the JVM should be configured to use
     #  this is e.g. relevant for the GC which calculates the amount of asynchronous threads for GC based on the processor count
     activeProcessorCount: 2
+    # parallelGcThreads defines how many threads the G1 garbage collector should use for parallel GC operations
+    #  if configured < 1, the JVM chooses according to its own logic
+    parallelGcThreads: 0
+    # concGcThreads defines how many threads the G1 garbage collector should use for concurrent GC operations
+    #  if configured < 1, the JVM chooses according to its own logic
+    concGcThreads: 0
     # heapRamPercentage defines how much memory of the configured "resources.memoryMi" can be used by the JVM heap space
     #  be aware that the JVM also requires memory for "off heap" (and also stack) space + the container needs memory as well
     heapRamPercentage: 60
@@ -992,6 +1007,9 @@ things:
     # g1ReservePercent configures the used G1 GC "amount of heap to keep free after a mixed GC"
     #  default (by JVM if not set): 10
     g1ReservePercent: 10
+    # initiatingHeapOccupancyPercent configures the G1 GC "heap occupancy threshold" to start a concurrent GC cycle
+    #  default (by JVM if not set): 45
+    initiatingHeapOccupancyPercent: 45
     # g1NewSizePercent sets the percentage of the heap size to use as default minimum young (new) generation
     #  default (by JVM if not set): 5
     g1NewSizePercent: 5
@@ -1463,6 +1481,12 @@ thingsSearch:
     # activeProcessorCount defines how many processors the JVM should be configured to use
     #  this is e.g. relevant for the GC which calculates the amount of asynchronous threads for GC based on the processor count
     activeProcessorCount: 2
+    # parallelGcThreads defines how many threads the G1 garbage collector should use for parallel GC operations
+    #  if configured < 1, the JVM chooses according to its own logic
+    parallelGcThreads: 0
+    # concGcThreads defines how many threads the G1 garbage collector should use for concurrent GC operations
+    #  if configured < 1, the JVM chooses according to its own logic
+    concGcThreads: 0
     # heapRamPercentage defines how much memory of the configured "resources.memoryMi" can be used by the JVM heap space
     #  be aware that the JVM also requires memory for "off heap" (and also stack) space + the container needs memory as well
     heapRamPercentage: 60
@@ -1472,6 +1496,9 @@ thingsSearch:
     # g1ReservePercent configures the used G1 GC "amount of heap to keep free after a mixed GC"
     #  default (by JVM if not set): 10
     g1ReservePercent: 10
+    # initiatingHeapOccupancyPercent configures the G1 GC "heap occupancy threshold" to start a concurrent GC cycle
+    #  default (by JVM if not set): 45
+    initiatingHeapOccupancyPercent: 45
     # g1NewSizePercent sets the percentage of the heap size to use as default minimum young (new) generation
     #  default (by JVM if not set): 5
     g1NewSizePercent: 5
@@ -1765,6 +1792,12 @@ connectivity:
     # activeProcessorCount defines how many processors the JVM should be configured to use
     #  this is e.g. relevant for the GC which calculates the amount of asynchronous threads for GC based on the processor count
     activeProcessorCount: 2
+    # parallelGcThreads defines how many threads the G1 garbage collector should use for parallel GC operations
+    #  if configured < 1, the JVM chooses according to its own logic
+    parallelGcThreads: 0
+    # concGcThreads defines how many threads the G1 garbage collector should use for concurrent GC operations
+    #  if configured < 1, the JVM chooses according to its own logic
+    concGcThreads: 0
     # heapRamPercentage defines how much memory of the configured "resources.memoryMi" can be used by the JVM heap space
     #  be aware that the JVM also requires memory for "off heap" (and also stack) space + the container needs memory as well
     heapRamPercentage: 60
@@ -1774,6 +1807,9 @@ connectivity:
     # g1ReservePercent configures the used G1 GC "amount of heap to keep free after a mixed GC"
     #  default (by JVM if not set): 10
     g1ReservePercent: 10
+    # initiatingHeapOccupancyPercent configures the G1 GC "heap occupancy threshold" to start a concurrent GC cycle
+    #  default (by JVM if not set): 45
+    initiatingHeapOccupancyPercent: 45
     # g1NewSizePercent sets the percentage of the heap size to use as default minimum young (new) generation
     #  default (by JVM if not set): 5
     g1NewSizePercent: 5
@@ -2146,6 +2182,12 @@ gateway:
     # activeProcessorCount defines how many processors the JVM should be configured to use
     #  this is e.g. relevant for the GC which calculates the amount of asynchronous threads for GC based on the processor count
     activeProcessorCount: 2
+    # parallelGcThreads defines how many threads the G1 garbage collector should use for parallel GC operations
+    #  if configured < 1, the JVM chooses according to its own logic
+    parallelGcThreads: 0
+    # concGcThreads defines how many threads the G1 garbage collector should use for concurrent GC operations
+    #  if configured < 1, the JVM chooses according to its own logic
+    concGcThreads: 0
     # heapRamPercentage defines how much memory of the configured "resources.memoryMi" can be used by the JVM heap space
     #  be aware that the JVM also requires memory for "off heap" (and also stack) space + the container needs memory as well
     heapRamPercentage: 60
@@ -2155,6 +2197,9 @@ gateway:
     # g1ReservePercent configures the used G1 GC "amount of heap to keep free after a mixed GC"
     #  default (by JVM if not set): 10
     g1ReservePercent: 10
+    # initiatingHeapOccupancyPercent configures the G1 GC "heap occupancy threshold" to start a concurrent GC cycle
+    #  default (by JVM if not set): 45
+    initiatingHeapOccupancyPercent: 45
     # g1NewSizePercent sets the percentage of the heap size to use as default minimum young (new) generation
     #  default (by JVM if not set): 5
     g1NewSizePercent: 5
