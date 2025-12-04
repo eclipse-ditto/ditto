@@ -55,6 +55,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
@@ -128,6 +129,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 import org.eclipse.ditto.things.model.signals.events.ThingCreated;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingModified;
+import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
 import org.eclipse.ditto.things.service.enforcement.TestSetup;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -317,8 +319,11 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         final Thing thing = createThingV2WithRandomId();
         final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
 
+        final DittoThingsConfig thingsConfig = DittoThingsConfig.of(
+                DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
+        );
         final Props props = ThingPersistenceActor.props(thingIdOfActor, Mockito.mock(MongoReadJournal.class),
-                getDistributedPub(), null, policyEnforcerProvider);
+                thingsConfig.getThingConfig(), getDistributedPub(), null, policyEnforcerProvider);
         final TestActorRef<ThingPersistenceActor> underTest = TestActorRef.create(actorSystem, props);
         final ThingPersistenceActor thingPersistenceActor = underTest.underlyingActor();
         final PartialFunction<Object, BoxedUnit> receiveCommand = thingPersistenceActor.receiveCommand();
@@ -2096,7 +2101,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 ThingId thingId = getIdOrThrow(thing);
 
                 ActorRef underTest = createSupervisorActorWithCustomPersistenceActor(thingId,
-                        (thingId1, mongoReadJournal, distributedPub, searchShardRegionProxy, policyEnforcerProvider) -> FailingInCtorActor.props());
+                        (thingId1, mongoReadJournal, thingConfig, distributedPub, searchShardRegionProxy, policyEnforcerProvider) -> FailingInCtorActor.props());
 
                 CreateThing createThing = CreateThing.of(thing, null, dittoHeaders);
                 underTest.tell(createThing, getRef());
@@ -2136,7 +2141,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 ThingId thingId = getIdOrThrow(thing);
 
                 ActorRef underTest = createSupervisorActorWithCustomPersistenceActor(thingId,
-                        (thingId1, mongoReadJournal, distributedPub, searchShardRegionProxy, policyEnforcerProvider) -> FailingInCtorActor.props());
+                        (thingId1, mongoReadJournal, thingConfig, distributedPub, searchShardRegionProxy, policyEnforcerProvider) -> FailingInCtorActor.props());
 
                 RetrieveThing retrieveThing = RetrieveThing.of(thingId, dittoHeaders);
                 underTest.tell(retrieveThing, getRef());
@@ -2224,6 +2229,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         final LiveSignalPub liveSignalPub = new TestSetup.DummyLiveSignalPub(pubSubMediator);
         final Props props =
                 ThingSupervisorActor.props(pubSubMediator,
+                        thingsConfig,
+                        enforcementConfig,
                         policiesShardRegion,
                         new DistributedPub<>() {
 
@@ -2258,6 +2265,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         final LiveSignalPub liveSignalPub = new TestSetup.DummyLiveSignalPub(pubSubMediator);
         final Props props =
                 ThingSupervisorActor.props(pubSubMediator,
+                        thingsConfig,
+                        enforcementConfig,
                         policiesShardRegion,
                         new DistributedPub<>() {
 

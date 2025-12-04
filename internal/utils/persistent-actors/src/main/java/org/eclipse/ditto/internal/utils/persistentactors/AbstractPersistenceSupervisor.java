@@ -67,7 +67,7 @@ import org.eclipse.ditto.base.model.signals.events.GlobalEventRegistry;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOff;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
-import org.eclipse.ditto.base.service.config.supervision.LocalAskTimeoutConfig;
+import org.eclipse.ditto.base.service.config.supervision.SupervisorConfig;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformers;
 import org.eclipse.ditto.internal.utils.cluster.StopShardedActor;
@@ -147,14 +147,15 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     private boolean paRecovered = false;
 
     protected AbstractPersistenceSupervisor(@Nullable final BlockedNamespaces blockedNamespaces,
-            final MongoReadJournal mongoReadJournal) {
-        this(null, null, blockedNamespaces, mongoReadJournal);
+            final MongoReadJournal mongoReadJournal, final SupervisorConfig supervisorConfig) {
+        this(null, null, blockedNamespaces, mongoReadJournal, supervisorConfig);
     }
 
     protected AbstractPersistenceSupervisor(@Nullable final ActorRef persistenceActorChild,
             @Nullable final ActorRef enforcerChild,
             @Nullable final BlockedNamespaces blockedNamespaces,
-            final MongoReadJournal mongoReadJournal) {
+            final MongoReadJournal mongoReadJournal,
+            final SupervisorConfig supervisorConfig) {
 
         final ActorSystem system = context().system();
         final Config dittoExtensionsConfig = ScopedConfig.dittoExtension(system.settings().config());
@@ -164,10 +165,10 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         this.blockedNamespaces = blockedNamespaces;
         this.mongoReadJournal = mongoReadJournal;
         this.enforcementExecutor = system.dispatchers().lookup(AbstractEnforcerActor.ENFORCEMENT_DISPATCHER);
-        this.localAskTimeout = getLocalAskTimeoutConfig().getLocalAskTimeout();
-        this.localAskTimeoutDuringRecovery = getLocalAskTimeoutConfig().getLocalAskTimeoutDuringRecovery();
-        this.localEnforcerAskTimeout = getLocalAskTimeoutConfig().getLocalEnforcerAskTimeout();
-        this.exponentialBackOffConfig = getExponentialBackOffConfig();
+        this.localAskTimeout = supervisorConfig.getLocalAskTimeoutConfig().getLocalAskTimeout();
+        this.localAskTimeoutDuringRecovery = supervisorConfig.getLocalAskTimeoutConfig().getLocalAskTimeoutDuringRecovery();
+        this.localEnforcerAskTimeout = supervisorConfig.getLocalAskTimeoutConfig().getLocalEnforcerAskTimeout();
+        this.exponentialBackOffConfig = supervisorConfig.getExponentialBackOffConfig();
         this.backOff = ExponentialBackOff.initial(exponentialBackOffConfig);
         this.supervisorStrategy = new OneForOneStrategy(
                 DeciderBuilder
@@ -199,21 +200,6 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
      * @return props of the child actor.
      */
     protected abstract Props getPersistenceEnforcerProps(E entityId);
-
-    /**
-     * Read background configuration from actor context.
-     * Called in constructor.
-     * DO NOT rely on instance fields as they will not be initialized.
-     *
-     * @return exponential backoff configuration read from the actor system's settings.
-     */
-    protected abstract ExponentialBackOffConfig getExponentialBackOffConfig();
-
-    /**
-     * Read from actor context. Called in constructor.
-     * @return local ASK timeout config;
-     */
-    protected abstract LocalAskTimeoutConfig getLocalAskTimeoutConfig();
 
     /**
      * Get the shutdown behavior appropriate for this actor.

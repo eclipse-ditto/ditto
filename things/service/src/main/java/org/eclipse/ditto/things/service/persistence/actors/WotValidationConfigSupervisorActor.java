@@ -27,6 +27,7 @@ import org.apache.pekko.event.LoggingAdapter;
 import org.apache.pekko.japi.pf.ReceiveBuilder;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
+import org.eclipse.ditto.base.service.signaltransformer.SignalTransformers;
 import org.eclipse.ditto.internal.utils.cluster.StopShardedActor;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
@@ -56,12 +57,8 @@ public final class WotValidationConfigSupervisorActor extends AbstractActorWithT
         this.mongoReadJournal = mongoReadJournal;
 
         final var system = getContext().getSystem();
-        final var scopedConfig = DefaultScopedConfig.dittoScoped(system.settings().config());
-
         // This is the only way that works for your transformer setup!
-        this.signalTransformer = org.eclipse.ditto.base.service.signaltransformer.SignalTransformers.get(
-                system, ScopedConfig.dittoExtension(system.settings().config())
-        );
+        this.signalTransformer = SignalTransformers.get(system, ScopedConfig.dittoExtension(system.settings().config()));
     }
 
     public static Props props(final ActorRef pubSubMediator,

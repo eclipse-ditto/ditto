@@ -15,6 +15,14 @@ package org.eclipse.ditto.connectivity.service;
 import javax.jms.JMSRuntimeException;
 import javax.naming.NamingException;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.SupervisorStrategy;
+import org.apache.pekko.cluster.sharding.ClusterSharding;
+import org.apache.pekko.cluster.sharding.ClusterShardingSettings;
+import org.apache.pekko.event.DiagnosticLoggingAdapter;
+import org.apache.pekko.japi.pf.DeciderBuilder;
 import org.eclipse.ditto.base.service.RootChildActorStarter;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants;
@@ -27,7 +35,6 @@ import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPe
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionSupervisorActor;
 import org.eclipse.ditto.edge.service.dispatching.EdgeCommandForwarderActor;
 import org.eclipse.ditto.edge.service.dispatching.ShardRegions;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
@@ -38,6 +45,7 @@ import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.internal.utils.health.config.HealthCheckConfig;
 import org.eclipse.ditto.internal.utils.health.config.PersistenceConfig;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.PersistencePingActor;
@@ -46,14 +54,6 @@ import org.eclipse.ditto.internal.utils.pubsubthings.DittoProtocolSub;
 
 import com.typesafe.config.Config;
 
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.actor.SupervisorStrategy;
-import org.apache.pekko.cluster.sharding.ClusterSharding;
-import org.apache.pekko.cluster.sharding.ClusterShardingSettings;
-import org.apache.pekko.event.DiagnosticLoggingAdapter;
-import org.apache.pekko.japi.pf.DeciderBuilder;
 import scala.PartialFunction;
 
 /**
@@ -100,8 +100,8 @@ public final class ConnectivityRootActor extends DittoRootActor {
         final MongoReadJournal mongoReadJournal = MongoReadJournal.newInstance(actorSystem);
 
         final var connectionSupervisorProps =
-                ConnectionSupervisorActor.props(commandForwarder, pubSubMediator, enforcerActorPropsFactory,
-                        mongoReadJournal);
+                ConnectionSupervisorActor.props(commandForwarder, pubSubMediator, connectivityConfig,
+                        enforcerActorPropsFactory, mongoReadJournal);
         startClusterSingletonActor(
                 PersistencePingActor.props(
                         startConnectionShardRegion(actorSystem, connectionSupervisorProps, clusterConfig),

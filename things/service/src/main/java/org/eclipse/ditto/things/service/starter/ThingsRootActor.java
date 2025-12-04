@@ -51,6 +51,8 @@ import org.eclipse.ditto.internal.utils.pubsubthings.ThingEventPubSubFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProviderExtension;
+import org.eclipse.ditto.policies.enforcement.config.DefaultEnforcementConfig;
+import org.eclipse.ditto.policies.enforcement.config.EnforcementConfig;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.things.model.devops.WotValidationConfig;
 import org.eclipse.ditto.things.model.devops.commands.RetrieveWotValidationConfig;
@@ -107,7 +109,12 @@ public final class ThingsRootActor extends DittoRootActor {
         final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(actorSystem);
         final PolicyEnforcerProvider policyEnforcerProvider = PolicyEnforcerProviderExtension.get(actorSystem).getPolicyEnforcerProvider();
         final var mongoReadJournal = newMongoReadJournal(thingsConfig.getMongoDbConfig(), actorSystem);
+        final EnforcementConfig enforcementConfig = DefaultEnforcementConfig.of(
+                DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
+        );
         final Props thingSupervisorActorProps = getThingSupervisorActorProps(pubSubMediator,
+                thingsConfig,
+                enforcementConfig,
                 distributedPubThingEventsForTwin,
                 liveSignalPub,
                 propsFactory,
@@ -254,14 +261,17 @@ public final class ThingsRootActor extends DittoRootActor {
     }
 
     private static Props getThingSupervisorActorProps(final ActorRef pubSubMediator,
+            final ThingsConfig thingsConfig,
+            final EnforcementConfig enforcementConfig,
             final DistributedPub<ThingEvent<?>> distributedPubThingEventsForTwin,
             final LiveSignalPub liveSignalPub,
             final ThingPersistenceActorPropsFactory propsFactory,
             final BlockedNamespaces blockedNamespaces,
             final PolicyEnforcerProvider policyEnforcerProvider,
             final MongoReadJournal mongoReadJournal) {
-        return ThingSupervisorActor.props(pubSubMediator, distributedPubThingEventsForTwin,
-                liveSignalPub, propsFactory, blockedNamespaces, policyEnforcerProvider, mongoReadJournal);
+        return ThingSupervisorActor.props(pubSubMediator, thingsConfig, enforcementConfig,
+                distributedPubThingEventsForTwin, liveSignalPub, propsFactory, blockedNamespaces,
+                policyEnforcerProvider, mongoReadJournal);
     }
 
     private static MongoReadJournal newMongoReadJournal(final MongoDbConfig mongoDbConfig,

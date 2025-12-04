@@ -14,6 +14,10 @@ package org.eclipse.ditto.connectivity.service.messaging.persistence;
 
 import java.util.Collections;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.testkit.TestProbe;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
@@ -31,7 +35,10 @@ import org.eclipse.ditto.connectivity.model.signals.commands.modify.CreateConnec
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CreateConnectionResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionResponse;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.enforcement.ConnectionEnforcerActorPropsFactory;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
@@ -42,11 +49,6 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import com.typesafe.config.Config;
-
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.testkit.TestProbe;
 
 /**
  * Tests {@link ConnectionPersistenceOperationsActor}.
@@ -135,9 +137,11 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
         final TestProbe proxyActorProbe = new TestProbe(system, "proxyActor");
         final var dittoExtensionsConfig = ScopedConfig.dittoExtension(system.settings().config());
         final var enforcerActorPropsFactory = ConnectionEnforcerActorPropsFactory.get(system, dittoExtensionsConfig);
+        final ConnectivityConfig connectivityConfig =
+                DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(system.settings().config()));
         final Props props =
-                ConnectionSupervisorActor.props(proxyActorProbe.ref(), pubSubMediator, enforcerActorPropsFactory,
-                        Mockito.mock(MongoReadJournal.class));
+                ConnectionSupervisorActor.props(proxyActorProbe.ref(), pubSubMediator, connectivityConfig,
+                        enforcerActorPropsFactory, Mockito.mock(MongoReadJournal.class));
 
         return system.actorOf(props, String.valueOf(id));
     }

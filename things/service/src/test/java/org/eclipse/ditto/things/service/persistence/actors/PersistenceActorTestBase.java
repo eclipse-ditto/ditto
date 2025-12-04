@@ -36,6 +36,7 @@ import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
@@ -45,6 +46,8 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
+import org.eclipse.ditto.policies.enforcement.config.DefaultEnforcementConfig;
+import org.eclipse.ditto.policies.enforcement.config.EnforcementConfig;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Feature;
@@ -57,7 +60,9 @@ import org.eclipse.ditto.things.model.ThingLifecycle;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.common.config.DefaultThingConfig;
+import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
 import org.eclipse.ditto.things.service.common.config.ThingConfig;
+import org.eclipse.ditto.things.service.common.config.ThingsConfig;
 import org.eclipse.ditto.things.service.enforcement.TestSetup;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.junit.After;
@@ -151,6 +156,8 @@ public abstract class PersistenceActorTestBase {
     protected DittoHeaders dittoHeadersV2;
 
     protected PolicyEnforcerProvider policyEnforcerProvider;
+    protected ThingsConfig thingsConfig;
+    protected EnforcementConfig enforcementConfig;
 
     @BeforeClass
     public static void initTestFixture() {
@@ -210,6 +217,12 @@ public abstract class PersistenceActorTestBase {
 
         actorSystem = ActorSystem.create("PekkoTestSystem", ConfigFactory.parseMap(
                 Map.of("pekko.actor.provider", "cluster")).withFallback(config));
+        thingsConfig = DittoThingsConfig.of(
+                DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
+        );
+        enforcementConfig = DefaultEnforcementConfig.of(
+                DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
+        );
         pubSubTestProbe = TestProbe.apply("mock-pubSub-mediator", actorSystem);
         pubSubMediator = pubSubTestProbe.ref();
         policiesShardRegionTestProbe = TestProbe.apply("mock-policiesShardRegion", actorSystem);
@@ -229,21 +242,23 @@ public abstract class PersistenceActorTestBase {
     }
 
     protected ActorRef createPersistenceActorWithPubSubFor(final ThingId thingId) {
-
         return actorSystem.actorOf(getPropsOfThingPersistenceActor(thingId, Mockito.mock(MongoReadJournal.class),
-                getDistributedPub(), null, policyEnforcerProvider));
+                thingsConfig.getThingConfig(), getDistributedPub(), null, policyEnforcerProvider));
     }
 
     private Props getPropsOfThingPersistenceActor(final ThingId thingId, final MongoReadJournal mongoReadJournal,
+            final ThingConfig thingConfig,
             final DistributedPub<ThingEvent<?>> pub, @Nullable final ActorRef searchShardRegionProxy,
             final PolicyEnforcerProvider policyEnforcerProvider) {
-        return ThingPersistenceActor.props(thingId, mongoReadJournal, pub, searchShardRegionProxy, policyEnforcerProvider);
+        return ThingPersistenceActor.props(thingId, mongoReadJournal, thingConfig, pub, searchShardRegionProxy, policyEnforcerProvider);
     }
 
     protected ActorRef createSupervisorActorFor(final ThingId thingId) {
         final LiveSignalPub liveSignalPub = new TestSetup.DummyLiveSignalPub(pubSubMediator);
         final Props props =
                 ThingSupervisorActor.props(pubSubMediator,
+                        thingsConfig,
+                        enforcementConfig,
                         policiesShardRegion,
                         new DistributedPub<>() {
 
