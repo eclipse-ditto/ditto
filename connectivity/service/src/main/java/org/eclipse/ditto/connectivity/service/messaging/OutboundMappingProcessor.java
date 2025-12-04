@@ -15,6 +15,7 @@ package org.eclipse.ditto.connectivity.service.messaging;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -47,6 +48,7 @@ import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOu
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.protocol.AdaptablePartialAccessFilter;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
@@ -240,34 +242,17 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
 
         final var mappingTimer = MappingTimer.outbound(connectionId, connectionType, dittoHeaders);
 
-        final Signal<?> signalToMap;
-        if (dittoHeaders.containsKey(DittoHeaderDefinition.REQUESTED_ACKS.getKey())) {
-            final Set<AcknowledgementRequest> publishedAckRequests = dittoHeaders.getAcknowledgementRequests()
-                    .stream()
-                    .filter(ackRequest -> isSourceDeclaredAck(ackRequest.getLabel()))
-                    .collect(Collectors.toSet());
-            signalToMap = outboundSignalSource.setDittoHeaders(dittoHeaders.toBuilder()
-                    .acknowledgementRequests(publishedAckRequests)
-                    .build());
-        } else {
-            signalToMap = outboundSignalSource;
-        }
-
-        final boolean hasPartialAccessPaths = dittoHeaders.containsKey(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey());
-
         return mappingTimer.overall(() -> mappableSignals.stream()
                 .flatMap(mappableSignal -> {
-                    final Signal<?> source = signalToMap;
+                    final Signal<?> source = mappableSignal.getSource();
                     final List<Target> targets = mappableSignal.getTargets();
                     final List<MessageMapper> mappers = getMappers(mappableSignal.getPayloadMapping());
                     logger.withCorrelationId(source)
                             .debug("Resolved mappers for message {} to targets {}: {}", source, targets, mappers);
                     
-                    if (targets.isEmpty()) {
-                        return processTargetsEmpty(mappableSignal, source, outboundSignal, mappingTimer, mappers);
-                    }
+                    final boolean hasPartialAccessPaths = dittoHeaders.containsKey(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey());
                     
-                    if (hasPartialAccessPaths) {
+                    if (hasPartialAccessPaths && !targets.isEmpty()) {
                         return processWithPartialAccessPaths(mappableSignal, source, targets, outboundSignal, mappingTimer, mappers);
                     } else {
                         return processWithoutPartialAccessPaths(mappableSignal, source, outboundSignal, mappingTimer, mappers);
@@ -276,26 +261,40 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
                 .toList());
     }
 
-    private Stream<MappingOutcome<OutboundSignal.Mapped>> processTargetsEmpty(
-            final OutboundSignal.Mappable mappableSignal,
-            final Signal<?> source,
-            final OutboundSignal outboundSignal,
-            final MappingTimer mappingTimer,
-            final List<MessageMapper> mappers) {
-        final Adaptable baseAdaptable = createBaseAdaptable(source, null, outboundSignal, mappingTimer);
-        return mappers.stream()
-                .flatMap(mapper -> runMapper(mappableSignal, baseAdaptable, mapper, mappingTimer));
-    }
-
     private Stream<MappingOutcome<OutboundSignal.Mapped>> processWithoutPartialAccessPaths(
             final OutboundSignal.Mappable mappableSignal,
             final Signal<?> source,
             final OutboundSignal outboundSignal,
             final MappingTimer mappingTimer,
             final List<MessageMapper> mappers) {
-        final Adaptable baseAdaptable = createBaseAdaptable(source, null, outboundSignal, mappingTimer);
-        return mappers.stream()
-                .flatMap(mapper -> runMapper(mappableSignal, baseAdaptable, mapper, mappingTimer));
+        final List<Target> targets = mappableSignal.getTargets();
+        if (targets.isEmpty()) {
+            final Adaptable baseAdaptable = createBaseAdaptable(source, null, outboundSignal, mappingTimer);
+            return mappers.stream()
+                    .flatMap(mapper -> runMapper(mappableSignal, baseAdaptable, mapper, mappingTimer));
+        }
+        
+        final boolean hasTargetIssuedAcks = targets.stream()
+                .anyMatch(target -> target.getIssuedAcknowledgementLabel().isPresent());
+        
+        if (!hasTargetIssuedAcks) {
+            final Adaptable baseAdaptable = createBaseAdaptable(source, null, outboundSignal, mappingTimer);
+            return mappers.stream()
+                    .flatMap(mapper -> runMapper(mappableSignal, baseAdaptable, mapper, mappingTimer));
+        }
+        
+        return targets.stream()
+                .flatMap(target -> {
+                    final AuthorizationContext targetAuthContext = target.getAuthorizationContext();
+                    final Adaptable baseAdaptable = createBaseAdaptable(source, targetAuthContext, outboundSignal, mappingTimer);
+                    final Adaptable adaptableWithoutTargetIssuedAcks = filterTargetIssuedAcknowledgements(baseAdaptable, target);
+                    final Adaptable adaptableWithExternalHeaders = convertToExternalHeaders(adaptableWithoutTargetIssuedAcks);
+                    final OutboundSignal.Mappable targetMappableSignal =
+                            OutboundSignalFactory.newMappableOutboundSignal(source,
+                                    List.of(target), mappableSignal.getPayloadMapping());
+                    return mappers.stream()
+                            .flatMap(mapper -> runMapper(targetMappableSignal, adaptableWithExternalHeaders, mapper, mappingTimer));
+                });
     }
 
     private Stream<MappingOutcome<OutboundSignal.Mapped>> processWithPartialAccessPaths(
@@ -305,23 +304,31 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
             final OutboundSignal outboundSignal,
             final MappingTimer mappingTimer,
             final List<MessageMapper> mappers) {
+        final DittoHeaders dittoHeaders = source.getDittoHeaders();
         return targets.stream()
                 .flatMap(target -> {
                     final AuthorizationContext targetAuthContext = target.getAuthorizationContext();
                     final Adaptable baseAdaptable = createBaseAdaptable(source, targetAuthContext, outboundSignal, mappingTimer);
-                    final Adaptable filteredAdaptable = AdaptablePartialAccessFilter
-                            .filterAdaptableForPartialAccess(baseAdaptable, targetAuthContext);
                     
-                    final TopicPath topicPath = filteredAdaptable.getTopicPath();
+                    final Adaptable effective = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+                            baseAdaptable, targetAuthContext);
+                    
+                    final boolean doFilter = shouldFilterForTarget(baseAdaptable, targetAuthContext, dittoHeaders);
+                    
+                    final TopicPath topicPath = effective.getTopicPath();
                     final boolean isThingEvent = TopicPath.Group.THINGS.equals(topicPath.getGroup()) &&
                             TopicPath.Criterion.EVENTS.equals(topicPath.getCriterion());
                     
-                    if (isThingEvent) {
-                        final boolean isEmptyPayload = filteredAdaptable.getPayload().getValue()
+                    if (isThingEvent && doFilter) {
+                        final var valueOpt = effective.getPayload().getValue();
+                        
+                        final boolean emptyObject = valueOpt
                                 .map(v -> v.isObject() && v.asObject().isEmpty())
                                 .orElse(true);
                         
-                        if (isEmptyPayload) {
+                        final boolean emptyPrimitive = valueOpt.isEmpty();
+                        
+                        if (emptyObject || emptyPrimitive) {
                             logger.withCorrelationId(source)
                                     .debug("Skipping event for target {} - filtered payload is empty (no access)",
                                             target.getAddress());
@@ -329,7 +336,8 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
                         }
                     }
                     
-                    final Adaptable adaptableWithExternalHeaders = convertToExternalHeaders(filteredAdaptable);
+                    final Adaptable adaptableWithoutTargetIssuedAcks = filterTargetIssuedAcknowledgements(effective, target);
+                    final Adaptable adaptableWithExternalHeaders = convertToExternalHeaders(adaptableWithoutTargetIssuedAcks);
                     final OutboundSignal.Mappable targetMappableSignal =
                             OutboundSignalFactory.newMappableOutboundSignal(source,
                                     List.of(target), mappableSignal.getPayloadMapping());
@@ -337,7 +345,39 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
                             .flatMap(mapper -> runMapper(targetMappableSignal, adaptableWithExternalHeaders, mapper, mappingTimer));
                 });
     }
-
+    
+    /**
+     * Determines if partial-access filtering should be applied for a target.
+     * Filtering is applied when:
+     * - Signal is a thing-related signal (THINGS group)
+     * - Signal is an event or message (not commands)
+     * - Either PARTIAL_ACCESS_PATHS header is present OR target has non-empty AuthorizationContext
+     *
+     * @param adaptable the adaptable to check
+     * @param targetAuthContext the authorization context of the target (may be null)
+     * @param rootHeaders the root signal headers (may contain PARTIAL_ACCESS_PATHS)
+     * @return true if filtering should be applied
+     */
+    private static boolean shouldFilterForTarget(final Adaptable adaptable,
+                                                 @Nullable final AuthorizationContext targetAuthContext,
+                                                 final DittoHeaders rootHeaders) {
+        final TopicPath topicPath = adaptable.getTopicPath();
+        if (!TopicPath.Group.THINGS.equals(topicPath.getGroup())) {
+            return false;
+        }
+        
+        final TopicPath.Criterion criterion = topicPath.getCriterion();
+        if (!(TopicPath.Criterion.EVENTS.equals(criterion) || TopicPath.Criterion.MESSAGES.equals(criterion))) {
+            return false;
+        }
+        
+        if (targetAuthContext != null && !targetAuthContext.isEmpty()) {
+            return true;
+        }
+        
+        return rootHeaders.containsKey(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey());
+    }
+    
     /**
      * Creates a base Adaptable with extra fields and correlation ID set.
      * This method centralizes the common logic for creating Adaptables to avoid duplication.
@@ -363,6 +403,57 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
         result = optionalCorrelationId.map(s -> adaptable.setDittoHeaders(
                 adaptable.getDittoHeaders().toBuilder().correlationId(s).build())).orElse(adaptable);
         return result;
+    }
+
+    /**
+     * Filters out target-issued acknowledgement requests from the adaptable headers.
+     * Only source-declared acknowledgements should be published to external targets.
+     * This filtering only applies to EVENTS, not to MESSAGES (live commands).
+     *
+     * @param adaptable the adaptable to filter
+     * @param target the target that may issue acknowledgements
+     * @return the adaptable with target-issued acknowledgement requests removed (for events only)
+     */
+    private Adaptable filterTargetIssuedAcknowledgements(final Adaptable adaptable, final Target target) {
+        final TopicPath topicPath = adaptable.getTopicPath();
+        if (!TopicPath.Criterion.EVENTS.equals(topicPath.getCriterion())) {
+            return adaptable;
+        }
+        
+        final DittoHeaders headers = adaptable.getDittoHeaders();
+        final Set<AcknowledgementRequest> ackRequests = headers.getAcknowledgementRequests();
+        if (ackRequests.isEmpty()) {
+            return adaptable;
+        }
+        
+        final Optional<AcknowledgementLabel> targetIssuedAckLabel = target.getIssuedAcknowledgementLabel();
+        if (targetIssuedAckLabel.isEmpty()) {
+            return adaptable;
+        }
+        
+        final AcknowledgementLabel targetIssuedLabel = targetIssuedAckLabel.get();
+        final Set<AcknowledgementRequest> filteredAckRequests = ackRequests.stream()
+                .filter(ackRequest -> {
+                    final AcknowledgementLabel label = ackRequest.getLabel();
+                    if (label.equals(targetIssuedLabel)) {
+                        return false;
+                    }
+                    if (isTargetIssuedAck(label)) {
+                        return false;
+                    }
+                    return isSourceDeclaredAck(label);
+                })
+                .collect(Collectors.toSet());
+        
+        if (filteredAckRequests.size() == ackRequests.size()) {
+            return adaptable;
+        }
+        
+        final DittoHeaders filteredHeaders = headers.toBuilder()
+                .acknowledgementRequests(filteredAckRequests)
+                .build();
+        
+        return adaptable.setDittoHeaders(filteredHeaders);
     }
 
     /**
@@ -412,8 +503,8 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
                 }
             } else {
                 logger.withCorrelationId(adaptable)
-                        .debug("Not mapping message with mapper <{}> as MessageMapper conditions {} were not matched.",
-                                mapper.getId(), mapper.getIncomingConditions());
+                        .debug("Not mapping message with mapper <{}> as outgoing conditions {} were not matched.",
+                                mapper.getId(), mapper.getOutgoingConditions());
                 return Stream.of(MappingOutcome.dropped(mapper.getId(), null));
             }
         } catch (final Exception e) {

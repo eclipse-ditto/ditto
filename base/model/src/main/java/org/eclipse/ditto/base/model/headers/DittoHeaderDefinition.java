@@ -624,24 +624,6 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
             HeaderValueValidators.getJsonObjectValidator()),
 
     /**
-     * Internal header containing the subject index mapping for pre-defined extra fields read grants.
-     * Maps integer indices (as strings) to subject IDs.
-     * Used together with {@link #PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT} to reduce header size
-     * by using indices instead of repeating subject IDs.
-     * <p>
-     * Key: {@code "ditto-pre-defined-extra-fields-read-grant-subjects"}, Java type: {@link JsonObject}.
-     * Format: {@code {"0": "subject1", "1": "subject2", ...}}
-     * </p>
-     *
-     * @since 3.9.0
-     */
-    PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_SUBJECTS("ditto-pre-defined-extra-fields-read-grant-subjects",
-            JsonObject.class,
-            false,
-            false,
-            HeaderValueValidators.getJsonObjectValidator()),
-
-    /**
      * Internal header containing partial access paths for subjects with partial READ permissions.
      * Used to enable partial change notifications for subjects with restricted READ permissions.
      * <p>

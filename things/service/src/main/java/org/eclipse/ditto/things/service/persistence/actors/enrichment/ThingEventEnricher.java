@@ -152,7 +152,6 @@ public final class ThingEventEnricher {
                                 
                                 final String extraFieldsKey = DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS.getKey();
                                 final String readGrantKey = DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT.getKey();
-                                final String readGrantSubjectsKey = DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_SUBJECTS.getKey();
                                 final String extraFieldsObjectKey = DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_OBJECT.getKey();
                                 
                                 final DittoHeadersBuilder<?, ?> headersBuilder = currentHeaders.toBuilder()
@@ -162,10 +161,6 @@ public final class ThingEventEnricher {
                                         .putHeader(extraFieldsObjectKey,
                                                 buildPredefinedExtraFieldsHeaderObject(thing,
                                                         combinedPredefinedExtraFields).toString());
-                                
-                                if (!indexedGrants.isEmpty()) {
-                                    headersBuilder.putHeader(readGrantSubjectsKey, indexedGrants.subjectsToJson().toString());
-                                }
                                 
                                 return enrichedWithPartialAccessPaths.setDittoHeaders(headersBuilder.build());
                             })
