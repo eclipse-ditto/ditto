@@ -20,12 +20,21 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.pekko.Done;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.api.common.Shutdown;
 import org.eclipse.ditto.base.api.common.purge.PurgeEntities;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespace;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
@@ -46,6 +55,8 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyResponse;
+import org.eclipse.ditto.policies.service.common.config.DittoPoliciesConfig;
+import org.eclipse.ditto.policies.service.common.config.PoliciesConfig;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -53,15 +64,6 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import com.typesafe.config.Config;
-
-import org.apache.pekko.Done;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
-import org.apache.pekko.stream.javadsl.Source;
-import org.apache.pekko.testkit.TestProbe;
-import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link org.eclipse.ditto.policies.service.persistence.actors.PolicyPersistenceOperationsActor}.
@@ -236,8 +238,10 @@ public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceIT
 
     @Override
     protected ActorRef startEntityActor(final ActorSystem system, final ActorRef pubSubMediator, final PolicyId id) {
+        final PoliciesConfig config =
+                DittoPoliciesConfig.of(DefaultScopedConfig.dittoScoped(system.settings().config()));
         final Props props =
-                PolicySupervisorActor.props(pubSubMediator, Mockito.mock(DistributedPub.class), null,
+                PolicySupervisorActor.props(pubSubMediator, config, Mockito.mock(DistributedPub.class), null,
                         Mockito.mock(PolicyEnforcerProvider.class), Mockito.mock(MongoReadJournal.class));
         return system.actorOf(props, id.toString());
     }

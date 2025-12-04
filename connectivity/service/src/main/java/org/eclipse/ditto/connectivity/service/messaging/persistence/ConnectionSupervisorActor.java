@@ -42,18 +42,14 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.streaming.SubscribeForPersistedEvents;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
-import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
-import org.eclipse.ditto.base.service.config.supervision.LocalAskTimeoutConfig;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionUnavailableException;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.LoggingExpired;
-import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigModifiedBehavior;
-import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.enforcement.ConnectionEnforcerActorPropsFactory;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 
@@ -94,10 +90,11 @@ public final class ConnectionSupervisorActor
     @SuppressWarnings("unused")
     private ConnectionSupervisorActor(final ActorRef commandForwarderActor,
             final ActorRef pubSubMediator,
+            final ConnectivityConfig connectivityConfig,
             final ConnectionEnforcerActorPropsFactory enforcerActorPropsFactory,
             final MongoReadJournal mongoReadJournal) {
 
-        super(null, mongoReadJournal);
+        super(null, mongoReadJournal, connectivityConfig.getConnectionConfig().getSupervisorConfig());
         this.commandForwarderActor = commandForwarderActor;
         this.pubSubMediator = pubSubMediator;
         this.enforcerActorPropsFactory = enforcerActorPropsFactory;
@@ -112,16 +109,18 @@ public final class ConnectionSupervisorActor
      *
      * @param commandForwarder the actor used to send signals into the ditto cluster.
      * @param pubSubMediator pub-sub-mediator for the shutdown behavior.
+     * @param connectivityConfig the static Connectivity service configuration.
      * @param enforcerActorPropsFactory used to create the enforcer actor.
      * @param mongoReadJournal the ReadJournal used for gaining access to historical values of the connection.
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final ActorRef commandForwarder,
             final ActorRef pubSubMediator,
+            final ConnectivityConfig connectivityConfig,
             final ConnectionEnforcerActorPropsFactory enforcerActorPropsFactory,
             final MongoReadJournal mongoReadJournal) {
 
-        return Props.create(ConnectionSupervisorActor.class, commandForwarder, pubSubMediator,
+        return Props.create(ConnectionSupervisorActor.class, commandForwarder, pubSubMediator, connectivityConfig,
                 enforcerActorPropsFactory, mongoReadJournal);
     }
 
@@ -196,22 +195,6 @@ public final class ConnectionSupervisorActor
     @Override
     protected Props getPersistenceEnforcerProps(final ConnectionId connectionId) {
         return enforcerActorPropsFactory.get(connectionId);
-    }
-
-    @Override
-    protected ExponentialBackOffConfig getExponentialBackOffConfig() {
-        final ConnectionConfig connectionConfig = DittoConnectivityConfig.of(
-                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
-        ).getConnectionConfig();
-        return connectionConfig.getSupervisorConfig().getExponentialBackOffConfig();
-    }
-
-    @Override
-    protected LocalAskTimeoutConfig getLocalAskTimeoutConfig() {
-        return DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
-                .getConnectionConfig()
-                .getSupervisorConfig()
-                .getLocalAskTimeoutConfig();
     }
 
     @Override

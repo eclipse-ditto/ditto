@@ -33,7 +33,6 @@ import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
@@ -60,7 +59,6 @@ import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
-import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
 import org.eclipse.ditto.things.service.common.config.ThingConfig;
 import org.eclipse.ditto.things.service.persistence.actors.enrichment.EnrichSignalWithPreDefinedExtraFields;
 import org.eclipse.ditto.things.service.persistence.actors.enrichment.EnrichSignalWithPreDefinedExtraFieldsResponse;
@@ -101,15 +99,13 @@ public final class ThingPersistenceActor
     @SuppressWarnings("unused")
     private ThingPersistenceActor(final ThingId thingId,
             final MongoReadJournal mongoReadJournal,
+            final ThingConfig thingConfig,
             final DistributedPub<ThingEvent<?>> distributedPub,
             @Nullable final ActorRef searchShardRegionProxy,
             final PolicyEnforcerProvider policyEnforcerProvider) {
 
         super(thingId, mongoReadJournal);
-        final DittoThingsConfig thingsConfig = DittoThingsConfig.of(
-                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
-        );
-        thingConfig = thingsConfig.getThingConfig();
+        this.thingConfig = thingConfig;
         this.distributedPub = distributedPub;
         this.searchShardRegionProxy = searchShardRegionProxy;
         this.eventPreDefinedExtraFieldsEnricher = new PreDefinedExtraFieldsEnricher(
@@ -127,6 +123,7 @@ public final class ThingPersistenceActor
      *
      * @param thingId the Thing ID this Actor manages.
      * @param mongoReadJournal the ReadJournal used for gaining access to historical values of the thing.
+     * @param thingConfig the Thing configuration - only created once to save memory
      * @param distributedPub the distributed-pub access to publish thing events.
      * @param searchShardRegionProxy the proxy of the shard region of search updaters.
      * @param policyEnforcerProvider a provider for the used Policy {@code Enforcer} which "guards" the
@@ -135,11 +132,12 @@ public final class ThingPersistenceActor
      */
     public static Props props(final ThingId thingId,
             final MongoReadJournal mongoReadJournal,
+            final ThingConfig thingConfig,
             final DistributedPub<ThingEvent<?>> distributedPub,
             @Nullable final ActorRef searchShardRegionProxy,
             final PolicyEnforcerProvider policyEnforcerProvider
     ) {
-        return Props.create(ThingPersistenceActor.class, thingId, mongoReadJournal, distributedPub,
+        return Props.create(ThingPersistenceActor.class, thingId, mongoReadJournal, thingConfig, distributedPub,
                 searchShardRegionProxy, policyEnforcerProvider);
     }
 

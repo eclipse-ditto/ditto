@@ -25,6 +25,7 @@ import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.things.service.common.config.ThingConfig;
 import org.eclipse.ditto.things.service.persistence.actors.ThingPersistenceActor;
 import org.eclipse.ditto.things.service.persistence.actors.ThingPersistenceActorPropsFactory;
 
@@ -52,11 +53,11 @@ final class DefaultThingPersistenceActorPropsFactory implements ThingPersistence
     }
 
     @Override
-    public Props props(final ThingId thingId, final MongoReadJournal mongoReadJournal,
+    public Props props(final ThingId thingId, final MongoReadJournal mongoReadJournal, final ThingConfig thingConfig,
             final DistributedPub<ThingEvent<?>> distributedPub, @Nullable final ActorRef searchShardRegionProxy,
             final PolicyEnforcerProvider policyEnforcerProvider) {
         argumentNotEmpty(thingId);
-        return ThingPersistenceActor.props(thingId, mongoReadJournal, distributedPub, searchShardRegionProxy,
-                policyEnforcerProvider);
+        return ThingPersistenceActor.props(thingId, mongoReadJournal, thingConfig, distributedPub,
+                searchShardRegionProxy, policyEnforcerProvider);
     }
 }

@@ -49,12 +49,9 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.streaming.SubscribeForPersistedEvents;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
-import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
-import org.eclipse.ditto.base.service.config.supervision.LocalAskTimeoutConfig;
 import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionProxyActorFactory;
 import org.eclipse.ditto.internal.utils.cluster.StopShardedActor;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
@@ -63,7 +60,7 @@ import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsubthings.LiveSignalPub;
 import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
-import org.eclipse.ditto.policies.enforcement.config.DefaultEnforcementConfig;
+import org.eclipse.ditto.policies.enforcement.config.EnforcementConfig;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicy;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
@@ -80,7 +77,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingRespon
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingEventToThingConverter;
-import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
+import org.eclipse.ditto.things.service.common.config.ThingsConfig;
 import org.eclipse.ditto.things.service.enforcement.ThingEnforcement;
 import org.eclipse.ditto.things.service.enforcement.ThingEnforcerActor;
 import org.eclipse.ditto.things.service.enforcement.ThingPolicyCreated;
@@ -98,27 +95,30 @@ import org.eclipse.ditto.thingsearch.api.ThingsSearchConstants;
 public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<ThingId, Signal<?>> {
 
     private final ActorRef pubSubMediator;
-    private final ActorRef policiesShardRegion;
-    private final ActorRef thingsShardRegion;
+    private final ThingsConfig thingsConfig;
+    private final EnforcementConfig enforcementConfig;
     private final DistributedPub<ThingEvent<?>> distributedPubThingEventsForTwin;
     @Nullable private final ThingPersistenceActorPropsFactory thingPersistenceActorPropsFactory;
-    private final DefaultEnforcementConfig enforcementConfig;
+    private final PolicyEnforcerProvider policyEnforcerProvider;
+    private final Duration shutdownTimeout;
     private final Materializer materializer;
     private final ResponseReceiverCache responseReceiverCache;
+
+    private final ActorRef policiesShardRegion;
+    private final ActorRef thingsShardRegion;
+    private final ActorRef searchShardRegionProxy;
 
     private final SupervisorInlinePolicyEnrichment inlinePolicyEnrichment;
     private final SupervisorLiveChannelDispatching liveChannelDispatching;
     private final SupervisorSmartChannelDispatching smartChannelDispatching;
 
-    private final PolicyEnforcerProvider policyEnforcerProvider;
-    private final ActorRef searchShardRegionProxy;
-
-    private final Duration shutdownTimeout;
     @Nullable
     private ThingPolicyCreated policyCreatedEvent;
 
     @SuppressWarnings("unused")
     private ThingSupervisorActor(final ActorRef pubSubMediator,
+            final ThingsConfig thingsConfig,
+            final EnforcementConfig enforcementConfig,
             @Nullable final ActorRef policiesShardRegion,
             final DistributedPub<ThingEvent<?>> distributedPubThingEventsForTwin,
             final LiveSignalPub liveSignalPub,
@@ -128,20 +128,19 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
             final PolicyEnforcerProvider policyEnforcerProvider,
             final MongoReadJournal mongoReadJournal) {
 
-        super(blockedNamespaces, mongoReadJournal);
+        super(blockedNamespaces, mongoReadJournal, thingsConfig.getThingConfig().getSupervisorConfig());
 
-        this.policyEnforcerProvider = policyEnforcerProvider;
         this.pubSubMediator = pubSubMediator;
+        this.thingsConfig = thingsConfig;
+        this.enforcementConfig = enforcementConfig;
         this.distributedPubThingEventsForTwin = distributedPubThingEventsForTwin;
         this.thingPersistenceActorPropsFactory = thingPersistenceActorPropsFactory;
+        this.policyEnforcerProvider = policyEnforcerProvider;
         persistenceActorChild = thingPersistenceActorRef;
-        final var system = getContext().getSystem();
-        final var dittoScoped = DefaultScopedConfig.dittoScoped(system.settings().config());
-        enforcementConfig = DefaultEnforcementConfig.of(dittoScoped);
-        final var thingsConfig = DittoThingsConfig.of(dittoScoped);
         shutdownTimeout = thingsConfig.getThingConfig().getShutdownTimeout();
 
         materializer = Materializer.createMaterializer(getContext());
+        final var system = getContext().getSystem();
         responseReceiverCache = ResponseReceiverCache.lookup(system);
 
         final ActorSelection thingPersistenceActorSelection;
@@ -157,14 +156,11 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
         final ShardRegionProxyActorFactory shardRegionProxyActorFactory =
                 ShardRegionProxyActorFactory.newInstance(system, thingsConfig.getClusterConfig());
 
-        if (null != policiesShardRegion) {
-            this.policiesShardRegion = policiesShardRegion;
-        } else {
-            this.policiesShardRegion = shardRegionProxyActorFactory.getShardRegionProxyActor(
-                    PoliciesMessagingConstants.CLUSTER_ROLE,
-                    PoliciesMessagingConstants.SHARD_REGION
-            );
-        }
+        this.policiesShardRegion = Objects.requireNonNullElseGet(policiesShardRegion,
+                () -> shardRegionProxyActorFactory.getShardRegionProxyActor(
+                        PoliciesMessagingConstants.CLUSTER_ROLE,
+                        PoliciesMessagingConstants.SHARD_REGION
+                ));
         thingsShardRegion = shardRegionProxyActorFactory.getShardRegionProxyActor(
                 ThingsMessagingConstants.CLUSTER_ROLE,
                 ThingsMessagingConstants.SHARD_REGION
@@ -193,6 +189,8 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
      * </p>
      *
      * @param pubSubMediator the pub/sub mediator ActorRef to required for the creation of the ThingEnforcerActor.
+     * @param thingsConfig the static Things config of the system.
+     * @param enforcementConfig the static Enforcement config of the system.
      * @param distributedPubThingEventsForTwin distributed-pub access for publishing thing events on "twin" channel.
      * @param liveSignalPub distributed-pub access for "live" channel.
      * @param propsFactory factory for creating Props to be used for creating
@@ -202,6 +200,8 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final ActorRef pubSubMediator,
+            final ThingsConfig thingsConfig,
+            final EnforcementConfig enforcementConfig,
             final DistributedPub<ThingEvent<?>> distributedPubThingEventsForTwin,
             final LiveSignalPub liveSignalPub,
             final ThingPersistenceActorPropsFactory propsFactory,
@@ -209,7 +209,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
             final PolicyEnforcerProvider policyEnforcerProvider,
             final MongoReadJournal mongoReadJournal) {
 
-        return Props.create(ThingSupervisorActor.class, pubSubMediator, null,
+        return Props.create(ThingSupervisorActor.class, pubSubMediator, thingsConfig, enforcementConfig, null,
                 distributedPubThingEventsForTwin, liveSignalPub, propsFactory, null, blockedNamespaces,
                 policyEnforcerProvider, mongoReadJournal);
     }
@@ -218,6 +218,8 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
      * Props for creating a {@code ThingSupervisorActor} inside of unit tests.
      */
     public static Props props(final ActorRef pubSubMediator,
+            final ThingsConfig thingsConfig,
+            final EnforcementConfig enforcementConfig,
             final ActorRef policiesShardRegion,
             final DistributedPub<ThingEvent<?>> distributedPubThingEventsForTwin,
             final LiveSignalPub liveSignalPub,
@@ -226,15 +228,17 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
             final PolicyEnforcerProvider policyEnforcerProvider,
             final MongoReadJournal mongoReadJournal) {
 
-        return Props.create(ThingSupervisorActor.class, pubSubMediator, policiesShardRegion,
-                distributedPubThingEventsForTwin, liveSignalPub, propsFactory, null, blockedNamespaces,
-                policyEnforcerProvider, mongoReadJournal);
+        return Props.create(ThingSupervisorActor.class, pubSubMediator, thingsConfig, enforcementConfig,
+                policiesShardRegion, distributedPubThingEventsForTwin, liveSignalPub, propsFactory, null,
+                blockedNamespaces, policyEnforcerProvider, mongoReadJournal);
     }
 
     /**
      * Props for creating a {@code ThingSupervisorActor} inside of unit tests.
      */
     public static Props props(final ActorRef pubSubMediator,
+            final ThingsConfig thingsConfig,
+            final EnforcementConfig enforcementConfig,
             final ActorRef policiesShardRegion,
             final DistributedPub<ThingEvent<?>> distributedPubThingEventsForTwin,
             final LiveSignalPub liveSignalPub,
@@ -243,9 +247,9 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
             final PolicyEnforcerProvider policyEnforcerProvider,
             final MongoReadJournal mongoReadJournal) {
 
-        return Props.create(ThingSupervisorActor.class, pubSubMediator, policiesShardRegion,
-                distributedPubThingEventsForTwin, liveSignalPub, null, thingsPersistenceActor, blockedNamespaces,
-                policyEnforcerProvider, mongoReadJournal);
+        return Props.create(ThingSupervisorActor.class, pubSubMediator, thingsConfig, enforcementConfig,
+                policiesShardRegion, distributedPubThingEventsForTwin, liveSignalPub, null, thingsPersistenceActor,
+                blockedNamespaces, policyEnforcerProvider, mongoReadJournal);
     }
 
     @Override
@@ -415,8 +419,8 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     @Override
     protected Props getPersistenceActorProps(final ThingId entityId) {
         assert thingPersistenceActorPropsFactory != null;
-        return thingPersistenceActorPropsFactory.props(entityId, mongoReadJournal, distributedPubThingEventsForTwin,
-                searchShardRegionProxy, policyEnforcerProvider);
+        return thingPersistenceActorPropsFactory.props(entityId, mongoReadJournal, thingsConfig.getThingConfig(),
+                distributedPubThingEventsForTwin, searchShardRegionProxy, policyEnforcerProvider);
     }
 
     @Override
@@ -425,8 +429,8 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
         final ThingEnforcement thingEnforcement =
                 new ThingEnforcement(policiesShardRegion, system, enforcementConfig);
 
-        return ThingEnforcerActor.props(entityId, thingEnforcement, enforcementConfig.getAskWithRetryConfig(),
-                policiesShardRegion, thingsShardRegion, policyEnforcerProvider);
+        return ThingEnforcerActor.props(entityId, thingsConfig, thingEnforcement,
+                enforcementConfig.getAskWithRetryConfig(), policiesShardRegion, thingsShardRegion, policyEnforcerProvider);
     }
 
     @Override
@@ -446,22 +450,6 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     protected DittoRuntimeExceptionBuilder<?> getUnavailableExceptionBuilder(@Nullable final ThingId entityId) {
         return ThingUnavailableException.newBuilder(
                 Objects.requireNonNullElseGet(entityId, () -> ThingId.of("UNKNOWN:ID")));
-    }
-
-    @Override
-    protected ExponentialBackOffConfig getExponentialBackOffConfig() {
-        return DittoThingsConfig.of(DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
-                .getThingConfig()
-                .getSupervisorConfig()
-                .getExponentialBackOffConfig();
-    }
-
-    @Override
-    protected LocalAskTimeoutConfig getLocalAskTimeoutConfig() {
-        return DittoThingsConfig.of(DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
-                .getThingConfig()
-                .getSupervisorConfig()
-                .getLocalAskTimeoutConfig();
     }
 
     @Override
