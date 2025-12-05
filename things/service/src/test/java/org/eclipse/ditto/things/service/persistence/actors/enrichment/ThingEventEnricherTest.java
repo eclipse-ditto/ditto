@@ -236,7 +236,22 @@ public final class ThingEventEnricherTest {
         final var paths = header.getValue("paths")
                 .map(JsonValue::asObject)
                 .orElseThrow(() -> new AssertionError("Missing paths object"));
-        assertThat(paths.contains("attributes/public1")).isTrue();
+        final int restrictedSubjectIndex = subjects.stream()
+                .filter(JsonValue::isString)
+                .map(JsonValue::asString)
+                .collect(java.util.stream.Collectors.toList())
+                .indexOf(KNOWN_ISSUER_RESTRICTED_SUBJECT);
+        assertThat(restrictedSubjectIndex).isGreaterThanOrEqualTo(0);
+        final boolean hasPathForRestrictedSubject = paths.stream()
+                .anyMatch(field -> {
+                    final JsonValue value = field.getValue();
+                    if (value.isArray()) {
+                        return value.asArray().stream()
+                                .anyMatch(idx -> idx.asInt() == restrictedSubjectIndex);
+                    }
+                    return false;
+                });
+        assertThat(hasPathForRestrictedSubject).isTrue();
     }
 
     @Test

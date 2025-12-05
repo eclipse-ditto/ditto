@@ -78,10 +78,16 @@ public final class PartialAccessPathCalculator {
         }
 
         final Map<String, List<JsonPointer>> result = new LinkedHashMap<>();
-
         final JsonObject thingJson = thing.toJson();
 
-        for (final AuthorizationSubject subject : subjectsWithPartialPermission) {
+        final var effectedSubjects = enforcer.getSubjectsWithPermission(rootResourceKey,
+                Permissions.newInstance(Permission.READ));
+        final Set<AuthorizationSubject> subjectsWithPermissionOnRoot = effectedSubjects.getGranted();
+        
+        final Set<AuthorizationSubject> subjectsWithRestrictedAccess = new LinkedHashSet<>(subjectsWithPartialPermission);
+        subjectsWithRestrictedAccess.removeAll(subjectsWithPermissionOnRoot);
+
+        for (final AuthorizationSubject subject : subjectsWithRestrictedAccess) {
             final List<JsonPointer> accessiblePaths = calculateAccessiblePathsForSubject(
                     subject, thingJson, enforcer);
             if (!accessiblePaths.isEmpty()) {

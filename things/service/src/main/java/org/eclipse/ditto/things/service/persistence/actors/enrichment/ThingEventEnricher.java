@@ -310,6 +310,9 @@ public final class ThingEventEnricher {
                     final Map<String, List<JsonPointer>> partialAccessPaths =
                             PartialAccessPathCalculator.calculatePartialAccessPaths(
                                     thingEvent, thing, policyEnforcerOpt.get());
+                    if (partialAccessPaths.isEmpty()) {
+                        return JsonFactory.newObject();
+                    }
                     final JsonObject result = PartialAccessPathCalculator.toIndexedJsonObject(partialAccessPaths);
                     LOGGER.debug("Calculated partial access paths for event '{}' (thingId: {}): {} subjects with partial access, result: {}",
                             thingEvent.getType(), thingEvent.getEntityId(), partialAccessPaths.size(), result);
