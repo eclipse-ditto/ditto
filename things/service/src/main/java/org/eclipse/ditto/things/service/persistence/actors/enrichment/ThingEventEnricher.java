@@ -108,23 +108,8 @@ public final class ThingEventEnricher {
             @Nullable final PolicyId policyId,
             final T withDittoHeaders
     ) {
-        final CompletionStage<T> partialAccessPathsStage;
-        if (null != thing && withDittoHeaders instanceof ThingEvent<?> thingEvent) {
-            partialAccessPathsStage = enrichWithPartialAccessPaths(thingEvent, thing, policyId)
-                    .thenApply(partialAccessPathsJson -> {
-                        final DittoHeaders currentHeaders = withDittoHeaders.getDittoHeaders();
-                        final String partialAccessPathsKey = DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey();
-                        if (currentHeaders.containsKey(partialAccessPathsKey)) {
-                            LOGGER.warn("Overwriting existing {} header", partialAccessPathsKey);
-                        }
-                        return withDittoHeaders.setDittoHeaders(
-                                currentHeaders.toBuilder()
-                                        .putHeader(partialAccessPathsKey, partialAccessPathsJson.toString())
-                                        .build());
-                    });
-        } else {
-            partialAccessPathsStage = CompletableFuture.completedStage(withDittoHeaders);
-        }
+        final CompletionStage<T> partialAccessPathsStage =
+                enrichWithPartialAccessPathsIfNecessary(withDittoHeaders, thing, policyId);
 
         if (null != thing && !preDefinedExtraFieldsConfigs.isEmpty()) {
             final List<PreDefinedExtraFieldsConfig> matchingPreDefinedFieldsConfigs =
@@ -168,6 +153,32 @@ public final class ThingEventEnricher {
         } else {
             return partialAccessPathsStage;
         }
+    }
+
+    private <T extends DittoHeadersSettable<? extends T>> CompletionStage<T> enrichWithPartialAccessPathsIfNecessary(
+            final T withDittoHeaders,
+            @Nullable final Thing thing,
+            @Nullable final PolicyId policyId) {
+
+        if (thing == null || !(withDittoHeaders instanceof ThingEvent<?> thingEvent)) {
+            return CompletableFuture.completedStage(withDittoHeaders);
+        }
+
+        return enrichWithPartialAccessPaths(thingEvent, thing, policyId)
+                .thenApply(partialAccessPathsJson -> {
+                    if (partialAccessPathsJson.isEmpty()) {
+                        return withDittoHeaders;
+                    }
+                    final DittoHeaders currentHeaders = withDittoHeaders.getDittoHeaders();
+                    final String partialAccessPathsKey = DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey();
+                    if (currentHeaders.containsKey(partialAccessPathsKey)) {
+                        LOGGER.warn("Overwriting existing {} header", partialAccessPathsKey);
+                    }
+                    final DittoHeaders updatedHeaders = currentHeaders.toBuilder()
+                            .putHeader(partialAccessPathsKey, partialAccessPathsJson.toString())
+                            .build();
+                    return withDittoHeaders.setDittoHeaders(updatedHeaders);
+                });
     }
 
     /**
