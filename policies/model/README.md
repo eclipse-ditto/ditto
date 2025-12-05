@@ -10,11 +10,11 @@ http://java-performance.info/jmh/
 
 Simply execute:
 ```bash
-mvn clean package
+mvn clean package -Pbuild-benchmark-assembly
 
-java -jar target/ditto-model-policies-enforcers-<version>-benchmark.jar
+java -jar target/ditto-policies-model-<version>-benchmark.jar
 
-java -jar target/ditto-model-policies-enforcers-<version>-benchmark.jar -rf csv
+java -jar target/ditto-policies-model-<version>-benchmark.jar -rf csv
 ```
 
 Use the last one in order to generate a .csv file with which you can work in Excel.

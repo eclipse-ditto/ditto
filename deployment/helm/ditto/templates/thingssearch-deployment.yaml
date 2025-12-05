@@ -219,6 +219,8 @@ spec:
               value: "{{ .Values.global.featureFlags.jsonKeyValidationEnabled }}"
             - name: DITTO_DEVOPS_FEATURE_TRACING_SPAN_METRICS_ENABLED
               value: "{{ .Values.global.featureFlags.tracingSpanMetricsEnabled }}"
+            - name: DITTO_DEVOPS_FEATURE_POLICY_ENFORCEMENT_USE_THROUGHPUT_OPTIMIZED_EVALUATOR_ENABLED
+              value: "{{ .Values.global.featureFlags.policyEnforcementUseThroughputOptimizedEvaluatorEnabled }}"
             - name: PEKKO_COORDINATED_SHUTDOWN_PHASES_CLUSTER_SHARDING_SHUTDOWN_REGION
               value: "{{ .Values.thingsSearch.config.cluster.coordinatedShutdown.phases.clusterShardingShutdownRegion.timeout }}"
             - name: PEKKO_COORDINATED_SHUTDOWN_PHASES_CLUSTER_EXITING_TIMEOUT
