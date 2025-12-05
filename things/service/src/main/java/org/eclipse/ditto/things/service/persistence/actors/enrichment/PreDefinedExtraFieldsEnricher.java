@@ -63,35 +63,21 @@ import org.eclipse.ditto.things.service.common.config.PreDefinedExtraFieldsConfi
 /**
  * Encapsulates functionality in order to perform a "pre-defined" {@code extraFields} enrichment via DittoHeaders of
  * fields defined per namespace in the Ditto things configuration.
+ *
+ * @param policyEnforcerProvider the policy enforcer to use in order to check permissions for enriching extraFields
  */
-public final class PreDefinedExtraFieldsEnricher {
+public record PreDefinedExtraFieldsEnricher(PolicyEnforcerProvider policyEnforcerProvider) {
 
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(PreDefinedExtraFieldsEnricher.class);
 
     private static final TimePlaceholder TIME_PLACEHOLDER = TimePlaceholder.getInstance();
     private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
 
-    private final List<PreDefinedExtraFieldsConfig> preDefinedExtraFieldsConfigs;
-    private final PolicyEnforcerProvider policyEnforcerProvider;
-
-    /**
-     * Constructs a new enricher of pre-defined extraFields based on the provided configuration and policy enforcer.
-     *
-     * @param preDefinedExtraFieldsConfigs the list of config entries for pre-defined extraFields enrichment
-     * @param policyEnforcerProvider the policy enforcer to use in order to check permissions for enriching extraFields
-     */
-    public PreDefinedExtraFieldsEnricher(
-            final List<PreDefinedExtraFieldsConfig> preDefinedExtraFieldsConfigs,
-            final PolicyEnforcerProvider policyEnforcerProvider
-    ) {
-        this.preDefinedExtraFieldsConfigs = List.copyOf(preDefinedExtraFieldsConfigs);
-        this.policyEnforcerProvider = policyEnforcerProvider;
-    }
-
     /**
      * Enriches the passed in {@code withDittoHeaders} with pre-defined extraFields based on the provided {@code thing}
      * and the global configuration this class holds (based on namespace and optional RQL condition).
      *
+     * @param preDefinedExtraFieldsConfigs the list of config entries for pre-defined extraFields enrichment
      * @param thingId the Thing ID to enrich for
      * @param thing the Thing entity to use for getting extra fields from
      * @param policyId the Policy ID to use for looking up permissions
@@ -100,6 +86,7 @@ public final class PreDefinedExtraFieldsEnricher {
      * @return an enriched version of the passed in {@code withDittoHeaders} with pre-defined extraFields
      */
     public <T extends DittoHeadersSettable<? extends T>> CompletionStage<T> enrichWithPredefinedExtraFields(
+            final List<PreDefinedExtraFieldsConfig> preDefinedExtraFieldsConfigs,
             final ThingId thingId,
             @Nullable final Thing thing,
             @Nullable final PolicyId policyId,
@@ -231,7 +218,8 @@ public final class PreDefinedExtraFieldsEnricher {
                                                 );
                                             } else {
                                                 return Stream.of(
-                                                        JsonField.newInstance(pointer.toString(), unrestrictedReadSubjects)
+                                                        JsonField.newInstance(pointer.toString(),
+                                                                unrestrictedReadSubjects)
                                                 );
                                             }
                                         })
@@ -273,7 +261,8 @@ public final class PreDefinedExtraFieldsEnricher {
         if (field.getValue().isObject()) {
             return field.getValue().asObject().stream()
                     .flatMap(subField ->
-                            collectFields(authorizationSubject, subField, prefix.append(field.getKey().asPointer())) // recurse!
+                                    collectFields(authorizationSubject, subField, prefix.append(field.getKey().asPointer()))
+                            // recurse!
                     );
         } else {
             return Stream.of(
