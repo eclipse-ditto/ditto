@@ -14,6 +14,7 @@ package org.eclipse.ditto.policies.model.enforcers;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.enforcers.tree.TreeBasedPolicyEnforcer;
 import org.eclipse.ditto.policies.model.enforcers.trie.TrieBasedPolicyEnforcer;
@@ -37,7 +38,11 @@ public final class PolicyEnforcers {
      * @throws NullPointerException if {@code policyEntries} is {@code null}.
      */
     public static Enforcer defaultEvaluator(final Iterable<PolicyEntry> policyEntries) {
-        return throughputOptimizedEvaluator(policyEntries);
+        if (FeatureToggle.isPolicyEnforcementUseThroughputOptimizedEvaluatorEnabled()) {
+            return throughputOptimizedEvaluator(policyEntries);
+        } else {
+            return memoryOptimizedEvaluator(policyEntries);
+        }
     }
 
     /**
