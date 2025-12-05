@@ -159,6 +159,10 @@ global:
     #  reported as Prometheus histogram "span_processing_time_seconds".
     #  As Ditto tracks a lot of spans, enabling those metrics can cause a lot of additional metrics and overhead.
     tracingSpanMetricsEnabled: true
+    # policyEnforcementUseThroughputOptimizedEvaluatorEnabled controls whether the throughput-optimized policy evaluator should be used
+    #  for policy enforcement. This evaluator trades off higher memory use for higher throughput and lower CPU usage.
+    #  The alternative, if configured to false, is a memory-optimized evaluator which uses less memory but more CPU.
+    policyEnforcementUseThroughputOptimizedEvaluatorEnabled: true
   # logging the logging configuration for Ditto
   logging:
     # sysout holds the logging to SYSOUT config

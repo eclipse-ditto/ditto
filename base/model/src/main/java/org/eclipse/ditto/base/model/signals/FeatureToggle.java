@@ -64,6 +64,16 @@ public final class FeatureToggle {
     public static final String TRACING_SPAN_METRICS_ENABLED = "ditto.devops.feature.tracing-span-metrics-enabled";
 
     /**
+     * System property name of the property defining whether policy enforcement should use the default throughput
+     * optimized policy evaluator implementation or instead the memory optimized one which provides slower policy
+     * evaluation but uses less memory.
+     *
+     * @since 3.8.8
+     */
+    public static final String POLICY_ENFORCEMENT_USE_THROUGHPUT_OPTIMIZED_EVALUATOR_ENABLED =
+            "ditto.devops.feature.policy-enforcement-use-throughput-optimized-evaluator-enabled";
+
+    /**
      * Resolves the system property {@value MERGE_THINGS_ENABLED}.
      */
     private static final boolean IS_MERGE_THINGS_ENABLED = resolveProperty(MERGE_THINGS_ENABLED);
@@ -92,6 +102,12 @@ public final class FeatureToggle {
      * Resolves the system property {@value TRACING_SPAN_METRICS_ENABLED}.
      */
     private static final boolean IS_TRACING_SPAN_METRICS_ENABLED = resolveProperty(TRACING_SPAN_METRICS_ENABLED);
+
+    /**
+     * Resolves the system property {@value POLICY_ENFORCEMENT_USE_THROUGHPUT_OPTIMIZED_EVALUATOR_ENABLED}.
+     */
+    private static final boolean IS_POLICY_ENFORCEMENT_USE_THROUGHPUT_OPTIMIZED_EVALUATOR_ENABLED =
+            resolveProperty(POLICY_ENFORCEMENT_USE_THROUGHPUT_OPTIMIZED_EVALUATOR_ENABLED);
 
     private static boolean resolveProperty(final String propertyName) {
         final String propertyValue = System.getProperty(propertyName, Boolean.TRUE.toString());
@@ -213,5 +229,16 @@ public final class FeatureToggle {
      */
     public static boolean isTracingSpanMetricsEnabled() {
         return IS_TRACING_SPAN_METRICS_ENABLED;
+    }
+
+    /**
+     * Returns whether for policy enforcement the memory optimized evaluator is used based on the system property
+     * {@value POLICY_ENFORCEMENT_USE_THROUGHPUT_OPTIMIZED_EVALUATOR_ENABLED}.
+     *
+     * @return whether tracing span metric reporting is enabled.
+     * @since 3.8.8
+     */
+    public static boolean isPolicyEnforcementUseThroughputOptimizedEvaluatorEnabled() {
+        return IS_POLICY_ENFORCEMENT_USE_THROUGHPUT_OPTIMIZED_EVALUATOR_ENABLED;
     }
 }
