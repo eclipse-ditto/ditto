@@ -43,7 +43,6 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
 import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
@@ -95,8 +94,8 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotCreata
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotModifiableException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
-import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
 import org.eclipse.ditto.things.service.common.config.PreDefinedExtraFieldsConfig;
+import org.eclipse.ditto.things.service.common.config.ThingsConfig;
 import org.eclipse.ditto.things.service.persistence.actors.enrichment.EnrichSignalWithPreDefinedExtraFields;
 import org.eclipse.ditto.things.service.persistence.actors.enrichment.EnrichSignalWithPreDefinedExtraFieldsResponse;
 import org.eclipse.ditto.wot.api.validator.WotThingModelValidator;
@@ -117,7 +116,7 @@ public final class ThingEnforcerActor
 
     private final PolicyIdReferencePlaceholderResolver policyIdReferencePlaceholderResolver;
     private final ActorRef policiesShardRegion;
-    private final DittoThingsConfig thingsConfig;
+    private final ThingsConfig thingsConfig;
     private final AskWithRetryConfig askWithRetryConfig;
     private final WotThingModelValidator thingModelValidator;
     private final Executor wotValidationExecutor;
@@ -126,6 +125,7 @@ public final class ThingEnforcerActor
 
     @SuppressWarnings("unused")
     private ThingEnforcerActor(final ThingId thingId,
+            final ThingsConfig thingsConfig,
             final ThingEnforcement thingEnforcement,
             final AskWithRetryConfig askWithRetryConfig,
             final ActorRef policiesShardRegion,
@@ -136,10 +136,8 @@ public final class ThingEnforcerActor
 
         this.policiesShardRegion = policiesShardRegion;
         this.askWithRetryConfig = askWithRetryConfig;
+        this.thingsConfig = thingsConfig;
         final ActorSystem system = context().system();
-        thingsConfig = DittoThingsConfig.of(
-                DefaultScopedConfig.dittoScoped(system.settings().config())
-        );
         policyIdReferencePlaceholderResolver = PolicyIdReferencePlaceholderResolver.of(
                 thingsShardRegion, askWithRetryConfig, system);
 
@@ -152,6 +150,7 @@ public final class ThingEnforcerActor
      * Creates Pekko configuration object Props for this Actor.
      *
      * @param thingId the ThingId this enforcer actor is responsible for.
+     * @param thingsConfig the static Things configuration of the system.
      * @param thingEnforcement the thing enforcement logic to apply in the enforcer.
      * @param askWithRetryConfig used to configure retry mechanism policy loading.
      * @param policiesShardRegion used to create the policy when handling create thing commands.
@@ -160,13 +159,14 @@ public final class ThingEnforcerActor
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final ThingId thingId,
+            final ThingsConfig thingsConfig,
             final ThingEnforcement thingEnforcement,
             final AskWithRetryConfig askWithRetryConfig,
             final ActorRef policiesShardRegion,
             final ActorRef thingsShardRegion,
             final PolicyEnforcerProvider policyEnforcerProvider) {
 
-        return Props.create(ThingEnforcerActor.class, thingId, thingEnforcement, askWithRetryConfig,
+        return Props.create(ThingEnforcerActor.class, thingId, thingsConfig, thingEnforcement, askWithRetryConfig,
                 policiesShardRegion, thingsShardRegion, policyEnforcerProvider).withDispatcher(ENFORCEMENT_DISPATCHER);
     }
 

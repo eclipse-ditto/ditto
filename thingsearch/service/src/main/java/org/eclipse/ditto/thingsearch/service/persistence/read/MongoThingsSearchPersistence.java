@@ -41,8 +41,8 @@ import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.models.streaming.LowerBound;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.persistence.mongo.BsonUtil;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
@@ -91,7 +91,7 @@ import scala.PartialFunction;
  */
 public final class MongoThingsSearchPersistence implements ThingsSearchPersistence {
 
-    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(MongoThingsSearchPersistence.class);
+    private static final ThreadSafeDittoLogger LOGGER = DittoLoggerFactory.getThreadSafeLogger(MongoThingsSearchPersistence.class);
 
     private final MongoCollection<Document> collection;
 

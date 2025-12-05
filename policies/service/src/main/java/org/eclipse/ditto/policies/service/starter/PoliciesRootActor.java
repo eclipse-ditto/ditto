@@ -14,10 +14,15 @@ package org.eclipse.ditto.policies.service.starter;
 
 import static org.eclipse.ditto.policies.api.PoliciesMessagingConstants.CLUSTER_ROLE;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.cluster.sharding.ClusterShardingSettings;
+import org.apache.pekko.event.DiagnosticLoggingAdapter;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.pattern.Patterns;
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
 import org.eclipse.ditto.base.service.RootChildActorStarter;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
@@ -27,6 +32,7 @@ import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory
 import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespacesUpdater;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.PersistencePingActor;
@@ -41,13 +47,6 @@ import org.eclipse.ditto.policies.service.common.config.PoliciesConfig;
 import org.eclipse.ditto.policies.service.persistence.actors.PoliciesPersistenceStreamingActorCreator;
 import org.eclipse.ditto.policies.service.persistence.actors.PolicyPersistenceOperationsActor;
 import org.eclipse.ditto.policies.service.persistence.actors.PolicySupervisorActor;
-
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.cluster.sharding.ClusterShardingSettings;
-import org.apache.pekko.event.DiagnosticLoggingAdapter;
-import org.apache.pekko.japi.pf.ReceiveBuilder;
-import org.apache.pekko.pattern.Patterns;
 
 /**
  * Parent Actor which takes care of supervision of all other Actors in our system.
@@ -91,7 +90,7 @@ public final class PoliciesRootActor extends DittoRootActor {
         final var mongoReadJournal = MongoReadJournal.newInstance(actorSystem);
 
         final var policySupervisorProps =
-                getPolicySupervisorActorProps(pubSubMediator, policyAnnouncementPub, blockedNamespaces,
+                getPolicySupervisorActorProps(pubSubMediator, policiesConfig, policyAnnouncementPub, blockedNamespaces,
                         policyEnforcerProvider, mongoReadJournal);
 
         final ActorRef policiesShardRegion =
@@ -132,12 +131,13 @@ public final class PoliciesRootActor extends DittoRootActor {
     }
 
     private static Props getPolicySupervisorActorProps(final ActorRef pubSubMediator,
+            final PoliciesConfig policiesConfig,
             final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
             final BlockedNamespaces blockedNamespaces,
             final PolicyEnforcerProvider policyEnforcerProvider,
             final MongoReadJournal mongoReadJournal) {
 
-        return PolicySupervisorActor.props(pubSubMediator, policyAnnouncementPub, blockedNamespaces,
+        return PolicySupervisorActor.props(pubSubMediator, policiesConfig, policyAnnouncementPub, blockedNamespaces,
                 policyEnforcerProvider, mongoReadJournal);
     }
 

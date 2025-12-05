@@ -937,9 +937,11 @@ public final class TestConstants {
         final var dittoExtensionsConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
         final var enforcerActorPropsFactory =
                 ConnectionEnforcerActorPropsFactory.get(actorSystem, dittoExtensionsConfig);
+        final ConnectivityConfig connectivityConfig =
+                DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
         final Props props =
-                ConnectionSupervisorActor.props(commandForwarderActor, pubSubMediator, enforcerActorPropsFactory,
-                        Mockito.mock(MongoReadJournal.class));
+                ConnectionSupervisorActor.props(commandForwarderActor, pubSubMediator, connectivityConfig,
+                        enforcerActorPropsFactory, Mockito.mock(MongoReadJournal.class));
 
         final Props shardRegionMockProps = Props.create(ShardRegionMockActor.class, props, connectionId.toString());
 

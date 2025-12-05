@@ -47,8 +47,6 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.signals.commands.streaming.SubscribeForPersistedEvents;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
-import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
-import org.eclipse.ditto.base.service.config.supervision.LocalAskTimeoutConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
@@ -93,6 +91,7 @@ import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEnt
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntriesResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyResponse;
 import org.eclipse.ditto.policies.service.common.config.DittoPoliciesConfig;
+import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 import org.eclipse.ditto.policies.service.persistence.actors.PolicyEnforcerActor;
 import org.junit.After;
 import org.junit.Before;
@@ -766,9 +765,12 @@ public final class PolicyCommandEnforcementTest {
     }
 
     private TestActorRef<MockPolicyPersistenceSupervisor> createPolicyPersistenceSupervisor() {
+        final PolicyConfig policyConfig =
+                DittoPoliciesConfig.of(DefaultScopedConfig.dittoScoped(system.settings().config()))
+                        .getPolicyConfig();
         return new TestActorRef<>(system, Props.create(
                 MockPolicyPersistenceSupervisor.class,
-                () -> new MockPolicyPersistenceSupervisor(pubSubMediatorProbe.ref(),
+                () -> new MockPolicyPersistenceSupervisor(pubSubMediatorProbe.ref(), policyConfig,
                         policyPersistenceActorProbe.ref(), policyEnforcerProvider)), system.guardian(),
                 MockPolicyPersistenceSupervisor.ACTOR_NAME);
     }
@@ -785,9 +787,11 @@ public final class PolicyCommandEnforcementTest {
         private final ActorRef pubSubMediator;
         private final PolicyEnforcerProvider policyEnforcerProvider;
 
-        private MockPolicyPersistenceSupervisor(final ActorRef pubSubMediator, final ActorRef policyPersistenceActor,
+        private MockPolicyPersistenceSupervisor(final ActorRef pubSubMediator, final PolicyConfig policyConfig,
+                final ActorRef policyPersistenceActor,
                 final PolicyEnforcerProvider policyEnforcerProvider) {
-            super(policyPersistenceActor, null, null, Mockito.mock(MongoReadJournal.class));
+            super(policyPersistenceActor, null, null, Mockito.mock(MongoReadJournal.class),
+                    policyConfig.getSupervisorConfig());
             this.pubSubMediator = pubSubMediator;
             this.policyEnforcerProvider = policyEnforcerProvider;
         }
@@ -805,22 +809,6 @@ public final class PolicyCommandEnforcementTest {
         @Override
         protected Props getPersistenceEnforcerProps(final PolicyId entityId) {
             return PolicyEnforcerActor.props(entityId, new PolicyCommandEnforcement(), policyEnforcerProvider);
-        }
-
-        @Override
-        protected ExponentialBackOffConfig getExponentialBackOffConfig() {
-            final DittoPoliciesConfig policiesConfig = DittoPoliciesConfig.of(
-                    DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
-            );
-            return policiesConfig.getPolicyConfig().getSupervisorConfig().getExponentialBackOffConfig();
-        }
-
-        @Override
-        protected LocalAskTimeoutConfig getLocalAskTimeoutConfig() {
-            return DittoPoliciesConfig.of(DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
-                    .getPolicyConfig()
-                    .getSupervisorConfig()
-                    .getLocalAskTimeoutConfig();
         }
 
         @Override

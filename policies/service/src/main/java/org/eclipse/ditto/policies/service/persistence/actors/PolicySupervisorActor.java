@@ -24,9 +24,6 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.signals.commands.streaming.SubscribeForPersistedEvents;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
-import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
-import org.eclipse.ditto.base.service.config.supervision.LocalAskTimeoutConfig;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
@@ -36,9 +33,8 @@ import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyUnavailableException;
-import org.eclipse.ditto.policies.service.common.config.DittoPoliciesConfig;
+import org.eclipse.ditto.policies.service.common.config.PoliciesConfig;
 import org.eclipse.ditto.policies.service.common.config.PolicyAnnouncementConfig;
-import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 import org.eclipse.ditto.policies.service.enforcement.PolicyCommandEnforcement;
 import org.eclipse.ditto.policies.service.persistence.actors.announcements.PolicyAnnouncementManager;
 
@@ -54,26 +50,24 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
 
     private final ActorRef pubSubMediator;
     private final ActorRef announcementManager;
-    private final PolicyConfig policyConfig;
+    private final PoliciesConfig policiesConfig;
     private final PolicyEnforcerProvider policyEnforcerProvider;
 
     @SuppressWarnings("unused")
     private PolicySupervisorActor(final ActorRef pubSubMediator,
+            final PoliciesConfig policiesConfig,
             final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
             @Nullable final BlockedNamespaces blockedNamespaces,
             final PolicyEnforcerProvider policyEnforcerProvider,
             final MongoReadJournal mongoReadJournal) {
 
-        super(blockedNamespaces, mongoReadJournal);
+        super(blockedNamespaces, mongoReadJournal, policiesConfig.getPolicyConfig().getSupervisorConfig());
         this.policyEnforcerProvider = policyEnforcerProvider;
         this.pubSubMediator = pubSubMediator;
-        final DittoPoliciesConfig policiesConfig = DittoPoliciesConfig.of(
-                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
-        );
-        policyConfig = policiesConfig.getPolicyConfig();
+        this.policiesConfig = policiesConfig;
 
-        final var props =
-                getAnnouncementManagerProps(policyAnnouncementPub, policyConfig.getPolicyAnnouncementConfig());
+        final var props = getAnnouncementManagerProps(policyAnnouncementPub,
+                policiesConfig.getPolicyConfig().getPolicyAnnouncementConfig());
         if (props != null) {
             announcementManager = getContext().actorOf(props, "am");
         } else {
@@ -89,6 +83,7 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
      * </p>
      *
      * @param pubSubMediator the PubSub mediator actor.
+     * @param policiesConfig the static Policies service config.
      * @param policyAnnouncementPub publisher interface of policy announcements.
      * @param blockedNamespaces the blocked namespaces functionality to retrieve/subscribe for blocked namespaces.
      * @param policyEnforcerProvider used to load the policy enforcer to authorize commands.
@@ -96,12 +91,13 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final ActorRef pubSubMediator,
+            final PoliciesConfig policiesConfig,
             final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
             @Nullable final BlockedNamespaces blockedNamespaces,
             final PolicyEnforcerProvider policyEnforcerProvider,
             final MongoReadJournal mongoReadJournal) {
 
-        return Props.create(PolicySupervisorActor.class, pubSubMediator,
+        return Props.create(PolicySupervisorActor.class, pubSubMediator, policiesConfig,
                 policyAnnouncementPub, blockedNamespaces, policyEnforcerProvider, mongoReadJournal);
     }
 
@@ -113,29 +109,12 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
     @Override
     protected Props getPersistenceActorProps(final PolicyId entityId) {
         return PolicyPersistenceActor.props(entityId, mongoReadJournal, pubSubMediator, announcementManager,
-                policyConfig);
+                policiesConfig.getPolicyConfig());
     }
 
     @Override
     protected Props getPersistenceEnforcerProps(final PolicyId entityId) {
         return PolicyEnforcerActor.props(entityId, new PolicyCommandEnforcement(), policyEnforcerProvider);
-    }
-
-    @Override
-    protected ExponentialBackOffConfig getExponentialBackOffConfig() {
-        final DittoPoliciesConfig policiesConfig = DittoPoliciesConfig.of(
-                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
-        );
-
-        return policiesConfig.getPolicyConfig().getSupervisorConfig().getExponentialBackOffConfig();
-    }
-
-    @Override
-    protected LocalAskTimeoutConfig getLocalAskTimeoutConfig() {
-        return DittoPoliciesConfig.of(DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
-                .getPolicyConfig()
-                .getSupervisorConfig()
-                .getLocalAskTimeoutConfig();
     }
 
     @Override

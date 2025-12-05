@@ -31,15 +31,20 @@ import org.apache.pekko.testkit.TestActorRef;
 import org.apache.pekko.testkit.TestProbe;
 import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
+import org.eclipse.ditto.policies.enforcement.config.DefaultEnforcementConfig;
+import org.eclipse.ditto.policies.enforcement.config.EnforcementConfig;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
+import org.eclipse.ditto.things.service.common.config.ThingsConfig;
 import org.eclipse.ditto.things.service.persistence.actors.ThingSupervisorActor;
 import org.eclipse.ditto.things.service.persistence.actors.enrichment.EnrichSignalWithPreDefinedExtraFields;
 import org.eclipse.ditto.things.service.persistence.actors.enrichment.EnrichSignalWithPreDefinedExtraFieldsResponse;
@@ -63,12 +68,20 @@ abstract class AbstractThingEnforcementTest {
     protected ActorRef supervisor;
 
     protected PolicyEnforcerProvider policyEnforcerProvider;
+    private ThingsConfig thingsConfig;
+    private EnforcementConfig enforcementConfig;
 
     @Before
     public void init() {
         system = ActorSystem.create("test", ConfigFactory.parseMap(Map.of("pekko.actor.provider",
                 "org.apache.pekko.cluster.ClusterActorRefProvider")).withFallback(ConfigFactory.load(
                 "test")));
+        thingsConfig = DittoThingsConfig.of(
+                DefaultScopedConfig.dittoScoped(system.settings().config())
+        );
+        enforcementConfig = DefaultEnforcementConfig.of(
+                DefaultScopedConfig.dittoScoped(system.settings().config())
+        );
         policyEnforcerProvider = Mockito.mock(PolicyEnforcerProvider.class);
         pubSubMediatorProbe = createPubSubMediatorProbe();
         thingPersistenceActorProbe = createThingPersistenceActorProbe();
@@ -108,6 +121,8 @@ abstract class AbstractThingEnforcementTest {
     private TestActorRef<ThingSupervisorActor> createThingPersistenceSupervisor() {
         return new TestActorRef<>(system, ThingSupervisorActor.props(
                 pubSubMediatorProbe.ref(),
+                thingsConfig,
+                enforcementConfig,
                 policiesShardRegionProbe.ref(),
                 new DistributedPub<>() {
 
