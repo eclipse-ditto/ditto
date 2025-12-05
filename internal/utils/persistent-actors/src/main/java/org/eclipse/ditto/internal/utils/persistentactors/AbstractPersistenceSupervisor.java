@@ -542,7 +542,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                         .exceptionally(throwable -> targetActorWithMessage.responseOrErrorConverter().apply(throwable));
             } else {
                 // special case: no response expected
-                return Patterns.askWithStatus(
+                return Patterns.ask(
                                 targetActorWithMessage.targetActor(),
                                 targetActorWithMessage.message(),
                                 determineAskTimeoutForPersistenceActorForwarding(true) // calculate timeout for ACK only
