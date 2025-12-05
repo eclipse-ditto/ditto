@@ -14,6 +14,7 @@ package org.eclipse.ditto.internal.utils.protocol;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Collections;
 import java.util.Set;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
@@ -119,7 +120,7 @@ public final class PartialAccessPathResolverTest {
     @Test
     public void unrestrictedWhenAuthorizationContextEmpty() {
         final AuthorizationContext emptyContext =
-                AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED);
+                AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED, Collections.emptyList());
 
         final var result = PartialAccessPathResolver.resolveAccessiblePathsFromHeader(
                 PARTIAL_ACCESS_HEADER,
