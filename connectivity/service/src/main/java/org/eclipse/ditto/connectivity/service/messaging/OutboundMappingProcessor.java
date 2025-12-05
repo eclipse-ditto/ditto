@@ -313,7 +313,7 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
                     final Adaptable effective = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
                             baseAdaptable, targetAuthContext);
                     
-                    final boolean doFilter = shouldFilterForTarget(baseAdaptable, targetAuthContext, dittoHeaders);
+                    final boolean doFilter = shouldFilterForTarget(effective, dittoHeaders);
                     
                     final TopicPath topicPath = effective.getTopicPath();
                     final boolean isThingEvent = TopicPath.Group.THINGS.equals(topicPath.getGroup()) &&
@@ -347,32 +347,22 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
     }
     
     /**
-     * Determines if partial-access filtering should be applied for a target.
-     * Filtering is applied when:
-     * - Signal is a thing-related signal (THINGS group)
-     * - Signal is an event or message (not commands)
-     * - Either PARTIAL_ACCESS_PATHS header is present OR target has non-empty AuthorizationContext
+     * Determines if empty filtered payloads should result in dropping the event for a target.
+     * This only applies to Thing events with partial access information present.
      *
-     * @param adaptable the adaptable to check
-     * @param targetAuthContext the authorization context of the target (may be null)
+     * @param adaptable the adaptable already filtered for partial access
      * @param rootHeaders the root signal headers (may contain PARTIAL_ACCESS_PATHS)
-     * @return true if filtering should be applied
+     * @return true if empty payloads should be treated as "no access"
      */
     private static boolean shouldFilterForTarget(final Adaptable adaptable,
-                                                 @Nullable final AuthorizationContext targetAuthContext,
                                                  final DittoHeaders rootHeaders) {
         final TopicPath topicPath = adaptable.getTopicPath();
         if (!TopicPath.Group.THINGS.equals(topicPath.getGroup())) {
             return false;
         }
         
-        final TopicPath.Criterion criterion = topicPath.getCriterion();
-        if (!(TopicPath.Criterion.EVENTS.equals(criterion) || TopicPath.Criterion.MESSAGES.equals(criterion))) {
+        if (!TopicPath.Criterion.EVENTS.equals(topicPath.getCriterion())) {
             return false;
-        }
-        
-        if (targetAuthContext != null && !targetAuthContext.isEmpty()) {
-            return true;
         }
         
         return rootHeaders.containsKey(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey());

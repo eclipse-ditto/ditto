@@ -12,12 +12,14 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors.enrichment;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.CompletableFutureAssert.assertThatCompletionStage;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -95,6 +97,13 @@ public final class ThingEventEnricherTest {
             )
             .setGrantedPermissionsFor(KNOWN_LABEL_ANOTHER, ResourceKey.newInstance("thing", "/attributes/folder/public"),
                     "READ")
+            .build();
+
+    private static final Policy FULL_ACCESS_POLICY = Policy.newBuilder(KNOWN_POLICY_ID)
+            .setSubjectFor(KNOWN_LABEL_FULL, Subject.newInstance(
+                    SubjectId.newInstance(KNOWN_ISSUER_FULL_SUBJECT), SubjectType.GENERATED)
+            )
+            .setGrantedPermissionsFor(KNOWN_LABEL_FULL, ResourceKey.newInstance("thing", "/"), "READ", "WRITE")
             .build();
 
     private PolicyEnforcerProvider policyEnforcerProvider;
@@ -199,6 +208,51 @@ public final class ThingEventEnricherTest {
                         .set(JsonPointer.of("attributes/public1"), true)
                         .set(JsonPointer.of("attributes/private"), false)
         );
+    }
+
+    @Test
+    public void addsPartialAccessHeaderWhenPartialSubjectsExist() {
+        final ThingEventEnricher sut = new ThingEventEnricher(List.of(), policyEnforcerProvider);
+
+        final CompletionStage<JsonObject> partialHeaderStage = calculateEnrichedSignalHeaders(sut)
+                .thenApply(headers -> {
+                    final String headerValue = headers.get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey());
+                    if (headerValue == null) {
+                        return JsonFactory.newObject();
+                    }
+                    return JsonFactory.readFrom(headerValue).asObject();
+                });
+
+        assertThatCompletionStage(partialHeaderStage).isNotCompletedExceptionally();
+        final JsonObject header = partialHeaderStage.toCompletableFuture().join();
+        assertThat(header).isNotEmpty();
+        final var subjects = header.getValue("subjects")
+                .map(JsonValue::asArray)
+                .orElseThrow(() -> new AssertionError("Missing subjects array"));
+        assertThat(subjects.stream()
+                .filter(JsonValue::isString)
+                .map(JsonValue::asString))
+                .contains(KNOWN_ISSUER_RESTRICTED_SUBJECT);
+        final var paths = header.getValue("paths")
+                .map(JsonValue::asObject)
+                .orElseThrow(() -> new AssertionError("Missing paths object"));
+        assertThat(paths.contains("attributes/public1")).isTrue();
+    }
+
+    @Test
+    public void skipsPartialAccessHeaderWhenNoPartialSubjectsExist() {
+        final PolicyEnforcerProvider fullAccessProvider = mock(PolicyEnforcerProvider.class);
+        when(fullAccessProvider.getPolicyEnforcer(KNOWN_POLICY_ID))
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(FULL_ACCESS_POLICY))));
+
+        final ThingEventEnricher sut = new ThingEventEnricher(List.of(), fullAccessProvider);
+
+        final CompletionStage<DittoHeaders> headersStage = calculateEnrichedSignalHeaders(sut);
+
+        assertThatCompletionStage(headersStage.thenApply(headers ->
+                headers.get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey())))
+                .isNotCompletedExceptionally()
+                .isCompletedWithValue(null);
     }
 
     @Test

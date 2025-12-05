@@ -49,13 +49,7 @@ public final class AdaptablePartialAccessFilter {
             @Nullable final AuthorizationContext subscriberAuthContext) {
 
         final DittoHeaders headers = adaptable.getDittoHeaders();
-        @Nullable final String partialAccessPathsHeader = headers.get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey());
-        
-        final boolean isPayloadObject = adaptable.getPayload().getValue()
-                .map(JsonValue::isObject)
-                .orElse(false);
-        final JsonPointer eventPath = adaptable.getPayload().getPath();
-
+        final String partialAccessPathsHeader = headers.get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey());
         if (partialAccessPathsHeader == null || partialAccessPathsHeader.isEmpty()) {
             return adaptable;
         }
@@ -79,6 +73,10 @@ public final class AdaptablePartialAccessFilter {
         }
 
         final Set<JsonPointer> accessiblePaths = result.getAccessiblePaths();
+        final boolean isPayloadObject = adaptable.getPayload().getValue()
+                .map(JsonValue::isObject)
+                .orElse(false);
+        final JsonPointer eventPath = adaptable.getPayload().getPath();
 
         if (!isPayloadObject) {
             final PathTrie pathTrie = PathTrie.fromPaths(accessiblePaths);
@@ -123,4 +121,3 @@ public final class AdaptablePartialAccessFilter {
     }
 
 }
-

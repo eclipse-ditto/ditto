@@ -151,20 +151,20 @@ public final class PartialAccessPathResolver {
             return AccessiblePathsResult.unrestricted();
         }
 
+        if (subscriberAuthContext == null ||
+                subscriberAuthContext.getAuthorizationSubjects().isEmpty()) {
+            return AccessiblePathsResult.unrestricted();
+        }
+
         final Set<String> subscriberSubjectIds = new LinkedHashSet<>();
         final Set<String> allSubscriberSubjectIds = new LinkedHashSet<>();
-
-        if (subscriberAuthContext != null && !subscriberAuthContext.getAuthorizationSubjects().isEmpty()) {
-            subscriberAuthContext.getAuthorizationSubjects().forEach(subject -> {
-                final String subjectId = subject.getId();
-                allSubscriberSubjectIds.add(subjectId);
-                if (partialAccessPaths.containsKey(subjectId)) {
-                    subscriberSubjectIds.add(subjectId);
-                }
-            });
-        } else {
-            return AccessiblePathsResult.noAccess();
-        }
+        subscriberAuthContext.getAuthorizationSubjects().forEach(subject -> {
+            final String subjectId = subject.getId();
+            allSubscriberSubjectIds.add(subjectId);
+            if (partialAccessPaths.containsKey(subjectId)) {
+                subscriberSubjectIds.add(subjectId);
+            }
+        });
 
         final Set<String> readGrantedSubjectIds = new LinkedHashSet<>();
         readGrantedSubjects.forEach(subject -> readGrantedSubjectIds.add(subject.getId()));
