@@ -93,8 +93,7 @@ public final class ThingPersistenceActor
     private final ThingConfig thingConfig;
     private final DistributedPub<ThingEvent<?>> distributedPub;
     @Nullable private final ActorRef searchShardRegionProxy;
-    private final PreDefinedExtraFieldsEnricher eventPreDefinedExtraFieldsEnricher;
-    private final PreDefinedExtraFieldsEnricher messagePreDefinedExtraFieldsEnricher;
+    private final PreDefinedExtraFieldsEnricher preDefinedExtraFieldsEnricher;
 
     @SuppressWarnings("unused")
     private ThingPersistenceActor(final ThingId thingId,
@@ -108,14 +107,7 @@ public final class ThingPersistenceActor
         this.thingConfig = thingConfig;
         this.distributedPub = distributedPub;
         this.searchShardRegionProxy = searchShardRegionProxy;
-        this.eventPreDefinedExtraFieldsEnricher = new PreDefinedExtraFieldsEnricher(
-                thingConfig.getEventConfig().getPredefinedExtraFieldsConfigs(),
-                policyEnforcerProvider
-        );
-        this.messagePreDefinedExtraFieldsEnricher = new PreDefinedExtraFieldsEnricher(
-                thingConfig.getMessageConfig().getPredefinedExtraFieldsConfigs(),
-                policyEnforcerProvider
-        );
+        this.preDefinedExtraFieldsEnricher = new PreDefinedExtraFieldsEnricher(policyEnforcerProvider);
     }
 
     /**
@@ -279,7 +271,8 @@ public final class ThingPersistenceActor
 
     @Override
     protected void publishEvent(@Nullable final Thing previousEntity, final ThingEvent<?> event) {
-        final CompletionStage<ThingEvent<?>> stage = eventPreDefinedExtraFieldsEnricher.enrichWithPredefinedExtraFields(
+        final CompletionStage<ThingEvent<?>> stage = preDefinedExtraFieldsEnricher.enrichWithPredefinedExtraFields(
+                thingConfig.getEventConfig().getPredefinedExtraFieldsConfigs(),
                 entityId,
                 entity,
                 Optional.ofNullable(entity).flatMap(Thing::getPolicyId)
@@ -338,14 +331,16 @@ public final class ThingPersistenceActor
         final CompletionStage<Signal<?>> stage;
         switch (signal) {
             case MessageCommand<?, ?> messageCommand ->
-                stage = messagePreDefinedExtraFieldsEnricher.enrichWithPredefinedExtraFields(
+                stage = preDefinedExtraFieldsEnricher.enrichWithPredefinedExtraFields(
+                        thingConfig.getMessageConfig().getPredefinedExtraFieldsConfigs(),
                         entityId,
                         entity,
                         Optional.ofNullable(entity).flatMap(Thing::getPolicyId).orElse(null),
                         messageCommand
                 );
             case ThingEvent<?> thingEvent ->
-                stage = eventPreDefinedExtraFieldsEnricher.enrichWithPredefinedExtraFields(
+                stage = preDefinedExtraFieldsEnricher.enrichWithPredefinedExtraFields(
+                        thingConfig.getEventConfig().getPredefinedExtraFieldsConfigs(),
                         entityId,
                         entity,
                         Optional.ofNullable(entity).flatMap(Thing::getPolicyId).orElse(null),
