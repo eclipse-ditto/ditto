@@ -156,21 +156,20 @@ public final class PartialAccessPathResolver {
             return AccessiblePathsResult.unrestricted();
         }
 
+        final Set<String> readGrantedSubjectIds = new LinkedHashSet<>();
+        readGrantedSubjects.forEach(subject -> readGrantedSubjectIds.add(subject.getId()));
+
         final Set<String> subscriberSubjectIds = new LinkedHashSet<>();
         final Set<String> allSubscriberSubjectIds = new LinkedHashSet<>();
         subscriberAuthContext.getAuthorizationSubjects().forEach(subject -> {
             final String subjectId = subject.getId();
             allSubscriberSubjectIds.add(subjectId);
-            if (partialAccessPaths.containsKey(subjectId)) {
+            if (partialAccessPaths.containsKey(subjectId) && readGrantedSubjectIds.contains(subjectId)) {
                 subscriberSubjectIds.add(subjectId);
             }
         });
 
-        final Set<String> readGrantedSubjectIds = new LinkedHashSet<>();
-        readGrantedSubjects.forEach(subject -> readGrantedSubjectIds.add(subject.getId()));
-
         if (subscriberSubjectIds.isEmpty()) {
-            // Check if subscriber has unrestricted access (in readGrantedSubjects but not in partialAccessPaths)
             final boolean hasUnrestrictedAccess = allSubscriberSubjectIds.stream()
                     .anyMatch(subjectId ->
                             readGrantedSubjectIds.contains(subjectId) &&
@@ -212,7 +211,7 @@ public final class PartialAccessPathResolver {
             @Nullable final AuthorizationContext subscriberAuthContext,
             final Set<AuthorizationSubject> readGrantedSubjects) {
 
-        final Map<String, List<JsonPointer>> partialAccessPaths = 
+        final Map<String, List<JsonPointer>> partialAccessPaths =
                 parsePartialAccessPathsAsMap(partialAccessPathsHeader);
         return resolveAccessiblePaths(partialAccessPaths, subscriberAuthContext, readGrantedSubjects);
     }
