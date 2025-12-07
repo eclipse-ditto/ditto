@@ -15,6 +15,9 @@ package org.eclipse.ditto.protocol.adapter;
 import java.util.Collections;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
@@ -62,6 +65,21 @@ public interface Adapter<T extends Jsonifiable<?>> {
      * @throws IllegalArgumentException if {@code channel} is unknown.
      */
     Adaptable toAdaptable(T t, TopicPath.Channel channel);
+
+    /**
+     * Maps the given {@code t} to its corresponding {@code Adaptable} and optionally preserves internal headers for filtering.
+     *
+     * @param t the object to map.
+     * @param channel the channel that was used to send the signal.
+     * @param subscriberContext the authorization context of the subscriber (may be null).
+     * @return the mapped adaptable with preserved internal headers if subscriberContext is provided.
+     * @throws NullPointerException if any argument is {@code null} (except subscriberContext).
+     * @throws IllegalArgumentException if {@code channel} is unknown.
+     * @since 3.9.0
+     */
+    default Adaptable toAdaptable(T t, TopicPath.Channel channel, @Nullable AuthorizationContext subscriberContext) {
+        return toAdaptable(t, channel);
+    }
 
     /**
      * Maps the given {@code t} to its corresponding {@code TopicPath}.
