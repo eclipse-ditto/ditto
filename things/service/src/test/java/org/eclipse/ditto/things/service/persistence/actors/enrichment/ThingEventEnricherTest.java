@@ -118,7 +118,10 @@ public final class ThingEventEnricherTest {
     @Test
     public void ensureDefinitionIsEnrichedAsPreDefinedFromConfiguration() {
         // GIVEN: the configuration to enrich all things with their definition
-        final var sut = providePreDefinedFieldsEnricher();
+        final var sut = providePreDefinedFieldsEnricher(
+                "namespaces = []\n" +
+                "extra-fields = [\"definition\"]"
+        );
 
         // WHEN: enriched headers are getting calculated
         final CompletionStage<DittoHeaders> resultHeadersStage = calculateEnrichedSignalHeaders(sut);
@@ -138,7 +141,10 @@ public final class ThingEventEnricherTest {
     @Test
     public void ensureDefinitionAndAdditionalNamespaceSpecificIsEnrichedAsPreDefinedFromConfiguration() {
         // GIVEN: the configuration to enrich all things with their definition and some with an attribute public1
-        final var sut = providePreDefinedFieldsEnricher();
+        final var sut = providePreDefinedFieldsEnricher(
+                "namespaces = [\"org.eclipse.ditto.some\"]\n" +
+                "extra-fields = [\"definition\", \"attributes/public1\", \"attributes/private\"]"
+        );
 
         // WHEN: enriched headers are getting calculated
         final CompletionStage<DittoHeaders> resultHeadersStage = calculateEnrichedSignalHeaders(sut);
@@ -233,7 +239,11 @@ public final class ThingEventEnricherTest {
     @Test
     public void ensureConditionBasedEnrichmentAsPreDefinedFromConfiguration() {
         // GIVEN: the configuration to enrich all things with their definition and some with an attribute public1
-        final var sut = providePreDefinedFieldsEnricher();
+        final var sut = providePreDefinedFieldsEnricher(
+                "namespaces = [\"org.eclipse.ditto.some\"]\n" +
+                "condition = \"exists(attributes/public1)\"\n" +
+                "extra-fields = [\"attributes/public1\", \"attributes/folder\"]"
+        );
 
         // WHEN: enriched headers are getting calculated
         final CompletionStage<DittoHeaders> resultHeadersStage = calculateEnrichedSignalHeaders(sut);
