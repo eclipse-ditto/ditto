@@ -159,6 +159,10 @@ global:
     #  reported as Prometheus histogram "span_processing_time_seconds".
     #  As Ditto tracks a lot of spans, enabling those metrics can cause a lot of additional metrics and overhead.
     tracingSpanMetricsEnabled: true
+    # policyEnforcementUseThroughputOptimizedEvaluatorEnabled controls whether the throughput-optimized policy evaluator should be used
+    #  for policy enforcement. This evaluator trades off higher memory use for higher throughput and lower CPU usage.
+    #  The alternative, if configured to false, is a memory-optimized evaluator which uses less memory but more CPU.
+    policyEnforcementUseThroughputOptimizedEvaluatorEnabled: true
   # logging the logging configuration for Ditto
   logging:
     # sysout holds the logging to SYSOUT config
@@ -2148,15 +2152,14 @@ gateway:
     - "-Dditto.protocol.blocklist.8=forwarded=for"
     - "-Dditto.protocol.blocklist.9=sec-fetch-mode"
     - "-Dditto.protocol.blocklist.10=sec-fetch-site"
-    - "-Dditto.protocol.blocklist.11=authorization"
-    - "-Dditto.protocol.blocklist.12=accept-language"
-    - "-Dditto.protocol.blocklist.13=host"
-    - "-Dditto.protocol.blocklist.14=via"
-    - "-Dditto.protocol.blocklist.15=sec-ch-ua"
-    - "-Dditto.protocol.blocklist.16=sec-ch-ua-mobile"
-    - "-Dditto.protocol.blocklist.17=sec-ch-ua-platform"
-    - "-Dditto.protocol.blocklist.18=sec-fetch-dest"
-    - "-Dditto.protocol.blocklist.19=user-agent"
+    - "-Dditto.protocol.blocklist.11=accept-language"
+    - "-Dditto.protocol.blocklist.12=host"
+    - "-Dditto.protocol.blocklist.13=via"
+    - "-Dditto.protocol.blocklist.14=sec-ch-ua"
+    - "-Dditto.protocol.blocklist.15=sec-ch-ua-mobile"
+    - "-Dditto.protocol.blocklist.16=sec-ch-ua-platform"
+    - "-Dditto.protocol.blocklist.17=sec-fetch-dest"
+    - "-Dditto.protocol.blocklist.18=user-agent"
   # extraEnv to add arbitrary environment variables to gateway container
   extraEnv:
   # - name: LOG_LEVEL_APPLICATION

@@ -423,6 +423,9 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
                 Boolean.toString(rawConfig.getBoolean(FeatureToggle.JSON_KEY_VALIDATION_ENABLED)));
         System.setProperty(FeatureToggle.TRACING_SPAN_METRICS_ENABLED,
                 Boolean.toString(rawConfig.getBoolean(FeatureToggle.TRACING_SPAN_METRICS_ENABLED)));
+        System.setProperty(FeatureToggle.POLICY_ENFORCEMENT_USE_THROUGHPUT_OPTIMIZED_EVALUATOR_ENABLED,
+                Boolean.toString(
+                        rawConfig.getBoolean(FeatureToggle.POLICY_ENFORCEMENT_USE_THROUGHPUT_OPTIMIZED_EVALUATOR_ENABLED)));
         System.setProperty(DittoSystemProperties.DITTO_LIMITS_POLICY_IMPORTS_LIMIT,
                 Integer.toString(limitsConfig.getPolicyImportsLimit()));
         final MetricsConfig metricsConfig = serviceSpecificConfig.getMetricsConfig();
