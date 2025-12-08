@@ -41,7 +41,7 @@
         <hivemq-mqtt-client.version>1.3.7</hivemq-mqtt-client.version>
         <sshd.version>2.15.0</sshd.version>
         <eddsa.version>0.3.0</eddsa.version>
-        <lz4-java.version>1.8.1</lz4-java.version>
+        <lz4-java.version>1.10.1</lz4-java.version>
 
         <pekko-bom.version>1.2.1</pekko-bom.version>
         <pekko-http-bom.version>1.2.0</pekko-http-bom.version>
@@ -159,6 +159,13 @@
                 <groupId>org.apache.pekko</groupId>
                 <artifactId>pekko-serialization-jackson_${scala.version}</artifactId>
                 <version>${pekko-bom.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <!-- replaced by at.yawk.lz4:lz4-java providing security fixes for no longer maintained org.lz4:lz4-java -->
+                        <groupId>org.lz4</groupId>
+                        <artifactId>lz4-java</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.pekko</groupId>
@@ -381,7 +388,7 @@
             </dependency>
 
             <dependency>
-                <groupId>org.lz4</groupId>
+                <groupId>at.yawk.lz4</groupId>
                 <artifactId>lz4-java</artifactId>
                 <version>${lz4-java.version}</version>
             </dependency>
