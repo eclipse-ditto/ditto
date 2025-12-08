@@ -2152,15 +2152,14 @@ gateway:
     - "-Dditto.protocol.blocklist.8=forwarded=for"
     - "-Dditto.protocol.blocklist.9=sec-fetch-mode"
     - "-Dditto.protocol.blocklist.10=sec-fetch-site"
-    - "-Dditto.protocol.blocklist.11=authorization"
-    - "-Dditto.protocol.blocklist.12=accept-language"
-    - "-Dditto.protocol.blocklist.13=host"
-    - "-Dditto.protocol.blocklist.14=via"
-    - "-Dditto.protocol.blocklist.15=sec-ch-ua"
-    - "-Dditto.protocol.blocklist.16=sec-ch-ua-mobile"
-    - "-Dditto.protocol.blocklist.17=sec-ch-ua-platform"
-    - "-Dditto.protocol.blocklist.18=sec-fetch-dest"
-    - "-Dditto.protocol.blocklist.19=user-agent"
+    - "-Dditto.protocol.blocklist.11=accept-language"
+    - "-Dditto.protocol.blocklist.12=host"
+    - "-Dditto.protocol.blocklist.13=via"
+    - "-Dditto.protocol.blocklist.14=sec-ch-ua"
+    - "-Dditto.protocol.blocklist.15=sec-ch-ua-mobile"
+    - "-Dditto.protocol.blocklist.16=sec-ch-ua-platform"
+    - "-Dditto.protocol.blocklist.17=sec-fetch-dest"
+    - "-Dditto.protocol.blocklist.18=user-agent"
   # extraEnv to add arbitrary environment variables to gateway container
   extraEnv:
   # - name: LOG_LEVEL_APPLICATION

@@ -71,6 +71,11 @@ public final class HeaderTranslator {
                                 //  have priority when merging:
                                 return headerDefinition.getSerializationType().equals(String.class) ?
                                         headerDefinition : headerDefinition2;
+                            } else if (Objects.equals(headerDefinition.getKey(), DittoHeaderDefinition.AUTHORIZATION.getKey())) {
+                                // special treatment for "authorization" as this was added to DittoHeaderDefinition in 3.8.8,
+                                //  and before it was by default configured in the "ditto.protocol.blocklist"
+                                return headerDefinition.getSerializationType().equals(String.class) ?
+                                        headerDefinition : headerDefinition2;
                             } else {
                                 throw new IllegalStateException("Duplicate key: " + headerDefinition.getKey());
                             }
