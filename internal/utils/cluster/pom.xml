@@ -75,6 +75,11 @@
             <groupId>org.apache.pekko</groupId>
             <artifactId>pekko-serialization-jackson_${scala.version}</artifactId>
         </dependency>
+        <!-- used as replacement of org.lz4:lz4-java -->
+        <dependency>
+            <groupId>at.yawk.lz4</groupId>
+            <artifactId>lz4-java</artifactId>
+        </dependency>
         <!-- annotations used in our code, so manually add the import: -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
