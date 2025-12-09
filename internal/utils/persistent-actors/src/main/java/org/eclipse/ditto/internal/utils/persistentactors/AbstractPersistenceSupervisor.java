@@ -42,6 +42,7 @@ import org.apache.pekko.japi.pf.FI;
 import org.apache.pekko.japi.pf.ReceiveBuilder;
 import org.apache.pekko.pattern.AskTimeoutException;
 import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.pattern.StatusReply;
 import org.apache.pekko.persistence.query.EventEnvelope;
 import org.apache.pekko.stream.javadsl.Source;
 import org.apache.pekko.stream.javadsl.StreamRefs;
@@ -882,6 +883,9 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         } else if (response instanceof Status.Success success) {
             log.withCorrelationId(signal)
                     .debug("Ignoring Status.Success message as expected 'to be ignored' outcome: <{}>", success);
+        } else if (response instanceof StatusReply<?> statusReply && statusReply.isSuccess()) {
+            log.withCorrelationId(signal)
+                    .debug("Ignoring StatusReply message as expected 'to be ignored' outcome: <{}>", statusReply);
         } else if (response instanceof Done done) {
             log.withCorrelationId(signal)
                     .debug("Ignoring Done message as expected 'to be ignored' outcome: <{}>", done);
@@ -1087,6 +1091,10 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
             log.withCorrelationId(targetActorResponse.enforcedSignal())
                     .debug("Got success message from target actor: {}", success);
             return CompletableFuture.completedFuture(success);
+        } else if (targetActorResponse.response() instanceof StatusReply<?> statusReply && statusReply.isSuccess()) {
+            log.withCorrelationId(targetActorResponse.enforcedSignal())
+                    .debug("Got StatusReply success from target actor: {}", statusReply);
+            return CompletableFuture.completedFuture(statusReply);
         } else if (targetActorResponse.response() instanceof Done done) {
             log.withCorrelationId(targetActorResponse.enforcedSignal())
                     .debug("Got done from target actor: {}", done);
