@@ -55,7 +55,7 @@ public final class AwsAuthenticationHelper {
             final String awsSessionName
     ) {
         final StsClientBuilder stsClientBuilder = StsClient.builder()
-                .credentialsProvider(DefaultCredentialsProvider.create());
+                .credentialsProvider(DefaultCredentialsProvider.builder().build());
         if (awsRegion != null && !awsRegion.isEmpty()) {
             stsClientBuilder.region(Region.of(awsRegion));
         }
@@ -63,7 +63,7 @@ public final class AwsAuthenticationHelper {
         final Supplier<AwsCredential> awsFreshCredentialSupplier;
         final StsClient stsClient = stsClientBuilder.build();
         awsFreshCredentialSupplier = () -> {
-            LOGGER.info("Supplying AWS IAM credentials, assuming role <{}> in session name <{}>",
+            LOGGER.debug("Supplying AWS IAM credentials, assuming role <{}> in session name <{}>",
                     awsRoleArn, awsSessionName);
 
             // assume role using the AWS SDK
