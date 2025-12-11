@@ -92,6 +92,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.messages.model.Message;
+import org.eclipse.ditto.messages.model.MessageBuilder;
 import org.eclipse.ditto.messages.model.MessageHeadersBuilder;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
@@ -249,8 +250,28 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         return message.getBytePayload().map(ByteBuffer::array).orElse(new byte[0]);
     }
 
-    private static CompletionStage<JsonValue> getResponseBody(final HttpResponse response, final int maxBytes,
-            final Materializer materializer) {
+    private record ResponsePayload(
+            @Nullable JsonValue jsonPayload,
+            @Nullable String textPayload,
+            @Nullable ByteBuffer bytePayload
+    ) {
+        static ResponsePayload of(final JsonValue jsonPayload) {
+            return new ResponsePayload(jsonPayload, null, null);
+        }
+
+        static ResponsePayload of(final String stringPayload) {
+            return new ResponsePayload(null, stringPayload, null);
+        }
+
+        static ResponsePayload of(final ByteBuffer bytePayload) {
+            return new ResponsePayload(null, null, bytePayload);
+        }
+    }
+
+    private static CompletionStage<ResponsePayload> getResponseBody(final HttpResponse response,
+            final int maxBytes,
+            final Materializer materializer
+    ) {
         return response.entity()
                 .withSizeLimit(maxBytes)
                 .toStrict(READ_BODY_TIMEOUT_MS, materializer)
@@ -259,22 +280,20 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     final Charset charset = contentType.getCharsetOption()
                             .map(HttpCharset::nioCharset)
                             .orElse(StandardCharsets.UTF_8);
-                    final byte[] bytes = strictEntity.getData().toArray();
+                    final ByteBuffer bytes = strictEntity.getData().toByteBuffer();
                     final org.eclipse.ditto.base.model.headers.contenttype.ContentType dittoContentType =
                             org.eclipse.ditto.base.model.headers.contenttype.ContentType.of(contentType.toString());
                     if (dittoContentType.isJson()) {
-                        final String bodyString = new String(bytes, charset);
+                        final String bodyString = new String(bytes.array(), charset);
                         try {
-                            return JsonFactory.readFrom(bodyString);
+                            return ResponsePayload.of(JsonFactory.readFrom(bodyString));
                         } catch (final Exception e) {
-                            return JsonValue.of(bodyString);
+                            return ResponsePayload.of(JsonValue.of(bodyString));
                         }
                     } else if (dittoContentType.isBinary()) {
-                        final String base64bytes = Base64.getEncoder().encodeToString(bytes);
-                        return JsonFactory.newValue(base64bytes);
+                        return ResponsePayload.of(bytes);
                     } else {
-                        // add text payload as JSON string
-                        return JsonFactory.newValue(new String(bytes, charset));
+                        return ResponsePayload.of(new String(bytes.array(), charset));
                     }
                 });
     }
@@ -507,7 +526,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
         final var isSentSignalLiveCommand = Command.isLiveCommand(sentSignal);
         final int maxResponseSize = isSentSignalLiveCommand ? maxTotalMessageSize : ackSizeQuota;
-        return getResponseBody(response, maxResponseSize, materializer).thenApply(body -> {
+        return getResponseBody(response, maxResponseSize, materializer).thenApply(responsePayload -> {
             @Nullable final CommandResponse<?> result;
             final var mergedDittoHeaders = mergeWithResponseHeaders(sentSignal.getDittoHeaders(), response);
             final Optional<EntityId> entityIdOptional = WithEntityId.getEntityIdOfType(EntityId.class, sentSignal);
@@ -517,16 +536,28 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 if (DittoAcknowledgementLabel.LIVE_RESPONSE.equals(autoAckLabel.get())) {
                     // Live-Response is declared as issued ack => parse live response from response
                     if (sentSignal instanceof MessageCommand) {
-                        result = toMessageCommandResponse((MessageCommand<?, ?>) sentSignal, mergedDittoHeaders, body,
-                                httpStatus, targetAuthorizationContext);
+                        result = toMessageCommandResponse((MessageCommand<?, ?>) sentSignal, mergedDittoHeaders,
+                                responsePayload, httpStatus, targetAuthorizationContext);
                     } else if (sentSignal instanceof ThingCommand && Signal.isChannelLive(sentSignal)) {
-                        result = toLiveCommandResponse(mergedDittoHeaders, body, targetAuthorizationContext);
+                        result = toLiveCommandResponse(mergedDittoHeaders, responsePayload, targetAuthorizationContext);
                     } else {
                         result = null;
                     }
                 } else {
                     // There is an issued ack declared but its not live-response => handle response as acknowledgement.
-                    result = Acknowledgement.of(autoAckLabel.get(), entityId, httpStatus, mergedDittoHeaders, body);
+                    final JsonValue ackPayload;
+                    if (responsePayload.jsonPayload() != null) {
+                        ackPayload = responsePayload.jsonPayload();
+                    } else if (responsePayload.textPayload() != null) {
+                        ackPayload = JsonValue.of(responsePayload.textPayload());
+                    } else if (responsePayload.bytePayload() != null) {
+                        final String base64Encoded = Base64.getEncoder()
+                                .encodeToString(responsePayload.bytePayload().array());
+                        ackPayload = JsonValue.of(base64Encoded);
+                    } else {
+                        ackPayload = null;
+                    }
+                    result = Acknowledgement.of(autoAckLabel.get(), entityId, httpStatus, mergedDittoHeaders, ackPayload);
                 }
             } else {
                 // No Acks declared as issued acks => Handle response either as live response or as acknowledgement
@@ -534,9 +565,10 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 final boolean isDittoProtocolMessage = mergedDittoHeaders.getDittoContentType()
                         .filter(org.eclipse.ditto.base.model.headers.contenttype.ContentType::isDittoProtocol)
                         .isPresent();
-                if (isDittoProtocolMessage && body.isObject()) {
+                if (isDittoProtocolMessage && responsePayload.jsonPayload() != null &&
+                        responsePayload.jsonPayload().isObject()) {
                     final CommandResponse<?> parsedResponse =
-                            toCommandResponse(body.asObject(), targetAuthorizationContext);
+                            toCommandResponse(responsePayload.jsonPayload().asObject(), targetAuthorizationContext);
                     if (parsedResponse instanceof Acknowledgement) {
                         result = parsedResponse;
                     } else if (CommandResponse.isLiveCommandResponse(parsedResponse)) {
@@ -560,16 +592,16 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             if (result == null) {
                 connectionLogger.success(InfoProviderFactory.forSignal(sentSignal),
                         "No CommandResponse created from HTTP response with status <{0}> and body <{1}>.",
-                        response.status(), body);
+                        response.status(), responsePayload);
             } else {
                 connectionLogger.success(InfoProviderFactory.forSignal(result),
                         "CommandResponse <{0}> created from HTTP response with Status <{1}> and body <{2}>.",
-                        result, response.status(), body);
+                        result, response.status(), responsePayload);
             }
             final MessageSendingFailedException sendFailure;
             if (!httpStatus.isSuccess()) {
                 final String message =
-                        String.format("Got non success status code: <%s> and body: <%s>", httpStatus.getCode(), body);
+                        String.format("Got non success status code: <%s> and body: <%s>", httpStatus.getCode(), responsePayload);
                 sendFailure = MessageSendingFailedException.newBuilder()
                         .message(message)
                         .dittoHeaders(mergedDittoHeaders)
@@ -596,16 +628,16 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     @Nullable
     private MessageCommandResponse<?, ?> toMessageCommandResponse(final MessageCommand<?, ?> sentMessageCommand,
             final DittoHeaders dittoHeaders,
-            final JsonValue jsonValue,
+            final ResponsePayload responsePayload,
             final HttpStatus status,
             final AuthorizationContext targetAuthorizationContext) {
 
         final boolean isDittoProtocolMessage = dittoHeaders.getDittoContentType()
                 .filter(org.eclipse.ditto.base.model.headers.contenttype.ContentType::isDittoProtocol)
                 .isPresent();
-        if (isDittoProtocolMessage && jsonValue.isObject()) {
+        if (isDittoProtocolMessage && responsePayload.jsonPayload() != null && responsePayload.jsonPayload().isObject()) {
             final CommandResponse<?> commandResponse =
-                    toCommandResponse(jsonValue.asObject(), targetAuthorizationContext);
+                    toCommandResponse(responsePayload.jsonPayload().asObject(), targetAuthorizationContext);
             if (commandResponse == null) {
                 return null;
             } else if (commandResponse instanceof MessageCommandResponse) {
@@ -622,40 +654,48 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     .httpStatus(status)
                     .putHeaders(dittoHeaders)
                     .build();
-            final var message = Message.newBuilder(messageHeaders)
-                    .payload(jsonValue)
-                    .build();
+            final MessageBuilder<Object> messageBuilder = Message.newBuilder(messageHeaders);
+            if (responsePayload.jsonPayload() != null) {
+                messageBuilder.payload(responsePayload.jsonPayload());
+            } else if (responsePayload.textPayload() != null) {
+                messageBuilder.payload(responsePayload.textPayload());
+            } else {
+                messageBuilder.rawPayload(responsePayload.bytePayload());
+            }
+            final var message = messageBuilder.build();
 
-            switch (sentMessageCommand.getType()) {
-                case SendClaimMessage.TYPE:
-                    return SendClaimMessageResponse.of(sentMessageCommand.getEntityId(), message, status,
-                            dittoHeaders);
-                case SendThingMessage.TYPE:
-                    return SendThingMessageResponse.of(sentMessageCommand.getEntityId(), message, status,
-                            dittoHeaders);
-                case SendFeatureMessage.TYPE:
+            return switch (sentMessageCommand.getType()) {
+                case SendClaimMessage.TYPE ->
+                        SendClaimMessageResponse.of(sentMessageCommand.getEntityId(), message, status,
+                                dittoHeaders);
+                case SendThingMessage.TYPE ->
+                        SendThingMessageResponse.of(sentMessageCommand.getEntityId(), message, status,
+                                dittoHeaders);
+                case SendFeatureMessage.TYPE -> {
                     final SendFeatureMessage<?> sendFeatureMessage = (SendFeatureMessage<?>) sentMessageCommand;
-                    return SendFeatureMessageResponse.of(sentMessageCommand.getEntityId(),
+                    yield SendFeatureMessageResponse.of(sentMessageCommand.getEntityId(),
                             sendFeatureMessage.getFeatureId(), message, status, dittoHeaders);
-                default:
+                }
+                default -> {
                     connectionLogger.failure(InfoProviderFactory.forSignal(sentMessageCommand),
                             "Initial message command type <{0}> is unknown.", sentMessageCommand.getType());
-                    return null;
-            }
+                    yield null;
+                }
+            };
         }
     }
 
     @Nullable
     private CommandResponse<?> toLiveCommandResponse(final DittoHeaders dittoHeaders,
-            final JsonValue jsonValue,
+            final ResponsePayload responsePayload,
             final AuthorizationContext targetAuthorizationContext) {
 
         final boolean isDittoProtocolMessage = dittoHeaders.getDittoContentType()
                 .filter(org.eclipse.ditto.base.model.headers.contenttype.ContentType::isDittoProtocol)
                 .isPresent();
-        if (isDittoProtocolMessage && jsonValue.isObject()) {
+        if (isDittoProtocolMessage && responsePayload.jsonPayload() != null && responsePayload.jsonPayload().isObject()) {
             final var commandResponse =
-                    toCommandResponse(jsonValue.asObject(), targetAuthorizationContext);
+                    toCommandResponse(responsePayload.jsonPayload().asObject(), targetAuthorizationContext);
             if (commandResponse == null) {
                 return null;
             } else if (commandResponse instanceof ThingCommandResponse && Signal.isChannelLive(commandResponse)) {
