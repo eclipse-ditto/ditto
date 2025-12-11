@@ -1095,6 +1095,10 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
             log.withCorrelationId(targetActorResponse.enforcedSignal())
                     .debug("Got StatusReply success from target actor: {}", statusReply);
             return CompletableFuture.completedFuture(statusReply);
+        } else if (targetActorResponse.response() instanceof StatusReply<?> statusReply && statusReply.isError()) {
+            log.withCorrelationId(targetActorResponse.enforcedSignal())
+                    .debug("Got StatusReply error from target actor: {}", statusReply);
+            return CompletableFuture.failedFuture(statusReply.getError());
         } else if (targetActorResponse.response() instanceof Done done) {
             log.withCorrelationId(targetActorResponse.enforcedSignal())
                     .debug("Got done from target actor: {}", done);
