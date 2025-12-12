@@ -170,6 +170,12 @@ enabling fine-grained control over which parts of the patch are applied based on
 The `merge-thing-patch-conditions` header contains a JSON object where each key represents a JSON pointer path and each 
 value is an RQL expression that must evaluate to `true` for that path to be included in the merge.
 
+The provided key (JSON pointer path) is relative to the modification `path` of the merge command.  
+When e.g. providing a command which merges at path `/`, provided key to target a `value` property in a `temperature` 
+feature would have the format `features/temperature/properties/value`.  
+Issuing a merge command to merge at the feature level `features/temperature` would require the key to be `properties/value` 
+instead.
+
 * If a path-specific condition is fulfilled, that part of the merge patch will be applied.
 * If a path-specific condition is not fulfilled, that part of the merge patch will be skipped.
 * Paths without conditions will always be applied.
@@ -234,6 +240,16 @@ In this example:
 - `temperature` will only be updated if the current temperature is greater than 20 (condition fails, so temperature won't be updated)
 - `humidity` will only be updated if the current humidity is less than 80 (condition fails, so humidity won't be updated)  
 - `status` will always be updated (no condition specified)
+
+The same call could also be done on `/features` path with adjusted condition keys.  
+Notice that the conditions are still relative to the root of the thing, only the key paths are adjusted accordingly:
+
+```shell
+curl -X PATCH -H 'Content-Type: application/merge-patch+json' \
+    -H 'merge-thing-patch-conditions: {"temperature/properties/value": "gt(features/temperature/properties/value,20)", "humidity/properties/value": "lt(features/humidity/properties/value,80)"}' \
+    http://localhost:8080/api/2/things/org.eclipse.ditto:fancy-thing/features \
+    -d '{"temperature": {"properties": {"value": 25}}, "humidity": {"properties": {"value": 60}}, "status": {"properties": {"state": "updated"}}}'
+```
 
 #### Ditto protocol
 
