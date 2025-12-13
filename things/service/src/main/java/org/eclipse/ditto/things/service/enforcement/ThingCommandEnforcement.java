@@ -443,10 +443,18 @@ final class ThingCommandEnforcement
     static <T extends Signal<T>> T addEffectedReadSubjectsToThingSignal(final Signal<T> signal,
             final Enforcer enforcer) {
 
-        final var resourceKey = ResourceKey.newInstance(ThingConstants.ENTITY_TYPE, signal.getResourcePath());
-        final var authorizationSubjects = enforcer.getSubjectsWithUnrestrictedPermission(resourceKey, Permission.READ);
+        final var eventResourcePath = signal.getResourcePath();
+        final var resourceKey = ResourceKey.newInstance(ThingConstants.ENTITY_TYPE, eventResourcePath);
+        final var unrestrictedSubjects = enforcer.getSubjectsWithUnrestrictedPermission(resourceKey, Permission.READ);
+        
+        final var rootResourceKey = ResourceKey.newInstance(ThingConstants.ENTITY_TYPE, JsonPointer.empty());
+        final var partialSubjects = enforcer.getSubjectsWithPartialPermission(rootResourceKey, Permissions.newInstance(Permission.READ));
+        
+        final var allReadSubjects = new java.util.HashSet<>(unrestrictedSubjects);
+        allReadSubjects.addAll(partialSubjects);
+        
         final var newHeaders = DittoHeaders.newBuilder(signal.getDittoHeaders())
-                .readGrantedSubjects(authorizationSubjects)
+                .readGrantedSubjects(allReadSubjects)
                 .build();
 
         return signal.setDittoHeaders(newHeaders);
