@@ -118,13 +118,14 @@ public final class ThingEventEnricherTest {
     @Test
     public void ensureDefinitionIsEnrichedAsPreDefinedFromConfiguration() {
         // GIVEN: the configuration to enrich all things with their definition
-        final var sut = providePreDefinedFieldsEnricher(
+        final var sut = new ThingEventEnricher(policyEnforcerProvider);
+        final var configs = getPreDefinedExtraFieldsConfigs(
                 "namespaces = []\n" +
                 "extra-fields = [\"definition\"]"
         );
 
         // WHEN: enriched headers are getting calculated
-        final CompletionStage<DittoHeaders> resultHeadersStage = calculateEnrichedSignalHeaders(sut);
+        final CompletionStage<DittoHeaders> resultHeadersStage = calculateEnrichedSignalHeaders(sut, configs);
 
         // THEN: the expected pre-defined fields are present in the headers
         assertExpectations(resultHeadersStage,
@@ -141,13 +142,14 @@ public final class ThingEventEnricherTest {
     @Test
     public void ensureDefinitionAndAdditionalNamespaceSpecificIsEnrichedAsPreDefinedFromConfiguration() {
         // GIVEN: the configuration to enrich all things with their definition and some with an attribute public1
-        final var sut = providePreDefinedFieldsEnricher(
+        final var sut = new ThingEventEnricher(policyEnforcerProvider);
+        final var configs = getPreDefinedExtraFieldsConfigs(
                 "namespaces = [\"org.eclipse.ditto.some\"]\n" +
                 "extra-fields = [\"definition\", \"attributes/public1\", \"attributes/private\"]"
         );
 
         // WHEN: enriched headers are getting calculated
-        final CompletionStage<DittoHeaders> resultHeadersStage = calculateEnrichedSignalHeaders(sut);
+        final CompletionStage<DittoHeaders> resultHeadersStage = calculateEnrichedSignalHeaders(sut, configs);
 
         // THEN: the expected pre-defined fields are present in the headers
         assertExpectations(resultHeadersStage,
@@ -178,9 +180,9 @@ public final class ThingEventEnricherTest {
 
     @Test
     public void addsPartialAccessHeaderWhenPartialSubjectsExist() {
-        final ThingEventEnricher sut = new ThingEventEnricher(List.of(), policyEnforcerProvider);
+        final ThingEventEnricher sut = new ThingEventEnricher(policyEnforcerProvider);
 
-        final CompletionStage<JsonObject> partialHeaderStage = calculateEnrichedSignalHeaders(sut)
+        final CompletionStage<JsonObject> partialHeaderStage = calculateEnrichedSignalHeaders(sut, List.of())
                 .thenApply(headers -> {
                     final String headerValue = headers.get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey());
                     if (headerValue == null) {
@@ -226,9 +228,9 @@ public final class ThingEventEnricherTest {
         when(fullAccessProvider.getPolicyEnforcer(KNOWN_POLICY_ID))
                 .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(FULL_ACCESS_POLICY))));
 
-        final ThingEventEnricher sut = new ThingEventEnricher(List.of(), fullAccessProvider);
+        final ThingEventEnricher sut = new ThingEventEnricher(fullAccessProvider);
 
-        final CompletionStage<DittoHeaders> headersStage = calculateEnrichedSignalHeaders(sut);
+        final CompletionStage<DittoHeaders> headersStage = calculateEnrichedSignalHeaders(sut, List.of());
 
         assertThatCompletionStage(headersStage.thenApply(headers ->
                 headers.get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey())))
@@ -239,14 +241,15 @@ public final class ThingEventEnricherTest {
     @Test
     public void ensureConditionBasedEnrichmentAsPreDefinedFromConfiguration() {
         // GIVEN: the configuration to enrich all things with their definition and some with an attribute public1
-        final var sut = providePreDefinedFieldsEnricher(
+        final var sut = new ThingEventEnricher(policyEnforcerProvider);
+        final var configs = getPreDefinedExtraFieldsConfigs(
                 "namespaces = [\"org.eclipse.ditto.some\"]\n" +
                 "condition = \"exists(attributes/public1)\"\n" +
                 "extra-fields = [\"attributes/public1\", \"attributes/folder\"]"
         );
 
         // WHEN: enriched headers are getting calculated
-        final CompletionStage<DittoHeaders> resultHeadersStage = calculateEnrichedSignalHeaders(sut);
+        final CompletionStage<DittoHeaders> resultHeadersStage = calculateEnrichedSignalHeaders(sut, configs);
 
         // THEN: the expected pre-defined fields are present in the headers
         assertExpectations(resultHeadersStage,
@@ -275,21 +278,18 @@ public final class ThingEventEnricherTest {
         );
     }
 
-    private ThingEventEnricher providePreDefinedFieldsEnricher(final String... configurations) {
-        return new ThingEventEnricher(
-                Arrays.stream(configurations)
-                        .map(configString ->
-                                DefaultPreDefinedExtraFieldsConfig.of(ConfigFactory.parseString(configString))
-                        )
-                        .map(PreDefinedExtraFieldsConfig.class::cast)
-                        .toList()
-                , policyEnforcerProvider
-        );
+    private List<PreDefinedExtraFieldsConfig> getPreDefinedExtraFieldsConfigs(final String... configurations) {
+        return Arrays.stream(configurations)
+                .map(configString ->
+                        DefaultPreDefinedExtraFieldsConfig.of(ConfigFactory.parseString(configString))
+                )
+                .map(PreDefinedExtraFieldsConfig.class::cast)
+                .toList();
     }
 
     private static CompletionStage<DittoHeaders> calculateEnrichedSignalHeaders(
-            final ThingEventEnricher sut
-
+            final ThingEventEnricher sut,
+            final List<PreDefinedExtraFieldsConfig> preDefinedExtraFieldsConfigs
     ) {
         final AttributeModified event = AttributeModified.of(
                 KNOWN_THING_ID, JsonPointer.of("something"), JsonValue.of(true), 4L,
@@ -297,7 +297,7 @@ public final class ThingEventEnricherTest {
 
         final CompletionStage<AttributeModified> resultStage =
                 sut.enrichWithPredefinedExtraFields(
-                        KNOWN_THING_ID, KNOWN_THING, KNOWN_POLICY_ID, event);
+                        KNOWN_THING_ID, KNOWN_THING, KNOWN_POLICY_ID, preDefinedExtraFieldsConfigs, event);
         return resultStage.thenApply(AttributeModified::getDittoHeaders);
     }
 
