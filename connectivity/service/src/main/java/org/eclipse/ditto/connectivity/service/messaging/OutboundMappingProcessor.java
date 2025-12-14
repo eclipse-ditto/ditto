@@ -48,6 +48,7 @@ import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOu
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.protocol.AdaptablePartialAccessFilter;
+import org.eclipse.ditto.internal.utils.protocol.PartialAccessPathResolver;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
@@ -298,13 +299,27 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
             final MappingTimer mappingTimer,
             final List<MessageMapper> mappers) {
         final DittoHeaders dittoHeaders = source.getDittoHeaders();
+        
+        final PartialAccessPathResolver.AccessiblePathsResult allPartialAccessPathsResult =
+                PartialAccessPathResolver.resolveAllAccessiblePathsFromHeader(
+                        dittoHeaders.get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey()),
+                        dittoHeaders);
+        
         return targets.stream()
                 .flatMap(target -> {
                     final AuthorizationContext targetAuthContext = target.getAuthorizationContext();
-                    final Adaptable baseAdaptable = createBaseAdaptable(source, targetAuthContext, outboundSignal, mappingTimer);
+                    Adaptable baseAdaptable = createBaseAdaptable(source, targetAuthContext, outboundSignal, mappingTimer);
                     
-                    final Adaptable effective = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
-                            baseAdaptable, targetAuthContext);
+                    final String partialAccessPathsHeader = dittoHeaders.get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey());
+                    if (partialAccessPathsHeader != null && !baseAdaptable.getDittoHeaders().containsKey(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey())) {
+                        baseAdaptable = baseAdaptable.setDittoHeaders(
+                                baseAdaptable.getDittoHeaders().toBuilder()
+                                        .putHeader(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey(), partialAccessPathsHeader)
+                                        .build());
+                    }
+                    
+                    final Adaptable effective = filterAdaptableForAllPartialAccessSubjects(
+                            baseAdaptable, allPartialAccessPathsResult);
                     
                     final boolean doFilter = shouldFilterForTarget(effective, dittoHeaders);
                     
@@ -359,6 +374,13 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
                         List.of(target), mappableSignal.getPayloadMapping());
         return mappers.stream()
                 .flatMap(mapper -> runMapper(targetMappableSignal, adaptableWithExternalHeaders, mapper, mappingTimer));
+    }
+
+    private static Adaptable filterAdaptableForAllPartialAccessSubjects(
+            final Adaptable adaptable,
+            final PartialAccessPathResolver.AccessiblePathsResult allPartialAccessPathsResult) {
+
+        return AdaptablePartialAccessFilter.filterAdaptableWithResult(adaptable, allPartialAccessPathsResult);
     }
 
     /**

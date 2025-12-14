@@ -20,20 +20,8 @@ import org.eclipse.ditto.json.JsonPointer;
  */
 public final class PointerUtils {
 
-    private static final JsonPointer ROOT_POINTER = JsonPointer.of("/");
-
     private PointerUtils() {
         // No instantiation
-    }
-
-    /**
-     * Checks if a pointer represents the root path.
-     *
-     * @param pointer the pointer to check
-     * @return true if the pointer is root (empty or "/")
-     */
-    public static boolean isRoot(final JsonPointer pointer) {
-        return pointer.isEmpty() || pointer.equals(ROOT_POINTER);
     }
 
     /**

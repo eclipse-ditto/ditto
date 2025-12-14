@@ -57,9 +57,6 @@ public final class ReadGrantCollector {
             final Thing thing,
             final PolicyEnforcer policyEnforcer
     ) {
-        if (fields == null || thing == null || policyEnforcer == null) {
-            return ReadGrant.empty();
-        }
 
         final Enforcer enforcer = policyEnforcer.getEnforcer();
         final Map<JsonPointer, Set<String>> pointerToSubjects = new LinkedHashMap<>();
@@ -123,17 +120,15 @@ public final class ReadGrantCollector {
             
             if (pointerValue != null && pointerValue.isObject()) {
                 final JsonObject pointerObject = pointerValue.asObject();
+                final ResourceKey resourceKey = PoliciesResourceType.thingResource(pointer);
+                final Permissions readPermissions = Permissions.newInstance(Permission.READ);
                 
                 for (final AuthorizationSubject subject : partialOnly) {
-                    final ResourceKey resourceKey = PoliciesResourceType.thingResource(pointer);
                     final Set<JsonPointer> accessiblePaths = enforcer.getAccessiblePaths(
                             resourceKey,
                             pointerObject,
-                            AuthorizationContext.newInstance(
-                                    DittoAuthorizationContextType.UNSPECIFIED,
-                                    subject
-                            ),
-                            Permissions.newInstance(Permission.READ)
+                            subject,
+                            readPermissions
                     );
 
                     for (final JsonPointer accessiblePath : accessiblePaths) {

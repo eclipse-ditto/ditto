@@ -102,7 +102,7 @@ public final class PartialAccessPathResolver {
      * Parses the partial access paths from the header.
      *
      * @param partialAccessPathsHeader the header value containing partial access paths JSON
-     * @return IndexedPartialAccessPaths model, or EMPTY if header is null/empty
+     * @return IndexedPartialAccessPaths model, or {@link IndexedPartialAccessPaths#EMPTY} if header is null or empty
      */
     public static IndexedPartialAccessPaths parsePartialAccessPaths(
             @Nullable final String partialAccessPathsHeader) {
@@ -233,5 +233,52 @@ public final class PartialAccessPathResolver {
                 partialAccessPathsHeader,
                 subscriberAuthContext,
                 dittoHeaders.getReadGrantedSubjects());
+    }
+
+    /**
+     * Resolves all accessible paths from the partial access paths header (union of all subjects' paths).
+     * This is useful for external targets (e.g., Kafka) where we want to filter based on all partial-access
+     * subjects, not a specific subscriber's context.
+     * <p>
+     * For external targets, we filter based ONLY on partial-access subjects' paths, ignoring subjects
+     * with full access. This ensures external systems only receive events filtered for partial-access users.
+     * </p>
+     *
+     * @param partialAccessPathsHeader the header value containing partial access paths JSON
+     * @param dittoHeaders the DittoHeaders containing readGrantedSubjects
+     * @return result containing union of all accessible paths from all partial-access subjects
+     */
+    public static AccessiblePathsResult resolveAllAccessiblePathsFromHeader(
+            @Nullable final String partialAccessPathsHeader,
+            final DittoHeaders dittoHeaders) {
+
+        final Map<String, List<JsonPointer>> partialAccessPaths =
+                parsePartialAccessPathsAsMap(partialAccessPathsHeader);
+
+        if (partialAccessPaths.isEmpty()) {
+            return AccessiblePathsResult.unrestricted();
+        }
+
+        final Set<AuthorizationSubject> readGrantedSubjects = dittoHeaders.getReadGrantedSubjects();
+        final Set<String> readGrantedSubjectIds = new LinkedHashSet<>();
+        readGrantedSubjects.forEach(subject -> readGrantedSubjectIds.add(subject.getId()));
+
+        final Set<JsonPointer> allAccessiblePaths = new HashSet<>();
+
+        for (final Map.Entry<String, List<JsonPointer>> entry : partialAccessPaths.entrySet()) {
+            final String subjectId = entry.getKey();
+            if (readGrantedSubjectIds.contains(subjectId)) {
+                final List<JsonPointer> subjectPaths = entry.getValue();
+                if (subjectPaths != null && !subjectPaths.isEmpty()) {
+                    allAccessiblePaths.addAll(subjectPaths);
+                }
+            }
+        }
+
+        if (allAccessiblePaths.isEmpty()) {
+            return AccessiblePathsResult.noAccess();
+        }
+
+        return AccessiblePathsResult.filtered(allAccessiblePaths);
     }
 }

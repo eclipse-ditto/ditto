@@ -19,7 +19,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
 
@@ -73,32 +72,27 @@ public final class ThingEventEnricher {
     private static final TimePlaceholder TIME_PLACEHOLDER = TimePlaceholder.getInstance();
     private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
 
-    private static final Map<String, Criteria> RQL_CRITERIA_CACHE = new ConcurrentHashMap<>(32);
-
-    private final List<PreDefinedExtraFieldsConfig> preDefinedExtraFieldsConfigs;
     private final PolicyEnforcerProvider policyEnforcerProvider;
 
     /**
-     * Constructs a new enricher for ThingEvents based on the provided configuration and policy enforcer.
+     * Constructs a new enricher for ThingEvents based on the provided policy enforcer.
      *
-     * @param preDefinedExtraFieldsConfigs the list of config entries for pre-defined extraFields enrichment
      * @param policyEnforcerProvider the policy enforcer to use in order to check permissions for enriching extraFields
      */
     public ThingEventEnricher(
-            final List<PreDefinedExtraFieldsConfig> preDefinedExtraFieldsConfigs,
             final PolicyEnforcerProvider policyEnforcerProvider
     ) {
-        this.preDefinedExtraFieldsConfigs = List.copyOf(preDefinedExtraFieldsConfigs);
         this.policyEnforcerProvider = policyEnforcerProvider;
     }
 
     /**
      * Enriches the passed in {@code withDittoHeaders} with pre-defined extraFields based on the provided {@code thing}
-     * and the global configuration this class holds (based on namespace and optional RQL condition).
+     * and the global configuration (based on namespace and optional RQL condition).
      *
      * @param thingId the Thing ID to enrich for
      * @param thing the Thing entity to use for getting extra fields from
      * @param policyId the Policy ID to use for looking up permissions
+     * @param preDefinedExtraFieldsConfigs the list of config entries for pre-defined extraFields enrichment
      * @param withDittoHeaders the object to enrich with pre-defined extraFields (e.g. a Signal)
      * @param <T> the type of the signal to enrich
      * @return an enriched version of the passed in {@code withDittoHeaders} with pre-defined extraFields
@@ -107,6 +101,7 @@ public final class ThingEventEnricher {
             final ThingId thingId,
             @Nullable final Thing thing,
             @Nullable final PolicyId policyId,
+            final List<PreDefinedExtraFieldsConfig> preDefinedExtraFieldsConfigs,
             final T withDittoHeaders
     ) {
         final CompletionStage<T> partialAccessPathsStage =
@@ -136,16 +131,16 @@ public final class ThingEventEnricher {
                 return partialAccessPathsStage;
             }
             
-            return partialAccessPathsStage.thenCompose(enrichedWithPartialAccessPaths ->
-                    buildPredefinedExtraFieldsHeaderReadGrantObject(policyId, combinedPredefinedExtraFields, thing)
+            return partialAccessPathsStage.thenCompose(enrichedWithPartialAccessPaths -> {
+                    final DittoHeaders dittoHeaders = enrichedWithPartialAccessPaths.getDittoHeaders();
+                    return buildPredefinedExtraFieldsHeaderReadGrantObject(
+                            policyId, combinedPredefinedExtraFields, thing, dittoHeaders)
                             .thenApply(indexedGrants -> {
-                                final DittoHeaders currentHeaders = enrichedWithPartialAccessPaths.getDittoHeaders();
-                                
                                 final String extraFieldsKey = DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS.getKey();
                                 final String readGrantKey = DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT.getKey();
                                 final String extraFieldsObjectKey = DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_OBJECT.getKey();
                                 
-                                final DittoHeadersBuilder<?, ?> headersBuilder = currentHeaders.toBuilder()
+                                final DittoHeadersBuilder<?, ?> headersBuilder = dittoHeaders.toBuilder()
                                         .putHeader(extraFieldsKey,
                                                 buildPredefinedExtraFieldsHeaderList(combinedPredefinedExtraFields))
                                         .putHeader(readGrantKey, indexedGrants.pathsToJson().toString())
@@ -154,8 +149,8 @@ public final class ThingEventEnricher {
                                                         combinedPredefinedExtraFields).toString());
                                 
                                 return enrichedWithPartialAccessPaths.setDittoHeaders(headersBuilder.build());
-                            })
-            );
+                            });
+            });
         } else {
             return partialAccessPathsStage;
         }
@@ -180,9 +175,7 @@ public final class ThingEventEnricher {
     }
 
     /**
-     * Applies RQL condition from config, using cached parsed criteria for performance.
-     * Caches only the Criteria (RQL AST), not the Predicate<Thing>, to allow building
-     * fresh predicates with current headers for each event.
+     * Applies RQL condition from config.
      */
     private Predicate<PreDefinedExtraFieldsConfig> applyPredefinedExtraFieldsCondition(
             final Thing thing,
@@ -197,20 +190,9 @@ public final class ThingEventEnricher {
             final String rqlCondition = optCondition.get();
 
             try {
-                final Criteria criteria = RQL_CRITERIA_CACHE.computeIfAbsent(rqlCondition, rql -> {
-                    try {
-                        return QueryFilterCriteriaFactory
-                                .modelBased(RqlPredicateParser.getInstance())
-                                .filterCriteria(rql, DittoHeaders.empty());
-                    } catch (final InvalidRqlExpressionException e) {
-                        LOGGER.warn("Invalid RQL condition <{}> - ignoring: {}", rql, e.getMessage());
-                        return null;
-                    }
-                });
-
-                if (criteria == null) {
-                    return true;
-                }
+                final Criteria criteria = QueryFilterCriteriaFactory
+                        .modelBased(RqlPredicateParser.getInstance())
+                        .filterCriteria(rqlCondition, withDittoHeaders.getDittoHeaders());
 
                 final Predicate<Thing> predicate =
                         ThingPredicateVisitor.apply(
@@ -224,11 +206,16 @@ public final class ThingEventEnricher {
 
                 return predicate.test(thing);
 
+            } catch (final InvalidRqlExpressionException e) {
+                LOGGER.withCorrelationId(withDittoHeaders.getDittoHeaders())
+                        .warn("Invalid RQL condition <{}> - ignoring: {}", rqlCondition, e.getMessage());
+                return true;
             } catch (final Exception e) {
-                LOGGER.warn(
-                        "Error evaluating RQL condition <{}> for predefined extra fields - treating as match: {}",
-                        rqlCondition, e.getMessage(), e
-                );
+                LOGGER.withCorrelationId(withDittoHeaders.getDittoHeaders())
+                        .warn(
+                                "Error evaluating RQL condition <{}> for predefined extra fields - treating as match: {}",
+                                rqlCondition, e.getMessage(), e
+                        );
                 return true;
             }
         };
@@ -243,18 +230,13 @@ public final class ThingEventEnricher {
     }
 
     /**
-     * Safely gets the policy enforcer stage, handling null cases defensively.
+     * Gets the policy enforcer stage.
      *
      * @param policyId the policy ID to get the enforcer for
-     * @return a non-null CompletionStage, completed with empty Optional if the provider returns null
+     * @return CompletionStage with Optional PolicyEnforcer
      */
     private CompletionStage<Optional<PolicyEnforcer>> getPolicyEnforcerSafely(@Nullable final PolicyId policyId) {
-        final CompletionStage<Optional<PolicyEnforcer>> stage = policyEnforcerProvider.getPolicyEnforcer(policyId);
-        if (stage == null) {
-            LOGGER.error("PolicyEnforcerProvider returned null CompletionStage for policyId: {}", policyId);
-            return CompletableFuture.completedFuture(Optional.empty());
-        }
-        return stage;
+        return policyEnforcerProvider.getPolicyEnforcer(policyId);
     }
 
     /**
@@ -264,11 +246,13 @@ public final class ThingEventEnricher {
     private CompletionStage<IndexedReadGrant> buildPredefinedExtraFieldsHeaderReadGrantObject(
             @Nullable final PolicyId policyId,
             final JsonFieldSelector preDefinedExtraFields,
-            final Thing thing
+            final Thing thing,
+            final DittoHeaders dittoHeaders
     ) {
         return getPolicyEnforcerSafely(policyId).thenApply(policyEnforcerOpt -> {
             if (policyEnforcerOpt.isEmpty()) {
-                LOGGER.warn("No policy enforcer found for policyId: {}, returning empty read grant object", policyId);
+                LOGGER.withCorrelationId(dittoHeaders)
+                        .warn("No policy enforcer found for policyId: {}, returning empty read grant object", policyId);
                 return IndexedReadGrant.empty();
             }
 
@@ -297,12 +281,15 @@ public final class ThingEventEnricher {
             final Thing thing,
             @Nullable final PolicyId policyId
     ) {
-        LOGGER.debug("Enriching event '{}' (thingId: {}) with partial access paths, policyId: {}",
-                thingEvent.getType(), thingEvent.getEntityId(), policyId);
+        final DittoHeaders dittoHeaders = thingEvent.getDittoHeaders();
+        LOGGER.withCorrelationId(dittoHeaders)
+                .debug("Enriching event '{}' (thingId: {}) with partial access paths, policyId: {}",
+                        thingEvent.getType(), thingEvent.getEntityId(), policyId);
         return getPolicyEnforcerSafely(policyId).thenApply(policyEnforcerOpt -> {
                     if (policyEnforcerOpt.isEmpty()) {
-                        LOGGER.warn("No policy enforcer found for policyId: {}, returning empty partial access paths",
-                                policyId);
+                        LOGGER.withCorrelationId(dittoHeaders)
+                                .warn("No policy enforcer found for policyId: {}, returning empty partial access paths",
+                                        policyId);
                         return createEmptyPartialAccessPathsJson();
                     }
                     final Map<String, List<JsonPointer>> partialAccessPaths =
@@ -313,8 +300,9 @@ public final class ThingEventEnricher {
                         return createEmptyPartialAccessPathsJson();
                     }
                     final JsonObject result = PartialAccessPathCalculator.toIndexedJsonObject(partialAccessPaths);
-                    LOGGER.debug("Calculated partial access paths for event '{}' (thingId: {}): {} subjects with partial access",
-                            thingEvent.getType(), thingEvent.getEntityId(), partialAccessPaths.size());
+                    LOGGER.withCorrelationId(dittoHeaders)
+                            .debug("Calculated partial access paths for event '{}' (thingId: {}): {} subjects with partial access",
+                                    thingEvent.getType(), thingEvent.getEntityId(), partialAccessPaths.size());
                     return result;
                 });
     }
@@ -326,8 +314,8 @@ public final class ThingEventEnricher {
      */
     private static JsonObject createEmptyPartialAccessPathsJson() {
         return JsonFactory.newObjectBuilder()
-                .set(PartialAccessPathCalculator.SUBJECTS_KEY, JsonFactory.newArray())
-                .set(PartialAccessPathCalculator.PATHS_KEY, JsonFactory.newObject())
+                .set(PartialAccessPathCalculator.SUBJECTS_FIELD_DEFINITION, JsonFactory.newArray())
+                .set(PartialAccessPathCalculator.PATHS_FIELD_DEFINITION, JsonFactory.newObject())
                 .build();
     }
 
@@ -338,7 +326,7 @@ public final class ThingEventEnricher {
      * @return true if there are no subjects, false otherwise
      */
     private static boolean hasNoPartialSubjects(final JsonObject partialAccessPathsJson) {
-        return partialAccessPathsJson.getValue(PartialAccessPathCalculator.SUBJECTS_KEY)
+        return partialAccessPathsJson.getValue(PartialAccessPathCalculator.SUBJECTS_FIELD_DEFINITION)
                 .map(JsonValue::asArray)
                 .map(JsonArray::isEmpty)
                 .orElse(true);
@@ -359,7 +347,8 @@ public final class ThingEventEnricher {
         final DittoHeaders currentHeaders = withDittoHeaders.getDittoHeaders();
         final String partialAccessPathsKey = DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey();
         if (currentHeaders.containsKey(partialAccessPathsKey)) {
-            LOGGER.warn("Overwriting existing {} header", partialAccessPathsKey);
+            LOGGER.withCorrelationId(currentHeaders)
+                    .warn("Overwriting existing {} header", partialAccessPathsKey);
         }
         final DittoHeaders updatedHeaders = currentHeaders.toBuilder()
                 .putHeader(partialAccessPathsKey, partialAccessPathsJson.toString())

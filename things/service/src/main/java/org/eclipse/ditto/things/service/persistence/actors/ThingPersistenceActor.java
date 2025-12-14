@@ -108,7 +108,6 @@ public final class ThingPersistenceActor
         this.distributedPub = distributedPub;
         this.searchShardRegionProxy = searchShardRegionProxy;
         this.thingEventEnricher = new ThingEventEnricher(
-                thingConfig.getEventConfig().getPredefinedExtraFieldsConfigs(),
                 policyEnforcerProvider
         );
     }
@@ -282,6 +281,7 @@ public final class ThingPersistenceActor
                                 .flatMap(Thing::getPolicyId)
                                 .orElse(null)
                         ),
+                thingConfig.getEventConfig().getPredefinedExtraFieldsConfigs(),
                 event
         );
         stage.whenComplete((modifiedEvent, ex) -> {
@@ -337,6 +337,7 @@ public final class ThingPersistenceActor
                         entityId,
                         entity,
                         Optional.ofNullable(entity).flatMap(Thing::getPolicyId).orElse(null),
+                        thingConfig.getEventConfig().getPredefinedExtraFieldsConfigs(),
                         messageCommand
                 );
             case ThingEvent<?> thingEvent ->
@@ -344,6 +345,7 @@ public final class ThingPersistenceActor
                         entityId,
                         entity,
                         Optional.ofNullable(entity).flatMap(Thing::getPolicyId).orElse(null),
+                        thingConfig.getEventConfig().getPredefinedExtraFieldsConfigs(),
                         thingEvent
                 );
             default ->

@@ -335,7 +335,7 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
                 .forEach(pointerAndValue -> {
                     final JsonPointer subPointer = pointerAndValue.pointer.getSubPointer(levelCount).orElseThrow(() -> {
                         final String msgPattern = "JsonPointer did not contain a sub-pointer for level <{0}>!";
-                        return new NullPointerException(MessageFormat.format(msgPattern, levelCount));
+                        return new IllegalStateException(MessageFormat.format(msgPattern, levelCount));
                     });
                     builder.set(resourcePath.append(subPointer), pointerAndValue.value);
                 });
@@ -428,7 +428,7 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
                 .forEach(pointerAndValue -> {
                     final JsonPointer subPointer = pointerAndValue.pointer.getSubPointer(levelCount).orElseThrow(() -> {
                         final String msgPattern = "JsonPointer did not contain a sub-pointer for level <{0}>!";
-                        return new NullPointerException(MessageFormat.format(msgPattern, levelCount));
+                        return new IllegalStateException(MessageFormat.format(msgPattern, levelCount));
                     });
                     accessiblePaths.add(resourcePath.append(subPointer));
                 });

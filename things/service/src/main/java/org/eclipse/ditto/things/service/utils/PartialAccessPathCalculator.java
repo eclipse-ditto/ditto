@@ -24,7 +24,10 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonArrayBuilder;
+import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
@@ -53,14 +56,16 @@ import org.eclipse.ditto.things.model.Thing;
 public final class PartialAccessPathCalculator {
 
     /**
-     * JSON key for the subjects array in the partial access paths structure.
+     * JSON field definition for the subjects array in the partial access paths structure.
      */
-    public static final String SUBJECTS_KEY = "subjects";
+    public static final JsonFieldDefinition<JsonArray> SUBJECTS_FIELD_DEFINITION =
+            JsonFactory.newJsonArrayFieldDefinition("subjects", FieldType.REGULAR);
     
     /**
-     * JSON key for the paths object in the partial access paths structure.
+     * JSON field definition for the paths object in the partial access paths structure.
      */
-    public static final String PATHS_KEY = "paths";
+    public static final JsonFieldDefinition<JsonObject> PATHS_FIELD_DEFINITION =
+            JsonFactory.newJsonObjectFieldDefinition("paths", FieldType.REGULAR);
 
     private static final JsonPointer ROOT_RESOURCE_POINTER = JsonPointer.empty();
     private static final Permissions READ_PERMISSIONS = Permissions.newInstance(Permission.READ);
@@ -85,7 +90,7 @@ public final class PartialAccessPathCalculator {
             @Nullable final Thing thing,
             final PolicyEnforcer policyEnforcer) {
 
-        if (thing == null || policyEnforcer == null) {
+        if (thing == null) {
             return Map.of();
         }
 
@@ -179,10 +184,7 @@ public final class PartialAccessPathCalculator {
         final Set<JsonPointer> accessiblePaths = enforcer.getAccessiblePaths(
                 PoliciesResourceType.thingResource(ROOT_RESOURCE_POINTER),
                 thingJson,
-                AuthorizationContext.newInstance(
-                        DittoAuthorizationContextType.UNSPECIFIED,
-                        subject
-                ),
+                subject,
                 READ_PERMISSIONS
         );
 
@@ -218,10 +220,9 @@ public final class PartialAccessPathCalculator {
      *
      * @param partialAccessPaths the map to convert (subject ID -> list of accessible paths)
      * @return an indexed JSON object with subjects array and paths mapping to subject indices
-     * @throws NullPointerException if partialAccessPaths is null
      */
     public static JsonObject toIndexedJsonObject(final Map<String, List<JsonPointer>> partialAccessPaths) {
-        if (partialAccessPaths == null || partialAccessPaths.isEmpty()) {
+        if (partialAccessPaths.isEmpty()) {
             return createEmptyIndexedJsonObject();
         }
 
@@ -240,8 +241,8 @@ public final class PartialAccessPathCalculator {
      */
     private static JsonObject createEmptyIndexedJsonObject() {
         return JsonFactory.newObjectBuilder()
-                .set(SUBJECTS_KEY, JsonFactory.newArray())
-                .set(PATHS_KEY, JsonFactory.newObject())
+                .set(SUBJECTS_FIELD_DEFINITION, JsonFactory.newArray())
+                .set(PATHS_FIELD_DEFINITION, JsonFactory.newObject())
                 .build();
     }
 
@@ -330,8 +331,8 @@ public final class PartialAccessPathCalculator {
         }
 
         return JsonFactory.newObjectBuilder()
-                .set(SUBJECTS_KEY, subjectsArray.build())
-                .set(PATHS_KEY, pathsBuilder.build())
+                .set(SUBJECTS_FIELD_DEFINITION, subjectsArray.build())
+                .set(PATHS_FIELD_DEFINITION, pathsBuilder.build())
                 .build();
     }
 }

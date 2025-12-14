@@ -64,6 +64,28 @@ public final class AdaptablePartialAccessFilter {
                 PartialAccessPathResolver.resolveAccessiblePathsFromHeader(
                         partialAccessPathsHeader, subscriberAuthContext, headers);
 
+        return filterAdaptableWithResult(adaptable, result);
+    }
+
+    /**
+     * Filters an {@link Adaptable} payload based on a pre-resolved {@link PartialAccessPathResolver.AccessiblePathsResult}.
+     * This method is useful when you want to filter based on all partial-access subjects (union of paths)
+     * rather than a specific subscriber's context.
+     *
+     * @param adaptable the adaptable to filter
+     * @param result the pre-resolved accessible paths result
+     * @return filtered adaptable, or original if no filtering is needed
+     */
+    public static Adaptable filterAdaptableWithResult(
+            final Adaptable adaptable,
+            final PartialAccessPathResolver.AccessiblePathsResult result) {
+
+        final TopicPath topicPath = adaptable.getTopicPath();
+        if (!TopicPath.Group.THINGS.equals(topicPath.getGroup()) ||
+                !TopicPath.Criterion.EVENTS.equals(topicPath.getCriterion())) {
+            return adaptable;
+        }
+
         if (result.hasUnrestrictedAccess()) {
             return adaptable;
         }
