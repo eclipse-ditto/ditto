@@ -128,16 +128,19 @@ public final class PartialAccessPathCalculator {
             final Enforcer enforcer,
             final ResourceKey rootResourceKey) {
 
-        // Get subjects with permission on exactly the root resource (not sub-resources)
-        // These subjects have full access and don't need partial paths
         final var effectedSubjects = enforcer.getSubjectsWithPermission(rootResourceKey, READ_PERMISSIONS);
         final Set<AuthorizationSubject> subjectsWithPermissionOnRoot = effectedSubjects.getGranted();
-        
-        // Filter to get only subjects with partial (restricted) access
+
+        final Set<AuthorizationSubject> subjectsWithUnrestrictedPermission =
+                enforcer.getSubjectsWithUnrestrictedPermission(rootResourceKey, READ_PERMISSIONS);
+
+        final Set<AuthorizationSubject> subjectsWithFullAccessOnRoot = new LinkedHashSet<>(subjectsWithPermissionOnRoot);
+        subjectsWithFullAccessOnRoot.retainAll(subjectsWithUnrestrictedPermission);
+
         final Set<AuthorizationSubject> subjectsWithRestrictedAccess =
                 new LinkedHashSet<>(subjectsWithPartialPermission);
-        subjectsWithRestrictedAccess.removeAll(subjectsWithPermissionOnRoot);
-        
+        subjectsWithRestrictedAccess.removeAll(subjectsWithFullAccessOnRoot);
+
         return subjectsWithRestrictedAccess;
     }
 
