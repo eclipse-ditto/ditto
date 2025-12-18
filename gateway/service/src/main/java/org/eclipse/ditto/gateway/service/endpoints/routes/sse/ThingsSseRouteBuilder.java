@@ -756,7 +756,9 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                 returnValue = filteredThingJson;
             }
         }
-        return (filteredThingJson.isEmpty() || null == returnValue) ? Collections.emptyList() :
+
+        final boolean filteredBecameEmpty = filteredThingJson.isEmpty() && !thingJson.isEmpty();
+        return (filteredBecameEmpty || null == returnValue) ? Collections.emptyList() :
                 Collections.singletonList(returnValue);
     }
 

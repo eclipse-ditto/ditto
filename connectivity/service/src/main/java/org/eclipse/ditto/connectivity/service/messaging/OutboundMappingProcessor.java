@@ -328,15 +328,10 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
                             TopicPath.Criterion.EVENTS.equals(topicPath.getCriterion());
                     
                     if (isThingEvent && doFilter) {
-                        final var valueOpt = effective.getPayload().getValue();
-                        
-                        final boolean emptyObject = valueOpt
-                                .map(v -> v.isObject() && v.asObject().isEmpty())
-                                .orElse(true);
-                        
-                        final boolean emptyPrimitive = valueOpt.isEmpty();
-                        
-                        if (emptyObject || emptyPrimitive) {
+                        final boolean filteredEmpty = isEmptyPayloadForDrop(effective);
+                        final boolean originalEmpty = isEmptyPayloadForDrop(baseAdaptable);
+
+                        if (filteredEmpty && !originalEmpty) {
                             logger.withCorrelationId(source)
                                     .debug("Skipping event for target {} - filtered payload is empty (no access)",
                                             target.getAddress());
@@ -404,7 +399,16 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
         
         return rootHeaders.containsKey(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey());
     }
-    
+
+    private static boolean isEmptyPayloadForDrop(final Adaptable adaptable) {
+        final var valueOpt = adaptable.getPayload().getValue();
+        final boolean emptyObject = valueOpt
+                .map(v -> v.isObject() && !v.isNull() && v.asObject().isEmpty())
+                .orElse(true);
+        final boolean emptyPrimitive = valueOpt.isEmpty();
+        return emptyObject || emptyPrimitive;
+    }
+
     /**
      * Creates a base Adaptable with extra fields and correlation ID set.
      * This method centralizes the common logic for creating Adaptables to avoid duplication.

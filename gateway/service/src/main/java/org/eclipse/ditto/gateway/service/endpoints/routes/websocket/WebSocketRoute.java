@@ -789,7 +789,16 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                             })
                             .orElse(false);
 
-                    if (isThingEvent && isEmptyPayload) {
+                    final boolean isEmptyOriginalPayload = adaptable.getPayload().getValue()
+                            .map(value -> {
+                                if (value.isObject() && !value.isNull()) {
+                                    return value.asObject().isEmpty();
+                                }
+                                return false;
+                            })
+                            .orElse(false);
+
+                    if (isThingEvent && isEmptyPayload && !isEmptyOriginalPayload) {
                         issuePotentialWeakAcknowledgements(sessionedJsonifiable);
                         sessionedJsonifiable.finishSpan();
                         return Collections.emptyList();
