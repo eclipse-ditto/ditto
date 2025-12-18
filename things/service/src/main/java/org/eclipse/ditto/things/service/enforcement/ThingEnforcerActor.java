@@ -41,6 +41,7 @@ import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.base.model.namespaces.NamespaceBlockedException;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.base.service.config.supervision.LocalAskTimeoutConfig;
 import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
@@ -128,11 +129,12 @@ public final class ThingEnforcerActor
             final ThingsConfig thingsConfig,
             final ThingEnforcement thingEnforcement,
             final AskWithRetryConfig askWithRetryConfig,
+            final LocalAskTimeoutConfig localAskTimeoutConfig,
             final ActorRef policiesShardRegion,
             final ActorRef thingsShardRegion,
-            final PolicyEnforcerProvider policyEnforcerProvider) {
-
-        super(thingId, thingEnforcement, policyEnforcerProvider);
+            final PolicyEnforcerProvider policyEnforcerProvider
+    ) {
+        super(thingId, thingEnforcement, policyEnforcerProvider, localAskTimeoutConfig);
 
         this.policiesShardRegion = policiesShardRegion;
         this.askWithRetryConfig = askWithRetryConfig;
@@ -153,6 +155,7 @@ public final class ThingEnforcerActor
      * @param thingsConfig the static Things configuration of the system.
      * @param thingEnforcement the thing enforcement logic to apply in the enforcer.
      * @param askWithRetryConfig used to configure retry mechanism policy loading.
+     * @param localAskTimeoutConfig the configuration for determining local "ask" timeouts.
      * @param policiesShardRegion used to create the policy when handling create thing commands.
      * @param thingsShardRegion used to resolve policy placeholder.
      * @param policyEnforcerProvider used to load the policy enforcer.
@@ -162,12 +165,14 @@ public final class ThingEnforcerActor
             final ThingsConfig thingsConfig,
             final ThingEnforcement thingEnforcement,
             final AskWithRetryConfig askWithRetryConfig,
+            final LocalAskTimeoutConfig localAskTimeoutConfig,
             final ActorRef policiesShardRegion,
             final ActorRef thingsShardRegion,
             final PolicyEnforcerProvider policyEnforcerProvider) {
 
         return Props.create(ThingEnforcerActor.class, thingId, thingsConfig, thingEnforcement, askWithRetryConfig,
-                policiesShardRegion, thingsShardRegion, policyEnforcerProvider).withDispatcher(ENFORCEMENT_DISPATCHER);
+                localAskTimeoutConfig, policiesShardRegion, thingsShardRegion, policyEnforcerProvider
+                ).withDispatcher(ENFORCEMENT_DISPATCHER);
     }
 
     @Override
@@ -262,7 +267,7 @@ public final class ThingEnforcerActor
                         )
         ) {
             return Patterns.ask(getContext().getParent(),
-                    new EnrichSignalWithPreDefinedExtraFields(signal), DEFAULT_LOCAL_ASK_TIMEOUT
+                    new EnrichSignalWithPreDefinedExtraFields(signal), determineAskTimeoutForLocalActorInvocations()
                     // it might also take longer, as resolving a policy may be involved - in that case, the optimization is simply not done
             ).handle((response, t) -> {
                 if (response instanceof EnrichSignalWithPreDefinedExtraFieldsResponse(Signal<?> enrichedSignal)) {
@@ -626,7 +631,7 @@ public final class ThingEnforcerActor
                                     Boolean.TRUE.toString())
                             .build()))
             );
-            return Patterns.ask(getContext().getParent(), sudoRetrieveThing, DEFAULT_LOCAL_ASK_TIMEOUT)
+            return Patterns.ask(getContext().getParent(), sudoRetrieveThing, determineAskTimeoutForLocalActorInvocations())
                     .thenApply(
                             response -> {
                                 final PolicyId retrievedPolicyId =
@@ -644,7 +649,7 @@ public final class ThingEnforcerActor
                         DittoHeaders.newBuilder()
                                 .correlationId("sudoRetrieveThingFromThingEnforcerActor-" + UUID.randomUUID())
                                 .build()
-                ), DEFAULT_LOCAL_ASK_TIMEOUT
+                ), determineAskTimeoutForLocalActorInvocations()
         ).thenApply(response -> {
             if (response instanceof SudoRetrieveThingResponse) {
                 return true;
@@ -835,7 +840,7 @@ public final class ThingEnforcerActor
                         DittoHeaders.newBuilder()
                                 .correlationId("sudoRetrieveThingDefinitionFromThingEnforcerActor-" + UUID.randomUUID())
                                 .build()
-                ), DEFAULT_LOCAL_ASK_TIMEOUT
+                ), determineAskTimeoutForLocalActorInvocations()
         ).thenApply(response -> {
             if (response instanceof SudoRetrieveThingResponse sudoRetrieveThingResponse) {
                 return sudoRetrieveThingResponse.getThing().getDefinition();
@@ -855,7 +860,7 @@ public final class ThingEnforcerActor
                                 .correlationId(
                                         "sudoRetrieveThingAndFeatureDefinitionFromThingEnforcerActor-" + UUID.randomUUID())
                                 .build()
-                ), DEFAULT_LOCAL_ASK_TIMEOUT
+                ), determineAskTimeoutForLocalActorInvocations()
         ).thenApply(response -> {
             if (response instanceof SudoRetrieveThingResponse sudoRetrieveThingResponse) {
                 return new Pair<>(sudoRetrieveThingResponse.getThing().getDefinition(),

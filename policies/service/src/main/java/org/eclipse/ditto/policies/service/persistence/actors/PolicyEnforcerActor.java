@@ -19,6 +19,7 @@ import java.util.function.Function;
 
 import org.apache.pekko.actor.Props;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.service.config.supervision.LocalAskTimeoutConfig;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.policies.enforcement.AbstractPolicyLoadingEnforcerActor;
 import org.eclipse.ditto.policies.enforcement.PolicyCacheLoader;
@@ -39,9 +40,12 @@ public final class PolicyEnforcerActor extends
         AbstractPolicyLoadingEnforcerActor<PolicyId, Signal<?>, PolicyCommandResponse<?>, PolicyCommandEnforcement> {
 
     @SuppressWarnings("unused")
-    private PolicyEnforcerActor(final PolicyId policyId, final PolicyCommandEnforcement policyCommandEnforcement,
-            final PolicyEnforcerProvider policyEnforcerProvider) {
-        super(policyId, policyCommandEnforcement, policyEnforcerProvider);
+    private PolicyEnforcerActor(final PolicyId policyId,
+            final PolicyCommandEnforcement policyCommandEnforcement,
+            final PolicyEnforcerProvider policyEnforcerProvider,
+            final LocalAskTimeoutConfig localAskTimeoutConfig
+    ) {
+        super(policyId, policyCommandEnforcement, policyEnforcerProvider, localAskTimeoutConfig);
     }
 
     /**
@@ -50,12 +54,14 @@ public final class PolicyEnforcerActor extends
      * @param policyId the PolicyId this enforcer actor is responsible for.
      * @param policyCommandEnforcement the policy command enforcement logic to apply in the enforcer.
      * @param policyEnforcerProvider the policy enforcer provider.
+     * @param localAskTimeoutConfig the configuration for determining local "ask" timeouts.
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final PolicyId policyId, final PolicyCommandEnforcement policyCommandEnforcement,
-            final PolicyEnforcerProvider policyEnforcerProvider) {
-        return Props.create(PolicyEnforcerActor.class, policyId, policyCommandEnforcement, policyEnforcerProvider)
-                .withDispatcher(ENFORCEMENT_DISPATCHER);
+            final PolicyEnforcerProvider policyEnforcerProvider, final LocalAskTimeoutConfig localAskTimeoutConfig) {
+        return Props.create(PolicyEnforcerActor.class, policyId, policyCommandEnforcement, policyEnforcerProvider,
+                        localAskTimeoutConfig
+                ).withDispatcher(ENFORCEMENT_DISPATCHER);
     }
 
     @Override

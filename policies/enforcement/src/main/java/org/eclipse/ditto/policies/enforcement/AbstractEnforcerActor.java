@@ -32,6 +32,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.base.service.config.supervision.LocalAskTimeoutConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.pekko.actors.AbstractActorWithStashWithTimers;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
@@ -58,26 +59,29 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
 
     public static final String ENFORCEMENT_DISPATCHER = "enforcement-dispatcher";
 
-    /**
-     * Timeout for local actor invocations - a small timeout should be more than sufficient as those are just method
-     * calls.
-     */
-    protected static final Duration DEFAULT_LOCAL_ASK_TIMEOUT = Duration.ofSeconds(5);
-
     protected final ThreadSafeDittoLoggingAdapter log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
 
     protected final I entityId;
     protected final E enforcement;
     protected final PreEnforcerProvider preEnforcer;
     protected final ExecutionContextExecutor enforcementExecutor;
+    protected final Duration localAskTimeout;
+    protected final Duration localAskTimeoutDuringRecovery;
 
-    protected AbstractEnforcerActor(final I entityId, final E enforcement) {
+    private boolean paRecovered = false;
+
+    protected AbstractEnforcerActor(final I entityId,
+            final E enforcement,
+            final LocalAskTimeoutConfig localAskTimeoutConfig
+    ) {
         this.entityId = entityId;
         this.enforcement = enforcement;
         final var system = getContext().getSystem();
         final var dittoExtensionsConfig = ScopedConfig.dittoExtension(system.settings().config());
         preEnforcer = PreEnforcerProvider.get(system, dittoExtensionsConfig);
         enforcementExecutor = getContext().getSystem().dispatchers().lookup(ENFORCEMENT_DISPATCHER);
+        this.localAskTimeout = localAskTimeoutConfig.getLocalAskTimeout();
+        this.localAskTimeoutDuringRecovery = localAskTimeoutConfig.getLocalAskTimeoutDuringRecovery();
     }
 
     /**
@@ -109,6 +113,7 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
                 )
                 .match(CommandResponse.class, r -> replyWithFilteredCommandResponse((R) r))
                 .match(Signal.class, s -> enforceSignal((S) s))
+                .matchEquals(Control.PA_RECOVERED, this::paRecovered)
                 .matchAny(message ->
                         log.withCorrelationId(
                                         message instanceof WithDittoHeaders withDittoHeaders ? withDittoHeaders : null)
@@ -119,6 +124,19 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
     protected CompletionStage<Optional<PolicyEnforcer>> loadPolicyEnforcer(final Signal<?> signal) {
         return providePolicyIdForEnforcement(signal)
                 .thenComposeAsync(this::providePolicyEnforcer, enforcementExecutor);
+    }
+
+    private void paRecovered(final Control paRecoveredTrigger) {
+        log.debug("Persistence actor for entity with ID <{}> signaled it was recovered", entityId);
+        paRecovered = true;
+    }
+
+    protected Duration determineAskTimeoutForLocalActorInvocations() {
+        if (paRecovered) {
+            return localAskTimeout;
+        } else {
+            return localAskTimeoutDuringRecovery;
+        }
     }
 
     /**
@@ -337,4 +355,13 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
         }
     }
 
+    /**
+     * Control message for the enforcer actor.
+     */
+    public enum Control {
+        /**
+         * Signals that the PA (PersistenceActor) has been recovered from the database.
+         */
+        PA_RECOVERED
+    }
 }

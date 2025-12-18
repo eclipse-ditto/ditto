@@ -310,7 +310,8 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
         } else if (message instanceof ThingQueryCommand<?> thingQueryCommand &&
                 Signal.isChannelSmart(thingQueryCommand)) {
 
-            return smartChannelDispatching.dispatchSmartChannelThingQueryCommand(thingQueryCommand, sender);
+            return smartChannelDispatching.dispatchSmartChannelThingQueryCommand(thingQueryCommand, sender,
+                    determineAskTimeoutForPersistenceActorForwarding(true));
         } else if (message instanceof ThingQueryCommand<?> thingQueryCommand &&
                 Command.isLiveCommand(thingQueryCommand)) {
 
@@ -334,7 +335,8 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
                     if (pair.command() instanceof RetrieveThing retrieveThing &&
                             SupervisorInlinePolicyEnrichment.shouldRetrievePolicyWithThing(retrieveThing) &&
                             pair.response() instanceof RetrieveThingResponse retrieveThingResponse) {
-                        return inlinePolicyEnrichment.enrichPolicy(retrieveThing, retrieveThingResponse)
+                        return inlinePolicyEnrichment.enrichPolicy(retrieveThing, retrieveThingResponse,
+                                        determineAskTimeoutForPersistenceActorForwarding(true))
                                 .map(Object.class::cast);
                     } else if (RollbackCreatedPolicy.shouldRollbackBasedOnTargetActorResponse(pair.command(),
                             pair.response())) {
@@ -430,7 +432,10 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
                 new ThingEnforcement(policiesShardRegion, system, enforcementConfig);
 
         return ThingEnforcerActor.props(entityId, thingsConfig, thingEnforcement,
-                enforcementConfig.getAskWithRetryConfig(), policiesShardRegion, thingsShardRegion, policyEnforcerProvider);
+                enforcementConfig.getAskWithRetryConfig(),
+                thingsConfig.getThingConfig().getSupervisorConfig().getLocalAskTimeoutConfig(),
+                policiesShardRegion, thingsShardRegion, policyEnforcerProvider
+        );
     }
 
     @Override

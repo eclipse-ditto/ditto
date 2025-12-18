@@ -18,12 +18,19 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.enforcement.config.EnforcementConfig;
@@ -38,21 +45,11 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccess
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSelection;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.pattern.Patterns;
-import org.apache.pekko.stream.javadsl.Sink;
-import org.apache.pekko.stream.javadsl.Source;
-
 /**
  * Functionality used in {@link ThingSupervisorActor} for retrieving an inline {@code Policy} together with a
  * {@link RetrieveThing} command.
  */
 final class SupervisorInlinePolicyEnrichment {
-
-    private static final Duration DEFAULT_LOCAL_ASK_TIMEOUT = Duration.ofSeconds(5);
 
     private final ActorSystem actorSystem;
     private final ThreadSafeDittoLoggingAdapter log;
@@ -101,12 +98,13 @@ final class SupervisorInlinePolicyEnrichment {
      * @param retrieveThing the RetrieveThing command which contains a field selector with {@code "_policy"} field
      * @param retrieveThingResponse the response from the thing persistence actor containing the Thing JSON to enrich
      * with the policy.
+     * @param localAskTimeout the "ask" timeout to apply when retrieving the policyId from the thing.
      * @return a Source of a single RetrieveThingResponse combining Thing JSON and inlined {@code "_policy"}
      */
     Source<RetrieveThingResponse, NotUsed> enrichPolicy(final RetrieveThing retrieveThing,
-            final RetrieveThingResponse retrieveThingResponse) {
+            final RetrieveThingResponse retrieveThingResponse, final Duration localAskTimeout) {
 
-        return retrievePolicyIdViaSudoRetrieveThing()
+        return retrievePolicyIdViaSudoRetrieveThing(localAskTimeout)
                 .map(SudoRetrieveThingResponse::getThing)
                 .map(Thing::getPolicyId)
                 .map(optionalPolicyId -> optionalPolicyId.orElseThrow(() -> {
@@ -145,15 +143,16 @@ final class SupervisorInlinePolicyEnrichment {
                 });
     }
 
-    private Source<SudoRetrieveThingResponse, NotUsed> retrievePolicyIdViaSudoRetrieveThing() {
-
+    private Source<SudoRetrieveThingResponse, NotUsed> retrievePolicyIdViaSudoRetrieveThing(
+            final Duration localAskTimeout
+    ) {
         final CompletionStage<Object> askForThing =
                 Patterns.ask(thingPersistenceActor, SudoRetrieveThing.of(thingId,
                                 JsonFieldSelector.newInstance("policyId"),
                                 DittoHeaders.newBuilder()
                                         .correlationId("retrievePolicyIdViaSudoRetrieveThing-" + UUID.randomUUID())
                                         .build()
-                        ), DEFAULT_LOCAL_ASK_TIMEOUT
+                        ), localAskTimeout
                 );
         return Source.completionStage(askForThing)
                 .map(response -> {
