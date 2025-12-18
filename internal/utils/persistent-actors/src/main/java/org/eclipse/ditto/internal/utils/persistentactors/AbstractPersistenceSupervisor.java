@@ -584,7 +584,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         }
     }
 
-    private Duration determineAskTimeoutForPersistenceActorForwarding(final boolean shouldSendResponse) {
+    protected Duration determineAskTimeoutForPersistenceActorForwarding(final boolean shouldSendResponse) {
         if (shouldSendResponse) {
             if (paRecovered) {
                 return localAskTimeout;
@@ -636,6 +636,9 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     private void paRecovered(final Control paRecoveredTrigger) {
         log.debug("Persistence actor for entity with ID <{}> signaled it was recovered", entityId);
         paRecovered = true;
+        if (enforcerChild != null) {
+            enforcerChild.tell(Control.PA_RECOVERED, getSender());
+        }
     }
 
     private void startChildren(final Control startChild) {

@@ -48,7 +48,6 @@ import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandRe
 final class SupervisorSmartChannelDispatching {
 
     private static final Duration DEFAULT_LIVE_TIMEOUT = Duration.ofSeconds(60L);
-    private static final Duration DEFAULT_LOCAL_ASK_TIMEOUT = Duration.ofSeconds(5);
 
     private final ThreadSafeDittoLoggingAdapter log;
     private final ActorSelection thingsPersistenceActor;
@@ -76,13 +75,15 @@ final class SupervisorSmartChannelDispatching {
      *
      * @param thingQueryCommand the command to handle as "smart channel selection" query command
      * @param sender the original sender of the command required for responding the live response to
+     * @param localAskTimeout the "ask" timeout to apply for local "ask" operations
      * @return a CompletionStage which will be completed with a target actor and a message to send to this target actor
      */
     CompletionStage<TargetActorWithMessage> dispatchSmartChannelThingQueryCommand(
             final ThingQueryCommand<?> thingQueryCommand,
-            final ActorRef sender) {
-
-        return initSmartChannelSelection(thingQueryCommand)
+            final ActorRef sender,
+            final Duration localAskTimeout
+    ) {
+        return initSmartChannelSelection(thingQueryCommand, localAskTimeout)
                 .thenCompose(twinQueryCommandResponse -> {
                     if (shouldAttemptLiveChannel(thingQueryCommand, twinQueryCommandResponse)) {
                         // perform conversion + publishing of live command
@@ -108,10 +109,11 @@ final class SupervisorSmartChannelDispatching {
     }
 
     private CompletionStage<ThingQueryCommandResponse<?>> initSmartChannelSelection(
-            final ThingQueryCommand<?> thingQueryCommand) {
+            final ThingQueryCommand<?> thingQueryCommand, final Duration localAskTimeout
+    ) {
         final ThingQueryCommand<?> twinQueryCommand = ensureTwinChannel(thingQueryCommand);
 
-        return Patterns.ask(thingsPersistenceActor, twinQueryCommand, DEFAULT_LOCAL_ASK_TIMEOUT)
+        return Patterns.ask(thingsPersistenceActor, twinQueryCommand, localAskTimeout)
                 .thenApply(response -> handleSmartChannelTwinResponse(thingQueryCommand, response));
     }
 

@@ -47,6 +47,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.signals.commands.streaming.SubscribeForPersistedEvents;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
+import org.eclipse.ditto.base.service.config.supervision.DefaultLocalAskTimeoutConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
@@ -808,7 +809,8 @@ public final class PolicyCommandEnforcementTest {
 
         @Override
         protected Props getPersistenceEnforcerProps(final PolicyId entityId) {
-            return PolicyEnforcerActor.props(entityId, new PolicyCommandEnforcement(), policyEnforcerProvider);
+            return PolicyEnforcerActor.props(entityId, new PolicyCommandEnforcement(), policyEnforcerProvider,
+                    DefaultLocalAskTimeoutConfig.of(ConfigFactory.empty()));
         }
 
         @Override
