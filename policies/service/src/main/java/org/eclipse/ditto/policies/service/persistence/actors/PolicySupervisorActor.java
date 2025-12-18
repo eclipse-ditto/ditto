@@ -114,7 +114,9 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
 
     @Override
     protected Props getPersistenceEnforcerProps(final PolicyId entityId) {
-        return PolicyEnforcerActor.props(entityId, new PolicyCommandEnforcement(), policyEnforcerProvider);
+        return PolicyEnforcerActor.props(entityId, new PolicyCommandEnforcement(), policyEnforcerProvider,
+                policiesConfig.getPolicyConfig().getSupervisorConfig().getLocalAskTimeoutConfig()
+        );
     }
 
     @Override

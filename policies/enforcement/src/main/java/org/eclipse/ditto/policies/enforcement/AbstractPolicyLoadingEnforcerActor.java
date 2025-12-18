@@ -21,6 +21,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.base.service.config.supervision.LocalAskTimeoutConfig;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
 
@@ -40,8 +41,10 @@ public abstract class AbstractPolicyLoadingEnforcerActor<I extends EntityId, S e
 
     protected AbstractPolicyLoadingEnforcerActor(final I entityId,
             final E enforcement,
-            final PolicyEnforcerProvider policyEnforcerProvider) {
-        super(entityId, enforcement);
+            final PolicyEnforcerProvider policyEnforcerProvider,
+            final LocalAskTimeoutConfig localAskTimeoutConfig
+    ) {
+        super(entityId, enforcement, localAskTimeoutConfig);
         this.policyEnforcerProvider = policyEnforcerProvider;
     }
 
