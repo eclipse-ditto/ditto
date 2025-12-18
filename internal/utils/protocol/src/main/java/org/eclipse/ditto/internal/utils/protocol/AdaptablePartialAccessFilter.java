@@ -96,15 +96,14 @@ public final class AdaptablePartialAccessFilter {
 
         final Set<JsonPointer> accessiblePaths = result.getAccessiblePaths();
         final boolean isPayloadObject = adaptable.getPayload().getValue()
-                .map(JsonValue::isObject)
+                // JsonNull reports isObject()==true (and can be coerced to JsonObjectNull),
+                // but we must not treat "null" payloads as objects for filtering purposes.
+                .map(value -> value.isObject() && !value.isNull())
                 .orElse(false);
-        final JsonPointer eventPath = adaptable.getPayload().getPath();
+        final JsonPointer eventPath = JsonPointer.of(adaptable.getPayload().getPath().toString());
 
         if (!isPayloadObject) {
-            final PathTrie pathTrie = PathTrie.fromPaths(accessiblePaths);
-            final boolean isExactMatch = pathTrie.isExactMatch(eventPath);
-            final boolean hasAccessibleDescendant = pathTrie.hasAccessibleDescendant(eventPath);
-            final boolean isPathAccessible = isExactMatch || hasAccessibleDescendant;
+            final boolean isPathAccessible = isPathAccessibleForNonObjectPayload(eventPath, accessiblePaths);
             if (!isPathAccessible) {
                 return createEmptyPayloadAdaptable(adaptable);
             }
@@ -139,6 +138,27 @@ public final class AdaptablePartialAccessFilter {
                         .withValue(filteredPayload)
                         .build())
                 .build();
+    }
+
+    private static boolean isPathAccessibleForNonObjectPayload(final JsonPointer eventPath,
+            final Set<JsonPointer> accessiblePaths) {
+        if (accessiblePaths.isEmpty()) {
+            return false;
+        }
+
+        final String eventPathStr = eventPath.toString();
+        for (final JsonPointer accessiblePath : accessiblePaths) {
+            final String accessiblePathStr = accessiblePath.toString();
+            if (eventPathStr.equals(accessiblePathStr) ||
+                    eventPathStr.startsWith(accessiblePathStr + "/") ||
+                    "/".equals(accessiblePathStr)) {
+                return true;
+            }
+            if (accessiblePathStr.startsWith(eventPathStr + "/")) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }

@@ -768,33 +768,33 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                     .map(session -> sessionedJsonifiable.getSessionAuthorizationContext()
                             .orElse(sessionedJsonifiable.getDittoHeaders().getAuthorizationContext()))
                     .orElse(null);
-            
+
             final Adaptable adaptable = jsonifiableToAdaptable(jsonifiable, adapter, subscriberAuthContext);
-            
+
             final CompletionStage<JsonObject> extraFuture = sessionedJsonifiable.retrieveExtraFields(facade);
             return extraFuture.<Collection<String>>thenApply(extra -> {
                 if (matchesFilter(sessionedJsonifiable, extra)) {
                     final Adaptable filteredAdaptable = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
                             adaptable, subscriberAuthContext);
-                    
+
                     final boolean isThingEvent = TopicPath.Group.THINGS.equals(filteredAdaptable.getTopicPath().getGroup()) &&
                             TopicPath.Criterion.EVENTS.equals(filteredAdaptable.getTopicPath().getCriterion());
-                    
+
                     final boolean isEmptyPayload = filteredAdaptable.getPayload().getValue()
                             .map(value -> {
-                                if (value.isObject()) {
+                                if (value.isObject() && !value.isNull()) {
                                     return value.asObject().isEmpty();
                                 }
                                 return false;
                             })
-                            .orElse(true);
-                    
+                            .orElse(false);
+
                     if (isThingEvent && isEmptyPayload) {
                         issuePotentialWeakAcknowledgements(sessionedJsonifiable);
                         sessionedJsonifiable.finishSpan();
                         return Collections.emptyList();
                     }
-                    
+
                     return Collections.singletonList(toJsonStringWithExtra(filteredAdaptable, extra));
                 }
                 issuePotentialWeakAcknowledgements(sessionedJsonifiable);
@@ -918,10 +918,10 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private static Adaptable jsonifiableToAdaptable(final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable,
             final ProtocolAdapter adapter, @Nullable final AuthorizationContext subscriberContext) {
         final Adaptable adaptable;
-        final TopicPath.Channel channel = jsonifiable instanceof Signal signal 
-                ? ProtocolAdapter.determineChannel(signal) 
+        final TopicPath.Channel channel = jsonifiable instanceof Signal signal
+                ? ProtocolAdapter.determineChannel(signal)
                 : TopicPath.Channel.TWIN;
-        
+
         if (jsonifiable instanceof Signal signal) {
             adaptable = adapter.toAdaptable(signal, channel, subscriberContext);
         } else if (jsonifiable instanceof DittoRuntimeException dittoRuntimeException) {
