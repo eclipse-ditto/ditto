@@ -64,6 +64,7 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.websocket.WebSocketRouteBuilder;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiRoute;
+import org.eclipse.ditto.gateway.service.endpoints.routes.wot.WotDiscoveryThingDirectoryRoute;
 import org.eclipse.ditto.gateway.service.endpoints.utils.DittoRejectionHandlerFactory;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationResult;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
@@ -87,6 +88,7 @@ public final class RootRoute extends AllDirectives {
     private final OverallStatusRoute overallStatusRoute;
     private final CachingHealthRoute cachingHealthRoute;
     private final DevOpsRoute devopsRoute;
+    private final WotDiscoveryThingDirectoryRoute wotDiscoveryThingDirectoryRoute;
 
     private final PoliciesRoute policiesRoute;
     private final SseRouteBuilder sseThingsRouteBuilder;
@@ -121,6 +123,7 @@ public final class RootRoute extends AllDirectives {
         overallStatusRoute = builder.overallStatusRoute;
         cachingHealthRoute = builder.cachingHealthRoute;
         devopsRoute = builder.devopsRoute;
+        wotDiscoveryThingDirectoryRoute = builder.wotDiscoveryThingDirectoryRoute;
         policiesRoute = builder.policiesRoute;
         sseThingsRouteBuilder = builder.sseThingsRouteBuilder;
         thingsRoute = builder.thingsRoute;
@@ -175,7 +178,12 @@ public final class RootRoute extends AllDirectives {
                                         ws(ctx, correlationId, queryParameters), // /ws
                                         ownStatusRoute.buildStatusRoute(), // /status
                                         overallStatusRoute.buildOverallStatusRoute(correlationId), // /overall
-                                        devopsRoute.buildDevOpsRoute(ctx, correlationId, queryParameters) // /devops
+                                        devopsRoute.buildDevOpsRoute(ctx, correlationId, queryParameters), // /devops
+                                        wotDiscoveryThingDirectoryRoute // /.well-known/wot
+                                                .buildRoute(ctx, DittoHeaders.newBuilder()
+                                                        .correlationId(correlationId)
+                                                        .build()
+                                                )
                                 )
                         )
                 )
@@ -437,6 +445,7 @@ public final class RootRoute extends AllDirectives {
         private OverallStatusRoute overallStatusRoute;
         private CachingHealthRoute cachingHealthRoute;
         private DevOpsRoute devopsRoute;
+        private WotDiscoveryThingDirectoryRoute wotDiscoveryThingDirectoryRoute;
 
         private PoliciesRoute policiesRoute;
         private SseRouteBuilder sseThingsRouteBuilder;
@@ -487,6 +496,12 @@ public final class RootRoute extends AllDirectives {
         @Override
         public RootRouteBuilder devopsRoute(final DevOpsRoute route) {
             devopsRoute = route;
+            return this;
+        }
+
+        @Override
+        public RootRouteBuilder wotDiscoveryThingDirectoryRoute(final WotDiscoveryThingDirectoryRoute route) {
+            wotDiscoveryThingDirectoryRoute = route;
             return this;
         }
 

@@ -14,15 +14,13 @@ package org.eclipse.ditto.gateway.service.endpoints.actors;
 
 import java.util.concurrent.CompletableFuture;
 
-import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
-import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
-import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
-
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.Props;
 import org.apache.pekko.http.javadsl.model.HttpRequest;
 import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.gateway.service.util.config.GatewayConfig;
 
 /**
  * Every HTTP Request causes one new Actor instance of this one to be created.
@@ -35,15 +33,13 @@ public final class HttpRequestActor extends AbstractHttpRequestActor {
             final HeaderTranslator headerTranslator,
             final HttpRequest request,
             final CompletableFuture<HttpResponse> httpResponseFuture,
-            final HttpConfig httpConfig,
-            final CommandConfig commandConfig) {
+            final GatewayConfig gatewayConfig) {
 
         super(proxyActor,
                 headerTranslator,
                 request,
                 httpResponseFuture,
-                httpConfig,
-                commandConfig);
+                gatewayConfig);
     }
 
     /**
@@ -55,24 +51,21 @@ public final class HttpRequestActor extends AbstractHttpRequestActor {
      * to (external) Http headers.
      * @param request the HTTP request
      * @param httpResponseFuture the completable future which is completed with a HTTP response.
-     * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
-     * @param commandConfig the configuration settings for incoming commands (via HTTP requests) in the gateway.
+     * @param gatewayConfig the configuration settings of the Gateway service.
      * @return the configuration object.
      */
     public static Props props(final ActorRef proxyActor,
             final HeaderTranslator headerTranslator,
             final HttpRequest request,
             final CompletableFuture<HttpResponse> httpResponseFuture,
-            final HttpConfig httpConfig,
-            final CommandConfig commandConfig) {
+            final GatewayConfig gatewayConfig) {
 
         return Props.create(HttpRequestActor.class,
                 proxyActor,
                 headerTranslator,
                 request,
                 httpResponseFuture,
-                httpConfig,
-                commandConfig);
+                gatewayConfig);
     }
 
 }

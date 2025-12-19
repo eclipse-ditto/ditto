@@ -14,6 +14,7 @@ package org.eclipse.ditto.wot.model;
 
 import java.util.Optional;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.json.Jsonifiable;
@@ -33,7 +34,28 @@ public interface FormElementExpectedResponse extends TypedJsonObject<FormElement
         return new ImmutableFormElementExpectedResponse(jsonObject);
     }
 
+    static FormElementExpectedResponse.Builder newBuilder() {
+        return FormElementExpectedResponse.Builder.newBuilder();
+    }
+
+    static FormElementExpectedResponse.Builder newBuilder(final JsonObject jsonObject) {
+        return FormElementExpectedResponse.Builder.newBuilder(jsonObject);
+    }
+
     Optional<String> getContentType();
+
+    interface Builder extends TypedJsonObjectBuilder<FormElementExpectedResponse.Builder, FormElementExpectedResponse> {
+
+        static FormElementExpectedResponse.Builder newBuilder() {
+            return new MutableFormElementExpectedResponseBuilder(JsonObject.newBuilder());
+        }
+
+        static FormElementExpectedResponse.Builder newBuilder(final JsonObject jsonObject) {
+            return new MutableFormElementExpectedResponseBuilder(jsonObject.toBuilder());
+        }
+
+        FormElementExpectedResponse.Builder setContentType(@Nullable String contentType);
+    }
 
     /**
      * An enumeration of the known {@link JsonFieldDefinition}s of a FormElementExpectedResponse.

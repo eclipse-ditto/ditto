@@ -17,13 +17,11 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.base.model.common.ConditionChecker;
-import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
-import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
-import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
-
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
+import org.eclipse.ditto.base.model.common.ConditionChecker;
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
+import org.eclipse.ditto.gateway.service.util.config.GatewayConfig;
 
 /**
  * Base properties of each {@link AbstractRoute} implementation.
@@ -33,15 +31,13 @@ public final class RouteBaseProperties {
 
     private final ActorRef proxyActor;
     private final ActorSystem actorSystem;
-    private final HttpConfig httpConfig;
-    private final CommandConfig commandConfig;
+    private final GatewayConfig gatewayConfig;
     private final HeaderTranslator headerTranslator;
 
     private RouteBaseProperties(final Builder builder) {
         proxyActor = ConditionChecker.checkNotNull(builder.proxyActor, "builder.proxyActor");
         actorSystem = ConditionChecker.checkNotNull(builder.actorSystem, "builder.actorSystem");
-        httpConfig = ConditionChecker.checkNotNull(builder.httpConfig, "builder.httpConfig");
-        commandConfig = ConditionChecker.checkNotNull(builder.commandConfig, "builder.commandConfig");
+        gatewayConfig = ConditionChecker.checkNotNull(builder.gatewayConfig, "builder.gatewayConfig");
         headerTranslator = ConditionChecker.checkNotNull(builder.headerTranslator, "builder.headerTranslator");
     }
 
@@ -66,8 +62,7 @@ public final class RouteBaseProperties {
         return newBuilder()
                 .proxyActor(routeBaseProperties.getProxyActor())
                 .actorSystem(routeBaseProperties.getActorSystem())
-                .httpConfig(routeBaseProperties.getHttpConfig())
-                .commandConfig(routeBaseProperties.getCommandConfig())
+                .gatewayConfig(routeBaseProperties.getGatewayConfig())
                 .headerTranslator(routeBaseProperties.getHeaderTranslator());
     }
 
@@ -90,21 +85,12 @@ public final class RouteBaseProperties {
     }
 
     /**
-     * Returns the HTTP config.
+     * Returns the Gateway config.
      *
-     * @return the HTTP config.
+     * @return the Gateway config.
      */
-    public HttpConfig getHttpConfig() {
-        return httpConfig;
-    }
-
-    /**
-     * Returns the command config.
-     *
-     * @return the command config.
-     */
-    public CommandConfig getCommandConfig() {
-        return commandConfig;
+    public GatewayConfig getGatewayConfig() {
+        return gatewayConfig;
     }
 
     /**
@@ -127,8 +113,7 @@ public final class RouteBaseProperties {
         final var that = (RouteBaseProperties) o;
         return Objects.equals(proxyActor, that.proxyActor) &&
                 Objects.equals(actorSystem, that.actorSystem) &&
-                Objects.equals(httpConfig, that.httpConfig) &&
-                Objects.equals(commandConfig, that.commandConfig) &&
+                Objects.equals(gatewayConfig, that.gatewayConfig) &&
                 Objects.equals(headerTranslator, that.headerTranslator);
     }
 
@@ -136,8 +121,7 @@ public final class RouteBaseProperties {
     public int hashCode() {
         return Objects.hash(proxyActor,
                 actorSystem,
-                httpConfig,
-                commandConfig,
+                gatewayConfig,
                 headerTranslator);
     }
 
@@ -146,15 +130,13 @@ public final class RouteBaseProperties {
 
         private ActorRef proxyActor;
         private ActorSystem actorSystem;
-        private HttpConfig httpConfig;
-        private CommandConfig commandConfig;
+        private GatewayConfig gatewayConfig;
         private HeaderTranslator headerTranslator;
 
         private Builder() {
             proxyActor = null;
             actorSystem = null;
-            httpConfig = null;
-            commandConfig = null;
+            gatewayConfig = null;
             headerTranslator = null;
         }
 
@@ -183,26 +165,14 @@ public final class RouteBaseProperties {
         }
 
         /**
-         * Sets the specified {@code HttpConfig} argument.
+         * Sets the specified {@code GatewayConfig} argument.
          *
-         * @param httpConfig the config to be set.
+         * @param gatewayConfig the config to be set.
          * @return this builder to allow method chaining.
-         * @throws NullPointerException if {@code httpConfig} is {@code null}.
+         * @throws NullPointerException if {@code gatewayConfig} is {@code null}.
          */
-        public Builder httpConfig(final HttpConfig httpConfig) {
-            this.httpConfig = ConditionChecker.checkNotNull(httpConfig, "httpConfig");
-            return this;
-        }
-
-        /**
-         * Sets the specified {@code CommandConfig} argument.
-         *
-         * @param commandConfig the config to be set.
-         * @return this builder to allow method chaining.
-         * @throws NullPointerException if {@code commandConfig} is {@code null}.
-         */
-        public Builder commandConfig(final CommandConfig commandConfig) {
-            this.commandConfig = ConditionChecker.checkNotNull(commandConfig, "commandConfig");
+        public Builder gatewayConfig(final GatewayConfig gatewayConfig) {
+            this.gatewayConfig = ConditionChecker.checkNotNull(gatewayConfig, "gatewayConfig");
             return this;
         }
 
