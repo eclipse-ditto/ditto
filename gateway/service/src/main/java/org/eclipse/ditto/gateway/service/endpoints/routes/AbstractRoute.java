@@ -32,26 +32,6 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.base.model.signals.commands.CommandNotSupportedException;
-import org.eclipse.ditto.base.service.config.ThrottlingConfig;
-import org.eclipse.ditto.gateway.api.GatewayTimeoutInvalidException;
-import org.eclipse.ditto.gateway.service.endpoints.actors.AbstractHttpRequestActor;
-import org.eclipse.ditto.gateway.service.endpoints.actors.HttpRequestActorPropsFactory;
-import org.eclipse.ditto.gateway.service.endpoints.directives.ContentTypeValidationDirective;
-import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoLogger;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.config.ScopedConfig;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.json.JsonParseOptions;
-import org.eclipse.ditto.json.JsonValue;
-
 import org.apache.pekko.NotUsed;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.Status;
@@ -70,6 +50,25 @@ import org.apache.pekko.stream.javadsl.Sink;
 import org.apache.pekko.stream.javadsl.Source;
 import org.apache.pekko.stream.javadsl.StreamConverters;
 import org.apache.pekko.util.ByteString;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.commands.CommandNotSupportedException;
+import org.eclipse.ditto.base.service.config.ThrottlingConfig;
+import org.eclipse.ditto.gateway.api.GatewayTimeoutInvalidException;
+import org.eclipse.ditto.gateway.service.endpoints.actors.AbstractHttpRequestActor;
+import org.eclipse.ditto.gateway.service.endpoints.actors.HttpRequestActorPropsFactory;
+import org.eclipse.ditto.gateway.service.endpoints.directives.ContentTypeValidationDirective;
+import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLogger;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.json.JsonParseOptions;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Base class for Pekko HTTP routes.
@@ -108,7 +107,7 @@ public abstract class AbstractRoute extends AllDirectives {
     protected AbstractRoute(final RouteBaseProperties routeBaseProperties) {
         this.routeBaseProperties = checkNotNull(routeBaseProperties, "routeBaseProperties");
 
-        final var httpConfig = routeBaseProperties.getHttpConfig();
+        final var httpConfig = routeBaseProperties.getGatewayConfig().getHttpConfig();
         final var fallbackMediaTypes = httpConfig.getAdditionalAcceptedMediaTypes().stream();
         final var jsonMediaType = Stream.of(MediaTypes.APPLICATION_JSON.toString());
         mediaTypeJsonWithFallbacks = Stream.concat(jsonMediaType, fallbackMediaTypes).collect(Collectors.toSet());
@@ -294,8 +293,7 @@ public abstract class AbstractRoute extends AllDirectives {
                 routeBaseProperties.getHeaderTranslator(),
                 ctx.getRequest(),
                 httpResponseFuture,
-                routeBaseProperties.getHttpConfig(),
-                routeBaseProperties.getCommandConfig());
+                routeBaseProperties.getGatewayConfig());
 
         final var actorSystem = routeBaseProperties.getActorSystem();
         return actorSystem.actorOf(props);
@@ -364,7 +362,7 @@ public abstract class AbstractRoute extends AllDirectives {
             final UnaryOperator<Duration> checkTimeoutFunction,
             final java.util.function.Function<Duration, Route> inner) {
 
-        Duration customRequestTimeout = routeBaseProperties.getHttpConfig().getRequestTimeout();
+        Duration customRequestTimeout = routeBaseProperties.getGatewayConfig().getHttpConfig().getRequestTimeout();
         if (null != optionalTimeout) {
             customRequestTimeout = checkTimeoutFunction.apply(optionalTimeout);
         }
@@ -373,7 +371,7 @@ public abstract class AbstractRoute extends AllDirectives {
     }
 
     private CompletionStage<HttpResponse> toStrict(final HttpResponse response) {
-        final var timeoutMillis = routeBaseProperties.getHttpConfig().getRequestTimeout().toMillis();
+        final var timeoutMillis = routeBaseProperties.getGatewayConfig().getHttpConfig().getRequestTimeout().toMillis();
         return response.toStrict(timeoutMillis, routeBaseProperties.getActorSystem()).thenApply(x -> x);
     }
 
@@ -398,7 +396,7 @@ public abstract class AbstractRoute extends AllDirectives {
      * @throws GatewayTimeoutInvalidException if the passed {@code timeout} was not within its bounds.
      */
     protected Duration validateCommandTimeout(final Duration timeout) {
-        final var commandConfig = routeBaseProperties.getCommandConfig();
+        final var commandConfig = routeBaseProperties.getGatewayConfig().getCommandConfig();
         final var maxTimeout = commandConfig.getMaxTimeout();
 
         // check if the timeout is smaller than the maximum possible timeout and > 0:

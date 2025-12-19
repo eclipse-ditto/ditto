@@ -85,6 +85,9 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.checkpermissions.Check
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.DefaultUserInformation;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.Whoami;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiResponse;
+import org.eclipse.ditto.gateway.service.endpoints.routes.wot.RetrieveWotDiscoveryThingDirectory;
+import org.eclipse.ditto.gateway.service.endpoints.routes.wot.RetrieveWotDiscoveryThingDirectoryResponse;
+import org.eclipse.ditto.gateway.service.util.config.GatewayConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
@@ -96,6 +99,28 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.messages.model.Message;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
+import org.eclipse.ditto.wot.model.Action;
+import org.eclipse.ditto.wot.model.ActionFormElement;
+import org.eclipse.ditto.wot.model.ActionForms;
+import org.eclipse.ditto.wot.model.Actions;
+import org.eclipse.ditto.wot.model.AtContext;
+import org.eclipse.ditto.wot.model.AtType;
+import org.eclipse.ditto.wot.model.Description;
+import org.eclipse.ditto.wot.model.FormElementAdditionalResponse;
+import org.eclipse.ditto.wot.model.FormElementAdditionalResponses;
+import org.eclipse.ditto.wot.model.FormElementExpectedResponse;
+import org.eclipse.ditto.wot.model.IRI;
+import org.eclipse.ditto.wot.model.Properties;
+import org.eclipse.ditto.wot.model.Property;
+import org.eclipse.ditto.wot.model.PropertyFormElement;
+import org.eclipse.ditto.wot.model.PropertyForms;
+import org.eclipse.ditto.wot.model.SingleDataSchema;
+import org.eclipse.ditto.wot.model.SinglePropertyFormElementOp;
+import org.eclipse.ditto.wot.model.SingleUriAtContext;
+import org.eclipse.ditto.wot.model.ThingDescription;
+import org.eclipse.ditto.wot.model.Title;
+import org.eclipse.ditto.wot.model.UriVariables;
+import org.eclipse.ditto.wot.model.Version;
 
 import scala.Option;
 import scala.util.Either;
@@ -118,7 +143,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
     private final HeaderTranslator headerTranslator;
     private final CompletableFuture<HttpResponse> httpResponseFuture;
     private final HttpRequest httpRequest;
-    private final CommandConfig commandConfig;
+    private final GatewayConfig gatewayConfig;
     private final AcknowledgementAggregatorActorStarter ackregatorStarter;
     @Nullable private Uri responseLocationUri;
     private Command<?> receivedCommand;
@@ -133,16 +158,15 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
             final HeaderTranslator headerTranslator,
             final HttpRequest request,
             final CompletableFuture<HttpResponse> httpResponseFuture,
-            final HttpConfig httpConfig,
-            final CommandConfig commandConfig) {
+            final GatewayConfig gatewayConfig) {
 
         this.proxyActor = proxyActor;
         this.headerTranslator = headerTranslator;
         this.httpResponseFuture = httpResponseFuture;
         httpRequest = request;
-        this.commandConfig = commandConfig;
+        this.gatewayConfig = gatewayConfig;
         ackregatorStarter = AcknowledgementAggregatorActorStarter.of(getContext(),
-                HttpAcknowledgementConfig.of(httpConfig),
+                HttpAcknowledgementConfig.of(gatewayConfig.getHttpConfig()),
                 headerTranslator,
                 getResponseValidationFailureConsumer(),
                 List.of(
@@ -160,7 +184,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
         timeoutExceptionSupplier = null;
         inCoordinatedShutdown = false;
         logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
-        setReceiveTimeout(httpConfig.getRequestTimeout());
+        setReceiveTimeout(gatewayConfig.getHttpConfig().getRequestTimeout());
     }
 
     private Consumer<MatchingValidationResult.Failure> getResponseValidationFailureConsumer() {
@@ -237,6 +261,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
                     }
                 })
                 .match(Whoami.class, this::handleWhoami)
+                .match(RetrieveWotDiscoveryThingDirectory.class, this::handleWotDiscoveryThingDirectory)
                 .match(CheckPermissions.class, this::handleCheckPermissions)
                 .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
                 .match(ReceiveTimeout.class,
@@ -271,7 +296,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
         try {
             receivedCommand = command;
             setDefaultTimeoutExceptionSupplier(command);
-            final var timeoutOverride = getReceiveTimeout(command, commandConfig);
+            final var timeoutOverride = getReceiveTimeout(command, gatewayConfig.getCommandConfig());
             ackregatorStarter.start(command,
                     timeoutOverride,
                     this::onAggregatedResponseOrError,
@@ -350,7 +375,8 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
 
     private void handleCheckPermissions(final CheckPermissions command) {
         final ActorRef checkPermissionsActor = getContext().actorOf(
-                CheckPermissionsActor.props(proxyActor, getSelf(), getReceiveTimeout(command, commandConfig))
+                CheckPermissionsActor.props(proxyActor, getSelf(),
+                        getReceiveTimeout(command, gatewayConfig.getCommandConfig()))
         );
         getContext().become(getResponseAwaitingBehavior());
         checkPermissionsActor.tell(command, getSelf());
@@ -383,6 +409,28 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
                 DefaultUserInformation.fromAuthorizationContext(dittoHeaders.getAuthorizationContext());
 
         return WhoamiResponse.of(userInformation, dittoHeaders);
+    }
+
+    private void handleWotDiscoveryThingDirectory(final RetrieveWotDiscoveryThingDirectory command) {
+        logger.withCorrelationId(command).debug("Got <{}>.", command);
+
+        final var context = getContext();
+        context.become(getResponseAwaitingBehavior());
+
+        setDefaultTimeoutExceptionSupplier(command);
+
+        final var self = getSelf();
+        self.tell(createRetrieveWotDiscoveryThingDirectoryResponse(command), getSender());
+    }
+
+    private RetrieveWotDiscoveryThingDirectoryResponse createRetrieveWotDiscoveryThingDirectoryResponse(
+            final RetrieveWotDiscoveryThingDirectory request
+    ) {
+        final var dittoHeaders = request.getDittoHeaders().toBuilder()
+                .contentType(ContentType.APPLICATION_TD_JSON)
+                .build();
+        final ThingDescription thingDirectoryDescription = buildThingDirectoryDescription();
+        return RetrieveWotDiscoveryThingDirectoryResponse.of(thingDirectoryDescription, dittoHeaders);
     }
 
     private void handleCommandWithResponse(final Signal<?> command, final Receive awaitCommandResponseBehavior,
@@ -799,6 +847,96 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
         } else {
             return candidateTimeout;
         }
+    }
+
+    private ThingDescription buildThingDirectoryDescription() {
+        return ThingDescription.newBuilder()
+                .setAtContext(AtContext.newMultipleAtContext(List.of(
+                        SingleUriAtContext.W3ORG_2022_WOT_TD_V11,
+                        SingleUriAtContext.W3ORG_2022_WOT_DISCOVERY
+                )))
+                .setAtType(AtType.newSingleAtType("ThingDirectory"))
+                .setId(IRI.of("urn:ditto:wot:thing-directory"))
+                .setTitle(Title.of("Thing Description Directory (TDD) of Eclipse Ditto"))
+                .setVersion(Version.newBuilder()
+                        .setModel("1.0.0")
+                        .setInstance("1.0.0")
+                        .build()
+                )
+                .setBase(IRI.of(gatewayConfig.getWotDirectoryConfig().getBasePrefix()))
+                .setAll(gatewayConfig.getWotDirectoryConfig().getJsonTemplate())
+                .setProperties(Properties.of(Map.of("things", Property.newBuilder("things")
+                        .setDescription(Description.of("Retrieve all Thing Descriptions"))
+                        .setSchema(SingleDataSchema.newArraySchemaBuilder()
+                                .setItems(SingleDataSchema.newObjectSchemaBuilder().build())
+                                .build()
+                        )
+                        .setUriVariables(UriVariables.of(Map.of(
+                                "offset", SingleDataSchema.newIntegerSchemaBuilder()
+                                        .setTitle(Title.of("Offset"))
+                                        .setDescription(Description.of(
+                                                "Number of Thing Descriptions to skip for pagination"))
+                                        .setMinimum(0)
+                                        .build(),
+                                "limit", SingleDataSchema.newIntegerSchemaBuilder()
+                                        .setTitle(Title.of("Limit"))
+                                        .setDescription(Description.of(
+                                                "Maximum number of Thing Descriptions to return"))
+                                        .setMinimum(1)
+                                        .build()
+                        )))
+                        .setReadOnly(true)
+                        .setForms(PropertyForms.of(List.of(
+                                PropertyFormElement.newBuilder()
+                                        .setHref(IRI.of("api/2/things{?offset,limit}"))
+                                        .setOp(SinglePropertyFormElementOp.READPROPERTY)
+                                        .setContentType(ContentType.APPLICATION_JSON.getValue())
+                                        .set("htv:statusCode", 200)
+                                        .build()
+                        )))
+                        .build()
+                )))
+                .setActions(Actions.of(Map.of("retrieveThing", Action.newBuilder("retrieveThing")
+                                .setDescription(Description.of("Retrieve a Thing Description by its Thing ID."))
+                                .setUriVariables(UriVariables.of(Map.of(
+                                        "thingId",
+                                        SingleDataSchema.newStringSchemaBuilder()
+                                                .setAtType(AtType.newSingleAtType("ThingID"))
+                                                .setTitle(Title.of("Thing ID"))
+                                                .setFormat("iri-reference")
+                                                .build()
+                                )))
+                                .setOutput(SingleDataSchema.newObjectSchemaBuilder()
+                                        .setDescription(Description.of("The schema is implied by the content type"))
+                                        .build()
+                                )
+                                .setSafe(true)
+                                .setIdempotent(true)
+                                .setForms(ActionForms.of(List.of(
+                                        ActionFormElement.newBuilder()
+                                                .setHref(IRI.of("api/2/things/{thingId}"))
+                                                .set("htv:methodName", "GET")
+                                                .setExpectedResponse(
+                                                        FormElementExpectedResponse.newBuilder()
+                                                                .setContentType(ContentType.APPLICATION_TD_JSON.getValue())
+                                                                .set("htv:statusCode", 200)
+                                                                .build()
+                                                )
+                                                .setAdditionalResponses(FormElementAdditionalResponses.of(List.of(
+                                                        FormElementAdditionalResponse.newBuilder()
+                                                                .setContentType(
+                                                                        ContentType.APPLICATION_JSON.getValue()
+                                                                )
+                                                                .set("htv:statusCode", 404)
+                                                                .setSuccess(false)
+                                                                .build()
+                                                )))
+                                                .build()
+                                )))
+                                .build()
+                        )
+                ))
+                .build();
     }
 
     private record HttpAcknowledgementConfig(HttpConfig httpConfig) implements AcknowledgementConfig {

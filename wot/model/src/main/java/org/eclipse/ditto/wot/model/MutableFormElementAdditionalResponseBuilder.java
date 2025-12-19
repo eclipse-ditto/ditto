@@ -12,25 +12,19 @@
  */
 package org.eclipse.ditto.wot.model;
 
-import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
-
-import java.util.Optional;
-
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 
 /**
  * Mutable builder for {@link FormElementAdditionalResponse}s.
  */
-final class MutableFormElementAdditionalResponseBuilder implements FormElementAdditionalResponse.Builder {
-
-    private final JsonObjectBuilder wrappedObjectBuilder;
+final class MutableFormElementAdditionalResponseBuilder extends
+        AbstractTypedJsonObjectBuilder<FormElementAdditionalResponse.Builder, FormElementAdditionalResponse>
+        implements FormElementAdditionalResponse.Builder {
 
     MutableFormElementAdditionalResponseBuilder(final JsonObjectBuilder wrappedObjectBuilder) {
-        this.wrappedObjectBuilder = wrappedObjectBuilder;
+        super(wrappedObjectBuilder, FormElementAdditionalResponse.Builder.class);
     }
 
     @Override
@@ -58,20 +52,6 @@ final class MutableFormElementAdditionalResponseBuilder implements FormElementAd
     @Override
     public FormElementAdditionalResponse build() {
         return new ImmutableFormElementAdditionalResponse(wrappedObjectBuilder.build());
-    }
-
-    private <J> void putValue(final JsonFieldDefinition<J> definition, @Nullable final J value) {
-        final Optional<JsonKey> keyOpt = definition.getPointer().getRoot();
-        if (keyOpt.isPresent()) {
-            final JsonKey key = keyOpt.get();
-            if (null != value) {
-                checkNotNull(value, definition.getPointer().toString());
-                wrappedObjectBuilder.remove(key);
-                wrappedObjectBuilder.set(definition, value);
-            } else {
-                wrappedObjectBuilder.remove(key);
-            }
-        }
     }
 
 }
