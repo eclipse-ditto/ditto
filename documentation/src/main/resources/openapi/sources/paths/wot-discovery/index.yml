@@ -1,0 +1,88 @@
+# Copyright (c) 2026 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+get:
+  summary: Retrieve WoT Thing Directory
+  description: |-
+    Returns a WoT (Web of Things) Thing Description representing the Thing Directory of Eclipse Ditto.
+    This endpoint implements the WoT Discovery specification, providing a standardized way to discover
+    available Thing Descriptions.
+
+    The returned Thing Description includes:
+    - A `things` property that allows retrieving all Thing Descriptions with optional pagination
+    - A `retrieveThing` action for fetching a specific Thing Description by its Thing ID
+
+    Note: By default, this endpoint is publicly accessible without authentication. This can be configured
+    via the `GATEWAY_WOT_DIRECTORY_AUTHENTICATION_REQUIRED` environment variable.
+  tags:
+    - WoT
+  responses:
+    '200':
+      description: |-
+        The WoT Thing Directory description was successfully retrieved.
+      content:
+        application/td+json:
+          schema:
+            $ref: '../../schemas/wot-thingDescription.yml'
+          example:
+            '@context':
+              - 'https://www.w3.org/2022/wot/td/v1.1'
+              - 'https://www.w3.org/2022/wot/discovery'
+            '@type': 'ThingDirectory'
+            id: 'urn:ditto:wot:thing-directory'
+            title: 'Thing Description Directory (TDD) of Eclipse Ditto'
+            version:
+              model: '1.0.0'
+              instance: '1.0.0'
+            base: 'http://localhost:8080'
+            securityDefinitions:
+              basic_sc:
+                scheme: 'basic'
+                in: 'header'
+            security: 'basic_sc'
+            properties:
+              things:
+                description: 'Retrieve all Thing Descriptions'
+                readOnly: true
+                uriVariables:
+                  offset:
+                    title: 'Offset'
+                    description: 'Number of Thing Descriptions to skip for pagination'
+                    type: 'integer'
+                    minimum: 0
+                  limit:
+                    title: 'Limit'
+                    description: 'Maximum number of Thing Descriptions to return'
+                    type: 'integer'
+                    minimum: 1
+                forms:
+                  - href: 'api/2/things{?offset,limit}'
+                    op: 'readproperty'
+                    contentType: 'application/json'
+            actions:
+              retrieveThing:
+                description: 'Retrieve a Thing Description by its Thing ID.'
+                uriVariables:
+                  thingId:
+                    '@type': 'ThingID'
+                    title: 'Thing ID'
+                    type: 'string'
+                    format: 'iri-reference'
+                safe: true
+                idempotent: true
+                forms:
+                  - href: 'api/2/things/{thingId}'
+                    htv:methodName: 'GET'
+    '401':
+      description: The request could not be completed due to missing authentication (when authentication is required).
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
