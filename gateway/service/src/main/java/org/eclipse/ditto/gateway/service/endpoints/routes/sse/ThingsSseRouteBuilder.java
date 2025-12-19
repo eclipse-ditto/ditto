@@ -741,6 +741,9 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
 
         final JsonObject filteredThingJson = filterJsonByPartialAccessPaths(thingJson, event, subscriberAuthContext);
 
+        final boolean partialAccessFilteringApplied = event.getDittoHeaders()
+                .get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey()) != null;
+
         @Nullable final JsonValue returnValue;
         if (!fieldPointer.isEmpty()) {
             returnValue = filteredThingJson.getValue(fieldPointer).orElse(null);
@@ -757,8 +760,11 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
             }
         }
 
-        final boolean filteredBecameEmpty = filteredThingJson.isEmpty() && !thingJson.isEmpty();
-        return (filteredBecameEmpty || null == returnValue) ? Collections.emptyList() :
+        final boolean filteredBecameEmpty = partialAccessFilteringApplied &&
+                filteredThingJson.isEmpty() && !thingJson.isEmpty();
+        final boolean fieldSelectionResultedInEmpty = fields != null && thingJson.isEmpty();
+        final boolean shouldDrop = filteredBecameEmpty || fieldSelectionResultedInEmpty;
+        return (shouldDrop || null == returnValue) ? Collections.emptyList() :
                 Collections.singletonList(returnValue);
     }
 

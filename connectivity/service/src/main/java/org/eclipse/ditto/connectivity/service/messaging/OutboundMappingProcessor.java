@@ -320,18 +320,18 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
                     
                     final Adaptable effective = filterAdaptableForAllPartialAccessSubjects(
                             baseAdaptable, allPartialAccessPathsResult);
-                    
-                    final boolean doFilter = shouldFilterForTarget(effective, dittoHeaders);
-                    
+
                     final TopicPath topicPath = effective.getTopicPath();
                     final boolean isThingEvent = TopicPath.Group.THINGS.equals(topicPath.getGroup()) &&
                             TopicPath.Criterion.EVENTS.equals(topicPath.getCriterion());
-                    
-                    if (isThingEvent && doFilter) {
+
+                    if (isThingEvent) {
+                        final boolean filteringOccurred = !allPartialAccessPathsResult.hasUnrestrictedAccess() &&
+                                allPartialAccessPathsResult.shouldFilter();
                         final boolean filteredEmpty = isEmptyPayloadForDrop(effective);
                         final boolean originalEmpty = isEmptyPayloadForDrop(baseAdaptable);
 
-                        if (filteredEmpty && !originalEmpty) {
+                        if (filteringOccurred && filteredEmpty && !originalEmpty) {
                             logger.withCorrelationId(source)
                                     .debug("Skipping event for target {} - filtered payload is empty (no access)",
                                             target.getAddress());

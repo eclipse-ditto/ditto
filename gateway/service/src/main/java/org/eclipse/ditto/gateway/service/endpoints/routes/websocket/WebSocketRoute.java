@@ -780,6 +780,9 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                     final boolean isThingEvent = TopicPath.Group.THINGS.equals(filteredAdaptable.getTopicPath().getGroup()) &&
                             TopicPath.Criterion.EVENTS.equals(filteredAdaptable.getTopicPath().getCriterion());
 
+                    final boolean partialAccessFilteringApplied = adaptable.getDittoHeaders()
+                            .get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey()) != null;
+
                     final boolean isEmptyPayload = filteredAdaptable.getPayload().getValue()
                             .map(value -> {
                                 if (value.isObject() && !value.isNull()) {
@@ -798,7 +801,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                             })
                             .orElse(false);
 
-                    if (isThingEvent && isEmptyPayload && !isEmptyOriginalPayload) {
+                    if (isThingEvent && partialAccessFilteringApplied && isEmptyPayload && !isEmptyOriginalPayload) {
                         issuePotentialWeakAcknowledgements(sessionedJsonifiable);
                         sessionedJsonifiable.finishSpan();
                         return Collections.emptyList();
