@@ -23,6 +23,8 @@ public interface SingleUriAtContext extends SingleAtContext, IRI {
 
     SingleUriAtContext W3ORG_2022_WOT_TD_V11 = of("https://www.w3.org/2022/wot/td/v1.1");
 
+    SingleUriAtContext W3ORG_2022_WOT_DISCOVERY = of("https://www.w3.org/2022/wot/discovery");
+
     SingleUriAtContext W3ORG_NS_TD = of("http://www.w3.org/ns/td");
 
     SingleUriAtContext DITTO_WOT_EXTENSION = of("https://ditto.eclipseprojects.io/wot/ditto-extension#");
