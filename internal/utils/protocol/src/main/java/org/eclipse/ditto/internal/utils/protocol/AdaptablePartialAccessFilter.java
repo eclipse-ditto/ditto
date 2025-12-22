@@ -146,17 +146,12 @@ public final class AdaptablePartialAccessFilter {
             return false;
         }
 
-        final String eventPathStr = eventPath.toString();
-        for (final JsonPointer accessiblePath : accessiblePaths) {
-            final String accessiblePathStr = accessiblePath.toString();
-            if (eventPathStr.equals(accessiblePathStr) ||
-                    eventPathStr.startsWith(accessiblePathStr + "/") ||
-                    "/".equals(accessiblePathStr)) {
-                return true;
-            }
-            if (accessiblePathStr.startsWith(eventPathStr + "/")) {
-                return true;
-            }
+        if (accessiblePaths.contains(eventPath)) {
+            return true;
+        }
+
+        if (accessiblePaths.contains(JsonPointer.empty())) {
+            return true;
         }
         return false;
     }

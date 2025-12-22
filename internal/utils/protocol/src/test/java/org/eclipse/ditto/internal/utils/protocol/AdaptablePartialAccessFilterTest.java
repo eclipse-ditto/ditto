@@ -24,6 +24,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
@@ -179,6 +180,183 @@ public final class AdaptablePartialAccessFilterTest {
         assertThat(filteredPayload).isEmpty();
     }
 
+    @Test
+    public void strictMatchingDeniesRevokedPathsForNonObjectPayloads() {
+        final String partialAccessHeader = JsonFactory.newObjectBuilder()
+                .set("subjects", JsonFactory.newArrayBuilder()
+                        .add(SUBJECT_PARTIAL.getId())
+                        .build())
+                .set("paths", JsonFactory.newObjectBuilder()
+                        .set(JsonFactory.newKey("attributes/complex"), JsonFactory.newArrayBuilder().add(0).build())
+                        .set(JsonFactory.newKey("attributes/complex/some"), JsonFactory.newArrayBuilder().add(0).build())
+                        .build())
+                .build()
+                .toString();
+
+        final DittoHeaders headers = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey(), partialAccessHeader)
+                .readGrantedSubjects(Set.of(SUBJECT_PARTIAL))
+                .build();
+
+        final Adaptable adaptable = createThingEventAdaptable(
+                JsonPointer.of("attributes/complex/secret"),
+                JsonValue.of("secret-value"),
+                headers);
+
+        final AuthorizationContext context = authContext(SUBJECT_PARTIAL);
+        final Adaptable result = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+                adaptable, context);
+
+        final JsonObject filteredPayload = result.getPayload().getValue()
+                .filter(org.eclipse.ditto.json.JsonValue::isObject)
+                .map(org.eclipse.ditto.json.JsonValue::asObject)
+                .orElse(JsonFactory.newObject());
+        assertThat(filteredPayload).isEmpty();
+    }
+
+    @Test
+    public void strictMatchingAllowsExactMatchesForNonObjectPayloads() {
+        final String partialAccessHeader = JsonFactory.newObjectBuilder()
+                .set("subjects", JsonFactory.newArrayBuilder()
+                        .add(SUBJECT_PARTIAL.getId())
+                        .build())
+                .set("paths", JsonFactory.newObjectBuilder()
+                        .set(JsonFactory.newKey("attributes/complex/some"), JsonFactory.newArrayBuilder().add(0).build())
+                        .build())
+                .build()
+                .toString();
+
+        final DittoHeaders headers = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey(), partialAccessHeader)
+                .readGrantedSubjects(Set.of(SUBJECT_PARTIAL))
+                .build();
+
+        final Adaptable adaptable = createThingEventAdaptable(
+                JsonPointer.of("attributes/complex/some"),
+                JsonValue.of(42),
+                headers);
+
+        final AuthorizationContext context = authContext(SUBJECT_PARTIAL);
+        final Adaptable result = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+                adaptable, context);
+
+        assertThat(result.getPayload().getValue()).isPresent();
+        assertThat(result.getPayload().getValue().orElse(JsonFactory.nullLiteral())).isEqualTo(JsonValue.of(42));
+    }
+
+    @Test
+    public void strictMatchingDeniesParentPathWhenChildIsRevoked() {
+        final String partialAccessHeader = JsonFactory.newObjectBuilder()
+                .set("subjects", JsonFactory.newArrayBuilder()
+                        .add(SUBJECT_PARTIAL.getId())
+                        .build())
+                .set("paths", JsonFactory.newObjectBuilder()
+                        .set(JsonFactory.newKey("attributes/complex/some"), JsonFactory.newArrayBuilder().add(0).build())
+                        .build())
+                .build()
+                .toString();
+
+        final DittoHeaders headers = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey(), partialAccessHeader)
+                .readGrantedSubjects(Set.of(SUBJECT_PARTIAL))
+                .build();
+
+        final Adaptable adaptable = createThingEventAdaptable(
+                JsonPointer.of("attributes/complex/secret"),
+                JsonValue.of("secret-value"),
+                headers);
+
+        final AuthorizationContext context = authContext(SUBJECT_PARTIAL);
+        final Adaptable result = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+                adaptable, context);
+
+        final JsonObject filteredPayload = result.getPayload().getValue()
+                .filter(org.eclipse.ditto.json.JsonValue::isObject)
+                .map(org.eclipse.ditto.json.JsonValue::asObject)
+                .orElse(JsonFactory.newObject());
+        assertThat(filteredPayload).isEmpty();
+    }
+
+    @Test
+    public void strictMatchingAllowsMultipleAccessiblePaths() {
+        final String partialAccessHeader = JsonFactory.newObjectBuilder()
+                .set("subjects", JsonFactory.newArrayBuilder()
+                        .add(SUBJECT_PARTIAL.getId())
+                        .build())
+                .set("paths", JsonFactory.newObjectBuilder()
+                        .set(JsonFactory.newKey("attributes/type"), JsonFactory.newArrayBuilder().add(0).build())
+                        .set(JsonFactory.newKey("attributes/complex/some"), JsonFactory.newArrayBuilder().add(0).build())
+                        .set(JsonFactory.newKey("features/some/properties/configuration/foo"),
+                                JsonFactory.newArrayBuilder().add(0).build())
+                        .build())
+                .build()
+                .toString();
+
+        final DittoHeaders headers = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey(), partialAccessHeader)
+                .readGrantedSubjects(Set.of(SUBJECT_PARTIAL))
+                .build();
+
+        final Adaptable adaptable1 = createThingEventAdaptable(
+                JsonPointer.of("attributes/type"),
+                JsonValue.of("LORAWAN_GATEWAY"),
+                headers);
+        final Adaptable adaptable2 = createThingEventAdaptable(
+                JsonPointer.of("attributes/complex/some"),
+                JsonValue.of(42),
+                headers);
+        final Adaptable adaptable3 = createThingEventAdaptable(
+                JsonPointer.of("features/some/properties/configuration/foo"),
+                JsonValue.of(456),
+                headers);
+
+        final AuthorizationContext context = authContext(SUBJECT_PARTIAL);
+
+        final Adaptable result1 = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+                adaptable1, context);
+        final Adaptable result2 = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+                adaptable2, context);
+        final Adaptable result3 = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+                adaptable3, context);
+
+        assertThat(result1.getPayload().getValue()).isPresent();
+        assertThat(result2.getPayload().getValue()).isPresent();
+        assertThat(result3.getPayload().getValue()).isPresent();
+    }
+
+    @Test
+    public void strictMatchingDeniesInaccessiblePaths() {
+        final String partialAccessHeader = JsonFactory.newObjectBuilder()
+                .set("subjects", JsonFactory.newArrayBuilder()
+                        .add(SUBJECT_PARTIAL.getId())
+                        .build())
+                .set("paths", JsonFactory.newObjectBuilder()
+                        .set(JsonFactory.newKey("attributes/type"), JsonFactory.newArrayBuilder().add(0).build())
+                        .build())
+                .build()
+                .toString();
+
+        final DittoHeaders headers = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey(), partialAccessHeader)
+                .readGrantedSubjects(Set.of(SUBJECT_PARTIAL))
+                .build();
+
+        final Adaptable adaptable = createThingEventAdaptable(
+                JsonPointer.of("attributes/hidden"),
+                JsonValue.of(false),
+                headers);
+
+        final AuthorizationContext context = authContext(SUBJECT_PARTIAL);
+        final Adaptable result = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+                adaptable, context);
+
+        final JsonObject filteredPayload = result.getPayload().getValue()
+                .filter(org.eclipse.ditto.json.JsonValue::isObject)
+                .map(org.eclipse.ditto.json.JsonValue::asObject)
+                .orElse(JsonFactory.newObject());
+        assertThat(filteredPayload).isEmpty();
+    }
+
     private static JsonObject createThingPayload() {
         return JsonFactory.newObjectBuilder()
                 .set("attributes", JsonFactory.newObjectBuilder()
@@ -206,6 +384,21 @@ public final class AdaptablePartialAccessFilterTest {
                 .withPayload(ProtocolFactory.newPayloadBuilder()
                         .withPath(JsonPointer.empty())
                         .withValue(payload)
+                        .build())
+                .withHeaders(headers)
+                .build();
+    }
+
+    private static Adaptable createThingEventAdaptable(final JsonPointer path, final JsonValue value, final DittoHeaders headers) {
+        final ThingId thingId = ThingId.of("org.eclipse.ditto.test", "thing");
+        final TopicPath topicPath = ProtocolFactory.newTopicPathBuilder(thingId)
+                .events()
+                .modified()
+                .build();
+        return ProtocolFactory.newAdaptableBuilder(topicPath)
+                .withPayload(ProtocolFactory.newPayloadBuilder()
+                        .withPath(path)
+                        .withValue(value)
                         .build())
                 .withHeaders(headers)
                 .build();

@@ -49,6 +49,7 @@ import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.protocol.AdaptablePartialAccessFilter;
 import org.eclipse.ditto.internal.utils.protocol.PartialAccessPathResolver;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
@@ -300,11 +301,6 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
             final List<MessageMapper> mappers) {
         final DittoHeaders dittoHeaders = source.getDittoHeaders();
         
-        final PartialAccessPathResolver.AccessiblePathsResult allPartialAccessPathsResult =
-                PartialAccessPathResolver.resolveAllAccessiblePathsFromHeader(
-                        dittoHeaders.get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey()),
-                        dittoHeaders);
-        
         return targets.stream()
                 .flatMap(target -> {
                     final AuthorizationContext targetAuthContext = target.getAuthorizationContext();
@@ -318,24 +314,33 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
                                         .build());
                     }
                     
-                    final Adaptable effective = filterAdaptableForAllPartialAccessSubjects(
-                            baseAdaptable, allPartialAccessPathsResult);
+                    final Adaptable effective = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+                            baseAdaptable, targetAuthContext);
 
                     final TopicPath topicPath = effective.getTopicPath();
                     final boolean isThingEvent = TopicPath.Group.THINGS.equals(topicPath.getGroup()) &&
                             TopicPath.Criterion.EVENTS.equals(topicPath.getCriterion());
 
                     if (isThingEvent) {
-                        final boolean filteringOccurred = !allPartialAccessPathsResult.hasUnrestrictedAccess() &&
-                                allPartialAccessPathsResult.shouldFilter();
-                        final boolean filteredEmpty = isEmptyPayloadForDrop(effective);
-                        final boolean originalEmpty = isEmptyPayloadForDrop(baseAdaptable);
+                        final boolean hasPartialAccessHeader = partialAccessPathsHeader != null &&
+                                !partialAccessPathsHeader.isEmpty();
+                        
+                        if (hasPartialAccessHeader) {
+                            final PartialAccessPathResolver.AccessiblePathsResult targetPathsResult =
+                                    PartialAccessPathResolver.resolveAccessiblePathsFromHeader(
+                                            partialAccessPathsHeader, targetAuthContext, dittoHeaders);
+                            
+                            final boolean filteringOccurred = !targetPathsResult.hasUnrestrictedAccess() &&
+                                    targetPathsResult.shouldFilter();
+                            final boolean filteredEmpty = isEmptyPayloadForDrop(effective);
+                            final boolean originalEmpty = isEmptyPayloadForDrop(baseAdaptable);
 
-                        if (filteringOccurred && filteredEmpty && !originalEmpty) {
-                            logger.withCorrelationId(source)
-                                    .debug("Skipping event for target {} - filtered payload is empty (no access)",
-                                            target.getAddress());
-                            return Stream.empty();
+                            if (filteringOccurred && filteredEmpty && !originalEmpty) {
+                                logger.withCorrelationId(source)
+                                        .debug("Skipping event for target {} - filtered payload is empty (no access)",
+                                                target.getAddress());
+                                return Stream.empty();
+                            }
                         }
                     }
                     
@@ -371,12 +376,6 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
                 .flatMap(mapper -> runMapper(targetMappableSignal, adaptableWithExternalHeaders, mapper, mappingTimer));
     }
 
-    private static Adaptable filterAdaptableForAllPartialAccessSubjects(
-            final Adaptable adaptable,
-            final PartialAccessPathResolver.AccessiblePathsResult allPartialAccessPathsResult) {
-
-        return AdaptablePartialAccessFilter.filterAdaptableWithResult(adaptable, allPartialAccessPathsResult);
-    }
 
     /**
      * Determines if empty filtered payloads should result in dropping the event for a target.

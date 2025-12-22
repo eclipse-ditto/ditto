@@ -136,6 +136,86 @@ public final class PartialAccessPathResolverTest {
         return AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED, subject);
     }
 
+    @Test
+    public void resolveAccessiblePathsExcludesParentPathsWithRevokedChildren() {
+        // GIVEN: A header where user has access to /attributes/complex/some but /attributes/complex/secret is revoked
+        // The header should only contain /attributes/complex/some, not /attributes/complex (parent with revoked child)
+        final AuthorizationSubject partialSubject = AuthorizationSubject.newInstance("tenant:partial");
+
+        final String partialAccessHeader = JsonFactory.newObjectBuilder()
+                .set("subjects", JsonFactory.newArrayBuilder()
+                        .add(partialSubject.getId())
+                        .build())
+                .set("paths", JsonFactory.newObjectBuilder()
+                        .set(JsonFactory.newKey("attributes/complex/some"), JsonFactory.newArrayBuilder().add(0).build())
+                        .build())
+                .build()
+                .toString();
+
+        final AuthorizationContext context = authContext(partialSubject);
+
+        // WHEN: Resolving accessible paths
+        final var result = PartialAccessPathResolver.resolveAccessiblePathsFromHeader(
+                partialAccessHeader,
+                context,
+                readGranted(partialSubject));
+
+        // THEN: Should only contain the specific accessible path, not the parent
+        assertThat(result.hasUnrestrictedAccess()).isFalse();
+        assertThat(result.shouldFilter()).isTrue();
+        assertThat(result.getAccessiblePaths())
+                .containsExactly(JsonPointer.of("/attributes/complex/some"));
+        assertThat(result.getAccessiblePaths())
+                .doesNotContain(JsonPointer.of("/attributes/complex"));
+    }
+
+    @Test
+    public void resolveAccessiblePathsHandlesMultipleSubjectsWithDifferentPaths() {
+        // GIVEN: Multiple subjects with different accessible paths
+        final AuthorizationSubject user1Subject = AuthorizationSubject.newInstance("tenant:user1");
+        final AuthorizationSubject user2Subject = AuthorizationSubject.newInstance("tenant:user2");
+
+        final String partialAccessHeader = JsonFactory.newObjectBuilder()
+                .set("subjects", JsonFactory.newArrayBuilder()
+                        .add(user1Subject.getId())
+                        .add(user2Subject.getId())
+                        .build())
+                .set("paths", JsonFactory.newObjectBuilder()
+                        .set(JsonFactory.newKey("attributes/type"), JsonFactory.newArrayBuilder().add(0).build())
+                        .set(JsonFactory.newKey("attributes/complex/some"), JsonFactory.newArrayBuilder().add(0).add(1).build())
+                        .set(JsonFactory.newKey("features/some/properties/configuration/foo"),
+                                JsonFactory.newArrayBuilder().add(0).build())
+                        .set(JsonFactory.newKey("features/other/properties/public"),
+                                JsonFactory.newArrayBuilder().add(1).build())
+                        .build())
+                .build()
+                .toString();
+
+        // WHEN: Resolving for user1
+        final var user1Result = PartialAccessPathResolver.resolveAccessiblePathsFromHeader(
+                partialAccessHeader,
+                authContext(user1Subject),
+                readGranted(user1Subject));
+
+        // WHEN: Resolving for user2
+        final var user2Result = PartialAccessPathResolver.resolveAccessiblePathsFromHeader(
+                partialAccessHeader,
+                authContext(user2Subject),
+                readGranted(user2Subject));
+
+        // THEN: Each user should get their own accessible paths
+        assertThat(user1Result.getAccessiblePaths())
+                .containsExactlyInAnyOrder(
+                        JsonPointer.of("/attributes/type"),
+                        JsonPointer.of("/attributes/complex/some"),
+                        JsonPointer.of("/features/some/properties/configuration/foo"));
+
+        assertThat(user2Result.getAccessiblePaths())
+                .containsExactlyInAnyOrder(
+                        JsonPointer.of("/attributes/complex/some"),
+                        JsonPointer.of("/features/other/properties/public"));
+    }
+
     private static Set<AuthorizationSubject> readGranted(final AuthorizationSubject... subjects) {
         return Set.of(subjects);
     }

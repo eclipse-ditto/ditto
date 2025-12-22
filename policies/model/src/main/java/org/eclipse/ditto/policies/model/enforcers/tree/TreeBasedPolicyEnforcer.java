@@ -422,6 +422,8 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
 
         final int levelCount = resourcePath.getLevelCount();
         final Set<JsonPointer> accessiblePaths = new HashSet<>();
+        
+        final Set<JsonPointer> candidatePaths = new HashSet<>();
         candidates.stream()
                 .filter(pointerAndValue -> pointerStartsWith(pointerAndValue.pointer, resourcePath))
                 .filter(pointerAndValue -> isAccessible(pointerAndValue.pointer, grantedResources, revokedResources))
@@ -430,8 +432,42 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
                         final String msgPattern = "JsonPointer did not contain a sub-pointer for level <{0}>!";
                         return new IllegalStateException(MessageFormat.format(msgPattern, levelCount));
                     });
-                    accessiblePaths.add(resourcePath.append(subPointer));
+                    candidatePaths.add(resourcePath.append(subPointer));
                 });
+        
+        final int resourcePathLevels = resourcePath.getLevelCount();
+        
+        for (final JsonPointer candidatePath : candidatePaths) {
+            boolean hasRevokedChild = false;
+            
+            final Optional<JsonPointer> candidateRelativeOpt = candidatePath.getSubPointer(resourcePathLevels);
+            if (!candidateRelativeOpt.isPresent()) {
+                continue;
+            }
+            final JsonPointer candidateRelative = candidateRelativeOpt.get();
+            final String candidatePathStr = candidateRelative.toString();
+            
+            for (final JsonPointer revokedPath : revokedResources) {
+                final Optional<JsonPointer> revokedRelativeOpt = revokedPath.getSubPointer(resourcePathLevels);
+                if (!revokedRelativeOpt.isPresent()) {
+                    continue;
+                }
+                final JsonPointer revokedRelative = revokedRelativeOpt.get();
+                final String revokedPathStr = revokedRelative.toString();
+                
+                if (revokedPathStr.equals(candidatePathStr)) {
+                    hasRevokedChild = true;
+                    break;
+                } else if (revokedPathStr.startsWith(candidatePathStr + "/")) {
+                    hasRevokedChild = true;
+                    break;
+                }
+            }
+            
+            if (!hasRevokedChild) {
+                accessiblePaths.add(candidatePath);
+            }
+        }
 
         return accessiblePaths;
     }
