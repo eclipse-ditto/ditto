@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.internal.utils.protocol;
 
+import java.util.Optional;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -25,6 +26,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.Payload;
+import org.eclipse.ditto.protocol.PayloadBuilder;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
 
@@ -59,7 +61,7 @@ public final class AdaptablePartialAccessFilter {
                 !TopicPath.Criterion.EVENTS.equals(topicPath.getCriterion())) {
             return adaptable;
         }
-
+        
         final PartialAccessPathResolver.AccessiblePathsResult result =
                 PartialAccessPathResolver.resolveAccessiblePathsFromHeader(
                         partialAccessPathsHeader, subscriberAuthContext, headers);
@@ -133,10 +135,16 @@ public final class AdaptablePartialAccessFilter {
         final JsonObject filteredPayload = JsonPartialAccessFilter.filterJsonByPaths(
                 originalPayload, accessiblePaths);
 
+        final Optional<JsonObject> originalExtra = adaptable.getPayload().getExtra();
+        final Optional<JsonObject> filteredExtra = originalExtra.map(extra ->
+                JsonPartialAccessFilter.filterJsonByPaths(extra, accessiblePaths));
+
+        final PayloadBuilder payloadBuilder = Payload.newBuilder(adaptable.getPayload())
+                .withValue(filteredPayload);
+        filteredExtra.ifPresent(payloadBuilder::withExtra);
+
         return ProtocolFactory.newAdaptableBuilder(adaptable)
-                .withPayload(Payload.newBuilder(adaptable.getPayload())
-                        .withValue(filteredPayload)
-                        .build())
+                .withPayload(payloadBuilder.build())
                 .build();
     }
 
