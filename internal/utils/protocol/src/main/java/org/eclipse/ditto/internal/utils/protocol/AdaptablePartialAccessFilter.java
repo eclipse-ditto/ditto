@@ -136,8 +136,10 @@ public final class AdaptablePartialAccessFilter {
                 originalPayload, accessiblePaths);
 
         final Optional<JsonObject> originalExtra = adaptable.getPayload().getExtra();
-        final Optional<JsonObject> filteredExtra = originalExtra.map(extra ->
-                JsonPartialAccessFilter.filterJsonByPaths(extra, accessiblePaths));
+        final Optional<JsonObject> filteredExtra = originalExtra.map(extra -> {
+            final JsonObject filtered = JsonPartialAccessFilter.filterJsonByPaths(extra, accessiblePaths);
+            return filtered.isEmpty() ? null : filtered;
+        });
 
         final PayloadBuilder payloadBuilder = Payload.newBuilder(adaptable.getPayload())
                 .withValue(filteredPayload);
@@ -154,13 +156,27 @@ public final class AdaptablePartialAccessFilter {
             return false;
         }
 
+        // First check for exact match
         if (accessiblePaths.contains(eventPath)) {
             return true;
         }
 
+        // Special case: root path "/" means full access
         if (accessiblePaths.contains(JsonPointer.empty())) {
             return true;
         }
+
+        // For non-object payloads (individual path updates), we MUST be very strict.
+        // The problem: If we allow child paths of accessible paths, we might allow revoked paths.
+        // Example: If /attributes/complex is accessible but /attributes/complex/secret is revoked,
+        // we should NOT allow /attributes/complex/secret even though it's a child of /attributes/complex.
+        //
+        // Solution: Only allow exact matches. Do NOT allow child paths unless they are explicitly
+        // in the accessible paths set. This ensures that revoked paths are never allowed.
+        //
+        // Note: The PARTIAL_ACCESS_PATHS header should contain only specific accessible paths,
+        // not parent paths that have revoked children. But to be safe, we enforce strict matching here.
+        
         return false;
     }
 
