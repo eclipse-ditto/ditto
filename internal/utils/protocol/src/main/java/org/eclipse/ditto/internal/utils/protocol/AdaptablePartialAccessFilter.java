@@ -61,7 +61,7 @@ public final class AdaptablePartialAccessFilter {
                 !TopicPath.Criterion.EVENTS.equals(topicPath.getCriterion())) {
             return adaptable;
         }
-        
+
         final PartialAccessPathResolver.AccessiblePathsResult result =
                 PartialAccessPathResolver.resolveAccessiblePathsFromHeader(
                         partialAccessPathsHeader, subscriberAuthContext, headers);
@@ -109,7 +109,7 @@ public final class AdaptablePartialAccessFilter {
             if (!isPathAccessible) {
                 return createEmptyPayloadAdaptable(adaptable);
             }
-            return adaptable;
+            return filterExtraFields(adaptable, accessiblePaths);
         }
 
         return filterAdaptablePayload(adaptable, accessiblePaths);
@@ -135,19 +135,47 @@ public final class AdaptablePartialAccessFilter {
         final JsonObject filteredPayload = JsonPartialAccessFilter.filterJsonByPaths(
                 originalPayload, accessiblePaths);
 
-        final Optional<JsonObject> originalExtra = adaptable.getPayload().getExtra();
-        final Optional<JsonObject> filteredExtra = originalExtra.map(extra -> {
-            final JsonObject filtered = JsonPartialAccessFilter.filterJsonByPaths(extra, accessiblePaths);
-            return filtered.isEmpty() ? null : filtered;
-        });
-
         final PayloadBuilder payloadBuilder = Payload.newBuilder(adaptable.getPayload())
                 .withValue(filteredPayload);
-        filteredExtra.ifPresent(payloadBuilder::withExtra);
+        filterExtraFieldsIntoBuilder(adaptable, accessiblePaths, payloadBuilder);
 
         return ProtocolFactory.newAdaptableBuilder(adaptable)
                 .withPayload(payloadBuilder.build())
                 .build();
+    }
+
+
+    private static Adaptable filterExtraFields(
+            final Adaptable adaptable,
+            final Set<JsonPointer> accessiblePaths) {
+
+        final PayloadBuilder payloadBuilder = Payload.newBuilder(adaptable.getPayload());
+        filterExtraFieldsIntoBuilder(adaptable, accessiblePaths, payloadBuilder);
+
+        return ProtocolFactory.newAdaptableBuilder(adaptable)
+                .withPayload(payloadBuilder.build())
+                .build();
+    }
+
+
+    private static void filterExtraFieldsIntoBuilder(
+            final Adaptable adaptable,
+            final Set<JsonPointer> accessiblePaths,
+            final PayloadBuilder payloadBuilder) {
+
+        final Optional<JsonObject> originalExtra = adaptable.getPayload().getExtra();
+        if (originalExtra.isEmpty()) {
+            return;
+        }
+
+        final JsonObject filteredExtra = JsonPartialAccessFilter.filterJsonByPaths(
+                originalExtra.get(), accessiblePaths);
+
+        if (filteredExtra.isEmpty()) {
+            return;
+        }
+
+        payloadBuilder.withExtra(filteredExtra);
     }
 
     private static boolean isPathAccessibleForNonObjectPayload(final JsonPointer eventPath,
@@ -156,27 +184,14 @@ public final class AdaptablePartialAccessFilter {
             return false;
         }
 
-        // First check for exact match
         if (accessiblePaths.contains(eventPath)) {
             return true;
         }
 
-        // Special case: root path "/" means full access
         if (accessiblePaths.contains(JsonPointer.empty())) {
             return true;
         }
 
-        // For non-object payloads (individual path updates), we MUST be very strict.
-        // The problem: If we allow child paths of accessible paths, we might allow revoked paths.
-        // Example: If /attributes/complex is accessible but /attributes/complex/secret is revoked,
-        // we should NOT allow /attributes/complex/secret even though it's a child of /attributes/complex.
-        //
-        // Solution: Only allow exact matches. Do NOT allow child paths unless they are explicitly
-        // in the accessible paths set. This ensures that revoked paths are never allowed.
-        //
-        // Note: The PARTIAL_ACCESS_PATHS header should contain only specific accessible paths,
-        // not parent paths that have revoked children. But to be safe, we enforce strict matching here.
-        
         return false;
     }
 

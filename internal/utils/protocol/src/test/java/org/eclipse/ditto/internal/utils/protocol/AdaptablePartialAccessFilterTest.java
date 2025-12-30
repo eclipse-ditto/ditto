@@ -441,7 +441,6 @@ public final class AdaptablePartialAccessFilterTest {
 
     @Test
     public void filtersExtraFieldsForPartialAccess() {
-        // GIVEN: A user has access to /attributes/type but NOT to /attributes/hidden
         final String partialAccessHeader = JsonFactory.newObjectBuilder()
                 .set("subjects", JsonFactory.newArrayBuilder()
                         .add(SUBJECT_PARTIAL.getId())
@@ -458,7 +457,6 @@ public final class AdaptablePartialAccessFilterTest {
                 .readGrantedSubjects(Set.of(SUBJECT_PARTIAL))
                 .build();
 
-        // Create payload with accessible and inaccessible fields
         final JsonObject payload = JsonFactory.newObjectBuilder()
                 .set("attributes", JsonFactory.newObjectBuilder()
                         .set("type", JsonValue.of("LORAWAN_GATEWAY"))
@@ -470,7 +468,6 @@ public final class AdaptablePartialAccessFilterTest {
                         .build())
                 .build();
 
-        // Create extraFields with both accessible and inaccessible paths
         final JsonObject extraFields = JsonFactory.newObjectBuilder()
                 .set("attributes", JsonFactory.newObjectBuilder()
                         .set("type", JsonValue.of("LORAWAN_GATEWAY"))
@@ -491,12 +488,9 @@ public final class AdaptablePartialAccessFilterTest {
 
         final Adaptable adaptable = createThingEventAdaptableWithExtra(payload, extraFields, headers);
         final AuthorizationContext context = authContext(SUBJECT_PARTIAL);
-
-        // WHEN: Filtering is applied
         final Adaptable result = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
                 adaptable, context);
 
-        // THEN: Payload should be filtered
         final JsonObject filteredPayload = result.getPayload().getValue()
                 .filter(JsonValue::isObject)
                 .map(JsonValue::asObject)
@@ -506,7 +500,6 @@ public final class AdaptablePartialAccessFilterTest {
         assertThat(filteredPayload.getValue(JsonPointer.of("/attributes/complex/some"))).isPresent();
         assertThat(filteredPayload.getValue(JsonPointer.of("/attributes/complex/secret"))).isEmpty();
 
-        // THEN: ExtraFields should also be filtered
         final Optional<JsonObject> filteredExtra = result.getPayload().getExtra();
         assertThat(filteredExtra).isPresent();
         final JsonObject extraObj = filteredExtra.get();
@@ -519,8 +512,28 @@ public final class AdaptablePartialAccessFilterTest {
                 assertThat(complexValue.asObject().getValue(JsonPointer.of("secret"))).isEmpty();
             }
         }
-        // Features should be filtered out completely (not accessible)
         assertThat(extraObj.getValue(JsonPointer.of("/features"))).isEmpty();
+
+        final Adaptable nonObjectAdaptable = createThingEventAdaptableWithExtra(
+                JsonPointer.of("attributes/type"),
+                JsonValue.of("LORAWAN_GATEWAY_V2"),
+                extraFields,
+                headers);
+
+        final Adaptable nonObjectResult = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+                nonObjectAdaptable, context);
+
+        assertThat(nonObjectResult.getPayload().getValue()).isPresent();
+        assertThat(nonObjectResult.getPayload().getValue().get()).isEqualTo(JsonValue.of("LORAWAN_GATEWAY_V2"));
+
+        final Optional<JsonObject> nonObjectFilteredExtra = nonObjectResult.getPayload().getExtra();
+        assertThat(nonObjectFilteredExtra).isPresent();
+        final JsonObject nonObjectExtraObj = nonObjectFilteredExtra.get();
+
+        assertThat(nonObjectExtraObj.getValue(JsonPointer.of("/attributes/type"))).isPresent();
+        assertThat(nonObjectExtraObj.getValue(JsonPointer.of("/attributes/complex/some"))).isPresent();
+        assertThat(nonObjectExtraObj.getValue(JsonPointer.of("/attributes/hidden"))).isEmpty();
+        assertThat(nonObjectExtraObj.getValue(JsonPointer.of("/features"))).isEmpty();
     }
 
 
@@ -692,6 +705,27 @@ public final class AdaptablePartialAccessFilterTest {
                 .withPayload(ProtocolFactory.newPayloadBuilder()
                         .withPath(JsonPointer.empty())
                         .withValue(payload)
+                        .withExtra(extraFields)
+                        .build())
+                .withHeaders(headers)
+                .build();
+    }
+
+
+    private static Adaptable createThingEventAdaptableWithExtra(
+            final JsonPointer path,
+            final JsonValue value,
+            final JsonObject extraFields,
+            final DittoHeaders headers) {
+        final ThingId thingId = ThingId.of("org.eclipse.ditto.test", "thing");
+        final TopicPath topicPath = ProtocolFactory.newTopicPathBuilder(thingId)
+                .events()
+                .modified()
+                .build();
+        return ProtocolFactory.newAdaptableBuilder(topicPath)
+                .withPayload(ProtocolFactory.newPayloadBuilder()
+                        .withPath(path)
+                        .withValue(value)
                         .withExtra(extraFields)
                         .build())
                 .withHeaders(headers)
