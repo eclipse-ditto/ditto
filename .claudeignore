@@ -1,0 +1,44 @@
+# Claude Code Ignore File
+# Patterns in this file will be excluded from Claude Code's context by default
+# Use gitignore-style patterns: https://git-scm.com/docs/gitignore
+
+# Exclude feature-specific documentation (load on-demand only)
+.claude/docs/
+
+# Exclude build artifacts and dependencies
+target/
+node_modules/
+.mvn/
+*.class
+*.jar
+*.war
+
+# Exclude IDE-specific files
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# Exclude large binary files
+*.pdf
+*.zip
+*.tar.gz
+
+# Exclude test fixtures and large data files
+**/src/test/resources/large-fixtures/
+**/test-data/
+
+# Exclude generated documentation
+site/
+docs/_site/
+
+# Exclude logs
+*.log
+logs/
+
+# Exclude temporary files
+*.tmp
+*.swp
+*~
