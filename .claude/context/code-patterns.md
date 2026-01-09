@@ -1,5 +1,61 @@
 # Code Patterns & Conventions
 
+## Immutability Principles
+
+**CRITICAL**: Prefer immutability over mutable state throughout the codebase.
+
+### Use `final` Keyword Everywhere
+
+**Fields:**
+```java
+public final class ThingPersistenceActor {
+    private final ThingCommandStrategies commandStrategies;  // ✅ Always final
+    private final ThingEventStrategies eventStrategies;       // ✅ Always final
+}
+```
+
+**Method Parameters:**
+```java
+public Thing applyEvent(final Thing entity, final ThingEvent<?> event) {  // ✅ Final parameters
+    return eventStrategies.handle(event, entity, revision);
+}
+```
+
+**Why final parameters?**
+- Makes clear that reassigning parameters has no effect
+- Parameters are effectively final in Ditto's functional style
+- Prevents accidental reassignment bugs
+- Self-documenting code intent
+
+**Local Variables:**
+```java
+public CommandStrategy.Result<ThingEvent<?>, Thing> handleCommand(...) {
+    final CreateThing command = (CreateThing) signal;           // ✅ Final local
+    final Thing thing = command.getThing();                     // ✅ Final local
+    final ThingId thingId = thing.getEntityId().orElseThrow(); // ✅ Final local
+    return Result.of(ThingCreated.of(thing, revision, headers));
+}
+```
+
+### When NOT to Use `final`
+
+Avoid `final` only when:
+- Loop variables that need reassignment (rare in functional style)
+- Builder pattern internal state (but builders themselves should be immutable)
+- Explicit mutability is required for performance (must document why)
+
+### Immutable Collections
+
+Prefer immutable collections:
+```java
+// ✅ Good - immutable
+private final List<String> items = List.of("a", "b", "c");
+private final Map<String, String> config = Map.of("key", "value");
+
+// ❌ Avoid - mutable
+private final List<String> items = new ArrayList<>();
+```
+
 ## Signals (Commands/Events/Responses)
 
 Everything in Ditto is a `Signal`:
@@ -164,4 +220,4 @@ Key style rules:
 - 4 spaces for indentation (no tabs)
 - Opening brace on same line
 - Single blank line between methods
-- `final` keyword for parameters and local variables where appropriate
+- **`final` keyword required** for all fields, parameters, and local variables
