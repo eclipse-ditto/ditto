@@ -3,7 +3,7 @@
 ## Your Setup
 
 ```
-/Users/thjaeckle/git/
+~/git/
 ├── ditto/              → master branch (NO CLAUDE.md)
 └── ditto-claude/       → claude branch (HAS CLAUDE.md)
 ```
@@ -21,7 +21,7 @@
 ### Start New Feature with Claude Code
 
 ```bash
-cd /Users/thjaeckle/git/ditto-claude
+cd ~/git/ditto-claude
 git checkout -b feature/my-feature master
 # Code with Claude Code here
 git add .
@@ -33,7 +33,7 @@ git push -u origin feature/my-feature
 ### Regular Development (without Claude)
 
 ```bash
-cd /Users/thjaeckle/git/ditto
+cd ~/git/ditto
 git checkout -b feature/my-feature
 # Code normally
 git push -u origin feature/my-feature
@@ -42,7 +42,7 @@ git push -u origin feature/my-feature
 ### Update CLAUDE.md Documentation
 
 ```bash
-cd /Users/thjaeckle/git/ditto-claude
+cd ~/git/ditto-claude
 git checkout claude
 # Edit CLAUDE.md or .claude/context/ files
 git add .
@@ -208,8 +208,8 @@ git wtm && pwd    # Jump to master worktree
 Add to `~/.zshrc` or `~/.bashrc`:
 
 ```bash
-alias cdclaude='cd /Users/thjaeckle/git/ditto-claude'
-alias cdmaster='cd /Users/thjaeckle/git/ditto'
+alias cdclaude='cd ~/git/ditto-claude'
+alias cdmaster='cd ~/git/ditto'
 ```
 
 ## Remember
