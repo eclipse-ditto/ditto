@@ -67,6 +67,20 @@ This repository is organized with detailed context in the `.claude/context/` dir
 - Kubernetes, OpenShift, Azure options
 - Monitoring and operations (Grafana, Prometheus)
 
+### Architecture Deep Dives
+
+🔬 **[Deep Dives](.claude/deep-dives/)** - Core architecture and design decisions
+- **Start here**: [README.md](.claude/deep-dives/README.md) - Guide to deep-dive documents
+- Key topics: Concierge removal, twin updates/events, pub/sub, serialization, acknowledgements
+- Cross-cutting concerns: Authorization, enrichment, placeholders, connections
+- Use when: Understanding architectural decisions, debugging complex flows, working on core features
+
+📄 **[Extended Docs](.claude/docs/)** - Feature-specific documentation
+- Query & Search: RQL syntax, search service architecture
+- Messaging: Live messaging patterns
+- Connections: Kafka, payload mapping, log forwarding
+- Specialized features: WoT integration, OSS process
+
 ## Getting Started
 
 1. **First Time Setup**: Read [Build & Test](.claude/context/build-and-test.md) to set up your environment
