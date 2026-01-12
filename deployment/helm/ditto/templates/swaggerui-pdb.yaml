@@ -9,6 +9,9 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 {{- if and .Values.swaggerui.podDisruptionBudget.enabled (gt .Values.swaggerui.replicaCount 1.0) -}}
+{{- if and .Values.swaggerui.podDisruptionBudget.minAvailable .Values.swaggerui.podDisruptionBudget.maxUnavailable }}
+{{- fail "swaggerui.podDisruptionBudget cannot have both minAvailable and maxUnavailable set. Please set only one of them." }}
+{{- end }}
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
@@ -23,6 +26,9 @@ spec:
     matchLabels:
       app.kubernetes.io/name: {{ include "ditto.name" . }}-swaggerui
       app.kubernetes.io/instance: {{ .Release.Name }}
+{{- if .Values.swaggerui.podDisruptionBudget.minAvailable }}
   minAvailable: {{ .Values.swaggerui.podDisruptionBudget.minAvailable }}
+{{- else }}
   maxUnavailable: {{ .Values.swaggerui.podDisruptionBudget.maxUnavailable }}
+{{- end }}
 {{- end }}

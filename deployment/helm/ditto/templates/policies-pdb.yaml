@@ -9,6 +9,9 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 {{- if and .Values.policies.podDisruptionBudget.enabled (gt .Values.policies.replicaCount 1.0) -}}
+{{- if and .Values.policies.podDisruptionBudget.minAvailable .Values.policies.podDisruptionBudget.maxUnavailable }}
+{{- fail "policies.podDisruptionBudget cannot have both minAvailable and maxUnavailable set. Please set only one of them." }}
+{{- end }}
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
@@ -23,6 +26,9 @@ spec:
     matchLabels:
       app.kubernetes.io/name: {{ include "ditto.name" . }}-policies
       app.kubernetes.io/instance: {{ .Release.Name }}
+{{- if .Values.policies.podDisruptionBudget.minAvailable }}
   minAvailable: {{ .Values.policies.podDisruptionBudget.minAvailable }}
+{{- else }}
   maxUnavailable: {{ .Values.policies.podDisruptionBudget.maxUnavailable }}
+{{- end }}
 {{- end }}
