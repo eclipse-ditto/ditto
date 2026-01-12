@@ -19,6 +19,10 @@ serviceAccount:
   # name is the name of the service account to use
   #  If not set and create is true, a name is generated using the fullname template
   name:
+  # Additional annotations to add to the service account.
+  # Useful when using GitOps tooling like Argo or Flux in order to add sync-wave annotations that ensure
+  # the service account is created before other resources depending on it like the pre-upgrade hook.
+  annotations: {}
   # assumeAwsIamRole specifies whether to assume an AWS IAM Role for Service Accounts (IRSA).
   # Set to true to use IRSA, which allows the pod to assume an IAM role.
   # When set to true, ensure that awsRoleArn is specified.
