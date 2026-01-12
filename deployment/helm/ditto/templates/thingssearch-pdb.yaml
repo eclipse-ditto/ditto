@@ -9,6 +9,9 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 {{- if and .Values.thingsSearch.podDisruptionBudget.enabled (gt .Values.thingsSearch.replicaCount 1.0) -}}
+{{- if and .Values.thingsSearch.podDisruptionBudget.minAvailable .Values.thingsSearch.podDisruptionBudget.maxUnavailable }}
+{{- fail "thingsSearch.podDisruptionBudget cannot have both minAvailable and maxUnavailable set. Please set only one of them." }}
+{{- end }}
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
@@ -23,6 +26,9 @@ spec:
     matchLabels:
       app.kubernetes.io/name: {{ include "ditto.name" . }}-thingssearch
       app.kubernetes.io/instance: {{ .Release.Name }}
+{{- if .Values.thingsSearch.podDisruptionBudget.minAvailable }}
   minAvailable: {{ .Values.thingsSearch.podDisruptionBudget.minAvailable }}
+{{- else }}
   maxUnavailable: {{ .Values.thingsSearch.podDisruptionBudget.maxUnavailable }}
+{{- end }}
 {{- end }}

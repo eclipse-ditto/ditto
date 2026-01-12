@@ -723,10 +723,11 @@ policies:
   podDisruptionBudget:
     # enabled controls whether policies related PodDisruptionBudget should be created
     enabled: true
+    # NOTE: You can only set either minAvailable OR maxUnavailable, not both
     # minAvailable number of replicas during voluntary disruptions
     minAvailable: 1
     # maxUnavailable number of replicas during voluntary disruptions
-    maxUnavailable: 1
+    maxUnavailable:
   # priorityClassName configuration for policies
   #  ref: https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass
   priorityClassName: ""
@@ -1054,10 +1055,11 @@ things:
   podDisruptionBudget:
     # enabled controls whether things related PodDisruptionBudget should be created
     enabled: true
+    # NOTE: You can only set either minAvailable OR maxUnavailable, not both
     # minAvailable number of replicas during voluntary disruptions
     minAvailable: 1
     # maxUnavailable number of replicas during voluntary disruptions
-    maxUnavailable: 1
+    maxUnavailable:
   # priorityClassName configuration for policies
   #  ref: https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass
   priorityClassName: ""
@@ -1543,10 +1545,11 @@ thingsSearch:
   podDisruptionBudget:
     # enabled controls whether things-search related PodDisruptionBudget should be created
     enabled: true
+    # NOTE: You can only set either minAvailable OR maxUnavailable, not both
     # minAvailable number of replicas during voluntary disruptions
     minAvailable: 1
     # maxUnavailable number of replicas during voluntary disruptions
-    maxUnavailable: 1
+    maxUnavailable:
   # priorityClassName configuration for policies
   #  ref: https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass
   priorityClassName: ""
@@ -1854,10 +1857,11 @@ connectivity:
   podDisruptionBudget:
     # enabled controls whether connectivity related PodDisruptionBudget should be created
     enabled: true
+    # NOTE: You can only set either minAvailable OR maxUnavailable, not both
     # minAvailable number of replicas during voluntary disruptions
     minAvailable: 1
     # maxUnavailable number of replicas during voluntary disruptions
-    maxUnavailable: 1
+    maxUnavailable:
   # priorityClassName configuration for policies
   #  ref: https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass
   priorityClassName: ""
@@ -2249,10 +2253,11 @@ gateway:
   podDisruptionBudget:
     # enabled controls whether gateway related PodDisruptionBudget should be created
     enabled: true
+    # NOTE: You can only set either minAvailable OR maxUnavailable, not both
     # minAvailable number of replicas during voluntary disruptions
     minAvailable: 1
     # maxUnavailable number of replicas during voluntary disruptions
-    maxUnavailable: 1
+    maxUnavailable:
   # priorityClassName configuration for policies
   #  ref: https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass
   priorityClassName: ""
@@ -2554,10 +2559,11 @@ dittoui:
   podDisruptionBudget:
     # enabled controls whether Ditto UI related PodDisruptionBudget should be created
     enabled: true
+    # NOTE: You can only set either minAvailable OR maxUnavailable, not both
     # minAvailable number of replicas during voluntary disruptions
     minAvailable: 1
     # maxUnavailable number of replicas during voluntary disruptions
-    maxUnavailable: 1
+    maxUnavailable:
   # service configuration of the k8s service of the Ditto UI
   service:
     # port of the Ditto UI service
@@ -2610,10 +2616,11 @@ swaggerui:
   podDisruptionBudget:
     # enabled controls whether swagger ui related PodDisruptionBudget should be created
     enabled: true
+    # NOTE: You can only set either minAvailable OR maxUnavailable, not both
     # minAvailable number of replicas during voluntary disruptions
     minAvailable: 1
     # maxUnavailable number of replicas during voluntary disruptions
-    maxUnavailable: 1
+    maxUnavailable:
   # service configuration of the k8s service of the swagger ui
   service:
     # port of the swagger ui service
