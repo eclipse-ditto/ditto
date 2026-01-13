@@ -8,6 +8,21 @@
 └── ditto-claude/       → claude branch (HAS CLAUDE.md)
 ```
 
+## One-Time Setup
+
+Add Claude context files to local git exclude (prevents accidentally committing them on feature branches):
+
+```bash
+cat >> ~/git/ditto/.git/info/exclude << 'EOF'
+
+# Claude Code context files - keep locally but don't commit to feature branches
+CLAUDE.md
+.claude/
+EOF
+```
+
+This applies to all worktrees and ensures `CLAUDE.md` and `.claude/` won't be staged on feature branches.
+
 ## When to Use Which Directory
 
 | Task | Directory | Why |
@@ -22,7 +37,9 @@
 
 ```bash
 cd ~/git/ditto-claude
+git checkout master && git pull
 git checkout -b feature/my-feature master
+git checkout claude -- CLAUDE.md .claude/   # Restore Claude context files
 # Code with Claude Code here
 git add .
 git commit -s -m "Description"
@@ -75,6 +92,7 @@ git pull origin master
 cd ~/git/ditto-claude
 git checkout master && git pull
 git checkout -b feature/add-validation master
+git checkout claude -- CLAUDE.md .claude/   # Restore Claude context files
 # Work with Claude Code
 git commit -s -m "Add input validation"
 git push -u origin feature/add-validation
@@ -115,6 +133,16 @@ git push origin claude
 - Edit CLAUDE.md on feature branches
 
 ## Troubleshooting
+
+### "CLAUDE.md is missing after creating feature branch!"
+
+This happens because feature branches are based on `master` which doesn't have CLAUDE.md. Restore it:
+
+```bash
+git checkout claude -- CLAUDE.md .claude/
+```
+
+Make sure you've completed the one-time setup (adding to `.git/info/exclude`) so these files won't be accidentally committed.
 
 ### "I'm in the wrong directory!"
 
