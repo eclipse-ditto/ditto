@@ -533,9 +533,10 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
             @Nullable final TargetActorWithMessage targetActorWithMessage) {
 
         if (null != targetActorWithMessage) {
+            final ActorRef targetActor = targetActorWithMessage.targetActor();
             if (!targetActorWithMessage.messageTimeout().isZero()) {
                 return Patterns.ask(
-                                targetActorWithMessage.targetActor(),
+                                targetActor,
                                 targetActorWithMessage.message(),
                                 targetActorWithMessage.messageTimeout()
                         )
@@ -543,13 +544,18 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                         .exceptionally(throwable -> targetActorWithMessage.responseOrErrorConverter().apply(throwable));
             } else {
                 // special case: no response expected
-                return Patterns.ask(
-                                targetActorWithMessage.targetActor(),
-                                targetActorWithMessage.message(),
-                                determineAskTimeoutForPersistenceActorForwarding(true) // calculate timeout for ACK only
-                        )
-                        .thenApply(targetActorWithMessage.responseOrErrorConverter())
-                        .exceptionally(throwable -> targetActorWithMessage.responseOrErrorConverter().apply(throwable));
+                if (targetActor.equals(persistenceActorChild)) {
+                    return Patterns.ask(
+                                    targetActor,
+                                    targetActorWithMessage.message(),
+                                    determineAskTimeoutForPersistenceActorForwarding(true) // calculate timeout for ACK only
+                            )
+                            .thenApply(targetActorWithMessage.responseOrErrorConverter())
+                            .exceptionally(throwable -> targetActorWithMessage.responseOrErrorConverter().apply(throwable));
+                } else {
+                    targetActor.tell(targetActorWithMessage.message(), getSelf());
+                    return CompletableFuture.completedFuture(Done.getInstance());
+                }
             }
         } else {
             return CompletableFuture.completedFuture(null);
@@ -637,7 +643,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         log.debug("Persistence actor for entity with ID <{}> signaled it was recovered", entityId);
         paRecovered = true;
         if (enforcerChild != null) {
-            enforcerChild.tell(Control.PA_RECOVERED, getSender());
+            enforcerChild.tell(AbstractEnforcerActor.Control.PA_RECOVERED, getSender());
         }
     }
 
