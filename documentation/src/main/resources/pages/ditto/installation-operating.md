@@ -549,6 +549,118 @@ Example for configuring the same configuration via system properties for the `th
 -Dditto.search.namespace-indexed-fields.1.indexed-fields.1=features/info
 ```
 
+## Configuring Additional Search Indexes
+
+Since Ditto **3.9.0**, it is possible to configure additional custom MongoDB indexes for the search collection via
+configuration. This allows you to optimize search queries for specific access patterns without modifying the Ditto
+codebase.
+
+Custom indexes are created in addition to the built-in indexes that Ditto manages. The index lifecycle is controlled
+by the existing `activated-index-names` mechanism - once you define a custom index, you must add its name to
+`activated-index-names` for it to be created.
+
+### Configuration options
+
+Each custom index requires:
+* **name** - The index name (used as the configuration key and MongoDB index name)
+* **fields** - A list of fields to include in the compound index, each with:
+  * **name** - The field path (e.g., `t.attributes.region`, `_namespace`, `t.features.sensor.properties.value`)
+  * **direction** - Sort direction, either `ASC` (ascending, default) or `DESC` (descending)
+
+### HOCON Configuration
+
+Configure custom indexes in the `search.conf` file:
+
+```hocon
+ditto {
+  search {
+    index-initialization {
+      # Add your custom index names to activated-index-names to enable them
+      activated-index-names = [
+        "_namespace",
+        "global_read",
+        "v_wildcard",
+        "policyId",
+        "referencedPolicies",
+        "deleteAt",
+        "my_custom_idx"  # Enable the custom index
+      ]
+
+      # Define custom compound indexes (index name is the key)
+      custom-indexes {
+        my_custom_idx {
+          fields = [
+            { name = "t.attributes/region" }
+            { name = "t.attributes/timestamp", direction = "DESC" }
+          ]
+        }
+        another_index {
+          fields = [
+            { name = "_namespace", direction = "ASC" }
+            { name = "t.features/sensor/properties/value", direction = "DESC" }
+          ]
+        }
+      }
+    }
+  }
+}
+```
+
+### System Properties Configuration
+
+Example for configuring custom indexes via system properties for the `things-search` service:
+
+```shell
+-Dditto.search.index-initialization.custom-indexes.my_custom_idx.fields.0.name=t.attributes/region
+-Dditto.search.index-initialization.custom-indexes.my_custom_idx.fields.1.name=t.attributes/timestamp
+-Dditto.search.index-initialization.custom-indexes.my_custom_idx.fields.1.direction=DESC
+```
+
+### Helm Configuration
+
+When deploying Ditto via Helm, configure custom indexes in `values.yaml`:
+
+```yaml
+thingsSearch:
+  config:
+    indexInitialization:
+      enabled: true
+      activatedIndexNames:
+        - "_namespace"
+        - "global_read"
+        - "v_wildcard"
+        - "policyId"
+        - "referencedPolicies"
+        - "deleteAt"
+        - "my_custom_idx"  # Enable the custom index
+      customIndexes:
+        my_custom_idx:
+          fields:
+            - name: "t.attributes/region"
+              direction: "ASC"
+            - name: "t.attributes/timestamp"
+              direction: "DESC"
+```
+
+### Field naming conventions
+
+The field names in custom indexes follow the same conventions as the existing search indexes in Ditto:
+
+* `_namespace` - The namespace of the thing
+* `_id` - The thing ID
+* `t.policyId` - The policy ID
+* `t.attributes.<path>` - Attributes at the specified path (e.g., `t.attributes.location.city`)
+* `t.features.<featureId>.properties.<path>` - Feature properties (e.g., `t.features.sensor.properties.value`)
+* `_modified` - The last modification timestamp
+* `_created` - The creation timestamp
+
+### Important notes
+
+* Custom indexes are only created when their name is included in `activated-index-names`.
+* Removing an index name from `activated-index-names` will cause the index to be dropped on service restart.
+* Each custom index must have at least one field defined.
+* The direction is optional and defaults to `ASC` if not specified.
+
 ## Logging
 
 Gathering logs for a running Ditto installation can be achieved by:
