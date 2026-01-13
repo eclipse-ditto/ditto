@@ -14,6 +14,9 @@ package org.eclipse.ditto.protocol.adapter;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
@@ -152,6 +155,12 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
     @Override
     public Adaptable toAdaptable(final Signal<?> signal, final TopicPath.Channel channel) {
         return adapterResolver.getAdapter(signal, channel).toAdaptable(signal, channel);
+    }
+
+    @Override
+    public Adaptable toAdaptable(final Signal<?> signal, final TopicPath.Channel channel,
+            @Nullable final AuthorizationContext subscriberContext) {
+        return adapterResolver.getAdapter(signal, channel).toAdaptable(signal, channel, subscriberContext);
     }
 
     @Override

@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors.enrichment;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.CompletableFutureAssert.assertThatCompletionStage;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -28,6 +29,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonArrayBuilder;
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
@@ -53,9 +55,9 @@ import org.junit.Test;
 import com.typesafe.config.ConfigFactory;
 
 /**
- * Unit tests for {@link PreDefinedExtraFieldsEnricher}.
+ * Unit tests for {@link ThingEventEnricher}.
  */
-public final class PreDefinedExtraFieldsEnricherTest {
+public final class ThingEventEnricherTest {
 
     private static final ThingId KNOWN_THING_ID = ThingId.of("org.eclipse.ditto.some:thing");
     private static final String KNOWN_DEFINITION = "some:known:definition";
@@ -97,6 +99,13 @@ public final class PreDefinedExtraFieldsEnricherTest {
                     "READ")
             .build();
 
+    private static final Policy FULL_ACCESS_POLICY = Policy.newBuilder(KNOWN_POLICY_ID)
+            .setSubjectFor(KNOWN_LABEL_FULL, Subject.newInstance(
+                    SubjectId.newInstance(KNOWN_ISSUER_FULL_SUBJECT), SubjectType.GENERATED)
+            )
+            .setGrantedPermissionsFor(KNOWN_LABEL_FULL, ResourceKey.newInstance("thing", "/"), "READ", "WRITE")
+            .build();
+
     private PolicyEnforcerProvider policyEnforcerProvider;
 
     @Before
@@ -109,28 +118,21 @@ public final class PreDefinedExtraFieldsEnricherTest {
     @Test
     public void ensureDefinitionIsEnrichedAsPreDefinedFromConfiguration() {
         // GIVEN: the configuration to enrich all things with their definition
-        final var sut = providePreDefinedFieldsEnricher();
+        final var sut = new ThingEventEnricher(policyEnforcerProvider, true);
+        final var configs = getPreDefinedExtraFieldsConfigs(
+                "namespaces = []\n" +
+                "extra-fields = [\"definition\"]"
+        );
 
         // WHEN: enriched headers are getting calculated
-        final CompletionStage<DittoHeaders> resultHeadersStage = calculateEnrichedSignalHeaders(sut,
-                """
-                {
-                  namespaces = [
-                    "*"
-                  ]
-                  extra-fields = [
-                    "definition"
-                  ]
-                }
-                """
-        );
+        final CompletionStage<DittoHeaders> resultHeadersStage = calculateEnrichedSignalHeaders(sut, configs);
 
         // THEN: the expected pre-defined fields are present in the headers
         assertExpectations(resultHeadersStage,
                 predefinedExtraFields -> predefinedExtraFields.add("/definition"),
                 preDefinedExtraFieldsReadGrantObject -> preDefinedExtraFieldsReadGrantObject
                         .set(JsonKey.of("/definition"), JsonArray.newBuilder()
-                                .add(KNOWN_ISSUER_FULL_SUBJECT)
+                                .add(0)
                                 .build()
                         ),
                 preDefinedFieldsObject -> preDefinedFieldsObject.set("definition", KNOWN_DEFINITION)
@@ -139,42 +141,14 @@ public final class PreDefinedExtraFieldsEnricherTest {
 
     @Test
     public void ensureDefinitionAndAdditionalNamespaceSpecificIsEnrichedAsPreDefinedFromConfiguration() {
-        // GIVEN: the configuration to enrich all things with their definition and some with an attribute public1
-        final var sut = providePreDefinedFieldsEnricher();
+        final var sut = new ThingEventEnricher(policyEnforcerProvider, true);
+        final var configs = getPreDefinedExtraFieldsConfigs(
+                "namespaces = [\"org.eclipse.ditto.some\"]\n" +
+                "extra-fields = [\"definition\", \"attributes/public1\", \"attributes/private\"]"
+        );
 
         // WHEN: enriched headers are getting calculated
-        final CompletionStage<DittoHeaders> resultHeadersStage = calculateEnrichedSignalHeaders(sut,
-                """
-                {
-                  namespaces = [
-                    "*"
-                  ]
-                  extra-fields = [
-                    "definition"
-                  ]
-                }
-                """,
-                """
-                {
-                  namespaces = [
-                    "org.eclipse.ditto.some"
-                  ]
-                  extra-fields = [
-                    "attributes/public1"
-                  ]
-                }
-                """,
-                """
-                {
-                  namespaces = [
-                    "org.eclipse.ditto*"
-                  ]
-                  extra-fields = [
-                    "attributes/private"
-                  ]
-                }
-                """
-        );
+        final CompletionStage<DittoHeaders> resultHeadersStage = calculateEnrichedSignalHeaders(sut, configs);
 
         // THEN: the expected pre-defined fields are present in the headers
         assertExpectations(resultHeadersStage,
@@ -183,17 +157,17 @@ public final class PreDefinedExtraFieldsEnricherTest {
                         .add("/attributes/public1")
                         .add("/attributes/private"),
                 preDefinedExtraFieldsReadGrantObject -> preDefinedExtraFieldsReadGrantObject
-                        .set(JsonKey.of("/definition"), JsonArray.newBuilder()
-                                .add(KNOWN_ISSUER_FULL_SUBJECT)
+                        .set(JsonKey.of("/attributes/public1"), JsonArray.newBuilder()
+                                .add(0)
+                                .add(1)
                                 .build()
                         )
-                        .set(JsonKey.of("/attributes/public1"), JsonArray.newBuilder()
-                                .add(KNOWN_ISSUER_FULL_SUBJECT)
-                                .add(KNOWN_ISSUER_RESTRICTED_SUBJECT) // also include the restricted subject to read public1
+                        .set(JsonKey.of("/definition"), JsonArray.newBuilder()
+                                .add(0)
                                 .build()
                         )
                         .set(JsonKey.of("/attributes/private"), JsonArray.newBuilder()
-                                .add(KNOWN_ISSUER_FULL_SUBJECT)
+                                .add(0)
                                 .build()
                         ),
                 preDefinedFieldsObject -> preDefinedFieldsObject
@@ -204,46 +178,89 @@ public final class PreDefinedExtraFieldsEnricherTest {
     }
 
     @Test
+    public void addsPartialAccessHeaderWhenPartialSubjectsExist() {
+        final ThingEventEnricher sut = new ThingEventEnricher(policyEnforcerProvider, true);
+
+        final CompletionStage<JsonObject> partialHeaderStage = calculateEnrichedSignalHeaders(sut, List.of())
+                .thenApply(headers -> {
+                    final String headerValue = headers.get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey());
+                    if (headerValue == null) {
+                        return JsonFactory.newObject();
+                    }
+                    return JsonFactory.readFrom(headerValue).asObject();
+                });
+
+        assertThatCompletionStage(partialHeaderStage).isNotCompletedExceptionally();
+        final JsonObject header = partialHeaderStage.toCompletableFuture().join();
+        assertThat(header).isNotEmpty();
+        final var subjects = header.getValue("subjects")
+                .map(JsonValue::asArray)
+                .orElseThrow(() -> new AssertionError("Missing subjects array"));
+        assertThat(subjects.stream()
+                .filter(JsonValue::isString)
+                .map(JsonValue::asString))
+                .contains(KNOWN_ISSUER_RESTRICTED_SUBJECT);
+        final var paths = header.getValue("paths")
+                .map(JsonValue::asObject)
+                .orElseThrow(() -> new AssertionError("Missing paths object"));
+        final int restrictedSubjectIndex = subjects.stream()
+                .filter(JsonValue::isString)
+                .map(JsonValue::asString)
+                .collect(java.util.stream.Collectors.toList())
+                .indexOf(KNOWN_ISSUER_RESTRICTED_SUBJECT);
+        assertThat(restrictedSubjectIndex).isGreaterThanOrEqualTo(0);
+        final boolean hasPathForRestrictedSubject = paths.stream()
+                .anyMatch(field -> {
+                    final JsonValue value = field.getValue();
+                    if (value.isArray()) {
+                        return value.asArray().stream()
+                                .anyMatch(idx -> idx.asInt() == restrictedSubjectIndex);
+                    }
+                    return false;
+                });
+        assertThat(hasPathForRestrictedSubject).isTrue();
+    }
+
+    @Test
+    public void skipsPartialAccessHeaderWhenFeatureDisabled() {
+        final ThingEventEnricher sut = new ThingEventEnricher(policyEnforcerProvider, false);
+
+        final CompletionStage<DittoHeaders> headersStage = calculateEnrichedSignalHeaders(sut, List.of());
+
+        assertThatCompletionStage(headersStage.thenApply(headers ->
+                headers.get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey())))
+                .isNotCompletedExceptionally()
+                .isCompletedWithValue(null);
+    }
+
+    @Test
+    public void skipsPartialAccessHeaderWhenNoPartialSubjectsExist() {
+        final PolicyEnforcerProvider fullAccessProvider = mock(PolicyEnforcerProvider.class);
+        when(fullAccessProvider.getPolicyEnforcer(KNOWN_POLICY_ID))
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(FULL_ACCESS_POLICY))));
+
+        final ThingEventEnricher sut = new ThingEventEnricher(fullAccessProvider, true);
+
+        final CompletionStage<DittoHeaders> headersStage = calculateEnrichedSignalHeaders(sut, List.of());
+
+        assertThatCompletionStage(headersStage.thenApply(headers ->
+                headers.get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey())))
+                .isNotCompletedExceptionally()
+                .isCompletedWithValue(null);
+    }
+
+    @Test
     public void ensureConditionBasedEnrichmentAsPreDefinedFromConfiguration() {
         // GIVEN: the configuration to enrich all things with their definition and some with an attribute public1
-        final var sut = providePreDefinedFieldsEnricher();
+        final var sut = new ThingEventEnricher(policyEnforcerProvider, true);
+        final var configs = getPreDefinedExtraFieldsConfigs(
+                "namespaces = [\"org.eclipse.ditto.some\"]\n" +
+                "condition = \"exists(attributes/public1)\"\n" +
+                "extra-fields = [\"attributes/public1\", \"attributes/folder\"]"
+        );
 
         // WHEN: enriched headers are getting calculated
-        final CompletionStage<DittoHeaders> resultHeadersStage = calculateEnrichedSignalHeaders(sut,
-                """
-                {
-                  namespaces = [
-                    "*"
-                  ]
-                  condition = "eq(attributes/public1,true)"
-                  extra-fields = [
-                    "attributes/public1"
-                  ]
-                }
-                """,
-                """
-                {
-                  namespaces = [
-                    "org.eclipse.ditto.some"
-                  ]
-                  condition = "eq(attributes/folder/private,false)"
-                  extra-fields = [
-                    "attributes/folder"
-                  ]
-                }
-                """,
-                """
-                {
-                  namespaces = [
-                    "org.eclipse.ditto*"
-                  ]
-                  condition = "eq(attributes/private,'bumlux')"
-                  extra-fields = [
-                    "attributes/private"
-                  ]
-                }
-                """
-        );
+        final CompletionStage<DittoHeaders> resultHeadersStage = calculateEnrichedSignalHeaders(sut, configs);
 
         // THEN: the expected pre-defined fields are present in the headers
         assertExpectations(resultHeadersStage,
@@ -252,18 +269,17 @@ public final class PreDefinedExtraFieldsEnricherTest {
                         .add("/attributes/folder"),
                 preDefinedExtraFieldsReadGrantObject -> preDefinedExtraFieldsReadGrantObject
                         .set(JsonKey.of("/attributes/public1"), JsonArray.newBuilder()
-                                .add(KNOWN_ISSUER_FULL_SUBJECT)
-                                .add(KNOWN_ISSUER_RESTRICTED_SUBJECT) // also include the restricted subject to read public1
+                                .add(0)
+                                .add(1)
                                 .build()
                         )
                         .set(JsonKey.of("/attributes/folder"), JsonArray.newBuilder()
-                                .add(KNOWN_ISSUER_FULL_SUBJECT)
+                                .add(0)
                                 .build()
                         )
                         .set(JsonKey.of("/attributes/folder/public"), JsonArray.newBuilder()
-//                                .add(KNOWN_ISSUER_FULL_SUBJECT) // KNOWN_ISSUER_FULL_SUBJECT is not added again, because it already has access to the folder
-                                .add(KNOWN_ISSUER_RESTRICTED_SUBJECT) // also include the restricted subject to read folder/public
-                                .add(KNOWN_ISSUER_ANOTHER_SUBJECT) // also include the another subject to read folder/public
+                                .add(2)
+                                .add(1)
                                 .build()
                         ),
                 preDefinedFieldsObject -> preDefinedFieldsObject
@@ -273,11 +289,7 @@ public final class PreDefinedExtraFieldsEnricherTest {
         );
     }
 
-    private PreDefinedExtraFieldsEnricher providePreDefinedFieldsEnricher() {
-        return new PreDefinedExtraFieldsEnricher(policyEnforcerProvider);
-    }
-
-    private static List<PreDefinedExtraFieldsConfig> getPreDefinedExtraFieldsConfigs(final String... configurations) {
+    private List<PreDefinedExtraFieldsConfig> getPreDefinedExtraFieldsConfigs(final String... configurations) {
         return Arrays.stream(configurations)
                 .map(configString ->
                         DefaultPreDefinedExtraFieldsConfig.of(ConfigFactory.parseString(configString))
@@ -287,16 +299,16 @@ public final class PreDefinedExtraFieldsEnricherTest {
     }
 
     private static CompletionStage<DittoHeaders> calculateEnrichedSignalHeaders(
-            final PreDefinedExtraFieldsEnricher sut,
-            final String... configurations
+            final ThingEventEnricher sut,
+            final List<PreDefinedExtraFieldsConfig> preDefinedExtraFieldsConfigs
     ) {
         final AttributeModified event = AttributeModified.of(
                 KNOWN_THING_ID, JsonPointer.of("something"), JsonValue.of(true), 4L,
                 Instant.now(), DittoHeaders.empty(), null);
 
         final CompletionStage<AttributeModified> resultStage =
-                sut.enrichWithPredefinedExtraFields(getPreDefinedExtraFieldsConfigs(configurations),
-                        KNOWN_THING_ID, KNOWN_THING, KNOWN_POLICY_ID, event);
+                sut.enrichWithPredefinedExtraFields(
+                        KNOWN_THING_ID, KNOWN_THING, KNOWN_POLICY_ID, preDefinedExtraFieldsConfigs, event);
         return resultStage.thenApply(AttributeModified::getDittoHeaders);
     }
 
@@ -310,10 +322,14 @@ public final class PreDefinedExtraFieldsEnricherTest {
         )).isNotCompletedExceptionally().isCompletedWithValue(
                 expectedPreDefinedExtraFields.apply(JsonArray.newBuilder()).build().toString()
         );
-        assertThatCompletionStage(resultHeadersStage.thenApply(headers ->
-                headers.get(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT.getKey())
-        )).isNotCompletedExceptionally().isCompletedWithValue(
-                expectedPreDefinedExtraFieldsReadGrantObject.apply(JsonObject.newBuilder()).build().toString()
+        assertThatCompletionStage(resultHeadersStage.thenApply(headers -> {
+            final String headerValue = headers.get(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT.getKey());
+            if (headerValue == null) {
+                return JsonFactory.newObject();
+            }
+            return JsonFactory.readFrom(headerValue).asObject();
+        })).isNotCompletedExceptionally().isCompletedWithValue(
+                expectedPreDefinedExtraFieldsReadGrantObject.apply(JsonObject.newBuilder()).build()
         );
         assertThatCompletionStage(resultHeadersStage.thenApply(headers ->
                 headers.get(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_OBJECT.getKey())

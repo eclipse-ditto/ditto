@@ -55,6 +55,12 @@ final class LiveSignalEnforcement
         extends AbstractEnforcementReloaded<Signal<?>, CommandResponse<?>>
         implements ThingEnforcementStrategy {
 
+    private final boolean partialAccessEventsEnabled;
+
+    LiveSignalEnforcement(final boolean partialAccessEventsEnabled) {
+        this.partialAccessEventsEnabled = partialAccessEventsEnabled;
+    }
+
     @Override
     public boolean isApplicable(final Signal<?> signal) {
         return Command.isLiveCommand(signal) || Event.isLiveEvent(signal) ||
@@ -163,7 +169,10 @@ final class LiveSignalEnforcement
             case LIVE_EVENTS:
                 return enforceLiveEvent(liveSignal, enforcer.getEnforcer());
             case LIVE_COMMANDS:
-                ThingCommandEnforcement.authorizeByPolicyOrThrow(enforcer.getEnforcer(), (ThingCommand<?>) liveSignal);
+                ThingCommandEnforcement.authorizeByPolicyOrThrow(
+                        enforcer.getEnforcer(),
+                        (ThingCommand<?>) liveSignal,
+                        partialAccessEventsEnabled);
                 final var withReadSubjects = addEffectedReadSubjectsToThingLiveSignal((ThingCommand<?>) liveSignal,
                         enforcer.getEnforcer());
 
@@ -209,7 +218,8 @@ final class LiveSignalEnforcement
             LOGGER.withCorrelationId(liveSignal)
                     .info("Live Event was authorized: <{}>", liveSignal);
             return ThingCommandEnforcement.addEffectedReadSubjectsToThingSignal((ThingEvent<?>) liveSignal,
-                    enforcer);
+                    enforcer,
+                    partialAccessEventsEnabled);
         } else {
             LOGGER.withCorrelationId(liveSignal)
                     .info("Live Event was NOT authorized: <{}>", liveSignal);

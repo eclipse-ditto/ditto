@@ -484,9 +484,11 @@ public final class OutboundMappingProcessorActor
                                 headers,
                                 outboundSignal.getSource())
                 )
-                .map(partialThingCompletionStage -> partialThingCompletionStage.thenApply(outboundSignal::setExtra))
-                .orElse(CompletableFuture.completedFuture(outboundSignal))
-                .thenApply(outboundSignalWithExtra -> applyFilter(outboundSignalWithExtra, filteredTopic))
+                .map(partialThingCompletionStage -> partialThingCompletionStage
+                        .thenApply(outboundSignal::setExtra)
+                        .thenApply(outboundSignalWithExtra -> applyFilter(outboundSignalWithExtra, filteredTopic)))
+                .orElse(CompletableFuture.completedFuture(outboundSignal)
+                        .thenApply(outboundSignalWithExtra -> applyFilter(outboundSignalWithExtra, filteredTopic)))
                 .exceptionally(error -> {
                     logger.withCorrelationId(outboundSignal.getSource())
                             .warning("Could not retrieve extra data due to: {} {}", error.getClass().getSimpleName(),

@@ -108,7 +108,7 @@ final class MergeThingCommandEnforcementTest {
     void acceptByPolicy(final TestArgument arg) {
         final TrieBasedPolicyEnforcer policyEnforcer = TrieBasedPolicyEnforcer.newInstance(arg.getPolicy());
         final MergeThing authorizedMergeThing =
-                ThingCommandEnforcement.authorizeByPolicyOrThrow(policyEnforcer, arg.getMergeThing());
+                ThingCommandEnforcement.authorizeByPolicyOrThrow(policyEnforcer, arg.getMergeThing(), true);
         assertThat(authorizedMergeThing.getDittoHeaders().getAuthorizationContext()).isNotNull();
     }
 
@@ -118,7 +118,7 @@ final class MergeThingCommandEnforcementTest {
     void rejectByPolicy(final TestArgument arg) {
         final TrieBasedPolicyEnforcer policyEnforcer = TrieBasedPolicyEnforcer.newInstance(arg.getPolicy());
         assertThatExceptionOfType(ThingNotModifiableException.class).isThrownBy(
-                () -> ThingCommandEnforcement.authorizeByPolicyOrThrow(policyEnforcer, arg.getMergeThing()));
+                () -> ThingCommandEnforcement.authorizeByPolicyOrThrow(policyEnforcer, arg.getMergeThing(), true));
     }
 
     @Test
@@ -139,7 +139,7 @@ final class MergeThingCommandEnforcementTest {
                 .build();
         final MergeThing mergeThing = MergeThing.of(TestSetup.THING_ID, JsonPointer.empty(), patch, TestArgument.headers());
         final MergeThing authorizedMergeThing =
-                ThingCommandEnforcement.authorizeByPolicyOrThrow(policyEnforcer, mergeThing);
+                ThingCommandEnforcement.authorizeByPolicyOrThrow(policyEnforcer, mergeThing, true);
         assertThat(authorizedMergeThing.getDittoHeaders().getAuthorizationContext()).isNotNull();
     }
 
@@ -156,7 +156,7 @@ final class MergeThingCommandEnforcementTest {
                 .build();
         final MergeThing mergeThing = MergeThing.of(TestSetup.THING_ID, JsonPointer.empty(), patch, TestArgument.headers());
         assertThatExceptionOfType(ThingNotModifiableException.class).isThrownBy(
-                () -> ThingCommandEnforcement.authorizeByPolicyOrThrow(policyEnforcer, mergeThing));
+                () -> ThingCommandEnforcement.authorizeByPolicyOrThrow(policyEnforcer, mergeThing, true));
     }
 
     /**

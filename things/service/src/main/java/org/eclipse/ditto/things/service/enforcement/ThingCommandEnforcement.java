@@ -28,6 +28,7 @@ import org.apache.pekko.Done;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -94,6 +95,8 @@ final class ThingCommandEnforcement
         implements ThingEnforcementStrategy {
 
     private static final Map<String, ThreadSafeDittoLogger> NAMESPACE_INSPECTION_LOGGERS = new HashMap<>();
+    private static final ThreadSafeDittoLogger LOGGER =
+            DittoLoggerFactory.getThreadSafeLogger(ThingCommandEnforcement.class.getName());
 
     /**
      * Json fields that are always shown regardless of authorization.
@@ -104,6 +107,7 @@ final class ThingCommandEnforcement
     private final ActorRef policiesShardRegion;
     private final AskWithRetryConfig askWithRetryConfig;
     private final Executor enforcementExecutor;
+    private final boolean partialAccessEventsEnabled;
 
     /**
      * Creates a new instance of the thing command enforcer.
@@ -116,11 +120,13 @@ final class ThingCommandEnforcement
     public ThingCommandEnforcement(
             final ActorSystem actorSystem,
             final ActorRef policiesShardRegion,
-            final EnforcementConfig enforcementConfig) {
+            final EnforcementConfig enforcementConfig,
+            final boolean partialAccessEventsEnabled) {
 
         this.actorSystem = actorSystem;
         this.policiesShardRegion = policiesShardRegion;
         this.askWithRetryConfig = enforcementConfig.getAskWithRetryConfig();
+        this.partialAccessEventsEnabled = partialAccessEventsEnabled;
         enforcementExecutor = actorSystem.dispatchers().lookup(ENFORCEMENT_DISPATCHER);
         enforcementConfig.getSpecialLoggingInspectedNamespaces()
                 .forEach(loggedNamespace -> NAMESPACE_INSPECTION_LOGGERS.put(
@@ -166,7 +172,8 @@ final class ThingCommandEnforcement
             authorizedCommand = prepareThingCommandBeforeSendingToPersistence(command);
         } else {
             try {
-                final var commandWithReadSubjects = authorizeByPolicyOrThrow(policyEnforcer.getEnforcer(), command);
+                final var commandWithReadSubjects =
+                        authorizeByPolicyOrThrow(policyEnforcer.getEnforcer(), command, partialAccessEventsEnabled);
                 if (commandWithReadSubjects instanceof ThingQueryCommand<?> thingQueryCommand) {
                     authorizedCommand = prepareThingCommandBeforeSendingToPersistence(
                             ensureTwinChannel(thingQueryCommand)
@@ -337,7 +344,8 @@ final class ThingCommandEnforcement
      * @return optionally the authorized command extended by read subjects.
      */
     static <T extends ThingCommand<T>> T authorizeByPolicyOrThrow(final Enforcer enforcer,
-            final ThingCommand<T> command) {
+            final ThingCommand<T> command,
+            final boolean includePartialReadSubjects) {
 
         final var thingResourceKey = PoliciesResourceType.thingResource(command.getResourcePath());
         final var dittoHeaders = command.getDittoHeaders();
@@ -371,7 +379,7 @@ final class ThingCommandEnforcement
         }
 
         if (commandAuthorized) {
-            return addEffectedReadSubjectsToThingSignal(command, enforcer);
+            return addEffectedReadSubjectsToThingSignal(command, enforcer, includePartialReadSubjects);
         } else {
             throw errorForThingCommand(command);
         }
@@ -441,12 +449,24 @@ final class ThingCommandEnforcement
      * @return the extended signal.
      */
     static <T extends Signal<T>> T addEffectedReadSubjectsToThingSignal(final Signal<T> signal,
-            final Enforcer enforcer) {
+            final Enforcer enforcer,
+            final boolean includePartialReadSubjects) {
 
-        final var resourceKey = ResourceKey.newInstance(ThingConstants.ENTITY_TYPE, signal.getResourcePath());
-        final var authorizationSubjects = enforcer.getSubjectsWithUnrestrictedPermission(resourceKey, Permission.READ);
+        final var eventResourcePath = signal.getResourcePath();
+        final var eventResourceKey = ResourceKey.newInstance(ThingConstants.ENTITY_TYPE, eventResourcePath);
+        final var rootResourceKey = ResourceKey.newInstance(ThingConstants.ENTITY_TYPE, JsonPointer.empty());
+
+        final var unrestrictedSubjects = includePartialReadSubjects
+                ? enforcer.getSubjectsWithUnrestrictedPermission(eventResourceKey, Permission.READ)
+                : enforcer.getSubjectsWithUnrestrictedPermission(rootResourceKey, Permission.READ);
+        final var partialSubjects = includePartialReadSubjects
+                ? enforcer.getSubjectsWithPartialPermission(rootResourceKey, Permissions.newInstance(Permission.READ))
+                : Set.<AuthorizationSubject>of();
+        final var allReadSubjects = new java.util.HashSet<>(unrestrictedSubjects);
+        allReadSubjects.addAll(partialSubjects);
+        
         final var newHeaders = DittoHeaders.newBuilder(signal.getDittoHeaders())
-                .readGrantedSubjects(authorizationSubjects)
+                .readGrantedSubjects(allReadSubjects)
                 .build();
 
         return signal.setDittoHeaders(newHeaders);
