@@ -5,6 +5,9 @@
 # Exclude feature-specific documentation (load on-demand only)
 .claude/docs/
 
+# Exclude review PDFs (markdown sources are sufficient for context)
+.claude/reviews/*.pdf
+
 # Exclude build artifacts and dependencies
 target/
 node_modules/
