@@ -45,13 +45,13 @@ import kamon.instrumentation.executor.ExecutorInstrumentation;
  * </pre>
  * to enable instrumentation and the reporting of metrics for this dispatcher.
  */
-public class InstrumentedThreadPoolExecutorServiceConfigurator extends ExecutorServiceConfigurator {
+public class InstrumentedThreadPoolExecutorServiceConfigurator extends ThreadPoolExecutorConfigurator {
 
     private final ExecutorServiceConfigurator delegate;
 
     public InstrumentedThreadPoolExecutorServiceConfigurator(final Config config,
             final DispatcherPrerequisites prerequisites) {
-        super(config, prerequisites);
+        super(config.getConfig("thread-pool-executor"), prerequisites);
         delegate = new ThreadPoolExecutorConfigurator(config.getConfig("thread-pool-executor"), prerequisites);
     }
 
