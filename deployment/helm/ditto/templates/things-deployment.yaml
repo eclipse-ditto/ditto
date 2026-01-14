@@ -331,6 +331,8 @@ spec:
               value: "{{ index .Values.things.config.wot.tmValidation "log-warning-instead-of-failing-api-calls" }}"
             - name: THINGS_WOT_TM_MODEL_VALIDATION_JSON_SCHEMA_CACHE_ENABLED
               value: "{{ index .Values.things.config.wot.tmValidation "json-schema-cache-enabled" }}"
+            - name: THINGS_WOT_TM_MODEL_VALIDATION_ENFORCE_CONTEXT_PREFIXES
+              value: "{{ index .Values.things.config.wot.tmValidation "enforce-context-prefixes" }}"
             - name: THINGS_WOT_TM_MODEL_VALIDATION_JSON_SCHEMA_CACHE_SIZE
               value: "{{ index .Values.things.config.wot.tmValidation.jsonSchemaCache.maxSize }}"
             - name: THINGS_WOT_TM_MODEL_VALIDATION_JSON_SCHEMA_CACHE_EXPIRE_AFTER_WRITE

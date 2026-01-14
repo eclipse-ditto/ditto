@@ -78,6 +78,12 @@ public interface TmValidationConfig {
      */
     CacheConfig getJsonSchemaCacheConfig();
 
+    /**
+     * @return whether to enforce that all prefixes used in WoT ThingModels are defined in the {@code @context}.
+     * @since 3.9.0
+     */
+    boolean isEnforceContextPrefixes();
+
 
     /**
      * An enumeration of the known config path expressions and their associated default values for
@@ -99,7 +105,13 @@ public interface TmValidationConfig {
          * Whether the JsonSchema cache should be enabled.
          * @since 3.8.0
          */
-        JSON_SCHEMA_CACHE_ENABLED("json-schema-cache-enabled", true);
+        JSON_SCHEMA_CACHE_ENABLED("json-schema-cache-enabled", true),
+
+        /**
+         * Whether to enforce that all prefixes used in WoT ThingModels are defined in the @context.
+         * @since 3.9.0
+         */
+        ENFORCE_CONTEXT_PREFIXES("enforce-context-prefixes", true);
 
 
         private final String path;

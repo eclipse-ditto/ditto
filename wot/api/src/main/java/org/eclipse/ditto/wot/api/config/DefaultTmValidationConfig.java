@@ -60,6 +60,7 @@ public final class DefaultTmValidationConfig implements TmValidationConfig {
     private final FeatureValidationConfig featureValidationConfig;
     private final boolean jsonSchemaCacheEnabled;
     private final CacheConfig jsonSchemaCacheConfig;
+    private final boolean enforceContextPrefixes;
 
 
     private DefaultTmValidationConfig(final ScopedConfig scopedConfig,
@@ -80,6 +81,7 @@ public final class DefaultTmValidationConfig implements TmValidationConfig {
         featureValidationConfig = DefaultFeatureValidationConfig.of(effectiveConfig);
         jsonSchemaCacheEnabled = effectiveConfig.getBoolean(ConfigValue.JSON_SCHEMA_CACHE_ENABLED.getConfigPath());
         jsonSchemaCacheConfig = DefaultCacheConfig.of(effectiveConfig, JSON_SCHEMA_CACHE);
+        enforceContextPrefixes = effectiveConfig.getBoolean(ConfigValue.ENFORCE_CONTEXT_PREFIXES.getConfigPath());
     }
 
     /**
@@ -130,6 +132,11 @@ public final class DefaultTmValidationConfig implements TmValidationConfig {
     @Override
     public CacheConfig getJsonSchemaCacheConfig() {
         return jsonSchemaCacheConfig;
+    }
+
+    @Override
+    public boolean isEnforceContextPrefixes() {
+        return enforceContextPrefixes;
     }
 
     /**
@@ -237,15 +244,16 @@ public final class DefaultTmValidationConfig implements TmValidationConfig {
                 Objects.equals(thingValidationConfig, that.thingValidationConfig) &&
                 Objects.equals(featureValidationConfig, that.featureValidationConfig) &&
                 Objects.equals(scopedConfig, that.scopedConfig) &&
-                Objects.equals(jsonSchemaCacheEnabled, that.jsonSchemaCacheEnabled) &&
-                Objects.equals(jsonSchemaCacheConfig, that.jsonSchemaCacheConfig);
+                jsonSchemaCacheEnabled == that.jsonSchemaCacheEnabled &&
+                Objects.equals(jsonSchemaCacheConfig, that.jsonSchemaCacheConfig) &&
+                enforceContextPrefixes == that.enforceContextPrefixes;
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(dynamicTmValidationConfigurations, enabled, logWarningInsteadOfFailingApiCalls,
                 thingValidationConfig, featureValidationConfig, scopedConfig, jsonSchemaCacheEnabled,
-                jsonSchemaCacheConfig);
+                jsonSchemaCacheConfig, enforceContextPrefixes);
     }
 
     @Override
@@ -259,6 +267,7 @@ public final class DefaultTmValidationConfig implements TmValidationConfig {
                 ", scopedConfig=" + scopedConfig +
                 ", jsonSchemaCacheEnabled=" + jsonSchemaCacheEnabled +
                 ", jsonSchemaCacheConfig=" + jsonSchemaCacheConfig +
+                ", enforceContextPrefixes=" + enforceContextPrefixes +
                 "]";
     }
 
