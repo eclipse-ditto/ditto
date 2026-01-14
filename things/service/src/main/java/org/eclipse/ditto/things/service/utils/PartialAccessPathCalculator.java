@@ -292,11 +292,6 @@ public final class PartialAccessPathCalculator {
         for (final Map.Entry<String, List<JsonPointer>> entry : partialAccessPaths.entrySet()) {
             final String subjectId = entry.getKey();
             final Integer subjectIndex = subjectToIndex.get(subjectId);
-            
-            if (subjectIndex == null) {
-                // Subject not in index (should not happen, but defensive check)
-                continue;
-            }
 
             for (final JsonPointer path : entry.getValue()) {
                 pointerToSubjectIndexes.computeIfAbsent(path, k -> new LinkedHashSet<>())
@@ -339,4 +334,3 @@ public final class PartialAccessPathCalculator {
                 .build();
     }
 }
-

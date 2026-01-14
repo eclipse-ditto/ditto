@@ -241,25 +241,29 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
     ) {
         final var outboundSignalSource = outboundSignal.getSource();
         final var dittoHeaders = outboundSignalSource.getDittoHeaders();
+        final String partialAccessPathsHeader =
+                dittoHeaders.get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey());
+        final Map<String, List<JsonPointer>> partialAccessPaths =
+                PartialAccessPathResolver.parsePartialAccessPathsAsMap(partialAccessPathsHeader);
 
         final var mappingTimer = MappingTimer.outbound(connectionId, connectionType, dittoHeaders);
+        final boolean hasPartialAccessPaths = partialAccessPathsHeader != null && !partialAccessPathsHeader.isEmpty();
+        final Map<PayloadMapping, List<MessageMapper>> mappersByPayloadMapping = new LinkedHashMap<>();
+        for (final OutboundSignal.Mappable mappableSignal : mappableSignals) {
+            mappersByPayloadMapping.computeIfAbsent(mappableSignal.getPayloadMapping(), this::getMappers);
+        }
 
         return mappingTimer.overall(() -> mappableSignals.stream()
                 .flatMap(mappableSignal -> {
                     final Signal<?> source = mappableSignal.getSource();
                     final List<Target> targets = mappableSignal.getTargets();
-                    final List<MessageMapper> mappers = getMappers(mappableSignal.getPayloadMapping());
+                    final List<MessageMapper> mappers =
+                            mappersByPayloadMapping.get(mappableSignal.getPayloadMapping());
                     logger.withCorrelationId(source)
                             .debug("Resolved mappers for message {} to targets {}: {}", source, targets, mappers);
-                    
-                    final boolean hasPartialAccessPaths = dittoHeaders.containsKey(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey());
-                    
+
                     final TargetMappingStrategy mappingStrategy;
                     if (hasPartialAccessPaths && !targets.isEmpty()) {
-                        final String partialAccessPathsHeader =
-                                dittoHeaders.get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey());
-                        final Map<String, List<JsonPointer>> partialAccessPaths =
-                                PartialAccessPathResolver.parsePartialAccessPathsAsMap(partialAccessPathsHeader);
                         mappingStrategy = new PartialAccessTargetMapping(mappableSignal, source, targets, outboundSignal,
                                 mappingTimer, mappers, partialAccessPathsHeader, partialAccessPaths);
                     } else {

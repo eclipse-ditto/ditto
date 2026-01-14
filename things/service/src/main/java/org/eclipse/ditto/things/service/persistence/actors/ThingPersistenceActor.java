@@ -275,6 +275,7 @@ public final class ThingPersistenceActor
     @Override
     protected void publishEvent(@Nullable final Thing previousEntity, final ThingEvent<?> event) {
         final CompletionStage<ThingEvent<?>> stage = thingEventEnricher.enrichWithPredefinedExtraFields(
+                thingConfig.getEventConfig().getPredefinedExtraFieldsConfigs(),
                 entityId,
                 entity,
                 Optional.ofNullable(entity).flatMap(Thing::getPolicyId)
@@ -282,7 +283,6 @@ public final class ThingPersistenceActor
                                 .flatMap(Thing::getPolicyId)
                                 .orElse(null)
                         ),
-                thingConfig.getEventConfig().getPredefinedExtraFieldsConfigs(),
                 event
         );
         stage.whenComplete((modifiedEvent, ex) -> {
@@ -335,18 +335,18 @@ public final class ThingPersistenceActor
         switch (signal) {
             case MessageCommand<?, ?> messageCommand ->
                 stage = thingEventEnricher.enrichWithPredefinedExtraFields(
+                        thingConfig.getEventConfig().getPredefinedExtraFieldsConfigs(),
                         entityId,
                         entity,
                         Optional.ofNullable(entity).flatMap(Thing::getPolicyId).orElse(null),
-                        thingConfig.getEventConfig().getPredefinedExtraFieldsConfigs(),
                         messageCommand
                 );
             case ThingEvent<?> thingEvent ->
                 stage = thingEventEnricher.enrichWithPredefinedExtraFields(
+                        thingConfig.getEventConfig().getPredefinedExtraFieldsConfigs(),
                         entityId,
                         entity,
                         Optional.ofNullable(entity).flatMap(Thing::getPolicyId).orElse(null),
-                        thingConfig.getEventConfig().getPredefinedExtraFieldsConfigs(),
                         thingEvent
                 );
             default ->

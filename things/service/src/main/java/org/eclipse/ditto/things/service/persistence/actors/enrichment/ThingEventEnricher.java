@@ -93,19 +93,19 @@ public final class ThingEventEnricher {
      * Enriches the passed in {@code withDittoHeaders} with pre-defined extraFields based on the provided {@code thing}
      * and the global configuration (based on namespace and optional RQL condition).
      *
+     * @param preDefinedExtraFieldsConfigs the list of config entries for pre-defined extraFields enrichment
      * @param thingId the Thing ID to enrich for
      * @param thing the Thing entity to use for getting extra fields from
      * @param policyId the Policy ID to use for looking up permissions
-     * @param preDefinedExtraFieldsConfigs the list of config entries for pre-defined extraFields enrichment
      * @param withDittoHeaders the object to enrich with pre-defined extraFields (e.g. a Signal)
      * @param <T> the type of the signal to enrich
      * @return an enriched version of the passed in {@code withDittoHeaders} with pre-defined extraFields
      */
     public <T extends DittoHeadersSettable<? extends T>> CompletionStage<T> enrichWithPredefinedExtraFields(
+            final List<PreDefinedExtraFieldsConfig> preDefinedExtraFieldsConfigs,
             final ThingId thingId,
             @Nullable final Thing thing,
             @Nullable final PolicyId policyId,
-            final List<PreDefinedExtraFieldsConfig> preDefinedExtraFieldsConfigs,
             final T withDittoHeaders
     ) {
         final CompletionStage<T> partialAccessPathsStage =

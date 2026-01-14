@@ -308,7 +308,7 @@ public final class ThingEventEnricherTest {
 
         final CompletionStage<AttributeModified> resultStage =
                 sut.enrichWithPredefinedExtraFields(
-                        KNOWN_THING_ID, KNOWN_THING, KNOWN_POLICY_ID, preDefinedExtraFieldsConfigs, event);
+                        preDefinedExtraFieldsConfigs, KNOWN_THING_ID, KNOWN_THING, KNOWN_POLICY_ID, event);
         return resultStage.thenApply(AttributeModified::getDittoHeaders);
     }
 
