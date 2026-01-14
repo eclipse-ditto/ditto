@@ -17,6 +17,7 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
@@ -68,6 +69,16 @@ public interface SessionedJsonifiable {
      * @return the session if any exists.
      */
     Optional<StreamingSession> getSession();
+
+    /**
+     * Retrieve the authorization context of the streaming session (subscriber's context).
+     * This is different from the signal's authorization context (modifier's context).
+     *
+     * @return the session's authorization context if available, otherwise empty.
+     */
+    default Optional<AuthorizationContext> getSessionAuthorizationContext() {
+        return Optional.empty();
+    }
 
     /**
      * Finish a started tracing span.

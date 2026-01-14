@@ -34,6 +34,12 @@ final class StreamRequestingCommandEnforcement
         extends AbstractEnforcementReloaded<StreamingSubscriptionCommand<?>, CommandResponse<?>>
         implements ThingEnforcementStrategy {
 
+    private final boolean partialAccessEventsEnabled;
+
+    StreamRequestingCommandEnforcement(final boolean partialAccessEventsEnabled) {
+        this.partialAccessEventsEnabled = partialAccessEventsEnabled;
+    }
+
     @Override
     public boolean isApplicable(final Signal<?> signal) {
         return signal instanceof StreamingSubscriptionCommand;
@@ -57,7 +63,10 @@ final class StreamRequestingCommandEnforcement
         if (policyEnforcer.getEnforcer().hasUnrestrictedPermissions(resourceKey,
                 signal.getDittoHeaders().getAuthorizationContext(), Permissions.newInstance(Permission.READ))) {
             return CompletableFuture.completedFuture(
-                    ThingCommandEnforcement.addEffectedReadSubjectsToThingSignal(signal, policyEnforcer.getEnforcer())
+                    ThingCommandEnforcement.addEffectedReadSubjectsToThingSignal(
+                            signal,
+                            policyEnforcer.getEnforcer(),
+                            partialAccessEventsEnabled)
             );
         } else {
             return CompletableFuture.failedStage(

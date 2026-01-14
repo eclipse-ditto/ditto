@@ -62,7 +62,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.common.config.ThingConfig;
 import org.eclipse.ditto.things.service.persistence.actors.enrichment.EnrichSignalWithPreDefinedExtraFields;
 import org.eclipse.ditto.things.service.persistence.actors.enrichment.EnrichSignalWithPreDefinedExtraFieldsResponse;
-import org.eclipse.ditto.things.service.persistence.actors.enrichment.PreDefinedExtraFieldsEnricher;
+import org.eclipse.ditto.things.service.persistence.actors.enrichment.ThingEventEnricher;
 import org.eclipse.ditto.things.service.persistence.actors.strategies.commands.ThingCommandStrategies;
 import org.eclipse.ditto.things.service.persistence.actors.strategies.events.ThingEventStrategies;
 
@@ -93,7 +93,7 @@ public final class ThingPersistenceActor
     private final ThingConfig thingConfig;
     private final DistributedPub<ThingEvent<?>> distributedPub;
     @Nullable private final ActorRef searchShardRegionProxy;
-    private final PreDefinedExtraFieldsEnricher preDefinedExtraFieldsEnricher;
+    private final ThingEventEnricher thingEventEnricher;
 
     @SuppressWarnings("unused")
     private ThingPersistenceActor(final ThingId thingId,
@@ -107,7 +107,10 @@ public final class ThingPersistenceActor
         this.thingConfig = thingConfig;
         this.distributedPub = distributedPub;
         this.searchShardRegionProxy = searchShardRegionProxy;
-        this.preDefinedExtraFieldsEnricher = new PreDefinedExtraFieldsEnricher(policyEnforcerProvider);
+        this.thingEventEnricher = new ThingEventEnricher(
+                policyEnforcerProvider,
+                thingConfig.getEventConfig().isPartialAccessEventsEnabled()
+        );
     }
 
     /**
@@ -271,7 +274,7 @@ public final class ThingPersistenceActor
 
     @Override
     protected void publishEvent(@Nullable final Thing previousEntity, final ThingEvent<?> event) {
-        final CompletionStage<ThingEvent<?>> stage = preDefinedExtraFieldsEnricher.enrichWithPredefinedExtraFields(
+        final CompletionStage<ThingEvent<?>> stage = thingEventEnricher.enrichWithPredefinedExtraFields(
                 thingConfig.getEventConfig().getPredefinedExtraFieldsConfigs(),
                 entityId,
                 entity,
@@ -331,15 +334,15 @@ public final class ThingPersistenceActor
         final CompletionStage<Signal<?>> stage;
         switch (signal) {
             case MessageCommand<?, ?> messageCommand ->
-                stage = preDefinedExtraFieldsEnricher.enrichWithPredefinedExtraFields(
-                        thingConfig.getMessageConfig().getPredefinedExtraFieldsConfigs(),
+                stage = thingEventEnricher.enrichWithPredefinedExtraFields(
+                        thingConfig.getEventConfig().getPredefinedExtraFieldsConfigs(),
                         entityId,
                         entity,
                         Optional.ofNullable(entity).flatMap(Thing::getPolicyId).orElse(null),
                         messageCommand
                 );
             case ThingEvent<?> thingEvent ->
-                stage = preDefinedExtraFieldsEnricher.enrichWithPredefinedExtraFields(
+                stage = thingEventEnricher.enrichWithPredefinedExtraFields(
                         thingConfig.getEventConfig().getPredefinedExtraFieldsConfigs(),
                         entityId,
                         entity,

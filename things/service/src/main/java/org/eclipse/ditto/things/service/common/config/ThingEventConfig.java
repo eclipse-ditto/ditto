@@ -30,6 +30,13 @@ public interface ThingEventConfig extends EventConfig {
     List<PreDefinedExtraFieldsConfig> getPredefinedExtraFieldsConfigs();
 
     /**
+     * Indicates whether emitting partial access events is enabled.
+     *
+     * @return {@code true} if partial access events are enabled.
+     */
+    boolean isPartialAccessEventsEnabled();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code ThingEventConfig}.
      */
@@ -38,7 +45,12 @@ public interface ThingEventConfig extends EventConfig {
         /**
          * The pre-defined (configured) {@code extraFields} to send along all events.
          */
-        PRE_DEFINED_EXTRA_FIELDS("pre-defined-extra-fields", List.of());
+        PRE_DEFINED_EXTRA_FIELDS("pre-defined-extra-fields", List.of()),
+
+        /**
+         * Whether partial access events should be emitted.
+         */
+        PARTIAL_ACCESS_EVENTS_ENABLED("partial-access-events.enabled", Boolean.TRUE);
 
         private final String path;
         private final Object defaultValue;

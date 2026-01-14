@@ -16,6 +16,7 @@ import java.util.Set;
 
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.policies.model.enforcers.EffectedSubjects;
@@ -68,6 +69,12 @@ public final class TreeBasedPolicyAlgorithm implements PolicyAlgorithm {
     public JsonObject buildJsonView(final ResourceKey resourceKey, final Iterable<JsonField> jsonFields,
             final AuthorizationContext authorizationContext, final Permissions permissions) {
         return treeBasedPolicyEvaluator.buildJsonView(resourceKey, jsonFields, authorizationContext, permissions);
+    }
+
+    @Override
+    public Set<JsonPointer> getAccessiblePaths(final ResourceKey resourceKey, final Iterable<JsonField> jsonFields,
+            final AuthorizationContext authorizationContext, final Permissions permissions) {
+        return treeBasedPolicyEvaluator.getAccessiblePaths(resourceKey, jsonFields, authorizationContext, permissions);
     }
 
 }
