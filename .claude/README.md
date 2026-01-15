@@ -8,7 +8,11 @@ This directory contains context and configuration for Claude Code when working w
 .claude/
 ├── README.md              # This file - overview of .claude structure
 ├── WORKTREE-WORKFLOW.md   # Git worktree workflow guide
-└── context/               # General Ditto knowledge and patterns
+├── context/               # General Ditto knowledge and patterns
+├── concepts/              # Design documents for proposed features
+├── deep-dives/            # Architecture deep-dives (loaded by default)
+├── docs/                  # Extended feature documentation
+└── reviews/               # Code review documents
 ```
 
 ## 📁 context/
@@ -29,6 +33,17 @@ General knowledge about Ditto's architecture, patterns, and development practice
 - `troubleshooting.md` - Common issues and solutions
 
 **When to use**: Always - these files provide foundational knowledge for working with Ditto.
+
+## 📁 concepts/
+
+Design documents for proposed features and architectural concepts.
+
+**Purpose**: Capture detailed designs for significant new features before implementation.
+
+**Contents**:
+- `ts-facade-design.md` - Timeseries Facade Service design (GitHub #2291)
+
+**When to use**: When designing new features, exploring architectural options, or referencing planned functionality.
 
 ## 📄 WORKTREE-WORKFLOW.md
 
