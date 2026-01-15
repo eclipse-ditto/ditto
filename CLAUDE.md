@@ -29,10 +29,13 @@ This repository is organized with detailed context in the `.claude/context/` dir
 - How to add a feature toggle
 - Configuration and usage
 
-💻 **[Code Patterns & Conventions](.claude/context/code-patterns.md)**
+💻 **[Code Patterns & Conventions](.claude/context/code-patterns.md)** ⚠️ **Java 8 for API modules**
 - Signal pattern (Commands/Events/Responses)
 - Immutable model objects
 - Persistence actor pattern
+- **Actor concurrency** - NEVER block or modify state in CompletableFuture lambdas
+- **Java 8 compatibility for public API modules** (model, protocol, json, rql)
+- **Configuration management** (HOCON + Helm updates required)
 - Test organization
 - Naming conventions
 - License headers
@@ -102,6 +105,10 @@ This repository is organized with detailed context in the `.claude/context/` dir
 4. Sign all commits with `-s` flag
 5. Include license headers in new files
 6. **Maintain backward compatibility in model modules** (`/things/model`, `/policies/model`, etc.) - these are public API
+7. **Use Java 8 syntax in public API modules** - see [Code Patterns](.claude/context/code-patterns.md#java-version-compatibility)
+8. **Update Helm when adding configuration** - changes to HOCON config require corresponding Helm updates in `deployment/helm/ditto/`
+9. **Ask for `@since` version** - when adding public API (classes/methods in model modules), ask the user for the version number
+10. **Provide unit tests** - always include tests for generated code, covering happy path AND corner cases (use Pekko TestKit for actors)
 
 ### Main Branch
 
