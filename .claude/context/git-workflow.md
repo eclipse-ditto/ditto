@@ -94,6 +94,27 @@ Use descriptive branch names:
 - `fix/thing-deletion-bug`
 - `refactor/policy-enforcement`
 
+## Claude Context Branch
+
+The `claude` branch is used to maintain Claude Code context (`CLAUDE.md` and `.claude/` directory).
+
+### Committing Claude Context Changes
+
+When on the `claude` branch, use the **force flag** (`-f`) when staging `CLAUDE.md` or `.claude/` files:
+
+```bash
+# Stage Claude context files (force required as they're in .gitignore for feature branches)
+git add -f CLAUDE.md .claude/
+
+# Or update already-tracked files
+git add -u CLAUDE.md .claude/context/
+
+# Then commit with sign-off
+git commit -s -m "Update Claude context documentation"
+```
+
+**Why force?** These files are excluded from modification on feature branches to keep them stable. The `claude` branch is the designated place for maintaining this context.
+
 ## Important Notes
 
 ### Feature Toggles Required
