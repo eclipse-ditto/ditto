@@ -57,11 +57,11 @@ Each service module (things, policies, gateway, connectivity, thingsearch) typic
 - ❌ Remove fields from JSON representation
 
 **Examples of model modules**:
-- `things/model/` - Thing, Feature, Attributes models
-- `policies/model/` - Policy, Subject, Resource models
-- `messages/model/` - Message models
-- `base/model/` - Core signal abstractions
-- `protocol/` - Ditto Protocol models
+- `things/model` - Thing, Feature, Attributes models
+- `policies/model` - Policy, Subject, Resource models
+- `messages/model` - Message models
+- `base/model` - Core signal abstractions
+- `protocol` - Ditto Protocol models
 
 When modifying these modules, always consider:
 1. Will this break existing clients?
