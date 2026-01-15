@@ -104,7 +104,7 @@ This repository is organized with detailed context in the `.claude/context/` dir
 3. Use feature toggles for new features which would change behavior of existing functionality
 4. Sign all commits with `-s` flag
 5. Include license headers in new files
-6. **Maintain backward compatibility in model modules** (`/things/model`, `/policies/model`, etc.) - these are public API
+6. **Maintain backward compatibility in model modules** (`things/model`, `policies/model`, etc.) - these are public API
 7. **Use Java 8 syntax in public API modules** - see [Code Patterns](.claude/context/code-patterns.md#java-version-compatibility)
 8. **Update Helm when adding configuration** - changes to HOCON config require corresponding Helm updates in `deployment/helm/ditto/`
 9. **Ask for `@since` version** - when adding public API (classes/methods in model modules), ask the user for the version number

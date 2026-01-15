@@ -76,7 +76,7 @@ Explain what and why, not how. The code shows the how.
 Fixes #123
 
 Signed-off-by: Your Name <your.email@example.com>
-Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
+Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
 ```
 
 **Key points:**
