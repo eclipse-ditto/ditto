@@ -127,9 +127,42 @@ Extend the existing `ditto:` ontology (IRI: `https://ditto.eclipseprojects.io/wo
 | `ditto:ts-enabled` | boolean | Enable TS ingestion for this property | `false` |
 | `ditto:ts-retention` | string (ISO 8601 duration) | How long to retain data | Service default |
 | `ditto:ts-resolution` | string (ISO 8601 duration) | Minimum sampling interval | No limit |
-| `ditto:ts-tags` | array of strings | Additional tags/dimensions | `[]` |
+| `ditto:ts-tags` | object | Tags/dimensions for grouping (see below) | `{}` |
 
-### 4.2 Example ThingModel
+### 4.2 Tag Declaration with Placeholders
+
+The `ditto:ts-tags` object defines dimensions that are stored with each data point in the TS database, enabling efficient cross-thing grouping and filtering **without querying Ditto**.
+
+**Tag values support two formats:**
+
+| Format | Example | Description |
+|--------|---------|-------------|
+| **Placeholder** | `{{ thing-json:attributes/building }}` | Resolved dynamically from Thing JSON |
+| **Constant** | `"production"` | Static value for all data points |
+
+**Placeholder syntax**: `{{ thing-json:<json-pointer> }}`
+- Uses Ditto's existing placeholder mechanism
+- `<json-pointer>` is a JSON pointer into the Thing's JSON structure
+- Resolved at ingestion time from the current Thing state
+
+**Example tag declarations:**
+```json
+"ditto:ts-tags": {
+  "building": "{{ thing-json:attributes/building }}",
+  "floor": "{{ thing-json:attributes/floor }}",
+  "sensorType": "{{ thing-json:features/environment/properties/type }}",
+  "environment": "production",
+  "region": "eu-west"
+}
+```
+
+**Important considerations:**
+- Tags are resolved and stored at **ingestion time** (point-in-time snapshot)
+- If a Thing's attributes change, historical data retains the old tag values
+- Tags are indexed in the TS database for efficient filtering and grouping
+- Keep tag cardinality reasonable (avoid high-cardinality values like timestamps)
+
+### 4.3 Example ThingModel
 
 ```json
 {
@@ -146,14 +179,24 @@ Extend the existing `ditto:` ontology (IRI: `https://ditto.eclipseprojects.io/wo
       "ditto:category": "status",
       "ditto:ts-enabled": true,
       "ditto:ts-retention": "P90D",
-      "ditto:ts-resolution": "PT1S"
+      "ditto:ts-resolution": "PT1S",
+      "ditto:ts-tags": {
+        "building": "{{ thing-json:attributes/building }}",
+        "floor": "{{ thing-json:attributes/floor }}",
+        "sensorType": "environmental"
+      }
     },
     "humidity": {
       "type": "number",
       "unit": "percent",
       "ditto:category": "status",
       "ditto:ts-enabled": true,
-      "ditto:ts-retention": "P30D"
+      "ditto:ts-retention": "P30D",
+      "ditto:ts-tags": {
+        "building": "{{ thing-json:attributes/building }}",
+        "floor": "{{ thing-json:attributes/floor }}",
+        "sensorType": "environmental"
+      }
     },
     "serialNumber": {
       "type": "string",
@@ -164,14 +207,17 @@ Extend the existing `ditto:` ontology (IRI: `https://ditto.eclipseprojects.io/wo
 }
 ```
 
-### 4.3 Runtime Behavior
+### 4.4 Runtime Behavior
 
 When a Thing is created/modified with a WoT ThingModel reference (`definition`):
 
 1. Things service resolves the ThingModel
-2. Things service extracts `ditto:ts-enabled` properties
-3. Things service caches the TS-enabled property paths per Thing
-4. On property changes, Things service checks cache and publishes if enabled
+2. Things service extracts `ditto:ts-enabled` properties and their `ditto:ts-tags`
+3. Things service caches the TS configuration per Thing
+4. On property changes:
+   - Things service checks cache for TS-enabled properties
+   - Resolves `ditto:ts-tags` placeholders against current Thing JSON
+   - Publishes data point with resolved tags to `ts-ingest` topic
 
 ---
 
@@ -192,12 +238,36 @@ When a Thing is created/modified with a WoT ThingModel reference (`definition`):
   "value": 23.5,
   "revision": 42,
   "tags": {
-    "namespace": "org.eclipse.ditto",
-    "location": "building-a"
+    "building": "A",
+    "floor": "2",
+    "sensorType": "environmental"
   },
   "retention": "P90D"
 }
 ```
+
+**Note**: The `tags` object contains **resolved values**. For the Thing:
+```json
+{
+  "thingId": "org.eclipse.ditto:sensor-1",
+  "attributes": {
+    "building": "A",
+    "floor": "2"
+  },
+  ...
+}
+```
+
+With WoT declaration:
+```json
+"ditto:ts-tags": {
+  "building": "{{ thing-json:attributes/building }}",
+  "floor": "{{ thing-json:attributes/floor }}",
+  "sensorType": "environmental"
+}
+```
+
+The resolved tags become: `{"building": "A", "floor": "2", "sensorType": "environmental"}`
 
 ### 5.2 Publishing Logic in Things Service
 
@@ -441,6 +511,101 @@ POST /api/2/timeseries/things/{thingId}/features/{featureId}/query
 | `GET /api/2/timeseries/things/{thingId}/features/{featureId}/properties/{path}` | Single property TS |
 | `GET /api/2/timeseries/things/{thingId}/attributes/{path}` | Attribute TS (if supported) |
 | `POST /api/2/timeseries/things/{thingId}/features/{featureId}/query` | Batch query |
+| `POST /api/2/timeseries/query` | **Cross-thing aggregation query** |
+
+#### Cross-Thing Aggregation Query
+
+```
+POST /api/2/timeseries/query
+```
+
+This endpoint enables fleet-level analytics by querying **directly on the TS database** using tags that were denormalized at ingestion time. No Ditto search is involved, making it highly efficient.
+
+**Request Body**:
+```json
+{
+  "filter": {
+    "building": "A",
+    "sensorType": "environmental"
+  },
+  "feature": "environment",
+  "properties": ["temperature", "humidity"],
+  "from": "now-24h",
+  "to": "now",
+  "step": "1h",
+  "agg": "avg",
+  "groupBy": ["floor"]
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `filter` | object | No | Filter by tag values (must be declared in `ditto:ts-tags`) |
+| `feature` | string | Yes | Feature ID to query |
+| `properties` | array | Yes | Property names to query |
+| `from` | string | No | Start time (ISO 8601 or relative) |
+| `to` | string | No | End time (default: `now`) |
+| `step` | string | No | Downsampling interval |
+| `agg` | string | No | Aggregation function |
+| `groupBy` | array | No | Tag names to group by |
+
+**Response**:
+```json
+{
+  "query": {
+    "filter": {"building": "A", "sensorType": "environmental"},
+    "feature": "environment",
+    "properties": ["temperature"],
+    "from": "2026-01-14T10:00:00Z",
+    "to": "2026-01-15T10:00:00Z",
+    "step": "1h",
+    "aggregation": "avg",
+    "groupBy": ["floor"]
+  },
+  "groups": [
+    {
+      "tags": {"floor": "1"},
+      "thingCount": 5,
+      "series": {
+        "temperature": {
+          "unit": "cel",
+          "data": [
+            {"t": "2026-01-14T10:00:00Z", "v": 22.3},
+            {"t": "2026-01-14T11:00:00Z", "v": 22.1}
+          ]
+        }
+      }
+    },
+    {
+      "tags": {"floor": "2"},
+      "thingCount": 3,
+      "series": {
+        "temperature": {
+          "unit": "cel",
+          "data": [
+            {"t": "2026-01-14T10:00:00Z", "v": 23.1},
+            {"t": "2026-01-14T11:00:00Z", "v": 23.4}
+          ]
+        }
+      }
+    }
+  ]
+}
+```
+
+**Key points**:
+- Filters only work on **declared tags** (from `ditto:ts-tags` in WoT model)
+- Query goes directly to TS database - no Ditto search round-trip
+- `thingCount` shows how many Things contributed to each group
+- Authorization: User must have `READ_TS` permission on the queried property
+
+**Example use cases**:
+| Use Case | Filter | GroupBy |
+|----------|--------|---------|
+| Avg temp per floor in Building A | `{"building": "A"}` | `["floor"]` |
+| Compare buildings | `{}` | `["building"]` |
+| Single building, no grouping | `{"building": "A"}` | `[]` |
+| Sensor type comparison | `{"building": "A"}` | `["sensorType"]` |
 
 ### 7.3 Query Parameters
 
@@ -624,7 +789,11 @@ public interface TimeseriesAdapter {
 
     // --- Query ---
 
+    /** Query timeseries data for a single Thing. */
     CompletionStage<TimeseriesQueryResult> query(TimeseriesQuery query);
+
+    /** Cross-thing aggregation query using tags. */
+    CompletionStage<TimeseriesAggregationResult> queryAggregation(TimeseriesAggregationQuery query);
 
     // --- Management ---
 
@@ -649,6 +818,7 @@ public record TimeseriesDataPoint(
     Map<String, String> tags
 ) {}
 
+/** Single-thing query. */
 public record TimeseriesQuery(
     ThingId thingId,
     @Nullable FeatureId featureId,
@@ -662,6 +832,19 @@ public record TimeseriesQuery(
     @Nullable ZoneId timezone
 ) {}
 
+/** Cross-thing aggregation query using tags. */
+public record TimeseriesAggregationQuery(
+    Map<String, String> tagFilter,      // Filter by tag values
+    FeatureId featureId,
+    List<JsonPointer> propertyPaths,
+    Instant from,
+    Instant to,
+    @Nullable Duration step,
+    Aggregation aggregation,            // Required for aggregation
+    List<String> groupByTags,           // Tags to group by
+    @Nullable ZoneId timezone
+) {}
+
 public enum Aggregation {
     AVG, MIN, MAX, SUM, COUNT, FIRST, LAST
 }
@@ -669,6 +852,23 @@ public enum Aggregation {
 public enum FillStrategy {
     NULL, PREVIOUS, LINEAR, ZERO
 }
+
+/** Result of cross-thing aggregation query. */
+public record TimeseriesAggregationResult(
+    TimeseriesAggregationQuery query,
+    List<TimeseriesAggregationGroup> groups
+) {}
+
+public record TimeseriesAggregationGroup(
+    Map<String, String> tags,           // Group key (tag values)
+    int thingCount,                     // Number of Things in group
+    Map<JsonPointer, TimeseriesSeries> series  // Property -> data
+) {}
+
+public record TimeseriesSeries(
+    String unit,
+    List<TimeseriesDataValue> data
+) {}
 
 public record TimeseriesQueryResult(
     ThingId thingId,
