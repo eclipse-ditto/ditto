@@ -131,6 +131,12 @@ Extend the existing `ditto:` ontology (IRI: `https://ditto.eclipseprojects.io/wo
 
 **Note**: `ditto:ts-retention` and `ditto:ts-resolution` are optional. When not specified in the WoT model, the ts-facade service defaults are used (see [Section 9: Configuration](#9-configuration)).
 
+**Scope**: These TS declarations can be applied to:
+- **Thing-level properties** (mapped to Ditto attributes)
+- **Feature properties** (mapped to Ditto feature properties)
+
+This enables timeseries tracking for both slowly-changing metadata (e.g., battery level as attribute) and high-frequency sensor data (e.g., temperature as feature property).
+
 ### 4.2 Tag Declaration with Placeholders
 
 The `ditto:ts-tags` object defines dimensions that are stored with each data point in the TS database, enabling efficient cross-thing grouping and filtering **without querying Ditto**.
@@ -204,7 +210,11 @@ Static tag names (constant values) must **NOT** use these reserved prefixes to a
 - Keep tag cardinality reasonable (avoid high-cardinality values like timestamps)
 - RQL filters use the same paths: `eq(attributes/building,'A')` matches tag key `attributes/building`
 
-### 4.3 Example ThingModel
+### 4.3 Example ThingModels
+
+WoT ThingModels use `links` with `rel: "tm:submodel"` to compose features. Below are examples showing TS declarations at both Thing-level (attributes) and Feature-level (feature properties).
+
+#### Thing-Level ThingModel (sensor-device-1.0.0.tm.jsonld)
 
 ```json
 {
@@ -213,7 +223,47 @@ Static tag names (constant values) must **NOT** use these reserved prefixes to a
     {"ditto": "https://ditto.eclipseprojects.io/wot/ditto-extension#"}
   ],
   "@type": "tm:ThingModel",
-  "title": "Environmental Sensor",
+  "title": "Environmental Sensor Device",
+  "version": { "model": "1.0.0" },
+  "links": [
+    {
+      "rel": "tm:submodel",
+      "href": "https://models.2.ditto.eclipseprojects.io/environment-sensor-1.0.0.tm.jsonld",
+      "type": "application/tm+json",
+      "instanceName": "environment"
+    }
+  ],
+  "properties": {
+    "batteryExchangeDate": {
+      "title": "Battery Exchange Date",
+      "type": "string",
+      "format": "date",
+      "ditto:ts-enabled": true,
+      "ditto:ts-retention": "P5Y",
+      "ditto:ts-tags": {
+        "attributes/building": "{{ thing-json:attributes/building }}"
+      }
+    },
+    "serialNumber": {
+      "title": "Serial Number",
+      "type": "string",
+      "readOnly": true
+    }
+  }
+}
+```
+
+#### Feature-Level ThingModel (environment-sensor-1.0.0.tm.jsonld)
+
+```json
+{
+  "@context": [
+    "https://www.w3.org/2022/wot/td/v1.1",
+    {"ditto": "https://ditto.eclipseprojects.io/wot/ditto-extension#"}
+  ],
+  "@type": "tm:ThingModel",
+  "title": "Environment Sensor",
+  "version": { "model": "1.0.0" },
   "properties": {
     "temperature": {
       "type": "number",
@@ -238,20 +288,49 @@ Static tag names (constant values) must **NOT** use these reserved prefixes to a
         "attributes/floor": "{{ thing-json:attributes/floor }}",
         "sensorType": "environmental"
       }
-    },
-    "serialNumber": {
-      "type": "string",
-      "ditto:category": "configuration",
-      "ditto:ts-enabled": false
     }
   }
 }
 ```
 
-**Note on the example above**:
-- `temperature`: Explicit retention (90 days) and resolution (1 second minimum)
-- `humidity`: Uses ts-facade defaults for retention and resolution (no `ditto:ts-retention` or `ditto:ts-resolution` specified)
-- `serialNumber`: TS ingestion disabled
+#### Resulting Ditto Thing Structure
+
+```json
+{
+  "thingId": "org.eclipse.ditto:sensor-1",
+  "definition": "https://models.2.ditto.eclipseprojects.io/sensor-device-1.0.0.tm.jsonld",
+  "attributes": {
+    "batteryExchangeDate": "2025-06-15",
+    "serialNumber": "SN-12345",
+    "building": "A",
+    "floor": "2"
+  },
+  "features": {
+    "environment": {
+      "definition": ["https://models.2.ditto.eclipseprojects.io/environment-sensor-1.0.0.tm.jsonld"],
+      "properties": {
+        "temperature": 23.5,
+        "humidity": 65.2
+      }
+    }
+  }
+}
+```
+
+**Note on the examples above**:
+
+| Property | ThingModel Location | Ditto Location | TS Enabled | Notes |
+|----------|---------------------|----------------|------------|-------|
+| `batteryExchangeDate` | Thing-level `properties` | `attributes/batteryExchangeDate` | ✅ | Infrequent updates, 5-year retention |
+| `serialNumber` | Thing-level `properties` | `attributes/serialNumber` | ❌ | Static, no `ditto:ts-enabled` |
+| `temperature` | Feature-level `properties` | `features/environment/properties/temperature` | ✅ | High-frequency, 90-day retention |
+| `humidity` | Feature-level `properties` | `features/environment/properties/humidity` | ✅ | Uses ts-facade defaults |
+
+**Use cases for attribute timeseries:**
+- Maintenance dates (battery exchange, calibration, service visits)
+- Firmware versions (track upgrade history)
+- Location changes (asset tracking over time)
+- Configuration changes (audit trail)
 
 ### 4.4 Runtime Behavior
 
@@ -1591,17 +1670,24 @@ ditto/
 
 ## 12. Open Questions
 
-1. **Attribute timeseries**: Should Thing-level attributes also support TS tracking, or only Feature properties?
+### Resolved
+
+1. ~~**Attribute timeseries**: Should Thing-level attributes also support TS tracking, or only Feature properties?~~
+   **Decision**: Yes, attributes are supported. The HTTP API already includes attribute endpoints (`/api/2/timeseries/things/{thingId}/attributes/{path}`). WoT ThingModels can declare `ditto:ts-enabled` on Thing-level properties (attributes), not just Feature properties.
+
+4. ~~**Cross-thing queries**: Should ts-facade support queries across multiple Things?~~
+   **Decision**: Yes, via tag denormalization. The `POST /api/2/timeseries/query` endpoint supports cross-thing aggregation using tags stored natively in the TS database. See Section 7.2.
+
+6. ~~**TS database management**: Who creates/manages the TS database itself?~~
+   **Decision**: Out of scope for Ditto. The TS database (MongoDB, IoTDB, TimescaleDB, etc.) must be provisioned and managed externally. Ditto's ts-facade only connects to an existing database. This follows the same pattern as Ditto's MongoDB requirement.
+
+### Open
 
 2. **Multi-tenancy**: How to handle TS data isolation in multi-tenant deployments? Separate TS databases per tenant, or shared with namespace prefixes?
 
 3. **Backfill**: Should there be an API to bulk-import historical data into the TS database?
 
-4. **Cross-thing queries**: Should ts-facade support queries across multiple Things (e.g., "average temperature of all sensors in building A")?
-
 5. **Streaming responses**: For very large result sets, should we support streaming (SSE) responses?
-
-6. **TS database management**: Who creates/manages the TS database itself? Is it out of scope for Ditto?
 
 7. **Migration**: How to handle schema changes when a WoT model's TS declarations change?
 
