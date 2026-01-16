@@ -345,6 +345,53 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 - **Config**: `*Config` interface, `Default*Config` implementation
 - **Constants**: `*MessagingConstants` for shard regions and cluster roles
 
+## HTTP API Design
+
+⚠️ **CRITICAL**: Ditto's HTTP API follows a strict convention where **API paths directly map to the JSON structure** of resources.
+
+### Path-to-JSON Mapping
+
+The Things API provides direct access to any part of a Thing's JSON structure:
+
+| API Path | Returns JSON at |
+|----------|-----------------|
+| `GET /api/2/things/{thingId}` | Root Thing object |
+| `GET /api/2/things/{thingId}/attributes` | `attributes` field |
+| `GET /api/2/things/{thingId}/attributes/location` | `attributes.location` value |
+| `GET /api/2/things/{thingId}/features` | `features` field |
+| `GET /api/2/things/{thingId}/features/{featureId}` | `features.{featureId}` object |
+| `GET /api/2/things/{thingId}/features/{featureId}/properties` | `features.{featureId}.properties` |
+| `GET /api/2/things/{thingId}/features/{featureId}/properties/temperature` | `features.{featureId}.properties.temperature` value |
+
+### Design Implications
+
+**Do NOT add path segments that don't exist in the JSON structure.**
+
+```
+❌ WRONG: /api/2/things/{thingId}/features/{featureId}/properties/temperature/history
+          This implies "history" is a field inside the temperature value
+
+❌ WRONG: /api/2/things/{thingId}/features/{featureId}/properties/temperature/timeseries
+          This implies "timeseries" is a nested field AND could collide with a property named "timeseries"
+
+✅ CORRECT: /api/2/search/things?filter=...
+            Separate API root for different query semantics
+
+✅ CORRECT: /api/2/timeseries/things/{thingId}/features/{featureId}/properties/temperature
+            Separate API root for timeseries data
+```
+
+### When to Use Separate API Roots
+
+Use a separate API root (`/api/2/{feature}/...`) when:
+- The response format differs significantly from the JSON structure
+- The operation provides a different "view" of the data (search, timeseries, etc.)
+- There's risk of path collision with user-defined field names
+
+**Existing examples**:
+- `/api/2/search/things` - Search query results (not Thing JSON structure)
+- `/api/2/whoami` - Authentication info (not a Thing resource)
+
 ## Configuration Management
 
 ⚠️ **CRITICAL**: When adding or modifying configuration, you MUST update BOTH:
