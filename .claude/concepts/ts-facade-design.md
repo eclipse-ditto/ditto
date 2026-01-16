@@ -3,7 +3,7 @@
 **Related Issue**: [GitHub #2291 - Provide timeseries facade for Ditto feature properties](https://github.com/eclipse-ditto/ditto/issues/2291)
 
 **Status**: Draft
-**Last Updated**: 2026-01-15
+**Last Updated**: 2026-01-16
 
 ---
 
@@ -669,12 +669,12 @@ This endpoint enables fleet-level analytics by querying **directly on the TS dat
 
 The ts-facade service translates RQL to TS-database-specific queries:
 
-| RQL | IoTDB SQL | TimescaleDB SQL | InfluxDB Flux |
-|-----|-----------|-----------------|---------------|
-| `eq(attributes/building,'A')` | `attributes_building = 'A'` | `"attributes/building" = 'A'` | `r["attributes/building"] == "A"` |
-| `gt(attributes/floor,2)` | `attributes_floor > 2` | `"attributes/floor" > 2` | `r["attributes/floor"] > 2` |
-| `like(attributes/building,'A*')` | `attributes_building LIKE 'A%'` | `"attributes/building" LIKE 'A%'` | `r["attributes/building"] =~ /^A.*/` |
-| `and(eq(a,'x'),gt(b,5))` | `a = 'x' AND b > 5` | `a = 'x' AND b > 5` | Combined filters |
+| RQL | MongoDB MQL | IoTDB SQL | TimescaleDB SQL |
+|-----|-------------|-----------|-----------------|
+| `eq(attributes/building,'A')` | `{"meta.tags.attributes/building": "A"}` | `attributes_building = 'A'` | `"attributes/building" = 'A'` |
+| `gt(attributes/floor,2)` | `{"meta.tags.attributes/floor": {$gt: 2}}` | `attributes_floor > 2` | `"attributes/floor" > 2` |
+| `like(attributes/building,'A*')` | `{"meta.tags.attributes/building": /^A.*/}` | `attributes_building LIKE 'A%'` | `"attributes/building" LIKE 'A%'` |
+| `and(eq(a,'x'),gt(b,5))` | `{$and: [{...}, {...}]}` | `a = 'x' AND b > 5` | `a = 'x' AND b > 5` |
 
 **Example use cases**:
 
@@ -1006,23 +1006,127 @@ public record TimeseriesDataValue(
 
 | Database | Module | Status | Notes |
 |----------|--------|--------|-------|
+| **MongoDB Time Series** | `ts-facade-mongodb` | **Planned (MVP)** | Uses existing Ditto MongoDB, no additional infrastructure |
 | Apache IoTDB | `ts-facade-iotdb` | Planned | Native Java client, tree-based schema |
 | TimescaleDB | `ts-facade-timescale` | Planned | JDBC, PostgreSQL extension |
 | InfluxDB 2.x | `ts-facade-influx` | Future | HTTP API, Flux queries |
 | QuestDB | `ts-facade-questdb` | Future | PostgreSQL wire protocol |
 
+### 8.3.1 MongoDB Time Series Collections
+
+MongoDB 5.0+ includes native [Time Series Collections](https://www.mongodb.com/docs/manual/core/timeseries-collections/) that provide an attractive option for Ditto deployments:
+
+**Key Advantages:**
+- **Zero additional infrastructure** - Ditto already requires MongoDB
+- **Unified operations** - Same backup, monitoring, and authentication
+- **Simplified deployment** - No additional database to manage
+- **Sufficient performance** - Adequate for many IoT use cases
+
+**MongoDB TS Collection Structure:**
+
+```javascript
+// Time Series Collection creation
+db.createCollection("ts_data", {
+  timeseries: {
+    timeField: "timestamp",           // Required: timestamp field
+    metaField: "meta",                // Optional: metadata for grouping
+    granularity: "seconds"            // "seconds" | "minutes" | "hours"
+  },
+  expireAfterSeconds: 7776000         // 90 days retention via TTL
+})
+
+// Document structure
+{
+  "timestamp": ISODate("2026-01-15T10:30:00.000Z"),
+  "meta": {
+    "thingId": "org.eclipse.ditto:sensor-1",
+    "featureId": "environment",
+    "propertyPath": "/temperature",
+    // Denormalized tags for efficient filtering
+    "tags": {
+      "attributes/building": "A",
+      "attributes/floor": "2",
+      "sensorType": "environmental"
+    }
+  },
+  "value": 23.5,
+  "revision": 42
+}
+```
+
+**Aggregation Pipeline for Queries:**
+
+```javascript
+// Example: Average temperature per hour, grouped by floor
+db.ts_data.aggregate([
+  // Filter by tags (RQL translation)
+  { $match: {
+    "meta.tags.attributes/building": "A",
+    "timestamp": {
+      $gte: ISODate("2026-01-14T00:00:00Z"),
+      $lt: ISODate("2026-01-15T00:00:00Z")
+    }
+  }},
+  // Group by time bucket and floor
+  { $group: {
+    _id: {
+      timeBucket: { $dateTrunc: { date: "$timestamp", unit: "hour" } },
+      floor: "$meta.tags.attributes/floor"
+    },
+    avg: { $avg: "$value" },
+    min: { $min: "$value" },
+    max: { $max: "$value" },
+    count: { $count: {} }
+  }},
+  { $sort: { "_id.timeBucket": 1 } }
+])
+```
+
+**Supported Operations:**
+
+| Operation | MongoDB Support | Implementation |
+|-----------|-----------------|----------------|
+| avg, min, max, sum, count | ✅ Native | `$avg`, `$min`, `$max`, `$sum`, `$count` |
+| first, last | ✅ Native | `$first`, `$last` |
+| Time bucketing | ✅ Native | `$dateTrunc` with `binSize` and `unit` |
+| Gap filling | ✅ Native | `$densify` + `$fill` |
+| Window functions | ✅ Native | `$setWindowFields` |
+| Tag filtering | ✅ Native | `$match` on `meta.tags.*` |
+| Retention | ✅ TTL Index | `expireAfterSeconds` on collection |
+
+**Limitations:**
+
+| Limitation | Impact | Mitigation |
+|------------|--------|------------|
+| No change streams | Cannot watch TS data changes | Use Thing events instead |
+| Updates restricted | Can only update `metaField` | TS data is append-only anyway |
+| No `distinct` command | Use `$group` instead | Already using aggregation pipeline |
+| No transactions | Cannot write in transactions | Acceptable for TS ingestion |
+| Performance vs dedicated TS DB | ~5x slower than InfluxDB | Sufficient for most IoT workloads |
+
+**When to Choose MongoDB Time Series:**
+
+| Scenario | Recommendation |
+|----------|----------------|
+| Simple deployment, moderate throughput | ✅ MongoDB TS |
+| Existing MongoDB expertise | ✅ MongoDB TS |
+| Very high write throughput (>100k/sec) | ❌ Use dedicated TS DB |
+| Complex analytical queries | ❌ Consider TimescaleDB |
+| Minimal operational overhead priority | ✅ MongoDB TS |
+
 ### 8.4 Schema Mapping
 
 **Ditto Concept → TS Database Concept**:
 
-| Ditto | IoTDB | TimescaleDB |
-|-------|-------|-------------|
-| Namespace | Storage Group | Schema |
-| ThingId | Device | Table prefix |
-| FeatureId | Entity (level 1) | Table suffix |
-| PropertyPath | Measurement | Column |
-| Value | Data point | Row value |
-| Tags | Tags/Attributes | Additional columns |
+| Ditto | MongoDB TS | IoTDB | TimescaleDB |
+|-------|------------|-------|-------------|
+| Namespace | Collection prefix | Storage Group | Schema |
+| ThingId | `meta.thingId` | Device | Table prefix |
+| FeatureId | `meta.featureId` | Entity (level 1) | Table suffix |
+| PropertyPath | `meta.propertyPath` | Measurement | Column |
+| Value | `value` field | Data point | Row value |
+| Tags | `meta.tags.*` | Tags/Attributes | Additional columns |
+| Retention | TTL index | TTL config | Retention policy |
 
 **IoTDB Schema Example**:
 ```
@@ -1045,6 +1149,77 @@ CREATE TABLE ts_org_eclipse_ditto_sensor_1_environment (
 SELECT create_hypertable('ts_org_eclipse_ditto_sensor_1_environment', 'time');
 ```
 
+**MongoDB Time Series Schema Example**:
+```javascript
+// One collection per namespace (or shared collection with namespace in meta)
+db.createCollection("ts_org_eclipse_ditto", {
+  timeseries: {
+    timeField: "timestamp",
+    metaField: "meta",
+    granularity: "seconds"
+  },
+  expireAfterSeconds: 7776000  // 90 days
+})
+
+// Compound index on meta fields for efficient queries
+db.ts_org_eclipse_ditto.createIndex({
+  "meta.tags.attributes/building": 1,
+  "meta.tags.attributes/floor": 1
+})
+
+// Example document
+{
+  "timestamp": ISODate("2026-01-15T10:30:00.000Z"),
+  "meta": {
+    "thingId": "org.eclipse.ditto:sensor-1",
+    "featureId": "environment",
+    "propertyPath": "/temperature",
+    "tags": {
+      "attributes/building": "A",
+      "attributes/floor": "2",
+      "sensorType": "environmental"
+    }
+  },
+  "value": 23.5,
+  "revision": 42
+}
+```
+
+### 8.5 TS Database Comparison
+
+| Feature | MongoDB TS | IoTDB | TimescaleDB | InfluxDB |
+|---------|------------|-------|-------------|----------|
+| **Deployment** |
+| Additional infrastructure | ❌ None (uses existing) | ✅ Required | ✅ Required | ✅ Required |
+| Operational complexity | Low | Medium | Medium | Medium |
+| **Query Capabilities** |
+| Aggregations (avg/min/max/sum/count) | ✅ | ✅ | ✅ | ✅ |
+| first/last | ✅ | ✅ | ✅ | ✅ |
+| Time bucketing | ✅ `$dateTrunc` | ✅ `GROUP BY TIME` | ✅ `time_bucket` | ✅ `aggregateWindow` |
+| Gap filling | ✅ `$densify`+`$fill` | ✅ `FILL` | ✅ `time_bucket_gapfill` | ✅ `fill()` |
+| Window functions | ✅ `$setWindowFields` | ✅ | ✅ | ✅ |
+| Complex joins | ✅ `$lookup` | Limited | ✅ Full SQL | Limited |
+| **Performance** |
+| Write throughput | Medium | High | High | Very High |
+| Simple query speed | Medium | High | High | Very High |
+| Complex query speed | Medium | Medium | Very High | Medium |
+| Compression | Good | Excellent | Good | Excellent |
+| **RQL Translation** |
+| Translation complexity | Medium (MQL) | Medium (SQL-like) | Low (SQL) | Medium (Flux) |
+| **Integration** |
+| Java client | ✅ MongoDB Driver | ✅ Native | ✅ JDBC | ✅ HTTP/Client |
+| Authentication | Shared with Ditto | Separate | Separate | Separate |
+
+**Recommendation by Use Case:**
+
+| Use Case | Recommended Adapter | Reason |
+|----------|---------------------|--------|
+| **Getting started / PoC** | MongoDB TS | Zero setup, works immediately |
+| **Small-medium deployment** (<10k writes/sec) | MongoDB TS | Simpler operations |
+| **High-volume IoT** (>100k writes/sec) | IoTDB or InfluxDB | Optimized for high throughput |
+| **Complex analytics** | TimescaleDB | Full SQL, excellent for joins |
+| **Edge deployment** (resource constrained) | MongoDB TS | Single database to manage |
+
 ---
 
 ## 9. Configuration
@@ -1058,11 +1233,37 @@ ditto {
   ts-facade {
     # Timeseries adapter configuration
     adapter {
-      # Which adapter to use: "iotdb", "timescale", "influx"
-      type = "iotdb"
+      # Which adapter to use: "mongodb", "iotdb", "timescale", "influx"
+      # "mongodb" recommended for simple deployments (uses existing Ditto MongoDB)
+      type = "mongodb"
       type = ${?TS_FACADE_ADAPTER_TYPE}
 
       # Connection settings (adapter-specific)
+
+      # MongoDB Time Series adapter (uses existing Ditto MongoDB connection)
+      mongodb {
+        # Use Ditto's existing MongoDB URI (recommended)
+        # If not set, uses ditto.mongodb.uri from common config
+        uri = ${?TS_FACADE_MONGODB_URI}
+
+        # Database name for timeseries collections
+        database = "ditto_ts"
+        database = ${?TS_FACADE_MONGODB_DATABASE}
+
+        # Collection name prefix (namespace appended)
+        collection-prefix = "ts_"
+        collection-prefix = ${?TS_FACADE_MONGODB_COLLECTION_PREFIX}
+
+        # Time series granularity: "seconds", "minutes", "hours"
+        # Use "seconds" for high-frequency data, "hours" for daily metrics
+        granularity = "seconds"
+        granularity = ${?TS_FACADE_MONGODB_GRANULARITY}
+
+        # Write concern for ingestion
+        write-concern = "majority"
+        write-concern = ${?TS_FACADE_MONGODB_WRITE_CONCERN}
+      }
+
       iotdb {
         host = "localhost"
         host = ${?TS_FACADE_IOTDB_HOST}
@@ -1204,13 +1405,26 @@ tsFacade:
 
   config:
     adapter:
-      type: "iotdb"  # or "timescale"
+      type: "mongodb"  # "mongodb" (default), "iotdb", or "timescale"
 
+    # MongoDB adapter (recommended for simple deployments)
+    # Uses existing Ditto MongoDB - no additional infrastructure
+    mongodb:
+      # Uses Ditto's MongoDB URI by default (no config needed)
+      # Override only if using separate MongoDB for timeseries:
+      # uri: "mongodb://mongodb:27017"
+      database: "ditto_ts"
+      collectionPrefix: "ts_"
+      granularity: "seconds"  # "seconds", "minutes", or "hours"
+      writeConcern: "majority"
+
+    # IoTDB adapter (for high-volume deployments)
     iotdb:
       host: "iotdb"
       port: 6667
       # username/password via secrets
 
+    # TimescaleDB adapter (for complex analytics)
     timescale:
       jdbcUrl: "jdbc:postgresql://timescaledb:5432/ditto_ts"
       poolSize: 10
@@ -1272,6 +1486,11 @@ ditto/
 │   │       └── routes/
 │   │           └── TimeseriesRoute.java
 │   │
+│   ├── mongodb/                  # MongoDB TS adapter (Java 21) - DEFAULT
+│   │   └── src/main/java/org/eclipse/ditto/tsfacade/mongodb/
+│   │       ├── MongoDbTimeseriesAdapter.java
+│   │       └── MongoDbRqlTranslator.java
+│   │
 │   ├── iotdb/                    # IoTDB adapter (Java 21)
 │   │   └── src/main/java/org/eclipse/ditto/tsfacade/iotdb/
 │   │       └── IoTDBTimeseriesAdapter.java
@@ -1308,16 +1527,22 @@ ditto/
 
 **Scope**:
 - ts-facade service skeleton with Pekko cluster integration
-- Single adapter (Apache IoTDB)
+- **MongoDB Time Series adapter** (default, uses existing infrastructure)
 - Basic ingestion via pub/sub
 - Simple query API (single property, time range, no aggregation)
 - READ_TS permission in policy model
 
 **Deliverables**:
 - `ts-facade/model`, `ts-facade/api`, `ts-facade/service` modules
-- `ts-facade/iotdb` adapter
+- `ts-facade/mongodb` adapter (default)
 - WoT extension: `ditto:ts-enabled` only
 - Basic HTTP route in Gateway
+
+**Why MongoDB for MVP:**
+- Zero additional infrastructure (Ditto already requires MongoDB 5.0+)
+- Faster time-to-value for users
+- Simplifies initial testing and adoption
+- Users can migrate to dedicated TS DB later if needed
 
 ### Phase 2: Full Query API
 
@@ -1336,14 +1561,17 @@ ditto/
 ### Phase 3: Additional Adapters
 
 **Scope**:
-- TimescaleDB adapter
+- Apache IoTDB adapter (for high-volume deployments)
+- TimescaleDB adapter (for complex analytics)
 - Adapter selection/configuration
 - Schema management across adapters
 
 **Deliverables**:
+- `ts-facade/iotdb` module
 - `ts-facade/timescale` module
 - Adapter factory with dynamic selection
 - Documentation for adding custom adapters
+- Migration guide: MongoDB → dedicated TS DB
 
 ### Phase 4: Advanced Features
 
@@ -1383,6 +1611,9 @@ ditto/
 
 - [GitHub Issue #2291](https://github.com/eclipse-ditto/ditto/issues/2291) - Original proposal
 - [Ditto WoT Integration](https://www.eclipse.dev/ditto/basic-wot-integration.html) - Existing WoT support
-- [Apache IoTDB Documentation](https://iotdb.apache.org/UserGuide/latest/) - Primary TS backend
-- [TimescaleDB Documentation](https://docs.timescale.com/) - Alternative TS backend
+- [MongoDB Time Series Collections](https://www.mongodb.com/docs/manual/core/timeseries-collections/) - Default TS backend
+- [MongoDB Time Series Limitations](https://www.mongodb.com/docs/manual/core/timeseries/timeseries-limitations/) - Important restrictions
+- [MongoDB Aggregation Pipeline](https://www.mongodb.com/docs/manual/core/aggregation-pipeline/) - Query implementation
+- [Apache IoTDB Documentation](https://iotdb.apache.org/UserGuide/latest/) - High-volume TS backend
+- [TimescaleDB Documentation](https://docs.timescale.com/) - Analytics-focused TS backend
 - [Ditto Architecture](.claude/context/architecture.md) - Service architecture patterns
