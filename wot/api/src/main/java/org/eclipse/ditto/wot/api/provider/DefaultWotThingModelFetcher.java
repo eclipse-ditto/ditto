@@ -32,6 +32,7 @@ import org.eclipse.ditto.wot.model.ThingDefinitionInvalidException;
 import org.eclipse.ditto.wot.model.ThingModel;
 import org.eclipse.ditto.wot.model.WotThingModelInvalidException;
 import org.eclipse.ditto.wot.model.WotThingModelNotAccessibleException;
+import org.eclipse.ditto.wot.validation.config.TmValidationConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,12 +50,14 @@ final class DefaultWotThingModelFetcher implements WotThingModelFetcher {
     private final JsonDownloader jsonDownloader;
     private final Executor executor;
     private final Cache<URL, ThingModel> thingModelCache;
+    private final TmValidationConfig validationConfig;
 
     DefaultWotThingModelFetcher(final WotConfig wotConfig,
             final JsonDownloader jsonDownloader,
             final Executor cacheLoaderExecutor) {
         this.jsonDownloader = jsonDownloader;
         this.executor = cacheLoaderExecutor;
+        this.validationConfig = wotConfig.getValidationConfig();
         final AsyncCacheLoader<URL, ThingModel> loader = this::loadThingModelViaHttp;
         thingModelCache = CacheFactory.createCache(loader,
                 wotConfig.getCacheConfig(),
@@ -101,6 +104,12 @@ final class DefaultWotThingModelFetcher implements WotThingModelFetcher {
         final CompletionStage<JsonObject> responseFuture = jsonDownloader.downloadJsonViaHttp(url, executor);
         final CompletionStage<ThingModel> thingModelFuture = responseFuture
                 .thenApplyAsync(ThingModel::fromJson, executor)
+                .thenApplyAsync(thingModel -> {
+                    if (validationConfig.isEnforceContextPrefixes()) {
+                        thingModel.validateContextPrefixes();
+                    }
+                    return thingModel;
+                }, executor)
                 .exceptionally(t -> {
                     LOGGER.warn("Failed to extract ThingModel from response because of <{}: {}>",
                             t.getClass().getSimpleName(), t.getMessage());

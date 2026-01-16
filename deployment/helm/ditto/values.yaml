@@ -1338,6 +1338,8 @@ things:
         log-warning-instead-of-failing-api-calls: false
         # json-schema-cache-enabled whether to enable caching of JSON schemas created from WoT ThingModels
         json-schema-cache-enabled: true
+        # enforce-context-prefixes whether to enforce that all prefixes used in WoT ThingModels are defined in the @context
+        enforce-context-prefixes: true
         # jsonSchemaCache configuration of the JSON schema cache
         jsonSchemaCache:
           # maxSize the maximum size of JSON schemas to keep in the cache

@@ -17,6 +17,7 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.net.URI;
 import java.net.URL;
 import java.text.MessageFormat;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -106,6 +107,27 @@ public final class WotValidationException extends DittoRuntimeException implemen
      */
     public static Builder newBuilder(final String errorMessage) {
         return new Builder(errorMessage);
+    }
+
+    /**
+     * A mutable builder for a {@code WotValidationException} specifically for undefined context prefixes.
+     *
+     * @param undefinedPrefixes the set of prefixes that are used but not defined in the {@code @context}.
+     * @return the builder.
+     * @throws NullPointerException if {@code undefinedPrefixes} is {@code null}.
+     * @since 3.9.0
+     */
+    public static Builder newBuilderForUndefinedPrefixes(final Set<String> undefinedPrefixes) {
+        checkNotNull(undefinedPrefixes, "undefinedPrefixes");
+        final String message = "The following context prefixes are used but not defined in @context: " +
+                undefinedPrefixes;
+        final String description = "Please ensure that all prefixes used in the WoT ThingModel or ThingDescription " +
+                "(e.g., 'ditto:category', 'ace:custom') have their prefix defined in the @context. " +
+                "For example, add {\"ditto\": \"https://ditto.eclipseprojects.io/wot/ditto-extension#\"} " +
+                "to the @context array.";
+        final Builder builder = new Builder(message);
+        builder.description(description);
+        return builder;
     }
 
     /**
