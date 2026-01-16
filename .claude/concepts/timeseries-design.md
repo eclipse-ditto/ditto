@@ -914,19 +914,19 @@ This endpoint enables fleet-level analytics by querying **directly on the TS dat
 
 **Supported RQL operators**:
 
-| Operator | Example | Description |
-|----------|---------|-------------|
-| `eq` | `eq(attributes/building,'A')` | Equals |
-| `ne` | `ne(attributes/floor,'0')` | Not equals |
-| `gt` | `gt(attributes/floor,2)` | Greater than |
-| `ge` | `ge(attributes/floor,2)` | Greater than or equal |
-| `lt` | `lt(attributes/floor,10)` | Less than |
-| `le` | `le(attributes/floor,10)` | Less than or equal |
-| `in` | `in(attributes/floor,'1','2','3')` | In list |
-| `like` | `like(attributes/building,'Building-*')` | Pattern match (`*` = any chars) |
-| `and` | `and(expr1,expr2,...)` | Logical AND |
-| `or` | `or(expr1,expr2)` | Logical OR |
-| `not` | `not(eq(sensorType,'test'))` | Logical NOT |
+| Operator | Example                                  | Description                     |
+|----------|------------------------------------------|---------------------------------|
+| `eq`     | `eq(attributes/building,'A')`            | Equals                          |
+| `ne`     | `ne(attributes/floor,'0')`               | Not equals                      |
+| `gt`     | `gt(attributes/floor,2)`                 | Greater than                    |
+| `ge`     | `ge(attributes/floor,2)`                 | Greater than or equal           |
+| `lt`     | `lt(attributes/floor,10)`                | Less than                       |
+| `le`     | `le(attributes/floor,10)`                | Less than or equal              |
+| `in`     | `in(attributes/floor,'1','2','3')`       | In list                         |
+| `like`   | `like(attributes/building,'Building-*')` | Pattern match (`*` = any chars) |
+| `and`    | `and(expr1,expr2,...)`                   | Logical AND                     |
+| `or`     | `or(expr1,expr2)`                        | Logical OR                      |
+| `not`    | `not(eq(sensorType,'test'))`             | Logical NOT                     |
 
 **Response**:
 ```json
@@ -984,47 +984,46 @@ This endpoint enables fleet-level analytics by querying **directly on the TS dat
 
 The timeseries service translates RQL to TS-database-specific queries:
 
-| RQL | MongoDB MQL | IoTDB SQL | TimescaleDB SQL |
-|-----|-------------|-----------|-----------------|
-| `eq(attributes/building,'A')` | `{"meta.tags.attributes/building": "A"}` | `attributes_building = 'A'` | `"attributes/building" = 'A'` |
-| `gt(attributes/floor,2)` | `{"meta.tags.attributes/floor": {$gt: 2}}` | `attributes_floor > 2` | `"attributes/floor" > 2` |
+| RQL                              | MongoDB MQL                                 | IoTDB SQL                       | TimescaleDB SQL                   |
+|----------------------------------|---------------------------------------------|---------------------------------|-----------------------------------|
+| `eq(attributes/building,'A')`    | `{"meta.tags.attributes/building": "A"}`    | `attributes_building = 'A'`     | `"attributes/building" = 'A'`     |
+| `gt(attributes/floor,2)`         | `{"meta.tags.attributes/floor": {$gt: 2}}`  | `attributes_floor > 2`          | `"attributes/floor" > 2`          |
 | `like(attributes/building,'A*')` | `{"meta.tags.attributes/building": /^A.*/}` | `attributes_building LIKE 'A%'` | `"attributes/building" LIKE 'A%'` |
-| `and(eq(a,'x'),gt(b,5))` | `{$and: [{...}, {...}]}` | `a = 'x' AND b > 5` | `a = 'x' AND b > 5` |
+| `and(eq(a,'x'),gt(b,5))`         | `{$and: [{...}, {...}]}`                    | `a = 'x' AND b > 5`             | `a = 'x' AND b > 5`               |
 
 **Example use cases**:
 
-| Use Case | RQL Filter | GroupBy |
-|----------|------------|---------|
-| Avg temp per floor in Building A | `eq(attributes/building,'A')` | `["attributes/floor"]` |
-| Compare buildings | *(empty)* | `["attributes/building"]` |
-| Floors 2+ in Building A | `and(eq(attributes/building,'A'),ge(attributes/floor,2))` | `["attributes/floor"]` |
-| Buildings A or B | `or(eq(attributes/building,'A'),eq(attributes/building,'B'))` | `["attributes/building"]` |
-| Exclude test sensors | `not(eq(sensorType,'test'))` | `["attributes/building"]` |
-| Pattern match | `like(attributes/building,'Building-*')` | `["attributes/building"]` |
-| Multiple floors | `and(eq(attributes/building,'A'),in(attributes/floor,'1','2','3'))` | `["attributes/floor"]` |
+| Use Case                         | RQL Filter                                                          | GroupBy                   |
+|----------------------------------|---------------------------------------------------------------------|---------------------------|
+| Avg temp per floor in Building A | `eq(attributes/building,'A')`                                       | `["attributes/floor"]`    |
+| Compare buildings                | *(empty)*                                                           | `["attributes/building"]` |
+| Floors 2+ in Building A          | `and(eq(attributes/building,'A'),ge(attributes/floor,2))`           | `["attributes/floor"]`    |
+| Buildings A or B                 | `or(eq(attributes/building,'A'),eq(attributes/building,'B'))`       | `["attributes/building"]` |
+| Exclude test sensors             | `not(eq(sensorType,'test'))`                                        | `["attributes/building"]` |
+| Pattern match                    | `like(attributes/building,'Building-*')`                            | `["attributes/building"]` |
+| Multiple floors                  | `and(eq(attributes/building,'A'),in(attributes/floor,'1','2','3'))` | `["attributes/floor"]`    |
 
 ### 7.3 Query Parameters
 
-| Parameter | Type   | Required | Description                         | Example                                            |
-|-----------|--------|----------|-------------------------------------|----------------------------------------------------|
-| `from`    | string | No       | Start time (ISO 8601 or relative)   | `2026-01-14T00:00:00Z`, `now-24h`                  |
-| `to`      | string | No       | End time (default: `now`)           | `2026-01-15T00:00:00Z`, `now`                      |
-| `step`    | string | No       | Downsampling interval               | `1m`, `5m`, `1h`, `1d`                             |
-| `agg`     | string | No       | Aggregation function                | `avg`, `min`, `max`, `sum`, `count`, `first`, `last` |
-| `fill`    | string | No       | Gap filling strategy                | `null`, `previous`, `linear`, `zero`               |
-| `limit`   | int    | No       | Max data points (raw queries)       | `1000`                                             |
-| `tz`      | string | No       | Timezone for step alignment         | `Europe/Berlin`, `UTC`                             |
+| Parameter | Type   | Required | Description                         | Example                                                    |
+|-----------|--------|----------|-------------------------------------|------------------------------------------------------------|
+| `from`    | string | No       | Start time (ISO 8601 or relative)   | `2026-01-14T00:00:00Z`, `now-24h`                          |
+| `to`      | string | No       | End time (default: `now`)           | `2026-01-15T00:00:00Z`, `now`                              |
+| `step`    | string | No       | Downsampling interval               | `1m`, `5m`, `1h`, `1d`                                     |
+| `agg`     | string | No       | Aggregation function                | `avg`, `min`, `max`, `sum`, `count`, `first`, `last`       |
+| `fill`    | string | No       | Gap filling strategy                | `null`, `previous`, `linear`, `zero`                       |
+| `limit`   | int    | No       | Max data points (raw queries)       | `1000`                                                     |
+| `tz`      | string | No       | Timezone for step alignment         | `Europe/Berlin`, `UTC`                                     |
 | `paths`   | string | No       | Comma-separated paths filter        | `/features/env/properties/temperature,/attributes/battery` |
 
 ### 7.4 Response Format
 
-#### Single Property Response
+#### Single Path Response
 
 ```json
 {
   "thingId": "org.eclipse.ditto:sensor-1",
-  "featureId": "environment",
-  "property": "properties/temperature",
+  "path": "/features/environment/properties/temperature",
   "query": {
     "from": "2026-01-14T00:00:00Z",
     "to": "2026-01-15T00:00:00Z",
@@ -1045,12 +1044,11 @@ The timeseries service translates RQL to TS-database-specific queries:
 }
 ```
 
-#### Multiple Properties Response
+#### Multiple Paths Response
 
 ```json
 {
   "thingId": "org.eclipse.ditto:sensor-1",
-  "featureId": "environment",
   "query": {
     "from": "2026-01-14T00:00:00Z",
     "to": "2026-01-15T00:00:00Z",
@@ -1059,7 +1057,7 @@ The timeseries service translates RQL to TS-database-specific queries:
   },
   "series": [
     {
-      "property": "properties/temperature",
+      "path": "/features/environment/properties/temperature",
       "result": {
         "count": 24,
         "unit": "cel",
@@ -1071,15 +1069,14 @@ The timeseries service translates RQL to TS-database-specific queries:
       ]
     },
     {
-      "property": "properties/humidity",
+      "path": "/attributes/batteryExchangeDate",
       "result": {
-        "count": 24,
-        "unit": "percent",
-        "dataType": "number"
+        "count": 2,
+        "dataType": "string"
       },
       "data": [
-        {"t": "2026-01-14T00:00:00Z", "v": 65.2},
-        {"t": "2026-01-14T01:00:00Z", "v": 64.8}
+        {"t": "2026-01-14T00:00:00Z", "v": "2025-06-15"},
+        {"t": "2026-01-14T12:00:00Z", "v": "2026-01-14"}
       ]
     }
   ]
@@ -1090,9 +1087,12 @@ The timeseries service translates RQL to TS-database-specific queries:
 
 **Request**:
 ```json
-POST /api/2/timeseries/things/org.eclipse.ditto:sensor-1/features/environment/query
+POST /api/2/timeseries/things/org.eclipse.ditto:sensor-1
 {
-  "properties": ["temperature", "humidity"],
+  "paths": [
+    "/features/environment/properties/temperature",
+    "/features/environment/properties/humidity"
+  ],
   "from": "now-24h",
   "to": "now",
   "step": "1h",
@@ -1104,7 +1104,6 @@ POST /api/2/timeseries/things/org.eclipse.ditto:sensor-1/features/environment/qu
 ```json
 {
   "thingId": "org.eclipse.ditto:sensor-1",
-  "featureId": "environment",
   "query": {
     "from": "2026-01-14T10:30:00Z",
     "to": "2026-01-15T10:30:00Z",
@@ -1112,25 +1111,25 @@ POST /api/2/timeseries/things/org.eclipse.ditto:sensor-1/features/environment/qu
   },
   "results": [
     {
-      "property": "properties/temperature",
+      "path": "/features/environment/properties/temperature",
       "aggregation": "avg",
       "result": {"count": 24, "unit": "cel", "dataType": "number"},
       "data": [{"t": "2026-01-14T11:00:00Z", "v": 22.3}, ...]
     },
     {
-      "property": "properties/temperature",
+      "path": "/features/environment/properties/temperature",
       "aggregation": "max",
       "result": {"count": 24, "unit": "cel", "dataType": "number"},
       "data": [{"t": "2026-01-14T11:00:00Z", "v": 24.1}, ...]
     },
     {
-      "property": "properties/humidity",
+      "path": "/features/environment/properties/humidity",
       "aggregation": "avg",
       "result": {"count": 24, "unit": "percent", "dataType": "number"},
       "data": [{"t": "2026-01-14T11:00:00Z", "v": 65.2}, ...]
     },
     {
-      "property": "properties/humidity",
+      "path": "/features/environment/properties/humidity",
       "aggregation": "max",
       "result": {"count": 24, "unit": "percent", "dataType": "number"},
       "data": [{"t": "2026-01-14T11:00:00Z", "v": 72.0}, ...]
