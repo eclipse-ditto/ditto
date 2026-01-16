@@ -494,10 +494,11 @@ public class TimeseriesEventPublisher {
             return; // This path is not TS-enabled
         }
 
-        // 2. Resolve extra fields from ditto:ts-tags
+        // 2. Resolve extra fields from WoT model (tags, unit, retention, resolution)
         final JsonObject extraFields = resolveExtraFields(
             thing,
             resolvedModel.getTsTags(changedPath),
+            resolvedModel.getUnit(changedPath),        // WoT property "unit"
             resolvedModel.getTsRetention(changedPath),
             resolvedModel.getTsResolution(changedPath)
         );
@@ -515,6 +516,7 @@ public class TimeseriesEventPublisher {
     private JsonObject resolveExtraFields(
             final Thing thing,
             final Map<String, String> tagDeclarations,
+            @Nullable final String unit,
             @Nullable final Duration retention,
             @Nullable final Duration resolution) {
 
@@ -538,6 +540,11 @@ public class TimeseriesEventPublisher {
         }
         builder.set("tags", tagsBuilder.build());
 
+        // Include unit from WoT property (strip semantic prefix if present)
+        if (unit != null) {
+            builder.set("unit", stripSemanticPrefix(unit));
+        }
+
         // Include retention and resolution if specified
         if (retention != null) {
             builder.set("retention", retention.toString());
@@ -547,6 +554,18 @@ public class TimeseriesEventPublisher {
         }
 
         return builder.build();
+    }
+
+    /**
+     * Strips semantic prefixes from WoT unit values.
+     * E.g., "om2:kilowatt" -> "kilowatt", "qudt:DEG_C" -> "DEG_C"
+     */
+    private String stripSemanticPrefix(final String unit) {
+        final int colonIndex = unit.indexOf(':');
+        if (colonIndex > 0 && colonIndex < unit.length() - 1) {
+            return unit.substring(colonIndex + 1);
+        }
+        return unit;
     }
 }
 ```
@@ -562,10 +581,25 @@ The `ts-extra` header contains resolved WoT TS extension values:
     "attributes/floor": "2",
     "sensorType": "environmental"
   },
+  "unit": "cel",
   "retention": "P90D",
   "resolution": "PT1S"
 }
 ```
+
+**Unit extraction from WoT ThingModel**:
+
+The `unit` is automatically extracted from the WoT property's `unit` field. Semantic prefixes are stripped:
+
+| WoT Property `unit`   | Extracted `unit` | Notes                              |
+|-----------------------|------------------|------------------------------------|
+| `"cel"`               | `"cel"`          | No prefix                          |
+| `"om2:kilowatt"`      | `"kilowatt"`     | Prefix `om2:` stripped             |
+| `"qudt:DEG_C"`        | `"DEG_C"`        | Prefix `qudt:` stripped            |
+| `"schema:Celsius"`    | `"Celsius"`      | Prefix `schema:` stripped          |
+| *(not specified)*     | `null`           | Unit not included in extra fields  |
+
+The unit is stored with each data point, enabling proper display and unit conversion in queries.
 
 **Tag resolution example**:
 
@@ -610,6 +644,7 @@ public class TimeseriesEventSubscriber {
             extractValue(event),
             event.getRevision(),
             extractTags(extraFields),
+            extractUnit(extraFields),
             extractRetention(extraFields)
         );
 
@@ -624,6 +659,14 @@ public class TimeseriesEventSubscriber {
             .map(JsonValue::asObject)
             .map(this::jsonObjectToStringMap)
             .orElse(Map.of());
+    }
+
+    @Nullable
+    private String extractUnit(final JsonObject extraFields) {
+        return extraFields.getValue("unit")
+            .filter(JsonValue::isString)
+            .map(JsonValue::asString)
+            .orElse(null);
     }
 }
 ```
@@ -1086,8 +1129,11 @@ The timeseries service translates RQL to TS-database-specific queries:
 #### Batch Query Request/Response
 
 **Request**:
-```json
+```
 POST /api/2/timeseries/things/org.eclipse.ditto:sensor-1
+```
+
+```json
 {
   "paths": [
     "/features/environment/properties/temperature",
@@ -1209,11 +1255,12 @@ public interface TimeseriesAdapter {
  */
 public record TimeseriesDataPoint(
     ThingId thingId,
-    JsonPointer path,       // Full path as in Ditto Protocol
+    JsonPointer path,           // Full path as in Ditto Protocol
     Instant timestamp,
     JsonValue value,
     long revision,
     Map<String, String> tags,
+    @Nullable String unit,      // Unit from WoT property (semantic prefix stripped)
     @Nullable Duration retention
 ) {}
 
