@@ -781,3 +781,30 @@ Before generating a WoT ThingModel:
 1. Check the W3C specification for correct syntax
 2. Review Ditto example models for patterns
 3. Validate against the JSON Schema if unsure
+
+## Markdown Formatting
+
+### Table Column Alignment
+
+⚠️ **REQUIRED**: When generating markdown tables, **format columns to be readable in plain text** by aligning the `|` characters.
+
+```markdown
+<!-- ✅ CORRECT: Columns aligned, readable in plain text -->
+| Service      | Responsibility                                              |
+|--------------|-------------------------------------------------------------|
+| **Things**   | Evaluate WoT TS extensions, publish ThingEvents             |
+| **Policies** | Provide policy data for authorization                       |
+| **Gateway**  | HTTP routes for queries                                     |
+
+<!-- ❌ WRONG: Columns not aligned, hard to read in plain text -->
+| Service | Responsibility |
+|---------|----------------|
+| **Things** | Evaluate WoT TS extensions, publish ThingEvents |
+| **Policies** | Provide policy data for authorization |
+| **Gateway** | HTTP routes for queries |
+```
+
+**Why this matters:**
+- Design documents and concepts are often read in plain text editors or terminals
+- Aligned tables are significantly easier to scan and understand
+- Consistent formatting improves document maintainability
