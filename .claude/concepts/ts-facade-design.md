@@ -122,12 +122,14 @@ Ditto does **not** store timeseries data in MongoDB. Instead, ts-facade delegate
 
 Extend the existing `ditto:` ontology (IRI: `https://ditto.eclipseprojects.io/wot/ditto-extension#`) with timeseries declarations:
 
-| Property | Type | Description | Default |
-|----------|------|-------------|---------|
-| `ditto:ts-enabled` | boolean | Enable TS ingestion for this property | `false` |
-| `ditto:ts-retention` | string (ISO 8601 duration) | How long to retain data | Service default |
-| `ditto:ts-resolution` | string (ISO 8601 duration) | Minimum sampling interval | No limit |
-| `ditto:ts-tags` | object | Tags/dimensions for grouping (see below) | `{}` |
+| Property | Type | Required | Description | Default |
+|----------|------|----------|-------------|---------|
+| `ditto:ts-enabled` | boolean | Yes | Enable TS ingestion for this property | `false` |
+| `ditto:ts-retention` | string (ISO 8601 duration) | No | How long to retain data | ts-facade config |
+| `ditto:ts-resolution` | string (ISO 8601 duration) | No | Minimum sampling interval | ts-facade config |
+| `ditto:ts-tags` | object | No | Tags/dimensions for grouping (see below) | `{}` |
+
+**Note**: `ditto:ts-retention` and `ditto:ts-resolution` are optional. When not specified in the WoT model, the ts-facade service defaults are used (see [Section 9: Configuration](#9-configuration)).
 
 ### 4.2 Tag Declaration with Placeholders
 
@@ -231,7 +233,6 @@ Static tag names (constant values) must **NOT** use these reserved prefixes to a
       "unit": "percent",
       "ditto:category": "status",
       "ditto:ts-enabled": true,
-      "ditto:ts-retention": "P30D",
       "ditto:ts-tags": {
         "attributes/building": "{{ thing-json:attributes/building }}",
         "attributes/floor": "{{ thing-json:attributes/floor }}",
@@ -246,6 +247,11 @@ Static tag names (constant values) must **NOT** use these reserved prefixes to a
   }
 }
 ```
+
+**Note on the example above**:
+- `temperature`: Explicit retention (90 days) and resolution (1 second minimum)
+- `humidity`: Uses ts-facade defaults for retention and resolution (no `ditto:ts-retention` or `ditto:ts-resolution` specified)
+- `serialNumber`: TS ingestion disabled
 
 ### 4.4 Runtime Behavior
 
@@ -1129,9 +1135,22 @@ ditto {
       expire-after-write = ${?TS_FACADE_POLICY_CACHE_EXPIRE}
     }
 
-    # Default retention (can be overridden per property in WoT model)
+    # =================================================================
+    # Default values for WoT ditto:ts-* properties
+    # Used when not specified in the WoT ThingModel
+    # =================================================================
+
+    # Default data retention period (ISO 8601 duration)
+    # Can be overridden per property via ditto:ts-retention in WoT model
     default-retention = P90D
     default-retention = ${?TS_FACADE_DEFAULT_RETENTION}
+
+    # Default minimum sampling resolution (ISO 8601 duration)
+    # Data points arriving faster than this interval may be dropped/aggregated
+    # Can be overridden per property via ditto:ts-resolution in WoT model
+    # "0" or "PT0S" means no minimum resolution (accept all data points)
+    default-resolution = PT0S
+    default-resolution = ${?TS_FACADE_DEFAULT_RESOLUTION}
   }
 }
 ```
@@ -1206,7 +1225,10 @@ tsFacade:
       maxTimeRange: "365d"
       maxDataPoints: 10000
 
-    defaultRetention: "P90D"
+    # Defaults for WoT ditto:ts-* properties (when not specified in model)
+    defaults:
+      retention: "P90D"      # ditto:ts-retention default
+      resolution: "PT0S"     # ditto:ts-resolution default (0 = no limit)
 
 # Add to things service config
 things:
