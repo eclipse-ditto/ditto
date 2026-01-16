@@ -79,7 +79,6 @@ A new Ditto microservice that **automatically captures Thing property changes ov
     "temperature": {
       "type": "number",
       "ditto:ts-enabled": true,
-      "ditto:ts-retention": "P90D",
       "ditto:ts-tags": {
         "attributes/building": "{{ thing-json:attributes/building }}"
       }
@@ -220,15 +219,12 @@ This uses Ditto's existing MongoDB infrastructure with [Time Series Collections]
 
 Extend the existing `ditto:` ontology (IRI: `https://ditto.eclipseprojects.io/wot/ditto-extension#`) with timeseries declarations:
 
-| Property              | Type                       | Required | Description                              | Default            |
-|-----------------------|----------------------------|----------|------------------------------------------|--------------------|
-| `ditto:ts-enabled`    | boolean                    | Yes      | Enable TS ingestion for this property    | `false`            |
-| `ditto:ts-retention`  | string (ISO 8601 duration) | No       | How long to retain data                  | timeseries config  |
-| `ditto:ts-resolution` | string (ISO 8601 duration) | No       | Minimum sampling interval                | timeseries config  |
-| `ditto:ts-tags`       | object                     | No       | Tags/dimensions for grouping (see below) | `{}`               |
+| Property           | Type    | Required | Description                              | Default |
+|--------------------|---------|----------|------------------------------------------|---------|
+| `ditto:ts-enabled` | boolean | Yes      | Enable TS ingestion for this property    | `false` |
+| `ditto:ts-tags`    | object  | No       | Tags/dimensions for grouping (see below) | `{}`    |
 
-**Note**: `ditto:ts-retention` and `ditto:ts-resolution` are optional. 
-When not specified in the WoT model, the timeseries service defaults are used (see [Section 9: Configuration](#9-configuration)).
+**Note on retention and resolution**: These are configured at the **timeseries database level** (e.g., MongoDB collection TTL, granularity), not per-property. This ensures consistency across different TS database backends where these settings are typically collection-wide.
 
 **Scope**: These TS declarations can be applied to:
 - **Thing-level properties** (mapped to Ditto attributes)
@@ -338,7 +334,6 @@ WoT ThingModels use `links` with `rel: "tm:submodel"` to compose features. Below
       "type": "string",
       "format": "date",
       "ditto:ts-enabled": true,
-      "ditto:ts-retention": "P5Y",
       "ditto:ts-tags": {
         "attributes/building": "{{ thing-json:attributes/building }}"
       }
@@ -369,8 +364,6 @@ WoT ThingModels use `links` with `rel: "tm:submodel"` to compose features. Below
       "unit": "cel",
       "ditto:category": "status",
       "ditto:ts-enabled": true,
-      "ditto:ts-retention": "P90D",
-      "ditto:ts-resolution": "PT1S",
       "ditto:ts-tags": {
         "attributes/building": "{{ thing-json:attributes/building }}",
         "attributes/floor": "{{ thing-json:attributes/floor }}",
@@ -418,12 +411,12 @@ WoT ThingModels use `links` with `rel: "tm:submodel"` to compose features. Below
 
 **Note on the examples above**:
 
-| Property              | ThingModel Location        | Ditto Location                                | TS Enabled | Notes                                |
-|-----------------------|----------------------------|-----------------------------------------------|------------|--------------------------------------|
-| `batteryExchangeDate` | Thing-level `properties`   | `attributes/batteryExchangeDate`              | ✅          | Infrequent updates, 5-year retention |
-| `serialNumber`        | Thing-level `properties`   | `attributes/serialNumber`                     | ❌          | Static, no `ditto:ts-enabled`        |
-| `temperature`         | Feature-level `properties` | `features/environment/properties/temperature` | ✅          | High-frequency, 90-day retention     |
-| `humidity`            | Feature-level `properties` | `features/environment/properties/humidity`    | ✅          | Uses timeseries defaults             |
+| Property              | ThingModel Location        | Ditto Location                                | TS Enabled | Notes                         |
+|-----------------------|----------------------------|-----------------------------------------------|------------|-------------------------------|
+| `batteryExchangeDate` | Thing-level `properties`   | `attributes/batteryExchangeDate`              | ✅          | Infrequent updates (dates)    |
+| `serialNumber`        | Thing-level `properties`   | `attributes/serialNumber`                     | ❌          | Static, no `ditto:ts-enabled` |
+| `temperature`         | Feature-level `properties` | `features/environment/properties/temperature` | ✅          | High-frequency sensor data    |
+| `humidity`            | Feature-level `properties` | `features/environment/properties/humidity`    | ✅          | High-frequency sensor data    |
 
 **Use cases for attribute timeseries:**
 - Maintenance dates (battery exchange, calibration, service visits)
@@ -494,13 +487,11 @@ public class TimeseriesEventPublisher {
             return; // This path is not TS-enabled
         }
 
-        // 2. Resolve extra fields from WoT model (tags, unit, retention, resolution)
+        // 2. Resolve extra fields from WoT model (tags, unit)
         final JsonObject extraFields = resolveExtraFields(
             thing,
             resolvedModel.getTsTags(changedPath),
-            resolvedModel.getUnit(changedPath),        // WoT property "unit"
-            resolvedModel.getTsRetention(changedPath),
-            resolvedModel.getTsResolution(changedPath)
+            resolvedModel.getUnit(changedPath)         // WoT property "unit"
         );
 
         // 3. Publish event with extra fields
@@ -516,9 +507,7 @@ public class TimeseriesEventPublisher {
     private JsonObject resolveExtraFields(
             final Thing thing,
             final Map<String, String> tagDeclarations,
-            @Nullable final String unit,
-            @Nullable final Duration retention,
-            @Nullable final Duration resolution) {
+            @Nullable final String unit) {
 
         final JsonObjectBuilder builder = JsonObject.newBuilder();
 
@@ -543,14 +532,6 @@ public class TimeseriesEventPublisher {
         // Include unit from WoT property (strip semantic prefix if present)
         if (unit != null) {
             builder.set("unit", stripSemanticPrefix(unit));
-        }
-
-        // Include retention and resolution if specified
-        if (retention != null) {
-            builder.set("retention", retention.toString());
-        }
-        if (resolution != null) {
-            builder.set("resolution", resolution.toString());
         }
 
         return builder.build();
@@ -581,9 +562,7 @@ The `ts-extra` header contains resolved WoT TS extension values:
     "attributes/floor": "2",
     "sensorType": "environmental"
   },
-  "unit": "cel",
-  "retention": "P90D",
-  "resolution": "PT1S"
+  "unit": "cel"
 }
 ```
 
@@ -644,8 +623,7 @@ public class TimeseriesEventSubscriber {
             extractValue(event),
             event.getRevision(),
             extractTags(extraFields),
-            extractUnit(extraFields),
-            extractRetention(extraFields)
+            extractUnit(extraFields)
         );
 
         // 3. Buffer and write to adapter
@@ -1260,8 +1238,7 @@ public record TimeseriesDataPoint(
     JsonValue value,
     long revision,
     Map<String, String> tags,
-    @Nullable String unit,      // Unit from WoT property (semantic prefix stripped)
-    @Nullable Duration retention
+    @Nullable String unit       // Unit from WoT property (semantic prefix stripped)
 ) {}
 
 /** Single-thing query. */
@@ -1635,6 +1612,17 @@ ditto {
         # Write concern for ingestion
         write-concern = "majority"
         write-concern = ${?TIMESERIES_MONGODB_WRITE_CONCERN}
+
+        # Data retention (TTL) - applied to MongoDB Time Series collections
+        # ISO 8601 duration format
+        retention = P90D
+        retention = ${?TIMESERIES_MONGODB_RETENTION}
+
+        # Minimum sampling resolution - data points arriving faster may be aggregated
+        # Use "PT0S" to accept all data points without aggregation
+        # ISO 8601 duration format
+        resolution = PT0S
+        resolution = ${?TIMESERIES_MONGODB_RESOLUTION}
       }
 
       # Custom adapters would add their own configuration sections here
@@ -1688,23 +1676,6 @@ ditto {
       expire-after-write = 5m
       expire-after-write = ${?TIMESERIES_POLICY_CACHE_EXPIRE}
     }
-
-    # =================================================================
-    # Default values for WoT ditto:ts-* properties
-    # Used when not specified in the WoT ThingModel
-    # =================================================================
-
-    # Default data retention period (ISO 8601 duration)
-    # Can be overridden per property via ditto:ts-retention in WoT model
-    default-retention = P90D
-    default-retention = ${?TIMESERIES_DEFAULT_RETENTION}
-
-    # Default minimum sampling resolution (ISO 8601 duration)
-    # Data points arriving faster than this interval may be dropped/aggregated
-    # Can be overridden per property via ditto:ts-resolution in WoT model
-    # "0" or "PT0S" means no minimum resolution (accept all data points)
-    default-resolution = PT0S
-    default-resolution = ${?TIMESERIES_DEFAULT_RESOLUTION}
   }
 }
 ```
@@ -1762,6 +1733,8 @@ timeseries:
       collectionPrefix: "ts_"
       granularity: "seconds"  # "seconds", "minutes", or "hours"
       writeConcern: "majority"
+      retention: "P90D"       # TTL for MongoDB Time Series collections
+      resolution: "PT0S"      # Minimum sampling resolution (0 = no limit)
 
     # Custom adapter configurations would be added here
     # See documentation for implementing custom adapters
@@ -1774,11 +1747,6 @@ timeseries:
       defaultLookback: "24h"
       maxTimeRange: "365d"
       maxDataPoints: 10000
-
-    # Defaults for WoT ditto:ts-* properties (when not specified in model)
-    defaults:
-      retention: "P90D"      # ditto:ts-retention default
-      resolution: "PT0S"     # ditto:ts-resolution default (0 = no limit)
 
 # Add to things service config
 things:
@@ -1906,14 +1874,12 @@ ditto/
 ### Phase 4: Advanced Features
 
 **Scope**:
-- Full WoT extension (`ditto:ts-retention`, `ditto:ts-resolution`, `ditto:ts-tags`)
-- Retention policy enforcement (background cleanup)
+- Full WoT extension support (`ditto:ts-enabled`, `ditto:ts-tags`)
 - Connectivity integration for TS queries via messages
 - Helm chart updates
 
 **Deliverables**:
 - Complete WoT ontology support
-- Retention management actors
 - Message-based query support
 - Production-ready Helm configuration
 
