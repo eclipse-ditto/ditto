@@ -1186,13 +1186,13 @@ POST /api/2/timeseries/things/org.eclipse.ditto:sensor-1
 
 ### 7.5 Error Responses
 
-| Status | Error Code | Description |
-|--------|-----------|-------------|
-| 400 | `timeseries:query.invalid` | Invalid query parameters |
-| 403 | `timeseries:timeseries.notallowed` | No READ_TS permission |
-| 404 | `timeseries:thing.notfound` | Thing does not exist |
-| 404 | `timeseries:data.notfound` | No data in requested range |
-| 503 | `timeseries:backend.unavailable` | TS database unavailable |
+| Status | Error Code                         | Description                |
+|--------|------------------------------------|----------------------------|
+| 400    | `timeseries:query.invalid`         | Invalid query parameters   |
+| 403    | `timeseries:timeseries.notallowed` | No READ_TS permission      |
+| 404    | `timeseries:thing.notfound`        | Thing does not exist       |
+| 404    | `timeseries:data.notfound`         | No data in requested range |
+| 503    | `timeseries:backend.unavailable`   | TS database unavailable    |
 
 ---
 
@@ -1368,19 +1368,19 @@ public record TimeseriesDataValue(
 
 #### Default Adapter (Shipped with Ditto)
 
-| Database | Module | Status | Notes |
-|----------|--------|--------|-------|
-| **MongoDB Time Series** | `timeseries-mongodb` | **Default** | Uses existing Ditto MongoDB, no additional infrastructure |
+| Database                 | Module                | Status      | Notes                                                     |
+|--------------------------|-----------------------|-------------|-----------------------------------------------------------|
+| **MongoDB Time Series**  | `timeseries-mongodb`  | **Default** | Uses existing Ditto MongoDB, no additional infrastructure |
 
 #### Custom Adapter Examples
 
 Organizations can implement the `TimeseriesAdapter` interface to integrate other timeseries databases. Example implementations that could be developed:
 
-| Database | Potential Module | Notes |
-|----------|------------------|-------|
-| Apache IoTDB | `timeseries-iotdb` | Native Java client, tree-based schema |
-| TimescaleDB | `timeseries-timescale` | JDBC, PostgreSQL extension |
-| InfluxDB 2.x | `timeseries-influx` | HTTP API, Flux queries |
+| Database     | Potential Module       | Notes                                        |
+|--------------|------------------------|----------------------------------------------|
+| Apache IoTDB | `timeseries-iotdb`     | Native Java client, tree-based schema        |
+| TimescaleDB  | `timeseries-timescale` | JDBC, PostgreSQL extension                   |
+| InfluxDB 2.x | `timeseries-influx`    | HTTP API, Flux queries                       |
 
 **Note**: These are examples of possible custom implementations, not commitments. The adapter interface (Section 8.1) is designed to be generic enough to support various TS databases.
 
@@ -1455,48 +1455,48 @@ db.ts_data.aggregate([
 
 **Supported Operations:**
 
-| Operation | MongoDB Support | Implementation |
-|-----------|-----------------|----------------|
-| avg, min, max, sum, count | ✅ Native | `$avg`, `$min`, `$max`, `$sum`, `$count` |
-| first, last | ✅ Native | `$first`, `$last` |
-| Time bucketing | ✅ Native | `$dateTrunc` with `binSize` and `unit` |
-| Gap filling | ✅ Native | `$densify` + `$fill` |
-| Window functions | ✅ Native | `$setWindowFields` |
-| Tag filtering | ✅ Native | `$match` on `meta.tags.*` |
-| Retention | ✅ TTL Index | `expireAfterSeconds` on collection |
+| Operation                 | MongoDB Support | Implementation                           |
+|---------------------------|-----------------|------------------------------------------|
+| avg, min, max, sum, count | ✅ Native        | `$avg`, `$min`, `$max`, `$sum`, `$count` |
+| first, last               | ✅ Native        | `$first`, `$last`                        |
+| Time bucketing            | ✅ Native        | `$dateTrunc` with `binSize` and `unit`   |
+| Gap filling               | ✅ Native        | `$densify` + `$fill`                     |
+| Window functions          | ✅ Native        | `$setWindowFields`                       |
+| Tag filtering             | ✅ Native        | `$match` on `meta.tags.*`                |
+| Retention                 | ✅ TTL Index     | `expireAfterSeconds` on collection       |
 
 **Limitations:**
 
-| Limitation | Impact | Mitigation |
-|------------|--------|------------|
-| No change streams | Cannot watch TS data changes | Use Thing events instead |
-| Updates restricted | Can only update `metaField` | TS data is append-only anyway |
-| No `distinct` command | Use `$group` instead | Already using aggregation pipeline |
-| No transactions | Cannot write in transactions | Acceptable for TS ingestion |
-| Performance vs dedicated TS DB | ~5x slower than InfluxDB | Sufficient for most IoT workloads |
+| Limitation                     | Impact                       | Mitigation                         |
+|--------------------------------|------------------------------|------------------------------------|
+| No change streams              | Cannot watch TS data changes | Use Thing events instead           |
+| Updates restricted             | Can only update `metaField`  | TS data is append-only anyway      |
+| No `distinct` command          | Use `$group` instead         | Already using aggregation pipeline |
+| No transactions                | Cannot write in transactions | Acceptable for TS ingestion        |
+| Performance vs dedicated TS DB | ~5x slower than InfluxDB     | Sufficient for most IoT workloads  |
 
 **When to Choose MongoDB Time Series:**
 
-| Scenario | Recommendation |
-|----------|----------------|
-| Simple deployment, moderate throughput | ✅ MongoDB TS |
-| Existing MongoDB expertise | ✅ MongoDB TS |
-| Very high write throughput (>100k/sec) | ❌ Use dedicated TS DB |
-| Complex analytical queries | ❌ Consider TimescaleDB |
-| Minimal operational overhead priority | ✅ MongoDB TS |
+| Scenario                               | Recommendation         |
+|----------------------------------------|------------------------|
+| Simple deployment, moderate throughput | ✅ MongoDB TS           |
+| Existing MongoDB expertise             | ✅ MongoDB TS           |
+| Very high write throughput (>100k/sec) | ❌ Use dedicated TS DB  |
+| Complex analytical queries             | ❌ Consider TimescaleDB |
+| Minimal operational overhead priority  | ✅ MongoDB TS           |
 
 ### 8.4 Schema Mapping
 
 **Ditto Concept → TS Database Concept**:
 
-| Ditto | MongoDB TS | IoTDB | TimescaleDB |
-|-------|------------|-------|-------------|
-| Namespace | Collection prefix | Storage Group | Schema |
-| ThingId | `meta.thingId` | Device | Table prefix |
-| Path | `meta.path` | Entity path | Table/column derivation |
-| Value | `value` field | Data point | Row value |
-| Tags | `meta.tags.*` | Tags/Attributes | Additional columns |
-| Retention | TTL index | TTL config | Retention policy |
+| Ditto     | MongoDB TS        | IoTDB           | TimescaleDB             |
+|-----------|-------------------|-----------------|-------------------------|
+| Namespace | Collection prefix | Storage Group   | Schema                  |
+| ThingId   | `meta.thingId`    | Device          | Table prefix            |
+| Path      | `meta.path`       | Entity path     | Table/column derivation |
+| Value     | `value` field     | Data point      | Row value               |
+| Tags      | `meta.tags.*`     | Tags/Attributes | Additional columns      |
+| Retention | TTL index         | TTL config      | Retention policy        |
 
 **IoTDB Schema Example**:
 ```
@@ -1559,40 +1559,41 @@ db.ts_org_eclipse_ditto.createIndex({
 
 This comparison helps users decide whether the default MongoDB adapter is sufficient or whether a custom adapter implementation for another TS database might be beneficial.
 
-| Feature | MongoDB TS (Default) | IoTDB | TimescaleDB | InfluxDB |
-|---------|----------------------|-------|-------------|----------|
-| **Deployment** |
-| Additional infrastructure | ❌ None (uses existing) | ✅ Required | ✅ Required | ✅ Required |
-| Operational complexity | Low | Medium | Medium | Medium |
-| **Query Capabilities** |
-| Aggregations (avg/min/max/sum/count) | ✅ | ✅ | ✅ | ✅ |
-| first/last | ✅ | ✅ | ✅ | ✅ |
-| Time bucketing | ✅ `$dateTrunc` | ✅ `GROUP BY TIME` | ✅ `time_bucket` | ✅ `aggregateWindow` |
-| Gap filling | ✅ `$densify`+`$fill` | ✅ `FILL` | ✅ `time_bucket_gapfill` | ✅ `fill()` |
-| Window functions | ✅ `$setWindowFields` | ✅ | ✅ | ✅ |
-| Complex joins | ✅ `$lookup` | Limited | ✅ Full SQL | Limited |
-| **Performance** |
-| Write throughput | Medium | High | High | Very High |
-| Simple query speed | Medium | High | High | Very High |
-| Complex query speed | Medium | Medium | Very High | Medium |
-| Compression | Good | Excellent | Good | Excellent |
-| **RQL Translation** |
-| Translation complexity | Medium (MQL) | Medium (SQL-like) | Low (SQL) | Medium (Flux) |
-| **Integration** |
-| Java client | ✅ MongoDB Driver | ✅ Native | ✅ JDBC | ✅ HTTP/Client |
-| Authentication | Shared with Ditto | Separate | Separate | Separate |
+| Feature                              | MongoDB TS (Default)   | IoTDB             | TimescaleDB             | InfluxDB            |
+|--------------------------------------|------------------------|-------------------|-------------------------|---------------------|
+| **Deployment**                       |
+| Additional infrastructure            | ❌ None (uses existing) | ✅ Required        | ✅ Required              | ✅ Required          |
+| Operational complexity               | Low                    | Medium            | Medium                  | Medium              |
+| **Query Capabilities**               |
+| Aggregations (avg/min/max/sum/count) | ✅                      | ✅                 | ✅                       | ✅                   |
+| first/last                           | ✅                      | ✅                 | ✅                       | ✅                   |
+| Time bucketing                       | ✅ `$dateTrunc`         | ✅ `GROUP BY TIME` | ✅ `time_bucket`         | ✅ `aggregateWindow` |
+| Gap filling                          | ✅ `$densify`+`$fill`   | ✅ `FILL`          | ✅ `time_bucket_gapfill` | ✅ `fill()`          |
+| Window functions                     | ✅ `$setWindowFields`   | ✅                 | ✅                       | ✅                   |
+| Complex joins                        | ✅ `$lookup`            | Limited           | ✅ Full SQL              | Limited             |
+| **Performance**                      |
+| Write throughput                     | Medium                 | High              | High                    | Very High           |
+| Simple query speed                   | Medium                 | High              | High                    | Very High           |
+| Complex query speed                  | Medium                 | Medium            | Very High               | Medium              |
+| Compression                          | Good                   | Excellent         | Good                    | Excellent           |
+| **RQL Translation**                  |
+| Translation complexity               | Medium (MQL)           | Medium (SQL-like) | Low (SQL)               | Medium (Flux)       |
+| **Integration**                      |
+| Java client                          | ✅ MongoDB Driver       | ✅ Native          | ✅ JDBC                  | ✅ HTTP/Client       |
+| Authentication                       | Shared with Ditto      | Separate          | Separate                | Separate            |
 
 **When to Consider a Custom Adapter:**
 
-| Scenario | Recommendation |
-|----------|----------------|
-| **Getting started / PoC** | Use default MongoDB TS adapter |
-| **Small-medium deployment** (<10k writes/sec) | Use default MongoDB TS adapter |
-| **High-volume IoT** (>100k writes/sec) | Consider custom IoTDB or InfluxDB adapter |
-| **Complex analytics requirements** | Consider custom TimescaleDB adapter |
-| **Edge deployment** (resource constrained) | Use default MongoDB TS adapter |
+| Scenario                                      | Recommendation                            |
+|-----------------------------------------------|-------------------------------------------|
+| **Getting started / PoC**                     | Use default MongoDB TS adapter            |
+| **Small-medium deployment** (<10k writes/sec) | Use default MongoDB TS adapter            |
+| **High-volume IoT** (>100k writes/sec)        | Consider custom IoTDB or InfluxDB adapter |
+| **Complex analytics requirements**            | Consider custom TimescaleDB adapter       |
+| **Edge deployment** (resource constrained)    | Use default MongoDB TS adapter            |
 
-**Note**: IoTDB, TimescaleDB, and InfluxDB adapters require custom implementation of the `TimeseriesAdapter` interface. The comparison above is provided as guidance for organizations evaluating custom adapter development.
+**Note**: IoTDB, TimescaleDB, and InfluxDB adapters require custom implementation of the `TimeseriesAdapter` interface. 
+The comparison above is provided as guidance for organizations evaluating custom adapter development.
 
 ---
 
