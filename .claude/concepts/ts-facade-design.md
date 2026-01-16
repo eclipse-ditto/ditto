@@ -137,7 +137,7 @@ The `ditto:ts-tags` object defines dimensions that are stored with each data poi
 
 | Format | Example | Description |
 |--------|---------|-------------|
-| **Placeholder** | `{{ thing-json:attributes/building }}` | Resolved dynamically from Thing JSON |
+| **Placeholder** | `"{{ thing-json:attributes/building }}"` | Resolved dynamically from Thing JSON |
 | **Constant** | `"production"` | Static value for all data points |
 
 **Placeholder syntax**: `{{ thing-json:<json-pointer> }}`
@@ -145,14 +145,53 @@ The `ditto:ts-tags` object defines dimensions that are stored with each data poi
 - `<json-pointer>` is a JSON pointer into the Thing's JSON structure
 - Resolved at ingestion time from the current Thing state
 
+**Tag key naming convention:**
+
+To ensure consistency with Ditto search RQL syntax, tag keys follow these rules:
+
+| Tag Type | Key Format | Example |
+|----------|------------|---------|
+| **Placeholder-resolved** | Full Thing JSON path | `"attributes/building"`, `"features/env/properties/type"` |
+| **Static/constant** | Custom name (restricted) | `"environment"`, `"region"` |
+
 **Example tag declarations:**
 ```json
 "ditto:ts-tags": {
-  "building": "{{ thing-json:attributes/building }}",
-  "floor": "{{ thing-json:attributes/floor }}",
-  "sensorType": "{{ thing-json:features/environment/properties/type }}",
+  "attributes/building": "{{ thing-json:attributes/building }}",
+  "attributes/floor": "{{ thing-json:attributes/floor }}",
+  "features/environment/properties/type": "{{ thing-json:features/environment/properties/type }}",
   "environment": "production",
   "region": "eu-west"
+}
+```
+
+**Static tag name restrictions:**
+
+Static tag names (constant values) must **NOT** use these reserved prefixes to avoid confusion with Thing structure:
+
+| Reserved Prefix | Reason |
+|-----------------|--------|
+| `attributes` or `attributes/` | Conflicts with Thing attributes path |
+| `features` or `features/` | Conflicts with Thing features path |
+| `definition` | Reserved Thing field |
+| `policyId` | Reserved Thing field |
+| `thingId` | Reserved Thing field |
+| `_` (underscore prefix) | Reserved for internal use |
+
+```json
+// ✅ Valid static tags
+"ditto:ts-tags": {
+  "environment": "production",
+  "region": "eu-west",
+  "deploymentId": "dep-123"
+}
+
+// ❌ Invalid static tags (will be rejected)
+"ditto:ts-tags": {
+  "attributes": "something",        // Reserved prefix
+  "features/custom": "value",       // Looks like Thing path
+  "thingId": "override",            // Reserved field
+  "_internal": "value"              // Reserved prefix
 }
 ```
 
@@ -161,6 +200,7 @@ The `ditto:ts-tags` object defines dimensions that are stored with each data poi
 - If a Thing's attributes change, historical data retains the old tag values
 - Tags are indexed in the TS database for efficient filtering and grouping
 - Keep tag cardinality reasonable (avoid high-cardinality values like timestamps)
+- RQL filters use the same paths: `eq(attributes/building,'A')` matches tag key `attributes/building`
 
 ### 4.3 Example ThingModel
 
@@ -181,8 +221,8 @@ The `ditto:ts-tags` object defines dimensions that are stored with each data poi
       "ditto:ts-retention": "P90D",
       "ditto:ts-resolution": "PT1S",
       "ditto:ts-tags": {
-        "building": "{{ thing-json:attributes/building }}",
-        "floor": "{{ thing-json:attributes/floor }}",
+        "attributes/building": "{{ thing-json:attributes/building }}",
+        "attributes/floor": "{{ thing-json:attributes/floor }}",
         "sensorType": "environmental"
       }
     },
@@ -193,8 +233,8 @@ The `ditto:ts-tags` object defines dimensions that are stored with each data poi
       "ditto:ts-enabled": true,
       "ditto:ts-retention": "P30D",
       "ditto:ts-tags": {
-        "building": "{{ thing-json:attributes/building }}",
-        "floor": "{{ thing-json:attributes/floor }}",
+        "attributes/building": "{{ thing-json:attributes/building }}",
+        "attributes/floor": "{{ thing-json:attributes/floor }}",
         "sensorType": "environmental"
       }
     },
@@ -238,15 +278,15 @@ When a Thing is created/modified with a WoT ThingModel reference (`definition`):
   "value": 23.5,
   "revision": 42,
   "tags": {
-    "building": "A",
-    "floor": "2",
+    "attributes/building": "A",
+    "attributes/floor": "2",
     "sensorType": "environmental"
   },
   "retention": "P90D"
 }
 ```
 
-**Note**: The `tags` object contains **resolved values**. For the Thing:
+**Note**: The `tags` object contains **resolved values** with full Thing paths as keys. For the Thing:
 ```json
 {
   "thingId": "org.eclipse.ditto:sensor-1",
@@ -261,13 +301,15 @@ When a Thing is created/modified with a WoT ThingModel reference (`definition`):
 With WoT declaration:
 ```json
 "ditto:ts-tags": {
-  "building": "{{ thing-json:attributes/building }}",
-  "floor": "{{ thing-json:attributes/floor }}",
+  "attributes/building": "{{ thing-json:attributes/building }}",
+  "attributes/floor": "{{ thing-json:attributes/floor }}",
   "sensorType": "environmental"
 }
 ```
 
-The resolved tags become: `{"building": "A", "floor": "2", "sensorType": "environmental"}`
+The resolved tags become: `{"attributes/building": "A", "attributes/floor": "2", "sensorType": "environmental"}`
+
+This naming convention ensures RQL filters like `eq(attributes/building,'A')` directly match tag keys.
 
 ### 5.2 Publishing Logic in Things Service
 
@@ -521,50 +563,65 @@ POST /api/2/timeseries/query
 
 This endpoint enables fleet-level analytics by querying **directly on the TS database** using tags that were denormalized at ingestion time. No Ditto search is involved, making it highly efficient.
 
+**Filter uses RQL syntax** - the same query language used in Ditto search (`/api/2/search/things`). This ensures consistency and allows users to leverage existing RQL knowledge.
+
 **Request Body**:
 ```json
 {
-  "filter": {
-    "building": "A",
-    "sensorType": "environmental"
-  },
+  "filter": "and(eq(attributes/building,'A'),eq(sensorType,'environmental'))",
   "feature": "environment",
   "properties": ["temperature", "humidity"],
   "from": "now-24h",
   "to": "now",
   "step": "1h",
   "agg": "avg",
-  "groupBy": ["floor"]
+  "groupBy": ["attributes/floor"]
 }
 ```
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `filter` | object | No | Filter by tag values (must be declared in `ditto:ts-tags`) |
+| `filter` | string (RQL) | No | RQL filter expression on declared tags |
 | `feature` | string | Yes | Feature ID to query |
 | `properties` | array | Yes | Property names to query |
 | `from` | string | No | Start time (ISO 8601 or relative) |
 | `to` | string | No | End time (default: `now`) |
 | `step` | string | No | Downsampling interval |
 | `agg` | string | No | Aggregation function |
-| `groupBy` | array | No | Tag names to group by |
+| `groupBy` | array | No | Tag keys to group by (use full paths) |
+
+**Supported RQL operators**:
+
+| Operator | Example | Description |
+|----------|---------|-------------|
+| `eq` | `eq(attributes/building,'A')` | Equals |
+| `ne` | `ne(attributes/floor,'0')` | Not equals |
+| `gt` | `gt(attributes/floor,2)` | Greater than |
+| `ge` | `ge(attributes/floor,2)` | Greater than or equal |
+| `lt` | `lt(attributes/floor,10)` | Less than |
+| `le` | `le(attributes/floor,10)` | Less than or equal |
+| `in` | `in(attributes/floor,'1','2','3')` | In list |
+| `like` | `like(attributes/building,'Building-*')` | Pattern match (`*` = any chars) |
+| `and` | `and(expr1,expr2,...)` | Logical AND |
+| `or` | `or(expr1,expr2)` | Logical OR |
+| `not` | `not(eq(sensorType,'test'))` | Logical NOT |
 
 **Response**:
 ```json
 {
   "query": {
-    "filter": {"building": "A", "sensorType": "environmental"},
+    "filter": "and(eq(attributes/building,'A'),eq(sensorType,'environmental'))",
     "feature": "environment",
     "properties": ["temperature"],
     "from": "2026-01-14T10:00:00Z",
     "to": "2026-01-15T10:00:00Z",
     "step": "1h",
     "aggregation": "avg",
-    "groupBy": ["floor"]
+    "groupBy": ["attributes/floor"]
   },
   "groups": [
     {
-      "tags": {"floor": "1"},
+      "tags": {"attributes/floor": "1"},
       "thingCount": 5,
       "series": {
         "temperature": {
@@ -577,7 +634,7 @@ This endpoint enables fleet-level analytics by querying **directly on the TS dat
       }
     },
     {
-      "tags": {"floor": "2"},
+      "tags": {"attributes/floor": "2"},
       "thingCount": 3,
       "series": {
         "temperature": {
@@ -594,18 +651,36 @@ This endpoint enables fleet-level analytics by querying **directly on the TS dat
 ```
 
 **Key points**:
+- Filter uses **RQL syntax** - same as Ditto search
 - Filters only work on **declared tags** (from `ditto:ts-tags` in WoT model)
+- Use full Thing paths in RQL: `attributes/building`, not just `building`
+- RQL is translated to TS-database-specific query syntax by the adapter
 - Query goes directly to TS database - no Ditto search round-trip
 - `thingCount` shows how many Things contributed to each group
 - Authorization: User must have `READ_TS` permission on the queried property
 
+**RQL Filter Translation**:
+
+The ts-facade service translates RQL to TS-database-specific queries:
+
+| RQL | IoTDB SQL | TimescaleDB SQL | InfluxDB Flux |
+|-----|-----------|-----------------|---------------|
+| `eq(attributes/building,'A')` | `attributes_building = 'A'` | `"attributes/building" = 'A'` | `r["attributes/building"] == "A"` |
+| `gt(attributes/floor,2)` | `attributes_floor > 2` | `"attributes/floor" > 2` | `r["attributes/floor"] > 2` |
+| `like(attributes/building,'A*')` | `attributes_building LIKE 'A%'` | `"attributes/building" LIKE 'A%'` | `r["attributes/building"] =~ /^A.*/` |
+| `and(eq(a,'x'),gt(b,5))` | `a = 'x' AND b > 5` | `a = 'x' AND b > 5` | Combined filters |
+
 **Example use cases**:
-| Use Case | Filter | GroupBy |
-|----------|--------|---------|
-| Avg temp per floor in Building A | `{"building": "A"}` | `["floor"]` |
-| Compare buildings | `{}` | `["building"]` |
-| Single building, no grouping | `{"building": "A"}` | `[]` |
-| Sensor type comparison | `{"building": "A"}` | `["sensorType"]` |
+
+| Use Case | RQL Filter | GroupBy |
+|----------|------------|---------|
+| Avg temp per floor in Building A | `eq(attributes/building,'A')` | `["attributes/floor"]` |
+| Compare buildings | *(empty)* | `["attributes/building"]` |
+| Floors 2+ in Building A | `and(eq(attributes/building,'A'),ge(attributes/floor,2))` | `["attributes/floor"]` |
+| Buildings A or B | `or(eq(attributes/building,'A'),eq(attributes/building,'B'))` | `["attributes/building"]` |
+| Exclude test sensors | `not(eq(sensorType,'test'))` | `["attributes/building"]` |
+| Pattern match | `like(attributes/building,'Building-*')` | `["attributes/building"]` |
+| Multiple floors | `and(eq(attributes/building,'A'),in(attributes/floor,'1','2','3'))` | `["attributes/floor"]` |
 
 ### 7.3 Query Parameters
 
@@ -832,18 +907,47 @@ public record TimeseriesQuery(
     @Nullable ZoneId timezone
 ) {}
 
-/** Cross-thing aggregation query using tags. */
+/** Cross-thing aggregation query using tags with RQL filter. */
 public record TimeseriesAggregationQuery(
-    Map<String, String> tagFilter,      // Filter by tag values
+    @Nullable RqlFilter filter,         // RQL filter on declared tags
     FeatureId featureId,
     List<JsonPointer> propertyPaths,
     Instant from,
     Instant to,
     @Nullable Duration step,
     Aggregation aggregation,            // Required for aggregation
-    List<String> groupByTags,           // Tags to group by
+    List<String> groupByTags,           // Tag keys to group by (full paths)
     @Nullable ZoneId timezone
 ) {}
+
+/**
+ * RQL filter translated from query string.
+ * Reuses Ditto's existing RQL parser infrastructure.
+ */
+public interface RqlFilter {
+    /** Get all tag keys referenced in the filter. */
+    Set<String> getReferencedFields();
+
+    /** Accept a translator visitor to generate DB-specific query. */
+    <T> T accept(RqlFilterTranslator<T> translator);
+}
+
+/**
+ * Translates RQL filter to TS-database-specific query syntax.
+ */
+public interface RqlFilterTranslator<T> {
+    T translateEq(String field, Object value);
+    T translateNe(String field, Object value);
+    T translateGt(String field, Object value);
+    T translateGe(String field, Object value);
+    T translateLt(String field, Object value);
+    T translateLe(String field, Object value);
+    T translateIn(String field, List<Object> values);
+    T translateLike(String field, String pattern);
+    T translateAnd(List<T> expressions);
+    T translateOr(List<T> expressions);
+    T translateNot(T expression);
+}
 
 public enum Aggregation {
     AVG, MIN, MAX, SUM, COUNT, FIRST, LAST
