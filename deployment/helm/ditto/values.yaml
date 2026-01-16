@@ -1699,7 +1699,7 @@ thingsSearch:
         # - "deleteAt"
       # customIndexes holds a map of index-names as key and custom index config as value
       #  Custom indexes are created in addition to the built-in indexes.
-      #  To activate a custom index, add its name to 'activatedIndexNames' above.
+      #  Custom indexes are automatically activated - no need to add them to 'activatedIndexNames'.
       customIndexes: {}
       # my_custom_idx:
       #   fields:

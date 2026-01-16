@@ -555,9 +555,8 @@ Since Ditto **3.9.0**, it is possible to configure additional custom MongoDB ind
 configuration. This allows you to optimize search queries for specific access patterns without modifying the Ditto
 codebase.
 
-Custom indexes are created in addition to the built-in indexes that Ditto manages. The index lifecycle is controlled
-by the existing `activated-index-names` mechanism - once you define a custom index, you must add its name to
-`activated-index-names` for it to be created.
+Custom indexes are created in addition to the built-in indexes that Ditto manages. Custom indexes are automatically
+activated when defined - there is no need to add them to `activated-index-names`.
 
 ### Configuration options
 
@@ -575,18 +574,8 @@ Configure custom indexes in the `search.conf` file:
 ditto {
   search {
     index-initialization {
-      # Add your custom index names to activated-index-names to enable them
-      activated-index-names = [
-        "_namespace",
-        "global_read",
-        "v_wildcard",
-        "policyId",
-        "referencedPolicies",
-        "deleteAt",
-        "my_custom_idx"  # Enable the custom index
-      ]
-
       # Define custom compound indexes (index name is the key)
+      # Custom indexes are automatically activated - no need to add them to 'activated-index-names'
       custom-indexes {
         my_custom_idx {
           fields = [
@@ -625,14 +614,7 @@ thingsSearch:
   config:
     indexInitialization:
       enabled: true
-      activatedIndexNames:
-        - "_namespace"
-        - "global_read"
-        - "v_wildcard"
-        - "policyId"
-        - "referencedPolicies"
-        - "deleteAt"
-        - "my_custom_idx"  # Enable the custom index
+      # Custom indexes are automatically activated - no need to add them to 'activatedIndexNames'
       customIndexes:
         my_custom_idx:
           fields:
@@ -656,8 +638,8 @@ The field names in custom indexes follow the same conventions as the existing se
 
 ### Important notes
 
-* Custom indexes are only created when their name is included in `activated-index-names`.
-* Removing an index name from `activated-index-names` will cause the index to be dropped on service restart.
+* Custom indexes are automatically activated when defined - no need to add them to `activated-index-names`.
+* Removing a custom index from `custom-indexes` will cause the index to be dropped on service restart.
 * Each custom index must have at least one field defined.
 * The direction is optional and defaults to `ASC` if not specified.
 

@@ -144,9 +144,14 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
                 Indices.all(documentDbCompatibilityMode).stream(),
                 customIndexes.stream()
         ).toList();
+        // Custom indexes are automatically activated - combine configured activated names with custom index names
+        final Set<String> activatedIndexNames = Stream.concat(
+                indexInitializationConfig.getActivatedIndexNames().stream(),
+                customIndexes.stream().map(Index::getName)
+        ).collect(Collectors.toSet());
         return indexInitializer.initialize(PersistenceConstants.THINGS_COLLECTION_NAME,
                         allIndices,
-                        indexInitializationConfig.getActivatedIndexNames()
+                        activatedIndexNames
                 )
                 .exceptionally(t -> {
                     LOGGER.error("Index-Initialization failed: {}", t.getMessage(), t);
