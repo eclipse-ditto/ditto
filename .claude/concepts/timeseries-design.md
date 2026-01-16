@@ -16,7 +16,7 @@ A new Ditto microservice that **automatically captures Thing property changes ov
 | Capability                    | Description                                                                        |
 |-------------------------------|------------------------------------------------------------------------------------|
 | **Automatic Ingestion**       | Property changes are automatically written to a timeseries database                |
-| **Declarative Configuration** | WoT ThingModel annotations define which properties to track (`ditto:ts-enabled`)   |
+| **Declarative Configuration** | WoT ThingModel `ditto:timeseries` annotation defines which properties to track     |
 | **Query API**                 | RESTful API for retrieving historical data with aggregations (avg, min, max, etc.) |
 | **Access Control**            | New `READ_TS` policy permission controls who can access timeseries data            |
 | **Pluggable Backend**         | Default MongoDB Time Series adapter; extensible for IoTDB, TimescaleDB, etc.       |
@@ -49,7 +49,7 @@ A new Ditto microservice that **automatically captures Thing property changes ov
 
 **Data flow:**
 1. Device updates a Thing property → Things service persists the event
-2. If property has `ditto:ts-enabled: true` in WoT model → publish to Timeseries service via pub/sub
+2. If property has `ditto:timeseries` with `ingest: "ALL"` in WoT model → publish to Timeseries service via pub/sub
 3. Timeseries service writes data point to timeseries database
 4. Clients query historical data via Gateway → Timeseries service → TS database
 
@@ -78,9 +78,11 @@ A new Ditto microservice that **automatically captures Thing property changes ov
   "properties": {
     "temperature": {
       "type": "number",
-      "ditto:ts-enabled": true,
-      "ditto:ts-tags": {
-        "attributes/building": "{{ thing-json:attributes/building }}"
+      "ditto:timeseries": {
+        "ingest": "ALL",
+        "tags": {
+          "attributes/building": "{{ thing-json:attributes/building }}"
+        }
       }
     }
   }
@@ -217,12 +219,27 @@ This uses Ditto's existing MongoDB infrastructure with [Time Series Collections]
 
 ### 4.1 Ditto WoT Extension Ontology
 
-Extend the existing `ditto:` ontology (IRI: `https://ditto.eclipseprojects.io/wot/ditto-extension#`) with timeseries declarations:
+Extend the existing `ditto:` ontology (IRI: `https://ditto.eclipseprojects.io/wot/ditto-extension#`) with a single timeseries declaration:
 
-| Property           | Type    | Required | Description                              | Default |
-|--------------------|---------|----------|------------------------------------------|---------|
-| `ditto:ts-enabled` | boolean | Yes      | Enable TS ingestion for this property    | `false` |
-| `ditto:ts-tags`    | object  | No       | Tags/dimensions for grouping (see below) | `{}`    |
+| Property           | Type   | Required | Description                          |
+|--------------------|--------|----------|--------------------------------------|
+| `ditto:timeseries` | object | No       | Timeseries configuration (see below) |
+
+**`ditto:timeseries` object structure:**
+
+| Key      | Type   | Required | Description                                | Values/Default            |
+|----------|--------|----------|--------------------------------------------|---------------------------|
+| `ingest` | string | Yes      | Controls data ingestion                    | `"ALL"`, `"NONE"`         |
+| `tags`   | object | No       | Tags/dimensions for grouping (see below)   | `{}` (empty object)       |
+
+**`ingest` enumeration values:**
+
+| Value    | Description                                                                    |
+|----------|--------------------------------------------------------------------------------|
+| `"ALL"`  | Ingest all value changes for this property into the timeseries database        |
+| `"NONE"` | Disable timeseries ingestion (useful for temporarily pausing without removing) |
+
+> **Future extension**: The `ingest` field may be extended with conditional ingestion options (e.g., ingest only when value exceeds threshold).
 
 **Note on retention and resolution**: These are configured at the **timeseries database level** (e.g., MongoDB collection TTL, granularity), not per-property. This ensures consistency across different TS database backends where these settings are typically collection-wide.
 
@@ -234,7 +251,7 @@ This enables timeseries tracking for both slowly-changing metadata (e.g., batter
 
 ### 4.2 Tag Declaration with Placeholders
 
-The `ditto:ts-tags` object defines dimensions that are stored with each data point in the TS database, enabling efficient cross-thing grouping and filtering **without querying Ditto**.
+The `tags` object within `ditto:timeseries` defines dimensions that are stored with each data point in the TS database, enabling efficient cross-thing grouping and filtering **without querying Ditto**.
 
 **Tag values support two formats:**
 
@@ -259,12 +276,15 @@ To ensure consistency with Ditto search RQL syntax, tag keys follow these rules:
 
 **Example tag declarations:**
 ```json
-"ditto:ts-tags": {
-  "attributes/building": "{{ thing-json:attributes/building }}",
-  "attributes/floor": "{{ thing-json:attributes/floor }}",
-  "features/environment/properties/type": "{{ thing-json:features/environment/properties/type }}",
-  "environment": "production",
-  "region": "eu-west"
+"ditto:timeseries": {
+  "ingest": "ALL",
+  "tags": {
+    "attributes/building": "{{ thing-json:attributes/building }}",
+    "attributes/floor": "{{ thing-json:attributes/floor }}",
+    "features/environment/properties/type": "{{ thing-json:features/environment/properties/type }}",
+    "environment": "production",
+    "region": "eu-west"
+  }
 }
 ```
 
@@ -283,18 +303,24 @@ Static tag names (constant values) must **NOT** use these reserved prefixes to a
 
 ```json
 // ✅ Valid static tags
-"ditto:ts-tags": {
-  "environment": "production",
-  "region": "eu-west",
-  "deploymentId": "dep-123"
+"ditto:timeseries": {
+  "ingest": "ALL",
+  "tags": {
+    "environment": "production",
+    "region": "eu-west",
+    "deploymentId": "dep-123"
+  }
 }
 
 // ❌ Invalid static tags (will be rejected)
-"ditto:ts-tags": {
-  "attributes": "something",        // Reserved prefix
-  "features/custom": "value",       // Looks like Thing path
-  "thingId": "override",            // Reserved field
-  "_internal": "value"              // Reserved prefix
+"ditto:timeseries": {
+  "ingest": "ALL",
+  "tags": {
+    "attributes": "something",        // Reserved prefix
+    "features/custom": "value",       // Looks like Thing path
+    "thingId": "override",            // Reserved field
+    "_internal": "value"              // Reserved prefix
+  }
 }
 ```
 
@@ -333,9 +359,11 @@ WoT ThingModels use `links` with `rel: "tm:submodel"` to compose features. Below
       "title": "Battery Exchange Date",
       "type": "string",
       "format": "date",
-      "ditto:ts-enabled": true,
-      "ditto:ts-tags": {
-        "attributes/building": "{{ thing-json:attributes/building }}"
+      "ditto:timeseries": {
+        "ingest": "ALL",
+        "tags": {
+          "attributes/building": "{{ thing-json:attributes/building }}"
+        }
       }
     },
     "serialNumber": {
@@ -363,22 +391,26 @@ WoT ThingModels use `links` with `rel: "tm:submodel"` to compose features. Below
       "type": "number",
       "unit": "cel",
       "ditto:category": "status",
-      "ditto:ts-enabled": true,
-      "ditto:ts-tags": {
-        "attributes/building": "{{ thing-json:attributes/building }}",
-        "attributes/floor": "{{ thing-json:attributes/floor }}",
-        "sensorType": "environmental"
+      "ditto:timeseries": {
+        "ingest": "ALL",
+        "tags": {
+          "attributes/building": "{{ thing-json:attributes/building }}",
+          "attributes/floor": "{{ thing-json:attributes/floor }}",
+          "sensorType": "environmental"
+        }
       }
     },
     "humidity": {
       "type": "number",
       "unit": "percent",
       "ditto:category": "status",
-      "ditto:ts-enabled": true,
-      "ditto:ts-tags": {
-        "attributes/building": "{{ thing-json:attributes/building }}",
-        "attributes/floor": "{{ thing-json:attributes/floor }}",
-        "sensorType": "environmental"
+      "ditto:timeseries": {
+        "ingest": "ALL",
+        "tags": {
+          "attributes/building": "{{ thing-json:attributes/building }}",
+          "attributes/floor": "{{ thing-json:attributes/floor }}",
+          "sensorType": "environmental"
+        }
       }
     }
   }
@@ -411,12 +443,12 @@ WoT ThingModels use `links` with `rel: "tm:submodel"` to compose features. Below
 
 **Note on the examples above**:
 
-| Property              | ThingModel Location        | Ditto Location                                | TS Enabled | Notes                         |
-|-----------------------|----------------------------|-----------------------------------------------|------------|-------------------------------|
-| `batteryExchangeDate` | Thing-level `properties`   | `attributes/batteryExchangeDate`              | ✅          | Infrequent updates (dates)    |
-| `serialNumber`        | Thing-level `properties`   | `attributes/serialNumber`                     | ❌          | Static, no `ditto:ts-enabled` |
-| `temperature`         | Feature-level `properties` | `features/environment/properties/temperature` | ✅          | High-frequency sensor data    |
-| `humidity`            | Feature-level `properties` | `features/environment/properties/humidity`    | ✅          | High-frequency sensor data    |
+| Property              | ThingModel Location        | Ditto Location                                | TS Enabled | Notes                           |
+|-----------------------|----------------------------|-----------------------------------------------|------------|---------------------------------|
+| `batteryExchangeDate` | Thing-level `properties`   | `attributes/batteryExchangeDate`              | ✅          | Infrequent updates (dates)      |
+| `serialNumber`        | Thing-level `properties`   | `attributes/serialNumber`                     | ❌          | Static, no `ditto:timeseries`   |
+| `temperature`         | Feature-level `properties` | `features/environment/properties/temperature` | ✅          | High-frequency sensor data      |
+| `humidity`            | Feature-level `properties` | `features/environment/properties/humidity`    | ✅          | High-frequency sensor data      |
 
 **Use cases for attribute timeseries:**
 - Maintenance dates (battery exchange, calibration, service visits)
@@ -430,8 +462,8 @@ When a Thing is created/modified with a WoT ThingModel reference (`definition`):
 
 1. Things service resolves the ThingModel (already cached)
 2. On property changes:
-   - Things service checks resolved WoT model for `ditto:ts-enabled` on changed path
-   - If TS-enabled: resolves `ditto:ts-tags` placeholders against current Thing JSON
+   - Things service checks WoT model for `ditto:timeseries` with `ingest: "ALL"` on changed path
+   - If TS-enabled: resolves `tags` placeholders against current Thing JSON
    - Publishes ThingEvent with resolved tags as extra fields to `things.ts-events:` topic
 
 ---
@@ -442,24 +474,24 @@ The Timeseries service receives events via a **dedicated pub/sub topic**. The Th
 
 ### 5.1 Design Principles
 
-| Principle                 | Implementation                                                                        |
-|---------------------------|---------------------------------------------------------------------------------------|
-| **Loose coupling**        | Things service publishes standard `ThingEvent` messages, not TS-specific formats      |
-| **Things owns WoT logic** | Things service evaluates `ditto:ts-enabled` and resolves `ditto:ts-tags` placeholders |
-| **Timeseries transforms** | Timeseries service transforms received events into its internal data point format     |
-| **Extra fields for tags** | Resolved tag values are included as extra fields in the published event               |
+| Principle                 | Implementation                                                                                   |
+|---------------------------|--------------------------------------------------------------------------------------------------|
+| **Loose coupling**        | Things service publishes standard `ThingEvent` messages, not TS-specific formats                 |
+| **Things owns WoT logic** | Things service evaluates `ditto:timeseries.ingest` and resolves `ditto:timeseries.tags` placeholders |
+| **Timeseries transforms** | Timeseries service transforms received events into its internal data point format                |
+| **Extra fields for tags** | Resolved tag values are included as extra fields in the published event                          |
 
 ### 5.2 Topic Structure
 
 **Topic**: `things.ts-events:` (similar pattern to `things.events:`)
 
-The Things service publishes `ThingEvent` messages to this topic when the changed path has `ditto:ts-enabled: true` in its WoT ThingModel.
+The Things service publishes `ThingEvent` messages to this topic when the changed path has `ditto:timeseries` with `ingest: "ALL"` in its WoT ThingModel.
 
 ### 5.3 Publishing Logic in Things Service
 
 The Things service is responsible for:
-1. Evaluating `ditto:ts-enabled` to decide **if** to publish
-2. Resolving `ditto:ts-tags` placeholders to determine **extra fields**
+1. Evaluating `ditto:timeseries.ingest` to decide **if** to publish
+2. Resolving `ditto:timeseries.tags` placeholders to determine **extra fields**
 3. Publishing the standard `ThingEvent` with extra fields attached
 
 ```java
@@ -474,7 +506,7 @@ public class TimeseriesEventPublisher {
 
     /**
      * Called after a ThingEvent is persisted.
-     * Publishes to TS topic if the changed path has ditto:ts-enabled.
+     * Publishes to TS topic if the changed path has ditto:timeseries with ingest: "ALL".
      */
     public void publishIfTimeseriesEnabled(
             final ThingEvent<?> event,
@@ -483,14 +515,14 @@ public class TimeseriesEventPublisher {
 
         // 1. Check if changed path is TS-enabled (lookup in already-cached resolved model)
         final JsonPointer changedPath = event.getResourcePath();
-        if (!resolvedModel.isTimeseriesEnabled(changedPath)) {
-            return; // This path is not TS-enabled
+        if (!resolvedModel.isTimeseriesIngestEnabled(changedPath)) {
+            return; // This path has no ditto:timeseries or ingest is "NONE"
         }
 
         // 2. Resolve extra fields from WoT model (tags, unit)
         final JsonObject extraFields = resolveExtraFields(
             thing,
-            resolvedModel.getTsTags(changedPath),
+            resolvedModel.getTimeseriesTags(changedPath),
             resolvedModel.getUnit(changedPath)         // WoT property "unit"
         );
 
@@ -658,12 +690,12 @@ public class TimeseriesEventSubscriber {
 │  1. ThingEvent persisted (event sourcing)                               │
 │                    │                                                    │
 │                    ▼                                                    │
-│  2. Check WoT model: is changed path ditto:ts-enabled?                  │
+│  2. Check WoT model: ditto:timeseries.ingest == "ALL"?                  │
 │                    │                                                    │
 │          ┌─────────┴───────┐                                            │
 │          │ No              │ Yes                                        │
 │          ▼                 ▼                                            │
-│       (skip)     3. Resolve ditto:ts-tags placeholders                  │
+│       (skip)     3. Resolve ditto:timeseries.tags placeholders          │
 │                            │                                            │
 │                            ▼                                            │
 │                  4. Publish ThingEvent + extra fields                   │
@@ -994,7 +1026,7 @@ This endpoint enables fleet-level analytics by querying **directly on the TS dat
 
 **Key points**:
 - Filter uses **RQL syntax** - same as Ditto search
-- Filters only work on **declared tags** (from `ditto:ts-tags` in WoT model)
+- Filters only work on **declared tags** (from `ditto:timeseries.tags` in WoT model)
 - Use full Thing paths in RQL: `attributes/building`, not just `building`
 - RQL is translated to TS-database-specific query syntax by the adapter
 - Query goes directly to TS database - no Ditto search round-trip
@@ -1834,7 +1866,7 @@ ditto/
 **Deliverables**:
 - `timeseries/model`, `timeseries/api`, `timeseries/service` modules
 - `timeseries/mongodb` adapter (default)
-- WoT extension: `ditto:ts-enabled` only
+- WoT extension: `ditto:timeseries` with `ingest` only (no `tags` in MVP)
 - Basic HTTP route in Gateway
 
 **Why MongoDB for MVP:**
@@ -1874,7 +1906,7 @@ ditto/
 ### Phase 4: Advanced Features
 
 **Scope**:
-- Full WoT extension support (`ditto:ts-enabled`, `ditto:ts-tags`)
+- Full WoT extension support (`ditto:timeseries` with `ingest` and `tags`)
 - Connectivity integration for TS queries via messages
 - Helm chart updates
 
@@ -1890,7 +1922,7 @@ ditto/
 ### Resolved
 
 1. ~~**Attribute timeseries**: Should Thing-level attributes also support TS tracking, or only Feature properties?~~
-   **Decision**: Yes, attributes are supported. The HTTP API already includes attribute endpoints (`/api/2/timeseries/things/{thingId}/attributes/{path}`). WoT ThingModels can declare `ditto:ts-enabled` on Thing-level properties (attributes), not just Feature properties.
+   **Decision**: Yes, attributes are supported. The HTTP API already includes attribute endpoints (`/api/2/timeseries/things/{thingId}/attributes/{path}`). WoT ThingModels can declare `ditto:timeseries` on Thing-level properties (attributes), not just Feature properties.
 
 4. ~~**Cross-thing queries**: Should timeseries support queries across multiple Things?~~
    **Decision**: Yes, via tag denormalization. The `POST /api/2/timeseries/query` endpoint supports cross-thing aggregation using tags stored natively in the TS database. See Section 7.2.
