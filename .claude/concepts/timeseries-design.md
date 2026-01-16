@@ -13,13 +13,13 @@ A new Ditto microservice that **automatically captures Thing property changes ov
 
 ### What It Does
 
-| Capability | Description |
-|------------|-------------|
-| **Automatic Ingestion** | Property changes are automatically written to a timeseries database |
-| **Declarative Configuration** | WoT ThingModel annotations define which properties to track (`ditto:ts-enabled`) |
-| **Query API** | RESTful API for retrieving historical data with aggregations (avg, min, max, etc.) |
-| **Access Control** | New `READ_TS` policy permission controls who can access timeseries data |
-| **Pluggable Backend** | Default MongoDB Time Series adapter; extensible for IoTDB, TimescaleDB, etc. |
+| Capability                    | Description                                                                        |
+|-------------------------------|------------------------------------------------------------------------------------|
+| **Automatic Ingestion**       | Property changes are automatically written to a timeseries database                |
+| **Declarative Configuration** | WoT ThingModel annotations define which properties to track (`ditto:ts-enabled`)   |
+| **Query API**                 | RESTful API for retrieving historical data with aggregations (avg, min, max, etc.) |
+| **Access Control**            | New `READ_TS` policy permission controls who can access timeseries data            |
+| **Pluggable Backend**         | Default MongoDB Time Series adapter; extensible for IoTDB, TimescaleDB, etc.       |
 
 ### Architecture Overview
 
@@ -91,7 +91,7 @@ A new Ditto microservice that **automatically captures Thing property changes ov
 ### Key Design Decisions
 
 - **Separate from event sourcing** — TS data is optimized for time-range queries, not revision history
-- **Policy-controlled** — introduction of a new permission `READ_TS` independent of `READ` permission in order to be able to control timeseries access independently from read access
+- **Policy-controlled** — introduction of a new permission `READ_TS` independent of `READ` permission in order to be able to control timeseries access independently of read access
 - **MongoDB default** — Zero additional infrastructure using existing Ditto MongoDB as a default implementation
 - **Extensible** — Adapter interface for dedicated TS databases when needed, e.g. when higher scalability needs are in place or an existing concrete TS DB should be used
 
@@ -141,9 +141,9 @@ This uses Ditto's existing MongoDB infrastructure with [Time Series Collections]
 
 ```
                                       Ditto Cluster
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                                                                              │
-│   ┌─────────────┐                                    ┌─────────────────────┐ │
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                             │
+│   ┌─────────────┐                                   ┌─────────────────────┐ │
 │   │   Gateway   │──────────┐              ┌─────────│    Connectivity     │ │
 │   │   Service   │          │    Query     │         │      Service        │ │
 │   │ [TS Routes] │          │              │         │ [TS Message Handler]│ │
@@ -220,12 +220,12 @@ This uses Ditto's existing MongoDB infrastructure with [Time Series Collections]
 
 Extend the existing `ditto:` ontology (IRI: `https://ditto.eclipseprojects.io/wot/ditto-extension#`) with timeseries declarations:
 
-| Property | Type | Required | Description | Default          |
-|----------|------|----------|-------------|------------------|
-| `ditto:ts-enabled` | boolean | Yes | Enable TS ingestion for this property | `false`          |
-| `ditto:ts-retention` | string (ISO 8601 duration) | No | How long to retain data | timeseries config |
-| `ditto:ts-resolution` | string (ISO 8601 duration) | No | Minimum sampling interval | timeseries config |
-| `ditto:ts-tags` | object | No | Tags/dimensions for grouping (see below) | `{}`             |
+| Property              | Type                       | Required | Description                              | Default            |
+|-----------------------|----------------------------|----------|------------------------------------------|--------------------|
+| `ditto:ts-enabled`    | boolean                    | Yes      | Enable TS ingestion for this property    | `false`            |
+| `ditto:ts-retention`  | string (ISO 8601 duration) | No       | How long to retain data                  | timeseries config  |
+| `ditto:ts-resolution` | string (ISO 8601 duration) | No       | Minimum sampling interval                | timeseries config  |
+| `ditto:ts-tags`       | object                     | No       | Tags/dimensions for grouping (see below) | `{}`               |
 
 **Note**: `ditto:ts-retention` and `ditto:ts-resolution` are optional. 
 When not specified in the WoT model, the timeseries service defaults are used (see [Section 9: Configuration](#9-configuration)).
@@ -242,10 +242,10 @@ The `ditto:ts-tags` object defines dimensions that are stored with each data poi
 
 **Tag values support two formats:**
 
-| Format | Example | Description |
-|--------|---------|-------------|
+| Format          | Example                                  | Description                          |
+|-----------------|------------------------------------------|--------------------------------------|
 | **Placeholder** | `"{{ thing-json:attributes/building }}"` | Resolved dynamically from Thing JSON |
-| **Constant** | `"production"` | Static value for all data points |
+| **Constant**    | `"production"`                           | Static value for all data points     |
 
 **Placeholder syntax**: `{{ thing-json:<json-pointer> }}`
 - Uses Ditto's existing placeholder mechanism
@@ -256,10 +256,10 @@ The `ditto:ts-tags` object defines dimensions that are stored with each data poi
 
 To ensure consistency with Ditto search RQL syntax, tag keys follow these rules:
 
-| Tag Type | Key Format | Example |
-|----------|------------|---------|
-| **Placeholder-resolved** | Full Thing JSON path | `"attributes/building"`, `"features/env/properties/type"` |
-| **Static/constant** | Custom name (restricted) | `"environment"`, `"region"` |
+| Tag Type                 | Key Format               | Example                                                   |
+|--------------------------|--------------------------|-----------------------------------------------------------|
+| **Placeholder-resolved** | Full Thing JSON path     | `"attributes/building"`, `"features/env/properties/type"` |
+| **Static/constant**      | Custom name (restricted) | `"environment"`, `"region"`                               |
 
 **Example tag declarations:**
 ```json
@@ -276,14 +276,14 @@ To ensure consistency with Ditto search RQL syntax, tag keys follow these rules:
 
 Static tag names (constant values) must **NOT** use these reserved prefixes to avoid confusion with Thing structure:
 
-| Reserved Prefix | Reason                               |
-|-----------------|--------------------------------------|
+| Reserved Prefix               | Reason                               |
+|-------------------------------|--------------------------------------|
 | `attributes` or `attributes/` | Conflicts with Thing attributes path |
-| `features` or `features/` | Conflicts with Thing features path   |
-| `definition` | Reserved Thing field                 |
-| `policyId` | Reserved Thing field                 |
-| `thingId` | Reserved Thing field                 |
-| `_` (underscore prefix) | Reserved for internal use            |
+| `features` or `features/`     | Conflicts with Thing features path   |
+| `definition`                  | Reserved Thing field                 |
+| `policyId`                    | Reserved Thing field                 |
+| `thingId`                     | Reserved Thing field                 |
+| `_` (underscore prefix)       | Reserved for internal use            |
 
 ```json
 // ✅ Valid static tags
@@ -449,12 +449,12 @@ The Timeseries service receives events via a **dedicated pub/sub topic**. The Th
 
 ### 5.1 Design Principles
 
-| Principle | Implementation |
-|-----------|----------------|
-| **Loose coupling** | Things service publishes standard `ThingEvent` messages, not TS-specific formats |
+| Principle                 | Implementation                                                                        |
+|---------------------------|---------------------------------------------------------------------------------------|
+| **Loose coupling**        | Things service publishes standard `ThingEvent` messages, not TS-specific formats      |
 | **Things owns WoT logic** | Things service evaluates `ditto:ts-enabled` and resolves `ditto:ts-tags` placeholders |
-| **Timeseries transforms** | Timeseries service transforms received events into its internal data point format |
-| **Extra fields for tags** | Resolved tag values are included as extra fields in the published event |
+| **Timeseries transforms** | Timeseries service transforms received events into its internal data point format     |
+| **Extra fields for tags** | Resolved tag values are included as extra fields in the published event               |
 
 ### 5.2 Topic Structure
 
@@ -569,11 +569,11 @@ The `ts-extra` header contains resolved WoT TS extension values:
 
 **Tag resolution example**:
 
-| WoT Declaration | Thing State | Resolved Value |
-|-----------------|-------------|----------------|
-| `"{{ thing-json:attributes/building }}"` | `{"attributes":{"building":"A"}}` | `"A"` |
-| `"{{ thing-json:attributes/floor }}"` | `{"attributes":{"floor":"2"}}` | `"2"` |
-| `"production"` (static) | — | `"production"` |
+| WoT Declaration                          | Thing State                       | Resolved Value |
+|------------------------------------------|-----------------------------------|----------------|
+| `"{{ thing-json:attributes/building }}"` | `{"attributes":{"building":"A"}}` | `"A"`          |
+| `"{{ thing-json:attributes/floor }}"`    | `{"attributes":{"floor":"2"}}`    | `"2"`          |
+| `"production"` (static)                  | —                                 | `"production"` |
 
 ### 5.5 Subscriber in Timeseries Service
 
@@ -639,7 +639,7 @@ public class TimeseriesEventSubscriber {
 │                    ▼                                                    │
 │  2. Check WoT model: is changed path ditto:ts-enabled?                  │
 │                    │                                                    │
-│          ┌────────┴────────┐                                            │
+│          ┌─────────┴───────┐                                            │
 │          │ No              │ Yes                                        │
 │          ▼                 ▼                                            │
 │       (skip)     3. Resolve ditto:ts-tags placeholders                  │
@@ -678,11 +678,11 @@ public class TimeseriesEventSubscriber {
 
 Extend the existing permission model with `READ_TS`:
 
-| Permission | Description |
-|------------|-------------|
-| `READ` | Read current Thing state |
-| `WRITE` | Modify Thing state |
-| `READ_TS` | Read timeseries data for property |
+| Permission | Description                       |
+|------------|-----------------------------------|
+| `READ`     | Read current Thing state          |
+| `WRITE`    | Modify Thing state                |
+| `READ_TS`  | Read timeseries data for property |
 
 ### 6.2 Policy Example
 
@@ -836,7 +836,25 @@ GET /api/2/timeseries/things/{thingId}/features/{featureId}/properties
 GET /api/2/timeseries/things/{thingId}/attributes/{attributePath}
 ```
 
-#### Batch Query (Multiple Properties/Aggregations)
+#### Thing Attributes Timeseries (Multiple Attributes)
+
+```
+GET /api/2/timeseries/things/{thingId}/attributes
+```
+
+#### Thing Timeseries (Multiple Attributes + Feature Properties)
+
+```
+GET /api/2/timeseries/things/{thingId}
+```
+
+#### Batch Query (Multiple Attributes/Properties/Aggregations) for Thing
+
+```
+POST /api/2/timeseries/things/{thingId}
+```
+
+#### Batch Query (Multiple Properties/Aggregations) for Feature
 
 ```
 POST /api/2/timeseries/things/{thingId}/features/{featureId}/query
@@ -844,15 +862,18 @@ POST /api/2/timeseries/things/{thingId}/features/{featureId}/query
 
 #### Full Endpoint Overview
 
-| Endpoint | Description |
-|----------|-------------|
-| `GET /api/2/timeseries/things/{thingId}` | All TS data for a Thing |
-| `GET /api/2/timeseries/things/{thingId}/features/{featureId}` | All TS data for a Feature |
-| `GET /api/2/timeseries/things/{thingId}/features/{featureId}/properties` | All TS-enabled properties |
-| `GET /api/2/timeseries/things/{thingId}/features/{featureId}/properties/{path}` | Single property TS |
-| `GET /api/2/timeseries/things/{thingId}/attributes/{path}` | Attribute TS (if supported) |
-| `POST /api/2/timeseries/things/{thingId}/features/{featureId}/query` | Batch query |
-| `POST /api/2/timeseries/query` | **Cross-thing aggregation query** |
+| Endpoint                                                                        | Description                       |
+|---------------------------------------------------------------------------------|-----------------------------------|
+| `GET /api/2/timeseries/things/{thingId}`                                        | All TS data for a Thing           |
+| `GET /api/2/timeseries/things/{thingId}/features`                               | All TS data for all Features      |
+| `GET /api/2/timeseries/things/{thingId}/features/{featureId}`                   | All TS data for a Feature         |
+| `GET /api/2/timeseries/things/{thingId}/features/{featureId}/properties`        | All TS-enabled properties         |
+| `GET /api/2/timeseries/things/{thingId}/features/{featureId}/properties/{path}` | Single property TS                |
+| `GET /api/2/timeseries/things/{thingId}/attributes`                             | All TS data for all attributes    |
+| `GET /api/2/timeseries/things/{thingId}/attributes/{path}`                      | Single Attribute TS               |
+| `POST /api/2/timeseries/things/{thingId}`                                       | Batch query for a Thing           |
+| `POST /api/2/timeseries/things/{thingId}/features/{featureId}/query`            | Batch query for a Feature         |
+| `POST /api/2/timeseries/query`                                                  | **Cross-thing aggregation query** |
 
 #### Cross-Thing Aggregation Query
 
@@ -868,8 +889,11 @@ This endpoint enables fleet-level analytics by querying **directly on the TS dat
 ```json
 {
   "filter": "and(eq(attributes/building,'A'),eq(sensorType,'environmental'))",
-  "feature": "environment",
-  "properties": ["temperature", "humidity"],
+  "paths": [
+    "/features/environment/properties/temperature",
+    "/features/environment/properties/humidity",
+    "/attributes/batteryExchangeDate"
+  ],
   "from": "now-24h",
   "to": "now",
   "step": "1h",
@@ -878,16 +902,15 @@ This endpoint enables fleet-level analytics by querying **directly on the TS dat
 }
 ```
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `filter` | string (RQL) | No | RQL filter expression on declared tags |
-| `feature` | string | Yes | Feature ID to query |
-| `properties` | array | Yes | Property names to query |
-| `from` | string | No | Start time (ISO 8601 or relative) |
-| `to` | string | No | End time (default: `now`) |
-| `step` | string | No | Downsampling interval |
-| `agg` | string | No | Aggregation function |
-| `groupBy` | array | No | Tag keys to group by (use full paths) |
+| Field     | Type         | Required | Description                                                    |
+|-----------|--------------|----------|----------------------------------------------------------------|
+| `filter`  | string (RQL) | No       | RQL filter expression on declared tags                         |
+| `paths`   | array        | Yes      | JSON pointers to TS-enabled properties (relative to Thing root)|
+| `from`    | string       | No       | Start time (ISO 8601 or relative)                              |
+| `to`      | string       | No       | End time (default: `now`)                                      |
+| `step`    | string       | No       | Downsampling interval                                          |
+| `agg`     | string       | No       | Aggregation function                                           |
+| `groupBy` | array        | No       | Tag keys to group by (use full paths)                          |
 
 **Supported RQL operators**:
 
@@ -910,8 +933,7 @@ This endpoint enables fleet-level analytics by querying **directly on the TS dat
 {
   "query": {
     "filter": "and(eq(attributes/building,'A'),eq(sensorType,'environmental'))",
-    "feature": "environment",
-    "properties": ["temperature"],
+    "paths": ["/features/environment/properties/temperature"],
     "from": "2026-01-14T10:00:00Z",
     "to": "2026-01-15T10:00:00Z",
     "step": "1h",
@@ -923,7 +945,7 @@ This endpoint enables fleet-level analytics by querying **directly on the TS dat
       "tags": {"attributes/floor": "1"},
       "thingCount": 5,
       "series": {
-        "temperature": {
+        "/features/environment/properties/temperature": {
           "unit": "cel",
           "data": [
             {"t": "2026-01-14T10:00:00Z", "v": 22.3},
@@ -936,7 +958,7 @@ This endpoint enables fleet-level analytics by querying **directly on the TS dat
       "tags": {"attributes/floor": "2"},
       "thingCount": 3,
       "series": {
-        "temperature": {
+        "/features/environment/properties/temperature": {
           "unit": "cel",
           "data": [
             {"t": "2026-01-14T10:00:00Z", "v": 23.1},
@@ -983,16 +1005,16 @@ The timeseries service translates RQL to TS-database-specific queries:
 
 ### 7.3 Query Parameters
 
-| Parameter | Type | Required | Description | Example |
-|-----------|------|----------|-------------|---------|
-| `from` | string | No | Start time (ISO 8601 or relative) | `2026-01-14T00:00:00Z`, `now-24h` |
-| `to` | string | No | End time (default: `now`) | `2026-01-15T00:00:00Z`, `now` |
-| `step` | string | No | Downsampling interval | `1m`, `5m`, `1h`, `1d` |
-| `agg` | string | No | Aggregation function | `avg`, `min`, `max`, `sum`, `count`, `first`, `last` |
-| `fill` | string | No | Gap filling strategy | `null`, `previous`, `linear`, `zero` |
-| `limit` | int | No | Max data points (raw queries) | `1000` |
-| `tz` | string | No | Timezone for step alignment | `Europe/Berlin`, `UTC` |
-| `properties` | string | No | Comma-separated property filter | `temperature,humidity` |
+| Parameter | Type   | Required | Description                         | Example                                            |
+|-----------|--------|----------|-------------------------------------|----------------------------------------------------|
+| `from`    | string | No       | Start time (ISO 8601 or relative)   | `2026-01-14T00:00:00Z`, `now-24h`                  |
+| `to`      | string | No       | End time (default: `now`)           | `2026-01-15T00:00:00Z`, `now`                      |
+| `step`    | string | No       | Downsampling interval               | `1m`, `5m`, `1h`, `1d`                             |
+| `agg`     | string | No       | Aggregation function                | `avg`, `min`, `max`, `sum`, `count`, `first`, `last` |
+| `fill`    | string | No       | Gap filling strategy                | `null`, `previous`, `linear`, `zero`               |
+| `limit`   | int    | No       | Max data points (raw queries)       | `1000`                                             |
+| `tz`      | string | No       | Timezone for step alignment         | `Europe/Berlin`, `UTC`                             |
+| `paths`   | string | No       | Comma-separated paths filter        | `/features/env/properties/temperature,/attributes/battery` |
 
 ### 7.4 Response Format
 
