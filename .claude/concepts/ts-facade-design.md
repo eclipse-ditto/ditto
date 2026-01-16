@@ -9,13 +9,17 @@
 
 ## 1. Overview
 
-This document describes the architecture and design for a new Ditto service called **ts-facade** (Timeseries Facade). The service acts as a facade to external timeseries databases, providing:
+This document describes the architecture and design for a new Ditto service called **ts-facade** (Timeseries Facade). The service acts as a facade to timeseries databases, providing:
 
 - **Automatic ingestion** of Thing property changes into a timeseries database
 - **Query API** for retrieving historical timeseries data
-- **Abstraction layer** supporting multiple timeseries database backends
+- **Pluggable adapter interface** for integrating different timeseries database backends
 
-Ditto does **not** store timeseries data in MongoDB. Instead, ts-facade delegates storage to specialized timeseries databases (Apache IoTDB, TimescaleDB, InfluxDB, etc.).
+Timeseries data is stored **separately from Ditto's event-sourced Thing revisions**. The ts-facade service defines a well-specified adapter API (see [Section 8.1: Adapter Interface](#81-adapter-interface)) that allows integration with various timeseries databases.
+
+**Default implementation**: Ditto ships with a **MongoDB Time Series** adapter as the default. This uses Ditto's existing MongoDB infrastructure with [Time Series Collections](https://www.mongodb.com/docs/manual/core/timeseries-collections/), requiring no additional database setup.
+
+**Custom implementations**: Organizations can implement the adapter interface to integrate other timeseries databases (Apache IoTDB, TimescaleDB, InfluxDB, etc.) based on their specific requirements.
 
 ---
 
@@ -1081,15 +1085,25 @@ public record TimeseriesDataValue(
 ) {}
 ```
 
-### 8.3 Planned Adapter Implementations
+### 8.3 Adapter Implementations
+
+#### Default Adapter (Shipped with Ditto)
 
 | Database | Module | Status | Notes |
 |----------|--------|--------|-------|
-| **MongoDB Time Series** | `ts-facade-mongodb` | **Planned (MVP)** | Uses existing Ditto MongoDB, no additional infrastructure |
-| Apache IoTDB | `ts-facade-iotdb` | Planned | Native Java client, tree-based schema |
-| TimescaleDB | `ts-facade-timescale` | Planned | JDBC, PostgreSQL extension |
-| InfluxDB 2.x | `ts-facade-influx` | Future | HTTP API, Flux queries |
-| QuestDB | `ts-facade-questdb` | Future | PostgreSQL wire protocol |
+| **MongoDB Time Series** | `ts-facade-mongodb` | **Default** | Uses existing Ditto MongoDB, no additional infrastructure |
+
+#### Custom Adapter Examples
+
+Organizations can implement the `TimeseriesAdapter` interface to integrate other timeseries databases. Example implementations that could be developed:
+
+| Database | Potential Module | Notes |
+|----------|------------------|-------|
+| Apache IoTDB | `ts-facade-iotdb` | Native Java client, tree-based schema |
+| TimescaleDB | `ts-facade-timescale` | JDBC, PostgreSQL extension |
+| InfluxDB 2.x | `ts-facade-influx` | HTTP API, Flux queries |
+
+**Note**: These are examples of possible custom implementations, not commitments. The adapter interface (Section 8.1) is designed to be generic enough to support various TS databases.
 
 ### 8.3.1 MongoDB Time Series Collections
 
@@ -1266,8 +1280,10 @@ db.ts_org_eclipse_ditto.createIndex({
 
 ### 8.5 TS Database Comparison
 
-| Feature | MongoDB TS | IoTDB | TimescaleDB | InfluxDB |
-|---------|------------|-------|-------------|----------|
+This comparison helps users decide whether the default MongoDB adapter is sufficient or whether a custom adapter implementation for another TS database might be beneficial.
+
+| Feature | MongoDB TS (Default) | IoTDB | TimescaleDB | InfluxDB |
+|---------|----------------------|-------|-------------|----------|
 | **Deployment** |
 | Additional infrastructure | ❌ None (uses existing) | ✅ Required | ✅ Required | ✅ Required |
 | Operational complexity | Low | Medium | Medium | Medium |
@@ -1289,15 +1305,17 @@ db.ts_org_eclipse_ditto.createIndex({
 | Java client | ✅ MongoDB Driver | ✅ Native | ✅ JDBC | ✅ HTTP/Client |
 | Authentication | Shared with Ditto | Separate | Separate | Separate |
 
-**Recommendation by Use Case:**
+**When to Consider a Custom Adapter:**
 
-| Use Case | Recommended Adapter | Reason |
-|----------|---------------------|--------|
-| **Getting started / PoC** | MongoDB TS | Zero setup, works immediately |
-| **Small-medium deployment** (<10k writes/sec) | MongoDB TS | Simpler operations |
-| **High-volume IoT** (>100k writes/sec) | IoTDB or InfluxDB | Optimized for high throughput |
-| **Complex analytics** | TimescaleDB | Full SQL, excellent for joins |
-| **Edge deployment** (resource constrained) | MongoDB TS | Single database to manage |
+| Scenario | Recommendation |
+|----------|----------------|
+| **Getting started / PoC** | Use default MongoDB TS adapter |
+| **Small-medium deployment** (<10k writes/sec) | Use default MongoDB TS adapter |
+| **High-volume IoT** (>100k writes/sec) | Consider custom IoTDB or InfluxDB adapter |
+| **Complex analytics requirements** | Consider custom TimescaleDB adapter |
+| **Edge deployment** (resource constrained) | Use default MongoDB TS adapter |
+
+**Note**: IoTDB, TimescaleDB, and InfluxDB adapters require custom implementation of the `TimeseriesAdapter` interface. The comparison above is provided as guidance for organizations evaluating custom adapter development.
 
 ---
 
@@ -1312,14 +1330,12 @@ ditto {
   ts-facade {
     # Timeseries adapter configuration
     adapter {
-      # Which adapter to use: "mongodb", "iotdb", "timescale", "influx"
-      # "mongodb" recommended for simple deployments (uses existing Ditto MongoDB)
+      # Which adapter to use. Default: "mongodb"
+      # Custom adapters can register additional types via SPI
       type = "mongodb"
       type = ${?TS_FACADE_ADAPTER_TYPE}
 
-      # Connection settings (adapter-specific)
-
-      # MongoDB Time Series adapter (uses existing Ditto MongoDB connection)
+      # MongoDB Time Series adapter configuration (default adapter)
       mongodb {
         # Use Ditto's existing MongoDB URI (recommended)
         # If not set, uses ditto.mongodb.uri from common config
@@ -1343,33 +1359,13 @@ ditto {
         write-concern = ${?TS_FACADE_MONGODB_WRITE_CONCERN}
       }
 
-      iotdb {
-        host = "localhost"
-        host = ${?TS_FACADE_IOTDB_HOST}
-        port = 6667
-        port = ${?TS_FACADE_IOTDB_PORT}
-        username = "root"
-        username = ${?TS_FACADE_IOTDB_USERNAME}
-        password = "root"
-        password = ${?TS_FACADE_IOTDB_PASSWORD}
-
-        # Storage group prefix
-        storage-group-prefix = "root.ditto"
-        storage-group-prefix = ${?TS_FACADE_IOTDB_STORAGE_GROUP_PREFIX}
-      }
-
-      timescale {
-        jdbc-url = "jdbc:postgresql://localhost:5432/ditto_ts"
-        jdbc-url = ${?TS_FACADE_TIMESCALE_JDBC_URL}
-        username = "ditto"
-        username = ${?TS_FACADE_TIMESCALE_USERNAME}
-        password = "ditto"
-        password = ${?TS_FACADE_TIMESCALE_PASSWORD}
-
-        # Connection pool
-        pool-size = 10
-        pool-size = ${?TS_FACADE_TIMESCALE_POOL_SIZE}
-      }
+      # Custom adapters would add their own configuration sections here
+      # Example for a hypothetical IoTDB adapter:
+      # iotdb {
+      #   host = "localhost"
+      #   port = 6667
+      #   ...
+      # }
     }
 
     # Ingestion settings
@@ -1484,10 +1480,10 @@ tsFacade:
 
   config:
     adapter:
-      type: "mongodb"  # "mongodb" (default), "iotdb", or "timescale"
+      # Default adapter type. Custom adapters can be added via SPI.
+      type: "mongodb"
 
-    # MongoDB adapter (recommended for simple deployments)
-    # Uses existing Ditto MongoDB - no additional infrastructure
+    # MongoDB adapter configuration (default, uses existing Ditto MongoDB)
     mongodb:
       # Uses Ditto's MongoDB URI by default (no config needed)
       # Override only if using separate MongoDB for timeseries:
@@ -1497,17 +1493,8 @@ tsFacade:
       granularity: "seconds"  # "seconds", "minutes", or "hours"
       writeConcern: "majority"
 
-    # IoTDB adapter (for high-volume deployments)
-    iotdb:
-      host: "iotdb"
-      port: 6667
-      # username/password via secrets
-
-    # TimescaleDB adapter (for complex analytics)
-    timescale:
-      jdbcUrl: "jdbc:postgresql://timescaledb:5432/ditto_ts"
-      poolSize: 10
-      # username/password via secrets
+    # Custom adapter configurations would be added here
+    # See documentation for implementing custom adapters
 
     ingestion:
       batchSize: 100
@@ -1565,18 +1552,13 @@ ditto/
 │   │       └── routes/
 │   │           └── TimeseriesRoute.java
 │   │
-│   ├── mongodb/                  # MongoDB TS adapter (Java 21) - DEFAULT
-│   │   └── src/main/java/org/eclipse/ditto/tsfacade/mongodb/
-│   │       ├── MongoDbTimeseriesAdapter.java
-│   │       └── MongoDbRqlTranslator.java
-│   │
-│   ├── iotdb/                    # IoTDB adapter (Java 21)
-│   │   └── src/main/java/org/eclipse/ditto/tsfacade/iotdb/
-│   │       └── IoTDBTimeseriesAdapter.java
-│   │
-│   └── timescale/                # TimescaleDB adapter (Java 21)
-│       └── src/main/java/org/eclipse/ditto/tsfacade/timescale/
-│           └── TimescaleTimeseriesAdapter.java
+│   └── mongodb/                  # MongoDB TS adapter (Java 21) - DEFAULT
+│       └── src/main/java/org/eclipse/ditto/tsfacade/mongodb/
+│           ├── MongoDbTimeseriesAdapter.java
+│           └── MongoDbRqlTranslator.java
+│
+│   # Custom adapters (e.g., IoTDB, TimescaleDB) would be implemented
+│   # externally using the ts-facade/api interfaces
 │
 ├── things/
 │   └── service/
@@ -1637,20 +1619,19 @@ ditto/
 - Rich response format with metadata
 - Fill strategies for gaps
 
-### Phase 3: Additional Adapters
+### Phase 3: Adapter Extensibility
 
 **Scope**:
-- Apache IoTDB adapter (for high-volume deployments)
-- TimescaleDB adapter (for complex analytics)
-- Adapter selection/configuration
-- Schema management across adapters
+- Finalize and document the `TimeseriesAdapter` interface for custom implementations
+- Adapter selection/configuration mechanism
+- Schema management documentation
 
 **Deliverables**:
-- `ts-facade/iotdb` module
-- `ts-facade/timescale` module
+- Stable adapter API with semantic versioning
 - Adapter factory with dynamic selection
-- Documentation for adding custom adapters
-- Migration guide: MongoDB → dedicated TS DB
+- Documentation: "Implementing a Custom TS Adapter"
+- Example adapter implementation guide
+- Migration guide: MongoDB → custom TS database
 
 ### Phase 4: Advanced Features
 
