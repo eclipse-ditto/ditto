@@ -670,3 +670,114 @@ Check the module's `pom.xml` for Java version:
 ```
 
 The build will fail with compilation errors if you use Java 9+ features in a Java 8 module.
+
+## WoT (Web of Things) ThingModels
+
+⚠️ **CRITICAL**: When generating or modifying WoT ThingModels, **DO NOT make assumptions** about the syntax. Always verify against the official W3C specification.
+
+### Reference Specification
+
+**Always consult**: [W3C WoT Thing Description 1.1](https://www.w3.org/TR/wot-thing-description11/)
+
+Key sections:
+- [Thing Model](https://www.w3.org/TR/wot-thing-description11/#thing-model) - ThingModel definition and semantics
+- [Composition via tm:submodel](https://www.w3.org/TR/wot-thing-description11/#thing-model-composition) - How to compose features
+- [Extension via tm:extends](https://www.w3.org/TR/wot-thing-description11/#thing-model-extension) - How to extend ThingModels
+- [Appendix D: JSON Schema](https://www.w3.org/TR/wot-thing-description11/#json-schema-for-validation) - Validation schemas
+
+### Ditto WoT Integration
+
+**Ditto documentation**: [WoT Integration](https://eclipse.dev/ditto/basic-wot-integration.html)
+
+**Mapping to Ditto concepts**:
+
+| WoT ThingModel | Ditto Thing |
+|----------------|-------------|
+| Thing-level `properties` | `attributes` |
+| Thing-level `actions` | Inbox messages |
+| Thing-level `events` | Outbox messages |
+| `links` with `rel: "tm:submodel"` | `features` |
+| Feature-level `properties` | `features/{id}/properties` |
+
+### Correct tm:submodel Syntax
+
+Features are defined via `links` array with `rel: "tm:submodel"`, **NOT** inline objects:
+
+```json
+{
+  "@context": ["https://www.w3.org/2022/wot/td/v1.1"],
+  "@type": "tm:ThingModel",
+  "title": "Smart Device",
+  "links": [
+    {
+      "rel": "tm:submodel",
+      "href": "https://example.org/models/sensor-1.0.0.tm.jsonld",
+      "type": "application/tm+json",
+      "instanceName": "mySensor"
+    }
+  ],
+  "properties": {
+    "serialNumber": { "type": "string", "readOnly": true }
+  }
+}
+```
+
+### Common Mistakes to Avoid
+
+```json
+// ❌ WRONG: Inline submodel definition (not valid WoT syntax)
+{
+  "tm:submodels": {
+    "sensor": { "properties": { ... } }
+  }
+}
+
+// ❌ WRONG: Using tm:submodel as direct object
+{
+  "tm:submodel": {
+    "sensor": { ... }
+  }
+}
+
+// ✅ CORRECT: Links array with rel="tm:submodel"
+{
+  "links": [
+    {
+      "rel": "tm:submodel",
+      "href": "https://example.org/sensor.tm.jsonld",
+      "type": "application/tm+json",
+      "instanceName": "sensor"
+    }
+  ]
+}
+```
+
+### Ditto WoT Extension Ontology
+
+Ditto defines its own extensions via the `ditto:` prefix:
+
+```json
+{
+  "@context": [
+    "https://www.w3.org/2022/wot/td/v1.1",
+    {"ditto": "https://ditto.eclipseprojects.io/wot/ditto-extension#"}
+  ],
+  "properties": {
+    "temperature": {
+      "type": "number",
+      "ditto:category": "status"
+    }
+  }
+}
+```
+
+**Available Ditto extensions**: See [Ditto WoT Extension](https://eclipse.dev/ditto/basic-wot-integration.html#ditto-wot-extension)
+
+### Example ThingModels
+
+**Ditto examples repository**: [eclipse-ditto/ditto-examples/wot/models](https://github.com/eclipse-ditto/ditto-examples/tree/master/wot/models)
+
+Before generating a WoT ThingModel:
+1. Check the W3C specification for correct syntax
+2. Review Ditto example models for patterns
+3. Validate against the JSON Schema if unsure
