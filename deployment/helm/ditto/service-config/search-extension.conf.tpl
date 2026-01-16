@@ -20,6 +20,24 @@ ditto {
         {{- end }}
         ]
     {{- end }}
+    {{- if .Values.thingsSearch.config.indexInitialization.customIndexes }}
+        custom-indexes {
+        {{- range $indexName, $indexValue := .Values.thingsSearch.config.indexInitialization.customIndexes }}
+          {{$indexName}} {
+            fields = [
+            {{- range $fieldIndex, $field := $indexValue.fields }}
+              {
+                name = "{{$field.name}}"
+                {{- if $field.direction }}
+                direction = "{{$field.direction}}"
+                {{- end }}
+              }
+            {{- end }}
+            ]
+          }
+        {{- end }}
+        }
+    {{- end }}
     }
 
     {{- if .Values.thingsSearch.config.indexedFieldsLimiting.enabled }}

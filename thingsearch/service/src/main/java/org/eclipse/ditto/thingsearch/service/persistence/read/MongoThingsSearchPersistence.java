@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -47,6 +48,7 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.BsonUtil;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.IndexInitializationConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.indices.Index;
 import org.eclipse.ditto.internal.utils.persistence.mongo.indices.IndexInitializer;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.policies.api.PolicyTag;
@@ -100,6 +102,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
     private final boolean documentDbCompatibilityMode;
     private final MongoHints hints;
     @Nullable private final String countHintIndexName;
+    private final List<Index> customIndexes;
 
     /**
      * Initializes the things search persistence with a passed in {@code persistence}.
@@ -128,14 +131,27 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
                 })
                 .orElseGet(MongoHints::empty);
         countHintIndexName = searchConfig.getMongoCountHintIndexName().orElse(null);
+        customIndexes = searchConfig.getCustomIndexesAsIndices();
         LOGGER.info("Query readConcern=<{}> readPreference=<{}>", readConcern, readPreference);
+        if (!customIndexes.isEmpty()) {
+            LOGGER.info("Configured custom search indexes: {}", customIndexes);
+        }
     }
 
     @Override
     public CompletionStage<Void> initializeIndices(final IndexInitializationConfig indexInitializationConfig) {
+        final List<Index> allIndices = Stream.concat(
+                Indices.all(documentDbCompatibilityMode).stream(),
+                customIndexes.stream()
+        ).toList();
+        // Custom indexes are automatically activated - combine configured activated names with custom index names
+        final Set<String> activatedIndexNames = Stream.concat(
+                indexInitializationConfig.getActivatedIndexNames().stream(),
+                customIndexes.stream().map(Index::getName)
+        ).collect(Collectors.toSet());
         return indexInitializer.initialize(PersistenceConstants.THINGS_COLLECTION_NAME,
-                        Indices.all(documentDbCompatibilityMode),
-                        indexInitializationConfig.getActivatedIndexNames()
+                        allIndices,
+                        activatedIndexNames
                 )
                 .exceptionally(t -> {
                     LOGGER.error("Index-Initialization failed: {}", t.getMessage(), t);

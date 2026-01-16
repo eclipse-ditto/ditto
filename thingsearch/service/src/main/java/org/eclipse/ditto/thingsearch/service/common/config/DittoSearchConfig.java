@@ -14,6 +14,7 @@ package org.eclipse.ditto.thingsearch.service.common.config;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -38,6 +39,11 @@ import org.eclipse.ditto.internal.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.config.WithConfigPath;
+import org.eclipse.ditto.internal.utils.persistence.mongo.indices.DefaultIndexKey;
+import org.eclipse.ditto.internal.utils.persistence.mongo.indices.Index;
+import org.eclipse.ditto.internal.utils.persistence.mongo.indices.IndexDirection;
+import org.eclipse.ditto.internal.utils.persistence.mongo.indices.IndexFactory;
+import org.eclipse.ditto.internal.utils.persistence.mongo.indices.IndexKey;
 import org.eclipse.ditto.internal.utils.health.config.DefaultHealthCheckConfig;
 import org.eclipse.ditto.internal.utils.health.config.HealthCheckConfig;
 import org.eclipse.ditto.internal.utils.metrics.config.MetricsConfig;
@@ -77,6 +83,7 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
     private final Map<String, String> simpleFieldMappings;
     private final List<NamespaceSearchIndexConfig> namespaceIndexedFields;
     private final DefaultOperatorMetricsConfig operatorMetricsConfig;
+    private final Map<String, CustomSearchIndexConfig> customIndexes;
 
     private DittoSearchConfig(final ScopedConfig dittoScopedConfig) {
         dittoServiceConfig = DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH);
@@ -99,6 +106,7 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
                 convertToMap(configWithFallback.getConfig(SearchConfigValue.SIMPLE_FIELD_MAPPINGS.getConfigPath()));
         namespaceIndexedFields = loadNamespaceSearchIndexList(configWithFallback);
         operatorMetricsConfig = DefaultOperatorMetricsConfig.of(configWithFallback);
+        customIndexes = loadCustomIndexes(configWithFallback);
     }
 
     /**
@@ -126,6 +134,32 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
     @Override
     public List<NamespaceSearchIndexConfig> getNamespaceIndexedFields() {
         return namespaceIndexedFields;
+    }
+
+    @Override
+    public Map<String, CustomSearchIndexConfig> getCustomIndexes() {
+        return customIndexes;
+    }
+
+    @Override
+    public List<Index> getCustomIndexesAsIndices() {
+        return customIndexes.values().stream()
+                .map(DittoSearchConfig::toIndex)
+                .toList();
+    }
+
+    private static Index toIndex(final CustomSearchIndexConfig config) {
+        final List<IndexKey> keys = config.getFields().stream()
+                .map(field -> (IndexKey) DefaultIndexKey.of(field.getName(), toIndexDirection(field.getDirection())))
+                .toList();
+        return IndexFactory.newInstanceWithCustomKeys(config.getName(), keys, false);
+    }
+
+    private static IndexDirection toIndexDirection(final CustomSearchIndexFieldConfig.Direction direction) {
+        return switch (direction) {
+            case ASC -> IndexDirection.ASCENDING;
+            case DESC -> IndexDirection.DESCENDING;
+        };
     }
 
     @Override
@@ -218,14 +252,16 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
                 Objects.equals(queryPersistenceConfig, that.queryPersistenceConfig) &&
                 Objects.equals(simpleFieldMappings, that.simpleFieldMappings) &&
                 Objects.equals(operatorMetricsConfig, that.operatorMetricsConfig) &&
-                Objects.equals(namespaceIndexedFields, that.namespaceIndexedFields);
+                Objects.equals(namespaceIndexedFields, that.namespaceIndexedFields) &&
+                Objects.equals(customIndexes, that.customIndexes);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(mongoHintsByNamespace, mongoCountHintIndexName, updaterConfig, dittoServiceConfig,
                 healthCheckConfig, indexInitializationConfig, persistenceOperationsConfig, mongoDbConfig,
-                queryPersistenceConfig, simpleFieldMappings, operatorMetricsConfig, namespaceIndexedFields);
+                queryPersistenceConfig, simpleFieldMappings, operatorMetricsConfig, namespaceIndexedFields,
+                customIndexes);
     }
 
     @Override
@@ -243,6 +279,7 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
                 ", simpleFieldMappings=" + simpleFieldMappings +
                 ", namespaceIndexedFields=" + namespaceIndexedFields +
                 ", operatorMetricsConfig=" + operatorMetricsConfig +
+                ", customIndexes=" + customIndexes +
                 "]";
     }
 
@@ -266,6 +303,56 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
                 SearchConfigValue.NAMESPACE_INDEXED_FIELDS.getConfigPath());
 
         return namespaceIndexedFieldsConfig.stream().collect(NamespaceSearchIndexCollector.toNamespaceSearchIndexList());
+    }
+
+    private static Map<String, CustomSearchIndexConfig> loadCustomIndexes(final ConfigWithFallback config) {
+        if (config.hasPath(SearchConfigValue.CUSTOM_INDEXES.getConfigPath())) {
+            final var customIndexesConfig = config.getObject(SearchConfigValue.CUSTOM_INDEXES.getConfigPath());
+            return customIndexesConfig.entrySet().stream()
+                    .collect(CustomSearchIndexCollector.toMap());
+        }
+        return Collections.emptyMap();
+    }
+
+    private static class CustomSearchIndexCollector implements
+            Collector<Map.Entry<String, ConfigValue>, Map<String, CustomSearchIndexConfig>,
+                    Map<String, CustomSearchIndexConfig>> {
+
+        private static CustomSearchIndexCollector toMap() {
+            return new CustomSearchIndexCollector();
+        }
+
+        @Override
+        public Supplier<Map<String, CustomSearchIndexConfig>> supplier() {
+            return LinkedHashMap::new;
+        }
+
+        @Override
+        public BiConsumer<Map<String, CustomSearchIndexConfig>, Map.Entry<String, ConfigValue>> accumulator() {
+            return (map, entry) ->
+                    map.put(entry.getKey(), DefaultCustomSearchIndexConfig.of(entry.getKey(),
+                            ConfigFactory.empty().withFallback(entry.getValue())));
+        }
+
+        @Override
+        public BinaryOperator<Map<String, CustomSearchIndexConfig>> combiner() {
+            return (left, right) -> Stream.concat(left.entrySet().stream(), right.entrySet().stream())
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
+                            (u, v) -> {
+                                throw new IllegalStateException(String.format("Duplicate key %s", u));
+                            },
+                            LinkedHashMap::new));
+        }
+
+        @Override
+        public Function<Map<String, CustomSearchIndexConfig>, Map<String, CustomSearchIndexConfig>> finisher() {
+            return Collections::unmodifiableMap;
+        }
+
+        @Override
+        public Set<Characteristics> characteristics() {
+            return Collections.emptySet();
+        }
     }
 
     private static class NamespaceSearchIndexCollector implements

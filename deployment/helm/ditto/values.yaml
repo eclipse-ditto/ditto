@@ -1697,6 +1697,16 @@ thingsSearch:
         # - "policyId",
         # - "referencedPolicies",
         # - "deleteAt"
+      # customIndexes holds a map of index-names as key and custom index config as value
+      #  Custom indexes are created in addition to the built-in indexes.
+      #  Custom indexes are automatically activated - no need to add them to 'activatedIndexNames'.
+      customIndexes: {}
+      # my_custom_idx:
+      #   fields:
+      #     - name: "t.attributes.region"
+      #       direction: "ASC"
+      #     - name: "t.attributes.timestamp"
+      #       direction: "DESC"
     # indexedFieldsLimiting by default, Ditto indexed all fields of things in its search.
     #  However, this behavior can be customized, providing configuration to only index certain fields for specified namespaces.
     indexedFieldsLimiting:

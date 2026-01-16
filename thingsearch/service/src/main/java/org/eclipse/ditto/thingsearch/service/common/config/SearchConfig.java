@@ -19,6 +19,8 @@ import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.internal.utils.persistence.mongo.indices.Index;
+
 import org.eclipse.ditto.base.service.config.ServiceSpecificConfig;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 import org.eclipse.ditto.internal.utils.health.config.WithHealthCheckConfig;
@@ -89,13 +91,31 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
      */
     OperatorMetricsConfig getOperatorMetricsConfig();
 
-    /*
+    /**
      * Returns a map of fields scoped by namespaces that will be explicitly included in the search index.
      *
      * @return the search projection fields.
      * @since 3.5.0
      */
     List<NamespaceSearchIndexConfig> getNamespaceIndexedFields();
+
+    /**
+     * Returns the custom search indexes configuration.
+     * These indexes are created in addition to the hardcoded indexes defined in
+     * {@link org.eclipse.ditto.thingsearch.service.persistence.Indices}.
+     *
+     * @return the map of custom index configurations (index name to config).
+     * @since 3.9.0
+     */
+    Map<String, CustomSearchIndexConfig> getCustomIndexes();
+
+    /**
+     * Converts the configured custom indexes to MongoDB {@link Index} objects.
+     *
+     * @return list of Index objects created from the configuration.
+     * @since 3.8.0
+     */
+    List<Index> getCustomIndexesAsIndices();
 
     /**
      * An enumeration of the known config path expressions and their associated default values for SearchConfig.
@@ -135,7 +155,14 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
          *
          * @since 3.5.0
          */
-        NAMESPACE_INDEXED_FIELDS("namespace-indexed-fields", Collections.emptyList());
+        NAMESPACE_INDEXED_FIELDS("namespace-indexed-fields", Collections.emptyList()),
+
+        /**
+         * Custom search indexes to create in addition to hardcoded indexes.
+         *
+         * @since 3.8.0
+         */
+        CUSTOM_INDEXES("index-initialization.custom-indexes", Collections.emptyMap());
 
         private final String path;
         private final Object defaultValue;
