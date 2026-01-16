@@ -1,4 +1,4 @@
-# Timeseries Facade Service (ts-facade) Design Document
+# Timeseries Service Design Document
 
 **Related Issue**: [GitHub #2291 - Provide timeseries facade for Ditto feature properties](https://github.com/eclipse-ditto/ditto/issues/2291)
 
@@ -28,7 +28,7 @@ A new Ditto microservice that **automatically captures Thing property changes ov
                           │               Ditto Cluster                     │
                           │                                                 │
    ┌──────────┐           │   ┌──────────┐         ┌─────────────┐         │
-   │  Device  │ property  │   │ Things   │ pub/sub │ ts-facade   │         │
+   │  Device  │ property  │   │ Things   │ pub/sub │ Timeseries   │         │
    │          │─updates──▶│   │ Service  │────────▶│ Service     │         │
    └──────────┘           │   └──────────┘         └──────┬──────┘         │
                           │                               │                 │
@@ -49,9 +49,9 @@ A new Ditto microservice that **automatically captures Thing property changes ov
 
 **Data flow:**
 1. Device updates a Thing property → Things service persists the event
-2. If property has `ditto:ts-enabled: true` in WoT model → publish to ts-facade via pub/sub
-3. ts-facade writes data point to timeseries database
-4. Clients query historical data via Gateway → ts-facade → TS database
+2. If property has `ditto:ts-enabled: true` in WoT model → publish to Timeseries service via pub/sub
+3. Timeseries service writes data point to timeseries database
+4. Clients query historical data via Gateway → Timeseries service → TS database
 
 ### HTTP API Overview
 
@@ -96,15 +96,18 @@ A new Ditto microservice that **automatically captures Thing property changes ov
 
 ## 1. Overview
 
-This document describes the architecture and design for a new Ditto service called **ts-facade** (Timeseries Facade). The service acts as a facade to timeseries databases, providing:
+This document describes the architecture and design for a new Ditto service called **Timeseries**.  
+The service provides a unified interface to timeseries databases, providing:
 
 - **Automatic ingestion** of Thing property changes into a timeseries database
 - **Query API** for retrieving historical timeseries data
 - **Pluggable adapter interface** for integrating different timeseries database backends
 
-Timeseries data is stored **separately from Ditto's event-sourced Thing revisions**. The ts-facade service defines a well-specified adapter API (see [Section 8.1: Adapter Interface](#81-adapter-interface)) that allows integration with various timeseries databases.
+Timeseries data is stored **separately from Ditto's event-sourced Thing revisions**.  
+The Timeseries service defines a well-specified adapter API (see [Section 8.1: Adapter Interface](#81-adapter-interface)) that allows integration with various timeseries databases.
 
-**Default implementation**: Ditto ships with a **MongoDB Time Series** adapter as the default. This uses Ditto's existing MongoDB infrastructure with [Time Series Collections](https://www.mongodb.com/docs/manual/core/timeseries-collections/), requiring no additional database setup.
+**Default implementation**: Ditto ships with a **MongoDB Time Series** adapter as the default. 
+This uses Ditto's existing MongoDB infrastructure with [Time Series Collections](https://www.mongodb.com/docs/manual/core/timeseries-collections/), requiring no additional database setup.
 
 **Custom implementations**: Organizations can implement the adapter interface to integrate other timeseries databases (Apache IoTDB, TimescaleDB, InfluxDB, etc.) based on their specific requirements.
 
@@ -135,17 +138,17 @@ Timeseries data is stored **separately from Ditto's event-sourced Thing revision
 
 ```
                                  Ditto Cluster
-┌──────────────────────────────────────────────────────────────────────────┐
-│                                                                          │
+┌─────────────────────────────────────────────────────────────────────────┐
+│                                                                         │
 │  ┌─────────────┐         ┌─────────────┐         ┌─────────────────────┐│
-│  │   Gateway   │────────▶│  ts-facade  │◀────────│    Connectivity     ││
+│  │   Gateway   │────────▶│  Timeseries │◀───────-│    Connectivity     ││
 │  │   Service   │ Query   │   Service   │  Query  │      Service        ││
 │  │             │         │             │         │                     ││
 │  │ [TS Routes] │         │ [Adapters]  │         │ [TS Message Handler]││
 │  └──────┬──────┘         └──────┬──────┘         └──────────┬──────────┘│
 │         │                       │                           │           │
 │         │                       │ Pub/Sub                   │           │
-│         │                       │ (ts-ingest topic)         │           │
+│         │                       │ (things.ts-events: topic) │           │
 │         │                       │                           │           │
 │         │                ┌──────┴──────┐                    │           │
 │         │                │   Things    │                    │           │
@@ -157,10 +160,10 @@ Timeseries data is stored **separately from Ditto's event-sourced Thing revision
 │         │    ┌──────────────────┼───────────────────┐       │           │
 │         │    │                  │                   │       │           │
 │         │    ▼                  ▼                   ▼       │           │
-│         │ ┌───────┐      ┌───────────┐      ┌───────────┐   │           │
-│         └▶│Policies│◀────│  MongoDB  │      │ ts-facade │◀──┘           │
+│         │ ┌────────┐     ┌───────────┐      ┌───────────┐   │           │
+│         └▶│Policies│◀────│  MongoDB  │      │ Timeseries│◀──┘           │
 │           │Service │     │           │      │  Service  │               │
-│           └───────┘      └───────────┘      └─────┬─────┘               │
+│           └────────┘     └───────────┘      └─────┬─────┘               │
 │                                                   │                     │
 └───────────────────────────────────────────────────┼─────────────────────┘
                                                     │
@@ -180,30 +183,30 @@ Timeseries data is stored **separately from Ditto's event-sourced Thing revision
 2. Gateway/Connectivity routes to Things service
 3. Things service persists event to MongoDB
 4. Things service checks WoT model for TS-enabled properties
-5. If TS-enabled: publish to "ts-ingest" pub/sub topic
-6. ts-facade receives message, writes to TS database
+5. If TS-enabled: publish ThingEvent with resolved tags to "things.ts-events:" topic
+6. Timeseries service receives event, transforms to data point, writes to TS database
 ```
 
 #### Query Flow
 
 ```
 1. Client sends TS query to Gateway (or via Connectivity message)
-2. Edge service routes directly to ts-facade (no Things service hop)
-3. ts-facade loads/caches Policy from Policies service
-4. ts-facade checks READ_TS permission for requested properties
-5. ts-facade queries TS database
-6. ts-facade formats and returns response
+2. Edge service routes directly to Timeseries service (no Things service hop)
+3. Timeseries service loads/caches Policy from Policies service
+4. Timeseries service checks READ_TS permission for requested properties
+5. Timeseries service queries TS database
+6. Timeseries service formats and returns response
 ```
 
 ### 3.3 Service Responsibilities
 
-| Service | Responsibility |
-|---------|----------------|
-| **Things** | Publish TS-enabled property changes to `ts-ingest` topic |
-| **ts-facade** | Ingest data, execute queries, manage TS adapters, enforce READ_TS |
-| **Gateway** | HTTP routes for TS queries, forward to ts-facade |
-| **Connectivity** | Handle TS query messages, forward to ts-facade |
-| **Policies** | Provide policy data (ts-facade caches enforcers) |
+| Service          | Responsibility                                                                 |
+|------------------|--------------------------------------------------------------------------------|
+| **Things**       | Evaluate WoT TS extensions, publish ThingEvents to `things.ts-events:` topic   |
+| **Timeseries**   | Ingest data, execute queries, manage TS adapters, enforce `READ_TS` permission |
+| **Gateway**      | HTTP routes for TS queries, forward to timeseries                              |
+| **Connectivity** | Handle TS query messages, forward to timeseries                                |
+| **Policies**     | Provide policy data                                                            |
 
 ---
 
@@ -213,14 +216,15 @@ Timeseries data is stored **separately from Ditto's event-sourced Thing revision
 
 Extend the existing `ditto:` ontology (IRI: `https://ditto.eclipseprojects.io/wot/ditto-extension#`) with timeseries declarations:
 
-| Property | Type | Required | Description | Default |
-|----------|------|----------|-------------|---------|
-| `ditto:ts-enabled` | boolean | Yes | Enable TS ingestion for this property | `false` |
-| `ditto:ts-retention` | string (ISO 8601 duration) | No | How long to retain data | ts-facade config |
-| `ditto:ts-resolution` | string (ISO 8601 duration) | No | Minimum sampling interval | ts-facade config |
-| `ditto:ts-tags` | object | No | Tags/dimensions for grouping (see below) | `{}` |
+| Property | Type | Required | Description | Default          |
+|----------|------|----------|-------------|------------------|
+| `ditto:ts-enabled` | boolean | Yes | Enable TS ingestion for this property | `false`          |
+| `ditto:ts-retention` | string (ISO 8601 duration) | No | How long to retain data | timeseries config |
+| `ditto:ts-resolution` | string (ISO 8601 duration) | No | Minimum sampling interval | timeseries config |
+| `ditto:ts-tags` | object | No | Tags/dimensions for grouping (see below) | `{}`             |
 
-**Note**: `ditto:ts-retention` and `ditto:ts-resolution` are optional. When not specified in the WoT model, the ts-facade service defaults are used (see [Section 9: Configuration](#9-configuration)).
+**Note**: `ditto:ts-retention` and `ditto:ts-resolution` are optional. 
+When not specified in the WoT model, the timeseries service defaults are used (see [Section 9: Configuration](#9-configuration)).
 
 **Scope**: These TS declarations can be applied to:
 - **Thing-level properties** (mapped to Ditto attributes)
@@ -268,14 +272,14 @@ To ensure consistency with Ditto search RQL syntax, tag keys follow these rules:
 
 Static tag names (constant values) must **NOT** use these reserved prefixes to avoid confusion with Thing structure:
 
-| Reserved Prefix | Reason |
-|-----------------|--------|
+| Reserved Prefix | Reason                               |
+|-----------------|--------------------------------------|
 | `attributes` or `attributes/` | Conflicts with Thing attributes path |
-| `features` or `features/` | Conflicts with Thing features path |
-| `definition` | Reserved Thing field |
-| `policyId` | Reserved Thing field |
-| `thingId` | Reserved Thing field |
-| `_` (underscore prefix) | Reserved for internal use |
+| `features` or `features/` | Conflicts with Thing features path   |
+| `definition` | Reserved Thing field                 |
+| `policyId` | Reserved Thing field                 |
+| `thingId` | Reserved Thing field                 |
+| `_` (underscore prefix) | Reserved for internal use            |
 
 ```json
 // ✅ Valid static tags
@@ -410,12 +414,12 @@ WoT ThingModels use `links` with `rel: "tm:submodel"` to compose features. Below
 
 **Note on the examples above**:
 
-| Property | ThingModel Location | Ditto Location | TS Enabled | Notes |
-|----------|---------------------|----------------|------------|-------|
-| `batteryExchangeDate` | Thing-level `properties` | `attributes/batteryExchangeDate` | ✅ | Infrequent updates, 5-year retention |
-| `serialNumber` | Thing-level `properties` | `attributes/serialNumber` | ❌ | Static, no `ditto:ts-enabled` |
-| `temperature` | Feature-level `properties` | `features/environment/properties/temperature` | ✅ | High-frequency, 90-day retention |
-| `humidity` | Feature-level `properties` | `features/environment/properties/humidity` | ✅ | Uses ts-facade defaults |
+| Property              | ThingModel Location        | Ditto Location                                | TS Enabled | Notes                                |
+|-----------------------|----------------------------|-----------------------------------------------|------------|--------------------------------------|
+| `batteryExchangeDate` | Thing-level `properties`   | `attributes/batteryExchangeDate`              | ✅          | Infrequent updates, 5-year retention |
+| `serialNumber`        | Thing-level `properties`   | `attributes/serialNumber`                     | ❌          | Static, no `ditto:ts-enabled`        |
+| `temperature`         | Feature-level `properties` | `features/environment/properties/temperature` | ✅          | High-frequency, 90-day retention     |
+| `humidity`            | Feature-level `properties` | `features/environment/properties/humidity`    | ✅          | Uses timeseries defaults             |
 
 **Use cases for attribute timeseries:**
 - Maintenance dates (battery exchange, calibration, service visits)
@@ -427,124 +431,239 @@ WoT ThingModels use `links` with `rel: "tm:submodel"` to compose features. Below
 
 When a Thing is created/modified with a WoT ThingModel reference (`definition`):
 
-1. Things service resolves the ThingModel
-2. Things service extracts `ditto:ts-enabled` properties and their `ditto:ts-tags`
-3. Things service caches the TS configuration per Thing
-4. On property changes:
-   - Things service checks cache for TS-enabled properties
-   - Resolves `ditto:ts-tags` placeholders against current Thing JSON
-   - Publishes data point with resolved tags to `ts-ingest` topic
+1. Things service resolves the ThingModel (already cached)
+2. On property changes:
+   - Things service checks resolved WoT model for `ditto:ts-enabled` on changed path
+   - If TS-enabled: resolves `ditto:ts-tags` placeholders against current Thing JSON
+   - Publishes ThingEvent with resolved tags as extra fields to `things.ts-events:` topic
 
 ---
 
 ## 5. Pub/Sub Integration
 
-### 5.1 Topic Structure
+The Timeseries service receives events via a **dedicated pub/sub topic**. The Things service publishes to this topic based on WoT extension declarations, but remains unaware of the Timeseries service's internal data format.
 
-**Topic**: `ditto.ts-ingest`
+### 5.1 Design Principles
 
-**Message Format** (TimeseriesDataPoint):
+| Principle | Implementation |
+|-----------|----------------|
+| **Loose coupling** | Things service publishes standard `ThingEvent` messages, not TS-specific formats |
+| **Things owns WoT logic** | Things service evaluates `ditto:ts-enabled` and resolves `ditto:ts-tags` placeholders |
+| **Timeseries transforms** | Timeseries service transforms received events into its internal data point format |
+| **Extra fields for tags** | Resolved tag values are included as extra fields in the published event |
+
+### 5.2 Topic Structure
+
+**Topic**: `things.ts-events:` (similar pattern to `things.events:`)
+
+The Things service publishes `ThingEvent` messages to this topic when the changed path has `ditto:ts-enabled: true` in its WoT ThingModel.
+
+### 5.3 Publishing Logic in Things Service
+
+The Things service is responsible for:
+1. Evaluating `ditto:ts-enabled` to decide **if** to publish
+2. Resolving `ditto:ts-tags` placeholders to determine **extra fields**
+3. Publishing the standard `ThingEvent` with extra fields attached
+
+```java
+/**
+ * Publishes ThingEvents to the timeseries topic if the changed path is TS-enabled.
+ * Part of Things service - no dependency on Timeseries service.
+ */
+public class TimeseriesEventPublisher {
+
+    private static final String TS_TOPIC = "things.ts-events:";
+    private final DistributedPub<ThingEvent<?>> distributedPub;
+
+    /**
+     * Called after a ThingEvent is persisted.
+     * Publishes to TS topic if the changed path has ditto:ts-enabled.
+     */
+    public void publishIfTimeseriesEnabled(
+            final ThingEvent<?> event,
+            final Thing thing,
+            final ResolvedWotThingModel resolvedModel) {
+
+        // 1. Check if changed path is TS-enabled (lookup in already-cached resolved model)
+        final JsonPointer changedPath = event.getResourcePath();
+        if (!resolvedModel.isTimeseriesEnabled(changedPath)) {
+            return; // This path is not TS-enabled
+        }
+
+        // 2. Resolve extra fields from ditto:ts-tags
+        final JsonObject extraFields = resolveExtraFields(
+            thing,
+            resolvedModel.getTsTags(changedPath),
+            resolvedModel.getTsRetention(changedPath),
+            resolvedModel.getTsResolution(changedPath)
+        );
+
+        // 3. Publish event with extra fields
+        final ThingEvent<?> enrichedEvent = event.setDittoHeaders(
+            event.getDittoHeaders().toBuilder()
+                .putHeader("ts-extra", extraFields.toString())
+                .build()
+        );
+
+        distributedPub.publish(TS_TOPIC, enrichedEvent);
+    }
+
+    private JsonObject resolveExtraFields(
+            final Thing thing,
+            final Map<String, String> tagDeclarations,
+            @Nullable final Duration retention,
+            @Nullable final Duration resolution) {
+
+        final JsonObjectBuilder builder = JsonObject.newBuilder();
+
+        // Resolve tags
+        final JsonObjectBuilder tagsBuilder = JsonObject.newBuilder();
+        for (Map.Entry<String, String> entry : tagDeclarations.entrySet()) {
+            final String tagKey = entry.getKey();
+            final String tagValue = entry.getValue();
+
+            if (isPlaceholder(tagValue)) {
+                // Resolve "{{ thing-json:attributes/building }}" from Thing
+                final Optional<JsonValue> resolved =
+                    resolvePlaceholder(thing, tagValue);
+                resolved.ifPresent(v -> tagsBuilder.set(tagKey, v));
+            } else {
+                // Static value
+                tagsBuilder.set(tagKey, tagValue);
+            }
+        }
+        builder.set("tags", tagsBuilder.build());
+
+        // Include retention and resolution if specified
+        if (retention != null) {
+            builder.set("retention", retention.toString());
+        }
+        if (resolution != null) {
+            builder.set("resolution", resolution.toString());
+        }
+
+        return builder.build();
+    }
+}
+```
+
+### 5.4 Extra Fields Format
+
+The `ts-extra` header contains resolved WoT TS extension values:
 
 ```json
 {
-  "thingId": "org.eclipse.ditto:sensor-1",
-  "featureId": "environment",
-  "propertyPath": "/temperature",
-  "timestamp": "2026-01-15T10:30:00.000Z",
-  "value": 23.5,
-  "revision": 42,
   "tags": {
     "attributes/building": "A",
     "attributes/floor": "2",
     "sensorType": "environmental"
   },
-  "retention": "P90D"
+  "retention": "P90D",
+  "resolution": "PT1S"
 }
 ```
 
-**Note**: The `tags` object contains **resolved values** with full Thing paths as keys. For the Thing:
-```json
-{
-  "thingId": "org.eclipse.ditto:sensor-1",
-  "attributes": {
-    "building": "A",
-    "floor": "2"
-  },
-  ...
-}
-```
+**Tag resolution example**:
 
-With WoT declaration:
-```json
-"ditto:ts-tags": {
-  "attributes/building": "{{ thing-json:attributes/building }}",
-  "attributes/floor": "{{ thing-json:attributes/floor }}",
-  "sensorType": "environmental"
-}
-```
+| WoT Declaration | Thing State | Resolved Value |
+|-----------------|-------------|----------------|
+| `"{{ thing-json:attributes/building }}"` | `{"attributes":{"building":"A"}}` | `"A"` |
+| `"{{ thing-json:attributes/floor }}"` | `{"attributes":{"floor":"2"}}` | `"2"` |
+| `"production"` (static) | — | `"production"` |
 
-The resolved tags become: `{"attributes/building": "A", "attributes/floor": "2", "sensorType": "environmental"}`
+### 5.5 Subscriber in Timeseries Service
 
-This naming convention ensures RQL filters like `eq(attributes/building,'A')` directly match tag keys.
-
-### 5.2 Publishing Logic in Things Service
+The Timeseries service subscribes to the TS topic and transforms `ThingEvent` messages into its internal `TimeseriesDataPoint` format:
 
 ```java
-// In ThingPersistenceActor or dedicated publisher
-private void publishTimeseriesDataIfEnabled(
-        final ThingEvent<?> event,
-        final Thing thing) {
+/**
+ * Subscribes to ThingEvents from the TS topic and transforms them to data points.
+ */
+public class TimeseriesEventSubscriber {
 
-    final Optional<ThingDefinition> definition = thing.getDefinition();
-    if (definition.isEmpty()) {
-        return; // No WoT model, no TS declarations
+    private static final String TS_TOPIC = "things.ts-events:";
+    private final TimeseriesAdapter adapter;
+
+    public void subscribe() {
+        distributedSub.subscribeWithAck(
+            Set.of(TS_TOPIC),
+            getSelf(),
+            this::handleThingEvent
+        );
     }
 
-    // Get TS-enabled paths from cached WoT model analysis
-    final Set<JsonPointer> tsEnabledPaths =
-        timeseriesConfigCache.getTsEnabledPaths(thing.getEntityId());
+    private void handleThingEvent(final ThingEvent<?> event) {
+        // 1. Extract extra fields from header
+        final JsonObject extraFields = JsonObject.of(
+            event.getDittoHeaders().getOrDefault("ts-extra", "{}")
+        );
 
-    // Extract changed property paths from event
-    final Set<JsonPointer> changedPaths = extractChangedPaths(event);
+        // 2. Transform to TimeseriesDataPoint
+        final TimeseriesDataPoint dataPoint = TimeseriesDataPoint.of(
+            event.getEntityId(),
+            event.getResourcePath(),
+            event.getTimestamp().orElseGet(Instant::now),
+            extractValue(event),
+            event.getRevision(),
+            extractTags(extraFields),
+            extractRetention(extraFields)
+        );
 
-    // Publish for each TS-enabled changed path
-    changedPaths.stream()
-        .filter(tsEnabledPaths::contains)
-        .forEach(path -> {
-            final TimeseriesDataPoint dataPoint = TimeseriesDataPoint.of(
-                thing.getEntityId(),
-                extractFeatureId(path),
-                extractPropertyPath(path),
-                event.getTimestamp().orElseGet(Instant::now),
-                extractValue(thing, path),
-                event.getRevision(),
-                buildTags(thing, path)
-            );
-            timeseriesPublisher.publish(dataPoint);
-        });
+        // 3. Buffer and write to adapter
+        writeBuffer.add(dataPoint);
+        scheduleFlushIfNeeded();
+    }
+
+    private Map<String, String> extractTags(final JsonObject extraFields) {
+        return extraFields.getValue("tags")
+            .filter(JsonValue::isObject)
+            .map(JsonValue::asObject)
+            .map(this::jsonObjectToStringMap)
+            .orElse(Map.of());
+    }
 }
 ```
 
-### 5.3 Subscriber in ts-facade
+### 5.6 Event Flow Summary
 
-```java
-// In TimeseriesFacadeRootActor
-private void subscribeToTimeseriesIngest() {
-    final DistributedSub distributedSub = DistributedSub.of(
-        actorSystem,
-        "ts-ingest",
-        this::handleTimeseriesDataPoint
-    );
-    distributedSub.subscribeWithAck(Set.of("ts-ingest"), getSelf());
-}
-
-private void handleTimeseriesDataPoint(final TimeseriesDataPoint dataPoint) {
-    // Batch writes for efficiency
-    writeBuffer.add(dataPoint);
-    if (writeBuffer.size() >= batchSize || timeSinceLastFlush() > flushInterval) {
-        flushToAdapter();
-    }
-}
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           Things Service                                │
+│                                                                         │
+│  1. ThingEvent persisted (event sourcing)                               │
+│                    │                                                    │
+│                    ▼                                                    │
+│  2. Check WoT model: is changed path ditto:ts-enabled?                  │
+│                    │                                                    │
+│          ┌────────┴────────┐                                            │
+│          │ No              │ Yes                                        │
+│          ▼                 ▼                                            │
+│       (skip)     3. Resolve ditto:ts-tags placeholders                  │
+│                            │                                            │
+│                            ▼                                            │
+│                  4. Publish ThingEvent + extra fields                   │
+│                            │                                            │
+└────────────────────────────┼────────────────────────────────────────────┘
+                             │
+                             ▼
+                  ┌─────────────────────┐
+                  │ "things.ts-events:" │
+                  │    pub/sub topic    │
+                  └─────────────────────┘
+                             │
+                             ▼
+┌────────────────────────────┼────────────────────────────────────────────┐
+│                            │         Timeseries Service                 │
+│                            ▼                                            │
+│  5. Receive ThingEvent + extra fields                                   │
+│                            │                                            │
+│                            ▼                                            │
+│  6. Transform to TimeseriesDataPoint                                    │
+│                            │                                            │
+│                            ▼                                            │
+│  7. Write to TS adapter (batched)                                       │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -613,7 +732,7 @@ Extend the existing permission model with `READ_TS`:
 - `viewer`: Can read current temperature + its timeseries, but only current humidity (no TS)
 - `live-only`: Can read current temperature but explicitly denied timeseries access
 
-### 6.3 Enforcement in ts-facade
+### 6.3 Enforcement in timeseries
 
 ```java
 public CompletionStage<TimeseriesResult> executeQuery(
@@ -649,7 +768,7 @@ public CompletionStage<TimeseriesResult> executeQuery(
 
 ### 6.4 Policy Caching
 
-ts-facade caches policy enforcers similar to Things service:
+timeseries caches policy enforcers similar to Things service:
 
 ```java
 public class TimeseriesPolicyEnforcerProvider {
@@ -837,7 +956,7 @@ This endpoint enables fleet-level analytics by querying **directly on the TS dat
 
 **RQL Filter Translation**:
 
-The ts-facade service translates RQL to TS-database-specific queries:
+The timeseries service translates RQL to TS-database-specific queries:
 
 | RQL | MongoDB MQL | IoTDB SQL | TimescaleDB SQL |
 |-----|-------------|-----------|-----------------|
@@ -1059,21 +1178,24 @@ public interface TimeseriesAdapter {
 ### 8.2 Data Models
 
 ```java
+/**
+ * A single timeseries data point for ingestion.
+ * The path follows Ditto Protocol format (e.g., /features/env/properties/temp or /attributes/battery).
+ */
 public record TimeseriesDataPoint(
     ThingId thingId,
-    @Nullable FeatureId featureId,
-    JsonPointer propertyPath,
+    JsonPointer path,       // Full path as in Ditto Protocol
     Instant timestamp,
     JsonValue value,
     long revision,
-    Map<String, String> tags
+    Map<String, String> tags,
+    @Nullable Duration retention
 ) {}
 
 /** Single-thing query. */
 public record TimeseriesQuery(
     ThingId thingId,
-    @Nullable FeatureId featureId,
-    List<JsonPointer> propertyPaths,
+    List<JsonPointer> paths,    // Full paths (e.g., /features/env/properties/temp)
     Instant from,
     Instant to,
     @Nullable Duration step,
@@ -1086,8 +1208,7 @@ public record TimeseriesQuery(
 /** Cross-thing aggregation query using tags with RQL filter. */
 public record TimeseriesAggregationQuery(
     @Nullable RqlFilter filter,         // RQL filter on declared tags
-    FeatureId featureId,
-    List<JsonPointer> propertyPaths,
+    List<JsonPointer> paths,            // Full paths to query
     Instant from,
     Instant to,
     @Nullable Duration step,
@@ -1152,8 +1273,7 @@ public record TimeseriesSeries(
 
 public record TimeseriesQueryResult(
     ThingId thingId,
-    @Nullable FeatureId featureId,
-    JsonPointer propertyPath,
+    JsonPointer path,           // Full path as in Ditto Protocol
     TimeseriesQuery query,
     TimeseriesResultMeta meta,
     List<TimeseriesDataValue> data
@@ -1178,7 +1298,7 @@ public record TimeseriesDataValue(
 
 | Database | Module | Status | Notes |
 |----------|--------|--------|-------|
-| **MongoDB Time Series** | `ts-facade-mongodb` | **Default** | Uses existing Ditto MongoDB, no additional infrastructure |
+| **MongoDB Time Series** | `timeseries-mongodb` | **Default** | Uses existing Ditto MongoDB, no additional infrastructure |
 
 #### Custom Adapter Examples
 
@@ -1186,9 +1306,9 @@ Organizations can implement the `TimeseriesAdapter` interface to integrate other
 
 | Database | Potential Module | Notes |
 |----------|------------------|-------|
-| Apache IoTDB | `ts-facade-iotdb` | Native Java client, tree-based schema |
-| TimescaleDB | `ts-facade-timescale` | JDBC, PostgreSQL extension |
-| InfluxDB 2.x | `ts-facade-influx` | HTTP API, Flux queries |
+| Apache IoTDB | `timeseries-iotdb` | Native Java client, tree-based schema |
+| TimescaleDB | `timeseries-timescale` | JDBC, PostgreSQL extension |
+| InfluxDB 2.x | `timeseries-influx` | HTTP API, Flux queries |
 
 **Note**: These are examples of possible custom implementations, not commitments. The adapter interface (Section 8.1) is designed to be generic enough to support various TS databases.
 
@@ -1220,8 +1340,7 @@ db.createCollection("ts_data", {
   "timestamp": ISODate("2026-01-15T10:30:00.000Z"),
   "meta": {
     "thingId": "org.eclipse.ditto:sensor-1",
-    "featureId": "environment",
-    "propertyPath": "/temperature",
+    "path": "/features/environment/properties/temperature",  // Full Ditto Protocol path
     // Denormalized tags for efficient filtering
     "tags": {
       "attributes/building": "A",
@@ -1302,18 +1421,18 @@ db.ts_data.aggregate([
 |-------|------------|-------|-------------|
 | Namespace | Collection prefix | Storage Group | Schema |
 | ThingId | `meta.thingId` | Device | Table prefix |
-| FeatureId | `meta.featureId` | Entity (level 1) | Table suffix |
-| PropertyPath | `meta.propertyPath` | Measurement | Column |
+| Path | `meta.path` | Entity path | Table/column derivation |
 | Value | `value` field | Data point | Row value |
 | Tags | `meta.tags.*` | Tags/Attributes | Additional columns |
 | Retention | TTL index | TTL config | Retention policy |
 
 **IoTDB Schema Example**:
 ```
-root.{namespace}.{thingName}.{featureId}.{propertyPath}
+root.{namespace}.{thingName}.{path}
 
-root.org_eclipse_ditto.sensor_1.environment.temperature
-root.org_eclipse_ditto.sensor_1.environment.humidity
+root.org_eclipse_ditto.sensor_1.features.environment.properties.temperature
+root.org_eclipse_ditto.sensor_1.features.environment.properties.humidity
+root.org_eclipse_ditto.sensor_1.attributes.batteryExchangeDate
 ```
 
 **TimescaleDB Schema Example**:
@@ -1352,8 +1471,7 @@ db.ts_org_eclipse_ditto.createIndex({
   "timestamp": ISODate("2026-01-15T10:30:00.000Z"),
   "meta": {
     "thingId": "org.eclipse.ditto:sensor-1",
-    "featureId": "environment",
-    "propertyPath": "/temperature",
+    "path": "/features/environment/properties/temperature",
     "tags": {
       "attributes/building": "A",
       "attributes/floor": "2",
@@ -1408,42 +1526,42 @@ This comparison helps users decide whether the default MongoDB adapter is suffic
 
 ## 9. Configuration
 
-### 9.1 ts-facade Service Configuration
+### 9.1 timeseries Service Configuration
 
-**File**: `ts-facade/service/src/main/resources/ts-facade.conf`
+**File**: `timeseries/service/src/main/resources/timeseries.conf`
 
 ```hocon
 ditto {
-  ts-facade {
+  timeseries {
     # Timeseries adapter configuration
     adapter {
       # Which adapter to use. Default: "mongodb"
       # Custom adapters can register additional types via SPI
       type = "mongodb"
-      type = ${?TS_FACADE_ADAPTER_TYPE}
+      type = ${?TIMESERIES_ADAPTER_TYPE}
 
       # MongoDB Time Series adapter configuration (default adapter)
       mongodb {
         # Use Ditto's existing MongoDB URI (recommended)
         # If not set, uses ditto.mongodb.uri from common config
-        uri = ${?TS_FACADE_MONGODB_URI}
+        uri = ${?TIMESERIES_MONGODB_URI}
 
         # Database name for timeseries collections
         database = "ditto_ts"
-        database = ${?TS_FACADE_MONGODB_DATABASE}
+        database = ${?TIMESERIES_MONGODB_DATABASE}
 
         # Collection name prefix (namespace appended)
         collection-prefix = "ts_"
-        collection-prefix = ${?TS_FACADE_MONGODB_COLLECTION_PREFIX}
+        collection-prefix = ${?TIMESERIES_MONGODB_COLLECTION_PREFIX}
 
         # Time series granularity: "seconds", "minutes", "hours"
         # Use "seconds" for high-frequency data, "hours" for daily metrics
         granularity = "seconds"
-        granularity = ${?TS_FACADE_MONGODB_GRANULARITY}
+        granularity = ${?TIMESERIES_MONGODB_GRANULARITY}
 
         # Write concern for ingestion
         write-concern = "majority"
-        write-concern = ${?TS_FACADE_MONGODB_WRITE_CONCERN}
+        write-concern = ${?TIMESERIES_MONGODB_WRITE_CONCERN}
       }
 
       # Custom adapters would add their own configuration sections here
@@ -1459,43 +1577,43 @@ ditto {
     ingestion {
       # Batch size for writes
       batch-size = 100
-      batch-size = ${?TS_FACADE_INGESTION_BATCH_SIZE}
+      batch-size = ${?TIMESERIES_INGESTION_BATCH_SIZE}
 
       # Max time to buffer before flush
       flush-interval = 5s
-      flush-interval = ${?TS_FACADE_INGESTION_FLUSH_INTERVAL}
+      flush-interval = ${?TIMESERIES_INGESTION_FLUSH_INTERVAL}
 
       # Parallelism for write operations
       parallelism = 4
-      parallelism = ${?TS_FACADE_INGESTION_PARALLELISM}
+      parallelism = ${?TIMESERIES_INGESTION_PARALLELISM}
     }
 
     # Query settings
     query {
       # Default time range if 'from' not specified
       default-lookback = 24h
-      default-lookback = ${?TS_FACADE_QUERY_DEFAULT_LOOKBACK}
+      default-lookback = ${?TIMESERIES_QUERY_DEFAULT_LOOKBACK}
 
       # Maximum time range for a single query
       max-time-range = 365d
-      max-time-range = ${?TS_FACADE_QUERY_MAX_TIME_RANGE}
+      max-time-range = ${?TIMESERIES_QUERY_MAX_TIME_RANGE}
 
       # Maximum data points per query
       max-data-points = 10000
-      max-data-points = ${?TS_FACADE_QUERY_MAX_DATA_POINTS}
+      max-data-points = ${?TIMESERIES_QUERY_MAX_DATA_POINTS}
 
       # Query timeout
       timeout = 30s
-      timeout = ${?TS_FACADE_QUERY_TIMEOUT}
+      timeout = ${?TIMESERIES_QUERY_TIMEOUT}
     }
 
     # Policy enforcer cache
     policy-cache {
       maximum-size = 10000
-      maximum-size = ${?TS_FACADE_POLICY_CACHE_MAX_SIZE}
+      maximum-size = ${?TIMESERIES_POLICY_CACHE_MAX_SIZE}
 
       expire-after-write = 5m
-      expire-after-write = ${?TS_FACADE_POLICY_CACHE_EXPIRE}
+      expire-after-write = ${?TIMESERIES_POLICY_CACHE_EXPIRE}
     }
 
     # =================================================================
@@ -1506,14 +1624,14 @@ ditto {
     # Default data retention period (ISO 8601 duration)
     # Can be overridden per property via ditto:ts-retention in WoT model
     default-retention = P90D
-    default-retention = ${?TS_FACADE_DEFAULT_RETENTION}
+    default-retention = ${?TIMESERIES_DEFAULT_RETENTION}
 
     # Default minimum sampling resolution (ISO 8601 duration)
     # Data points arriving faster than this interval may be dropped/aggregated
     # Can be overridden per property via ditto:ts-resolution in WoT model
     # "0" or "PT0S" means no minimum resolution (accept all data points)
     default-resolution = PT0S
-    default-resolution = ${?TS_FACADE_DEFAULT_RESOLUTION}
+    default-resolution = ${?TIMESERIES_DEFAULT_RESOLUTION}
   }
 }
 ```
@@ -1527,17 +1645,9 @@ ditto {
   things {
     # Timeseries publishing configuration
     timeseries {
-      # Enable/disable TS publishing
-      enabled = true
-      enabled = ${?THINGS_TIMESERIES_ENABLED}
-
-      # Pub/Sub topic for TS data points
-      topic = "ts-ingest"
-      topic = ${?THINGS_TIMESERIES_TOPIC}
-
-      # Cache TTL for WoT model TS declarations
-      wot-cache-ttl = 5m
-      wot-cache-ttl = ${?THINGS_TIMESERIES_WOT_CACHE_TTL}
+      # Enable/disable publishing of ThingEvents to things.ts-events: topic
+      publish-enabled = true
+      publish-enabled = ${?THINGS_TIMESERIES_PUBLISH_ENABLED}
     }
   }
 }
@@ -1548,12 +1658,12 @@ ditto {
 **File**: `deployment/helm/ditto/values.yaml` (additions)
 
 ```yaml
-tsFacade:
+timeseries:
   enabled: true
   replicaCount: 1
 
   image:
-    repository: eclipse/ditto-ts-facade
+    repository: eclipse/ditto-timeseries
     tag: ""  # defaults to chart appVersion
     pullPolicy: IfNotPresent
 
@@ -1601,7 +1711,7 @@ tsFacade:
 things:
   config:
     timeseries:
-      enabled: true
+      publishEnabled: true
 ```
 
 ---
@@ -1610,9 +1720,9 @@ things:
 
 ```
 ditto/
-├── ts-facade/
+├── timeseries/
 │   ├── model/                    # TS-specific signals, models (Java 8)
-│   │   └── src/main/java/org/eclipse/ditto/tsfacade/model/
+│   │   └── src/main/java/org/eclipse/ditto/timeseries/model/
 │   │       ├── signals/
 │   │       │   ├── commands/     # RetrieveTimeseries, etc.
 │   │       │   └── events/       # TimeseriesDataIngested, etc.
@@ -1621,17 +1731,17 @@ ditto/
 │   │       └── TimeseriesQueryResult.java
 │   │
 │   ├── api/                      # Adapter interfaces (Java 8)
-│   │   └── src/main/java/org/eclipse/ditto/tsfacade/api/
+│   │   └── src/main/java/org/eclipse/ditto/timeseries/api/
 │   │       ├── TimeseriesAdapter.java
 │   │       ├── TimeseriesAdapterConfig.java
 │   │       └── TimeseriesAdapterFactory.java
 │   │
 │   ├── service/                  # Service implementation (Java 21)
-│   │   └── src/main/java/org/eclipse/ditto/tsfacade/service/
+│   │   └── src/main/java/org/eclipse/ditto/timeseries/service/
 │   │       ├── starter/
-│   │       │   └── TimeseriesFacadeService.java
+│   │       │   └── TimeseriesService.java
 │   │       ├── actors/
-│   │       │   ├── TimeseriesFacadeRootActor.java
+│   │       │   ├── TimeseriesRootActor.java
 │   │       │   ├── TimeseriesQueryActor.java
 │   │       │   └── TimeseriesIngestionActor.java
 │   │       ├── enforcement/
@@ -1640,12 +1750,12 @@ ditto/
 │   │           └── TimeseriesRoute.java
 │   │
 │   └── mongodb/                  # MongoDB TS adapter (Java 21) - DEFAULT
-│       └── src/main/java/org/eclipse/ditto/tsfacade/mongodb/
+│       └── src/main/java/org/eclipse/ditto/timeseries/mongodb/
 │           ├── MongoDbTimeseriesAdapter.java
 │           └── MongoDbRqlTranslator.java
 │
 │   # Custom adapters (e.g., IoTDB, TimescaleDB) would be implemented
-│   # externally using the ts-facade/api interfaces
+│   # externally using the timeseries/api interfaces
 │
 ├── things/
 │   └── service/
@@ -1674,15 +1784,15 @@ ditto/
 ### Phase 1: Foundation (MVP)
 
 **Scope**:
-- ts-facade service skeleton with Pekko cluster integration
+- timeseries service skeleton with Pekko cluster integration
 - **MongoDB Time Series adapter** (default, uses existing infrastructure)
 - Basic ingestion via pub/sub
 - Simple query API (single property, time range, no aggregation)
 - READ_TS permission in policy model
 
 **Deliverables**:
-- `ts-facade/model`, `ts-facade/api`, `ts-facade/service` modules
-- `ts-facade/mongodb` adapter (default)
+- `timeseries/model`, `timeseries/api`, `timeseries/service` modules
+- `timeseries/mongodb` adapter (default)
 - WoT extension: `ditto:ts-enabled` only
 - Basic HTTP route in Gateway
 
@@ -1743,11 +1853,11 @@ ditto/
 1. ~~**Attribute timeseries**: Should Thing-level attributes also support TS tracking, or only Feature properties?~~
    **Decision**: Yes, attributes are supported. The HTTP API already includes attribute endpoints (`/api/2/timeseries/things/{thingId}/attributes/{path}`). WoT ThingModels can declare `ditto:ts-enabled` on Thing-level properties (attributes), not just Feature properties.
 
-4. ~~**Cross-thing queries**: Should ts-facade support queries across multiple Things?~~
+4. ~~**Cross-thing queries**: Should timeseries support queries across multiple Things?~~
    **Decision**: Yes, via tag denormalization. The `POST /api/2/timeseries/query` endpoint supports cross-thing aggregation using tags stored natively in the TS database. See Section 7.2.
 
 6. ~~**TS database management**: Who creates/manages the TS database itself?~~
-   **Decision**: Out of scope for Ditto. The TS database (MongoDB, IoTDB, TimescaleDB, etc.) must be provisioned and managed externally. Ditto's ts-facade only connects to an existing database. This follows the same pattern as Ditto's MongoDB requirement.
+   **Decision**: Out of scope for Ditto. The TS database (MongoDB, IoTDB, TimescaleDB, etc.) must be provisioned and managed externally. Ditto's timeseries only connects to an existing database. This follows the same pattern as Ditto's MongoDB requirement.
 
 ### Open
 
