@@ -7,6 +7,93 @@
 
 ---
 
+## TL;DR
+
+A new Ditto microservice that **automatically captures Thing property changes over time** and provides a **unified query API for historical timeseries data**.
+
+### What It Does
+
+| Capability | Description |
+|------------|-------------|
+| **Automatic Ingestion** | Property changes are automatically written to a timeseries database |
+| **Declarative Configuration** | WoT ThingModel annotations define which properties to track (`ditto:ts-enabled`) |
+| **Query API** | RESTful API for retrieving historical data with aggregations (avg, min, max, etc.) |
+| **Access Control** | New `READ_TS` policy permission controls who can access timeseries data |
+| **Pluggable Backend** | Default MongoDB Time Series adapter; extensible for IoTDB, TimescaleDB, etc. |
+
+### Architecture Overview
+
+```
+                          ┌─────────────────────────────────────────────────┐
+                          │               Ditto Cluster                     │
+                          │                                                 │
+   ┌──────────┐           │   ┌──────────┐         ┌─────────────┐         │
+   │  Device  │ property  │   │ Things   │ pub/sub │ ts-facade   │         │
+   │          │─updates──▶│   │ Service  │────────▶│ Service     │         │
+   └──────────┘           │   └──────────┘         └──────┬──────┘         │
+                          │                               │                 │
+   ┌──────────┐           │   ┌──────────┐               │                 │
+   │ Client/  │ TS query  │   │ Gateway  │───────────────┘                 │
+   │ Dashboard│──────────▶│   │ Service  │         (direct routing)        │
+   └──────────┘           │   └──────────┘                                 │
+                          │                                                 │
+                          └──────────────────────────────┬──────────────────┘
+                                                         │
+                                                         ▼
+                                               ┌─────────────────┐
+                                               │ Timeseries DB   │
+                                               │ (MongoDB TS,    │
+                                               │  IoTDB, etc.)   │
+                                               └─────────────────┘
+```
+
+**Data flow:**
+1. Device updates a Thing property → Things service persists the event
+2. If property has `ditto:ts-enabled: true` in WoT model → publish to ts-facade via pub/sub
+3. ts-facade writes data point to timeseries database
+4. Clients query historical data via Gateway → ts-facade → TS database
+
+### HTTP API Overview
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/2/timeseries/things/{thingId}/features/{featureId}/properties/{property}` | Get timeseries for a single property |
+| `GET /api/2/timeseries/things/{thingId}/features/{featureId}/properties` | Get timeseries for all TS-enabled properties |
+| `GET /api/2/timeseries/things/{thingId}/attributes/{attribute}` | Get timeseries for an attribute |
+| `POST /api/2/timeseries/things/{thingId}/features/{featureId}/query` | Batch query with multiple properties/aggregations |
+| `POST /api/2/timeseries/query` | Cross-thing aggregation query (fleet analytics) |
+
+**Common query parameters:**
+- `from`, `to` — Time range (ISO 8601 or relative like `now-24h`)
+- `step` — Downsampling interval (`1m`, `5m`, `1h`, `1d`)
+- `agg` — Aggregation function (`avg`, `min`, `max`, `sum`, `count`, `first`, `last`)
+
+### WoT Configuration Example
+
+```json
+{
+  "properties": {
+    "temperature": {
+      "type": "number",
+      "ditto:ts-enabled": true,
+      "ditto:ts-retention": "P90D",
+      "ditto:ts-tags": {
+        "attributes/building": "{{ thing-json:attributes/building }}"
+      }
+    }
+  }
+}
+```
+
+### Key Design Decisions
+
+- **Separate from event sourcing** — TS data is optimized for time-range queries, not revision history
+- **Policy-controlled** — `READ_TS` permission independent of `READ` permission
+- **MongoDB default** — Zero additional infrastructure using existing Ditto MongoDB
+- **Extensible** — Adapter interface for dedicated TS databases when needed
+
+---
+
 ## 1. Overview
 
 This document describes the architecture and design for a new Ditto service called **ts-facade** (Timeseries Facade). The service acts as a facade to timeseries databases, providing:
