@@ -395,33 +395,54 @@ public class TimeseriesPolicyEnforcerProvider {
 
 ## 7. HTTP API Design
 
-### 7.1 Endpoints
+### 7.1 Design Rationale
+
+Ditto's HTTP API follows a strict convention: **API paths directly map to the JSON structure** of resources. For example:
+- `GET /api/2/things/{thingId}` returns the complete Thing JSON
+- `GET /api/2/things/{thingId}/features/{featureId}/properties/temperature` returns the value at `features.{featureId}.properties.temperature`
+
+Appending `/timeseries` to property paths (e.g., `.../properties/temperature/timeseries`) would incorrectly imply a `timeseries` field exists in the JSON structure. It would also create collisions if a property is actually named `timeseries`.
+
+Therefore, timeseries uses a **separate API root** (`/api/2/timeseries/...`), following the precedent of `/api/2/search/things` which also provides a different view of Things data.
+
+### 7.2 Endpoints
 
 #### Single Property Timeseries
 
 ```
-GET /api/2/things/{thingId}/features/{featureId}/properties/{propertyPath}/timeseries
+GET /api/2/timeseries/things/{thingId}/features/{featureId}/properties/{propertyPath}
 ```
 
 #### Feature Timeseries (Multiple Properties)
 
 ```
-GET /api/2/things/{thingId}/features/{featureId}/timeseries
+GET /api/2/timeseries/things/{thingId}/features/{featureId}/properties
 ```
 
 #### Thing Attribute Timeseries
 
 ```
-GET /api/2/things/{thingId}/attributes/{attributePath}/timeseries
+GET /api/2/timeseries/things/{thingId}/attributes/{attributePath}
 ```
 
 #### Batch Query (Multiple Properties/Aggregations)
 
 ```
-POST /api/2/things/{thingId}/features/{featureId}/timeseries/query
+POST /api/2/timeseries/things/{thingId}/features/{featureId}/query
 ```
 
-### 7.2 Query Parameters
+#### Full Endpoint Overview
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/2/timeseries/things/{thingId}` | All TS data for a Thing |
+| `GET /api/2/timeseries/things/{thingId}/features/{featureId}` | All TS data for a Feature |
+| `GET /api/2/timeseries/things/{thingId}/features/{featureId}/properties` | All TS-enabled properties |
+| `GET /api/2/timeseries/things/{thingId}/features/{featureId}/properties/{path}` | Single property TS |
+| `GET /api/2/timeseries/things/{thingId}/attributes/{path}` | Attribute TS (if supported) |
+| `POST /api/2/timeseries/things/{thingId}/features/{featureId}/query` | Batch query |
+
+### 7.3 Query Parameters
 
 | Parameter | Type | Required | Description | Example |
 |-----------|------|----------|-------------|---------|
@@ -434,7 +455,7 @@ POST /api/2/things/{thingId}/features/{featureId}/timeseries/query
 | `tz` | string | No | Timezone for step alignment | `Europe/Berlin`, `UTC` |
 | `properties` | string | No | Comma-separated property filter | `temperature,humidity` |
 
-### 7.3 Response Format
+### 7.4 Response Format
 
 #### Single Property Response
 
@@ -508,7 +529,7 @@ POST /api/2/things/{thingId}/features/{featureId}/timeseries/query
 
 **Request**:
 ```json
-POST /api/2/things/org.eclipse.ditto:sensor-1/features/environment/timeseries/query
+POST /api/2/timeseries/things/org.eclipse.ditto:sensor-1/features/environment/query
 {
   "properties": ["temperature", "humidity"],
   "from": "now-24h",
@@ -557,7 +578,7 @@ POST /api/2/things/org.eclipse.ditto:sensor-1/features/environment/timeseries/qu
 }
 ```
 
-### 7.4 Error Responses
+### 7.5 Error Responses
 
 | Status | Error Code | Description |
 |--------|-----------|-------------|
