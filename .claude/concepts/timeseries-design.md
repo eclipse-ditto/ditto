@@ -55,13 +55,16 @@ A new Ditto microservice that **automatically captures Thing property changes ov
 
 ### HTTP API Overview
 
-| Endpoint | Description |
-|----------|-------------|
-| `GET /api/2/timeseries/things/{thingId}/features/{featureId}/properties/{property}` | Get timeseries for a single property |
-| `GET /api/2/timeseries/things/{thingId}/features/{featureId}/properties` | Get timeseries for all TS-enabled properties |
-| `GET /api/2/timeseries/things/{thingId}/attributes/{attribute}` | Get timeseries for an attribute |
-| `POST /api/2/timeseries/things/{thingId}/features/{featureId}/query` | Batch query with multiple properties/aggregations |
-| `POST /api/2/timeseries/query` | Cross-thing aggregation query (fleet analytics) |
+| Endpoint                                                                             | Description                                          |
+|--------------------------------------------------------------------------------------|------------------------------------------------------|
+| `GET /api/2/timeseries/things/{thingId}/features/{featureId}/properties/{property}`  | Get timeseries for a single property                 |
+| `GET /api/2/timeseries/things/{thingId}/features/{featureId}/properties`             | Get timeseries for all TS-enabled feature properties |
+| `GET /api/2/timeseries/things/{thingId}/features`                                    | Get timeseries for all TS-enabled features           |
+| `GET /api/2/timeseries/things/{thingId}/attributes/{attribute}`                      | Get timeseries for an attribute                      |
+| `GET /api/2/timeseries/things/{thingId}/attributes`                                  | Get timeseries for all TS-enabled attributes         |
+| `GET /api/2/timeseries/things/{thingId}`                                             | Get timeseries for all TS-enabled values             |
+| `POST /api/2/timeseries/things/{thingId}/query`                                      | Batch query with multiple properties/aggregations    |
+| `POST /api/2/timeseries/query`                                                       | Cross-thing aggregation query (fleet analytics)      |
 
 **Common query parameters:**
 - `from`, `to` — Time range (ISO 8601 or relative like `now-24h`)
@@ -88,9 +91,9 @@ A new Ditto microservice that **automatically captures Thing property changes ov
 ### Key Design Decisions
 
 - **Separate from event sourcing** — TS data is optimized for time-range queries, not revision history
-- **Policy-controlled** — `READ_TS` permission independent of `READ` permission
-- **MongoDB default** — Zero additional infrastructure using existing Ditto MongoDB
-- **Extensible** — Adapter interface for dedicated TS databases when needed
+- **Policy-controlled** — introduction of a new permission `READ_TS` independent of `READ` permission in order to be able to control timeseries access independently from read access
+- **MongoDB default** — Zero additional infrastructure using existing Ditto MongoDB as a default implementation
+- **Extensible** — Adapter interface for dedicated TS databases when needed, e.g. when higher scalability needs are in place or an existing concrete TS DB should be used
 
 ---
 
@@ -127,7 +130,7 @@ This uses Ditto's existing MongoDB infrastructure with [Time Series Collections]
 
 1. Replacing Ditto's event sourcing in MongoDB (historical revisions remain separate)
 2. Supporting arbitrary SQL/query passthrough to TS databases
-3. Real-time streaming of timeseries data (use existing SSE/WebSocket for events)
+3. Real-time streaming of timeseries data (use existing SSE/WebSocket for Ditto's thing events)
 4. Complex analytics or ML pipelines (TS databases can be queried directly for that)
 
 ---
@@ -137,41 +140,42 @@ This uses Ditto's existing MongoDB infrastructure with [Time Series Collections]
 ### 3.1 High-Level Design
 
 ```
-                                 Ditto Cluster
-┌─────────────────────────────────────────────────────────────────────────┐
-│                                                                         │
-│  ┌─────────────┐         ┌─────────────┐         ┌─────────────────────┐│
-│  │   Gateway   │────────▶│  Timeseries │◀───────-│    Connectivity     ││
-│  │   Service   │ Query   │   Service   │  Query  │      Service        ││
-│  │             │         │             │         │                     ││
-│  │ [TS Routes] │         │ [Adapters]  │         │ [TS Message Handler]││
-│  └──────┬──────┘         └──────┬──────┘         └──────────┬──────────┘│
-│         │                       │                           │           │
-│         │                       │ Pub/Sub                   │           │
-│         │                       │ (things.ts-events: topic) │           │
-│         │                       │                           │           │
-│         │                ┌──────┴──────┐                    │           │
-│         │                │   Things    │                    │           │
-│         │                │   Service   │                    │           │
-│         │                │             │                    │           │
-│         │                │[TS Publisher]                    │           │
-│         │                └──────┬──────┘                    │           │
-│         │                       │                           │           │
-│         │    ┌──────────────────┼───────────────────┐       │           │
-│         │    │                  │                   │       │           │
-│         │    ▼                  ▼                   ▼       │           │
-│         │ ┌────────┐     ┌───────────┐      ┌───────────┐   │           │
-│         └▶│Policies│◀────│  MongoDB  │      │ Timeseries│◀──┘           │
-│           │Service │     │           │      │  Service  │               │
-│           └────────┘     └───────────┘      └─────┬─────┘               │
-│                                                   │                     │
-└───────────────────────────────────────────────────┼─────────────────────┘
-                                                    │
-                                                    ▼
-                                          ┌─────────────────┐
-                                          │  TS Database    │
-                                          │ (IoTDB, etc.)   │
-                                          └─────────────────┘
+                                      Ditto Cluster
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                                                                              │
+│   ┌─────────────┐                                    ┌─────────────────────┐ │
+│   │   Gateway   │──────────┐              ┌─────────│    Connectivity     │ │
+│   │   Service   │          │    Query     │         │      Service        │ │
+│   │ [TS Routes] │          │              │         │ [TS Message Handler]│ │
+│   └─────────────┘          │              │         └─────────────────────┘ │
+│                            ▼              ▼                                 │
+│   ┌──────────┐       ┌───────────────────────┐                              │
+│   │ Policies │◀──────│     Timeseries        │                              │
+│   │ Service  │ fetch │       Service         │                              │
+│   │          │policy │                       │                              │
+│   └──────────┘ for   │ - Subscribes to       │                              │
+│                READ_TS  things.ts-events:    │                              │
+│                      │ - Enforces READ_TS    │                              │
+│                      │ - Writes to TS DB     │                              │
+│                      └───────────▲───────────┘                              │
+│                                  │                                          │
+│                                  │ Pub/Sub (things.ts-events: topic)        │
+│                                  │                                          │
+│                           ┌──────┴──────┐                                   │
+│                           │   Things    │                                   │
+│                           │   Service   │                                   │
+│                           │             │                                   │
+│                           │[TS Publisher│                                   │
+│                           └─────────────┘                                   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                   │
+                                   ▼
+                         ┌─────────────────┐
+                         │  TS Database    │
+                         │  (MongoDB TS,   │
+                         │   IoTDB, etc.)  │
+                         └─────────────────┘
 ```
 
 ### 3.2 Data Flow
