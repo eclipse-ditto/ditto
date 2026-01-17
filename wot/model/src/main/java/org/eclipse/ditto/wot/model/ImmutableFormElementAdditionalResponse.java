@@ -14,6 +14,7 @@ package org.eclipse.ditto.wot.model;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -35,6 +36,20 @@ final class ImmutableFormElementAdditionalResponse implements FormElementAdditio
 
     @Override
     public JsonObject toJson() {
+        return wrappedObject;
+    }
+
+    @Override
+    public FormElementAdditionalResponse determineResult(final Supplier<JsonObject> newWrappedSupplier) {
+        final JsonObject newWrapped = newWrappedSupplier.get();
+        if (!newWrapped.equals(wrappedObject)) {
+            return new ImmutableFormElementAdditionalResponse(newWrapped);
+        }
+        return this;
+    }
+
+    @Override
+    public JsonObject getWrappedObject() {
         return wrappedObject;
     }
 

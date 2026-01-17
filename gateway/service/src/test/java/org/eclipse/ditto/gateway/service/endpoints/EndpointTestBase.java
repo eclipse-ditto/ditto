@@ -51,6 +51,7 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.RootRouteExceptionHand
 import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationFactory;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthorizationSubjectsProvider;
+import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.CloudEventsConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.DefaultClaimMessageConfig;
@@ -117,6 +118,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
     protected static JwtAuthenticationFactory jwtAuthenticationFactory;
     protected static HttpClientFacade httpClientFacade;
     protected static JwtAuthorizationSubjectsProvider authorizationSubjectsProvider;
+    private static DittoGatewayConfig gatewayConfig;
 
     @Rule
     public final TestNameCorrelationId testNameCorrelationId = TestNameCorrelationId.newInstance();
@@ -131,6 +133,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
         final Config testConfig = createTestConfig();
         final var dittoScopedConfig = DefaultScopedConfig.dittoScoped(testConfig);
         final var gatewayScopedConfig = DefaultScopedConfig.newInstance(dittoScopedConfig, "gateway");
+        gatewayConfig = DittoGatewayConfig.of(dittoScopedConfig);
         final var actorSystem = ActorSystem.create(EndpointTestBase.class.getSimpleName(), testConfig);
         httpConfig = GatewayHttpConfig.of(gatewayScopedConfig);
         healthCheckConfig = DefaultHealthCheckConfig.of(gatewayScopedConfig);
@@ -164,8 +167,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
         routeBaseProperties = RouteBaseProperties.newBuilder()
                 .proxyActor(createDummyResponseActor(getResponseProvider()))
                 .actorSystem(system())
-                .httpConfig(httpConfig)
-                .commandConfig(commandConfig)
+                .gatewayConfig(gatewayConfig)
                 .headerTranslator(httpHeaderTranslator)
                 .build();
         dittoHeaders = DittoHeaders.newBuilder().correlationId(testNameCorrelationId.getCorrelationId()).build();
