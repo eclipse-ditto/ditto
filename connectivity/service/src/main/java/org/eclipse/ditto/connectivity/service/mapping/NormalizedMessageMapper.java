@@ -76,7 +76,10 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
             FieldType.HIDDEN,
             JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<JsonObject> DELETED_FIELDS =
-            JsonFactory.newJsonObjectFieldDefinition("_deletedFields");
+            JsonFactory.newJsonObjectFieldDefinition("_deletedFields",
+                    FieldType.SPECIAL,
+                    FieldType.HIDDEN,
+                    JsonSchemaVersion.V_2);
 
     @Nullable
     private JsonFieldSelector jsonFieldSelector;
