@@ -69,7 +69,7 @@ A new Ditto microservice that **automatically captures Thing property changes ov
 **Common query parameters:**
 - `from`, `to` — Time range (ISO 8601 or relative like `now-24h`)
 - `step` — Downsampling interval (`1m`, `5m`, `1h`, `1d`)
-- `agg` — Aggregation function (`avg`, `min`, `max`, `sum`, `count`, `first`, `last`)
+- `agg` — Aggregation function (`avg`, `min`, `max`, `sum`, `count`, `first`, `last`, `derivative`)
 
 ### WoT Configuration Example
 
@@ -1113,7 +1113,7 @@ The timeseries service translates RQL to TS-database-specific queries:
 | `from`       | string | No       | Start time (ISO 8601 or relative)   | `2026-01-14T00:00:00Z`, `now-24h`                          |
 | `to`         | string | No       | End time (default: `now`)           | `2026-01-15T00:00:00Z`, `now`                              |
 | `step`       | string | No       | Downsampling interval               | `1m`, `5m`, `1h`, `1d`                                     |
-| `agg`        | string | No       | Aggregation function                | `avg`, `min`, `max`, `sum`, `count`, `first`, `last`       |
+| `agg`        | string | No       | Aggregation function                | `avg`, `min`, `max`, `sum`, `count`, `first`, `last`, `derivative`       |
 | `fill`       | string | No       | Gap filling strategy                | `null`, `previous`, `linear`, `zero`                       |
 | `limit`      | int    | No       | Max data points (raw queries)       | `1000`                                                     |
 | `tz`         | string | No       | Timezone for step alignment         | `Europe/Berlin`, `UTC`                                     |
@@ -1153,6 +1153,70 @@ The milliseconds format is recommended for:
 - High-frequency data with many data points (reduced payload size)
 - Clients that process timestamps programmatically
 - Integration with charting libraries that expect numeric timestamps
+
+#### Aggregation Functions (`agg`)
+
+| Function     | Description                                              | Use Case                                      |
+|--------------|----------------------------------------------------------|-----------------------------------------------|
+| `avg`        | Average of values in each time bucket                    | Smoothing noisy sensor data                   |
+| `min`        | Minimum value in each time bucket                        | Finding low points                            |
+| `max`        | Maximum value in each time bucket                        | Finding peaks                                 |
+| `sum`        | Sum of values in each time bucket                        | Cumulative metrics (energy consumption)       |
+| `count`      | Number of data points in each time bucket                | Data density analysis                         |
+| `first`      | First value in each time bucket                          | Point-in-time snapshots                       |
+| `last`       | Last value in each time bucket                           | Most recent value per bucket                  |
+| `derivative` | Rate of change between consecutive values (per second)   | Flow rate from cumulative volume              |
+
+##### Derivative Aggregation
+
+The `derivative` aggregation calculates the **rate of change** between consecutive data points, returning the change per second. This is essential for converting cumulative measurements (like total volume) into rate measurements (like flow rate).
+
+**Formula:**
+```
+derivative = (value[n] - value[n-1]) / (time[n] - time[n-1])
+```
+
+Where time difference is in seconds.
+
+**Example: Converting cumulative volume to flow rate**
+
+Raw data (cumulative water volume in m³):
+```json
+{"t": "2026-01-14T10:00:00Z", "v": 1000.0}
+{"t": "2026-01-14T11:00:00Z", "v": 1005.0}
+{"t": "2026-01-14T12:00:00Z", "v": 1012.0}
+```
+
+Query:
+```
+GET /api/2/timeseries/things/{id}/features/meter/properties/totalVolume?agg=derivative&from=...&to=...
+```
+
+Result (flow rate in m³/s, multiply by 3600 for m³/h):
+```json
+{
+  "data": [
+    {"t": "2026-01-14T11:00:00Z", "v": 0.00139},
+    {"t": "2026-01-14T12:00:00Z", "v": 0.00194}
+  ]
+}
+```
+
+Calculation:
+- 11:00: `(1005 - 1000) / 3600 = 0.00139 m³/s` (≈ 5 m³/h)
+- 12:00: `(1012 - 1005) / 3600 = 0.00194 m³/s` (≈ 7 m³/h)
+
+**Note:** The first data point has no predecessor, so derivative results have one fewer point than raw data.
+
+**Combining with `step`:**
+
+When used with a `step` parameter, `derivative` first downsamples using the `last` value per bucket, then calculates derivatives between buckets:
+
+```
+GET ...?agg=derivative&step=1h
+```
+
+This gives hourly rate-of-change values, useful for calculating hourly flow rates from cumulative meter readings.
 
 ### 7.4 Response Format
 
@@ -1750,6 +1814,7 @@ db.ts_data.aggregate([
 |---------------------------|-----------------|------------------------------------------|
 | avg, min, max, sum, count | ✅ Native        | `$avg`, `$min`, `$max`, `$sum`, `$count` |
 | first, last               | ✅ Native        | `$first`, `$last`                        |
+| derivative                | ✅ Native        | `$setWindowFields` with `$shift`         |
 | Time bucketing            | ✅ Native        | `$dateTrunc` with `binSize` and `unit`   |
 | Gap filling               | ✅ Native        | `$densify` + `$fill`                     |
 | Window functions          | ✅ Native        | `$setWindowFields`                       |
@@ -1858,6 +1923,7 @@ This comparison helps users decide whether the default MongoDB adapter is suffic
 | **Query Capabilities**               |
 | Aggregations (avg/min/max/sum/count) | ✅                      | ✅                 | ✅                       | ✅                   |
 | first/last                           | ✅                      | ✅                 | ✅                       | ✅                   |
+| derivative (rate of change)          | ✅ `$setWindowFields`   | ✅ `DIFFERENCE`    | ✅ Window functions      | ✅ `derivative()`    |
 | Time bucketing                       | ✅ `$dateTrunc`         | ✅ `GROUP BY TIME` | ✅ `time_bucket`         | ✅ `aggregateWindow` |
 | Gap filling                          | ✅ `$densify`+`$fill`   | ✅ `FILL`          | ✅ `time_bucket_gapfill` | ✅ `fill()`          |
 | Window functions                     | ✅ `$setWindowFields`   | ✅                 | ✅                       | ✅                   |
