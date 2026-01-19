@@ -1108,16 +1108,51 @@ The timeseries service translates RQL to TS-database-specific queries:
 
 ### 7.3 Query Parameters
 
-| Parameter | Type   | Required | Description                         | Example                                                    |
-|-----------|--------|----------|-------------------------------------|------------------------------------------------------------|
-| `from`    | string | No       | Start time (ISO 8601 or relative)   | `2026-01-14T00:00:00Z`, `now-24h`                          |
-| `to`      | string | No       | End time (default: `now`)           | `2026-01-15T00:00:00Z`, `now`                              |
-| `step`    | string | No       | Downsampling interval               | `1m`, `5m`, `1h`, `1d`                                     |
-| `agg`     | string | No       | Aggregation function                | `avg`, `min`, `max`, `sum`, `count`, `first`, `last`       |
-| `fill`    | string | No       | Gap filling strategy                | `null`, `previous`, `linear`, `zero`                       |
-| `limit`   | int    | No       | Max data points (raw queries)       | `1000`                                                     |
-| `tz`      | string | No       | Timezone for step alignment         | `Europe/Berlin`, `UTC`                                     |
-| `paths`   | string | No       | Comma-separated paths filter        | `/features/env/properties/temperature,/attributes/battery` |
+| Parameter    | Type   | Required | Description                         | Example                                                    |
+|--------------|--------|----------|-------------------------------------|------------------------------------------------------------|
+| `from`       | string | No       | Start time (ISO 8601 or relative)   | `2026-01-14T00:00:00Z`, `now-24h`                          |
+| `to`         | string | No       | End time (default: `now`)           | `2026-01-15T00:00:00Z`, `now`                              |
+| `step`       | string | No       | Downsampling interval               | `1m`, `5m`, `1h`, `1d`                                     |
+| `agg`        | string | No       | Aggregation function                | `avg`, `min`, `max`, `sum`, `count`, `first`, `last`       |
+| `fill`       | string | No       | Gap filling strategy                | `null`, `previous`, `linear`, `zero`                       |
+| `limit`      | int    | No       | Max data points (raw queries)       | `1000`                                                     |
+| `tz`         | string | No       | Timezone for step alignment         | `Europe/Berlin`, `UTC`                                     |
+| `paths`      | string | No       | Comma-separated paths filter        | `/features/env/properties/temperature,/attributes/battery` |
+| `timeFormat` | string | No       | Timestamp format in response        | `iso` (default), `ms`                                      |
+
+#### Timestamp Format (`timeFormat`)
+
+Controls how timestamps are represented in the response `data` array:
+
+| Value | Format                      | Example                          | Description                                |
+|-------|-----------------------------|---------------------------------|--------------------------------------------|
+| `iso` | ISO 8601 string (default)   | `"2026-01-14T00:00:00Z"`        | Human-readable, verbose, standard format   |
+| `ms`  | Milliseconds since epoch    | `1736812800000`                 | Compact numeric format, easier to parse    |
+
+**Example with `timeFormat=iso` (default):**
+```json
+{
+  "data": [
+    {"t": "2026-01-14T00:00:00Z", "v": 22.3},
+    {"t": "2026-01-14T01:00:00Z", "v": 22.1}
+  ]
+}
+```
+
+**Example with `timeFormat=ms`:**
+```json
+{
+  "data": [
+    {"t": 1736812800000, "v": 22.3},
+    {"t": 1736816400000, "v": 22.1}
+  ]
+}
+```
+
+The milliseconds format is recommended for:
+- High-frequency data with many data points (reduced payload size)
+- Clients that process timestamps programmatically
+- Integration with charting libraries that expect numeric timestamps
 
 ### 7.4 Response Format
 
@@ -1326,7 +1361,8 @@ The response uses the same topic as the command, with added `status` field:
     "from": "2026-01-14T00:00:00Z",
     "to": "2026-01-15T00:00:00Z",
     "step": "1h",
-    "aggregation": "avg"
+    "aggregation": "avg",
+    "timeFormat": "ms"
   }
 }
 ```
@@ -1348,8 +1384,8 @@ The response uses the same topic as the command, with added `status` field:
       "dataType": "number"
     },
     "data": [
-      {"t": "2026-01-14T00:00:00Z", "v": 22.3},
-      {"t": "2026-01-14T01:00:00Z", "v": 22.1}
+      {"t": 1736812800000, "v": 22.3},
+      {"t": 1736816400000, "v": 22.1}
     ]
   }
 }
