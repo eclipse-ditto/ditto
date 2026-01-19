@@ -69,7 +69,7 @@ A new Ditto microservice that **automatically captures Thing property changes ov
 **Common query parameters:**
 - `from`, `to` — Time range (ISO 8601 or relative like `now-24h`)
 - `step` — Downsampling interval (`1m`, `5m`, `1h`, `1d`)
-- `agg` — Aggregation function (`avg`, `min`, `max`, `sum`, `count`, `first`, `last`, `derivative`)
+- `agg` — Aggregation function (`avg`, `min`, `max`, `sum`, `count`, `first`, `last`, `derivative`, `rate`, `integral`, `stddev`, `percentile`)
 
 ### WoT Configuration Example
 
@@ -1113,7 +1113,8 @@ The timeseries service translates RQL to TS-database-specific queries:
 | `from`       | string | No       | Start time (ISO 8601 or relative)   | `2026-01-14T00:00:00Z`, `now-24h`                          |
 | `to`         | string | No       | End time (default: `now`)           | `2026-01-15T00:00:00Z`, `now`                              |
 | `step`       | string | No       | Downsampling interval               | `1m`, `5m`, `1h`, `1d`                                     |
-| `agg`        | string | No       | Aggregation function                | `avg`, `min`, `max`, `sum`, `count`, `first`, `last`, `derivative`       |
+| `agg`        | string | No       | Aggregation function                | `avg`, `min`, `max`, `sum`, `count`, `first`, `last`, `derivative`, `rate`, `integral`, `stddev`, `percentile`       |
+| `percentile` | number | No       | Percentile value (0-100), required when `agg=percentile` | `95`, `99`, `50`                        |
 | `fill`       | string | No       | Gap filling strategy                | `null`, `previous`, `linear`, `zero`                       |
 | `limit`      | int    | No       | Max data points (raw queries)       | `1000`                                                     |
 | `tz`         | string | No       | Timezone for step alignment         | `Europe/Berlin`, `UTC`                                     |
@@ -1166,6 +1167,10 @@ The milliseconds format is recommended for:
 | `first`      | First value in each time bucket                          | Point-in-time snapshots                       |
 | `last`       | Last value in each time bucket                           | Most recent value per bucket                  |
 | `derivative` | Rate of change between consecutive values (per second)   | Flow rate from cumulative volume              |
+| `rate`       | Non-negative derivative (handles counter resets)         | Request rates, packet counters                |
+| `integral`   | Area under curve (∫value·dt) in value-seconds            | Energy from power (kWh from kW)               |
+| `stddev`     | Standard deviation of values in each time bucket         | Anomaly detection, variance analysis          |
+| `percentile` | Nth percentile (requires `percentile` parameter)         | SLA monitoring (p95, p99 latencies)           |
 
 ##### Derivative Aggregation
 
@@ -1217,6 +1222,151 @@ GET ...?agg=derivative&step=1h
 ```
 
 This gives hourly rate-of-change values, useful for calculating hourly flow rates from cumulative meter readings.
+
+##### Rate Aggregation (Non-Negative Derivative)
+
+The `rate` aggregation is similar to `derivative` but **handles counter resets**. When a counter wraps or resets (value decreases), `rate` treats the new value as the start of a fresh count rather than computing a negative rate.
+
+**Use cases:**
+- Request counters that reset on service restart
+- Packet counters that wrap at max value
+- Any monotonically increasing counter that may reset
+
+**Formula:**
+```
+if (value[n] >= value[n-1]):
+    rate = (value[n] - value[n-1]) / (time[n] - time[n-1])
+else:
+    rate = value[n] / (time[n] - time[n-1])  # Counter reset: treat as fresh start
+```
+
+**Example: Request counter with reset**
+
+Raw data (total HTTP requests):
+```json
+{"t": "2026-01-14T10:00:00Z", "v": 95000}
+{"t": "2026-01-14T11:00:00Z", "v": 100000}
+{"t": "2026-01-14T12:00:00Z", "v": 2000}   // Service restarted, counter reset
+{"t": "2026-01-14T13:00:00Z", "v": 7000}
+```
+
+Query with `derivative` (incorrect for counters):
+```json
+{"t": "2026-01-14T11:00:00Z", "v": 1.39}    // 5000 req/h
+{"t": "2026-01-14T12:00:00Z", "v": -27.2}   // WRONG: negative rate
+{"t": "2026-01-14T13:00:00Z", "v": 1.39}    // 5000 req/h
+```
+
+Query with `rate` (correct):
+```json
+{"t": "2026-01-14T11:00:00Z", "v": 1.39}    // 5000 req/h
+{"t": "2026-01-14T12:00:00Z", "v": 0.56}    // 2000 req/h (from reset)
+{"t": "2026-01-14T13:00:00Z", "v": 1.39}    // 5000 req/h
+```
+
+##### Integral Aggregation
+
+The `integral` aggregation calculates the **area under the curve** using trapezoidal integration. This is essential for converting rate measurements into cumulative totals (the inverse of derivative).
+
+**Formula (trapezoidal rule):**
+```
+integral += (value[n] + value[n-1]) / 2 * (time[n] - time[n-1])
+```
+
+Where time difference is in seconds, giving result in **value-seconds**.
+
+**Use case: Energy from Power**
+
+Power (kW) integrated over time gives energy (kWh):
+
+Raw data (power in kW):
+```json
+{"t": "2026-01-14T10:00:00Z", "v": 5.0}
+{"t": "2026-01-14T11:00:00Z", "v": 6.0}
+{"t": "2026-01-14T12:00:00Z", "v": 4.0}
+```
+
+Query:
+```
+GET /api/2/timeseries/things/{id}/features/meter/properties/power?agg=integral&from=...&to=...
+```
+
+Result (energy in kW·seconds, divide by 3600 for kWh):
+```json
+{
+  "result": {
+    "count": 3,
+    "integral": 37800
+  }
+}
+```
+
+Calculation:
+- 10:00-11:00: `(5.0 + 6.0) / 2 * 3600 = 19800 kW·s`
+- 11:00-12:00: `(6.0 + 4.0) / 2 * 3600 = 18000 kW·s`
+- Total: `37800 kW·s = 10.5 kWh`
+
+##### Standard Deviation Aggregation
+
+The `stddev` aggregation calculates the **sample standard deviation** of values in each time bucket. This measures the spread/variance of data points.
+
+**Use cases:**
+- Anomaly detection (values outside 2-3 standard deviations)
+- Quality metrics (sensor stability)
+- Identifying periods of high variability
+
+**Example: Sensor stability analysis**
+
+Query:
+```
+GET /api/2/timeseries/things/{id}/features/sensor/properties/temperature?agg=stddev&step=1h&from=...&to=...
+```
+
+Result:
+```json
+{
+  "data": [
+    {"t": "2026-01-14T10:00:00Z", "v": 0.5},   // Stable: low variance
+    {"t": "2026-01-14T11:00:00Z", "v": 2.3},   // Unstable: high variance
+    {"t": "2026-01-14T12:00:00Z", "v": 0.4}    // Stable again
+  ]
+}
+```
+
+##### Percentile Aggregation
+
+The `percentile` aggregation calculates the **Nth percentile** of values in each time bucket. Requires the `percentile` query parameter (0-100).
+
+**Common percentiles:**
+- `p50` (median): Typical value, robust to outliers
+- `p90`: 90% of values are below this
+- `p95`: Standard SLA threshold
+- `p99`: Tail latency, worst-case performance
+
+**Use cases:**
+- SLA monitoring ("99% of response times under 200ms")
+- Capacity planning (peak load analysis)
+- Outlier-resistant statistics
+
+**Example: Response time SLA monitoring**
+
+Query for 95th percentile response times per hour:
+```
+GET /api/2/timeseries/things/{id}/features/api/properties/responseTime?agg=percentile&percentile=95&step=1h&from=...&to=...
+```
+
+Result:
+```json
+{
+  "data": [
+    {"t": "2026-01-14T10:00:00Z", "v": 145},   // p95 = 145ms ✓ (under 200ms SLA)
+    {"t": "2026-01-14T11:00:00Z", "v": 230},   // p95 = 230ms ✗ (SLA breach)
+    {"t": "2026-01-14T12:00:00Z", "v": 120}    // p95 = 120ms ✓
+  ]
+}
+```
+
+**Multiple percentiles:** To get multiple percentiles (e.g., p50, p95, p99), make separate queries or use batch query endpoint.
 
 ### 7.4 Response Format
 
@@ -1814,7 +1964,10 @@ db.ts_data.aggregate([
 |---------------------------|-----------------|------------------------------------------|
 | avg, min, max, sum, count | ✅ Native        | `$avg`, `$min`, `$max`, `$sum`, `$count` |
 | first, last               | ✅ Native        | `$first`, `$last`                        |
-| derivative                | ✅ Native        | `$setWindowFields` with `$shift`         |
+| derivative, rate          | ✅ Native        | `$setWindowFields` with `$shift`         |
+| integral                  | ✅ Native        | `$setWindowFields` for running calc      |
+| stddev                    | ✅ Native        | `$stdDevSamp`                            |
+| percentile                | ✅ Native        | `$percentile` (MongoDB 7.0+)             |
 | Time bucketing            | ✅ Native        | `$dateTrunc` with `binSize` and `unit`   |
 | Gap filling               | ✅ Native        | `$densify` + `$fill`                     |
 | Window functions          | ✅ Native        | `$setWindowFields`                       |
@@ -1924,6 +2077,10 @@ This comparison helps users decide whether the default MongoDB adapter is suffic
 | Aggregations (avg/min/max/sum/count) | ✅                      | ✅                 | ✅                       | ✅                   |
 | first/last                           | ✅                      | ✅                 | ✅                       | ✅                   |
 | derivative (rate of change)          | ✅ `$setWindowFields`   | ✅ `DIFFERENCE`    | ✅ Window functions      | ✅ `derivative()`    |
+| rate (non-negative derivative)       | ✅ `$setWindowFields`   | ✅ Custom          | ✅ `GREATEST(0, ...)`    | ✅ Built-in          |
+| integral (area under curve)          | ✅ `$setWindowFields`   | ✅ Custom          | ✅ Window functions      | ✅ `integral()`      |
+| stddev (standard deviation)          | ✅ `$stdDevSamp`        | ✅ Native          | ✅ `stddev_samp`         | ✅ `stddev()`        |
+| percentile (p50, p95, p99)           | ✅ `$percentile` (7.0+) | ✅ Native          | ✅ `percentile_cont`     | ✅ `quantile()`      |
 | Time bucketing                       | ✅ `$dateTrunc`         | ✅ `GROUP BY TIME` | ✅ `time_bucket`         | ✅ `aggregateWindow` |
 | Gap filling                          | ✅ `$densify`+`$fill`   | ✅ `FILL`          | ✅ `time_bucket_gapfill` | ✅ `fill()`          |
 | Window functions                     | ✅ `$setWindowFields`   | ✅                 | ✅                       | ✅                   |
