@@ -1055,7 +1055,33 @@ This endpoint enables fleet-level analytics by querying **directly on the TS dat
 - RQL is translated to TS-database-specific query syntax by the adapter
 - Query goes directly to TS database - no Ditto search round-trip
 - `thingCount` shows how many Things contributed to each group
-- Authorization: User must have `READ_TS` permission on the queried property
+
+**Authorization (two-layer enforcement via PolicyEnforcer)**:
+
+Cross-thing queries enforce authorization at two levels using the locally cached PolicyEnforcer. This is **application-level enforcement**, not database-level — the timeseries service validates permissions before executing the query.
+
+| Layer | Permission | Scope | Enforcement |
+|-------|------------|-------|-------------|
+| **Filter/groupBy fields** | `READ` | Fields referenced in RQL `filter` and `groupBy` | Application-level (PolicyEnforcer check before query) |
+| **Timeseries data** | Configured (`READ_TS` or `READ`) | Properties in `paths` array | Application-level (PolicyEnforcer check before query) |
+
+**Enforcement flow**:
+1. User submits cross-thing query with `filter`, `groupBy`, and `paths`
+2. Timeseries service extracts all field references from RQL filter and groupBy
+3. For each referenced field, check `READ` permission via cached PolicyEnforcer
+4. For each path in `paths`, check configured permission (`READ_TS` or `READ`) via cached PolicyEnforcer
+5. If any permission check fails, return `403 Forbidden` with details of unauthorized fields
+6. If all checks pass, execute query on TS database and return aggregated results
+
+**Important**: Unlike Ditto's Things-Search service which performs MongoDB-level enforcement by storing policy information in the search index, the timeseries service uses application-level enforcement. This is acceptable because:
+- Cross-thing queries return **aggregated** data, not individual Thing data
+- The aggregation result doesn't expose which specific Things contributed
+- Filter fields are limited to **declared tags** which are explicitly configured in WoT models
+
+**Example**: A user querying with `filter: eq(attributes/building,'A')` and `paths: ["/features/env/properties/temperature"]`:
+1. Must have `READ` permission on `attributes/building` to filter by it
+2. Must have the configured permission (`READ_TS` by default) on `/features/env/properties/temperature` to retrieve timeseries data
+3. Query is rejected with 403 if either permission is missing
 
 **RQL Filter Translation**:
 
