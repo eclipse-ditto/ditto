@@ -38,6 +38,7 @@ Ditto consists of five main microservices that communicate via Pekko clustering:
 - Implements CQRS query side
 - Uses MongoDB for building up a wildcard index based search index for Things
 - Translates RQL queries to MongoDB queries
+- **MongoDB-level authorization enforcement**: Search queries are augmented at the MongoDB query level to ensure the user has `READ` permission on all fields referenced in the RQL filter. The search index stores policy information alongside Thing data, enabling database-level filtering of unauthorized data.
 - Performs periodically execution of configured custom metrics, exposing the results via a Prometheus endpoint
 
 ## Inter-Service Communication
