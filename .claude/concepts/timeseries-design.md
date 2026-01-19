@@ -3,7 +3,7 @@
 **Related Issue**: [GitHub #2291 - Provide timeseries facade for Ditto feature properties](https://github.com/eclipse-ditto/ditto/issues/2291)
 
 **Status**: Draft
-**Last Updated**: 2026-01-16
+**Last Updated**: 2026-01-19
 
 ---
 
@@ -13,13 +13,13 @@ A new Ditto microservice that **automatically captures Thing property changes ov
 
 ### What It Does
 
-| Capability                    | Description                                                                        |
-|-------------------------------|------------------------------------------------------------------------------------|
-| **Automatic Ingestion**       | Property changes are automatically written to a timeseries database                |
-| **Declarative Configuration** | WoT ThingModel `ditto:timeseries` annotation defines which properties to track     |
-| **Query API**                 | RESTful API for retrieving historical data with aggregations (avg, min, max, etc.) |
-| **Access Control**            | New `READ_TS` policy permission controls who can access timeseries data            |
-| **Pluggable Backend**         | Default MongoDB Time Series adapter; extensible for IoTDB, TimescaleDB, etc.       |
+| Capability                    | Description                                                                                         |
+|-------------------------------|-----------------------------------------------------------------------------------------------------|
+| **Automatic Ingestion**       | Property changes are automatically written to a timeseries database                                 |
+| **Declarative Configuration** | WoT ThingModel `ditto:timeseries` annotation defines which properties to track                      |
+| **Query API**                 | RESTful API for retrieving historical data with aggregations (avg, min, max, etc.)                  |
+| **Access Control**            | Configurable policy permission (`READ_TS` or `READ`) controls who can access timeseries data        |
+| **Pluggable Backend**         | Default MongoDB Time Series adapter; extensible for IoTDB, TimescaleDB, etc.                        |
 
 ### Architecture Overview
 
@@ -92,7 +92,7 @@ A new Ditto microservice that **automatically captures Thing property changes ov
 ### Key Design Decisions
 
 - **Separate from event sourcing** — TS data is optimized for time-range queries, not revision history
-- **Policy-controlled** — introduction of a new permission `READ_TS` independent of `READ` permission in order to be able to control timeseries access independently of read access
+- **Policy-controlled** — configurable permission (`READ_TS` by default, or `READ`) controls timeseries access; operators can choose between fine-grained control or simplified permission management
 - **MongoDB default** — Zero additional infrastructure using existing Ditto MongoDB as a default implementation
 - **Extensible** — Adapter interface for dedicated TS databases when needed, e.g. when higher scalability needs are in place or an existing concrete TS DB should be used
 
@@ -123,7 +123,7 @@ This uses Ditto's existing MongoDB infrastructure with [Time Series Collections]
 
 1. Provide a unified API for timeseries data across different TS database backends
 2. Enable declarative configuration of which properties to ingest via WoT ThingModel annotations
-3. Integrate with Ditto's policy model for access control (`READ_TS` permission)
+3. Integrate with Ditto's policy model for access control (configurable permission: `READ_TS` or `READ`)
 4. Support common timeseries query operations (time ranges, aggregations, downsampling)
 5. Minimize latency impact on the main Thing update path
 
@@ -737,6 +737,19 @@ Extend the existing permission model with `READ_TS`:
 | `WRITE`    | Modify Thing state                |
 | `READ_TS`  | Read timeseries data for property |
 
+**Configurable Permission Requirement:**
+
+The permission required to access timeseries data is **configurable** at the timeseries service level (see [Section 9.1](#91-timeseries-service-configuration)). This allows operators to choose between:
+
+| Configuration Value | Behavior                                                                                          |
+|---------------------|---------------------------------------------------------------------------------------------------|
+| `READ_TS` (default) | Users need explicit `READ_TS` permission to access timeseries data (fine-grained access control)  |
+| `READ`              | Users with `READ` permission can also read timeseries data (simplified permission management)     |
+
+**Use cases:**
+- **`READ_TS` (default)**: Organizations requiring strict separation between live data access and historical data access. Useful when timeseries data is more sensitive or when different user roles need different access levels.
+- **`READ`**: Organizations preferring simpler permission management where "if you can read the current value, you can also read its history." Reduces policy complexity for straightforward deployments.
+
 ### 6.2 Policy Example
 
 ```json
@@ -791,35 +804,46 @@ Extend the existing permission model with `READ_TS`:
 
 ### 6.3 Enforcement in timeseries
 
+The timeseries service enforces access control using the **configured permission** (see [Section 9.1](#91-timeseries-service-configuration)). This defaults to `READ_TS` but can be changed to `READ` for simpler permission management.
+
 ```java
-public CompletionStage<TimeseriesResult> executeQuery(
-        final TimeseriesQuery query,
-        final DittoHeaders dittoHeaders) {
+public class TimeseriesQueryHandler {
 
-    // 1. Load policy enforcer (cached)
-    return policyEnforcerProvider.getPolicyEnforcer(query.getThingId())
-        .thenCompose(enforcer -> {
-            // 2. Check READ_TS permission for each requested property
-            final AuthorizationContext authContext =
-                dittoHeaders.getAuthorizationContext();
+    private final String requiredPermission;  // Loaded from config: "READ_TS" or "READ"
 
-            final List<JsonPointer> authorizedPaths = query.getPropertyPaths().stream()
-                .filter(path -> enforcer.hasPermission(
-                    ResourceKey.newInstance("thing", toResourcePath(query, path)),
-                    authContext,
-                    Permission.READ_TS))
-                .toList();
+    public TimeseriesQueryHandler(final TimeseriesConfig config) {
+        this.requiredPermission = config.getEnforcement().getRequiredPermission();
+    }
 
-            if (authorizedPaths.isEmpty()) {
-                throw TimeseriesNotAccessibleException.newBuilder(query.getThingId())
-                    .dittoHeaders(dittoHeaders)
-                    .build();
-            }
+    public CompletionStage<TimeseriesResult> executeQuery(
+            final TimeseriesQuery query,
+            final DittoHeaders dittoHeaders) {
 
-            // 3. Execute query for authorized paths only
-            final TimeseriesQuery filteredQuery = query.withPropertyPaths(authorizedPaths);
-            return timeseriesAdapter.query(filteredQuery);
-        });
+        // 1. Load policy enforcer (cached)
+        return policyEnforcerProvider.getPolicyEnforcer(query.getThingId())
+            .thenCompose(enforcer -> {
+                // 2. Check configured permission for each requested property
+                final AuthorizationContext authContext =
+                    dittoHeaders.getAuthorizationContext();
+
+                final List<JsonPointer> authorizedPaths = query.getPropertyPaths().stream()
+                    .filter(path -> enforcer.hasPermission(
+                        ResourceKey.newInstance("thing", toResourcePath(query, path)),
+                        authContext,
+                        requiredPermission))  // Uses configured permission (READ_TS or READ)
+                    .toList();
+
+                if (authorizedPaths.isEmpty()) {
+                    throw TimeseriesNotAccessibleException.newBuilder(query.getThingId())
+                        .dittoHeaders(dittoHeaders)
+                        .build();
+                }
+
+                // 3. Execute query for authorized paths only
+                final TimeseriesQuery filteredQuery = query.withPropertyPaths(authorizedPaths);
+                return timeseriesAdapter.query(filteredQuery);
+            });
+    }
 }
 ```
 
@@ -1615,6 +1639,16 @@ The comparison above is provided as guidance for organizations evaluating custom
 ```hocon
 ditto {
   timeseries {
+    # Enforcement configuration
+    enforcement {
+      # Permission required to read timeseries data.
+      # Options:
+      #   - "READ_TS": Users need explicit READ_TS permission (fine-grained control)
+      #   - "READ": Users with READ permission can also read timeseries (simplified management)
+      required-permission = "READ_TS"
+      required-permission = ${?TIMESERIES_REQUIRED_PERMISSION}
+    }
+
     # Timeseries adapter configuration
     adapter {
       # Which adapter to use. Default: "mongodb"
@@ -1752,6 +1786,12 @@ timeseries:
       memory: 1024Mi
 
   config:
+    enforcement:
+      # Permission required to read timeseries data.
+      # "READ_TS" (default): Users need explicit READ_TS permission
+      # "READ": Users with READ permission can also read timeseries data
+      requiredPermission: "READ_TS"
+
     adapter:
       # Default adapter type. Custom adapters can be added via SPI.
       type: "mongodb"
