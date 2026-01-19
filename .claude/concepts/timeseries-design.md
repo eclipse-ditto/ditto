@@ -1251,8 +1251,26 @@ POST /api/2/timeseries/things/org.eclipse.ditto:sensor-1
 | 400    | `timeseries:query.invalid`         | Invalid query parameters   |
 | 403    | `timeseries:timeseries.notallowed` | No READ_TS permission      |
 | 404    | `timeseries:thing.notfound`        | Thing does not exist       |
-| 404    | `timeseries:data.notfound`         | No data in requested range |
 | 503    | `timeseries:backend.unavailable`   | TS database unavailable    |
+
+**Empty results**: When no timeseries data exists in the requested time range, the API returns **HTTP 200** with an empty `data` array (not 404). This is consistent with Ditto's search API pattern where empty search results return 200 with an empty `items` array.
+
+```json
+{
+  "thingId": "org.eclipse.ditto:sensor-1",
+  "path": "/features/environment/properties/temperature",
+  "query": {
+    "from": "2026-01-14T00:00:00Z",
+    "to": "2026-01-15T00:00:00Z"
+  },
+  "result": {
+    "count": 0,
+    "unit": "cel",
+    "dataType": "number"
+  },
+  "data": []
+}
+```
 
 ---
 
