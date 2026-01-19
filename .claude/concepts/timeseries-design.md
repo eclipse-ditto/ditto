@@ -1272,6 +1272,184 @@ POST /api/2/timeseries/things/org.eclipse.ditto:sensor-1
 }
 ```
 
+### 7.6 Ditto Protocol Topic Paths
+
+The timeseries API integrates with the [Ditto Protocol](https://www.eclipse.dev/ditto/protocol-specification.html) for access via WebSocket and Connectivity channels. The topic path format follows Ditto conventions.
+
+#### Topic Path Structure
+
+Timeseries uses the `timeseries` criterion under the `things` group:
+
+```
+<namespace>/<thingName>/things/<channel>/timeseries/<action>
+```
+
+| Component       | Description                                    | Values                                      |
+|-----------------|------------------------------------------------|---------------------------------------------|
+| `namespace`     | Thing namespace                                | e.g., `org.eclipse.ditto`                   |
+| `thingName`     | Thing name (or `_` for cross-thing queries)    | e.g., `sensor-1` or `_`                     |
+| `things`        | Group (always `things` for timeseries)         | `things`                                    |
+| `channel`       | Channel (timeseries uses twin channel)         | `twin`                                      |
+| `timeseries`    | Criterion                                      | `timeseries`                                |
+| `action`        | Command or event action                        | See tables below                            |
+
+#### Single-Thing Timeseries Query
+
+For querying timeseries data of a specific Thing, use direct request-response pattern:
+
+**Command (Client → Ditto):**
+
+| Action       | Topic                                                        | Description                        |
+|--------------|--------------------------------------------------------------|------------------------------------|
+| `retrieve`   | `<ns>/<name>/things/twin/timeseries/retrieve`                | Query timeseries data              |
+
+**Response (Ditto → Client):**
+
+The response uses the same topic as the command, with added `status` field:
+
+| Field      | Value                                                                   |
+|------------|-------------------------------------------------------------------------|
+| **topic**  | `<ns>/<name>/things/twin/timeseries/retrieve`                           |
+| **status** | `200` for success, error codes as per Section 7.5                       |
+| **value**  | Timeseries query result                                                 |
+
+**Example - Retrieve Timeseries Command:**
+
+```json
+{
+  "topic": "org.eclipse.ditto/sensor-1/things/twin/timeseries/retrieve",
+  "path": "/features/environment/properties/temperature",
+  "headers": {
+    "correlation-id": "query-123"
+  },
+  "value": {
+    "from": "2026-01-14T00:00:00Z",
+    "to": "2026-01-15T00:00:00Z",
+    "step": "1h",
+    "aggregation": "avg"
+  }
+}
+```
+
+**Example - Retrieve Timeseries Response:**
+
+```json
+{
+  "topic": "org.eclipse.ditto/sensor-1/things/twin/timeseries/retrieve",
+  "path": "/features/environment/properties/temperature",
+  "headers": {
+    "correlation-id": "query-123"
+  },
+  "status": 200,
+  "value": {
+    "result": {
+      "count": 24,
+      "unit": "cel",
+      "dataType": "number"
+    },
+    "data": [
+      {"t": "2026-01-14T00:00:00Z", "v": 22.3},
+      {"t": "2026-01-14T01:00:00Z", "v": 22.1}
+    ]
+  }
+}
+```
+
+#### Cross-Thing Aggregation Query
+
+For cross-thing aggregation queries, use the `query` action with `_/_` placeholder since no specific Thing is targeted:
+
+**Command (Client → Ditto):**
+
+| Action   | Topic                                | Description                        |
+|----------|--------------------------------------|------------------------------------|
+| `query`  | `_/_/things/twin/timeseries/query`   | Cross-thing aggregation query      |
+
+**Response (Ditto → Client):**
+
+The response uses the same topic as the command, with added `status` field:
+
+| Field      | Value                                                                   |
+|------------|-------------------------------------------------------------------------|
+| **topic**  | `_/_/things/twin/timeseries/query`                                      |
+| **status** | `200` for success, error codes as per Section 7.5                       |
+| **value**  | Aggregation query result                                                |
+
+**Example - Query Command:**
+
+```json
+{
+  "topic": "_/_/things/twin/timeseries/query",
+  "path": "/",
+  "headers": {
+    "correlation-id": "agg-query-456"
+  },
+  "value": {
+    "filter": "eq(attributes/building,'A')",
+    "paths": ["/features/environment/properties/temperature"],
+    "from": "2026-01-14T00:00:00Z",
+    "to": "2026-01-15T00:00:00Z",
+    "step": "1h",
+    "aggregation": "avg",
+    "groupBy": ["attributes/floor"]
+  }
+}
+```
+
+**Example - Query Response:**
+
+```json
+{
+  "topic": "_/_/things/twin/timeseries/query",
+  "path": "/",
+  "headers": {
+    "correlation-id": "agg-query-456"
+  },
+  "status": 200,
+  "value": {
+    "query": {
+      "filter": "eq(attributes/building,'A')",
+      "paths": ["/features/environment/properties/temperature"],
+      "from": "2026-01-14T00:00:00Z",
+      "to": "2026-01-15T00:00:00Z",
+      "step": "1h",
+      "aggregation": "avg",
+      "groupBy": ["attributes/floor"]
+    },
+    "groups": [
+      {
+        "tags": {"attributes/floor": "1"},
+        "thingCount": 5,
+        "series": {
+          "/features/environment/properties/temperature": {
+            "unit": "cel",
+            "data": [
+              {"t": "2026-01-14T00:00:00Z", "v": 22.3},
+              {"t": "2026-01-14T01:00:00Z", "v": 22.1}
+            ]
+          }
+        }
+      }
+    ]
+  }
+}
+```
+
+> **Note**: Streaming support for large result sets via reactive-streams pattern (similar to Things-Search) may be added in a future version if needed.
+
+#### Path Field Semantics
+
+The `path` field in timeseries protocol messages specifies which property's timeseries is being queried:
+
+| Path                                          | Scope                                      |
+|-----------------------------------------------|--------------------------------------------|
+| `/`                                           | All TS-enabled properties of the Thing     |
+| `/features`                                   | All TS-enabled feature properties          |
+| `/features/{featureId}`                       | All TS-enabled properties of a feature     |
+| `/features/{featureId}/properties/{property}` | Single feature property                    |
+| `/attributes`                                 | All TS-enabled attributes                  |
+| `/attributes/{attribute}`                     | Single attribute                           |
+
 ---
 
 ## 8. TS Database Abstraction
