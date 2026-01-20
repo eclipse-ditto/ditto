@@ -146,6 +146,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     private int opCounter = 0;
     private int sudoOpCounter = 0;
     private boolean paRecovered = false;
+    private boolean loggedStartupMessage = false;
 
     protected AbstractPersistenceSupervisor(@Nullable final BlockedNamespaces blockedNamespaces,
             final MongoReadJournal mongoReadJournal, final SupervisorConfig supervisorConfig) {
@@ -1144,9 +1145,23 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
      */
     protected void handleMessagesDuringStartup(final Object message) {
         stash();
+        if (!loggedStartupMessage) {
+            loggedStartupMessage = true;
+            log.withCorrelationId(message instanceof WithDittoHeaders withDittoHeaders ? withDittoHeaders : null)
+                    .info("Persistence actor for entity <{}> was started caused by message <{}> from sender <{}>",
+                            entityId, formatMessageForLogging(message), getSender());
+        }
         log.withCorrelationId(message instanceof WithDittoHeaders withDittoHeaders ? withDittoHeaders : null)
                 .debug("Stashed received message during startup of supervised PersistenceActor: <{}>",
                         message.getClass().getSimpleName());
+    }
+
+    private static String formatMessageForLogging(final Object message) {
+        if (message instanceof WithType withType) {
+            return withType.getType();
+        } else {
+            return message.getClass().getSimpleName();
+        }
     }
 
     /**
