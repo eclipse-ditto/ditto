@@ -259,6 +259,10 @@ spec:
               value: "{{ .Values.thingsSearch.config.updater.stream.retrievalParallelism }}"
             - name: THINGS_SEARCH_UPDATER_STREAM_PERSISTENCE_PARALLELISM
               value: "{{ .Values.thingsSearch.config.updater.stream.persistence.parallelism }}"
+            - name: THINGS_SEARCH_QUERY_SLOW_QUERY_LOG_ENABLED
+              value: "{{ .Values.thingsSearch.config.query.slowQueryLog.enabled }}"
+            - name: THINGS_SEARCH_QUERY_SLOW_QUERY_LOG_THRESHOLD
+              value: "{{ .Values.thingsSearch.config.query.slowQueryLog.threshold }}"
             - name: THINGS_SEARCH_OPERATOR_METRICS_ENABLED
               value: "{{ .Values.thingsSearch.config.operatorMetrics.enabled }}"
             - name: THINGS_SEARCH_OPERATOR_METRICS_SCRAPE_INTERVAL

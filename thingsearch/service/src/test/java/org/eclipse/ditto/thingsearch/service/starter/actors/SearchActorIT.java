@@ -64,6 +64,7 @@ import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThingsResponse;
 import org.eclipse.ditto.thingsearch.service.common.config.DefaultSearchPersistenceConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
+import org.eclipse.ditto.thingsearch.service.common.config.SlowQueryLogConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 import org.eclipse.ditto.thingsearch.service.persistence.query.QueryParser;
 import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsSearchPersistence;
@@ -100,6 +101,7 @@ public final class SearchActorIT {
 
     private static Config actorsTestConfig;
     private static QueryParser queryParser;
+    private static SlowQueryLogConfig slowQueryLogConfig;
 
     private ActorSystem actorSystem;
     private MongoThingsSearchPersistence readPersistence;
@@ -109,9 +111,10 @@ public final class SearchActorIT {
     @BeforeClass
     public static void startMongoResource() {
         actorsTestConfig = ConfigFactory.load("actors-test.conf");
-        queryParser = SearchRootActor.getQueryParser(
-                DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(actorsTestConfig)),
+        final var searchConfig = DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(actorsTestConfig));
+        queryParser = SearchRootActor.getQueryParser(searchConfig,
                 ActorSystem.create(SearchActorIT.class.getSimpleName(), actorsTestConfig));
+        slowQueryLogConfig = searchConfig.getSlowQueryLogConfig();
         mongoClient = provideClientWrapper();
         policy = createPolicy();
     }
@@ -173,7 +176,7 @@ public final class SearchActorIT {
     public void testSearch() {
         new TestKit(actorSystem) {{
             final ActorRef underTest = actorSystem.actorOf(SearchActor.props(queryParser, readPersistence,
-                    actorSystem.deadLetters()));
+                    actorSystem.deadLetters(), slowQueryLogConfig));
 
             insertTestThings();
 
@@ -189,7 +192,7 @@ public final class SearchActorIT {
     public void testStream() {
         new TestKit(actorSystem) {{
             final ActorRef underTest = actorSystem.actorOf(SearchActor.props(queryParser, readPersistence,
-                    actorSystem.deadLetters()));
+                    actorSystem.deadLetters(), slowQueryLogConfig));
 
             insertTestThings();
 
@@ -212,7 +215,7 @@ public final class SearchActorIT {
     public void testCursorSearch() {
         new TestKit(actorSystem) {{
             final ActorRef underTest = actorSystem.actorOf(SearchActor.props(queryParser, readPersistence,
-                    actorSystem.deadLetters()));
+                    actorSystem.deadLetters(), slowQueryLogConfig));
             final Supplier<AssertionError> noCursor =
                     () -> new AssertionError("No cursor where a cursor is expected");
 

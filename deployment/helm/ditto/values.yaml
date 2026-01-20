@@ -1631,6 +1631,14 @@ thingsSearch:
         interval: 1s
         # limit is the maximum number of updates allowed within each throttling interval
         limit: 100
+    # query contains configuration for the search query handling
+    query:
+      # slowQueryLog contains configuration for logging slow search queries
+      slowQueryLog:
+        # enabled controls whether slow query logging is enabled
+        enabled: true
+        # threshold defines the duration above which queries are considered slow and logged
+        threshold: "1s"
     # updater contains configuration for the "Things Updater" of things-search service
     updater:
       # activityCheckInterval configures to keep thing updaters for that amount of time in memory when no update did happen:

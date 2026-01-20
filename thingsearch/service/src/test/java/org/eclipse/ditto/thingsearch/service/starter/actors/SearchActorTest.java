@@ -43,6 +43,7 @@ import org.eclipse.ditto.thingsearch.model.signals.commands.query.CountThingsRes
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThingsResponse;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
+import org.eclipse.ditto.thingsearch.service.common.config.SlowQueryLogConfig;
 import org.eclipse.ditto.thingsearch.service.common.model.ResultListImpl;
 import org.eclipse.ditto.thingsearch.service.persistence.query.QueryParser;
 import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence;
@@ -71,17 +72,19 @@ public final class SearchActorTest {
 
     private final ThingsSearchPersistence persistence = Mockito.mock(ThingsSearchPersistence.class);
     private QueryParser queryParser;
+    private SlowQueryLogConfig slowQueryLogConfig;
 
     @Before
     public void init() {
         final var searchConfig = DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(CONFIG));
         queryParser = SearchRootActor.getQueryParser(searchConfig, actorSystemResource.getActorSystem());
+        slowQueryLogConfig = searchConfig.getSlowQueryLogConfig();
     }
 
     @Test
     public void unbindAndStopWithoutQuery() {
         new TestKit(actorSystemResource.getActorSystem()) {{
-            final var props = SearchActor.props(queryParser, persistence, getRef());
+            final var props = SearchActor.props(queryParser, persistence, getRef(), slowQueryLogConfig);
             final var underTest = childActorOf(props, SearchActor.ACTOR_NAME);
 
             final var expectedSubscribe =
@@ -108,7 +111,7 @@ public final class SearchActorTest {
     @Test
     public void waitForQueries() {
         new TestKit(actorSystemResource.getActorSystem()) {{
-            final var props = SearchActor.props(queryParser, persistence, getRef());
+            final var props = SearchActor.props(queryParser, persistence, getRef(), slowQueryLogConfig);
             final var underTest = childActorOf(props, SearchActor.ACTOR_NAME);
 
             final var expectedSubscribe =
