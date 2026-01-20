@@ -569,7 +569,9 @@ All new files MUST include the Eclipse Public License 2.0 header:
  */
 ```
 
-Use current year when creating new files. Template in `src/license-header.txt`.
+⚠️ **REQUIRED**: Newly generated files MUST always contain the **year of file creation** in the copyright header. Use the current year when creating new files - do not copy years from existing files.
+
+Template in `src/license-header.txt`.
 
 ## Code Style
 
