@@ -34,6 +34,7 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.NamespaceActivityCheckConfigProvider;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceActor;
@@ -91,6 +92,7 @@ public final class ThingPersistenceActor
             AckExtractor.of(ThingEvent::getEntityId, ThingEvent::getDittoHeaders);
 
     private final ThingConfig thingConfig;
+    private final NamespaceActivityCheckConfigProvider activityCheckConfigProvider;
     private final DistributedPub<ThingEvent<?>> distributedPub;
     @Nullable private final ActorRef searchShardRegionProxy;
     private final ThingEventEnricher thingEventEnricher;
@@ -105,6 +107,10 @@ public final class ThingPersistenceActor
 
         super(thingId, mongoReadJournal);
         this.thingConfig = thingConfig;
+        this.activityCheckConfigProvider = NamespaceActivityCheckConfigProvider.of(
+                thingConfig.getNamespaceActivityCheckConfigs(),
+                thingConfig.getActivityCheckConfig()
+        );
         this.distributedPub = distributedPub;
         this.searchShardRegionProxy = searchShardRegionProxy;
         this.thingEventEnricher = new ThingEventEnricher(
@@ -219,7 +225,7 @@ public final class ThingPersistenceActor
 
     @Override
     protected ActivityCheckConfig getActivityCheckConfig() {
-        return thingConfig.getActivityCheckConfig();
+        return activityCheckConfigProvider.getConfigForNamespace(entityId.getNamespace());
     }
 
     @Override

@@ -13,11 +13,13 @@
 package org.eclipse.ditto.things.service.common.config;
 
 import java.time.Duration;
+import java.util.List;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.supervision.WithSupervisorConfig;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.NamespaceActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithSnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.cleanup.WithCleanupConfig;
@@ -49,6 +51,15 @@ public interface ThingConfig extends WithSupervisorConfig, WithActivityCheckConf
      * @return The timeout.
      */
     Duration getShutdownTimeout();
+
+    /**
+     * Returns the list of namespace-specific activity check configurations.
+     * These allow different passivation intervals to be configured for things in specific namespaces.
+     *
+     * @return the list of namespace activity check configurations.
+     * @since 3.9.0
+     */
+    List<NamespaceActivityCheckConfig> getNamespaceActivityCheckConfigs();
 
     /**
      * Indicates whether empty JSON objects should be removed from merge payloads when patch conditions filter out all content.
