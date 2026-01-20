@@ -144,7 +144,7 @@ spec:
             name: {{ .Release.Name }}-nginx-conf
         - name: nginx-htpasswd
           secret:
-            secretName: {{ .Release.Name }}-nginx-config-nginx-htpasswd
+            secretName: {{ .Release.Name }}-{{ .Values.nginx.config.htpasswdSecretName }}
         - name: nginx-cors
           configMap:
             name: {{ .Release.Name }}-nginx-config-nginx-cors-conf
