@@ -18,7 +18,7 @@ jobs:
   check-license-header-year:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: jitterbit/get-changed-files@v1
         id: the-files
         continue-on-error: true

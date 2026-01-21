@@ -156,7 +156,6 @@ spec:
                 -XX:MaxGCPauseMillis={{ .Values.gateway.jvm.maxGcPauseMillis }}
                 -XX:G1ReservePercent={{ .Values.gateway.jvm.g1ReservePercent }}
                 -XX:InitiatingHeapOccupancyPercent={{ .Values.gateway.jvm.initiatingHeapOccupancyPercent }}
-                -XX:+UnlockExperimentalVMOptions
                 -XX:G1NewSizePercent={{ .Values.gateway.jvm.g1NewSizePercent }}
                 -XX:G1MaxNewSizePercent={{ .Values.gateway.jvm.g1MaxNewSizePercent }}
                 {{- if .Values.gateway.activateGcLogging }}

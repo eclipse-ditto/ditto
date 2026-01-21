@@ -22,14 +22,14 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       -
         name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
       -
         name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v2 # setup buildx in order to do build and push multi-architecture images
+        uses: docker/setup-buildx-action@v3 # setup buildx in order to do build and push multi-architecture images
       -
         name: Inspect buildx builder
         run: |
@@ -131,7 +131,7 @@ jobs:
             eclipse/ditto-connectivity:${{ env.IMAGE_TAG }}
       -
         name: Use Node.js 18.x
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
       -

@@ -118,8 +118,8 @@
     <properties>
         <revision>0-SNAPSHOT</revision>
 
-        <javac.source>21</javac.source>
-        <javac.target>21</javac.target>
+        <javac.source>25</javac.source>
+        <javac.target>25</javac.target>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -146,6 +146,7 @@
             (org\.eclipse\.ditto.*)|(com\.lihaoyi.*)
         </ditto.thirdPartyLicences.excludedGroups>
 
+        <classindex.version>3.13</classindex.version>
         <japicmp-maven-plugin.version>0.18.3</japicmp-maven-plugin.version>
 
         <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
@@ -171,6 +172,15 @@
                         <source>${javac.source}</source>
                         <target>${javac.target}</target>
                         <encoding>${project.build.sourceEncoding}</encoding>
+                        <!-- Explicit annotation processor configuration required for JDK 23+
+                             (JDK-8321319 disabled automatic discovery for security reasons) -->
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.atteo.classindex</groupId>
+                                <artifactId>classindex</artifactId>
+                                <version>${classindex.version}</version>
+                            </path>
+                        </annotationProcessorPaths>
                     </configuration>
                 </plugin>
                 <plugin>
@@ -282,7 +292,7 @@
                 <plugin>
                     <groupId>org.jacoco</groupId>
                     <artifactId>jacoco-maven-plugin</artifactId>
-                    <version>0.8.12</version>
+                    <version>0.8.14</version>
                 </plugin>
                 <plugin>
                     <groupId>com.github.siom79.japicmp</groupId>
@@ -886,6 +896,15 @@
                             <target>${javac.target}</target>
                             <encoding>${project.build.sourceEncoding}</encoding>
                             <showDeprecation>true</showDeprecation>
+                            <!-- Explicit annotation processor configuration required for JDK 23+
+                                 (JDK-8321319 disabled automatic discovery for security reasons) -->
+                            <annotationProcessorPaths>
+                                <path>
+                                    <groupId>org.atteo.classindex</groupId>
+                                    <artifactId>classindex</artifactId>
+                                    <version>${classindex.version}</version>
+                                </path>
+                            </annotationProcessorPaths>
                         </configuration>
                     </plugin>
                 </plugins>

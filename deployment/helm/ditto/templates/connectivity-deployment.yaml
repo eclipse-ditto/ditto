@@ -156,7 +156,6 @@ spec:
                 -XX:MaxGCPauseMillis={{ .Values.connectivity.jvm.maxGcPauseMillis }}
                 -XX:G1ReservePercent={{ .Values.connectivity.jvm.g1ReservePercent }}
                 -XX:InitiatingHeapOccupancyPercent={{ .Values.connectivity.jvm.initiatingHeapOccupancyPercent }}
-                -XX:+UnlockExperimentalVMOptions
                 -XX:G1NewSizePercent={{ .Values.connectivity.jvm.g1NewSizePercent }}
                 -XX:G1MaxNewSizePercent={{ .Values.connectivity.jvm.g1MaxNewSizePercent }}
                 {{- if .Values.connectivity.activateGcLogging }}

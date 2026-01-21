@@ -73,19 +73,17 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
      * @param entityMapper the mapper used to map {@link org.eclipse.ditto.internal.utils.persistence.mongo.streaming.PidWithSeqNr}
      * to {@code T}. The resulting entity will be streamed to the recipient actor.
      * @param entityUnmapper the mapper used to map elements back to PidWithSeqNr for stream resumption.
+     * @param mongoClient the DittoMongoClient to use for tests.
      * @param readJournal the ReadJournal to use instead of creating one in the non-test constructor.
      */
     protected AbstractPersistenceStreamingActor(final Function<PidWithSeqNr, T> entityMapper,
             final Function<EntityIdWithRevision<?>, PidWithSeqNr> entityUnmapper,
+            final DittoMongoClient mongoClient,
             final MongoReadJournal readJournal) {
         this.entityMapper = requireNonNull(entityMapper);
         this.entityUnmapper = entityUnmapper;
-
-        final var config = getContext().getSystem().settings().config();
-        final MongoDbConfig mongoDbConfig =
-                DefaultMongoDbConfig.of(DefaultScopedConfig.dittoScoped(config));
-        mongoClient = MongoClientWrapper.newInstance(mongoDbConfig);
-        this.readJournal = readJournal;
+        this.mongoClient = requireNonNull(mongoClient);
+        this.readJournal = requireNonNull(readJournal);
     }
 
     @Override

@@ -423,7 +423,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * WRITE permission on policy resource).
      *
      * <p>
-     * Key {@code "allow-policy-lockout"}, Java type: {@link boolean}.
+     * Key {@code "allow-policy-lockout"}, Java type: boolean.
      * </p>
      *
      * @since 1.3.0

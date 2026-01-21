@@ -19,6 +19,18 @@ import static org.mockito.ArgumentMatchers.eq;
 
 import java.util.List;
 
+import org.apache.pekko.Done;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.SourceRef;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.bson.Document;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
@@ -35,18 +47,6 @@ import org.mockito.Mockito;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-
-import org.apache.pekko.Done;
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
-import org.apache.pekko.stream.SourceRef;
-import org.apache.pekko.stream.javadsl.Sink;
-import org.apache.pekko.stream.javadsl.Source;
-import org.apache.pekko.testkit.TestProbe;
-import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Test for {@link SnapshotStreamingActor}.
@@ -178,12 +178,14 @@ public final class SnapshotStreamingActorTest {
 
 
     private void setSnapshotStore(final Source<Document, NotUsed> mockSource) {
-        Mockito.when(mockReadJournal.getNewestSnapshotsAbove(any(SnapshotFilter.class), anyInt(), any(), any()))
+        Mockito.when(mockReadJournal.getNewestSnapshotsAbove(
+                any(SnapshotFilter.class), anyInt(), any(Materializer.class), any(String[].class)))
                 .thenReturn(mockSource);
     }
 
     private void setSnapshotStore(final SnapshotFilter expectedFilter, final Source<Document, NotUsed> mockSource) {
-        Mockito.when(mockReadJournal.getNewestSnapshotsAbove(eq(expectedFilter), anyInt(), any(), any()))
+        Mockito.when(mockReadJournal.getNewestSnapshotsAbove(
+                eq(expectedFilter), anyInt(), any(Materializer.class), any(String[].class)))
                 .thenReturn(mockSource);
     }
 
