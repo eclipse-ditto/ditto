@@ -156,7 +156,6 @@ spec:
                 -XX:MaxGCPauseMillis={{ .Values.thingsSearch.jvm.maxGcPauseMillis }}
                 -XX:G1ReservePercent={{ .Values.thingsSearch.jvm.g1ReservePercent }}
                 -XX:InitiatingHeapOccupancyPercent={{ .Values.thingsSearch.jvm.initiatingHeapOccupancyPercent }}
-                -XX:+UnlockExperimentalVMOptions
                 -XX:G1NewSizePercent={{ .Values.thingsSearch.jvm.g1NewSizePercent }}
                 -XX:G1MaxNewSizePercent={{ .Values.thingsSearch.jvm.g1MaxNewSizePercent }}
                 {{- if .Values.thingsSearch.activateGcLogging }}

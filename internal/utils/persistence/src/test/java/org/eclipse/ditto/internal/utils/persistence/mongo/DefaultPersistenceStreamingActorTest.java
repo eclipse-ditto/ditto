@@ -17,35 +17,36 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.UUID;
 
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.SourceRef;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.stream.testkit.javadsl.TestSink;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.things.model.ThingConstants;
-import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.models.streaming.AbstractEntityIdWithRevision;
 import org.eclipse.ditto.internal.models.streaming.BatchedEntityIdWithRevisions;
 import org.eclipse.ditto.internal.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.internal.models.streaming.SudoStreamPids;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.PidWithSeqNr;
-import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.things.model.ThingConstants;
+import org.eclipse.ditto.things.model.ThingId;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.stream.SourceRef;
-import org.apache.pekko.stream.javadsl.Source;
-import org.apache.pekko.stream.testkit.javadsl.TestSink;
-import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Test for {@link DefaultPersistenceStreamingActor}.
@@ -114,11 +115,13 @@ public final class DefaultPersistenceStreamingActorTest {
     }
 
     private static ActorRef createPersistenceQueriesActor(final Source<String, NotUsed> mockedSource) {
+        final DittoMongoClient mockClient = mock(DittoMongoClient.class);
         final MongoReadJournal mockJournal = mock(MongoReadJournal.class);
-        when(mockJournal.getJournalPids(anyInt(), any(), any())).thenReturn(mockedSource);
+        when(mockJournal.getJournalPids(anyInt(), any(Duration.class), any(Materializer.class))).thenReturn(mockedSource);
         final Props props = DefaultPersistenceStreamingActor.propsForTests(SimpleEntityIdWithRevision.class,
                 DefaultPersistenceStreamingActorTest::mapEntity,
                 DefaultPersistenceStreamingActorTest::unmapEntity,
+                mockClient,
                 mockJournal);
         return actorSystem.actorOf(props, "persistenceQueriesActor-" + UUID.randomUUID());
     }

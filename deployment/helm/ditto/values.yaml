@@ -116,6 +116,7 @@ global:
     -XX:+UseG1GC
     -XX:+ParallelRefProcEnabled
     -XX:+DisableExplicitGC
+    -XX:+UnlockExperimentalVMOptions
     -Djava.net.preferIPv4Stack=true
   pekkoOptions: >
     -Dpekko.management.cluster.bootstrap.contact-point-discovery.port-name=management

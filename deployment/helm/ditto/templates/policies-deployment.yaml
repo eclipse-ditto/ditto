@@ -156,7 +156,6 @@ spec:
                 -XX:MaxGCPauseMillis={{ .Values.policies.jvm.maxGcPauseMillis }}
                 -XX:G1ReservePercent={{ .Values.policies.jvm.g1ReservePercent }}
                 -XX:InitiatingHeapOccupancyPercent={{ .Values.policies.jvm.initiatingHeapOccupancyPercent }}
-                -XX:+UnlockExperimentalVMOptions
                 -XX:G1NewSizePercent={{ .Values.policies.jvm.g1NewSizePercent }}
                 -XX:G1MaxNewSizePercent={{ .Values.policies.jvm.g1MaxNewSizePercent }}
                 {{- if .Values.policies.activateGcLogging }}
