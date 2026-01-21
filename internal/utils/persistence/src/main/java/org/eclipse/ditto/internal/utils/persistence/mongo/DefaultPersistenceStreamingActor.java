@@ -14,12 +14,11 @@ package org.eclipse.ditto.internal.utils.persistence.mongo;
 
 import java.util.function.Function;
 
+import org.apache.pekko.actor.Props;
 import org.eclipse.ditto.internal.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.PidWithSeqNr;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
-
-import org.apache.pekko.actor.Props;
 
 /**
  * Configurable default implementation of {@link AbstractPersistenceStreamingActor}.
@@ -43,9 +42,10 @@ public final class DefaultPersistenceStreamingActor<T extends EntityIdWithRevisi
     private DefaultPersistenceStreamingActor(final Class<T> elementClass,
             final Function<PidWithSeqNr, T> entityMapper,
             final Function<EntityIdWithRevision<?>, PidWithSeqNr> entityUnmapper,
+            final DittoMongoClient mongoClient,
             final MongoReadJournal readJournal) {
 
-        super(entityMapper, entityUnmapper, readJournal);
+        super(entityMapper, entityUnmapper, mongoClient, readJournal);
         this.elementClass = elementClass;
     }
 
@@ -70,10 +70,11 @@ public final class DefaultPersistenceStreamingActor<T extends EntityIdWithRevisi
     static <T extends EntityIdWithRevision<?>> Props propsForTests(final Class<T> elementClass,
             final Function<PidWithSeqNr, T> entityMapper,
             final Function<EntityIdWithRevision<?>, PidWithSeqNr> entityUnmapper,
+            final DittoMongoClient mongoClient,
             final MongoReadJournal readJournal) {
 
         return Props.create(DefaultPersistenceStreamingActor.class, elementClass, entityMapper, entityUnmapper,
-                readJournal);
+                mongoClient, readJournal);
     }
 
     @Override

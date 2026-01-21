@@ -38,12 +38,13 @@ public final class ThingEnforcement extends AbstractEnforcementReloaded<Signal<?
     private final List<ThingEnforcementStrategy> enforcementStrategies;
 
     public ThingEnforcement(final ActorRef policiesShardRegion, final ActorSystem actorSystem,
-            final EnforcementConfig enforcementConfig) {
+            final EnforcementConfig enforcementConfig,
+            final boolean partialAccessEventsEnabled) {
 
         enforcementStrategies = List.of(
-                new LiveSignalEnforcement(),
-                new ThingCommandEnforcement(actorSystem, policiesShardRegion, enforcementConfig),
-                new StreamRequestingCommandEnforcement()
+                new LiveSignalEnforcement(partialAccessEventsEnabled),
+                new ThingCommandEnforcement(actorSystem, policiesShardRegion, enforcementConfig, partialAccessEventsEnabled),
+                new StreamRequestingCommandEnforcement(partialAccessEventsEnabled)
         );
     }
 

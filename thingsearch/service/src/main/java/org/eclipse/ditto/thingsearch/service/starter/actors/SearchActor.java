@@ -12,9 +12,11 @@
  */
 package org.eclipse.ditto.thingsearch.service.starter.actors;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
@@ -84,10 +86,12 @@ import org.eclipse.ditto.thingsearch.model.signals.commands.query.CountThingsRes
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThingsResponse;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.ThingSearchQueryCommand;
+import org.eclipse.ditto.thingsearch.service.common.config.SlowQueryLogConfig;
 import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
 import org.eclipse.ditto.thingsearch.service.common.model.TimestampedThingId;
 import org.eclipse.ditto.thingsearch.service.persistence.query.QueryParser;
 import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence;
+import org.eclipse.ditto.thingsearch.service.persistence.read.criteria.visitors.CreateBsonVisitor;
 
 import com.typesafe.config.Config;
 
@@ -121,6 +125,9 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
 
     private static final Map<String, ThreadSafeDittoLogger> NAMESPACE_INSPECTION_LOGGERS = new HashMap<>();
 
+    private static final ThreadSafeDittoLogger SLOW_QUERY_LOGGER =
+            DittoLoggerFactory.getThreadSafeLogger("org.eclipse.ditto.thingsearch.slowqueries");
+
     private static final SharedKillSwitch streamKillSwitch = KillSwitches.shared(ACTOR_NAME);
 
     private final ThreadSafeDittoLoggingAdapter log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
@@ -130,14 +137,16 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
     private final PreEnforcerProvider preEnforcer;
     private final SignalTransformer signalTransformer;
     private final ActorRef pubSubMediator;
+    private final SlowQueryLogConfig slowQueryLogConfig;
 
     @SuppressWarnings("unused")
     private SearchActor(final QueryParser queryParser, final ThingsSearchPersistence searchPersistence,
-            final ActorRef pubSubMediator) {
+            final ActorRef pubSubMediator, final SlowQueryLogConfig slowQueryLogConfig) {
 
         this.queryParser = queryParser;
         this.searchPersistence = searchPersistence;
         this.pubSubMediator = pubSubMediator;
+        this.slowQueryLogConfig = slowQueryLogConfig;
         final var system = getSystem();
         final Config config = system.settings().config();
         final var dittoExtensionsConfig = ScopedConfig.dittoExtension(config);
@@ -160,12 +169,13 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
      * @param searchPersistence the {@link org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence}
      * to use in order to execute queries.
      * @param pubSubMediator the Pekko pub-sub mediator.
+     * @param slowQueryLogConfig the configuration for slow query logging.
      * @return the Pekko configuration Props object.
      */
     static Props props(final QueryParser queryFactory, final ThingsSearchPersistence searchPersistence,
-            final ActorRef pubSubMediator) {
+            final ActorRef pubSubMediator, final SlowQueryLogConfig slowQueryLogConfig) {
 
-        return Props.create(SearchActor.class, queryFactory, searchPersistence, pubSubMediator)
+        return Props.create(SearchActor.class, queryFactory, searchPersistence, pubSubMediator, slowQueryLogConfig)
                 .withDispatcher(SEARCH_DISPATCHER_ID);
     }
 
@@ -427,12 +437,14 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
             final WithDittoHeaders command) {
         return Flow.<T, Object>fromFunction(
                         element -> {
-                            stopTimer(searchTimer);
+                            final Duration duration = stopTimerAndGetDuration(searchTimer);
+                            logSlowQueryIfNeeded(command, duration);
                             return element;
                         })
                 .recoverWithRetries(1, new PFBuilder<Throwable, Graph<SourceShape<Object>, NotUsed>>()
                         .matchAny(error -> {
-                            stopTimer(searchTimer);
+                            final Duration duration = stopTimerAndGetDuration(searchTimer);
+                            logSlowQueryIfNeeded(command, duration);
                             return Source.single(asDittoRuntimeException(error, command));
                         })
                         .build()
@@ -587,6 +599,83 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
             timer.stop();
         } catch (final IllegalStateException e) {
             // it is okay if the timer was stopped.
+        }
+    }
+
+    private static Duration stopTimerAndGetDuration(final StartedTimer timer) {
+        try {
+            return timer.stop().getDuration();
+        } catch (final IllegalStateException e) {
+            // it is okay if the timer was stopped - calculate duration from start instant
+            return Duration.between(timer.getStartInstant().toInstant(), java.time.Instant.now());
+        }
+    }
+
+    private void logSlowQueryIfNeeded(final WithDittoHeaders command, final Duration duration) {
+        if (!slowQueryLogConfig.isEnabled()) {
+            return;
+        }
+        final Duration threshold = slowQueryLogConfig.getThreshold();
+        if (duration.compareTo(threshold) > 0) {
+            final Optional<String> namespaces;
+            final Optional<String> filter;
+            final String queryType;
+            final CompletionStage<Query> queryStage;
+            final boolean sudoCommand;
+            switch (command) {
+                case ThingSearchQueryCommand<?> queryCommand -> {
+                    namespaces = queryCommand.getNamespaces().map(Set::toString);
+                    filter = queryCommand.getFilter();
+                    queryType = queryCommand.getType();
+                    queryStage = queryParser.parse(queryCommand);
+                    sudoCommand = false;
+                }
+                case SudoCountThings sudoCountThings -> {
+                    namespaces = sudoCountThings.getNamespaces().map(Set::toString);
+                    filter = sudoCountThings.getFilter();
+                    queryType = sudoCountThings.getType();
+                    queryStage = queryParser.parseSudoCountThings(sudoCountThings);
+                    sudoCommand = true;
+                }
+                default -> {
+                    namespaces = Optional.empty();
+                    filter = Optional.empty();
+                    queryType = command.getClass().getSimpleName();
+                    queryStage = null;
+                    sudoCommand = false;
+                }
+            }
+
+            String mongoDbQuery = "";
+            if (queryStage != null) {
+                try {
+                    final Query query = queryStage.toCompletableFuture().join();
+                    if (sudoCommand) {
+                        mongoDbQuery = CreateBsonVisitor.sudoApply(query.getCriteria())
+                                .toBsonDocument()
+                                .toJson();
+                    } else {
+                        mongoDbQuery = CreateBsonVisitor.apply(query.getCriteria(),
+                                        command.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds()
+                                )
+                                .toBsonDocument()
+                                .toJson();
+                    }
+                } catch (final Exception e) {
+                    mongoDbQuery = "<failed to compute BSON for RQL query: " + e.getMessage() + ">";
+                }
+            }
+
+            SLOW_QUERY_LOGGER.withCorrelationId(command)
+                    .warn("Slow <{}> query detected - duration: <{}ms> (configured threshold: <{}ms>), " +
+                                    "namespaces: <{}>, RQL filter: [{}], MongoDB filter: [{}]",
+                            queryType,
+                            duration.toMillis(),
+                            threshold.toMillis(),
+                            namespaces.orElse(""),
+                            filter.orElse(""),
+                            mongoDbQuery
+                    );
         }
     }
 

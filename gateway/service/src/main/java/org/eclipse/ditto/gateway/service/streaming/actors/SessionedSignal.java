@@ -24,6 +24,7 @@ import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.SignalEnrichmentFailedException;
@@ -134,6 +135,11 @@ final class SessionedSignal implements SessionedJsonifiable {
     @Override
     public Optional<StreamingSession> getSession() {
         return Optional.of(session);
+    }
+
+    @Override
+    public Optional<AuthorizationContext> getSessionAuthorizationContext() {
+        return Optional.of(sessionHeaders.getAuthorizationContext());
     }
 
     @Override

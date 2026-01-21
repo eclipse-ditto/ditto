@@ -288,10 +288,16 @@ public final class OutboundMappingProcessorActorTest {
         final Thing thing = Thing.newBuilder().setId(thingId())
                 .setAttributes(attributes)
                 .build();
+        final List<AuthorizationSubject> readGrantedSubjects = targets.stream()
+                .map(Target::getAuthorizationContext)
+                .flatMap(authContext -> authContext.getAuthorizationSubjects().stream())
+                .distinct()
+                .toList();
         final ThingModified thingModified = ThingModified.of(thing, 2L, Instant.EPOCH, DittoHeaders.newBuilder()
                         .acknowledgementRequests(requestedAcks.stream()
                                 .map(AcknowledgementRequest::parseAcknowledgementRequest)
                                 .toList())
+                        .readGrantedSubjects(readGrantedSubjects)
                         .putHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(),
                                 testRef.path().toSerializationFormat())
                         .build(),

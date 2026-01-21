@@ -428,8 +428,10 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     @Override
     protected Props getPersistenceEnforcerProps(final ThingId entityId) {
         final ActorSystem system = getContext().getSystem();
+        final boolean partialAccessEventsEnabled =
+                thingsConfig.getThingConfig().getEventConfig().isPartialAccessEventsEnabled();
         final ThingEnforcement thingEnforcement =
-                new ThingEnforcement(policiesShardRegion, system, enforcementConfig);
+                new ThingEnforcement(policiesShardRegion, system, enforcementConfig, partialAccessEventsEnabled);
 
         return ThingEnforcerActor.props(entityId, thingsConfig, thingEnforcement,
                 enforcementConfig.getAskWithRetryConfig(),

@@ -34,6 +34,7 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.NamespaceActivityCheckConfigProvider;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceActor;
@@ -62,7 +63,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.common.config.ThingConfig;
 import org.eclipse.ditto.things.service.persistence.actors.enrichment.EnrichSignalWithPreDefinedExtraFields;
 import org.eclipse.ditto.things.service.persistence.actors.enrichment.EnrichSignalWithPreDefinedExtraFieldsResponse;
-import org.eclipse.ditto.things.service.persistence.actors.enrichment.PreDefinedExtraFieldsEnricher;
+import org.eclipse.ditto.things.service.persistence.actors.enrichment.ThingEventEnricher;
 import org.eclipse.ditto.things.service.persistence.actors.strategies.commands.ThingCommandStrategies;
 import org.eclipse.ditto.things.service.persistence.actors.strategies.events.ThingEventStrategies;
 
@@ -91,9 +92,10 @@ public final class ThingPersistenceActor
             AckExtractor.of(ThingEvent::getEntityId, ThingEvent::getDittoHeaders);
 
     private final ThingConfig thingConfig;
+    private final NamespaceActivityCheckConfigProvider activityCheckConfigProvider;
     private final DistributedPub<ThingEvent<?>> distributedPub;
     @Nullable private final ActorRef searchShardRegionProxy;
-    private final PreDefinedExtraFieldsEnricher preDefinedExtraFieldsEnricher;
+    private final ThingEventEnricher thingEventEnricher;
 
     @SuppressWarnings("unused")
     private ThingPersistenceActor(final ThingId thingId,
@@ -105,9 +107,16 @@ public final class ThingPersistenceActor
 
         super(thingId, mongoReadJournal);
         this.thingConfig = thingConfig;
+        this.activityCheckConfigProvider = NamespaceActivityCheckConfigProvider.of(
+                thingConfig.getNamespaceActivityCheckConfigs(),
+                thingConfig.getActivityCheckConfig()
+        );
         this.distributedPub = distributedPub;
         this.searchShardRegionProxy = searchShardRegionProxy;
-        this.preDefinedExtraFieldsEnricher = new PreDefinedExtraFieldsEnricher(policyEnforcerProvider);
+        this.thingEventEnricher = new ThingEventEnricher(
+                policyEnforcerProvider,
+                thingConfig.getEventConfig().isPartialAccessEventsEnabled()
+        );
     }
 
     /**
@@ -216,7 +225,7 @@ public final class ThingPersistenceActor
 
     @Override
     protected ActivityCheckConfig getActivityCheckConfig() {
-        return thingConfig.getActivityCheckConfig();
+        return activityCheckConfigProvider.getConfigForNamespace(entityId.getNamespace());
     }
 
     @Override
@@ -271,7 +280,7 @@ public final class ThingPersistenceActor
 
     @Override
     protected void publishEvent(@Nullable final Thing previousEntity, final ThingEvent<?> event) {
-        final CompletionStage<ThingEvent<?>> stage = preDefinedExtraFieldsEnricher.enrichWithPredefinedExtraFields(
+        final CompletionStage<ThingEvent<?>> stage = thingEventEnricher.enrichWithPredefinedExtraFields(
                 thingConfig.getEventConfig().getPredefinedExtraFieldsConfigs(),
                 entityId,
                 entity,
@@ -331,15 +340,15 @@ public final class ThingPersistenceActor
         final CompletionStage<Signal<?>> stage;
         switch (signal) {
             case MessageCommand<?, ?> messageCommand ->
-                stage = preDefinedExtraFieldsEnricher.enrichWithPredefinedExtraFields(
-                        thingConfig.getMessageConfig().getPredefinedExtraFieldsConfigs(),
+                stage = thingEventEnricher.enrichWithPredefinedExtraFields(
+                        thingConfig.getEventConfig().getPredefinedExtraFieldsConfigs(),
                         entityId,
                         entity,
                         Optional.ofNullable(entity).flatMap(Thing::getPolicyId).orElse(null),
                         messageCommand
                 );
             case ThingEvent<?> thingEvent ->
-                stage = preDefinedExtraFieldsEnricher.enrichWithPredefinedExtraFields(
+                stage = thingEventEnricher.enrichWithPredefinedExtraFields(
                         thingConfig.getEventConfig().getPredefinedExtraFieldsConfigs(),
                         entityId,
                         entity,

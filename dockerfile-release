@@ -9,7 +9,7 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 
-FROM docker.io/eclipse-temurin:21-jdk
+FROM docker.io/eclipse-temurin:25-jdk
 
 # Http port
 EXPOSE 8080

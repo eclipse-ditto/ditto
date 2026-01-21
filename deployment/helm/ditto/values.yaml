@@ -116,6 +116,7 @@ global:
     -XX:+UseG1GC
     -XX:+ParallelRefProcEnabled
     -XX:+DisableExplicitGC
+    -XX:+UnlockExperimentalVMOptions
     -Djava.net.preferIPv4Stack=true
   pekkoOptions: >
     -Dpekko.management.cluster.bootstrap.contact-point-discovery.port-name=management
@@ -871,6 +872,13 @@ policies:
     persistence:
       # activityCheckInterval configures to keep policies for that amount of time in memory when no other use did happen:
       activityCheckInterval: 2d
+      # namespaceActivityCheckOverrides allows configuring different passivation intervals for policies in specific namespaces
+      #  First match wins - namespace patterns are evaluated in order.
+      #  Supports SQL-LIKE wildcard patterns: '*' matches any number of characters, '?' matches single character.
+      namespaceActivityCheckOverrides: []
+      # - namespacePattern: "org.example.low-frequency*"
+      #   inactiveInterval: "5m"
+      #   deletedInterval: "1m"
       # pingRate used to throttle pinging of PolicyPersistenceActors, so that not all PolicyPersistenceActors are recovered at the same time:
       pingRate:
         # frequency the frequency of sent "pings" to PolicyPersistenceActors
@@ -1212,6 +1220,13 @@ things:
     persistence:
       # activityCheckInterval configures to keep things for that amount of time in memory when no other use did happen
       activityCheckInterval: 2d
+      # namespaceActivityCheckOverrides allows configuring different passivation intervals for things in specific namespaces
+      #  First match wins - namespace patterns are evaluated in order.
+      #  Supports SQL-LIKE wildcard patterns: '*' matches any number of characters, '?' matches single character.
+      namespaceActivityCheckOverrides: []
+      # - namespacePattern: "org.example.low-frequency*"
+      #   inactiveInterval: "5m"
+      #   deletedInterval: "1m"
       # events contains event journal specific configuration
       events:
         # historicalHeadersToPersist define the DittoHeaders to persist when persisting events to the journal
@@ -1633,6 +1648,14 @@ thingsSearch:
         interval: 1s
         # limit is the maximum number of updates allowed within each throttling interval
         limit: 100
+    # query contains configuration for the search query handling
+    query:
+      # slowQueryLog contains configuration for logging slow search queries
+      slowQueryLog:
+        # enabled controls whether slow query logging is enabled
+        enabled: true
+        # threshold defines the duration above which queries are considered slow and logged
+        threshold: "1s"
     # updater contains configuration for the "Things Updater" of things-search service
     updater:
       # activityCheckInterval configures to keep thing updaters for that amount of time in memory when no update did happen:
@@ -1699,6 +1722,16 @@ thingsSearch:
         # - "policyId",
         # - "referencedPolicies",
         # - "deleteAt"
+      # customIndexes holds a map of index-names as key and custom index config as value
+      #  Custom indexes are created in addition to the built-in indexes.
+      #  Custom indexes are automatically activated - no need to add them to 'activatedIndexNames'.
+      customIndexes: {}
+      # my_custom_idx:
+      #   fields:
+      #     - name: "t.attributes.region"
+      #       direction: "ASC"
+      #     - name: "t.attributes.timestamp"
+      #       direction: "DESC"
     # indexedFieldsLimiting by default, Ditto indexed all fields of things in its search.
     #  However, this behavior can be customized, providing configuration to only index certain fields for specified namespaces.
     indexedFieldsLimiting:
@@ -2516,6 +2549,10 @@ nginx:
     # the 'proxy_connect_timeout', 'proxy_send_timeout', 'proxy_read_timeout' and 'send_timeout' options for nginx
     # timeouts are configured slightly higher than ditto-eclipse-ditto-gateway read-timeout
     timeout: 70
+
+    # nginx config htpasswd secret name
+    # Allows to override with a different 'Secret' resource - for example one handled by external-secrets operator.
+    htpasswdSecretName: nginx-config-nginx-htpasswd
 
 ## ----------------------------------------------------------------------------
 ## Ditto UI configuration

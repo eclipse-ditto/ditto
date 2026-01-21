@@ -423,7 +423,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * WRITE permission on policy resource).
      *
      * <p>
-     * Key {@code "allow-policy-lockout"}, Java type: {@link boolean}.
+     * Key {@code "allow-policy-lockout"}, Java type: boolean.
      * </p>
      *
      * @since 1.3.0
@@ -618,6 +618,38 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * @since 3.7.0
      */
     PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT("ditto-pre-defined-extra-fields-read-grant",
+            JsonObject.class,
+            false,
+            false,
+            HeaderValueValidators.getJsonObjectValidator()),
+
+    /**
+     * Internal header containing partial access paths for subjects with partial READ permissions.
+     * Used to enable partial change notifications for subjects with restricted READ permissions.
+     * <p>
+     * Key: {@code "ditto-partial-access-paths"}, Java type: {@link JsonObject}.
+     * Format (indexed):
+     * </p>
+     * <pre>{@code
+     * {
+     *   "subjects": [
+     *     "foo-idp:groupA",
+     *     "foo-idp:user1"
+     *   ],
+     *   "paths": {
+     *     "attributes/location": [0],
+     *     "features/A/properties/status": [0, 1]
+     *   }
+     * }
+     * }</pre>
+     * <p>
+     * Each path maps to integer indices referring to entries in the {@code subjects} array.
+     * This indexed format reduces header size when multiple subjects share the same paths.
+     * </p>
+     *
+     * @since 3.9.0
+     */
+    PARTIAL_ACCESS_PATHS("ditto-partial-access-paths",
             JsonObject.class,
             false,
             false,

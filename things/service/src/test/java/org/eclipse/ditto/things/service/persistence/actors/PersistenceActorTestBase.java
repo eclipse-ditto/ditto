@@ -17,7 +17,9 @@ import static java.util.Objects.requireNonNull;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -167,7 +169,9 @@ public abstract class PersistenceActorTestBase {
 
     @Before
     public void setup() {
-        policyEnforcerProvider = Mockito.mock(PolicyEnforcerProvider.class);
+        policyEnforcerProvider = Mockito.mock(PolicyEnforcerProvider.class,
+                Mockito.withSettings().defaultAnswer(invocation ->
+                        CompletableFuture.completedFuture(Optional.empty())));
     }
 
     protected static ThingConfig getThingConfig(final Config testConfig) {

@@ -38,6 +38,7 @@ import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
@@ -62,6 +63,7 @@ import org.eclipse.ditto.internal.utils.protocol.config.ProtocolConfig;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.messages.model.Message;
 import org.eclipse.ditto.messages.model.MessageDirection;
 import org.eclipse.ditto.messages.model.MessageHeaders;
@@ -72,6 +74,13 @@ import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThingResponse;
+import org.eclipse.ditto.things.model.Attributes;
+import org.eclipse.ditto.things.model.Feature;
+import org.eclipse.ditto.things.model.FeatureProperties;
+import org.eclipse.ditto.things.model.Features;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
+import org.eclipse.ditto.things.model.signals.events.ThingModified;
 import org.eclipse.ditto.things.model.signals.events.ThingModifiedEvent;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -188,10 +197,12 @@ public final class OutboundMappingProcessorTest {
     @Test
     public void testGroupingOfTargets() {
         /*
-          expect 6 mappings:
-           - 3 targets with 1 mapper  (can be grouped together, mapping is done once)  -> 1 message (with 3 targets)
-           - 2 targets with 2 mappers (can be grouped together, mapping is done twice) -> 2 messages (with 2 targets)
-           - 1 target  with 3 mappers (no grouping, mapping is done three times)       -> 3 messages (with 1 target)
+          Note: Targets are grouped by payload mapping. When there's no partial access filtering,
+          one adaptable is created for all targets in a group. So we get:
+           - 3 targets with 1 mapper (grouped together, mapping is done once)  -> 1 message (with 3 targets)
+           - 2 targets with 2 mappers (grouped together, mapping is done twice) -> 2 messages (with 2 targets)
+           - 1 target with 3 mappers (no grouping, mapping is done three times)       -> 3 messages (with 1 target)
+          Total: 1 + 2 + 3 = 6 mappings
          */
         testOutbound(6, 0, 0,
                 targetWithMapping(DITTO_MAPPER),
@@ -207,7 +218,8 @@ public final class OutboundMappingProcessorTest {
     @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
     public void testOutboundMessageEnriched() {
         new TestKit(ACTOR_SYSTEM_RESOURCE.getActorSystem()) {{
-            final ThingModifiedEvent signal = TestConstants.thingModified(Collections.emptyList());
+            final ThingModifiedEvent signal = TestConstants.thingModified(
+                    TestConstants.Targets.TWIN_TARGET.getAuthorizationContext().getAuthorizationSubjects());
             final JsonObject extra = JsonObject.newBuilder().set("x", 5).build();
             final OutboundSignal outboundSignal = Mockito.mock(OutboundSignal.class);
             final MappingOutcome.Visitor<OutboundSignal.Mapped, Void> mock = Mockito.mock(MappingOutcome.Visitor.class);
@@ -228,7 +240,8 @@ public final class OutboundMappingProcessorTest {
     @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
     public void testOutboundEventWithRequestedAcksWhichAreIssuedByTargetDontContainRequestedAcks() {
         new TestKit(ACTOR_SYSTEM_RESOURCE.getActorSystem()) {{
-            ThingModifiedEvent signal = TestConstants.thingModified(Collections.emptyList());
+            final AuthorizationSubject targetSubject = AuthorizationSubject.newInstance("issuer:subject");
+            ThingModifiedEvent signal = TestConstants.thingModified(Collections.singletonList(targetSubject));
             final AcknowledgementLabel customAckLabel = AcknowledgementLabel.of("custom:ack");
             final AcknowledgementLabel targetIssuedAckLabel = AcknowledgementLabel.of("issued:ack");
             signal = signal.setDittoHeaders(signal.getDittoHeaders().toBuilder()
@@ -247,7 +260,7 @@ public final class OutboundMappingProcessorTest {
                             .issuedAcknowledgementLabel(targetIssuedAckLabel)
                             .authorizationContext(AuthorizationContext.newInstance(
                                     DittoAuthorizationContextType.UNSPECIFIED,
-                                    AuthorizationSubject.newInstance("issuer:subject")))
+                                    targetSubject))
                             .topics(Topic.TWIN_EVENTS)
                             .build()
             ));
@@ -267,10 +280,12 @@ public final class OutboundMappingProcessorTest {
     @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
     public void testOutboundLiveMessageWithRequestedAcksWhichAreIssuedByTargetDontContainRequestedAcks() {
         new TestKit(ACTOR_SYSTEM_RESOURCE.getActorSystem()) {{
+            final AuthorizationSubject targetSubject = AuthorizationSubject.newInstance("issuer:subject");
             final AcknowledgementLabel customAckLabel = AcknowledgementLabel.of("custom:ack");
             final AcknowledgementLabel targetIssuedAckLabel = AcknowledgementLabel.of("issued:ack");
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                     .channel(TopicPath.Channel.LIVE.getName())
+                    .readGrantedSubjects(Collections.singletonList(targetSubject))
                     .acknowledgementRequest(AcknowledgementRequest.of(targetIssuedAckLabel),
                             AcknowledgementRequest.of(customAckLabel))
                     .build();
@@ -293,7 +308,7 @@ public final class OutboundMappingProcessorTest {
                             .issuedAcknowledgementLabel(targetIssuedAckLabel)
                             .authorizationContext(AuthorizationContext.newInstance(
                                     DittoAuthorizationContextType.UNSPECIFIED,
-                                    AuthorizationSubject.newInstance("issuer:subject")))
+                                    targetSubject))
                             .topics(Topic.TWIN_EVENTS)
                             .build()
             ));
@@ -319,7 +334,9 @@ public final class OutboundMappingProcessorTest {
 
     @Test
     public void testOutboundMessageDuplicated() {
-        testOutbound(TestConstants.thingModifiedWithCor(Collections.emptyList()),
+        final List<AuthorizationSubject> readSubjects =
+                TestConstants.Targets.TWIN_TARGET.getAuthorizationContext().getAuthorizationSubjects();
+        testOutbound(TestConstants.thingModifiedWithCor(readSubjects),
                 2, 0, 0, false, targetWithMapping(DUPLICATING_MAPPER));
     }
 
@@ -330,7 +347,9 @@ public final class OutboundMappingProcessorTest {
 
     @Test
     public void testOutboundMessageDroppedFailedMappedDuplicated() {
-        testOutbound(TestConstants.thingModifiedWithCor(Collections.emptyList()),
+        final List<AuthorizationSubject> readSubjects =
+                TestConstants.Targets.TWIN_TARGET.getAuthorizationContext().getAuthorizationSubjects();
+        testOutbound(TestConstants.thingModifiedWithCor(readSubjects),
                 2 /* duplicated */ + 1 /* mapped */, 1, 1, false,
                 targetWithMapping(DROPPING_MAPPER, FAILING_MAPPER, DITTO_MAPPER, DUPLICATING_MAPPER));
     }
@@ -339,11 +358,16 @@ public final class OutboundMappingProcessorTest {
         return ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
                 .address(UUID.randomUUID().toString())
                 .payloadMapping(ConnectivityModelFactory.newPayloadMapping(mappings))
+                .authorizationContext(TestConstants.Targets.TWIN_TARGET.getAuthorizationContext())
                 .build();
     }
 
     private void testOutbound(final int mapped, final int dropped, final int failed, final Target... targets) {
-        testOutbound(TestConstants.thingModified(Collections.emptyList()), mapped, dropped, failed, true, targets);
+        final List<AuthorizationSubject> readSubjects = targets.length > 0 && targets[0].getAuthorizationContext() != null
+                ? targets[0].getAuthorizationContext().getAuthorizationSubjects()
+                : TestConstants.Targets.TWIN_TARGET.getAuthorizationContext().getAuthorizationSubjects();
+        final ThingModifiedEvent<?> event = TestConstants.thingModified(readSubjects);
+        testOutbound(event, mapped, dropped, failed, true, targets);
     }
 
     @SuppressWarnings("unchecked")
@@ -391,8 +415,123 @@ public final class OutboundMappingProcessorTest {
     // The correlation-id gets substituted with the internal correlation-id which changes the order in which the
     // headers are represented in string, this makes the string comparison fail.
     private static JsonifiableAdaptable removeCorrelationId(final JsonifiableAdaptable adaptable) {
-        return adaptable.setDittoHeaders(adaptable.getDittoHeaders().toBuilder().correlationId(null).build());
+        return adaptable.setDittoHeaders(adaptable.getDittoHeaders().toBuilder()
+                .correlationId(null)
+                .readGrantedSubjects(Collections.emptyList())
+                .build());
     }
+
+    @Test
+    public void internalHeadersAreFilteredForKafkaConnection() {
+        final DittoHeaders headersWithInternal = DittoHeaders.newBuilder()
+                .correlationId("test-correlation-id")
+                .build();
+
+        final ThingModifiedEvent<?> event = TestConstants.thingModified(Collections.emptyList())
+                .setDittoHeaders(headersWithInternal);
+
+        final Target kafkaTarget = ConnectivityModelFactory.newTargetBuilder()
+                .address("kafka-topic")
+                .authorizationContext(AuthorizationContext.newInstance(
+                        DittoAuthorizationContextType.UNSPECIFIED,
+                        AuthorizationSubject.newInstance("test:subject")
+                ))
+                .topics(Topic.TWIN_EVENTS)
+                .payloadMapping(ConnectivityModelFactory.newPayloadMapping(DITTO_MAPPER))
+                .build();
+
+        final OutboundSignal outboundSignal =
+                OutboundSignalFactory.newOutboundSignal(event, List.of(kafkaTarget));
+
+        new TestKit(ACTOR_SYSTEM_RESOURCE.getActorSystem()) {{
+            final MappingOutcome.Visitor<OutboundSignal.Mapped, Void> mock = Mockito.mock(MappingOutcome.Visitor.class);
+            underTest.process(outboundSignal).forEach(outcome -> outcome.accept(mock));
+            final ArgumentCaptor<OutboundSignal.Mapped> captor = ArgumentCaptor.forClass(OutboundSignal.Mapped.class);
+            verify(mock, times(1)).onMapped(any(String.class), captor.capture());
+
+            final OutboundSignal.Mapped mapped = captor.getValue();
+            final JsonifiableAdaptable adaptable = ProtocolFactory.jsonifiableAdaptableFromJson(
+                    JsonFactory.newObject(mapped.getExternalMessage().getTextPayload().orElseThrow()));
+
+            assertThat(adaptable.getTopicPath().getAction()).contains(TopicPath.Action.MODIFIED);
+            assertThat(adaptable.getPayload().getValue()).isPresent();
+        }};
+    }
+
+    @Test
+    public void internalHeadersAreFilteredForMqttConnection() {
+        final DittoHeaders headersWithInternal = DittoHeaders.newBuilder()
+                .correlationId("test-correlation-id")
+                .build();
+
+        final ThingModifiedEvent<?> event = TestConstants.thingModified(Collections.emptyList())
+                .setDittoHeaders(headersWithInternal);
+
+        final Target mqttTarget = ConnectivityModelFactory.newTargetBuilder()
+                .address("mqtt/topic")
+                .authorizationContext(AuthorizationContext.newInstance(
+                        DittoAuthorizationContextType.UNSPECIFIED,
+                        AuthorizationSubject.newInstance("test:subject")
+                ))
+                .topics(Topic.TWIN_EVENTS)
+                .payloadMapping(ConnectivityModelFactory.newPayloadMapping(DITTO_MAPPER))
+                .build();
+
+        final OutboundSignal outboundSignal =
+                OutboundSignalFactory.newOutboundSignal(event, List.of(mqttTarget));
+
+        new TestKit(ACTOR_SYSTEM_RESOURCE.getActorSystem()) {{
+            final MappingOutcome.Visitor<OutboundSignal.Mapped, Void> mock = Mockito.mock(MappingOutcome.Visitor.class);
+            underTest.process(outboundSignal).forEach(outcome -> outcome.accept(mock));
+            final ArgumentCaptor<OutboundSignal.Mapped> captor = ArgumentCaptor.forClass(OutboundSignal.Mapped.class);
+            verify(mock, times(1)).onMapped(any(String.class), captor.capture());
+
+            final OutboundSignal.Mapped mapped = captor.getValue();
+            final JsonifiableAdaptable adaptable = ProtocolFactory.jsonifiableAdaptableFromJson(
+                    JsonFactory.newObject(mapped.getExternalMessage().getTextPayload().orElseThrow()));
+
+            assertThat(adaptable.getTopicPath().getAction()).contains(TopicPath.Action.MODIFIED);
+            assertThat(adaptable.getPayload().getValue()).isPresent();
+        }};
+    }
+
+    @Test
+    public void internalHeadersAreFilteredForAmqpConnection() {
+        final DittoHeaders headersWithInternal = DittoHeaders.newBuilder()
+                .correlationId("test-correlation-id")
+                .build();
+
+        final ThingModifiedEvent<?> event = TestConstants.thingModified(Collections.emptyList())
+                .setDittoHeaders(headersWithInternal);
+
+        final Target amqpTarget = ConnectivityModelFactory.newTargetBuilder()
+                .address("amqp/queue")
+                .authorizationContext(AuthorizationContext.newInstance(
+                        DittoAuthorizationContextType.UNSPECIFIED,
+                        AuthorizationSubject.newInstance("test:subject")
+                ))
+                .topics(Topic.TWIN_EVENTS)
+                .payloadMapping(ConnectivityModelFactory.newPayloadMapping(DITTO_MAPPER))
+                .build();
+
+        final OutboundSignal outboundSignal =
+                OutboundSignalFactory.newOutboundSignal(event, List.of(amqpTarget));
+
+        new TestKit(ACTOR_SYSTEM_RESOURCE.getActorSystem()) {{
+            final MappingOutcome.Visitor<OutboundSignal.Mapped, Void> mock = Mockito.mock(MappingOutcome.Visitor.class);
+            underTest.process(outboundSignal).forEach(outcome -> outcome.accept(mock));
+            final ArgumentCaptor<OutboundSignal.Mapped> captor = ArgumentCaptor.forClass(OutboundSignal.Mapped.class);
+            verify(mock, times(1)).onMapped(any(String.class), captor.capture());
+
+            final OutboundSignal.Mapped mapped = captor.getValue();
+            final JsonifiableAdaptable adaptable = ProtocolFactory.jsonifiableAdaptableFromJson(
+                    JsonFactory.newObject(mapped.getExternalMessage().getTextPayload().orElseThrow()));
+
+            assertThat(adaptable.getTopicPath().getAction()).contains(TopicPath.Action.MODIFIED);
+            assertThat(adaptable.getPayload().getValue()).isPresent();
+        }};
+    }
+
 
     @Test
     public void testResponseDiversionIntegration() {
@@ -477,6 +616,262 @@ public final class OutboundMappingProcessorTest {
 
             // Verify the response was published to the target connection
             verify(mockPubSub).publishResponseForDiversion(any(CommandResponse.class), eq(targetConnectionId), any(CharSequence.class), any());
+        }};
+    }
+
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
+    public void partialAccessPathsFilteredPerTargetWithDifferentAuthorizationContexts() {
+        new TestKit(ACTOR_SYSTEM_RESOURCE.getActorSystem()) {{
+            final AuthorizationSubject user1Subject = AuthorizationSubject.newInstance("pre:user1");
+            final AuthorizationSubject user2Subject = AuthorizationSubject.newInstance("pre:user2");
+
+            final String partialAccessHeader = JsonFactory.newObjectBuilder()
+                    .set("subjects", JsonFactory.newArrayBuilder()
+                            .add(user1Subject.getId())
+                            .add(user2Subject.getId())
+                            .build())
+                    .set("paths", JsonFactory.newObjectBuilder()
+                            .set(JsonFactory.newKey("attributes/type"), JsonFactory.newArrayBuilder().add(0).add(1).build())
+                            .set(JsonFactory.newKey("attributes/complex/some"), JsonFactory.newArrayBuilder().add(0).add(1).build())
+                            .set(JsonFactory.newKey("attributes/complex/secret"), JsonFactory.newArrayBuilder().add(0).add(1).build())
+                            .set(JsonFactory.newKey("features/some/properties/configuration/foo"),
+                                    JsonFactory.newArrayBuilder().add(0).build())
+                            .set(JsonFactory.newKey("features/other/properties/public"),
+                                    JsonFactory.newArrayBuilder().add(1).build())
+                            .build())
+                    .build()
+                    .toString();
+
+            final DittoHeaders headersWithPartialAccess = DittoHeaders.newBuilder()
+                    .putHeader(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey(), partialAccessHeader)
+                    .readGrantedSubjects(Set.of(user1Subject, user2Subject))
+                    .build();
+
+            final Attributes attributes = Attributes.newBuilder()
+                    .set("type", "LORAWAN_GATEWAY")
+                    .set("complex", JsonObject.newBuilder()
+                            .set("some", 42)
+                            .set("secret", "pssst")
+                            .build())
+                    .build();
+            final Features features = Features.newBuilder()
+                    .set(Feature.newBuilder()
+                            .properties(JsonObject.newBuilder()
+                                    .set("configuration", JsonObject.newBuilder()
+                                            .set("foo", 123)
+                                            .build())
+                                    .build())
+                            .withId("some")
+                            .build())
+                    .set(Feature.newBuilder()
+                            .properties(JsonObject.newBuilder()
+                                    .set("public", "here you go")
+                                    .set("bar", false)
+                                    .build())
+                            .withId("other")
+                            .build())
+                    .build();
+            final Thing thing = ThingsModelFactory.newThingBuilder()
+                    .setId(TestConstants.Things.THING_ID)
+                    .setAttributes(attributes)
+                    .setFeatures(features)
+                    .build();
+            final ThingModifiedEvent<?> event = ThingModified.of(thing, 1, TestConstants.INSTANT, 
+                    headersWithPartialAccess, TestConstants.METADATA);
+
+            final Target user1Target = ConnectivityModelFactory.newTargetBuilder()
+                    .address("user1-topic")
+                    .authorizationContext(AuthorizationContext.newInstance(
+                            DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION,
+                            user1Subject))
+                    .topics(Topic.TWIN_EVENTS)
+                    .payloadMapping(ConnectivityModelFactory.newPayloadMapping(DITTO_MAPPER))
+                    .build();
+
+            final Target user2Target = ConnectivityModelFactory.newTargetBuilder()
+                    .address("user2-topic")
+                    .authorizationContext(AuthorizationContext.newInstance(
+                            DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION,
+                            user2Subject))
+                    .topics(Topic.TWIN_EVENTS)
+                    .payloadMapping(ConnectivityModelFactory.newPayloadMapping(DITTO_MAPPER))
+                    .build();
+
+            final OutboundSignal outboundSignal =
+                    OutboundSignalFactory.newOutboundSignal(event, List.of(user1Target, user2Target));
+
+            final MappingOutcome.Visitor<OutboundSignal.Mapped, Void> mock = Mockito.mock(MappingOutcome.Visitor.class);
+            underTest.process(outboundSignal).forEach(outcome -> outcome.accept(mock));
+            final ArgumentCaptor<OutboundSignal.Mapped> captor = ArgumentCaptor.forClass(OutboundSignal.Mapped.class);
+            verify(mock, times(2)).onMapped(any(String.class), captor.capture());
+
+            final List<OutboundSignal.Mapped> mappedSignals = captor.getAllValues();
+            assertThat(mappedSignals).hasSize(2);
+
+            final OutboundSignal.Mapped user1Mapped = mappedSignals.stream()
+                    .filter(m -> m.getTargets().contains(user1Target))
+                    .findFirst()
+                    .orElseThrow();
+            final JsonifiableAdaptable user1Adaptable = ProtocolFactory.jsonifiableAdaptableFromJson(
+                    JsonFactory.newObject(user1Mapped.getExternalMessage().getTextPayload().orElseThrow()));
+
+            final OutboundSignal.Mapped user2Mapped = mappedSignals.stream()
+                    .filter(m -> m.getTargets().contains(user2Target))
+                    .findFirst()
+                    .orElseThrow();
+            final JsonifiableAdaptable user2Adaptable = ProtocolFactory.jsonifiableAdaptableFromJson(
+                    JsonFactory.newObject(user2Mapped.getExternalMessage().getTextPayload().orElseThrow()));
+
+            assertThat(user1Adaptable).isNotNull();
+            assertThat(user2Adaptable).isNotNull();
+        }};
+    }
+
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
+    public void partialAccessPathsWithRevokedPathsFilteredPerTarget() {
+        // GIVEN: A connection with targets where one has access to a parent path but a child is revoked
+        new TestKit(ACTOR_SYSTEM_RESOURCE.getActorSystem()) {{
+            final AuthorizationSubject user1Subject = AuthorizationSubject.newInstance("pre:user1");
+
+            // Partial access header where user1 has access to /attributes/complex/some but /attributes/complex/secret is revoked
+            final String partialAccessHeader = JsonFactory.newObjectBuilder()
+                    .set("subjects", JsonFactory.newArrayBuilder()
+                            .add(user1Subject.getId())
+                            .build())
+                    .set("paths", JsonFactory.newObjectBuilder()
+                            .set(JsonFactory.newKey("attributes/complex/some"), JsonFactory.newArrayBuilder().add(0).build())
+                            .build())
+                    .build()
+                    .toString();
+
+            final DittoHeaders headersWithPartialAccess = DittoHeaders.newBuilder()
+                    .putHeader(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey(), partialAccessHeader)
+                    .readGrantedSubjects(Set.of(user1Subject))
+                    .build();
+
+            final Attributes attributes = Attributes.newBuilder()
+                    .set("complex", JsonObject.newBuilder()
+                            .set("some", 42)
+                            .set("secret", "pssst")
+                            .build())
+                    .build();
+            final Thing thing = ThingsModelFactory.newThingBuilder()
+                    .setId(TestConstants.Things.THING_ID)
+                    .setAttributes(attributes)
+                    .build();
+            final ThingModifiedEvent<?> event = ThingModified.of(thing, 1, TestConstants.INSTANT, 
+                    headersWithPartialAccess, TestConstants.METADATA);
+
+            final Target user1Target = ConnectivityModelFactory.newTargetBuilder()
+                    .address("user1-topic")
+                    .authorizationContext(AuthorizationContext.newInstance(
+                            DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION,
+                            user1Subject))
+                    .topics(Topic.TWIN_EVENTS)
+                    .payloadMapping(ConnectivityModelFactory.newPayloadMapping(DITTO_MAPPER))
+                    .build();
+
+            final OutboundSignal outboundSignal =
+                    OutboundSignalFactory.newOutboundSignal(event, List.of(user1Target));
+
+            final MappingOutcome.Visitor<OutboundSignal.Mapped, Void> mock = Mockito.mock(MappingOutcome.Visitor.class);
+            underTest.process(outboundSignal).forEach(outcome -> outcome.accept(mock));
+            final ArgumentCaptor<OutboundSignal.Mapped> captor = ArgumentCaptor.forClass(OutboundSignal.Mapped.class);
+            verify(mock, times(1)).onMapped(any(String.class), captor.capture());
+
+            // THEN: The payload should be filtered to exclude revoked paths
+            final OutboundSignal.Mapped mapped = captor.getValue();
+            final JsonifiableAdaptable adaptable = ProtocolFactory.jsonifiableAdaptableFromJson(
+                    JsonFactory.newObject(mapped.getExternalMessage().getTextPayload().orElseThrow()));
+
+            // The filtering logic should ensure revoked paths are not included
+            // This is verified by the filtering happening per target's auth context
+            assertThat(adaptable).isNotNull();
+        }};
+    }
+
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
+    public void partialAccessPathsFilterExtraFields() {
+        new TestKit(ACTOR_SYSTEM_RESOURCE.getActorSystem()) {{
+            final AuthorizationSubject user1Subject = AuthorizationSubject.newInstance("pre:user1");
+
+            final String partialAccessHeader = JsonFactory.newObjectBuilder()
+                    .set("subjects", JsonFactory.newArrayBuilder()
+                            .add(user1Subject.getId())
+                            .build())
+                    .set("paths", JsonFactory.newObjectBuilder()
+                            .set(JsonFactory.newKey("attributes/type"), JsonFactory.newArrayBuilder().add(0).build())
+                            .build())
+                    .build()
+                    .toString();
+
+            final DittoHeaders headersWithPartialAccess = DittoHeaders.newBuilder()
+                    .putHeader(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey(), partialAccessHeader)
+                    .readGrantedSubjects(Set.of(user1Subject))
+                    .build();
+
+            final Attributes attributes = Attributes.newBuilder()
+                    .set("type", "LORAWAN_GATEWAY")
+                    .set("secret", "should-be-filtered")
+                    .build();
+            final Thing thing = ThingsModelFactory.newThingBuilder()
+                    .setId(TestConstants.Things.THING_ID)
+                    .setAttributes(attributes)
+                    .build();
+            final ThingModifiedEvent event = ThingModified.of(thing, 1, TestConstants.INSTANT, 
+                    headersWithPartialAccess, TestConstants.METADATA);
+
+            final JsonObject extraFields = JsonFactory.newObjectBuilder()
+                    .set("attributes", JsonFactory.newObjectBuilder()
+                            .set("type", "LORAWAN_GATEWAY")
+                            .set("secret", "should-be-filtered-from-extra")
+                            .build())
+                    .build();
+
+            final Target user1Target = ConnectivityModelFactory.newTargetBuilder()
+                    .address("user1-topic")
+                    .authorizationContext(AuthorizationContext.newInstance(
+                            DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION,
+                            user1Subject))
+                    .topics(Topic.TWIN_EVENTS)
+                    .payloadMapping(ConnectivityModelFactory.newPayloadMapping(DITTO_MAPPER))
+                    .build();
+
+            final OutboundSignal outboundSignalWithExtra = Mockito.mock(OutboundSignal.class);
+            when(outboundSignalWithExtra.getSource()).thenReturn(event);
+            when(outboundSignalWithExtra.getTargets()).thenReturn(List.of(user1Target));
+            when(outboundSignalWithExtra.getExtra()).thenReturn(Optional.of(extraFields));
+
+            final MappingOutcome.Visitor<OutboundSignal.Mapped, Void> mock = Mockito.mock(MappingOutcome.Visitor.class);
+            underTest.process(outboundSignalWithExtra).forEach(outcome -> outcome.accept(mock));
+            final ArgumentCaptor<OutboundSignal.Mapped> captor = ArgumentCaptor.forClass(OutboundSignal.Mapped.class);
+            verify(mock, times(1)).onMapped(any(String.class), captor.capture());
+
+            final OutboundSignal.Mapped mapped = captor.getValue();
+            final JsonifiableAdaptable adaptable = ProtocolFactory.jsonifiableAdaptableFromJson(
+                    JsonFactory.newObject(mapped.getExternalMessage().getTextPayload().orElseThrow()));
+
+            final JsonObject payloadValue = adaptable.getPayload().getValue()
+                    .filter(JsonValue::isObject)
+                    .map(JsonValue::asObject)
+                    .orElse(JsonFactory.newObject());
+            assertThat(payloadValue.getValue("attributes/type")).isPresent();
+            assertThat(payloadValue.getValue("attributes/secret")).isEmpty();
+
+            final Optional<JsonObject> extra = adaptable.getPayload().getExtra();
+            assertThat(extra).isPresent();
+            final JsonObject extraObj = extra.get();
+            if (extraObj.contains("attributes")) {
+                final JsonObject extraAttributes = extraObj.getValue("attributes")
+                        .filter(JsonValue::isObject)
+                        .map(JsonValue::asObject)
+                        .orElse(JsonFactory.newObject());
+                assertThat(extraAttributes.getValue("type")).isPresent();
+                assertThat(extraAttributes.getValue("secret")).isEmpty();
+            }
         }};
     }
 

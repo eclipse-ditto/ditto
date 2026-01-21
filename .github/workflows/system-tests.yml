@@ -92,7 +92,7 @@ jobs:
             echo "EXTRA_DOCKER_ARGS: ${{ env.EXTRA_DOCKER_ARGS }}"
 
       - name: Checkout Ditto code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{env.DITTO_REPO }}
           ref: ${{ env.DITTO_BRANCH }}
@@ -100,7 +100,7 @@ jobs:
           path: ditto
 
       - name: Checkout ditto-testing repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ env.DITTO_TESTING_REPO }}
           ref: ${{ env.DITTO_TESTING_BRANCH }}
@@ -108,19 +108,19 @@ jobs:
           path: ditto-testing
 
       - name: Checkout ditto-clients repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: 'eclipse-ditto/ditto-clients'
           ref: 'master'
           token: ${{ secrets.GITHUB_TOKEN }}
           path: ditto-clients
 
-      - name: Set up JDK 21
+      - name: Set up JDK 25
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           cache: 'maven'
-          java-version: 21
+          java-version: 25
 
       - name: Set env vars dynamically
         run: |
@@ -205,7 +205,7 @@ jobs:
             -e DITTO_VERSION=$DITTO_VERSION \
             -e FORK_COUNT=$FORK_COUNT \
              ${{ env.EXTRA_DOCKER_ARGS || '' }} \
-             maven:3.9.5-eclipse-temurin-21 \
+             maven:3.9.5-eclipse-temurin-25 \
             mvn verify -am -amd --batch-mode --errors \
                 --projects=:system \
                 -Dtest.environment=docker-compose \
@@ -244,7 +244,7 @@ jobs:
           -e DITTO_VERSION=$DITTO_VERSION \
           -e FORK_COUNT=$FORK_COUNT \
           ${{ env.EXTRA_DOCKER_ARGS || '' }} \
-          maven:3.9.5-eclipse-temurin-21 \
+          maven:3.9.5-eclipse-temurin-25 \
           mvn verify -am -amd --batch-mode --errors --update-snapshots \
               --projects=:sync-completely-enabled \
               -Dtest.environment=docker-compose \
@@ -286,7 +286,7 @@ jobs:
           -e DITTO_VERSION=$DITTO_VERSION \
           -e FORK_COUNT=$FORK_COUNT \
           ${{ env.EXTRA_DOCKER_ARGS || '' }} \
-          maven:3.9.5-eclipse-temurin-21 \
+          maven:3.9.5-eclipse-temurin-25 \
           mvn verify -am -amd --batch-mode --errors --update-snapshots \
               --projects=:sync-event-processing-enabled \
               -Dtest.environment=docker-compose \
@@ -330,7 +330,7 @@ jobs:
           -e DITTO_VERSION=$DITTO_VERSION \
           -e FORK_COUNT=$FORK_COUNT \
           ${{ env.EXTRA_DOCKER_ARGS || '' }} \
-          maven:3.9.5-eclipse-temurin-21 \
+          maven:3.9.5-eclipse-temurin-25 \
           mvn verify -am -amd --batch-mode --errors --update-snapshots \
               --projects=:sync-tags-streaming-enabled \
               -Dtest.environment=docker-compose \

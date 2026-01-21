@@ -16,10 +16,12 @@ import java.util.Set;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.ResourceKey;
 
@@ -312,5 +314,45 @@ public interface Enforcer {
      */
     JsonObject buildJsonView(ResourceKey resourceKey, Iterable<JsonField> jsonFields,
             AuthorizationContext authorizationContext, Permissions permissions);
+
+    /**
+     * Returns the set of accessible JSON paths for the given {@code authorizationContext} and {@code permissions}
+     * based on the provided {@code jsonFields}.
+     *
+     * @param resourceKey the ResourceKey (containing Resource type and path) to start from
+     * @param jsonFields the full JsonFields from which to determine accessible paths
+     * @param authorizationContext the AuthorizationContext containing the AuthorizationSubjects
+     * @param permissions the permissions to check
+     * @return a set of JsonPointer paths that are accessible for the given authorization context and permissions
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 3.9.0
+     */
+    Set<JsonPointer> getAccessiblePaths(ResourceKey resourceKey, Iterable<JsonField> jsonFields,
+            AuthorizationContext authorizationContext, Permissions permissions);
+
+    /**
+     * Returns the set of accessible JSON paths for the given {@code authorizationSubject} and {@code permissions}
+     * based on the provided {@code jsonFields}.
+     * <p>
+     * This is a convenience method for the common case where only a single subject needs to be checked.
+     * It wraps the subject in an AuthorizationContext and delegates to {@link #getAccessiblePaths(ResourceKey, Iterable, AuthorizationContext, Permissions)}.
+     * </p>
+     *
+     * @param resourceKey the ResourceKey (containing Resource type and path) to start from
+     * @param jsonFields the full JsonFields from which to determine accessible paths
+     * @param authorizationSubject the AuthorizationSubject to check
+     * @param permissions the permissions to check
+     * @return a set of JsonPointer paths that are accessible for the given authorization subject and permissions
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 3.9.0
+     */
+    default Set<JsonPointer> getAccessiblePaths(ResourceKey resourceKey, Iterable<JsonField> jsonFields,
+            AuthorizationSubject authorizationSubject, Permissions permissions) {
+        return getAccessiblePaths(resourceKey, jsonFields,
+                AuthorizationContext.newInstance(
+                        DittoAuthorizationContextType.UNSPECIFIED,
+                        authorizationSubject),
+                permissions);
+    }
 
 }
