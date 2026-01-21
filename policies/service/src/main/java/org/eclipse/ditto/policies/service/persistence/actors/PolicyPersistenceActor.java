@@ -29,6 +29,7 @@ import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.NamespaceActivityCheckConfigProvider;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceActor;
@@ -72,6 +73,7 @@ public final class PolicyPersistenceActor
 
     private final ActorRef pubSubMediator;
     private final PolicyConfig policyConfig;
+    private final NamespaceActivityCheckConfigProvider activityCheckConfigProvider;
     private final ActorRef announcementManager;
     private final ActorRef supervisor;
 
@@ -86,6 +88,10 @@ public final class PolicyPersistenceActor
         this.pubSubMediator = pubSubMediator;
         this.announcementManager = announcementManager;
         this.policyConfig = policyConfig;
+        this.activityCheckConfigProvider = NamespaceActivityCheckConfigProvider.of(
+                policyConfig.getNamespaceActivityCheckConfigs(),
+                policyConfig.getActivityCheckConfig()
+        );
         this.supervisor = getContext().getParent();
     }
 
@@ -104,6 +110,10 @@ public final class PolicyPersistenceActor
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         );
         this.policyConfig = policiesConfig.getPolicyConfig();
+        this.activityCheckConfigProvider = NamespaceActivityCheckConfigProvider.of(
+                policyConfig.getNamespaceActivityCheckConfigs(),
+                policyConfig.getActivityCheckConfig()
+        );
     }
 
     /**
@@ -179,7 +189,7 @@ public final class PolicyPersistenceActor
 
     @Override
     protected ActivityCheckConfig getActivityCheckConfig() {
-        return policyConfig.getActivityCheckConfig();
+        return activityCheckConfigProvider.getConfigForNamespace(entityId.getNamespace());
     }
 
     @Override

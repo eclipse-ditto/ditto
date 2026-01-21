@@ -871,6 +871,13 @@ policies:
     persistence:
       # activityCheckInterval configures to keep policies for that amount of time in memory when no other use did happen:
       activityCheckInterval: 2d
+      # namespaceActivityCheckOverrides allows configuring different passivation intervals for policies in specific namespaces
+      #  First match wins - namespace patterns are evaluated in order.
+      #  Supports SQL-LIKE wildcard patterns: '*' matches any number of characters, '?' matches single character.
+      namespaceActivityCheckOverrides: []
+      # - namespacePattern: "org.example.low-frequency*"
+      #   inactiveInterval: "5m"
+      #   deletedInterval: "1m"
       # pingRate used to throttle pinging of PolicyPersistenceActors, so that not all PolicyPersistenceActors are recovered at the same time:
       pingRate:
         # frequency the frequency of sent "pings" to PolicyPersistenceActors
@@ -1212,6 +1219,13 @@ things:
     persistence:
       # activityCheckInterval configures to keep things for that amount of time in memory when no other use did happen
       activityCheckInterval: 2d
+      # namespaceActivityCheckOverrides allows configuring different passivation intervals for things in specific namespaces
+      #  First match wins - namespace patterns are evaluated in order.
+      #  Supports SQL-LIKE wildcard patterns: '*' matches any number of characters, '?' matches single character.
+      namespaceActivityCheckOverrides: []
+      # - namespacePattern: "org.example.low-frequency*"
+      #   inactiveInterval: "5m"
+      #   deletedInterval: "1m"
       # events contains event journal specific configuration
       events:
         # historicalHeadersToPersist define the DittoHeaders to persist when persisting events to the journal

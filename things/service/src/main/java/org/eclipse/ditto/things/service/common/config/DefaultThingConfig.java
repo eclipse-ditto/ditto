@@ -13,6 +13,8 @@
 package org.eclipse.ditto.things.service.common.config;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -23,11 +25,14 @@ import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultActivityCheckConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultNamespaceActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultSnapshotConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.NamespaceActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.cleanup.CleanupConfig;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 /**
  * This class is the default implementation of the thing config.
@@ -36,10 +41,12 @@ import com.typesafe.config.Config;
 public final class DefaultThingConfig implements ThingConfig {
 
     private static final String CONFIG_PATH = "thing";
+    private static final String NAMESPACE_ACTIVITY_CHECK_CONFIG_PATH = "namespace-activity-check";
 
     private final Duration shutdownTimeout;
     private final SupervisorConfig supervisorConfig;
     private final ActivityCheckConfig activityCheckConfig;
+    private final List<NamespaceActivityCheckConfig> namespaceActivityCheckConfigs;
     private final SnapshotConfig snapshotConfig;
     private final ThingEventConfig eventConfig;
     private final ThingMessageConfig messageConfig;
@@ -50,12 +57,26 @@ public final class DefaultThingConfig implements ThingConfig {
         shutdownTimeout = scopedConfig.getDuration(ConfigValue.SHUTDOWN_TIMEOUT.getConfigPath());
         supervisorConfig = DefaultSupervisorConfig.of(scopedConfig);
         activityCheckConfig = DefaultActivityCheckConfig.of(scopedConfig);
+        namespaceActivityCheckConfigs = loadNamespaceActivityCheckConfigs(scopedConfig);
         snapshotConfig = DefaultSnapshotConfig.of(scopedConfig);
         eventConfig = DefaultThingEventConfig.of(scopedConfig);
         messageConfig = DefaultThingMessageConfig.of(scopedConfig);
         cleanupConfig = CleanupConfig.of(scopedConfig);
         mergeRemoveEmptyObjectsAfterPatchConditionFiltering = scopedConfig.getBoolean(
                 ThingConfig.ConfigValue.MERGE_REMOVE_EMPTY_OBJECTS_AFTER_PATCH_CONDITION_FILTERING.getConfigPath());
+    }
+
+    private static List<NamespaceActivityCheckConfig> loadNamespaceActivityCheckConfigs(final ScopedConfig config) {
+        if (config.hasPath(NAMESPACE_ACTIVITY_CHECK_CONFIG_PATH)) {
+            final var configList = config.getList(NAMESPACE_ACTIVITY_CHECK_CONFIG_PATH);
+            final List<NamespaceActivityCheckConfig> result = new ArrayList<>(configList.size());
+            for (final var configValue : configList) {
+                result.add(DefaultNamespaceActivityCheckConfig.of(
+                        ConfigFactory.empty().withFallback(configValue)));
+            }
+            return List.copyOf(result);
+        }
+        return List.of();
     }
 
     /**
@@ -110,6 +131,11 @@ public final class DefaultThingConfig implements ThingConfig {
     }
 
     @Override
+    public List<NamespaceActivityCheckConfig> getNamespaceActivityCheckConfigs() {
+        return namespaceActivityCheckConfigs;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -120,6 +146,7 @@ public final class DefaultThingConfig implements ThingConfig {
         final DefaultThingConfig that = (DefaultThingConfig) o;
         return Objects.equals(supervisorConfig, that.supervisorConfig) &&
                 Objects.equals(activityCheckConfig, that.activityCheckConfig) &&
+                Objects.equals(namespaceActivityCheckConfigs, that.namespaceActivityCheckConfigs) &&
                 Objects.equals(snapshotConfig, that.snapshotConfig) &&
                 Objects.equals(eventConfig, that.eventConfig) &&
                 Objects.equals(cleanupConfig, that.cleanupConfig) &&
@@ -130,8 +157,9 @@ public final class DefaultThingConfig implements ThingConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(supervisorConfig, activityCheckConfig, snapshotConfig, eventConfig, messageConfig,
-                cleanupConfig, shutdownTimeout, mergeRemoveEmptyObjectsAfterPatchConditionFiltering);
+        return Objects.hash(supervisorConfig, activityCheckConfig, namespaceActivityCheckConfigs, snapshotConfig,
+                eventConfig, messageConfig, cleanupConfig, shutdownTimeout,
+                mergeRemoveEmptyObjectsAfterPatchConditionFiltering);
     }
 
     @Override
@@ -139,6 +167,7 @@ public final class DefaultThingConfig implements ThingConfig {
         return getClass().getSimpleName() + " [" +
                 "supervisorConfig=" + supervisorConfig +
                 ", activityCheckConfig=" + activityCheckConfig +
+                ", namespaceActivityCheckConfigs=" + namespaceActivityCheckConfigs +
                 ", snapshotConfig=" + snapshotConfig +
                 ", eventConfig=" + eventConfig +
                 ", messageConfig=" + messageConfig +

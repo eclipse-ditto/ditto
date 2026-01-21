@@ -13,6 +13,8 @@
 package org.eclipse.ditto.policies.service.common.config;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -24,12 +26,15 @@ import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultEventConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultNamespaceActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultSnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.EventConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.NamespaceActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.cleanup.CleanupConfig;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 /**
  * This class is the default implementation of the policy config.
@@ -38,9 +43,11 @@ import com.typesafe.config.Config;
 public final class DefaultPolicyConfig implements PolicyConfig {
 
     private static final String CONFIG_PATH = "policy";
+    private static final String NAMESPACE_ACTIVITY_CHECK_CONFIG_PATH = "namespace-activity-check";
 
     private final SupervisorConfig supervisorConfig;
     private final ActivityCheckConfig activityCheckConfig;
+    private final List<NamespaceActivityCheckConfig> namespaceActivityCheckConfigs;
     private final SnapshotConfig snapshotConfig;
     private final EventConfig eventConfig;
     private final Duration policySubjectExpiryGranularity;
@@ -52,6 +59,7 @@ public final class DefaultPolicyConfig implements PolicyConfig {
     private DefaultPolicyConfig(final ScopedConfig scopedConfig) {
         supervisorConfig = DefaultSupervisorConfig.of(scopedConfig);
         activityCheckConfig = DefaultActivityCheckConfig.of(scopedConfig);
+        namespaceActivityCheckConfigs = loadNamespaceActivityCheckConfigs(scopedConfig);
         snapshotConfig = DefaultSnapshotConfig.of(scopedConfig);
         eventConfig = DefaultEventConfig.of(scopedConfig);
         policySubjectExpiryGranularity =
@@ -62,6 +70,19 @@ public final class DefaultPolicyConfig implements PolicyConfig {
         subjectIdResolver = scopedConfig.getString(PolicyConfigValue.SUBJECT_ID_RESOLVER.getConfigPath());
         policyAnnouncementConfig = PolicyAnnouncementConfig.of(scopedConfig);
         cleanupConfig = CleanupConfig.of(scopedConfig);
+    }
+
+    private static List<NamespaceActivityCheckConfig> loadNamespaceActivityCheckConfigs(final ScopedConfig config) {
+        if (config.hasPath(NAMESPACE_ACTIVITY_CHECK_CONFIG_PATH)) {
+            final var configList = config.getList(NAMESPACE_ACTIVITY_CHECK_CONFIG_PATH);
+            final List<NamespaceActivityCheckConfig> result = new ArrayList<>(configList.size());
+            for (final var configValue : configList) {
+                result.add(DefaultNamespaceActivityCheckConfig.of(
+                        ConfigFactory.empty().withFallback(configValue)));
+            }
+            return List.copyOf(result);
+        }
+        return List.of();
     }
 
     /**
@@ -124,6 +145,11 @@ public final class DefaultPolicyConfig implements PolicyConfig {
     }
 
     @Override
+    public List<NamespaceActivityCheckConfig> getNamespaceActivityCheckConfigs() {
+        return namespaceActivityCheckConfigs;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -134,6 +160,7 @@ public final class DefaultPolicyConfig implements PolicyConfig {
         final DefaultPolicyConfig that = (DefaultPolicyConfig) o;
         return Objects.equals(supervisorConfig, that.supervisorConfig) &&
                 Objects.equals(activityCheckConfig, that.activityCheckConfig) &&
+                Objects.equals(namespaceActivityCheckConfigs, that.namespaceActivityCheckConfigs) &&
                 Objects.equals(snapshotConfig, that.snapshotConfig) &&
                 Objects.equals(eventConfig, that.eventConfig) &&
                 Objects.equals(policySubjectExpiryGranularity, that.policySubjectExpiryGranularity) &&
@@ -146,9 +173,9 @@ public final class DefaultPolicyConfig implements PolicyConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(supervisorConfig, activityCheckConfig, snapshotConfig, eventConfig,
-                policySubjectExpiryGranularity, policySubjectDeletionAnnouncementGranularity, subjectIdResolver,
-                policyAnnouncementConfig, cleanupConfig);
+        return Objects.hash(supervisorConfig, activityCheckConfig, namespaceActivityCheckConfigs, snapshotConfig,
+                eventConfig, policySubjectExpiryGranularity, policySubjectDeletionAnnouncementGranularity,
+                subjectIdResolver, policyAnnouncementConfig, cleanupConfig);
     }
 
     @Override
@@ -156,6 +183,7 @@ public final class DefaultPolicyConfig implements PolicyConfig {
         return getClass().getSimpleName() + " [" +
                 " supervisorConfig=" + supervisorConfig +
                 ", activityCheckConfig=" + activityCheckConfig +
+                ", namespaceActivityCheckConfigs=" + namespaceActivityCheckConfigs +
                 ", snapshotConfig=" + snapshotConfig +
                 ", eventConfig=" + eventConfig +
                 ", policySubjectExpiryGranularity=" + policySubjectExpiryGranularity +
