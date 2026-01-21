@@ -2533,6 +2533,10 @@ nginx:
     # timeouts are configured slightly higher than ditto-eclipse-ditto-gateway read-timeout
     timeout: 70
 
+    # nginx config htpasswd secret name
+    # Allows to override with a different 'Secret' resource - for example one handled by external-secrets operator.
+    htpasswdSecretName: nginx-config-nginx-htpasswd
+
 ## ----------------------------------------------------------------------------
 ## Ditto UI configuration
 dittoui:
