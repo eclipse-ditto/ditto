@@ -131,7 +131,8 @@ public final class SearchRootActor extends DittoRootActor {
     private ActorRef initializeSearchActor(final SearchConfig searchConfig,
             final ThingsSearchPersistence thingsSearchPersistence, final ActorRef pubSubMediator) {
         final var queryParser = getQueryParser(searchConfig, getContext().getSystem());
-        final var props = SearchActor.props(queryParser, thingsSearchPersistence, pubSubMediator);
+        final var slowQueryLogConfig = searchConfig.getSlowQueryLogConfig();
+        final var props = SearchActor.props(queryParser, thingsSearchPersistence, pubSubMediator, slowQueryLogConfig);
         return startChildActor(SearchActor.ACTOR_NAME, props);
     }
 

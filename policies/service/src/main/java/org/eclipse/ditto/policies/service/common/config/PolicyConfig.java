@@ -13,12 +13,14 @@
 package org.eclipse.ditto.policies.service.common.config;
 
 import java.time.Duration;
+import java.util.List;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.supervision.WithSupervisorConfig;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.EventConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.NamespaceActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithSnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.cleanup.WithCleanupConfig;
@@ -74,6 +76,15 @@ public interface PolicyConfig extends WithSupervisorConfig, WithActivityCheckCon
      * @return the policy announcement config.
      */
     PolicyAnnouncementConfig getPolicyAnnouncementConfig();
+
+    /**
+     * Returns the list of namespace-specific activity check configurations.
+     * These allow different passivation intervals to be configured for policies in specific namespaces.
+     *
+     * @return the list of namespace activity check configurations.
+     * @since 3.9.0
+     */
+    List<NamespaceActivityCheckConfig> getNamespaceActivityCheckConfigs();
 
     /**
      * An enumeration of the known config path expressions and their associated default values for {@code PolicyConfig}.

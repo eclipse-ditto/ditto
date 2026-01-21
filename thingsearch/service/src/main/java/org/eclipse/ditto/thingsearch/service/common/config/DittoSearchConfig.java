@@ -84,6 +84,7 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
     private final List<NamespaceSearchIndexConfig> namespaceIndexedFields;
     private final DefaultOperatorMetricsConfig operatorMetricsConfig;
     private final Map<String, CustomSearchIndexConfig> customIndexes;
+    private final SlowQueryLogConfig slowQueryLogConfig;
 
     private DittoSearchConfig(final ScopedConfig dittoScopedConfig) {
         dittoServiceConfig = DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH);
@@ -102,6 +103,7 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
                 ? configWithFallback.getConfig(QUERY_PATH)
                 : ConfigFactory.empty();
         queryPersistenceConfig = DefaultSearchPersistenceConfig.of(queryConfig);
+        slowQueryLogConfig = DefaultSlowQueryLogConfig.of(queryConfig);
         simpleFieldMappings =
                 convertToMap(configWithFallback.getConfig(SearchConfigValue.SIMPLE_FIELD_MAPPINGS.getConfigPath()));
         namespaceIndexedFields = loadNamespaceSearchIndexList(configWithFallback);
@@ -182,6 +184,11 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
     }
 
     @Override
+    public SlowQueryLogConfig getSlowQueryLogConfig() {
+        return slowQueryLogConfig;
+    }
+
+    @Override
     public ClusterConfig getClusterConfig() {
         return dittoServiceConfig.getClusterConfig();
     }
@@ -252,6 +259,7 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
                 Objects.equals(queryPersistenceConfig, that.queryPersistenceConfig) &&
                 Objects.equals(simpleFieldMappings, that.simpleFieldMappings) &&
                 Objects.equals(operatorMetricsConfig, that.operatorMetricsConfig) &&
+                Objects.equals(slowQueryLogConfig, that.slowQueryLogConfig) &&
                 Objects.equals(namespaceIndexedFields, that.namespaceIndexedFields) &&
                 Objects.equals(customIndexes, that.customIndexes);
     }
@@ -260,8 +268,8 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
     public int hashCode() {
         return Objects.hash(mongoHintsByNamespace, mongoCountHintIndexName, updaterConfig, dittoServiceConfig,
                 healthCheckConfig, indexInitializationConfig, persistenceOperationsConfig, mongoDbConfig,
-                queryPersistenceConfig, simpleFieldMappings, operatorMetricsConfig, namespaceIndexedFields,
-                customIndexes);
+                queryPersistenceConfig, simpleFieldMappings, operatorMetricsConfig, slowQueryLogConfig,
+                namespaceIndexedFields, customIndexes);
     }
 
     @Override
@@ -280,6 +288,7 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
                 ", namespaceIndexedFields=" + namespaceIndexedFields +
                 ", operatorMetricsConfig=" + operatorMetricsConfig +
                 ", customIndexes=" + customIndexes +
+                ", slowQueryLogConfig=" + slowQueryLogConfig +
                 "]";
     }
 

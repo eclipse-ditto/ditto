@@ -56,6 +56,15 @@ ditto {
   }
   things {
     thing {
+      namespace-activity-check = [
+      {{- range $index, $nsActivityCheck := .Values.things.config.persistence.namespaceActivityCheckOverrides }}
+        {
+          namespace-pattern = "{{$nsActivityCheck.namespacePattern}}"
+          inactive-interval = "{{$nsActivityCheck.inactiveInterval}}"
+          deleted-interval = "{{$nsActivityCheck.deletedInterval}}"
+        }
+      {{- end }}
+      ]
       event {
         historical-headers-to-persist = [
         {{- range $index, $header := .Values.things.config.persistence.events.historicalHeadersToPersist }}
