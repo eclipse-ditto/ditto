@@ -92,6 +92,13 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
     OperatorMetricsConfig getOperatorMetricsConfig();
 
     /**
+     * Returns the slow query log configuration for logging queries that exceed a configurable threshold.
+     *
+     * @return the slow query log configuration.
+     */
+    SlowQueryLogConfig getSlowQueryLogConfig();
+
+    /**
      * Returns a map of fields scoped by namespaces that will be explicitly included in the search index.
      *
      * @return the search projection fields.
