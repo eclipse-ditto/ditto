@@ -51,6 +51,26 @@ Create the file at: `documentation/src/main/resources/pages/ditto/release_notes_
 
 Where `<VERSION>` is the milestone with dots removed (e.g., "3.9.0" becomes "390").
 
+### Step 5: Update the Sidebar
+
+Add the new release to the documentation sidebar at `documentation/src/main/resources/_data/sidebars/ditto_sidebar.yml`.
+
+The new release entry must be added as the **first item** under the "Release Notes" `folderitems` section, so it appears at the top of the list.
+
+Add an entry in this format:
+```yaml
+          - title: <VERSION>
+            url: /release_notes_<VERSION_NODOTS>.html
+            output: web
+```
+
+For example, for version 3.8.11, add:
+```yaml
+          - title: 3.8.11
+            url: /release_notes_3811.html
+            output: web
+```
+
 ## Release Notes Format
 
 ### For Minor Releases (x.y.0)
@@ -204,3 +224,4 @@ After generating the release notes:
 2. Ask if there are any documentation links that need to be added or corrected
 3. Ask for the release date if not provided
 4. Create the file in the documentation directory
+5. Add the release to the sidebar in `documentation/src/main/resources/_data/sidebars/ditto_sidebar.yml` as the first entry under "Release Notes"
