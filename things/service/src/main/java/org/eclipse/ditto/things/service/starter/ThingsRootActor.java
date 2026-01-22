@@ -27,12 +27,15 @@ import org.apache.pekko.event.DiagnosticLoggingAdapter;
 import org.apache.pekko.japi.pf.ReceiveBuilder;
 import org.apache.pekko.pattern.Patterns;
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.service.RootChildActorStarter;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionCreator;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
+import org.eclipse.ditto.internal.utils.cluster.config.DefaultLiveEntitiesMetricsConfig;
+import org.eclipse.ditto.internal.utils.cluster.config.LiveEntitiesMetricsConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory;
@@ -157,8 +160,19 @@ public final class ThingsRootActor extends DittoRootActor {
         final Props props = ThingsAggregatorActor.props(thingsShardRegion, thingsAggregatorConfig, pubSubMediator);
         startChildActor(ThingsAggregatorActor.ACTOR_NAME, props);
 
+        // Load live entities metrics config from devops config
+        final var devopsConfig = DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
+                .getConfig("devops");
+        final LiveEntitiesMetricsConfig liveEntitiesMetricsConfig =
+                DefaultLiveEntitiesMetricsConfig.of(devopsConfig);
+
         retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(thingsShardRegion,
-                ThingsMessagingConstants.SHARD_REGION, log);
+                ThingsMessagingConstants.SHARD_REGION, log, liveEntitiesMetricsConfig.isEnabled());
+
+        // Schedule periodic metrics refresh if enabled
+        if (liveEntitiesMetricsConfig.isEnabled()) {
+            scheduleLiveEntitiesMetricsRefresh(liveEntitiesMetricsConfig);
+        }
 
         final var healthCheckConfig = thingsConfig.getHealthCheckConfig();
         final var hcBuilder =
@@ -220,6 +234,7 @@ public final class ThingsRootActor extends DittoRootActor {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(RetrieveStatisticsDetails.class, this::handleRetrieveStatisticsDetails)
+                .matchEquals(RefreshLiveEntitiesMetrics.INSTANCE, this::handleRefreshLiveEntitiesMetrics)
                 .match(Replicator.Changed.class, this::handleWotValidationConfigChanged)
                 .build().orElse(super.createReceive());
     }
@@ -228,6 +243,25 @@ public final class ThingsRootActor extends DittoRootActor {
         log.info("Sending the namespace stats of the things shard as requested ...");
         Patterns.pipe(retrieveStatisticsDetailsResponseSupplier
                 .apply(command.getDittoHeaders()), getContext().dispatcher()).to(getSender());
+    }
+
+    private void handleRefreshLiveEntitiesMetrics(final RefreshLiveEntitiesMetrics trigger) {
+        // Trigger statistics retrieval which will also update the metrics as a side effect
+        retrieveStatisticsDetailsResponseSupplier.apply(DittoHeaders.empty());
+    }
+
+    private void scheduleLiveEntitiesMetricsRefresh(final LiveEntitiesMetricsConfig config) {
+        final var refreshInterval = config.getRefreshInterval();
+        log.info("Scheduling live entities metrics refresh with interval <{}>", refreshInterval);
+        getContext().getSystem().scheduler()
+                .scheduleAtFixedRate(
+                        refreshInterval, // initial delay
+                        refreshInterval, // interval
+                        getSelf(),
+                        RefreshLiveEntitiesMetrics.INSTANCE,
+                        getContext().dispatcher(),
+                        ActorRef.noSender()
+                );
     }
 
     private void handleWotValidationConfigChanged(final Replicator.Changed<?> event) {
@@ -309,6 +343,13 @@ public final class ThingsRootActor extends DittoRootActor {
             log.info("Initialized WoT validator with merged config");
         });
         log.info("Subscribed to WoT validation config changes");
+    }
+
+    /**
+     * Internal message to trigger refresh of live entities metrics.
+     */
+    private enum RefreshLiveEntitiesMetrics {
+        INSTANCE
     }
 
 }

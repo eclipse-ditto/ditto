@@ -224,6 +224,10 @@ spec:
               value: "{{ .Values.global.featureFlags.tracingSpanMetricsEnabled }}"
             - name: DITTO_DEVOPS_FEATURE_POLICY_ENFORCEMENT_USE_THROUGHPUT_OPTIMIZED_EVALUATOR_ENABLED
               value: "{{ .Values.global.featureFlags.policyEnforcementUseThroughputOptimizedEvaluatorEnabled }}"
+            - name: DITTO_DEVOPS_LIVE_ENTITIES_METRICS_ENABLED
+              value: "{{ .Values.global.liveEntitiesMetrics.enabled }}"
+            - name: DITTO_DEVOPS_LIVE_ENTITIES_METRICS_REFRESH_INTERVAL
+              value: "{{ .Values.global.liveEntitiesMetrics.refreshInterval }}"
             - name: PEKKO_COORDINATED_SHUTDOWN_PHASES_CLUSTER_SHARDING_SHUTDOWN_REGION
               value: "{{ .Values.things.config.cluster.coordinatedShutdown.phases.clusterShardingShutdownRegion.timeout }}"
             - name: PEKKO_COORDINATED_SHUTDOWN_PHASES_CLUSTER_EXITING_TIMEOUT

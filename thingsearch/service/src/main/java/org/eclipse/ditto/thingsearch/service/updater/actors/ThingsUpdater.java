@@ -22,13 +22,16 @@ import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.internal.models.streaming.IdentifiableStreamingMessage;
+import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
+import org.eclipse.ditto.internal.utils.cluster.config.DefaultLiveEntitiesMetricsConfig;
+import org.eclipse.ditto.internal.utils.cluster.config.LiveEntitiesMetricsConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.namespaces.BlockNamespaceBehavior;
+import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.streaming.StreamAck;
-import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.internal.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
-import org.eclipse.ditto.internal.utils.namespaces.BlockNamespaceBehavior;
-import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
@@ -74,8 +77,20 @@ final class ThingsUpdater extends AbstractActorWithTimers {
 
         namespaceBlockingBehavior = BlockNamespaceBehavior.of(blockedNamespaces);
 
+        // Load live entities metrics config from devops config
+        final var devopsConfig = DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+                .getConfig("devops");
+        final LiveEntitiesMetricsConfig liveEntitiesMetricsConfig =
+                DefaultLiveEntitiesMetricsConfig.of(devopsConfig);
+
         retrieveStatisticsDetailsResponseSupplier =
-                RetrieveStatisticsDetailsResponseSupplier.of(shardRegion, ShardRegionFactory.UPDATER_SHARD_REGION, log);
+                RetrieveStatisticsDetailsResponseSupplier.of(shardRegion, ShardRegionFactory.UPDATER_SHARD_REGION, log,
+                        liveEntitiesMetricsConfig.isEnabled());
+
+        // Schedule periodic metrics refresh if enabled
+        if (liveEntitiesMetricsConfig.isEnabled()) {
+            scheduleLiveEntitiesMetricsRefresh(liveEntitiesMetricsConfig);
+        }
 
         pubSubMediator.tell(DistPubSubAccess.subscribeViaGroup(ThingsOutOfSync.TYPE, ACTOR_NAME, getSelf()), getSelf());
     }
@@ -106,6 +121,7 @@ final class ThingsUpdater extends AbstractActorWithTimers {
                 .matchEquals(ShardRegion.getShardRegionStateInstance(), getShardRegionState ->
                         shardRegion.forward(getShardRegionState, getContext()))
                 .match(RetrieveStatisticsDetails.class, this::handleRetrieveStatisticsDetails)
+                .matchEquals(RefreshLiveEntitiesMetrics.INSTANCE, this::handleRefreshLiveEntitiesMetrics)
                 .match(ThingsOutOfSync.class, this::updateThings)
                 .match(SudoUpdateThing.class, this::updateThing)
                 .match(DistributedPubSubMediator.SubscribeAck.class, subscribeAck ->
@@ -207,6 +223,28 @@ final class ThingsUpdater extends AbstractActorWithTimers {
                     }
                     return null;
                 });
+    }
+
+    private void handleRefreshLiveEntitiesMetrics(final RefreshLiveEntitiesMetrics trigger) {
+        // Trigger statistics retrieval which will also update the metrics as a side effect
+        retrieveStatisticsDetailsResponseSupplier.apply(DittoHeaders.empty());
+    }
+
+    private void scheduleLiveEntitiesMetricsRefresh(final LiveEntitiesMetricsConfig config) {
+        final var refreshInterval = config.getRefreshInterval();
+        log.info("Scheduling live entities metrics refresh for search-updater with interval <{}>", refreshInterval);
+        getTimers().startTimerAtFixedRate(
+                RefreshLiveEntitiesMetrics.INSTANCE,
+                RefreshLiveEntitiesMetrics.INSTANCE,
+                refreshInterval
+        );
+    }
+
+    /**
+     * Internal message to trigger refresh of live entities metrics.
+     */
+    private enum RefreshLiveEntitiesMetrics {
+        INSTANCE
     }
 
 }
