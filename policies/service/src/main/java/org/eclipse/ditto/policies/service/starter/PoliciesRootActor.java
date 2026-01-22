@@ -109,11 +109,11 @@ public final class PoliciesRootActor extends DittoRootActor {
                 PolicyPersistenceOperationsActor.props(pubSubMediator, policiesConfig.getMongoDbConfig(),
                         actorSystem.settings().config(), policiesConfig.getPersistenceOperationsConfig()));
 
-        // Load live entities metrics config from devops config
-        final var devopsConfig = DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
-                .getConfig("devops");
+        // Load live entities metrics config from metrics config
+        final var metricsConfig = DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
+                .getConfig("metrics");
         final LiveEntitiesMetricsConfig liveEntitiesMetricsConfig =
-                DefaultLiveEntitiesMetricsConfig.of(devopsConfig);
+                DefaultLiveEntitiesMetricsConfig.of(metricsConfig);
 
         retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(policiesShardRegion,
                 PoliciesMessagingConstants.SHARD_REGION, log, liveEntitiesMetricsConfig.isEnabled());

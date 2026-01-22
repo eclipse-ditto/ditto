@@ -168,14 +168,6 @@ global:
     #  for policy enforcement. This evaluator trades off higher memory use for higher throughput and lower CPU usage.
     #  The alternative, if configured to false, is a memory-optimized evaluator which uses less memory but more CPU.
     policyEnforcementUseThroughputOptimizedEvaluatorEnabled: true
-  # liveEntitiesMetrics configures the live entities metrics feature that periodically publishes
-  #  Prometheus gauge metrics with the count of active entities per namespace
-  liveEntitiesMetrics:
-    # enabled controls whether live entities metrics are enabled
-    #  When enabled, a gauge metric "live_entities" with tags "type" and "namespace" is published
-    enabled: true
-    # refreshInterval defines the interval at which live entities metrics are refreshed
-    refreshInterval: 30s
   # logging the logging configuration for Ditto
   logging:
     # sysout holds the logging to SYSOUT config
@@ -212,6 +204,14 @@ global:
     systemMetrics:
       # enabled if enabled, system metrics are gathered
       enabled: true
+    # liveEntities configures the live entities metrics feature that periodically publishes
+    #  Prometheus gauge metrics with the count of active entities per namespace
+    liveEntities:
+      # enabled controls whether live entities metrics are enabled
+      #  When enabled, a gauge metric "live_entities" with tags "type" and "namespace" is published
+      enabled: true
+      # refreshInterval defines the interval at which live entities metrics are refreshed
+      refreshInterval: 30s
   # tracing configuration for Ditto
   tracing:
     # enabled whether tracing (via OpenTelemetry) is enabled

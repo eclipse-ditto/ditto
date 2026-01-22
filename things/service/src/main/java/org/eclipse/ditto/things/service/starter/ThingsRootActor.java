@@ -160,11 +160,11 @@ public final class ThingsRootActor extends DittoRootActor {
         final Props props = ThingsAggregatorActor.props(thingsShardRegion, thingsAggregatorConfig, pubSubMediator);
         startChildActor(ThingsAggregatorActor.ACTOR_NAME, props);
 
-        // Load live entities metrics config from devops config
-        final var devopsConfig = DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
-                .getConfig("devops");
+        // Load live entities metrics config from metrics config
+        final var metricsConfig = DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
+                .getConfig("metrics");
         final LiveEntitiesMetricsConfig liveEntitiesMetricsConfig =
-                DefaultLiveEntitiesMetricsConfig.of(devopsConfig);
+                DefaultLiveEntitiesMetricsConfig.of(metricsConfig);
 
         retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(thingsShardRegion,
                 ThingsMessagingConstants.SHARD_REGION, log, liveEntitiesMetricsConfig.isEnabled());

@@ -77,11 +77,11 @@ final class ThingsUpdater extends AbstractActorWithTimers {
 
         namespaceBlockingBehavior = BlockNamespaceBehavior.of(blockedNamespaces);
 
-        // Load live entities metrics config from devops config
-        final var devopsConfig = DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
-                .getConfig("devops");
+        // Load live entities metrics config from metrics config
+        final var metricsConfig = DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+                .getConfig("metrics");
         final LiveEntitiesMetricsConfig liveEntitiesMetricsConfig =
-                DefaultLiveEntitiesMetricsConfig.of(devopsConfig);
+                DefaultLiveEntitiesMetricsConfig.of(metricsConfig);
 
         retrieveStatisticsDetailsResponseSupplier =
                 RetrieveStatisticsDetailsResponseSupplier.of(shardRegion, ShardRegionFactory.UPDATER_SHARD_REGION, log,
