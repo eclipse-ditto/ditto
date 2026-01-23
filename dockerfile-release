@@ -19,7 +19,7 @@ ENV DITTO_HOME=/opt/ditto \
 
 RUN set -x \
     && apt-get update \
-    && apt-get install -y tini \
+    && apt-get install -y tini curl \
     && mkdir -p $DITTO_HOME \
     && mkdir -p $DITTO_LOGS \
     && groupadd --system --gid 1005 ditto \
