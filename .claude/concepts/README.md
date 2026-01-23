@@ -15,8 +15,8 @@ Store comprehensive design documents for:
 Format: `<feature-name>-design.md`
 
 Examples:
-- `ts-facade-design.md`
-- `policy-inheritance-design.md`
+- `timeseries-design.md`
+- `policy-import-additions-design.md`
 
 ## Contents
 
@@ -33,7 +33,8 @@ Each design document typically includes:
 
 | Document | Description | Status |
 |----------|-------------|--------|
-| [ts-facade-design.md](ts-facade-design.md) | Timeseries Facade Service for external TS database integration | Draft |
+| [policy-import-additions-design.md](policy-import-additions-design.md) | Enhance policy imports with `entriesAdditions` for subject/resource customization | Concept |
+| [timeseries-design.md](timeseries-design.md) | Timeseries Facade Service for external TS database integration | Draft |
 
 ## Workflow
 
