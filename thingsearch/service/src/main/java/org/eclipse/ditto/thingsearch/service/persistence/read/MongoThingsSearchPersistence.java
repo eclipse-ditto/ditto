@@ -300,7 +300,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
         final Bson relevantFieldsProjection =
                 Projections.include(PersistenceConstants.FIELD_ID, PersistenceConstants.FIELD_REVISION,
                         PersistenceConstants.FIELD_POLICY_ID, PersistenceConstants.FIELD_POLICY_REVISION,
-                        PersistenceConstants.FIELD_PATH_MODIFIED);
+                        PersistenceConstants.FIELD_PATH_MODIFIED, PersistenceConstants.FIELD_REFERENCED_POLICIES);
         final Bson sortById = Sorts.ascending(PersistenceConstants.FIELD_ID);
         final Publisher<Document> publisher = collection.find(filter)
                 .projection(relevantFieldsProjection)
