@@ -18,27 +18,29 @@ mvn clean install -DskipTests
 
 ## Running Tests
 
+**Always use `-T4` for parallel execution with 4 threads when running tests.**
+
 ```bash
 # Run all tests
-mvn test
+mvn test -T4
 
 # Run tests for a specific module
-mvn test -pl things/service
+mvn test -T4 -pl things/service
 
 # Run specific test class
-mvn test -Dtest=ThingPersistenceActorTest
+mvn test -T4 -Dtest=ThingPersistenceActorTest
 
 # Run specific test method
-mvn test -Dtest=ThingPersistenceActorTest#testCreateThing
+mvn test -T4 -Dtest=ThingPersistenceActorTest#testCreateThing
 
 # Run integration tests
-mvn verify
+mvn verify -T4
 
 # Run specific integration test
-mvn verify -Dit.test=ConnectionPersistenceActorIT
+mvn verify -T4 -Dit.test=ConnectionPersistenceActorIT
 
 # Skip unit tests, run only integration tests
-mvn verify -DskipTests -DskipITs=false
+mvn verify -T4 -DskipTests -DskipITs=false
 ```
 
 ## Local Development Environment

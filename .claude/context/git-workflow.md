@@ -89,10 +89,12 @@ Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
 
 ## Branch Naming
 
-Use descriptive branch names:
-- `feature/add-mqtt-support`
-- `fix/thing-deletion-bug`
-- `refactor/policy-enforcement`
+**Always create branches based on `master`.**
+
+Use the following naming conventions:
+- **New features**: `feature/<feature-description>` (e.g., `feature/add-mqtt-support`)
+- **Bug fixes**: `bugfix/<bugfix-description>` (e.g., `bugfix/thing-deletion-error`)
+- **Refactoring**: `refactor/<description>` (e.g., `refactor/policy-enforcement`)
 
 ## Claude Context Branch
 
