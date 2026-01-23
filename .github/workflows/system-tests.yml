@@ -205,7 +205,7 @@ jobs:
             -e DITTO_VERSION=$DITTO_VERSION \
             -e FORK_COUNT=$FORK_COUNT \
              ${{ env.EXTRA_DOCKER_ARGS || '' }} \
-             maven:3.9.5-eclipse-temurin-25 \
+             maven:3.9.12-eclipse-temurin-25 \
             mvn verify -am -amd --batch-mode --errors \
                 --projects=:system \
                 -Dtest.environment=docker-compose \
@@ -244,7 +244,7 @@ jobs:
           -e DITTO_VERSION=$DITTO_VERSION \
           -e FORK_COUNT=$FORK_COUNT \
           ${{ env.EXTRA_DOCKER_ARGS || '' }} \
-          maven:3.9.5-eclipse-temurin-25 \
+          maven:3.9.12-eclipse-temurin-25 \
           mvn verify -am -amd --batch-mode --errors --update-snapshots \
               --projects=:sync-completely-enabled \
               -Dtest.environment=docker-compose \
@@ -286,7 +286,7 @@ jobs:
           -e DITTO_VERSION=$DITTO_VERSION \
           -e FORK_COUNT=$FORK_COUNT \
           ${{ env.EXTRA_DOCKER_ARGS || '' }} \
-          maven:3.9.5-eclipse-temurin-25 \
+          maven:3.9.12-eclipse-temurin-25 \
           mvn verify -am -amd --batch-mode --errors --update-snapshots \
               --projects=:sync-event-processing-enabled \
               -Dtest.environment=docker-compose \
@@ -330,7 +330,7 @@ jobs:
           -e DITTO_VERSION=$DITTO_VERSION \
           -e FORK_COUNT=$FORK_COUNT \
           ${{ env.EXTRA_DOCKER_ARGS || '' }} \
-          maven:3.9.5-eclipse-temurin-25 \
+          maven:3.9.12-eclipse-temurin-25 \
           mvn verify -am -amd --batch-mode --errors --update-snapshots \
               --projects=:sync-tags-streaming-enabled \
               -Dtest.environment=docker-compose \
