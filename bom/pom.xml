@@ -101,7 +101,7 @@
         <!-- ### Testing dependencies versions -->
         <junit.version>4.13.2</junit.version>
         <junit-jupiter.version>5.13.3</junit-jupiter.version>
-        <assertj.version>3.27.3</assertj.version>
+        <assertj.version>3.27.7</assertj.version>
         <equals-verifier.version>3.19.3</equals-verifier.version>
         <byte-buddy.version>1.17.6</byte-buddy.version>
         <mockito.version>5.19.0</mockito.version>
