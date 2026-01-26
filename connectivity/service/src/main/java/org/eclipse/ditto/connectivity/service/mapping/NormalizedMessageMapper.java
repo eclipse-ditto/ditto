@@ -332,6 +332,7 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
         return getClass().getSimpleName() + " [" +
                 super.toString() +
                 ", jsonFieldSelector=" + jsonFieldSelector +
+                ", includeDeletedFields=" + includeDeletedFields +
                 "]";
     }
 }
