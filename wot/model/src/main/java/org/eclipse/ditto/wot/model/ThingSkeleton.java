@@ -76,6 +76,22 @@ public interface ThingSkeleton<T extends ThingSkeleton<T>> extends TypedJsonObje
     Optional<Profile> getProfile();
 
     /**
+     * Validates that all prefixed terms (CURIEs) used in this ThingModel or ThingDescription
+     * have their prefix defined in the {@code @context}.
+     * <p>
+     * A prefixed term has the format {@code prefix:localPart}, for example {@code ditto:category}
+     * or {@code ace:ACESecurityScheme}. Standard WoT prefixes (like {@code tm}, {@code td}, {@code htv})
+     * are allowed without explicit definition.
+     * </p>
+     *
+     * @throws WotValidationException if undefined prefixes are detected.
+     * @since 3.9.0
+     */
+    default void validateContextPrefixes() throws WotValidationException {
+        AtContextPrefixValidator.validatePrefixes(this);
+    }
+
+    /**
      * An enumeration of the known {@link JsonFieldDefinition}s of a Thing Description / Thing Model.
      */
     @Immutable
