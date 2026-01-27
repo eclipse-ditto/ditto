@@ -21,12 +21,16 @@ import org.apache.pekko.event.DiagnosticLoggingAdapter;
 import org.apache.pekko.japi.pf.ReceiveBuilder;
 import org.apache.pekko.pattern.Patterns;
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.service.RootChildActorStarter;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionCreator;
+import org.eclipse.ditto.internal.utils.cluster.config.DefaultLiveEntitiesMetricsConfig;
+import org.eclipse.ditto.internal.utils.cluster.config.LiveEntitiesMetricsConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
@@ -105,8 +109,19 @@ public final class PoliciesRootActor extends DittoRootActor {
                 PolicyPersistenceOperationsActor.props(pubSubMediator, policiesConfig.getMongoDbConfig(),
                         actorSystem.settings().config(), policiesConfig.getPersistenceOperationsConfig()));
 
+        // Load live entities metrics config from metrics config
+        final var metricsConfig = DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
+                .getConfig("metrics");
+        final LiveEntitiesMetricsConfig liveEntitiesMetricsConfig =
+                DefaultLiveEntitiesMetricsConfig.of(metricsConfig);
+
         retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(policiesShardRegion,
-                PoliciesMessagingConstants.SHARD_REGION, log);
+                PoliciesMessagingConstants.SHARD_REGION, log, liveEntitiesMetricsConfig.isEnabled());
+
+        // Schedule periodic metrics refresh if enabled
+        if (liveEntitiesMetricsConfig.isEnabled()) {
+            scheduleLiveEntitiesMetricsRefresh(liveEntitiesMetricsConfig, actorSystem);
+        }
 
         final var cleanupConfig = policiesConfig.getPolicyConfig().getCleanupConfig();
         final var cleanupActorProps = PersistenceCleanupActor.props(cleanupConfig, mongoReadJournal, CLUSTER_ROLE);
@@ -157,6 +172,7 @@ public final class PoliciesRootActor extends DittoRootActor {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(RetrieveStatisticsDetails.class, this::handleRetrieveStatisticsDetails)
+                .matchEquals(RefreshLiveEntitiesMetrics.INSTANCE, this::handleRefreshLiveEntitiesMetrics)
                 .build().orElse(super.createReceive());
     }
 
@@ -168,6 +184,33 @@ public final class PoliciesRootActor extends DittoRootActor {
         log.info("Sending the namespace stats of the policy shard as requested ...");
         Patterns.pipe(retrieveStatisticsDetailsResponseSupplier
                 .apply(command.getDittoHeaders()), getContext().dispatcher()).to(getSender());
+    }
+
+    private void handleRefreshLiveEntitiesMetrics(final RefreshLiveEntitiesMetrics trigger) {
+        // Trigger statistics retrieval which will also update the metrics as a side effect
+        retrieveStatisticsDetailsResponseSupplier.apply(DittoHeaders.empty());
+    }
+
+    private void scheduleLiveEntitiesMetricsRefresh(final LiveEntitiesMetricsConfig config,
+            final org.apache.pekko.actor.ActorSystem actorSystem) {
+        final var refreshInterval = config.getRefreshInterval();
+        log.info("Scheduling live entities metrics refresh with interval <{}>", refreshInterval);
+        actorSystem.scheduler()
+                .scheduleAtFixedRate(
+                        refreshInterval, // initial delay
+                        refreshInterval, // interval
+                        getSelf(),
+                        RefreshLiveEntitiesMetrics.INSTANCE,
+                        getContext().dispatcher(),
+                        ActorRef.noSender()
+                );
+    }
+
+    /**
+     * Internal message to trigger refresh of live entities metrics.
+     */
+    private enum RefreshLiveEntitiesMetrics {
+        INSTANCE
     }
 
 }

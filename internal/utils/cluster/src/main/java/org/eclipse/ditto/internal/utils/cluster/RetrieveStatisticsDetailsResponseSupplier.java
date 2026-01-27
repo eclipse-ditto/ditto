@@ -13,7 +13,9 @@
 package org.eclipse.ditto.internal.utils.cluster;
 
 import java.time.Duration;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.stream.Collector;
@@ -21,6 +23,8 @@ import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetailsResponse;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -41,15 +45,23 @@ public final class RetrieveStatisticsDetailsResponseSupplier
 
     private static final String EMPTY_ID = "<empty>";
 
+    private static final String LIVE_ENTITIES_GAUGE_NAME = "live_entities";
+    private static final String TAG_TYPE = "type";
+    private static final String TAG_NAMESPACE = "namespace";
+
     private final ActorRef shardRegion;
     private final String shardRegionName;
     private final DiagnosticLoggingAdapter log;
+    private final boolean metricsEnabled;
+    private final Set<String> knownNamespaces;
 
     private RetrieveStatisticsDetailsResponseSupplier(final ActorRef shardRegion, final String shardRegionName,
-            final DiagnosticLoggingAdapter log) {
+            final DiagnosticLoggingAdapter log, final boolean metricsEnabled) {
         this.shardRegion = shardRegion;
         this.shardRegionName = shardRegionName;
         this.log = log;
+        this.metricsEnabled = metricsEnabled;
+        this.knownNamespaces = new HashSet<>();
     }
 
     /**
@@ -63,7 +75,22 @@ public final class RetrieveStatisticsDetailsResponseSupplier
      */
     public static RetrieveStatisticsDetailsResponseSupplier of(final ActorRef shardRegion, final String shardRegionName,
             final DiagnosticLoggingAdapter log) {
-        return new RetrieveStatisticsDetailsResponseSupplier(shardRegion, shardRegionName, log);
+        return new RetrieveStatisticsDetailsResponseSupplier(shardRegion, shardRegionName, log, false);
+    }
+
+    /**
+     * Creates a new instance of a {@link RetrieveStatisticsDetailsResponse} supplier for the passed {@code shardRegion}
+     * and {@code shardRegionName} with metrics publishing enabled/disabled.
+     *
+     * @param shardRegion the shard region ActoRef to use for retrieving the shard region state.
+     * @param shardRegionName the shard region name.
+     * @param log the logger to use.
+     * @param metricsEnabled whether to publish live entity count metrics per namespace.
+     * @return the new RetrieveStatisticsDetailsResponse supplier
+     */
+    public static RetrieveStatisticsDetailsResponseSupplier of(final ActorRef shardRegion, final String shardRegionName,
+            final DiagnosticLoggingAdapter log, final boolean metricsEnabled) {
+        return new RetrieveStatisticsDetailsResponseSupplier(shardRegion, shardRegionName, log, metricsEnabled);
     }
 
     @Override
@@ -99,6 +126,10 @@ public final class RetrieveStatisticsDetailsResponseSupplier
                                         )
                                         .collect(stringMapCollector);
 
+                        if (metricsEnabled) {
+                            updateLiveEntitiesGauges(shardStats);
+                        }
+
                         final JsonObject namespaceStats = shardStats.entrySet().stream()
                                 .map(entry -> JsonField.newInstance(entry.getKey(),
                                         JsonValue.of(entry.getValue())))
@@ -123,5 +154,41 @@ public final class RetrieveStatisticsDetailsResponseSupplier
 
     private static String ensureNonemptyString(final String possiblyEmptyString) {
         return possiblyEmptyString.isEmpty() ? EMPTY_ID : possiblyEmptyString;
+    }
+
+    /**
+     * Updates the live entities gauge metrics for each namespace.
+     * This method also handles namespace cleanup by setting gauge to 0 for namespaces that no longer have entities.
+     *
+     * @param shardStats the map of namespace to entity count.
+     */
+    private void updateLiveEntitiesGauges(final Map<String, Long> shardStats) {
+        // First, set gauge to 0 for namespaces that no longer have entities
+        final Set<String> currentNamespaces = shardStats.keySet();
+        knownNamespaces.stream()
+                .filter(ns -> !currentNamespaces.contains(ns))
+                .forEach(removedNamespace -> {
+                    final Gauge gauge = DittoMetrics.gauge(LIVE_ENTITIES_GAUGE_NAME)
+                            .tag(TAG_TYPE, shardRegionName)
+                            .tag(TAG_NAMESPACE, removedNamespace);
+                    gauge.set(0L);
+                    log.debug("Set live_entities gauge to 0 for removed namespace <{}> in shard region <{}>",
+                            removedNamespace, shardRegionName);
+                });
+
+        // Update gauges for current namespaces
+        shardStats.forEach((namespace, count) -> {
+            final Gauge gauge = DittoMetrics.gauge(LIVE_ENTITIES_GAUGE_NAME)
+                    .tag(TAG_TYPE, shardRegionName)
+                    .tag(TAG_NAMESPACE, namespace);
+            gauge.set(count);
+        });
+
+        // Update known namespaces
+        knownNamespaces.clear();
+        knownNamespaces.addAll(currentNamespaces);
+
+        log.debug("Updated live_entities gauges for shard region <{}> with <{}> namespaces",
+                shardRegionName, currentNamespaces.size());
     }
 }
