@@ -56,6 +56,68 @@ private final Map<String, String> config = Map.of("key", "value");
 private final List<String> items = new ArrayList<>();
 ```
 
+### Optional Usage
+
+**RULE**: Never use `Optional` as a method parameter or class field. Use `@Nullable` annotation instead.
+
+`Optional` was designed for return types to indicate "may or may not have a value." Using it as a parameter or field creates unnecessary wrapping overhead and awkward APIs.
+
+```java
+// ❌ WRONG: Optional as parameter
+public void configure(final Optional<String> name, final Optional<Integer> timeout) {
+    name.ifPresent(n -> this.name = n);
+    timeout.ifPresent(t -> this.timeout = t);
+}
+
+// ✅ CORRECT: @Nullable annotation for parameters
+public void configure(@Nullable final String name, @Nullable final Integer timeout) {
+    if (name != null) {
+        this.name = name;
+    }
+    if (timeout != null) {
+        this.timeout = timeout;
+    }
+}
+```
+
+```java
+// ❌ WRONG: Optional as field
+public final class MyConfig {
+    private final Optional<String> description;
+    private final Optional<Duration> timeout;
+}
+
+// ✅ CORRECT: @Nullable annotation for fields
+public final class MyConfig {
+    @Nullable private final String description;
+    @Nullable private final Duration timeout;
+}
+```
+
+**Why avoid Optional in parameters and fields?**
+- `Optional` was designed for return types only
+- Creates awkward caller code: `configure(Optional.of("name"), Optional.empty())`
+- Adds unnecessary object allocation and memory overhead
+- `@Nullable` is clearer and more idiomatic
+- Fields with `Optional` complicate serialization (JSON, etc.)
+
+**When to use Optional (return types only):**
+```java
+// ✅ Good - Optional as return type
+public Optional<Thing> getThing(final ThingId thingId) {
+    return Optional.ofNullable(thingsMap.get(thingId));
+}
+
+// ✅ Good - wrap @Nullable field in Optional for getter
+public final class MyConfig {
+    @Nullable private final String description;
+
+    public Optional<String> getDescription() {
+        return Optional.ofNullable(description);
+    }
+}
+```
+
 ## Signals (Commands/Events/Responses)
 
 Everything in Ditto is a `Signal`:
