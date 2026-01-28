@@ -101,7 +101,14 @@ messages (e.g. events or responses) to arbitrary other formats.
 This mapper transforms `created`, `modified`, and `deleted` events (other type of messages are dropped) to a normalized view. 
 Events are mapped to a nested sparse JSON.
 
-**Note:** For deleted events, only complete thing deletions (`ThingDeleted`) are mapped with a special `_deleted` field. Partial deletions like `AttributeDeleted`, `FeatureDeleted`, etc. are not mapped and will be dropped.
+**Note:** By default, only complete thing deletions (`ThingDeleted`) are mapped with a special `_deleted` field. Partial
+deletions like `AttributeDeleted`, `FeatureDeleted`, etc. are dropped unless explicitly enabled (see option below).
+
+#### Configuration options
+
+* `includeDeletedFields` (optional, default: `false`): when enabled, partial delete events are mapped and merge-patch
+  `null` values are tracked in `_deletedFields`. The `_deletedFields` object mirrors the JSON structure of the deleted
+  paths and stores ISO-8601 timestamps at the leaf nodes.
 
 ```json
 {
@@ -170,7 +177,25 @@ would result in the following normalized JSON representation:
 
 The `_deleted` field contains the timestamp when the thing was deleted in ISO-8601 format.
 
-**Note:** The `_deleted` field is only added for complete thing deletions (when the entire thing is deleted). Partial deletions like `AttributeDeleted`, `FeatureDeleted`, etc. are not mapped and will be dropped.
+**Note:** The `_deleted` field is only added for complete thing deletions (when the entire thing is deleted).
+
+When `includeDeletedFields` is enabled, the mapper adds `_deletedFields` for partial deletions and merge-patch deletions:
+
+```json
+{
+  "thingId": "thing:id",
+  "_deletedFields": {
+    "attributes": {
+      "location": {
+        "mountedOn": "2025-01-27T10:00:00Z"
+      }
+    },
+    "features": {
+      "myFeature": "2025-01-27T11:00:00Z"
+    }
+  }
+}
+```
 
 #### Configuration options
 

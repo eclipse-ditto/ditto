@@ -266,6 +266,68 @@ public final class NormalizedMessageMapperTest {
     }
 
     @Test
+    public void thingMergedTracksDeletedFieldsFromNullValues() {
+        enableDeletedFields();
+        final JsonObject mergedObject = JsonObject.of("{\n" +
+                "  \"attributes\": {\n" +
+                "    \"location\": null,\n" +
+                "    \"status\": \"active\"\n" +
+                "  },\n" +
+                "  \"features\": {\n" +
+                "    \"sensor\": {\n" +
+                "      \"properties\": {\n" +
+                "        \"temp\": null,\n" +
+                "        \"humidity\": 50\n" +
+                "      }\n" +
+                "    }\n" +
+                "  }\n" +
+                "}");
+        final ThingMerged event = ThingMerged.of(ThingId.of("thing:merged"), JsonPointer.empty(), mergedObject,
+                1L, Instant.ofEpochSecond(1L), DittoHeaders.empty(), null);
+
+        final Adaptable adaptable = ADAPTER.toAdaptable(event);
+
+        Assertions.assertThat(mapToJson(adaptable))
+                .isEqualTo(JsonObject.of("{\n" +
+                        "  \"thingId\": \"thing:merged\",\n" +
+                        "  \"attributes\": {\n" +
+                        "    \"status\": \"active\"\n" +
+                        "  },\n" +
+                        "  \"features\": {\n" +
+                        "    \"sensor\": {\n" +
+                        "      \"properties\": {\n" +
+                        "        \"humidity\": 50\n" +
+                        "      }\n" +
+                        "    }\n" +
+                        "  },\n" +
+                        "  \"_modified\": \"1970-01-01T00:00:01Z\",\n" +
+                        "  \"_revision\": 1,\n" +
+                        "  \"_deletedFields\": {\n" +
+                        "    \"attributes\": {\n" +
+                        "      \"location\": \"1970-01-01T00:00:01Z\"\n" +
+                        "    },\n" +
+                        "    \"features\": {\n" +
+                        "      \"sensor\": {\n" +
+                        "        \"properties\": {\n" +
+                        "          \"temp\": \"1970-01-01T00:00:01Z\"\n" +
+                        "        }\n" +
+                        "      }\n" +
+                        "    }\n" +
+                        "  },\n" +
+                        "  \"_context\": {\n" +
+                        "    \"topic\": \"thing/merged/things/twin/events/merged\",\n" +
+                        "    \"path\": \"/\",\n" +
+                        "    \"value\":{\"attributes\":{\"status\":\"active\"},\"features\":{\"sensor\":{\"properties\":{\"humidity\":50}}}},\n" +
+                        "    \"headers\": {\n" +
+                        "      \"entity-revision\": \"1\",\n" +
+                        "      \"response-required\": \"false\",\n" +
+                        "      \"content-type\": \"application/merge-patch+json\"\n" +
+                        "    }\n" +
+                        "  }\n" +
+                        "}"));
+    }
+
+    @Test
     public void thingMergedWithExtraFields() {
         final var thingId = ThingId.of("the.namespace:the-thing-id");
         final var thing = ThingsModelFactory.newThingBuilder()
@@ -523,13 +585,123 @@ public final class NormalizedMessageMapperTest {
     }
 
     @Test
-    public void deletedEventsAreNotMapped() {
-        assertNotMapped(AttributeDeleted.of(ThingId.of("thing:id"), JsonPointer.of("/the/quick/brown/fox/"), 3L,
+    public void deletedEventsAreNotMappedByDefault() {
+        assertNotMapped(AttributeDeleted.of(ThingId.of("thing:id"), JsonPointer.of("/the/quick/brown/fox"), 3L,
                 Instant.ofEpochSecond(3L), DittoHeaders.empty(), null));
         assertNotMapped(FeaturePropertyDeleted.of(ThingId.of("thing:id"), "featureId",
                 JsonPointer.of("jumps/over/the/lazy/dog"), 4L, Instant.ofEpochSecond(4L), DittoHeaders.empty(), null));
         assertNotMapped(FeatureDeleted.of(ThingId.of("thing:id"), "featureId", 5L, Instant.EPOCH,
                 DittoHeaders.empty(), null));
+    }
+
+    @Test
+    public void deletedEventsAreMappedWithDeletedFieldsWhenEnabled() {
+        enableDeletedFields();
+        final AttributeDeleted attributeDeleted = AttributeDeleted.of(
+                ThingId.of("thing:id"),
+                JsonPointer.of("/the/quick/brown/fox"),
+                3L,
+                Instant.ofEpochSecond(3L),
+                DittoHeaders.empty(),
+                null);
+
+        Assertions.assertThat(mapToJson(ADAPTER.toAdaptable(attributeDeleted)))
+                .isEqualTo(JsonObject.of("{\n" +
+                        "  \"thingId\": \"thing:id\",\n" +
+                        "  \"_modified\": \"1970-01-01T00:00:03Z\",\n" +
+                        "  \"_revision\": 3,\n" +
+                        "  \"_deletedFields\": {\n" +
+                        "    \"attributes\": {\n" +
+                        "      \"the\": {\n" +
+                        "        \"quick\": {\n" +
+                        "          \"brown\": {\n" +
+                        "            \"fox\": \"1970-01-01T00:00:03Z\"\n" +
+                        "          }\n" +
+                        "        }\n" +
+                        "      }\n" +
+                        "    }\n" +
+                        "  },\n" +
+                        "  \"_context\": {\n" +
+                        "    \"topic\": \"thing/id/things/twin/events/deleted\",\n" +
+                        "    \"path\": \"/attributes/the/quick/brown/fox\",\n" +
+                        "    \"value\": null,\n" +
+                        "    \"headers\": {\n" +
+                        "      \"entity-revision\": \"3\",\n" +
+                        "      \"response-required\": \"false\"\n" +
+                        "    }\n" +
+                        "  }\n" +
+                        "}"));
+
+        final FeaturePropertyDeleted propertyDeleted = FeaturePropertyDeleted.of(
+                ThingId.of("thing:id"),
+                "featureId",
+                JsonPointer.of("jumps/over/the/lazy/dog"),
+                4L,
+                Instant.ofEpochSecond(4L),
+                DittoHeaders.empty(),
+                null);
+
+        Assertions.assertThat(mapToJson(ADAPTER.toAdaptable(propertyDeleted)))
+                .isEqualTo(JsonObject.of("{\n" +
+                        "  \"thingId\": \"thing:id\",\n" +
+                        "  \"_modified\": \"1970-01-01T00:00:04Z\",\n" +
+                        "  \"_revision\": 4,\n" +
+                        "  \"_deletedFields\": {\n" +
+                        "    \"features\": {\n" +
+                        "      \"featureId\": {\n" +
+                        "        \"properties\": {\n" +
+                        "          \"jumps\": {\n" +
+                        "            \"over\": {\n" +
+                        "              \"the\": {\n" +
+                        "                \"lazy\": {\n" +
+                        "                  \"dog\": \"1970-01-01T00:00:04Z\"\n" +
+                        "                }\n" +
+                        "              }\n" +
+                        "            }\n" +
+                        "          }\n" +
+                        "        }\n" +
+                        "      }\n" +
+                        "    }\n" +
+                        "  },\n" +
+                        "  \"_context\": {\n" +
+                        "    \"topic\": \"thing/id/things/twin/events/deleted\",\n" +
+                        "    \"path\": \"/features/featureId/properties/jumps/over/the/lazy/dog\",\n" +
+                        "    \"value\": null,\n" +
+                        "    \"headers\": {\n" +
+                        "      \"entity-revision\": \"4\",\n" +
+                        "      \"response-required\": \"false\"\n" +
+                        "    }\n" +
+                        "  }\n" +
+                        "}"));
+
+        final FeatureDeleted featureDeleted = FeatureDeleted.of(
+                ThingId.of("thing:id"),
+                "featureId",
+                5L,
+                Instant.EPOCH,
+                DittoHeaders.empty(),
+                null);
+
+        Assertions.assertThat(mapToJson(ADAPTER.toAdaptable(featureDeleted)))
+                .isEqualTo(JsonObject.of("{\n" +
+                        "  \"thingId\": \"thing:id\",\n" +
+                        "  \"_modified\": \"1970-01-01T00:00:00Z\",\n" +
+                        "  \"_revision\": 5,\n" +
+                        "  \"_deletedFields\": {\n" +
+                        "    \"features\": {\n" +
+                        "      \"featureId\": \"1970-01-01T00:00:00Z\"\n" +
+                        "    }\n" +
+                        "  },\n" +
+                        "  \"_context\": {\n" +
+                        "    \"topic\": \"thing/id/things/twin/events/deleted\",\n" +
+                        "    \"path\": \"/features/featureId\",\n" +
+                        "    \"value\": null,\n" +
+                        "    \"headers\": {\n" +
+                        "      \"entity-revision\": \"5\",\n" +
+                        "      \"response-required\": \"false\"\n" +
+                        "    }\n" +
+                        "  }\n" +
+                        "}"));
     }
 
     @Test
@@ -551,6 +723,14 @@ public final class NormalizedMessageMapperTest {
 
     private void assertNotMapped(final Signal signal) {
         assertThat(underTest.map(ADAPTER.toAdaptable(signal))).isEmpty();
+    }
+
+    private void enableDeletedFields() {
+        final Map<String, JsonValue> options = Map.of(
+                NormalizedMessageMapper.INCLUDE_DELETED_FIELDS, JsonValue.of("true"));
+        underTest.configure(connection, connectivityConfig,
+                DefaultMessageMapperConfiguration.of("normalizer", options, Map.of(), Map.of()),
+                actorSystem);
     }
 
     private JsonObject mapToJson(final Adaptable message) {
