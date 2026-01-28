@@ -265,7 +265,7 @@ public final class MigrateThingDefinitionStrategyTest extends AbstractCommandStr
                 .setAttributes(THING_V2.getAttributes()
                         .orElseGet(ThingsModelFactory::emptyAttributes)
                         .toBuilder()
-                        .set("on", JsonValue.of(true))
+                        .set("isOn", JsonValue.of(true))
                         .set("level", JsonValue.of(0.75))
                         .build())
                 .setRevision(NEXT_REVISION - 1)
@@ -275,7 +275,7 @@ public final class MigrateThingDefinitionStrategyTest extends AbstractCommandStr
 
         final JsonObject migrationPayload = JsonFactory.newObjectBuilder()
                 .set("attributes", JsonFactory.newObjectBuilder()
-                        .set("powerOn", "{{ thing-json:attributes/on }}")
+                        .set("powerOn", "{{ thing-json:attributes/isOn }}")
                         .set("intensity", "{{ thing-json:attributes/level }}")
                         .build())
                 .build();
