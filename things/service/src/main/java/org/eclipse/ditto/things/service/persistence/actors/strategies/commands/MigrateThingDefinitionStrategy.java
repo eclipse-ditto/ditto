@@ -13,6 +13,7 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
@@ -26,15 +27,22 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.common.Placeholders;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonArrayBuilder;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.placeholders.Placeholder;
+import org.eclipse.ditto.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.placeholders.PlaceholderFilter;
+import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.things.model.FeatureDefinition;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
@@ -78,6 +86,11 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
 
     private static final ThingResourceMapper<Thing, Optional<EntityTag>> ENTITY_TAG_MAPPER =
             ThingResourceMapper.from(EntityTagCalculator.getInstance());
+    /** Prefix for Placeholder interface (expression prefix before colon). */
+    private static final String THING_JSON_PREFIX = "thing-json";
+    private static final String THING_JSON_PREFIX_COLON = THING_JSON_PREFIX + ":";
+    /** Matches exactly one {{ placeholder }} — used to resolve a pointer and preserve JSON type. */
+    private static final Placeholder<JsonObject> THING_JSON_PLACEHOLDER = new ThingJsonPlaceholder();
 
 
     /**
@@ -118,6 +131,15 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
                 command.getMigrationPayload(),
                 command.getPatchConditions(),
                 dittoHeaders);
+        final JsonObject resolvedMigrationPayload;
+        try {
+            resolvedMigrationPayload = resolveMigrationPayloadPlaceholders(
+                    existingThing,
+                    adjustedMigrationPayload,
+                    dittoHeaders);
+        } catch (final UnresolvedPlaceholderException e) {
+            return ResultFactory.newErrorResult(e, command);
+        }
 
         // 2. Generate Skeleton using definition and apply migration
         final CompletionStage<Thing> updatedThingStage = generateSkeleton(command, dittoHeaders)
@@ -125,7 +147,7 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
                         existingThing, skeleton,
                         command.isInitializeMissingPropertiesFromDefaults()))
                 .thenApply(patchThing -> applyMigrationPayload(context,
-                        patchThing, adjustedMigrationPayload, nextRevision, eventTs));
+                        patchThing, resolvedMigrationPayload, nextRevision, eventTs));
 
         // 3. Validate and build event response
         final CompletionStage<Pair<Thing, MigrateThingDefinition>> validatedStage = updatedThingStage
@@ -297,6 +319,135 @@ public final class MigrateThingDefinitionStrategy extends AbstractThingModifyCom
 
     private static boolean isEmptyObject(final JsonValue value) {
         return value.isObject() && value.asObject().isEmpty();
+    }
+
+    private static JsonObject resolveMigrationPayloadPlaceholders(final Thing existingThing,
+            final JsonObject migrationPayload,
+            final DittoHeaders dittoHeaders) {
+        if (migrationPayload.isEmpty()) {
+            return migrationPayload;
+        }
+        final JsonObject thingJson = existingThing.toJson(FieldType.all());
+        return resolveJsonObjectPlaceholders(migrationPayload, thingJson, dittoHeaders);
+    }
+
+    private static JsonObject resolveJsonObjectPlaceholders(final JsonObject source,
+            final JsonObject thingJson,
+            final DittoHeaders dittoHeaders) {
+        final JsonObjectBuilder builder = JsonFactory.newObjectBuilder();
+        for (final JsonField field : source) {
+            final JsonValue resolved = resolveJsonValuePlaceholders(field.getValue(), thingJson, dittoHeaders);
+            builder.set(field.getKey(), resolved);
+        }
+        return builder.build();
+    }
+
+    private static JsonValue resolveJsonValuePlaceholders(final JsonValue source,
+            final JsonObject thingJson,
+            final DittoHeaders dittoHeaders) {
+        if (source.isNull()) {
+            return source;
+        }
+        if (source.isObject()) {
+            return resolveJsonObjectPlaceholders(source.asObject(), thingJson, dittoHeaders);
+        }
+        if (source.isArray()) {
+            return resolveJsonArrayPlaceholders(source.asArray(), thingJson, dittoHeaders);
+        }
+        if (source.isString()) {
+            return resolveStringPlaceholders(source.asString(), thingJson, dittoHeaders);
+        }
+        return source;
+    }
+
+    private static JsonArray resolveJsonArrayPlaceholders(final JsonArray source,
+            final JsonObject thingJson,
+            final DittoHeaders dittoHeaders) {
+        final JsonArrayBuilder builder = JsonFactory.newArrayBuilder();
+        for (final JsonValue value : source) {
+            builder.add(resolveJsonValuePlaceholders(value, thingJson, dittoHeaders));
+        }
+        return builder.build();
+    }
+
+    private static JsonValue resolveStringPlaceholders(final String source,
+            final JsonObject thingJson,
+            final DittoHeaders dittoHeaders) {
+        if (!Placeholders.containsAnyPlaceholder(source)) {
+            return JsonValue.of(source);
+        }
+        final Optional<String> exactPointer = extractExactThingJsonPointer(source);
+        if (exactPointer.isPresent()) {
+            return resolveThingJsonPointer(exactPointer.get(), thingJson, dittoHeaders);
+        }
+        try {
+            final var resolver = PlaceholderFactory.newExpressionResolver(THING_JSON_PLACEHOLDER, thingJson);
+            final String resolved = PlaceholderFilter.apply(source, resolver);
+            return JsonValue.of(resolved);
+        } catch (final UnresolvedPlaceholderException e) {
+            throw e.setDittoHeaders(dittoHeaders);
+        }
+    }
+
+    /**
+     * If the string is exactly one thing-json placeholder (brace or legacy, no pipeline), returns the path.
+     * That path is used for type-preserving resolution (boolean, number, array, etc.). Pipeline or
+     * multiple placeholders fall back to string resolution via PlaceholderFilter.
+     */
+    private static Optional<String> extractExactThingJsonPointer(final String source) {
+        return Placeholders.extractContentIfSinglePlaceholder(source)
+                .filter(content -> !content.contains("|") && content.startsWith(THING_JSON_PREFIX_COLON))
+                .map(content -> content.substring(THING_JSON_PREFIX_COLON.length()).trim())
+                .filter(path -> !path.isEmpty());
+    }
+
+    private static JsonValue resolveThingJsonPointer(final String pointer,
+            final JsonObject thingJson,
+            final DittoHeaders dittoHeaders) {
+        final Optional<JsonValue> value = thingJson.getValue(JsonFactory.newPointer(pointer));
+        if (value.isEmpty()) {
+            throw UnresolvedPlaceholderException.newBuilder(formatThingJsonPlaceholder(pointer))
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+        return value.get();
+    }
+
+    private static String formatThingJsonPlaceholder(final String pointer) {
+        return "{{ " + THING_JSON_PREFIX_COLON + pointer + " }}";
+    }
+
+    private static final class ThingJsonPlaceholder implements Placeholder<JsonObject> {
+
+        @Override
+        public String getPrefix() {
+            return THING_JSON_PREFIX;
+        }
+
+        @Override
+        public List<String> getSupportedNames() {
+            return List.of();
+        }
+
+        @Override
+        public boolean supports(final String name) {
+            return !List.of("namespace", "name", "id").contains(name);
+        }
+
+        @Override
+        public List<String> resolveValues(final JsonObject thingJson, final String name) {
+            final String trimmed = name.trim();
+            final String path = trimmed.startsWith(THING_JSON_PREFIX_COLON) ? trimmed.substring(THING_JSON_PREFIX_COLON.length()).trim() : trimmed;
+            final Optional<JsonValue> value = thingJson.getValue(JsonFactory.newPointer(path));
+            return value.filter(JsonValue::isArray)
+                    .map(JsonValue::asArray)
+                    .map(array -> array.stream()
+                            .map(JsonValue::formatAsString)
+                            .toList())
+                    .or(() -> value.map(JsonValue::formatAsString)
+                            .map(List::of))
+                    .orElseGet(List::of);
+        }
     }
 
     private Thing applyMigrationPayload(final Context<ThingId> context, final Thing thing,

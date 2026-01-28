@@ -19,6 +19,10 @@ post:
     - Patch conditions to ensure consistent updates.
     - Whether properties should be initialized if missing.
 
+    **Placeholders in migration payload:** String values in `migrationPayload` may use the thing-json
+    placeholder. Both brace `{{ thing-json:<json-pointer> }}` and legacy `${ thing-json:<json-pointer> }`
+    are supported. 
+    
     If the `dry-run` query parameter or header is set to `true`, the request will return the calculated migration result without applying any changes.
 
     ### Example:

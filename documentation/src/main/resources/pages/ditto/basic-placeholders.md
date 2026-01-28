@@ -31,7 +31,7 @@ Which placeholder values are available depends on the context where the placehol
 
 | Placeholder                                        | Description                                                                                                                                                                                                                                                                |
 |----------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `{%raw%}{{ thing-json:<json-pointer> }}{%endraw%}` | Value (in string representation) of the JSON identified by the provided ''json-pointer'' in JsonPointer notation - e.g., `thing-json:attributes/location` for the "location" attribute or `thing-json:features/temperature/properties/value` for the temperature property. |
+| `{%raw%}{{ thing-json:<json-pointer> }}{%endraw%}` | Value (in string representation) of the JSON identified by the provided ''json-pointer'' in JsonPointer notation - e.g., `thing-json:attributes/location` for the "location" attribute or `thing-json:features/temperature/properties/value` for the temperature property. Also supported in the [migrate definition](httpapi-concepts.html#things-in-api-2---migrate-thing-definitions) migration payload: when the value is exactly one placeholder (brace or legacy, no pipeline), the resolved value preserves its JSON type (number, boolean, string, object, array); pipelines and multiple placeholders yield a string. |
 
 ### Feature Placeholder
 
