@@ -177,7 +177,7 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
         }
 
         if (includeDeletedFields) {
-            final JsonObject deletedFields = extractDeletedFields(topicPath, payload, path, payloadValue);
+            final JsonObject deletedFields = extractDeletedFields(topicPath, payload, path, payloadValue.orElse(null));
             if (!deletedFields.isEmpty()) {
                 builder.set(DELETED_FIELDS, deletedFields);
             }
@@ -252,8 +252,9 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
     private static JsonObject extractDeletedFields(final TopicPath topicPath,
             final Payload payload,
             final JsonPointer path,
-            final Optional<JsonValue> payloadValue) {
-        if (!payload.getTimestamp().isPresent()) {
+            @Nullable final JsonValue payloadValue)
+    {
+        if (payload.getTimestamp().isEmpty()) {
             return JsonObject.empty();
         }
         final JsonObjectBuilder deletedFieldsBuilder = JsonFactory.newObjectBuilder();
@@ -264,12 +265,11 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
             return deletedFieldsBuilder.build();
         }
 
-        if (topicPath.isAction(TopicPath.Action.MERGED) && payloadValue.isPresent()) {
-            final JsonValue value = payloadValue.get();
-            if (value.isNull() && !path.isEmpty()) {
+        if (topicPath.isAction(TopicPath.Action.MERGED) && payloadValue != null) {
+            if (payloadValue.isNull() && !path.isEmpty()) {
                 deletedFieldsBuilder.set(path.toString(), timestamp);
-            } else if (value.isObject()) {
-                extractNullsFromMergePatch(value.asObject(), path, deletedFieldsBuilder, timestamp);
+            } else if (payloadValue.isObject()) {
+                extractNullsFromMergePatch(payloadValue.asObject(), path, deletedFieldsBuilder, timestamp);
             }
         }
 
