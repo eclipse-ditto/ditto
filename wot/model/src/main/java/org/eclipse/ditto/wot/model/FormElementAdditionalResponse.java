@@ -29,7 +29,8 @@ import org.eclipse.ditto.json.JsonObject;
  * @see <a href="https://www.w3.org/TR/wot-thing-description11/#additionalexpectedresponse">WoT TD AdditionalExpectedResponse</a>
  * @since 2.4.0
  */
-public interface FormElementAdditionalResponse extends Jsonifiable<JsonObject> {
+public interface FormElementAdditionalResponse
+        extends TypedJsonObject<FormElementAdditionalResponse>, Jsonifiable<JsonObject> {
 
     static FormElementAdditionalResponse fromJson(final JsonObject jsonObject) {
         return new ImmutableFormElementAdditionalResponse(jsonObject);
@@ -43,17 +44,13 @@ public interface FormElementAdditionalResponse extends Jsonifiable<JsonObject> {
         return FormElementAdditionalResponse.Builder.newBuilder(jsonObject);
     }
 
-    default FormElementAdditionalResponse.Builder toBuilder() {
-        return FormElementAdditionalResponse.Builder.newBuilder(toJson());
-    }
-
     boolean isSuccess();
 
     Optional<String> getContentType();
 
     Optional<String> getSchema();
 
-    interface Builder {
+    interface Builder extends TypedJsonObjectBuilder<Builder, FormElementAdditionalResponse> {
 
         static Builder newBuilder() {
             return new MutableFormElementAdditionalResponseBuilder(JsonObject.newBuilder());
@@ -68,8 +65,6 @@ public interface FormElementAdditionalResponse extends Jsonifiable<JsonObject> {
         Builder setContentType(@Nullable String contentType);
 
         Builder setSchema(@Nullable String schema);
-
-        FormElementAdditionalResponse build();
     }
 
     /**

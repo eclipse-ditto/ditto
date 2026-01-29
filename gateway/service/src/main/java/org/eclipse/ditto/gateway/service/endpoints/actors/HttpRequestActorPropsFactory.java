@@ -16,20 +16,17 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.concurrent.CompletableFuture;
 
-import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
-import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
-import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
-import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
-import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
-
-
-import com.typesafe.config.Config;
-
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.Props;
 import org.apache.pekko.http.javadsl.model.HttpRequest;
 import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
+import org.eclipse.ditto.gateway.service.util.config.GatewayConfig;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
+
+import com.typesafe.config.Config;
 
 /**
  * Factory of props of actors that handle HTTP requests.
@@ -44,16 +41,14 @@ public interface HttpRequestActorPropsFactory extends DittoExtensionPoint {
      * @param headerTranslator translator of Ditto headers.
      * @param httpRequest the HTTP request.
      * @param httpResponseFuture promise of an HTTP response to be fulfilled by the actor.
-     * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
-     * @param commandConfig the configuration settings for incoming commands (via HTTP requests) in the gateway.
+     * @param gatewayConfig the configuration settings of the Gateway service.
      * @return Props of the actor.
      */
     Props props(ActorRef proxyActor,
             HeaderTranslator headerTranslator,
             HttpRequest httpRequest,
             CompletableFuture<HttpResponse> httpResponseFuture,
-            HttpConfig httpConfig,
-            CommandConfig commandConfig);
+            GatewayConfig gatewayConfig);
 
     static HttpRequestActorPropsFactory get(final ActorSystem actorSystem, final Config config) {
         checkNotNull(actorSystem, "actorSystem");

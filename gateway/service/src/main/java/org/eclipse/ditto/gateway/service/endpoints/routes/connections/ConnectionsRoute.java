@@ -91,7 +91,7 @@ public final class ConnectionsRoute extends AbstractRoute {
 
         super(routeBaseProperties);
         this.devOpsAuthenticationDirective = devOpsAuthenticationDirective;
-        final var httpConfig = routeBaseProperties.getHttpConfig();
+        final var httpConfig = routeBaseProperties.getGatewayConfig().getHttpConfig();
         final var fallbackMediaTypes = httpConfig.getAdditionalAcceptedMediaTypes().stream();
         final var plainText = Stream.of(MediaTypes.TEXT_PLAIN.toString());
         mediaTypePlainTextWithFallbacks = Stream.concat(plainText, fallbackMediaTypes).collect(Collectors.toSet());
