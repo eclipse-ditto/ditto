@@ -47,12 +47,23 @@ public interface SubjectIssuerConfig {
      */
     Map<String, String> getInjectClaimsIntoHeaders();
 
+    /**
+     * Returns the prerequisite conditions that must be met for a JWT to be accepted.
+     * These conditions are evaluated as placeholder expressions. If any condition resolves to an empty value,
+     * the JWT is rejected with a 401 response.
+     *
+     * @return a list of prerequisite condition expressions.
+     * @since 3.9.0
+     */
+    List<String> getPrerequisiteConditions();
+
 
     enum SubjectIssuerConfigValue implements KnownConfigValue {
         ISSUER("issuer", ""),
         ISSUERS("issuers", List.of()),
         AUTH_SUBJECTS("auth-subjects", List.of("{{jwt:sub}}")),
-        INJECT_CLAIMS_INTO_HEADERS("inject-claims-into-headers", Map.of());
+        INJECT_CLAIMS_INTO_HEADERS("inject-claims-into-headers", Map.of()),
+        PREREQUISITE_CONDITIONS("prerequisite-conditions", List.of());
 
         private final String path;
         private final Object defaultValue;
