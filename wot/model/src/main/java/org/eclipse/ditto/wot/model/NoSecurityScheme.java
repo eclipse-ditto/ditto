@@ -25,14 +25,37 @@ import org.eclipse.ditto.json.JsonObject;
  */
 public interface NoSecurityScheme extends SecurityScheme {
 
+    /**
+     * Creates a new NoSecurityScheme from the specified JSON object.
+     *
+     * @param securitySchemeName the name of the security scheme.
+     * @param jsonObject the JSON object representing the security scheme.
+     * @return the NoSecurityScheme.
+     */
     static NoSecurityScheme fromJson(final String securitySchemeName, final JsonObject jsonObject) {
         return new ImmutableNoSecurityScheme(securitySchemeName, jsonObject);
     }
 
+    /**
+     * Creates a new builder for building a NoSecurityScheme.
+     *
+     * @param securitySchemeName the name of the security scheme.
+     * @return the builder.
+     * @throws NullPointerException if {@code securitySchemeName} is {@code null}.
+     */
     static NoSecurityScheme.Builder newBuilder(final CharSequence securitySchemeName) {
         return NoSecurityScheme.Builder.newBuilder(securitySchemeName);
     }
 
+    /**
+     * Creates a new builder for building a NoSecurityScheme, initialized with the values from the specified
+     * JSON object.
+     *
+     * @param securitySchemeName the name of the security scheme.
+     * @param jsonObject the JSON object providing initial values.
+     * @return the builder.
+     * @throws NullPointerException if {@code securitySchemeName} is {@code null}.
+     */
     static NoSecurityScheme.Builder newBuilder(final CharSequence securitySchemeName, final JsonObject jsonObject) {
         return NoSecurityScheme.Builder.newBuilder(securitySchemeName, jsonObject);
     }
@@ -42,13 +65,30 @@ public interface NoSecurityScheme extends SecurityScheme {
         return SecuritySchemeScheme.NOSEC;
     }
 
+    /**
+     * A mutable builder with a fluent API for building a {@link NoSecurityScheme}.
+     */
     interface Builder extends SecurityScheme.Builder<Builder, NoSecurityScheme> {
 
+        /**
+         * Creates a new builder for building a NoSecurityScheme.
+         *
+         * @param securitySchemeName the name of the security scheme.
+         * @return the builder.
+         */
         static Builder newBuilder(final CharSequence securitySchemeName) {
             return new MutableNoSecuritySchemeBuilder(checkNotNull(securitySchemeName, "securitySchemeName").toString(),
                     JsonObject.newBuilder());
         }
 
+        /**
+         * Creates a new builder for building a NoSecurityScheme, initialized with the values from the
+         * specified JSON object.
+         *
+         * @param securitySchemeName the name of the security scheme.
+         * @param jsonObject the JSON object providing initial values.
+         * @return the builder.
+         */
         static Builder newBuilder(final CharSequence securitySchemeName, final JsonObject jsonObject) {
             return new MutableNoSecuritySchemeBuilder(checkNotNull(securitySchemeName, "securitySchemeName").toString(),
                     jsonObject.toBuilder());

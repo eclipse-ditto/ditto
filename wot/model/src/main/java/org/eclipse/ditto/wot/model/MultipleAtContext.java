@@ -29,6 +29,12 @@ import org.eclipse.ditto.json.JsonArray;
  */
 public interface MultipleAtContext extends AtContext, Iterable<SingleAtContext>, Jsonifiable<JsonArray> {
 
+    /**
+     * Creates a MultipleAtContext from the specified JSON array.
+     *
+     * @param jsonArray the JSON array representing multiple context entries.
+     * @return the MultipleAtContext.
+     */
     static MultipleAtContext fromJson(final JsonArray jsonArray) {
         final List<SingleAtContext> singleDataSchemaTypes = jsonArray.stream()
                 .flatMap(jsonValue -> {
@@ -47,10 +53,21 @@ public interface MultipleAtContext extends AtContext, Iterable<SingleAtContext>,
         return of(singleDataSchemaTypes);
     }
 
+    /**
+     * Creates a MultipleAtContext from the specified collection of single contexts.
+     *
+     * @param contexts the collection of single context entries.
+     * @return the MultipleAtContext.
+     */
     static MultipleAtContext of(final Collection<SingleAtContext> contexts) {
         return new ImmutableMultipleAtContext(contexts);
     }
 
+    /**
+     * Returns a sequential stream over the single context entries.
+     *
+     * @return a stream of single contexts.
+     */
     default Stream<SingleAtContext> stream() {
         return StreamSupport.stream(spliterator(), false);
     }

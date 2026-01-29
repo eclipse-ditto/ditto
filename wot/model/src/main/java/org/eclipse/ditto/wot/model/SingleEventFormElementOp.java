@@ -24,7 +24,13 @@ import java.util.Optional;
  * @since 2.x.0
  */
 public enum SingleEventFormElementOp implements EventFormElementOp<SingleEventFormElementOp>, CharSequence {
+    /**
+     * Subscribe to event notifications.
+     */
     SUBSCRIBEEVENT("subscribeevent"),
+    /**
+     * Unsubscribe from event notifications.
+     */
     UNSUBSCRIBEEVENT("unsubscribeevent");
 
     private final String name;
@@ -33,6 +39,11 @@ public enum SingleEventFormElementOp implements EventFormElementOp<SingleEventFo
         this.name = name;
     }
 
+    /**
+     * Returns the string representation of this operation.
+     *
+     * @return the operation name.
+     */
     public String getName() {
         return name;
     }

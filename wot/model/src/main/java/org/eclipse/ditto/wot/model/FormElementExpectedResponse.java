@@ -29,10 +29,22 @@ import org.eclipse.ditto.json.JsonObject;
  */
 public interface FormElementExpectedResponse extends TypedJsonObject<FormElementExpectedResponse>, Jsonifiable<JsonObject> {
 
+    /**
+     * Creates a new FormElementExpectedResponse from the specified JSON object.
+     *
+     * @param jsonObject the JSON object representing the expected response.
+     * @return the FormElementExpectedResponse.
+     */
     static FormElementExpectedResponse fromJson(final JsonObject jsonObject) {
         return new ImmutableFormElementExpectedResponse(jsonObject);
     }
 
+    /**
+     * Returns the optional content type of the expected response.
+     *
+     * @return the optional content type.
+     * @see <a href="https://www.w3.org/TR/wot-thing-description11/#expectedresponse">WoT TD ExpectedResponse (contentType)</a>
+     */
     Optional<String> getContentType();
 
     /**
@@ -41,6 +53,9 @@ public interface FormElementExpectedResponse extends TypedJsonObject<FormElement
     @Immutable
     final class JsonFields {
 
+        /**
+         * JSON field definition for the content type.
+         */
         public static final JsonFieldDefinition<String> CONTENT_TYPE = JsonFactory.newStringFieldDefinition(
                 "contentType");
 

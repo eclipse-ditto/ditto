@@ -22,10 +22,24 @@ import java.util.Collection;
  */
 public interface AtType {
 
+    /**
+     * Creates a new single type annotation.
+     *
+     * @param type the semantic type.
+     * @return the SingleAtType.
+     * @see <a href="https://www.w3.org/TR/wot-thing-description11/#thing">WoT TD Thing (@type)</a>
+     */
     static SingleAtType newSingleAtType(final CharSequence type) {
         return SingleAtType.of(type);
     }
 
+    /**
+     * Creates a new multiple type annotation containing multiple single types.
+     *
+     * @param types the collection of semantic types.
+     * @return the MultipleAtType.
+     * @see <a href="https://www.w3.org/TR/wot-thing-description11/#thing">WoT TD Thing (@type)</a>
+     */
     static MultipleAtType newMultipleAtType(final Collection<SingleAtType> types) {
         return MultipleAtType.of(types);
     }

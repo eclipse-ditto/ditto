@@ -28,6 +28,12 @@ import org.eclipse.ditto.json.JsonValue;
 public interface MultipleEventFormElementOp
         extends EventFormElementOp<SingleEventFormElementOp>, MultipleFormElementOp<SingleEventFormElementOp> {
 
+    /**
+     * Creates a MultipleEventFormElementOp from the specified JSON array.
+     *
+     * @param jsonArray the JSON array of operation strings.
+     * @return the MultipleEventFormElementOp.
+     */
     static MultipleEventFormElementOp fromJson(final JsonArray jsonArray) {
         final List<SingleEventFormElementOp> singleEventFormOps = jsonArray.stream()
                 .filter(JsonValue::isString)
@@ -38,6 +44,12 @@ public interface MultipleEventFormElementOp
         return of(singleEventFormOps);
     }
 
+    /**
+     * Creates a MultipleEventFormElementOp from the specified collection of operations.
+     *
+     * @param ops the collection of operations.
+     * @return the MultipleEventFormElementOp.
+     */
     static MultipleEventFormElementOp of(final Collection<SingleEventFormElementOp> ops) {
         return new ImmutableMultipleEventFormElementOp(ops);
     }

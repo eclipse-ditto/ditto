@@ -29,6 +29,12 @@ import org.eclipse.ditto.json.JsonValue;
  */
 public interface MultipleSecurity extends Security, Iterable<SingleSecurity>, Jsonifiable<JsonArray> {
 
+    /**
+     * Creates a MultipleSecurity from the specified JSON array.
+     *
+     * @param jsonArray the JSON array of security scheme names.
+     * @return the MultipleSecurity.
+     */
     static MultipleSecurity fromJson(final JsonArray jsonArray) {
         final List<SingleSecurity> singleSecurities = jsonArray.stream()
                 .filter(JsonValue::isString)
@@ -38,10 +44,21 @@ public interface MultipleSecurity extends Security, Iterable<SingleSecurity>, Js
         return of(singleSecurities);
     }
 
+    /**
+     * Creates a MultipleSecurity from the specified collection of security scheme names.
+     *
+     * @param securities the collection of security scheme names.
+     * @return the MultipleSecurity.
+     */
     static MultipleSecurity of(final Collection<SingleSecurity> securities) {
         return new ImmutableMultipleSecurity(securities);
     }
 
+    /**
+     * Returns a sequential stream over the security scheme names.
+     *
+     * @return a stream of security scheme names.
+     */
     default Stream<SingleSecurity> stream() {
         return StreamSupport.stream(spliterator(), false);
     }

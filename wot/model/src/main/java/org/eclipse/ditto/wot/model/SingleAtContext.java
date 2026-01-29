@@ -19,10 +19,23 @@ package org.eclipse.ditto.wot.model;
  */
 public interface SingleAtContext extends AtContext {
 
+    /**
+     * Creates a SingleUriAtContext from the specified context IRI.
+     *
+     * @param context the context IRI.
+     * @return the SingleUriAtContext.
+     */
     static SingleUriAtContext newSingleUriAtContext(final CharSequence context) {
         return SingleUriAtContext.of(context);
     }
 
+    /**
+     * Creates a SinglePrefixedAtContext from the specified prefix and context IRI.
+     *
+     * @param prefix the prefix for this context.
+     * @param context the context IRI.
+     * @return the SinglePrefixedAtContext.
+     */
     static SinglePrefixedAtContext newSinglePrefixedAtContext(final CharSequence prefix,
             final SingleUriAtContext context) {
         return SinglePrefixedAtContext.of(prefix, context);

@@ -29,6 +29,12 @@ import org.eclipse.ditto.json.JsonObject;
  */
 public interface Titles extends Map<Locale, Title>, Jsonifiable<JsonObject> {
 
+    /**
+     * Creates a Titles from the specified JSON object.
+     *
+     * @param jsonObject the JSON object mapping language tags to titles.
+     * @return the Titles.
+     */
     static Titles fromJson(final JsonObject jsonObject) {
         return of(jsonObject.stream().collect(Collectors.toMap(
                 field -> new Locale(field.getKey().toString()),
@@ -41,6 +47,12 @@ public interface Titles extends Map<Locale, Title>, Jsonifiable<JsonObject> {
         ));
     }
 
+    /**
+     * Creates a Titles from the specified map of locale to title.
+     *
+     * @param titles the map of locales to titles.
+     * @return the Titles.
+     */
     static Titles of(final Map<Locale, Title> titles) {
         return new ImmutableTitles(titles);
     }

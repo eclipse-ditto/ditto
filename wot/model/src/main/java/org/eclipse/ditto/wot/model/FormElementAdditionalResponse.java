@@ -31,44 +31,126 @@ import org.eclipse.ditto.json.JsonObject;
  */
 public interface FormElementAdditionalResponse extends Jsonifiable<JsonObject> {
 
+    /**
+     * Creates a new FormElementAdditionalResponse from the specified JSON object.
+     *
+     * @param jsonObject the JSON object representing the additional response.
+     * @return the FormElementAdditionalResponse.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     */
     static FormElementAdditionalResponse fromJson(final JsonObject jsonObject) {
         return new ImmutableFormElementAdditionalResponse(jsonObject);
     }
 
+    /**
+     * Creates a new builder for building a FormElementAdditionalResponse.
+     *
+     * @return the builder.
+     */
     static FormElementAdditionalResponse.Builder newBuilder() {
         return FormElementAdditionalResponse.Builder.newBuilder();
     }
 
+    /**
+     * Creates a new builder for building a FormElementAdditionalResponse, initialized with the values from the
+     * specified JSON object.
+     *
+     * @param jsonObject the JSON object providing initial values.
+     * @return the builder.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     */
     static FormElementAdditionalResponse.Builder newBuilder(final JsonObject jsonObject) {
         return FormElementAdditionalResponse.Builder.newBuilder(jsonObject);
     }
 
+    /**
+     * Returns a mutable builder with a fluent API for building a FormElementAdditionalResponse, initialized with
+     * the values of this instance.
+     *
+     * @return the builder.
+     */
     default FormElementAdditionalResponse.Builder toBuilder() {
         return FormElementAdditionalResponse.Builder.newBuilder(toJson());
     }
 
+    /**
+     * Returns whether this additional response represents a success case.
+     *
+     * @return {@code true} if this is a success response, {@code false} otherwise.
+     * @see <a href="https://www.w3.org/TR/wot-thing-description11/#additionalexpectedresponse">WoT TD AdditionalExpectedResponse (success)</a>
+     */
     boolean isSuccess();
 
+    /**
+     * Returns the optional content type of this additional response.
+     *
+     * @return the optional content type.
+     * @see <a href="https://www.w3.org/TR/wot-thing-description11/#additionalexpectedresponse">WoT TD AdditionalExpectedResponse (contentType)</a>
+     */
     Optional<String> getContentType();
 
+    /**
+     * Returns the optional schema reference for this additional response.
+     *
+     * @return the optional schema.
+     * @see <a href="https://www.w3.org/TR/wot-thing-description11/#additionalexpectedresponse">WoT TD AdditionalExpectedResponse (schema)</a>
+     */
     Optional<String> getSchema();
 
+    /**
+     * A mutable builder with a fluent API for building a {@link FormElementAdditionalResponse}.
+     */
     interface Builder {
 
+        /**
+         * Creates a new builder for building a FormElementAdditionalResponse.
+         *
+         * @return the builder.
+         */
         static Builder newBuilder() {
             return new MutableFormElementAdditionalResponseBuilder(JsonObject.newBuilder());
         }
 
+        /**
+         * Creates a new builder for building a FormElementAdditionalResponse, initialized with the values from
+         * the specified JSON object.
+         *
+         * @param jsonObject the JSON object providing initial values.
+         * @return the builder.
+         */
         static Builder newBuilder(final JsonObject jsonObject) {
             return new MutableFormElementAdditionalResponseBuilder(jsonObject.toBuilder());
         }
 
+        /**
+         * Sets whether this additional response represents a success case.
+         *
+         * @param success the success flag, or {@code null} to remove.
+         * @return this builder.
+         */
         Builder setSuccess(@Nullable Boolean success);
 
+        /**
+         * Sets the content type of this additional response.
+         *
+         * @param contentType the content type, or {@code null} to remove.
+         * @return this builder.
+         */
         Builder setContentType(@Nullable String contentType);
 
+        /**
+         * Sets the schema reference for this additional response.
+         *
+         * @param schema the schema, or {@code null} to remove.
+         * @return this builder.
+         */
         Builder setSchema(@Nullable String schema);
 
+        /**
+         * Builds the FormElementAdditionalResponse.
+         *
+         * @return the FormElementAdditionalResponse.
+         */
         FormElementAdditionalResponse build();
     }
 
@@ -78,12 +160,21 @@ public interface FormElementAdditionalResponse extends Jsonifiable<JsonObject> {
     @Immutable
     final class JsonFields {
 
+        /**
+         * JSON field definition for the success flag.
+         */
         public static final JsonFieldDefinition<Boolean> SUCCESS = JsonFactory.newBooleanFieldDefinition(
                 "success");
 
+        /**
+         * JSON field definition for the content type.
+         */
         public static final JsonFieldDefinition<String> CONTENT_TYPE = JsonFactory.newStringFieldDefinition(
                 "contentType");
 
+        /**
+         * JSON field definition for the schema reference.
+         */
         public static final JsonFieldDefinition<String> SCHEMA = JsonFactory.newStringFieldDefinition(
                 "schema");
 

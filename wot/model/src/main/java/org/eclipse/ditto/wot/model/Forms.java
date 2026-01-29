@@ -28,6 +28,11 @@ import org.eclipse.ditto.json.JsonArray;
  */
 public interface Forms<E extends FormElement<E>> extends Iterable<E>, Jsonifiable<JsonArray> {
 
+    /**
+     * Returns a sequential stream over the form elements.
+     *
+     * @return a stream of form elements.
+     */
     default Stream<E> stream() {
         return StreamSupport.stream(spliterator(), false);
     }

@@ -23,11 +23,29 @@ import java.util.Optional;
  * @since 2.4.0
  */
 public enum SecuritySchemeIn implements CharSequence {
+    /**
+     * Credentials are sent in an HTTP header.
+     */
     HEADER("header"),
+    /**
+     * Credentials are sent as a query parameter.
+     */
     QUERY("query"),
+    /**
+     * Credentials are sent in the request body.
+     */
     BODY("body"),
+    /**
+     * Credentials are sent in a cookie.
+     */
     COOKIE("cookie"),
+    /**
+     * Credentials are embedded in the URI.
+     */
     URI("uri"),
+    /**
+     * Location is auto-negotiated.
+     */
     AUTO("auto");
 
     private final String name;
@@ -36,6 +54,11 @@ public enum SecuritySchemeIn implements CharSequence {
         this.name = name;
     }
 
+    /**
+     * Returns the string representation of this location.
+     *
+     * @return the location name.
+     */
     public String getName() {
         return name;
     }
