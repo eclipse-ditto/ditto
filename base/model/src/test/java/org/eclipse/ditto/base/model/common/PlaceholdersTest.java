@@ -79,4 +79,28 @@ public final class PlaceholdersTest {
 
         assertThat(contains).isFalse();
     }
+
+    @Test
+    public void extractContentIfSinglePlaceholderReturnsContentForBraceFormat() {
+        assertThat(Placeholders.extractContentIfSinglePlaceholder("{{ thing-json:attributes/maker }}"))
+                .contains("thing-json:attributes/maker");
+        assertThat(Placeholders.extractContentIfSinglePlaceholder("  {{ header:device-id }}  "))
+                .contains("header:device-id");
+    }
+
+    @Test
+    public void extractContentIfSinglePlaceholderReturnsContentForLegacyFormat() {
+        assertThat(Placeholders.extractContentIfSinglePlaceholder("${ thing-json:attributes/maker }"))
+                .contains("thing-json:attributes/maker");
+        assertThat(Placeholders.extractContentIfSinglePlaceholder("${request.subjectId}"))
+                .contains("request.subjectId");
+    }
+
+    @Test
+    public void extractContentIfSinglePlaceholderReturnsEmptyWhenNotSinglePlaceholder() {
+        assertThat(Placeholders.extractContentIfSinglePlaceholder("plain")).isEmpty();
+        assertThat(Placeholders.extractContentIfSinglePlaceholder("{{ a }} and {{ b }}")).isEmpty();
+        assertThat(Placeholders.extractContentIfSinglePlaceholder("prefix {{ thing:id }}")).isEmpty();
+        assertThat(Placeholders.extractContentIfSinglePlaceholder("{{ thing:id }} suffix")).isEmpty();
+    }
 }

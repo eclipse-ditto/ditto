@@ -19,6 +19,8 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonObject;
+
 /**
  * Factory that creates instances of {@link Placeholder}, {@link PlaceholderResolver}s and {@link ExpressionResolver}s.
  */
@@ -29,6 +31,15 @@ public final class PlaceholderFactory {
      */
     public static HeadersPlaceholder newHeadersPlaceholder() {
         return ImmutableHeadersPlaceholder.INSTANCE;
+    }
+
+    /**
+     * Returns a placeholder that resolves {@code thing-json:&lt;json-pointer&gt;} from a {@link JsonObject}.
+     *
+     * @return the thing-json placeholder working on JsonObject
+     */
+    public static Placeholder<JsonObject> newThingJsonPlaceholder() {
+        return ImmutableThingJsonPlaceholder.INSTANCE;
     }
 
     /**

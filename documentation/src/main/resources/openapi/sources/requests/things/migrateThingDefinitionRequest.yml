@@ -18,7 +18,11 @@ properties:
     example: "https://models.example.com/thing-definition-1.0.0.tm.jsonld"
   migrationPayload:
     type: object
-    description: "Optional migration payload with updates to attributes and features."
+    description: |
+      Optional migration payload with updates to attributes and features.
+      String values may contain {{ thing-json:<json-pointer> }} placeholders to reference
+      existing Thing data (e.g. attributes/location, features/sensor/properties/temp).
+      Resolved values keep their JSON type; missing paths cause the request to fail.
     properties:
       attributes:
         type: object

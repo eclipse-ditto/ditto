@@ -12,22 +12,19 @@
  */
 package org.eclipse.ditto.edge.service.placeholders;
 
-import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEmpty;
-import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
-
-import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.placeholders.Placeholder;
+import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.things.model.Thing;
 
 /**
  * Placeholder implementation that replaces {@code thing-json:attributes/some-attr} and other arbitrary json values inside
- * a Thing.
+ * a Thing. Delegates to the thing-json placeholder from the placeholders module (working on JsonObject).
  */
 @Immutable
 final class ImmutableThingJsonPlaceholder implements ThingJsonPlaceholder {
@@ -37,35 +34,25 @@ final class ImmutableThingJsonPlaceholder implements ThingJsonPlaceholder {
      */
     static final ImmutableThingJsonPlaceholder INSTANCE = new ImmutableThingJsonPlaceholder();
 
+    private static final Placeholder<JsonObject> DELEGATE = PlaceholderFactory.newThingJsonPlaceholder();
+
     @Override
     public String getPrefix() {
-        return "thing-json";
+        return DELEGATE.getPrefix();
     }
 
     @Override
     public List<String> getSupportedNames() {
-        // supports any names (interpreted as JsonPointer)
-        return List.of();
+        return DELEGATE.getSupportedNames();
     }
 
     @Override
     public boolean supports(final String name) {
-        // supports any names (interpreted as JsonPointer) BUT the ones supported by ImmutableThingPlaceholder
-        return !List.of("namespace", "name", "id").contains(name);
+        return DELEGATE.supports(name);
     }
 
     @Override
     public List<String> resolveValues(final Thing thing, final String placeholder) {
-        checkNotNull(thing, "thing");
-        argumentNotEmpty(placeholder, "placeholder");
-        final Optional<JsonValue> value = thing.toJson(FieldType.all()).getValue(placeholder);
-        return value.filter(JsonValue::isArray)
-                .map(JsonValue::asArray)
-                .map(array -> array.stream()
-                        .map(JsonValue::formatAsString)
-                        .toList())
-                .or(() -> value.map(JsonValue::formatAsString)
-                        .map(Collections::singletonList))
-                .orElseGet(Collections::emptyList);
+        return DELEGATE.resolveValues(thing.toJson(FieldType.all()), placeholder);
     }
 }
