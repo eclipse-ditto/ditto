@@ -28,6 +28,12 @@ import org.eclipse.ditto.json.JsonValue;
 public interface MultipleRootFormElementOp
         extends RootFormElementOp<SingleRootFormElementOp>, MultipleFormElementOp<SingleRootFormElementOp> {
 
+    /**
+     * Creates a MultipleRootFormElementOp from the specified JSON array.
+     *
+     * @param jsonArray the JSON array of operation strings.
+     * @return the MultipleRootFormElementOp.
+     */
     static MultipleRootFormElementOp fromJson(final JsonArray jsonArray) {
         final List<SingleRootFormElementOp> singleEventFormOps = jsonArray.stream()
                 .filter(JsonValue::isString)
@@ -38,6 +44,12 @@ public interface MultipleRootFormElementOp
         return of(singleEventFormOps);
     }
 
+    /**
+     * Creates a MultipleRootFormElementOp from the specified collection of operations.
+     *
+     * @param ops the collection of operations.
+     * @return the MultipleRootFormElementOp.
+     */
     static MultipleRootFormElementOp of(final Collection<SingleRootFormElementOp> ops) {
         return new ImmutableMultipleRootFormElementOp(ops);
     }

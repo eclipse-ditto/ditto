@@ -30,6 +30,12 @@ import org.eclipse.ditto.json.JsonValue;
  */
 public interface MultipleHreflang extends Hreflang, Iterable<SingleHreflang>, Jsonifiable<JsonArray> {
 
+    /**
+     * Creates a MultipleHreflang from the specified JSON array.
+     *
+     * @param jsonArray the JSON array of language tags.
+     * @return the MultipleHreflang.
+     */
     static MultipleHreflang fromJson(final JsonArray jsonArray) {
         final List<SingleHreflang> singleSecurities = jsonArray.stream()
                 .filter(JsonValue::isString)
@@ -39,10 +45,21 @@ public interface MultipleHreflang extends Hreflang, Iterable<SingleHreflang>, Js
         return of(singleSecurities);
     }
 
+    /**
+     * Creates a MultipleHreflang from the specified collection of language tags.
+     *
+     * @param hreflangs the collection of language tags.
+     * @return the MultipleHreflang.
+     */
     static MultipleHreflang of(final Collection<SingleHreflang> hreflangs) {
         return new ImmutableMultipleHreflang(hreflangs);
     }
 
+    /**
+     * Returns a sequential stream over the language tags.
+     *
+     * @return a stream of language tags.
+     */
     default Stream<SingleHreflang> stream() {
         return StreamSupport.stream(spliterator(), false);
     }

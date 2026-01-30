@@ -24,10 +24,22 @@ import java.util.Collection;
  */
 public interface Profile {
 
+    /**
+     * Creates a SingleProfile from the specified profile IRI.
+     *
+     * @param charSequence the profile IRI.
+     * @return the SingleProfile.
+     */
     static SingleProfile newSingleProfile(final CharSequence charSequence) {
         return SingleProfile.of(charSequence);
     }
 
+    /**
+     * Creates a MultipleProfile from the specified collection of profiles.
+     *
+     * @param singleProfiles the collection of profiles.
+     * @return the MultipleProfile.
+     */
     static MultipleProfile newMultipleProfile(final Collection<SingleProfile> singleProfiles) {
         return MultipleProfile.of(singleProfiles);
     }

@@ -23,12 +23,18 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonValue;
 
 /**
- * MultipleSecurity is a container for multiple {@link SingleProfile}s.
+ * MultipleProfile is a container for multiple {@link SingleProfile}s.
  *
  * @since 2.4.0
  */
 public interface MultipleProfile extends Profile, Iterable<SingleProfile>, Jsonifiable<JsonArray> {
 
+    /**
+     * Creates a MultipleProfile from the specified JSON array.
+     *
+     * @param jsonArray the JSON array of profile IRIs.
+     * @return the MultipleProfile.
+     */
     static MultipleProfile fromJson(final JsonArray jsonArray) {
         final List<SingleProfile> singleProfiles = jsonArray.stream()
                 .filter(JsonValue::isString)
@@ -38,10 +44,21 @@ public interface MultipleProfile extends Profile, Iterable<SingleProfile>, Jsoni
         return of(singleProfiles);
     }
 
+    /**
+     * Creates a MultipleProfile from the specified collection of profiles.
+     *
+     * @param profiles the collection of profiles.
+     * @return the MultipleProfile.
+     */
     static MultipleProfile of(final Collection<SingleProfile> profiles) {
         return new ImmutableMultipleProfile(profiles);
     }
 
+    /**
+     * Returns a sequential stream over the profiles.
+     *
+     * @return a stream of profiles.
+     */
     default Stream<SingleProfile> stream() {
         return StreamSupport.stream(spliterator(), false);
     }

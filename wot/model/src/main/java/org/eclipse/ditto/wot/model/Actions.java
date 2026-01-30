@@ -29,6 +29,13 @@ import org.eclipse.ditto.json.JsonObject;
  */
 public interface Actions extends Map<String, Action>, Jsonifiable<JsonObject> {
 
+    /**
+     * Creates a new Actions container from the specified JSON object.
+     *
+     * @param jsonObject the JSON object containing action definitions.
+     * @return the Actions container.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     */
     static Actions fromJson(final JsonObject jsonObject) {
         return of(jsonObject.stream().collect(Collectors.toMap(
                 field -> field.getKey().toString(),
@@ -41,6 +48,13 @@ public interface Actions extends Map<String, Action>, Jsonifiable<JsonObject> {
         ));
     }
 
+    /**
+     * Creates a new Actions container from the specified collection of actions.
+     *
+     * @param actions the collection of actions.
+     * @return the Actions container.
+     * @throws NullPointerException if {@code actions} is {@code null}.
+     */
     static Actions from(final Collection<Action> actions) {
         return of(actions.stream().collect(Collectors.toMap(
                 Action::getActionName,
@@ -53,10 +67,23 @@ public interface Actions extends Map<String, Action>, Jsonifiable<JsonObject> {
         ));
     }
 
+    /**
+     * Creates a new Actions container from the specified map of action name to action.
+     *
+     * @param actions the map of actions.
+     * @return the Actions container.
+     * @throws NullPointerException if {@code actions} is {@code null}.
+     */
     static Actions of(final Map<String, Action> actions) {
         return new ImmutableActions(actions);
     }
 
+    /**
+     * Returns the action with the specified name if it exists.
+     *
+     * @param actionName the name of the action.
+     * @return the optional action.
+     */
     Optional<Action> getAction(CharSequence actionName);
 
 }

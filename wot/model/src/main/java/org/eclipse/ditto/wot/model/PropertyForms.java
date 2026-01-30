@@ -27,6 +27,12 @@ import org.eclipse.ditto.json.JsonValue;
  */
 public interface PropertyForms extends Forms<PropertyFormElement> {
 
+    /**
+     * Creates PropertyForms from the specified JSON array.
+     *
+     * @param jsonArray the JSON array of form element objects.
+     * @return the PropertyForms.
+     */
     static PropertyForms fromJson(final JsonArray jsonArray) {
         final List<PropertyFormElement> propertyFormElements = jsonArray.stream()
                 .filter(JsonValue::isObject)
@@ -36,6 +42,12 @@ public interface PropertyForms extends Forms<PropertyFormElement> {
         return of(propertyFormElements);
     }
 
+    /**
+     * Creates PropertyForms from the specified collection of form elements.
+     *
+     * @param formElements the collection of form elements.
+     * @return the PropertyForms.
+     */
     static PropertyForms of(final Collection<PropertyFormElement> formElements) {
         return new ImmutablePropertyForms(formElements);
     }

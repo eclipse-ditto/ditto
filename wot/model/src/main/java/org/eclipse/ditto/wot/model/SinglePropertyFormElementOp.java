@@ -24,9 +24,21 @@ import java.util.Optional;
  * @since 2.4.0
  */
 public enum SinglePropertyFormElementOp implements PropertyFormElementOp<SinglePropertyFormElementOp>, CharSequence {
+    /**
+     * Read the current value of a property.
+     */
     READPROPERTY("readproperty"),
+    /**
+     * Write/update the value of a property.
+     */
     WRITEPROPERTY("writeproperty"),
+    /**
+     * Observe a property for value changes.
+     */
     OBSERVEPROPERTY("observeproperty"),
+    /**
+     * Stop observing a property for value changes.
+     */
     UNOBSERVEPROPERTY("unobserveproperty");
 
     private final String name;
@@ -35,6 +47,11 @@ public enum SinglePropertyFormElementOp implements PropertyFormElementOp<SingleP
         this.name = name;
     }
 
+    /**
+     * Returns the string representation of this operation.
+     *
+     * @return the operation name.
+     */
     public String getName() {
         return name;
     }

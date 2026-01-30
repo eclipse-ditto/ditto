@@ -23,10 +23,22 @@ import java.util.Collection;
  */
 public interface OAuth2Scopes {
 
+    /**
+     * Creates a SingleOAuth2Scopes from the specified scope string.
+     *
+     * @param scope the OAuth2 scope.
+     * @return the SingleOAuth2Scopes.
+     */
     static SingleOAuth2Scopes newSingleOAuth2Scopes(final CharSequence scope) {
         return SingleOAuth2Scopes.of(scope);
-
     }
+
+    /**
+     * Creates a MultipleOAuth2Scopes from the specified collection of scopes.
+     *
+     * @param scopes the collection of scopes.
+     * @return the MultipleOAuth2Scopes.
+     */
     static MultipleOAuth2Scopes newMultipleOAuth2Scopes(final Collection<SingleOAuth2Scopes> scopes) {
         return MultipleOAuth2Scopes.of(scopes);
     }

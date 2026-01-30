@@ -19,6 +19,12 @@ package org.eclipse.ditto.wot.model;
  */
 public interface SingleSecurity extends Security, CharSequence {
 
+    /**
+     * Creates a SingleSecurity from the specified security scheme name.
+     *
+     * @param charSequence the name of the security scheme.
+     * @return the SingleSecurity.
+     */
     static SingleSecurity of(final CharSequence charSequence) {
         if (charSequence instanceof SingleSecurity) {
             return (SingleSecurity) charSequence;

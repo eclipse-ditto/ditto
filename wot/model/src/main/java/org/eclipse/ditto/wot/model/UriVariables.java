@@ -27,6 +27,12 @@ import org.eclipse.ditto.json.JsonObject;
  */
 public interface UriVariables extends Map<String, SingleDataSchema>, Jsonifiable<JsonObject> {
 
+    /**
+     * Creates a UriVariables from the specified JSON object.
+     *
+     * @param jsonObject the JSON object mapping variable names to data schemas.
+     * @return the UriVariables.
+     */
     static UriVariables fromJson(final JsonObject jsonObject) {
         return of(jsonObject.stream().collect(Collectors.toMap(
                 field -> field.getKey().toString(),
@@ -39,6 +45,12 @@ public interface UriVariables extends Map<String, SingleDataSchema>, Jsonifiable
         ));
     }
 
+    /**
+     * Creates a UriVariables from the specified map of variable names to data schemas.
+     *
+     * @param uriVariables the map of variable names to data schemas.
+     * @return the UriVariables.
+     */
     static UriVariables of(final Map<String, SingleDataSchema> uriVariables) {
         return new ImmutableUriVariables(uriVariables);
     }

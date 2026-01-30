@@ -20,6 +20,12 @@ package org.eclipse.ditto.wot.model;
  */
 public interface TmOptionalElement extends CharSequence {
 
+    /**
+     * Creates a TmOptionalElement from the specified JSON Pointer string.
+     *
+     * @param charSequence the JSON Pointer string identifying the optional affordance.
+     * @return the TmOptionalElement.
+     */
     static TmOptionalElement of(final CharSequence charSequence) {
         if (charSequence instanceof TmOptionalElement) {
             return (TmOptionalElement) charSequence;

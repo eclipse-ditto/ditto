@@ -15,10 +15,17 @@ package org.eclipse.ditto.wot.model;
 /**
  * A Title "provides a human-readable title (e.g., display a text for UI representation) based on a default language."
  *
+ * @see <a href="https://www.w3.org/TR/wot-thing-description11/#titles-descriptions-serialization-json">WoT TD Human-Readable Metadata</a>
  * @since 2.4.0
  */
 public interface Title extends CharSequence {
 
+    /**
+     * Creates a Title from the specified character sequence.
+     *
+     * @param charSequence the title text.
+     * @return the Title.
+     */
     static Title of(final CharSequence charSequence) {
         if (charSequence instanceof Title) {
             return (Title) charSequence;
