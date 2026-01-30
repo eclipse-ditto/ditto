@@ -16,6 +16,8 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.annotation.concurrent.Immutable;
@@ -79,6 +81,27 @@ public final class Placeholders {
     public static List<String> groupNames() {
         return Arrays.asList(PLACEHOLDER_GROUP_NAME, LEGACY_PLACEHOLDER_GROUP_NAME,
                 LEGACY_PLACEHOLDER_SUBJECT_ID_GROUP_NAME);
+    }
+
+    /**
+     * If the given {@code input} is exactly one placeholder (brace {@code {{ ... }}} or legacy
+     * {@code ${ ... }}), returns the trimmed content inside it. Otherwise returns empty.
+     *
+     * @param input the input string.
+     * @return the placeholder content if the whole string is one placeholder, else empty.
+     */
+    public static Optional<String> extractContentIfSinglePlaceholder(final CharSequence input) {
+        requireNonNull(input);
+        final String trimmed = input.toString().trim();
+        final Matcher matcher = ANY_PLACEHOLDER_PATTERN.matcher(trimmed);
+        if (!matcher.matches()) {
+            return Optional.empty();
+        }
+        String content = matcher.group(PLACEHOLDER_GROUP_NAME);
+        if (content == null) {
+            content = matcher.group(LEGACY_PLACEHOLDER_GROUP_NAME);
+        }
+        return content != null ? Optional.of(content.trim()) : Optional.empty();
     }
 
     /**
