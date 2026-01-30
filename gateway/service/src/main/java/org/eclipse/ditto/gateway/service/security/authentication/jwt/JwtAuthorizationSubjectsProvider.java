@@ -19,6 +19,7 @@ import java.util.Map;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
@@ -34,10 +35,11 @@ public interface JwtAuthorizationSubjectsProvider extends DittoExtensionPoint {
      * Returns the {@code AuthorizationSubjects} of the given {@code JsonWebToken}.
      *
      * @param jsonWebToken the token containing the authorization subjects.
+     * @param dittoHeaders the DittoHeaders to use for logging correlation.
      * @return the authorization subjects.
-     * @throws NullPointerException if {@code jsonWebToken} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      */
-    List<AuthorizationSubject> getAuthorizationSubjects(JsonWebToken jsonWebToken);
+    List<AuthorizationSubject> getAuthorizationSubjects(JsonWebToken jsonWebToken, DittoHeaders dittoHeaders);
 
     /**
      * Returns a map of additional headers to inject based on the {@code JsonWebToken} (configured statically in Ditto

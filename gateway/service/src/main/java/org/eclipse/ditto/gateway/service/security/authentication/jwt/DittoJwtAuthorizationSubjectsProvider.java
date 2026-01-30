@@ -24,7 +24,11 @@ import javax.annotation.concurrent.Immutable;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.api.GatewayJwtIssuerNotSupportedException;
+import org.eclipse.ditto.gateway.api.GatewayJwtPrerequisiteConditionNotMetException;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
 import org.eclipse.ditto.gateway.service.util.config.security.OAuthConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
@@ -41,6 +45,9 @@ import com.typesafe.config.Config;
  */
 @Immutable
 public final class DittoJwtAuthorizationSubjectsProvider implements JwtAuthorizationSubjectsProvider {
+
+    private static final ThreadSafeDittoLogger LOGGER =
+            DittoLoggerFactory.getThreadSafeLogger(DittoJwtAuthorizationSubjectsProvider.class);
 
     private static final String EXTENSION_CONFIG_KEY_ROLE = "role";
 
@@ -90,8 +97,10 @@ public final class DittoJwtAuthorizationSubjectsProvider implements JwtAuthoriza
     }
 
     @Override
-    public List<AuthorizationSubject> getAuthorizationSubjects(final JsonWebToken jsonWebToken) {
-        checkNotNull(jsonWebToken);
+    public List<AuthorizationSubject> getAuthorizationSubjects(final JsonWebToken jsonWebToken,
+            final DittoHeaders dittoHeaders) {
+        checkNotNull(jsonWebToken, "jsonWebToken");
+        checkNotNull(dittoHeaders, "dittoHeaders");
 
         final String issuer = jsonWebToken.getIssuer();
         final JwtSubjectIssuerConfig jwtSubjectIssuerConfig = jwtSubjectIssuersConfig.getConfigItem(issuer)
@@ -99,6 +108,19 @@ public final class DittoJwtAuthorizationSubjectsProvider implements JwtAuthoriza
 
         final ExpressionResolver expressionResolver = PlaceholderFactory.newExpressionResolver(
                 PlaceholderFactory.newPlaceholderResolver(JwtPlaceholder.getInstance(), jsonWebToken));
+
+        // Check prerequisite conditions before resolving auth subjects
+        final List<String> conditions = jwtSubjectIssuerConfig.getPrerequisiteConditions();
+        for (final String condition : conditions) {
+            final PipelineElement result = expressionResolver.resolve(condition);
+            if (result.findFirst().isEmpty()) {
+                LOGGER.withCorrelationId(dittoHeaders)
+                        .info("JWT from issuer <{}> did not meet prerequisite condition <{}>.", issuer, condition);
+                throw GatewayJwtPrerequisiteConditionNotMetException.newBuilder()
+                        .dittoHeaders(dittoHeaders)
+                        .build();
+            }
+        }
 
         return jwtSubjectIssuerConfig.getAuthorizationSubjectTemplates().stream()
                 .map(expressionResolver::resolve)

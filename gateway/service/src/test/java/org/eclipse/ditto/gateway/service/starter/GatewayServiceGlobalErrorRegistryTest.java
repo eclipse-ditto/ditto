@@ -28,6 +28,7 @@ import org.eclipse.ditto.base.model.signals.commands.exceptions.PathUnknownExcep
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionConflictException;
 import org.eclipse.ditto.gateway.api.GatewayAuthenticationFailedException;
+import org.eclipse.ditto.gateway.api.GatewayJwtPrerequisiteConditionNotMetException;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.PublicKeyProviderUnavailableException;
 import org.eclipse.ditto.internal.utils.cacheloaders.ServiceTimeoutException;
 import org.eclipse.ditto.internal.utils.test.GlobalErrorRegistryTestCases;
@@ -60,6 +61,7 @@ public final class GatewayServiceGlobalErrorRegistryTest extends GlobalErrorRegi
                 UnsupportedSchemaVersionException.class,
                 UnsupportedSignalException.class,
                 GatewayAuthenticationFailedException.class,
+                GatewayJwtPrerequisiteConditionNotMetException.class,
                 QueryTimeExceededException.class,
                 ConnectionConflictException.class,
                 ConnectionConfigurationInvalidException.class,

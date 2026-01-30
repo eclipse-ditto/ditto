@@ -17,6 +17,11 @@ ditto {
               {{$claimKey}} = "{{$claimValue}}"
             {{- end }}
             }
+            prerequisite-conditions = [
+            {{- range $index, $condition := $value.prerequisiteConditions }}
+              "{{$condition}}"
+            {{- end }}
+            ]
           }
         {{- end }}
         }
@@ -38,6 +43,11 @@ ditto {
                 {{$claimKey}} = "{{$claimValue}}"
               {{- end }}
               }
+              prerequisite-conditions = [
+              {{- range $index, $condition := $value.prerequisiteConditions }}
+                "{{$condition}}"
+              {{- end }}
+              ]
             }
           {{- end }}
           }
