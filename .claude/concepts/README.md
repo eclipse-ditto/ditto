@@ -33,6 +33,7 @@ Each design document typically includes:
 
 | Document | Description | Status |
 |----------|-------------|--------|
+| [namespace-scoped-policy-entries-design.md](namespace-scoped-policy-entries-design.md) | Add optional `namespaces` field to policy entries for namespace-scoped authorization | Concept |
 | [policy-import-additions-design.md](policy-import-additions-design.md) | Enhance policy imports with `entriesAdditions` for subject/resource customization | Concept |
 | [timeseries-design.md](timeseries-design.md) | Timeseries Facade Service for external TS database integration | Draft |
 
