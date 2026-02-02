@@ -1,7 +1,7 @@
 ---
 title: "WoT Tooling: Code Generation and OpenAPI from Thing Models"
 published: true
-permalink: 2025-01-30-wot-tooling-blog.html
+permalink: 2026-02-02-wot-tooling-blog.html
 layout: post
 author: hussein_ahmed
 tags: [blog, wot, http]
@@ -10,18 +10,24 @@ sidebar: false
 toc: true
 ---
 
-Eclipse Ditto’s [W3C WoT (Web of Things) integration](2022-03-03-wot-integration.html) lets you reference Thing Models in [Thing Definitions](basic-thing.html#definition), generate [Thing Descriptions](basic-wot-integration.html), and create Thing skeletons at runtime. Alongside that, the **[ditto-wot-tooling](https://github.com/eclipse-ditto/ditto-wot-tooling)** project provides build-time and CLI tools to generate **Kotlin code** and **OpenAPI specifications** from the same WoT Thing Models. This post gives an overview of the available tools, their configuration, and some best practices so the Ditto community can use them effectively.
+Eclipse Ditto’s [W3C WoT (Web of Things) integration](2022-03-03-wot-integration.html) lets you reference Thing Models in [Thing Definitions](basic-thing.html#definition), 
+generate [Thing Descriptions](basic-wot-integration.html), and create Thing skeletons at runtime. 
+Alongside that, the **[ditto-wot-tooling](https://github.com/eclipse-ditto/ditto-wot-tooling)** project provides build-time 
+and CLI tools to generate **Kotlin code** and **OpenAPI specifications** from the same WoT Thing Models. 
+
+This post gives an overview of the available tools, their configuration, and some best practices so the Ditto community can use them effectively.
 
 ## Overview of ditto-wot-tooling
 
 The [ditto-wot-tooling](https://github.com/eclipse-ditto/ditto-wot-tooling) repository hosts two main tools:
 
-| Tool | Purpose |
-|------|---------|
-| **WoT Kotlin Generator** | Maven plugin that downloads a WoT Thing Model (JSON-LD) via HTTP and generates Kotlin data classes and path helpers for type-safe use in your application. |
+| Tool                         | Purpose                                                                                                                                                       |
+|------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **WoT Kotlin Generator**     | Maven plugin that downloads a WoT Thing Model (JSON-LD) via HTTP and generates Kotlin data classes and path helpers for type-safe use in your application.    |
 | **WoT to OpenAPI Generator** | Converts WoT Thing Models into **OpenAPI 3.1.0** specifications that describe Ditto’s HTTP API for Things conforming to that model. Usable as CLI or library. |
 
-Both tools consume Thing Models from a URL (e.g. a deployed model registry). They complement Ditto’s runtime WoT support: Ditto fetches TMs to build skeletons and Thing Descriptions; the tooling uses the same TMs at build time or in CI to generate client code and API docs.
+Both tools consume Thing Models from a URL (e.g. a deployed model registry). They complement Ditto’s runtime WoT support: 
+Ditto fetches Thing Models (TMs) to build skeletons and Thing Descriptions; the tooling uses the same TMs at build time or in CI to generate client code and API docs.
 
 ## WoT Kotlin Generator Maven plugin
 
@@ -67,14 +73,14 @@ Add the **common-models** dependency (required by the generated code) and the pl
 
 ### Full plugin configuration options
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `thingModelUrl` | String | Yes | - | Full HTTP(S) URL of the WoT Thing Model (JSON-LD). The plugin downloads it at build time. |
-| `packageName` | String | No | `org.eclipse.ditto.wot.kotlin.generator.model` | Target package for generated Kotlin classes. |
-| `outputDir` | String | No | `target/generated-sources` | Directory where generated sources are written (Maven adds it as a source root). |
-| `enumGenerationStrategy` | String | No | `INLINE` | How to generate enums: `INLINE` (nested in the class that uses them) or `SEPARATE_CLASS` (standalone enum classes). |
-| `classNamingStrategy` | String | No | `COMPOUND_ALL` | How to name generated classes: `COMPOUND_ALL` (e.g. `RoomAttributes`, `BatteryProperties`) or `ORIGINAL_THEN_COMPOUND` (use schema title when possible, compound only on conflict). |
-| `generateSuspendDsl` | boolean | No | `false` | If `true`, generated DSL builder functions are `suspend` functions for Kotlin coroutines. |
+| Parameter                | Type    | Required | Default                                        | Description                                                                                                                                                                         |
+|--------------------------|---------|----------|------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `thingModelUrl`          | String  | Yes      | -                                              | Full HTTP(S) URL of the WoT Thing Model (JSON-LD). The plugin downloads it at build time.                                                                                           |
+| `packageName`            | String  | No       | `org.eclipse.ditto.wot.kotlin.generator.model` | Target package for generated Kotlin classes.                                                                                                                                        |
+| `outputDir`              | String  | No       | `target/generated-sources`                     | Directory where generated sources are written (Maven adds it as a source root).                                                                                                     |
+| `enumGenerationStrategy` | String  | No       | `INLINE`                                       | How to generate enums: `INLINE` (nested in the class that uses them) or `SEPARATE_CLASS` (standalone enum classes).                                                                 |
+| `classNamingStrategy`    | String  | No       | `COMPOUND_ALL`                                 | How to name generated classes: `COMPOUND_ALL` (e.g. `RoomAttributes`, `BatteryProperties`) or `ORIGINAL_THEN_COMPOUND` (use schema title when possible, compound only on conflict). |
+| `generateSuspendDsl`     | boolean | No       | `false`                                        | If `true`, generated DSL builder functions are `suspend` functions for Kotlin coroutines.                                                                                           |
 
 Use Maven properties for the base URL and model version so you can switch environments and pin versions in one place:
 
@@ -99,7 +105,7 @@ Use Maven properties for the base URL and model version so you can switch enviro
 
 ### DSL: regular vs suspend
 
-By default the plugin generates regular Kotlin DSL functions for building thing/feature/property objects. Set `generateSuspendDsl=true` to generate **suspend** DSL functions instead, so you can use them inside coroutines and call suspend code from within the DSL block.
+By default, the plugin generates regular Kotlin DSL functions for building thing/feature/property objects. Set `generateSuspendDsl=true` to generate **suspend** DSL functions instead, so you can use them inside coroutines and call suspend code from within the DSL block.
 
 ### Generated code structure
 
@@ -165,22 +171,23 @@ Each condition is often a search property expression (see below). Call `.toStrin
 
 After `.buildSearchProperty()` you can chain one of:
 
-| Method | RQL | Example |
-|--------|-----|---------|
-| `exists()` | property exists | `.exists()` |
-| `eq(value)` | equals | `.eq("THERMOSTAT")` |
-| `ne(value)` | not equal | `.ne(0)` |
-| `gt(value)` | greater than | `.gt(20.0)` |
-| `ge(value)` | greater or equal | `.ge(timestamp)` |
-| `lt(value)` | less than | `.lt(timestamp)` |
-| `le(value)` | less or equal | `.le("2022-03-20T08:00:00Z")` |
-| `like(pattern)` | wildcard `?` / `*` | `.like("room-*")` |
-| `ilike(pattern)` | case-insensitive like | `.ilike("*sensor*")` |
-| `in(values)` | value in collection | `.in(listOf("A", "B"))` |
+| Method           | RQL                   | Example                       |
+|------------------|-----------------------|-------------------------------|
+| `exists()`       | property exists       | `.exists()`                   |
+| `eq(value)`      | equals                | `.eq("THERMOSTAT")`           |
+| `ne(value)`      | not equal             | `.ne(0)`                      |
+| `gt(value)`      | greater than          | `.gt(20.0)`                   |
+| `ge(value)`      | greater or equal      | `.ge(timestamp)`              |
+| `lt(value)`      | less than             | `.lt(timestamp)`              |
+| `le(value)`      | less or equal         | `.le("2026-02-20T08:00:00Z")` |
+| `like(pattern)`  | wildcard `?` / `*`    | `.like("room-*")`             |
+| `ilike(pattern)` | case-insensitive like | `.ilike("*sensor*")`          |
+| `in(values)`     | value in collection   | `.in(listOf("A", "B"))`       |
 
 **Example: conditional merge (RQL for Ditto headers)**
 
-Typical use is building a condition for Ditto’s [conditional request](basic-conditional-requests.html) header (e.g. for merge or delete). Below, we require that the thing has a given attribute type and either no `mountedOn` or `mountedOn` less than or equal to a timestamp:
+Typical use is building a condition for Ditto’s [conditional request](basic-conditional-requests.html) header (e.g. for merge or delete). 
+Below, we require that the thing has a given attribute type and either no `mountedOn` or `mountedOn` less than or equal to a timestamp:
 
 ```kotlin
 import com.example.wot.model.path.DittoRql.Companion.and
@@ -254,7 +261,11 @@ The WoT to OpenAPI Generator turns a WoT Thing Model into an **OpenAPI 3.1.0** Y
 
 ### Benefits for frontends and API consumers
 
-The generated OpenAPI spec is a standard, tool-friendly contract. Frontend teams can feed it into code generators (e.g. OpenAPI Generator, Orval, or the OpenAPI TypeScript/JavaScript generators) to **generate TypeScript or JavaScript models**, **typed HTTP client methods**, and **request/response types** for thing, attribute, feature, and action endpoints. That keeps the UI in sync with the backend: API changes are reflected in the spec, and regenerating client code updates types and calls in one step. You get autocomplete, fewer manual typos, and consistent request shapes. The same spec can drive API documentation (e.g. Swagger UI or Redoc), integration tests, or other clients (mobile, scripts). One Thing Model thus drives both backend Kotlin models and frontend API usage from a single source of truth.
+The generated OpenAPI spec is a standard, tool-friendly contract. 
+Frontend teams can feed it into code generators (e.g. OpenAPI Generator, Orval, or the OpenAPI TypeScript/JavaScript generators) to **generate TypeScript or JavaScript models**, **typed HTTP client methods**, and **request/response types** for thing, attribute, feature, and action endpoints. 
+That keeps the UI in sync with the backend: API changes are reflected in the spec, and regenerating client code updates types and calls in one step. 
+You get autocomplete, fewer manual typos, and consistent request shapes. The same spec can drive API documentation (e.g. Swagger UI or Redoc), integration tests, or other clients (mobile, scripts). 
+One Thing Model (TM) thus drives both backend Kotlin models and frontend API usage from a single source of truth.
 
 ### Usage
 
@@ -266,11 +277,11 @@ The generator is available as a **CLI** (run with `java -jar`) or as a **library
 java -jar wot-to-openapi-generator-1.0.0.jar <model-base-url> <model-name> <model-version> [ditto-base-url]
 ```
 
-| Argument | Description |
-|----------|-------------|
-| `model-base-url` | Base URL where the TM is served (e.g. `https://models.example.com`). |
-| `model-name` | Model name (e.g. `dimmable-colored-lamp`). The generator will load `{model-base-url}/{model-name}-{model-version}.tm.jsonld`. |
-| `model-version` | Version (e.g. `1.0.0`). |
+| Argument         | Description                                                                                                                    |
+|------------------|--------------------------------------------------------------------------------------------------------------------------------|
+| `model-base-url` | Base URL where the TM is served (e.g. `https://models.example.com`).                                                           |
+| `model-name`     | Model name (e.g. `dimmable-colored-lamp`). The generator will load `{model-base-url}/{model-name}-{model-version}.tm.jsonld`.  |
+| `model-version`  | Version (e.g. `1.0.0`).                                                                                                        |
 | `ditto-base-url` | (Optional) Base URL of the Ditto API (e.g. `https://ditto.example.com/api/2/things`). Used in the generated `servers` section. |
 
 **Example:**
