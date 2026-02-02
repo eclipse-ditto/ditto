@@ -3,6 +3,21 @@ thomas_jaeckle:
     email: thomas.jaeckle@beyonnex.io
     web: https://github.com/thjaeckle
 
+aleksandar_stanchev:
+  name: Aleksandar Stanchev
+  email: aleksandar.stanchev@bosch.com
+  web: https://github.com/alstanchev
+
+vasil_vasilev:
+  name: Vasil Vasilev
+  email: vasil.vasilev@bosch.com
+  web: https://github.com/vvasilevbosch
+
+hussein_ahmed:
+  name: Hussein Ahmed
+  email: hussein.ahmed@beyonnex.io
+  web: https://github.com/hu-ahmed
+
 florian_fendt:
     name: Florian Fendt
     email: florian.fendt@bosch.io
@@ -57,16 +72,6 @@ vadim_guenther:
     name: Vadim Günther
     email: vadim.guenther@bosch.io
     web: https://github.com/VadimGue
-
-aleksandar_stanchev:
-  name: Aleksandar Stanchev
-  email: aleksandar.stanchev@bosch.io
-  web: https://github.com/alstanchev
-
-vasil_vasilev:
-  name: Vasil Vasilev
-  email: vasil.vasilev@bosch.com
-  web: https://github.com/vvasilevbosch
 
 johannes_kristan:
   name: Johannes Kristan
