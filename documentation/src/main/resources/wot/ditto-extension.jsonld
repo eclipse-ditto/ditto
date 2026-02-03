@@ -23,7 +23,10 @@
         "@language": "en",
         "@value": "This ontology provides additional Eclipse Ditto™ specific context for Web of Things (https://www.w3.org/WoT/) TDs and TMs"
       },
-      "owl:versionInfo": "3.0.0"
+      "owl:versionInfo": "3.9.0",
+      "owl:imports": {
+        "@id": "https://www.w3.org/2019/wot/td#"
+      }
     },
     {
       "@id": "ditto:category",
@@ -42,6 +45,101 @@
         "@id": "ditto:"
       },
       "rdfs:label": "category"
+    },
+    {
+      "@id": "ditto:DeprecationNotice",
+      "@type": "owl:Class",
+      "rdfs:comment": {
+        "@language": "en",
+        "@value": "A structured object indicating that a WoT Thing, or an affordance (property, action, or event) is deprecated"
+      },
+      "rdfs:isDefinedBy": {
+        "@id": "ditto:"
+      },
+      "rdfs:label": "DeprecationNotice"
+    },
+    {
+      "@id": "ditto:deprecationNotice",
+      "@type": "owl:ObjectProperty",
+      "schema:domainIncludes": [
+        {
+          "@id": "td:Thing"
+        },
+        {
+          "@id": "td:PropertyAffordance"
+        },
+        {
+          "@id": "td:ActionAffordance"
+        },
+        {
+          "@id": "td:EventAffordance"
+        }
+      ],
+      "schema:rangeIncludes": {
+        "@id": "ditto:DeprecationNotice"
+      },
+      "rdfs:comment": {
+        "@language": "en",
+        "@value": "Indicates that a WoT Thing, or an affordance (property, action, or event) is deprecated. The value is a DeprecationNotice object containing deprecation details."
+      },
+      "rdfs:isDefinedBy": {
+        "@id": "ditto:"
+      },
+      "rdfs:label": "deprecationNotice"
+    },
+    {
+      "@id": "ditto:deprecated",
+      "@type": "owl:DatatypeProperty",
+      "schema:domainIncludes": {
+        "@id": "ditto:DeprecationNotice"
+      },
+      "schema:rangeIncludes": {
+        "@id": "schema:Boolean"
+      },
+      "rdfs:comment": {
+        "@language": "en",
+        "@value": "Boolean flag indicating whether the Thing or affordance is deprecated."
+      },
+      "rdfs:isDefinedBy": {
+        "@id": "ditto:"
+      },
+      "rdfs:label": "deprecated"
+    },
+    {
+      "@id": "ditto:supersededBy",
+      "@type": "owl:DatatypeProperty",
+      "schema:domainIncludes": {
+        "@id": "ditto:DeprecationNotice"
+      },
+      "schema:rangeIncludes": {
+        "@id": "schema:Text"
+      },
+      "rdfs:comment": {
+        "@language": "en",
+        "@value": "A JSON Pointer (RFC 6901) referencing the replacement affordance that supersedes the deprecated one, e.g. '#/properties/newProperty'"
+      },
+      "rdfs:isDefinedBy": {
+        "@id": "ditto:"
+      },
+      "rdfs:label": "supersededBy"
+    },
+    {
+      "@id": "ditto:removalVersion",
+      "@type": "owl:DatatypeProperty",
+      "schema:domainIncludes": {
+        "@id": "ditto:DeprecationNotice"
+      },
+      "schema:rangeIncludes": {
+        "@id": "schema:Text"
+      },
+      "rdfs:comment": {
+        "@language": "en",
+        "@value": "The semantic version (SemVer) in which the deprecated affordance will be removed, e.g. '2.0.0'"
+      },
+      "rdfs:isDefinedBy": {
+        "@id": "ditto:"
+      },
+      "rdfs:label": "removalVersion"
     }
   ]
 }
