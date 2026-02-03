@@ -292,4 +292,141 @@ public final class AtContextPrefixValidatorTest {
         assertThat(WotStandardContextPrefixes.isStandardPrefix("ditto")).isFalse();
         assertThat(WotStandardContextPrefixes.isStandardPrefix("custom")).isFalse();
     }
+
+    @Test
+    public void validThingModelWithDeprecationNoticeShouldPass() {
+        final JsonObject json = JsonFactory.newObjectBuilder()
+                .set("@context", JsonFactory.newArrayBuilder()
+                        .add("https://www.w3.org/2022/wot/td/v1.1")
+                        .add(JsonFactory.newObjectBuilder()
+                                .set("ditto", "https://ditto.eclipseprojects.io/wot/ditto-extension#")
+                                .build())
+                        .build())
+                .set("title", "Test TM with Deprecation")
+                .set("properties", JsonFactory.newObjectBuilder()
+                        .set("oldProperty", JsonFactory.newObjectBuilder()
+                                .set("title", "Old Property (DEPRECATED)")
+                                .set("type", "string")
+                                .set("ditto:deprecationNotice", JsonFactory.newObjectBuilder()
+                                        .set("deprecated", true)
+                                        .set("supersededBy", "#/properties/newProperty")
+                                        .set("removalVersion", "2.0.0")
+                                        .build())
+                                .build())
+                        .set("newProperty", JsonFactory.newObjectBuilder()
+                                .set("title", "New Property")
+                                .set("type", "string")
+                                .build())
+                        .build())
+                .build();
+
+        final ThingModel thingModel = ThingModel.fromJson(json);
+
+        assertThatCode(thingModel::validateContextPrefixes).doesNotThrowAnyException();
+    }
+
+    @Test
+    public void thingModelWithDeprecationNoticeWithoutContextShouldFail() {
+        final JsonObject json = JsonFactory.newObjectBuilder()
+                .set("@context", "https://www.w3.org/2022/wot/td/v1.1")
+                .set("title", "Test TM")
+                .set("properties", JsonFactory.newObjectBuilder()
+                        .set("oldProperty", JsonFactory.newObjectBuilder()
+                                .set("title", "Old Property (DEPRECATED)")
+                                .set("type", "string")
+                                .set("ditto:deprecationNotice", JsonFactory.newObjectBuilder()
+                                        .set("deprecated", true)
+                                        .set("removalVersion", "2.0.0")
+                                        .build())
+                                .build())
+                        .build())
+                .build();
+
+        final ThingModel thingModel = ThingModel.fromJson(json);
+
+        // Should fail because "ditto" prefix is not defined in the context
+        assertThatExceptionOfType(WotValidationException.class)
+                .isThrownBy(thingModel::validateContextPrefixes)
+                .withMessageContaining("ditto");
+    }
+
+    @Test
+    public void validThingModelWithDeprecatedActionShouldPass() {
+        final JsonObject json = JsonFactory.newObjectBuilder()
+                .set("@context", JsonFactory.newArrayBuilder()
+                        .add("https://www.w3.org/2022/wot/td/v1.1")
+                        .add(JsonFactory.newObjectBuilder()
+                                .set("ditto", "https://ditto.eclipseprojects.io/wot/ditto-extension#")
+                                .build())
+                        .build())
+                .set("title", "Test TM with Deprecated Action")
+                .set("actions", JsonFactory.newObjectBuilder()
+                        .set("legacyReset", JsonFactory.newObjectBuilder()
+                                .set("title", "Legacy Reset (DEPRECATED)")
+                                .set("ditto:deprecationNotice", JsonFactory.newObjectBuilder()
+                                        .set("deprecated", true)
+                                        .set("removalVersion", "3.0.0")
+                                        .build())
+                                .build())
+                        .build())
+                .build();
+
+        final ThingModel thingModel = ThingModel.fromJson(json);
+
+        assertThatCode(thingModel::validateContextPrefixes).doesNotThrowAnyException();
+    }
+
+    @Test
+    public void validThingModelWithDeprecatedEventShouldPass() {
+        final JsonObject json = JsonFactory.newObjectBuilder()
+                .set("@context", JsonFactory.newArrayBuilder()
+                        .add("https://www.w3.org/2022/wot/td/v1.1")
+                        .add(JsonFactory.newObjectBuilder()
+                                .set("ditto", "https://ditto.eclipseprojects.io/wot/ditto-extension#")
+                                .build())
+                        .build())
+                .set("title", "Test TM with Deprecated Event")
+                .set("events", JsonFactory.newObjectBuilder()
+                        .set("oldEvent", JsonFactory.newObjectBuilder()
+                                .set("title", "Old Event (DEPRECATED)")
+                                .set("ditto:deprecationNotice", JsonFactory.newObjectBuilder()
+                                        .set("deprecated", true)
+                                        .set("supersededBy", "#/events/newEvent")
+                                        .set("removalVersion", "2.0.0")
+                                        .build())
+                                .build())
+                        .build())
+                .build();
+
+        final ThingModel thingModel = ThingModel.fromJson(json);
+
+        assertThatCode(thingModel::validateContextPrefixes).doesNotThrowAnyException();
+    }
+
+    @Test
+    public void validThingModelWithDeprecationAtThingLevelShouldPass() {
+        final JsonObject json = JsonFactory.newObjectBuilder()
+                .set("@context", JsonFactory.newArrayBuilder()
+                        .add("https://www.w3.org/2022/wot/td/v1.1")
+                        .add(JsonFactory.newObjectBuilder()
+                                .set("ditto", "https://ditto.eclipseprojects.io/wot/ditto-extension#")
+                                .build())
+                        .build())
+                .set("title", "Legacy Sensor (DEPRECATED)")
+                .set("ditto:deprecationNotice", JsonFactory.newObjectBuilder()
+                        .set("deprecated", true)
+                        .set("supersededBy", "https://example.com/models/new-sensor-2.0.0.tm.jsonld")
+                        .set("removalVersion", "2.0.0")
+                        .build())
+                .set("properties", JsonFactory.newObjectBuilder()
+                        .set("temperature", JsonFactory.newObjectBuilder()
+                                .set("type", "number")
+                                .build())
+                        .build())
+                .build();
+
+        final ThingModel thingModel = ThingModel.fromJson(json);
+
+        assertThatCode(thingModel::validateContextPrefixes).doesNotThrowAnyException();
+    }
 }

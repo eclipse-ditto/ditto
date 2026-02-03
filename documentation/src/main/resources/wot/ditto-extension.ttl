@@ -21,7 +21,8 @@
 ditto: rdf:type owl:Ontology ;
   vann:preferredNamespacePrefix "ditto" ;
   vann:preferredNamespaceUri "https://ditto.eclipseprojects.io/wot/ditto-extension#" ;
-  owl:versionInfo "3.0.0" ;
+  owl:versionInfo "3.9.0" ;
+  owl:imports <https://www.w3.org/2019/wot/td#> ;
   dc:title "Eclipse Ditto™ - WoT Extension Ontology"@en ;
   rdfs:comment "This ontology provides additional Eclipse Ditto™ specific context for Web of Things (https://www.w3.org/WoT/) TDs and TMs"@en .
 
@@ -29,5 +30,38 @@ ditto:category rdf:type owl:DatatypeProperty ;
   rdfs:label "category" ;
   rdfs:comment "Optional category for WoT Property affordances, e.g. something like 'status' or 'configuration'"@en ;
   schema:domainIncludes td:PropertyAffordance ;
+  schema:rangeIncludes schema:Text ;
+  rdfs:isDefinedBy ditto: .
+
+ditto:DeprecationNotice rdf:type owl:Class ;
+  rdfs:label "DeprecationNotice" ;
+  rdfs:comment "A structured object indicating that a WoT Thing, or an affordance (property, action, or event) is deprecated"@en ;
+  rdfs:isDefinedBy ditto: .
+
+ditto:deprecationNotice rdf:type owl:ObjectProperty ;
+  rdfs:label "deprecationNotice" ;
+  rdfs:comment "Indicates that a WoT Thing, or an affordance (property, action, or event) is deprecated. The value is a DeprecationNotice object containing deprecation details."@en ;
+  schema:domainIncludes td:Thing, td:PropertyAffordance, td:ActionAffordance, td:EventAffordance ;
+  schema:rangeIncludes ditto:DeprecationNotice ;
+  rdfs:isDefinedBy ditto: .
+
+ditto:deprecated rdf:type owl:DatatypeProperty ;
+  rdfs:label "deprecated" ;
+  rdfs:comment "Boolean flag indicating whether the Thing or affordance is deprecated."@en ;
+  schema:domainIncludes ditto:DeprecationNotice ;
+  schema:rangeIncludes schema:Boolean ;
+  rdfs:isDefinedBy ditto: .
+
+ditto:supersededBy rdf:type owl:DatatypeProperty ;
+  rdfs:label "supersededBy" ;
+  rdfs:comment "A JSON Pointer (RFC 6901) referencing the replacement affordance that supersedes the deprecated one, e.g. '#/properties/newProperty'"@en ;
+  schema:domainIncludes ditto:DeprecationNotice ;
+  schema:rangeIncludes schema:Text ;
+  rdfs:isDefinedBy ditto: .
+
+ditto:removalVersion rdf:type owl:DatatypeProperty ;
+  rdfs:label "removalVersion" ;
+  rdfs:comment "The semantic version (SemVer) in which the deprecated affordance will be removed, e.g. '2.0.0'"@en ;
+  schema:domainIncludes ditto:DeprecationNotice ;
   schema:rangeIncludes schema:Text ;
   rdfs:isDefinedBy ditto: .

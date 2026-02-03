@@ -647,13 +647,27 @@ things {
 
 ## Ditto WoT Extension Ontology
 
-As WoT is built on JSON-LD, extension of Thing Models (TMs) or Thing Descriptions (TDs) via a custom ontology is possible.  
-Ditto provides such an "WoT extension ontology" in order to provide the option to categorize WoT properties.
+As WoT is built on JSON-LD, extension of Thing Models (TMs) or Thing Descriptions (TDs) via a custom ontology is possible.
+Ditto provides such a "WoT extension ontology" with additional terms for:
+* **Categorization** of WoT properties (e.g., grouping into "configuration" vs. "status")
+* **Deprecation notices** for Things, properties, actions, and events (marking them as deprecated with replacement info and removal timeline)
 
-The Ditto WoT Extension Ontology can be found here:  
+The Ditto WoT Extension Ontology can be found here:
 [https://ditto.eclipseprojects.io/wot/ditto-extension#](https://ditto.eclipseprojects.io/wot/ditto-extension#)
 
 It contains an HTML description of the contained terms of the ontology.
+
+To use the Ditto WoT extension in your Thing Models or Thing Descriptions, add it to your JSON-LD `@context`:
+```json
+{
+  "@context": [
+    "https://www.w3.org/2022/wot/td/v1.1",
+    {
+      "ditto": "https://ditto.eclipseprojects.io/wot/ditto-extension#"
+    }
+  ]
+}
+```
 
 ### Ditto WoT Extension: category
 
@@ -716,6 +730,142 @@ Based on the example above, a generated feature JSON would for example look like
     },
     "status": {
       "power-consumption": 0.0
+    }
+  }
+}
+```
+
+### Ditto WoT Extension: deprecationNotice
+
+The [deprecationNotice](https://ditto.eclipseprojects.io/wot/ditto-extension#deprecationNotice) is a term which can be
+added at the WoT TM/TD (Thing) level, or in scope of
+[Property Affordances](https://www.w3.org/TR/wot-thing-description11/#propertyaffordance),
+[Action Affordances](https://www.w3.org/TR/wot-thing-description11/#actionaffordance), and
+[Event Affordances](https://www.w3.org/TR/wot-thing-description11/#eventaffordance).
+It can be used to mark an entire Thing Model/Description or individual affordances as deprecated and provide
+information about their replacement and removal timeline.
+
+The `deprecationNotice` is a JSON object containing the following properties:
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `deprecated` | boolean | yes | Whether the Thing or affordance is deprecated |
+| `supersededBy` | string | no | A JSON Pointer (RFC 6901) referencing the replacement affordance (e.g. `#/properties/newProperty`), or a URL to a replacement Thing Model |
+| `removalVersion` | string | yes | The semantic version (SemVer) in which the deprecated Thing or affordance will be removed |
+
+In order to use the deprecation notice, you need to enhance your JSON-LD context with the Ditto WoT extension. You can
+then make use of the `"deprecationNotice"` in properties, actions, or events defined in your TM/TD.
+
+Example for a deprecated property with a replacement:
+```json
+{
+  "@context": [
+    "https://www.w3.org/2022/wot/td/v1.1",
+    {
+      "ditto": "https://ditto.eclipseprojects.io/wot/ditto-extension#"
+    }
+  ],
+  ...
+  "properties": {
+    "tempSetpoint": {
+      "title": "Temperature Setpoint (DEPRECATED)",
+      "description": "Use 'targetTemperature' instead",
+      "type": "number",
+      "ditto:deprecationNotice": {
+        "deprecated": true,
+        "supersededBy": "#/properties/targetTemperature",
+        "removalVersion": "2.0.0"
+      }
+    },
+    "targetTemperature": {
+      "title": "Target Temperature",
+      "type": "number",
+      "unit": "om2:degreeCelsius"
+    }
+  }
+}
+```
+
+Example for a deprecated action without a replacement:
+```json
+{
+  "@context": [
+    "https://www.w3.org/2022/wot/td/v1.1",
+    {
+      "ditto": "https://ditto.eclipseprojects.io/wot/ditto-extension#"
+    }
+  ],
+  ...
+  "actions": {
+    "legacyReset": {
+      "title": "Legacy Reset (DEPRECATED)",
+      "description": "This action will be removed without replacement",
+      "ditto:deprecationNotice": {
+        "deprecated": true,
+        "removalVersion": "3.0.0"
+      }
+    }
+  }
+}
+```
+
+Example for a deprecated event with a replacement:
+```json
+{
+  "@context": [
+    "https://www.w3.org/2022/wot/td/v1.1",
+    {
+      "ditto": "https://ditto.eclipseprojects.io/wot/ditto-extension#"
+    }
+  ],
+  ...
+  "events": {
+    "temperatureChanged": {
+      "title": "Temperature Changed (DEPRECATED)",
+      "description": "Subscribe to 'temperatureUpdate' instead for richer data",
+      "data": {
+        "type": "number"
+      },
+      "ditto:deprecationNotice": {
+        "deprecated": true,
+        "supersededBy": "#/events/temperatureUpdate",
+        "removalVersion": "2.0.0"
+      }
+    },
+    "temperatureUpdate": {
+      "title": "Temperature Update",
+      "description": "Emitted when the measured temperature changes",
+      "data": {
+        "type": "object",
+        "properties": {
+          "value": { "type": "number" },
+          "timestamp": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  }
+}
+```
+
+Example for a deprecated Thing Model with a replacement:
+```json
+{
+  "@context": [
+    "https://www.w3.org/2022/wot/td/v1.1",
+    {
+      "ditto": "https://ditto.eclipseprojects.io/wot/ditto-extension#"
+    }
+  ],
+  "title": "Legacy Temperature Sensor (DEPRECATED)",
+  "description": "This model is deprecated, use temperature-sensor-2.0.0.tm.jsonld instead",
+  "ditto:deprecationNotice": {
+    "deprecated": true,
+    "supersededBy": "https://example.com/models/temperature-sensor-2.0.0.tm.jsonld",
+    "removalVersion": "2.0.0"
+  },
+  "properties": {
+    "temperature": {
+      "type": "number"
     }
   }
 }

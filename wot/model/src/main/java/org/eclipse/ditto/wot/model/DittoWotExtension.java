@@ -33,6 +33,23 @@ public final class DittoWotExtension {
      */
     public static final String DITTO_WOT_EXTENSION_CATEGORY = "category";
 
+    /**
+     * Indicates that a WoT Thing (ThingModel/ThingDescription), or an affordance (property, action, or event)
+     * is deprecated.
+     * The value is a JSON object containing:
+     * <ul>
+     *   <li>{@code deprecated} - boolean (required): whether the Thing or affordance is deprecated</li>
+     *   <li>{@code supersededBy} - string (optional): JSON Pointer to replacement affordance, or URL to
+     *       replacement ThingModel</li>
+     *   <li>{@code removalVersion} - string (required): SemVer version when the Thing or affordance will be
+     *       removed</li>
+     * </ul>
+     *
+     * @see <a href="https://ditto.eclipseprojects.io/wot/ditto-extension#deprecationNotice">Deprecation Notice</a>
+     * @since 3.9.0
+     */
+    public static final String DITTO_WOT_EXTENSION_DEPRECATION_NOTICE = "deprecationNotice";
+
 
     private DittoWotExtension() {
         throw new AssertionError();
