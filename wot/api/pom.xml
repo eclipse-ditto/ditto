@@ -51,6 +51,13 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-utils-cache</artifactId>
         </dependency>
+
+        <!-- Test dependencies -->
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

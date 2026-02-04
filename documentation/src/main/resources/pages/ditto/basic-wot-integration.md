@@ -276,7 +276,7 @@ This table shows an overview of how those elements map to Ditto concepts for the
 The WoT integration in Ditto covers several aspects:
 * referencing HTTP(s) URLs to WoT Thing Models in [Thing Definitions](basic-thing.html#definition) and in [Feature Definitions](basic-feature.html#feature-definition)
 * generation of WoT Thing Descriptions for Thing and Feature instances based on referenced Thing Models
-    * resolving potential [extensions via `tm:extends` and imports via `tm:ref`](https://www.w3.org/TR/wot-thing-description11/#thing-model-extension-import)
+    * resolving potential [extensions via `tm:extends` and imports via `tm:ref`](https://www.w3.org/TR/wot-thing-description11/#thing-model-extension-import) - both external references to other TMs and local references within the same TM
     * resolving potential Thing level [compositions via `tm:submodel`](https://www.w3.org/TR/wot-thing-description11/#thing-model-composition)
     * resolving potential [TM placeholders](https://www.w3.org/TR/wot-thing-description11/#thing-model-td-placeholder)
 * upon creation of new Things, generation of a "JSON skeleton" following the WoT Thing Model, including referenced TM submodels as Features of the Thing 
@@ -322,8 +322,8 @@ Function:
 * Ditto downloads the referenced URL and checks if this is a valid WoT Thing Model
 * Ditto saves the downloaded TM to a local cache
 * Ditto generates a WoT Thing Description and returns it as JSON response
-    * defined TM `tm:extends` extensions are resolved by downloading those TMs as well 
-    * defined TM `tm:refs` imports are also resolved by downloading those TMs as well 
+    * defined TM `tm:extends` extensions are resolved by downloading those TMs as well
+    * defined TM `tm:ref` imports are resolved - both external references (e.g., `https://example.com/model.tm.jsonld#/properties/temp`) by downloading those TMs, and local references within the same TM (e.g., `#/properties/genericTemperature`)
     * defined TM `tm:submodel`s are added to the `links` of the TD pointing to the TDs of the Features of the Thing
     * metadata available in the Thing or in the Ditto configuration is also included in the generated TD
 
@@ -347,7 +347,7 @@ Function:
 * Ditto saves the downloaded TM to a local cache
 * Ditto generates a WoT Thing Description and returns it as JSON response
     * defined TM `tm:extends` extensions are resolved by downloading those TMs as well
-    * defined TM `tm:refs` imports are also resolved by downloading those TMs as well
+    * defined TM `tm:ref` imports are resolved - both external references by downloading those TMs, and local references within the same TM
     * metadata available in the Thing or in the Ditto configuration is also included in the generated TD
 
 Using cURL, the Thing Description for a Ditto Feature can be generated and fetched by invoking:

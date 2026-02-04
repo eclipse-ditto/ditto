@@ -47,7 +47,8 @@ public final class WotThingModelRefInvalidException extends DittoRuntimeExceptio
             "The WoT ThingModel tm:ref ''{0}'' is invalid.";
 
     private static final String DEFAULT_DESCRIPTION =
-            "Please ensure that is in the specified format '<uri>#<jsonPointer>'.";
+            "Please ensure that it is either a local reference '#<jsonPointer>' " +
+            "or an external reference '<uri>#<jsonPointer>'.";
 
     private static final long serialVersionUID = 947845200833356146L;
 

@@ -14,8 +14,10 @@ package org.eclipse.ditto.wot.api.generator;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
@@ -143,19 +145,23 @@ final class DefaultWotThingModelExtensionResolver implements WotThingModelExtens
 
     @Override
     public CompletionStage<ThingModel> resolveThingModelRefs(final ThingModel thingModel, final DittoHeaders dittoHeaders) {
-        return potentiallyResolveRefs(thingModel, dittoHeaders).thenApplyAsync(ThingModel::fromJson, executor);
+        // Pass thingModel as the "rootThingModel" for local reference resolution
+        return potentiallyResolveRefs(thingModel, thingModel, Set.of(), dittoHeaders)
+                .thenApplyAsync(ThingModel::fromJson, executor);
     }
 
     private CompletionStage<JsonObject> potentiallyResolveRefs(final JsonObject jsonObject,
+            final ThingModel rootThingModel,
+            final Set<String> visitedLocalPointers,
             final DittoHeaders dittoHeaders) {
         final List<CompletableFuture<JsonField>> completionStages = jsonObject.stream()
                 .map(field -> {
                     if (field.getValue().isObject() && field.getValue().asObject().contains(TM_REF)) {
-                        return resolveRefs(field.getValue().asObject(), dittoHeaders)
+                        return resolveRefs(field.getValue().asObject(), rootThingModel, visitedLocalPointers, dittoHeaders)
                                 .thenApplyAsync(refs -> JsonField.newInstance(field.getKey(), refs),
                                         executor);
                     } else if (field.getValue().isObject()) {
-                        return potentiallyResolveRefs(field.getValue().asObject(), dittoHeaders)  // recurse!
+                        return potentiallyResolveRefs(field.getValue().asObject(), rootThingModel, visitedLocalPointers, dittoHeaders)  // recurse!
                                 .thenApplyAsync(refs -> JsonField.newInstance(field.getKey(), refs), executor);
                     } else {
                         return CompletableFuture.completedFuture(field);
@@ -171,12 +177,23 @@ final class DefaultWotThingModelExtensionResolver implements WotThingModelExtens
                 );
     }
 
-    private CompletionStage<JsonValue> resolveRefs(final JsonObject objectWithTmRef, final DittoHeaders dittoHeaders) {
+    private CompletionStage<JsonValue> resolveRefs(final JsonObject objectWithTmRef,
+            final ThingModel rootThingModel,
+            final Set<String> visitedLocalPointers,
+            final DittoHeaders dittoHeaders) {
         final String tmRef = objectWithTmRef.getValue(TM_REF)
                 .filter(JsonValue::isString)
                 .map(JsonValue::asString)
                 .orElseThrow();
 
+        // Check if this is a local reference (starts with #/)
+        if (tmRef.startsWith("#/")) {
+            // Local reference - resolve within the rootThingModel
+            final String jsonPointer = tmRef.substring(1); // Remove leading #
+            return resolveLocalRef(objectWithTmRef, rootThingModel, jsonPointer, visitedLocalPointers, dittoHeaders);
+        }
+
+        // External reference
         final String[] urlAndPointer = tmRef.split("#/", 2);
         if (urlAndPointer.length != 2) {
             throw WotThingModelRefInvalidException.newBuilder(tmRef).dittoHeaders(dittoHeaders).build();
@@ -192,17 +209,69 @@ final class DefaultWotThingModelExtensionResolver implements WotThingModelExtens
                 )
                 .thenComposeAsync(refObject -> {
                     if (refObject.contains(TM_REF)) {
-                        return resolveRefs(refObject, dittoHeaders) // recurse!
+                        return resolveRefs(refObject, rootThingModel, visitedLocalPointers, dittoHeaders) // recurse!
                                 .thenApplyAsync(JsonValue::asObject, executor);
                     } else {
-                        return potentiallyResolveRefs(refObject, dittoHeaders); // recurse!
+                        return potentiallyResolveRefs(refObject, rootThingModel, visitedLocalPointers, dittoHeaders); // recurse!
                     }
                 }, executor)
                 .thenApplyAsync(refObject -> JsonFactory.mergeJsonValues(objectWithTmRef.remove(TM_REF), refObject).asObject(), executor)
                 .thenComposeAsync(mergedResult -> {
                     // Recursively resolve any remaining tm:ref references in the merged result
-                    return potentiallyResolveRefs(mergedResult, dittoHeaders)
+                    return potentiallyResolveRefs(mergedResult, rootThingModel, visitedLocalPointers, dittoHeaders)
                             .thenApplyAsync(JsonValue::asObject, executor);
                 }, executor);
+    }
+
+    private CompletionStage<JsonValue> resolveLocalRef(final JsonObject objectWithTmRef,
+            final ThingModel rootThingModel,
+            final String jsonPointer,
+            final Set<String> visitedLocalPointers,
+            final DittoHeaders dittoHeaders) {
+
+        // Check for circular reference
+        if (visitedLocalPointers.contains(jsonPointer)) {
+            throw WotThingModelRefInvalidException.newBuilder("#" + jsonPointer)
+                    .dittoHeaders(dittoHeaders)
+                    .description("Circular reference detected in local tm:ref.")
+                    .build();
+        }
+
+        final Optional<JsonValue> optRefValue = rootThingModel.getValue(JsonPointer.of(jsonPointer));
+
+        if (optRefValue.isEmpty()) {
+            throw WotThingModelRefInvalidException.newBuilder("#" + jsonPointer)
+                    .dittoHeaders(dittoHeaders)
+                    .description("The local JSON pointer did not resolve to a value in the ThingModel.")
+                    .build();
+        }
+
+        final JsonValue refValue = optRefValue.get();
+
+        // Track visited pointer for circular reference detection
+        final Set<String> newVisitedPointers = new HashSet<>(visitedLocalPointers);
+        newVisitedPointers.add(jsonPointer);
+
+        if (!refValue.isObject()) {
+            // For non-object values, merge directly
+            return CompletableFuture.completedFuture(
+                    JsonFactory.mergeJsonValues(objectWithTmRef.remove(TM_REF), refValue));
+        }
+
+        final JsonObject refObject = refValue.asObject();
+
+        // Check for nested tm:ref in the resolved value
+        if (refObject.contains(TM_REF)) {
+            return resolveRefs(refObject, rootThingModel, newVisitedPointers, dittoHeaders)
+                    .thenApplyAsync(resolved ->
+                            JsonFactory.mergeJsonValues(objectWithTmRef.remove(TM_REF), resolved).asObject(),
+                            executor);
+        }
+
+        // Recursively resolve any nested references
+        return potentiallyResolveRefs(refObject, rootThingModel, newVisitedPointers, dittoHeaders)
+                .thenApplyAsync(resolved ->
+                        JsonFactory.mergeJsonValues(objectWithTmRef.remove(TM_REF), resolved).asObject(),
+                        executor);
     }
 }
