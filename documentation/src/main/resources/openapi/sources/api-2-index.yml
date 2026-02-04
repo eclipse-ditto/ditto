@@ -48,6 +48,7 @@ tags:
 security:
   - Google:
       - openid
+  - OpenIDConnect: []
   - NginxBasic: [ ]
   - Bearer: [ ]
 
@@ -529,6 +530,8 @@ components:
       $ref: "./security/bearerAuth.yml"
     Google:
       $ref: "./security/google.yml"
+    OpenIDConnect:
+      $ref: "./security/openIdConnect.yml"
     DevOpsBasic:
       $ref: "./security/devOpsBasic.yml"
     DevOpsBearer:
