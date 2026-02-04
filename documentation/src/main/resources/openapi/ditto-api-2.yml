@@ -35,6 +35,7 @@ tags:
 security:
   - Google:
       - openid
+  - OpenIDConnect: []
   - NginxBasic: []
   - Bearer: []
 paths:
@@ -11253,6 +11254,10 @@ components:
           tokenUrl: /oauth2/google/token
           scopes:
             openid: Access your Google-ID
+    OpenIDConnect:
+      type: openIdConnect
+      description: OpenID Connect Discovery URL. The placeholder is replaced by Swagger UI when configured.
+      openIdConnectUrl: "__OIDC_DISCOVERY_URL__"
     DevOpsBasic:
       type: http
       description: Eclipse Ditto devops user (devops) + password (foobar)
