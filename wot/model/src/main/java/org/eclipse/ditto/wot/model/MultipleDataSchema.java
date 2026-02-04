@@ -23,12 +23,18 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonValue;
 
 /**
- * MultipleActionFormElementOp is a container for multiple {@link SingleDataSchema}s.
+ * MultipleDataSchema is a container for multiple {@link SingleDataSchema}s.
  *
  * @since 2.4.0
  */
 public interface MultipleDataSchema extends DataSchema, Iterable<SingleDataSchema>, Jsonifiable<JsonArray> {
 
+    /**
+     * Creates a MultipleDataSchema from the specified JSON array.
+     *
+     * @param jsonArray the JSON array of data schema objects.
+     * @return the MultipleDataSchema.
+     */
     static MultipleDataSchema fromJson(final JsonArray jsonArray) {
         final List<SingleDataSchema> singleDataSchemas = jsonArray.stream()
                 .filter(JsonValue::isObject)
@@ -38,10 +44,21 @@ public interface MultipleDataSchema extends DataSchema, Iterable<SingleDataSchem
         return of(singleDataSchemas);
     }
 
+    /**
+     * Creates a MultipleDataSchema from the specified collection of data schemas.
+     *
+     * @param dataSchemas the collection of data schemas.
+     * @return the MultipleDataSchema.
+     */
     static MultipleDataSchema of(final Collection<SingleDataSchema> dataSchemas) {
         return new ImmutableMultipleDataSchema(dataSchemas);
     }
 
+    /**
+     * Returns a sequential stream over the data schemas.
+     *
+     * @return a stream of data schemas.
+     */
     default Stream<SingleDataSchema> stream() {
         return StreamSupport.stream(spliterator(), false);
     }

@@ -23,12 +23,33 @@ import java.util.Optional;
  * @since 2.4.0
  */
 public enum DataSchemaType implements CharSequence {
+    /**
+     * Boolean data type (true/false).
+     */
     BOOLEAN("boolean"),
+    /**
+     * Integer data type (whole numbers).
+     */
     INTEGER("integer"),
+    /**
+     * Number data type (floating-point numbers).
+     */
     NUMBER("number"),
+    /**
+     * String data type (text).
+     */
     STRING("string"),
+    /**
+     * Object data type (JSON object with properties).
+     */
     OBJECT("object"),
+    /**
+     * Array data type (ordered list of items).
+     */
     ARRAY("array"),
+    /**
+     * Null data type (absence of value).
+     */
     NULL("null");
 
     private final String name;
@@ -37,6 +58,11 @@ public enum DataSchemaType implements CharSequence {
         this.name = name;
     }
 
+    /**
+     * Returns the string representation of this data schema type.
+     *
+     * @return the type name.
+     */
     public String getName() {
         return name;
     }

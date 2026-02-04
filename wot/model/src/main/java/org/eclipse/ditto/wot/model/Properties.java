@@ -29,6 +29,13 @@ import org.eclipse.ditto.json.JsonObject;
  */
 public interface Properties extends Map<String, Property>, Jsonifiable<JsonObject> {
 
+    /**
+     * Creates a new Properties container from the specified JSON object.
+     *
+     * @param jsonObject the JSON object containing property definitions.
+     * @return the Properties container.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     */
     static Properties fromJson(final JsonObject jsonObject) {
         return of(jsonObject.stream().collect(Collectors.toMap(
                 field -> field.getKey().toString(),
@@ -41,6 +48,13 @@ public interface Properties extends Map<String, Property>, Jsonifiable<JsonObjec
         ));
     }
 
+    /**
+     * Creates a new Properties container from the specified collection of properties.
+     *
+     * @param properties the collection of properties.
+     * @return the Properties container.
+     * @throws NullPointerException if {@code properties} is {@code null}.
+     */
     static Properties from(final Collection<Property> properties) {
         return of(properties.stream().collect(Collectors.toMap(
                 Property::getPropertyName,
@@ -53,10 +67,23 @@ public interface Properties extends Map<String, Property>, Jsonifiable<JsonObjec
         ));
     }
 
+    /**
+     * Creates a new Properties container from the specified map of property name to property.
+     *
+     * @param properties the map of properties.
+     * @return the Properties container.
+     * @throws NullPointerException if {@code properties} is {@code null}.
+     */
     static Properties of(final Map<String, Property> properties) {
         return new ImmutableProperties(properties);
     }
 
+    /**
+     * Returns the property with the specified name if it exists.
+     *
+     * @param propertyName the name of the property.
+     * @return the optional property.
+     */
     Optional<Property> getProperty(CharSequence propertyName);
 
 }

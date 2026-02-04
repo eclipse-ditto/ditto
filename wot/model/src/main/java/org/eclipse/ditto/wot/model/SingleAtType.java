@@ -13,12 +13,19 @@
 package org.eclipse.ditto.wot.model;
 
 /**
- * A SingleAtContext is a single String {@link AtType}.
+ * A SingleAtType is a single String {@link AtType}.
  *
+ * @see <a href="https://www.w3.org/TR/wot-thing-description11/#sec-semantic-annotations">WoT TD Semantic Annotations</a>
  * @since 2.4.0
  */
 public interface SingleAtType extends AtType, CharSequence {
 
+    /**
+     * Creates a SingleAtType from the specified type string.
+     *
+     * @param charSequence the type string.
+     * @return the SingleAtType.
+     */
     static SingleAtType of(final CharSequence charSequence) {
         if (charSequence instanceof SingleAtType) {
             return (SingleAtType) charSequence;

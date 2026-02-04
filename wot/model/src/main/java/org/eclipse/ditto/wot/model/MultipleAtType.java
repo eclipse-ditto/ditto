@@ -29,6 +29,12 @@ import org.eclipse.ditto.json.JsonValue;
  */
 public interface MultipleAtType extends AtType, Iterable<SingleAtType>, Jsonifiable<JsonArray> {
 
+    /**
+     * Creates a MultipleAtType from the specified JSON array.
+     *
+     * @param jsonArray the JSON array of type strings.
+     * @return the MultipleAtType.
+     */
     static MultipleAtType fromJson(final JsonArray jsonArray) {
         final List<SingleAtType> singleDataSchemaTypes = jsonArray.stream()
                 .filter(JsonValue::isString)
@@ -38,10 +44,21 @@ public interface MultipleAtType extends AtType, Iterable<SingleAtType>, Jsonifia
         return of(singleDataSchemaTypes);
     }
 
+    /**
+     * Creates a MultipleAtType from the specified collection of single types.
+     *
+     * @param contexts the collection of single type entries.
+     * @return the MultipleAtType.
+     */
     static MultipleAtType of(final Collection<SingleAtType> contexts) {
         return new ImmutableMultipleAtType(contexts);
     }
 
+    /**
+     * Returns a sequential stream over the single type entries.
+     *
+     * @return a stream of single types.
+     */
     default Stream<SingleAtType> stream() {
         return StreamSupport.stream(spliterator(), false);
     }

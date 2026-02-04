@@ -33,14 +33,37 @@ import org.eclipse.ditto.json.JsonObject;
  */
 public interface AllOfComboSecurityScheme extends ComboSecurityScheme {
 
+    /**
+     * Creates a new AllOfComboSecurityScheme from the specified JSON object.
+     *
+     * @param securitySchemeName the name of the security scheme.
+     * @param jsonObject the JSON object representing the security scheme.
+     * @return the AllOfComboSecurityScheme.
+     */
     static AllOfComboSecurityScheme fromJson(final String securitySchemeName, final JsonObject jsonObject) {
         return new ImmutableAllOfComboSecurityScheme(securitySchemeName, jsonObject);
     }
 
+    /**
+     * Creates a new builder for building an AllOfComboSecurityScheme.
+     *
+     * @param securitySchemeName the name of the security scheme.
+     * @return the builder.
+     * @throws NullPointerException if {@code securitySchemeName} is {@code null}.
+     */
     static AllOfComboSecurityScheme.Builder newBuilder(final CharSequence securitySchemeName) {
         return AllOfComboSecurityScheme.Builder.newBuilder(securitySchemeName);
     }
 
+    /**
+     * Creates a new builder for building an AllOfComboSecurityScheme, initialized with the values from the specified
+     * JSON object.
+     *
+     * @param securitySchemeName the name of the security scheme.
+     * @param jsonObject the JSON object providing initial values.
+     * @return the builder.
+     * @throws NullPointerException if {@code securitySchemeName} is {@code null}.
+     */
     static AllOfComboSecurityScheme.Builder newBuilder(final CharSequence securitySchemeName,
             final JsonObject jsonObject) {
         return AllOfComboSecurityScheme.Builder.newBuilder(securitySchemeName, jsonObject);
@@ -51,17 +74,40 @@ public interface AllOfComboSecurityScheme extends ComboSecurityScheme {
         return SecuritySchemeScheme.COMBO;
     }
 
+    /**
+     * Returns the list of security scheme names that must all be applied.
+     *
+     * @return the list of security scheme names.
+     * @see <a href="https://www.w3.org/TR/wot-thing-description11/#combosecurityscheme">WoT TD ComboSecurityScheme (allOf)</a>
+     */
     List<String> getAllOf();
 
 
+    /**
+     * A mutable builder with a fluent API for building an {@link AllOfComboSecurityScheme}.
+     */
     interface Builder extends SecurityScheme.Builder<Builder, AllOfComboSecurityScheme> {
 
+        /**
+         * Creates a new builder for building an AllOfComboSecurityScheme.
+         *
+         * @param securitySchemeName the name of the security scheme.
+         * @return the builder.
+         */
         static Builder newBuilder(final CharSequence securitySchemeName) {
             return new MutableAllOfComboSecuritySchemeBuilder(
                     checkNotNull(securitySchemeName, "securitySchemeName").toString(),
                     JsonObject.newBuilder());
         }
 
+        /**
+         * Creates a new builder for building an AllOfComboSecurityScheme, initialized with the values from the
+         * specified JSON object.
+         *
+         * @param securitySchemeName the name of the security scheme.
+         * @param jsonObject the JSON object providing initial values.
+         * @return the builder.
+         */
         static Builder newBuilder(final CharSequence securitySchemeName,
                 final JsonObject jsonObject) {
             return new MutableAllOfComboSecuritySchemeBuilder(
@@ -69,16 +115,25 @@ public interface AllOfComboSecurityScheme extends ComboSecurityScheme {
                     jsonObject.toBuilder());
         }
 
+        /**
+         * Sets the security schemes that must all be applied.
+         *
+         * @param securitySchemes the security schemes, or {@code null} to remove.
+         * @return this builder.
+         */
         Builder setAllOf(@Nullable Collection<SecurityScheme> securitySchemes);
 
     }
 
     /**
-     * An enumeration of the known {@link org.eclipse.ditto.json.JsonFieldDefinition}s of a AllOfComboSecurityScheme.
+     * An enumeration of the known {@link org.eclipse.ditto.json.JsonFieldDefinition}s of an AllOfComboSecurityScheme.
      */
     @Immutable
     final class JsonFields {
 
+        /**
+         * JSON field definition for the array of security scheme names that must all apply.
+         */
         public static final JsonFieldDefinition<JsonArray> ALL_OF = JsonFactory.newJsonArrayFieldDefinition(
                 "allOf");
 

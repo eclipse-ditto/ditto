@@ -29,6 +29,13 @@ import org.eclipse.ditto.json.JsonObject;
  */
 public interface Events extends Map<String, Event>, Jsonifiable<JsonObject> {
 
+    /**
+     * Creates a new Events container from the specified JSON object.
+     *
+     * @param jsonObject the JSON object containing event definitions.
+     * @return the Events container.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     */
     static Events fromJson(final JsonObject jsonObject) {
         return of(jsonObject.stream().collect(Collectors.toMap(
                 field -> field.getKey().toString(),
@@ -41,6 +48,13 @@ public interface Events extends Map<String, Event>, Jsonifiable<JsonObject> {
         ));
     }
 
+    /**
+     * Creates a new Events container from the specified collection of events.
+     *
+     * @param events the collection of events.
+     * @return the Events container.
+     * @throws NullPointerException if {@code events} is {@code null}.
+     */
     static Events from(final Collection<Event> events) {
         return of(events.stream().collect(Collectors.toMap(
                 Event::getEventName,
@@ -53,10 +67,23 @@ public interface Events extends Map<String, Event>, Jsonifiable<JsonObject> {
         ));
     }
 
+    /**
+     * Creates a new Events container from the specified map of event name to event.
+     *
+     * @param events the map of events.
+     * @return the Events container.
+     * @throws NullPointerException if {@code events} is {@code null}.
+     */
     static Events of(final Map<String, Event> events) {
         return new ImmutableEvents(events);
     }
 
+    /**
+     * Returns the event with the specified name if it exists.
+     *
+     * @param eventName the name of the event.
+     * @return the optional event.
+     */
     Optional<Event> getEvent(CharSequence eventName);
 
 }

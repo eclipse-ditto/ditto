@@ -33,14 +33,37 @@ import org.eclipse.ditto.json.JsonObject;
  */
 public interface OneOfComboSecurityScheme extends ComboSecurityScheme {
 
+    /**
+     * Creates a new OneOfComboSecurityScheme from the specified JSON object.
+     *
+     * @param securitySchemeName the name of the security scheme.
+     * @param jsonObject the JSON object representing the security scheme.
+     * @return the OneOfComboSecurityScheme.
+     */
     static OneOfComboSecurityScheme fromJson(final String securitySchemeName, final JsonObject jsonObject) {
         return new ImmutableOneOfComboSecurityScheme(securitySchemeName, jsonObject);
     }
 
+    /**
+     * Creates a new builder for building a OneOfComboSecurityScheme.
+     *
+     * @param securitySchemeName the name of the security scheme.
+     * @return the builder.
+     * @throws NullPointerException if {@code securitySchemeName} is {@code null}.
+     */
     static OneOfComboSecurityScheme.Builder newBuilder(final CharSequence securitySchemeName) {
         return OneOfComboSecurityScheme.Builder.newBuilder(securitySchemeName);
     }
 
+    /**
+     * Creates a new builder for building a OneOfComboSecurityScheme, initialized with the values from the specified
+     * JSON object.
+     *
+     * @param securitySchemeName the name of the security scheme.
+     * @param jsonObject the JSON object providing initial values.
+     * @return the builder.
+     * @throws NullPointerException if {@code securitySchemeName} is {@code null}.
+     */
     static OneOfComboSecurityScheme.Builder newBuilder(final CharSequence securitySchemeName,
             final JsonObject jsonObject) {
         return OneOfComboSecurityScheme.Builder.newBuilder(securitySchemeName, jsonObject);
@@ -51,17 +74,40 @@ public interface OneOfComboSecurityScheme extends ComboSecurityScheme {
         return SecuritySchemeScheme.COMBO;
     }
 
+    /**
+     * Returns the list of security scheme names where one of them must be applied.
+     *
+     * @return the list of security scheme names.
+     * @see <a href="https://www.w3.org/TR/wot-thing-description11/#combosecurityscheme">WoT TD ComboSecurityScheme (oneOf)</a>
+     */
     List<String> getOneOf();
 
 
+    /**
+     * A mutable builder with a fluent API for building a {@link OneOfComboSecurityScheme}.
+     */
     interface Builder extends SecurityScheme.Builder<Builder, OneOfComboSecurityScheme> {
 
+        /**
+         * Creates a new builder for building a OneOfComboSecurityScheme.
+         *
+         * @param securitySchemeName the name of the security scheme.
+         * @return the builder.
+         */
         static Builder newBuilder(final CharSequence securitySchemeName) {
             return new MutableOneOfComboSecuritySchemeBuilder(
                     checkNotNull(securitySchemeName, "securitySchemeName").toString(),
                     JsonObject.newBuilder());
         }
 
+        /**
+         * Creates a new builder for building a OneOfComboSecurityScheme, initialized with the values from the
+         * specified JSON object.
+         *
+         * @param securitySchemeName the name of the security scheme.
+         * @param jsonObject the JSON object providing initial values.
+         * @return the builder.
+         */
         static Builder newBuilder(final CharSequence securitySchemeName,
                 final JsonObject jsonObject) {
             return new MutableOneOfComboSecuritySchemeBuilder(
@@ -69,6 +115,12 @@ public interface OneOfComboSecurityScheme extends ComboSecurityScheme {
                     jsonObject.toBuilder());
         }
 
+        /**
+         * Sets the security schemes where one of them must be applied.
+         *
+         * @param securitySchemes the security schemes, or {@code null} to remove.
+         * @return this builder.
+         */
         Builder setOneOf(@Nullable Collection<SecurityScheme> securitySchemes);
 
     }
@@ -79,6 +131,9 @@ public interface OneOfComboSecurityScheme extends ComboSecurityScheme {
     @Immutable
     final class JsonFields {
 
+        /**
+         * JSON field definition for the array of security scheme names where one must apply.
+         */
         public static final JsonFieldDefinition<JsonArray> ONE_OF = JsonFactory.newJsonArrayFieldDefinition(
                 "oneOf");
 

@@ -24,10 +24,22 @@ import java.util.Collection;
  */
 public interface Security {
 
+    /**
+     * Creates a SingleSecurity from the specified security scheme name.
+     *
+     * @param charSequence the name of the security scheme.
+     * @return the SingleSecurity.
+     */
     static SingleSecurity newSingleSecurity(final CharSequence charSequence) {
         return SingleSecurity.of(charSequence);
     }
 
+    /**
+     * Creates a MultipleSecurity from the specified collection of security scheme names.
+     *
+     * @param securities the collection of security scheme names.
+     * @return the MultipleSecurity.
+     */
     static MultipleSecurity newMultipleSecurity(final Collection<SingleSecurity> securities) {
         return MultipleSecurity.of(securities);
     }

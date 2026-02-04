@@ -19,10 +19,33 @@ package org.eclipse.ditto.wot.model;
  */
 public interface OAuth2Flow extends CharSequence {
 
+    /**
+     * Authorization code flow.
+     *
+     * @see <a href="https://www.w3.org/TR/wot-thing-description11/#oauth2securityscheme">WoT TD OAuth2SecurityScheme (flow)</a>
+     */
     OAuth2Flow CODE = of("code");
+
+    /**
+     * Client credentials flow.
+     *
+     * @see <a href="https://www.w3.org/TR/wot-thing-description11/#oauth2securityscheme">WoT TD OAuth2SecurityScheme (flow)</a>
+     */
     OAuth2Flow CLIENT = of("client");
+
+    /**
+     * Device authorization flow.
+     *
+     * @see <a href="https://www.w3.org/TR/wot-thing-description11/#oauth2securityscheme">WoT TD OAuth2SecurityScheme (flow)</a>
+     */
     OAuth2Flow DEVICE = of("device");
 
+    /**
+     * Creates an OAuth2Flow from the specified string.
+     *
+     * @param charSequence the flow name.
+     * @return the OAuth2Flow.
+     */
     static OAuth2Flow of(final CharSequence charSequence) {
         if (charSequence instanceof OAuth2Flow) {
             return (OAuth2Flow) charSequence;
