@@ -1,0 +1,151 @@
+# Copyright (c) 2026 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+#
+
+# ====================
+# DITTO CONFIGURATION
+# ====================
+ditto:
+  baseUri: my-ditto-nginx.ditto.svc.cluster.local:8080
+  protocol:
+    http: http
+    ws: ws
+  auth:
+    preAuthenticatedHeaderValue: nginx:ditto
+    user: ditto
+    password: ditto
+    devopsUser: devops
+    devopsPassword: devops
+
+# ====================
+# THING CONFIGURATION
+# ====================
+things:
+  count: 10000
+  startIndex: 1
+  idTemplate: test-thing-
+  namespace: org.eclipse.ditto
+  createBeforeTest: true
+  createBatchSize: 1000
+  deleteAfterTest: true
+
+# ====================
+# CONNECTION MANAGEMENT
+# ====================
+connections:
+  createBeforeTest: true
+  deleteAfterTest: true
+  openMaxRetries: 10
+
+  # Optional: Provide existing connection IDs to skip creation/deletion
+  preCreatedIds:
+    httpPush: null
+    kafkaSource: null
+    kafkaTarget: null
+
+  # Kafka connection configuration
+  kafka:
+    bootstrapServers: local-kafka.kafka.svc.cluster.local:9092
+    consumerCount: 1
+    processorPoolSize: 1
+    qos: 0
+    customAck: ''
+    sourceClientCount: 1
+    targetClientCount: 1
+    sourceConnectionName: kafka-source
+    targetConnectionName: kafka-target
+
+    topics:
+      createUpdateThing:
+        consumerGroupId: group-create-update
+        maxWaitDuration: 30s
+        source:
+          name: create-update
+          partitions: 2
+        reply:
+          name: create-update-reply
+          partitions: 2
+        deleteAfterTest: true
+
+    logging:
+      consumer: false
+      producer: false
+
+  # HTTP Push connection configuration
+  httpPush:
+    clientCount: 1
+    parallelism: 1
+    uri: http://mmock.mmock.svc.cluster.local:8080
+    targets:
+      - address: POST:/{{ thing:id }}
+        topics:
+          - "_/_/things/twin/events?filter=eq(topic:action,'modified')"
+        issuedAcknowledgementLabel: ''
+      - address: POST:/live_message
+        topics:
+          - _/_/things/live/messages
+        issuedAcknowledgementLabel: live-response
+
+# ====================
+# ARTILLERY CONFIGURATION
+# ====================
+artillery:
+  duration: 60s
+  arrivalRate: 500
+
+# ====================
+# SCENARIO CONFIGURATION
+# ====================
+scenarios:
+  - name: readThings
+    enabled: true
+    timeout: 10
+    channels:
+      - name: http
+        weight: 1
+
+  - name: searchThings
+    enabled: disabled
+    timeout: 10
+    channels:
+      - name: http
+        weight: 1
+
+  - name: modifyThings
+    enabled: disabled
+    timeout: 10
+    channels:
+      - name: http
+        weight: 1
+      - name: websocketTwin
+        weight: 1
+      - name: kafka
+        weight: 1
+
+  - name: deviceLiveMessages
+    enabled: disabled
+    timeout: 10
+    channels:
+      - name: http
+        weight: 1
+      - name: websocketLive
+        weight: 1
+
+# ====================
+# WARMUP CONFIGURATION
+# ====================
+warmup:
+  enabled: true
+  maxDuration: 2m
+  batchSize: 100
+
+# Set to true to only run cleanup (delete things, connections, topics)
+cleanupOnly: false
