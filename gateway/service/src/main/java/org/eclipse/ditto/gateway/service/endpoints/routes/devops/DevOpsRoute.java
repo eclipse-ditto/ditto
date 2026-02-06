@@ -103,7 +103,7 @@ public final class DevOpsRoute extends AbstractRoute {
             final DevopsAuthenticationDirective devOpsAuthenticationDirective) {
 
         super(routeBaseProperties);
-        httpConfig = routeBaseProperties.getHttpConfig();
+        httpConfig = routeBaseProperties.getGatewayConfig().getHttpConfig();
         this.devOpsAuthenticationDirective =
                 ConditionChecker.checkNotNull(devOpsAuthenticationDirective, "devOpsAuthenticationDirective");
     }

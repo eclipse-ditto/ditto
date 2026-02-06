@@ -64,9 +64,11 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.websocket.WebSocketRouteBuilder;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiRoute;
+import org.eclipse.ditto.gateway.service.endpoints.routes.wot.WotDiscoveryThingDirectoryRoute;
 import org.eclipse.ditto.gateway.service.endpoints.utils.DittoRejectionHandlerFactory;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationResult;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
+import org.eclipse.ditto.gateway.service.util.config.endpoints.WotDirectoryConfig;
 import org.eclipse.ditto.internal.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
@@ -87,6 +89,7 @@ public final class RootRoute extends AllDirectives {
     private final OverallStatusRoute overallStatusRoute;
     private final CachingHealthRoute cachingHealthRoute;
     private final DevOpsRoute devopsRoute;
+    private final WotDiscoveryThingDirectoryRoute wotDiscoveryThingDirectoryRoute;
 
     private final PoliciesRoute policiesRoute;
     private final SseRouteBuilder sseThingsRouteBuilder;
@@ -114,6 +117,7 @@ public final class RootRoute extends AllDirectives {
     private final RejectionHandler rejectionHandler;
     private final RootRouteHeadersStepBuilder rootRouteHeadersStepBuilder;
     private final DittoHeadersValidator dittoHeadersValidator;
+    private final WotDirectoryConfig wotDirectoryConfig;
 
     private RootRoute(final Builder builder) {
         final HttpConfig httpConfig = builder.httpConfig;
@@ -121,6 +125,7 @@ public final class RootRoute extends AllDirectives {
         overallStatusRoute = builder.overallStatusRoute;
         cachingHealthRoute = builder.cachingHealthRoute;
         devopsRoute = builder.devopsRoute;
+        wotDiscoveryThingDirectoryRoute = builder.wotDiscoveryThingDirectoryRoute;
         policiesRoute = builder.policiesRoute;
         sseThingsRouteBuilder = builder.sseThingsRouteBuilder;
         thingsRoute = builder.thingsRoute;
@@ -150,6 +155,7 @@ public final class RootRoute extends AllDirectives {
                 QueryParametersToHeadersMap.getInstance(httpConfig),
                 customHeadersHandler);
         dittoHeadersValidator = builder.dittoHeadersValidator;
+        wotDirectoryConfig = builder.wotDirectoryConfig;
     }
 
     public static RootRouteBuilder getBuilder(final HttpConfig httpConfig) {
@@ -175,11 +181,43 @@ public final class RootRoute extends AllDirectives {
                                         ws(ctx, correlationId, queryParameters), // /ws
                                         ownStatusRoute.buildStatusRoute(), // /status
                                         overallStatusRoute.buildOverallStatusRoute(correlationId), // /overall
-                                        devopsRoute.buildDevOpsRoute(ctx, correlationId, queryParameters) // /devops
+                                        devopsRoute.buildDevOpsRoute(ctx, correlationId, queryParameters), // /devops
+                                        wotDiscovery(ctx, correlationId, queryParameters) // /.well-known/wot
                                 )
                         )
                 )
         );
+    }
+
+    /*
+     * Describes {@code /.well-known/wot} route for WoT Discovery Thing Directory.
+     *
+     * @return route for WoT Discovery Thing Directory.
+     */
+    private Route wotDiscovery(final RequestContext ctx, final CharSequence correlationId,
+            final Map<String, String> queryParameters) {
+
+        final DittoHeaders basicHeaders = DittoHeaders.newBuilder()
+                .correlationId(correlationId)
+                .build();
+
+        if (wotDirectoryConfig.isAuthenticationRequired()) {
+            return withDittoHeaders(
+                    rootRouteHeadersStepBuilder.withInitialDittoHeadersBuilder(
+                                    DittoHeaders.newBuilder()
+                                            .correlationId(correlationId)
+                            )
+                            .withRequestContext(ctx)
+                            .withQueryParameters(queryParameters)
+                            .build(CustomHeadersHandler.RequestType.API),
+                    dittoHeaders ->
+                            apiAuthentication(dittoHeaders, auth ->
+                                    wotDiscoveryThingDirectoryRoute.buildRoute(ctx, auth.getDittoHeaders())
+                            )
+            );
+        } else {
+            return wotDiscoveryThingDirectoryRoute.buildRoute(ctx, basicHeaders);
+        }
     }
 
     private Route wrapWithRootDirectives(final Function<String, Route> rootRoute) {
@@ -437,6 +475,7 @@ public final class RootRoute extends AllDirectives {
         private OverallStatusRoute overallStatusRoute;
         private CachingHealthRoute cachingHealthRoute;
         private DevOpsRoute devopsRoute;
+        private WotDiscoveryThingDirectoryRoute wotDiscoveryThingDirectoryRoute;
 
         private PoliciesRoute policiesRoute;
         private SseRouteBuilder sseThingsRouteBuilder;
@@ -461,6 +500,7 @@ public final class RootRoute extends AllDirectives {
         private RejectionHandler rejectionHandler;
 
         private DittoHeadersValidator dittoHeadersValidator;
+        private WotDirectoryConfig wotDirectoryConfig;
 
         private Builder(final HttpConfig httpConfig) {
             this.httpConfig = httpConfig;
@@ -487,6 +527,18 @@ public final class RootRoute extends AllDirectives {
         @Override
         public RootRouteBuilder devopsRoute(final DevOpsRoute route) {
             devopsRoute = route;
+            return this;
+        }
+
+        @Override
+        public RootRouteBuilder wotDiscoveryThingDirectoryRoute(final WotDiscoveryThingDirectoryRoute route) {
+            wotDiscoveryThingDirectoryRoute = route;
+            return this;
+        }
+
+        @Override
+        public RootRouteBuilder wotDirectoryConfig(final WotDirectoryConfig config) {
+            wotDirectoryConfig = config;
             return this;
         }
 

@@ -58,6 +58,7 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.websocket.WebSocketRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiRoute;
+import org.eclipse.ditto.gateway.service.endpoints.routes.wot.WotDiscoveryThingDirectoryRoute;
 import org.eclipse.ditto.gateway.service.health.DittoStatusAndHealthProviderFactory;
 import org.eclipse.ditto.gateway.service.security.HttpHeader;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationFactory;
@@ -154,6 +155,8 @@ public final class RootRouteTest extends EndpointTestBase {
                         devopsAuthenticationDirectiveFactory.status()))
                 .cachingHealthRoute(new CachingHealthRoute(statusAndHealthProvider, publicHealthConfig))
                 .devopsRoute(new DevOpsRoute(routeBaseProperties, devOpsAuthenticationDirective))
+                .wotDiscoveryThingDirectoryRoute(new WotDiscoveryThingDirectoryRoute(routeBaseProperties))
+                .wotDirectoryConfig(routeBaseProperties.getGatewayConfig().getWotDirectoryConfig())
                 .policiesRoute(new PoliciesRoute(routeBaseProperties,
                         OAuthTokenIntegrationSubjectIdFactory.of(authConfig.getOAuthConfig())))
                 .sseThingsRoute(ThingsSseRouteBuilder.getInstance(routeBaseProperties.getActorSystem(),

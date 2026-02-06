@@ -275,6 +275,10 @@ spec:
               value: "{{ .Values.gateway.config.authentication.oauth.allowedClockSkew }}"
             - name: OAUTH_TOKEN_INTEGRATION_SUBJECT
               value: "{{ .Values.gateway.config.authentication.oauth.tokenIntegrationSubject }}"
+            - name: GATEWAY_WOT_DIRECTORY_BASE_PREFIX
+              value: "{{ .Values.gateway.config.wotDirectory.basePrefix }}"
+            - name: GATEWAY_WOT_DIRECTORY_AUTHENTICATION_REQUIRED
+              value: "{{ .Values.gateway.config.wotDirectory.authenticationRequired }}"
             {{- if .Values.gateway.extraEnv }}
               {{- toYaml .Values.gateway.extraEnv | nindent 12 }}
             {{- end }}
