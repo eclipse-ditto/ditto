@@ -201,7 +201,7 @@ public final class RootRoute extends AllDirectives {
                 .correlationId(correlationId)
                 .build();
 
-        if (wotDirectoryConfig != null && wotDirectoryConfig.isAuthenticationRequired()) {
+        if (wotDirectoryConfig.isAuthenticationRequired()) {
             return withDittoHeaders(
                     rootRouteHeadersStepBuilder.withInitialDittoHeadersBuilder(
                                     DittoHeaders.newBuilder()
@@ -500,7 +500,7 @@ public final class RootRoute extends AllDirectives {
         private RejectionHandler rejectionHandler;
 
         private DittoHeadersValidator dittoHeadersValidator;
-        @Nullable private WotDirectoryConfig wotDirectoryConfig;
+        private WotDirectoryConfig wotDirectoryConfig;
 
         private Builder(final HttpConfig httpConfig) {
             this.httpConfig = httpConfig;

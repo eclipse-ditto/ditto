@@ -934,10 +934,16 @@ Example response:
           "description": "Maximum number of Thing Descriptions to return",
           "type": "integer",
           "minimum": 1
+        },
+        "format": {
+          "title": "Format",
+          "description": "Response format: 'array' returns a plain JSON array of Thing Descriptions",
+          "type": "string",
+          "enum": ["array"]
         }
       },
       "forms": [{
-        "href": "api/2/things{?offset,limit}",
+        "href": "api/2/things{?offset,limit,format}",
         "op": "readproperty",
         "contentType": "application/json"
       }]
@@ -958,7 +964,11 @@ Example response:
       "idempotent": true,
       "forms": [{
         "href": "api/2/things/{thingId}",
-        "htv:methodName": "GET"
+        "htv:methodName": "GET",
+        "htv:headers": [{
+          "htv:fieldName": "Accept",
+          "htv:fieldValue": "application/td+json"
+        }]
       }]
     }
   }
@@ -972,12 +982,13 @@ The Thing Directory describes two main operations:
 1. **List all Thing Descriptions** (`things` property):
    * Endpoint: `GET /api/2/things`
    * Supports pagination via `offset` and `limit` query parameters
+   * Supports `format` query parameter: `array` returns a plain JSON array of Thing Descriptions
    * Returns JSON array of things (use `Accept: application/td+json` header for TD format)
 
 2. **Retrieve a specific Thing Description** (`retrieveThing` action):
    * Endpoint: `GET /api/2/things/{thingId}`
    * Replace `{thingId}` with the actual Thing ID
-   * Use `Accept: application/td+json` header to get the Thing Description format
+   * **Requires** the `Accept: application/td+json` header to get the Thing Description format
 
 ### Configuration
 
