@@ -49,9 +49,9 @@ public final class DefaultWotDirectoryConfig implements WotDirectoryConfig {
     }
 
     /**
-     * Returns an instance of {@code DefaultCloudEventsConfig} based on the settings of the specified Config.
+     * Returns an instance of {@code DefaultWotDirectoryConfig} based on the settings of the specified Config.
      *
-     * @param config is supposed to provide the settings of the public health config at {@value #CONFIG_PATH}.
+     * @param config is supposed to provide the settings of the WoT Directory config at {@value #CONFIG_PATH}.
      * @return the instance.
      * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */

@@ -52,6 +52,20 @@ public final class WotDiscoveryThingDirectoryRouteTest extends EndpointTestBase 
     }
 
     @Test
+    public void headWotDiscoveryThingDirectoryReturnsOk() {
+        final TestRouteResult result = underTest.run(HttpRequest.HEAD("/.well-known/wot"));
+
+        result.assertStatusCode(StatusCodes.OK);
+    }
+
+    @Test
+    public void headWotDiscoveryThingDirectoryWithTrailingSlashReturnsOk() {
+        final TestRouteResult result = underTest.run(HttpRequest.HEAD("/.well-known/wot/"));
+
+        result.assertStatusCode(StatusCodes.OK);
+    }
+
+    @Test
     public void postToWotDiscoveryReturnsMethodNotAllowed() {
         final TestRouteResult result = underTest.run(HttpRequest.POST("/.well-known/wot"));
 

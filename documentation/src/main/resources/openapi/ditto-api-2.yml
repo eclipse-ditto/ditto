@@ -8215,8 +8215,13 @@ paths:
         - A `things` property that allows retrieving all Thing Descriptions with optional pagination
         - A `retrieveThing` action for fetching a specific Thing Description by its Thing ID
 
+        The `retrieveThing` action requires the `Accept: application/td+json` header to receive
+        a Thing Description format response.
+
         Note: By default, this endpoint is publicly accessible without authentication. This can be configured
         via the `GATEWAY_WOT_DIRECTORY_AUTHENTICATION_REQUIRED` environment variable.
+
+        Both `GET` and `HEAD` methods are supported per the WoT Discovery specification.
       tags:
         - WoT
       responses:
@@ -8257,8 +8262,14 @@ paths:
                         description: Maximum number of Thing Descriptions to return
                         type: integer
                         minimum: 1
+                      format:
+                        title: Format
+                        description: 'Response format: ''array'' returns a plain JSON array of Thing Descriptions'
+                        type: string
+                        enum:
+                          - array
                     forms:
-                      - href: 'api/2/things{?offset,limit}'
+                      - href: 'api/2/things{?offset,limit,format}'
                         op: readproperty
                         contentType: application/json
                 actions:
@@ -8275,12 +8286,27 @@ paths:
                     forms:
                       - href: 'api/2/things/{thingId}'
                         'htv:methodName': GET
+                        'htv:headers':
+                          - 'htv:fieldName': Accept
+                            'htv:fieldValue': application/td+json
         '401':
           description: The request could not be completed due to missing authentication (when authentication is required).
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
+    head:
+      summary: Retrieve WoT Thing Directory headers
+      description: |-
+        Returns headers for the WoT Thing Directory endpoint without a response body.
+        Supports the same authentication and configuration as the GET method.
+      tags:
+        - WoT
+      responses:
+        '200':
+          description: The WoT Thing Directory headers were successfully retrieved.
+        '401':
+          description: The request could not be completed due to missing authentication (when authentication is required).
   /devops/wot/config:
     get:
       summary: Get the WoT validation config
