@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Provides the configuration settings for a single custom operator metric.
@@ -62,6 +63,14 @@ public interface CustomMetricConfig {
      */
     Map<String, String> getTags();
 
+    /**
+     * Returns the optional index hint to use for the MongoDB query of this custom metric.
+     * The hint can be either a string (index name) or a JSON object (index key specification).
+     *
+     * @return the optional index hint.
+     */
+    Optional<JsonValue> getIndexHint();
+
     enum CustomMetricConfigValue implements KnownConfigValue {
 
         /**
@@ -89,7 +98,12 @@ public interface CustomMetricConfig {
         /**
          * The optional tags to report to the custom Gauge metric.
          */
-        TAGS("tags", Map.of());
+        TAGS("tags", Map.of()),
+
+        /**
+         * The optional index hint for the MongoDB query (string index name or object index key spec).
+         */
+        INDEX_HINT("index-hint", null);
 
         private final String path;
         private final Object defaultValue;

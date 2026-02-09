@@ -134,7 +134,7 @@ public final class OperatorAggregateMetricsProviderActor extends AbstractActorWi
 
         final AggregateThingsMetrics
                 aggregateThingsMetrics = AggregateThingsMetrics.of(metricName, config.getGroupBy(), config.getFilter().orElse(null),
-                config.getNamespaces(), dittoHeaders);
+                config.getNamespaces(), config.getIndexHint().orElse(null), dittoHeaders);
         aggregateThingsMetricsActorSingletonProxy.tell(aggregateThingsMetrics, getSelf());
     }
 

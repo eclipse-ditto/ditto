@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.thingsearch.service.common.config;
 
+import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -19,9 +20,16 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.internal.utils.config.DittoConfigError;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigObject;
+import com.typesafe.config.ConfigRenderOptions;
 
 /**
  * This class is the default implementation of the CustomMetricConfig.
@@ -35,6 +43,8 @@ public final class DefaultCustomMetricConfig implements CustomMetricConfig {
     private final List<String> namespaces;
     private final String filter;
     private final Map<String, String> tags;
+    @Nullable
+    private final JsonValue indexHint;
 
     private DefaultCustomMetricConfig(final String customMetricName, final ConfigWithFallback configWithFallback) {
         this.customMetricName = customMetricName;
@@ -46,6 +56,7 @@ public final class DefaultCustomMetricConfig implements CustomMetricConfig {
                 .entrySet()
                 .stream()
                 .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, e -> String.valueOf(e.getValue())));
+        indexHint = readIndexHint(configWithFallback, CustomMetricConfigValue.INDEX_HINT.getConfigPath());
     }
 
     /**
@@ -91,6 +102,11 @@ public final class DefaultCustomMetricConfig implements CustomMetricConfig {
     }
 
     @Override
+    public Optional<JsonValue> getIndexHint() {
+        return Optional.ofNullable(indexHint);
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -103,12 +119,13 @@ public final class DefaultCustomMetricConfig implements CustomMetricConfig {
                 Objects.equals(scrapeInterval, that.scrapeInterval) &&
                 Objects.equals(namespaces, that.namespaces) &&
                 Objects.equals(filter, that.filter) &&
-                Objects.equals(tags, that.tags);
+                Objects.equals(tags, that.tags) &&
+                Objects.equals(indexHint, that.indexHint);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(enabled, scrapeInterval, namespaces, filter, tags);
+        return Objects.hash(enabled, scrapeInterval, namespaces, filter, tags, indexHint);
     }
 
     @Override
@@ -119,6 +136,23 @@ public final class DefaultCustomMetricConfig implements CustomMetricConfig {
                 ", namespaces=" + namespaces +
                 ", filter=" + filter +
                 ", tags=" + tags +
+                ", indexHint=" + indexHint +
                 "]";
+    }
+
+    @Nullable
+    static JsonValue readIndexHint(final ConfigWithFallback config, final String path) {
+        if (!config.hasPath(path) || config.getIsNull(path)) {
+            return null;
+        }
+        final var configValue = config.getValue(path);
+        return switch (configValue.valueType()) {
+            case STRING -> JsonValue.of((String) configValue.unwrapped());
+            case OBJECT -> JsonObject.of(((ConfigObject) configValue).toConfig()
+                    .root().render(ConfigRenderOptions.concise()));
+            default -> throw new DittoConfigError(
+                    MessageFormat.format("index-hint must be a string or object, got: {0}",
+                            configValue.valueType()));
+        };
     }
 }

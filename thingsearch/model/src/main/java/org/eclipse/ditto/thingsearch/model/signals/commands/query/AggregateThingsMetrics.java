@@ -79,6 +79,9 @@ public final class AggregateThingsMetrics extends AbstractCommand<AggregateThing
             JsonFactory.newJsonArrayFieldDefinition("namespaces", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
+    private static final JsonFieldDefinition<JsonValue> JSON_INDEX_HINT =
+            JsonFactory.newJsonValueFieldDefinition("indexHint", FieldType.REGULAR,
+                    JsonSchemaVersion.V_2);
 
     private final String metricName;
     private final Map<String, String> groupingBy;
@@ -86,15 +89,18 @@ public final class AggregateThingsMetrics extends AbstractCommand<AggregateThing
     private final String filter;
     private final DittoHeaders dittoHeaders;
     private final Set<String> namespaces;
+    @Nullable
+    private final JsonValue indexHint;
 
     private AggregateThingsMetrics(final String metricName, final Map<String, String> groupingBy,
             @Nullable final String filter, final Set<String> namespaces,
-            final DittoHeaders dittoHeaders) {
+            @Nullable final JsonValue indexHint, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.metricName = metricName;
         this.groupingBy = Collections.unmodifiableMap(groupingBy);
         this.filter = filter;
         this.namespaces = Collections.unmodifiableSet(namespaces);
+        this.indexHint = indexHint;
         this.dittoHeaders = dittoHeaders;
     }
 
@@ -111,13 +117,31 @@ public final class AggregateThingsMetrics extends AbstractCommand<AggregateThing
     public static AggregateThingsMetrics of(final String metricName, final Map<String, String> groupingBy,
             @Nullable final String filter, final List<String> namespaces,
             final DittoHeaders dittoHeaders) {
-        return of(metricName, groupingBy, filter, new HashSet<>(namespaces), dittoHeaders);
+        return of(metricName, groupingBy, filter, new HashSet<>(namespaces), null, dittoHeaders);
+    }
+
+    /**
+     * Creates a new {@link AggregateThingsMetrics} instance with an optional index hint.
+     *
+     * @param metricName the name of the metric to aggregate.
+     * @param groupingBy the fields we want our metric aggregation to be grouped by.
+     * @param filter the filter to use for the $match expression in the aggregation.
+     * @param namespaces the namespaces the metric should be executed for.
+     * @param indexHint the optional index hint for the MongoDB aggregation.
+     * @param dittoHeaders the headers to use for the command.
+     * @return a new {@link AggregateThingsMetrics} instance.
+     * @since 3.9.0
+     */
+    public static AggregateThingsMetrics of(final String metricName, final Map<String, String> groupingBy,
+            @Nullable final String filter, final List<String> namespaces,
+            @Nullable final JsonValue indexHint, final DittoHeaders dittoHeaders) {
+        return of(metricName, groupingBy, filter, new HashSet<>(namespaces), indexHint, dittoHeaders);
     }
 
     private static AggregateThingsMetrics of(final String metricName, final Map<String, String> groupingBy,
             @Nullable final String filter, final Set<String> namespaces,
-            final DittoHeaders dittoHeaders) {
-        return new AggregateThingsMetrics(metricName, groupingBy, filter, namespaces, dittoHeaders);
+            @Nullable final JsonValue indexHint, final DittoHeaders dittoHeaders) {
+        return new AggregateThingsMetrics(metricName, groupingBy, filter, namespaces, indexHint, dittoHeaders);
     }
 
     /**
@@ -161,7 +185,10 @@ public final class AggregateThingsMetrics extends AbstractCommand<AggregateThing
                             .collect(Collectors.toSet()))
                     .orElse(Collections.emptySet());
 
-            return new AggregateThingsMetrics(metricName, groupingBy, extractedFilter, extractedNamespaces, dittoHeaders);
+            final JsonValue extractedIndexHint = jsonObject.getValue(JSON_INDEX_HINT).orElse(null);
+
+            return new AggregateThingsMetrics(metricName, groupingBy, extractedFilter, extractedNamespaces,
+                    extractedIndexHint, dittoHeaders);
         });
     }
 
@@ -175,6 +202,16 @@ public final class AggregateThingsMetrics extends AbstractCommand<AggregateThing
 
     public Optional<String> getFilter() {
         return Optional.ofNullable(filter);
+    }
+
+    /**
+     * Get the optional index hint for the MongoDB aggregation.
+     *
+     * @return the optional index hint.
+     * @since 3.9.0
+     */
+    public Optional<JsonValue> getIndexHint() {
+        return Optional.ofNullable(indexHint);
     }
 
     @Override
@@ -191,7 +228,9 @@ public final class AggregateThingsMetrics extends AbstractCommand<AggregateThing
                 JsonFactory.newArrayBuilder(namespaces.stream().map(JsonFactory::newValue).collect(
                         Collectors.toSet())).build();
         jsonObjectBuilder.set(NAMESPACES, array, predicate);
-
+        if (indexHint != null) {
+            jsonObjectBuilder.set(JSON_INDEX_HINT, indexHint, predicate);
+        }
     }
 
     public Set<String> getNamespaces() {
@@ -210,7 +249,7 @@ public final class AggregateThingsMetrics extends AbstractCommand<AggregateThing
 
     @Override
     public AggregateThingsMetrics setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getMetricName(), getGroupingBy(), getFilter().orElse(null), getNamespaces(), dittoHeaders);
+        return new AggregateThingsMetrics(metricName, groupingBy, filter, namespaces, indexHint, dittoHeaders);
     }
 
     @Override
@@ -232,12 +271,13 @@ public final class AggregateThingsMetrics extends AbstractCommand<AggregateThing
                 Objects.equals(groupingBy, that.groupingBy) &&
                 Objects.equals(filter, that.filter) &&
                 Objects.equals(dittoHeaders, that.dittoHeaders) &&
-                Objects.equals(namespaces, that.namespaces);
+                Objects.equals(namespaces, that.namespaces) &&
+                Objects.equals(indexHint, that.indexHint);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(metricName, groupingBy, filter, dittoHeaders, namespaces);
+        return Objects.hash(metricName, groupingBy, filter, dittoHeaders, namespaces, indexHint);
     }
 
     @Override
@@ -248,6 +288,7 @@ public final class AggregateThingsMetrics extends AbstractCommand<AggregateThing
                 ", filter=" + filter +
                 ", dittoHeaders=" + dittoHeaders +
                 ", namespaces=" + namespaces +
+                ", indexHint=" + indexHint +
                 '}';
     }
     private static Supplier<RuntimeException> getJsonMissingFieldExceptionSupplier(final String field, final JsonObject jsonObject) {

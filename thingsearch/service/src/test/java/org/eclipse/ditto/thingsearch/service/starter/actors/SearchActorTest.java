@@ -122,7 +122,7 @@ public final class SearchActorTest {
 
             final var serviceRequestsDone = SearchActor.Control.SERVICE_REQUESTS_DONE;
             final var countActor = use(p -> p.count(any(), any(), any()));
-            final var sudoCountActor = use(p -> p.sudoCount(any(), any()));
+            final var sudoCountActor = use(p -> p.sudoCount(any(), any(), any()));
             final var queryActor = use(p -> p.findAll(any(), any(), any(), any()));
             final var shutdownProbe = TestProbe.apply(actorSystemResource.getActorSystem());
 
