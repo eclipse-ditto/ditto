@@ -30,7 +30,6 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.WotDirectoryConfig;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.wot.model.Action;
 import org.eclipse.ditto.wot.model.ActionFormElement;
 import org.eclipse.ditto.wot.model.ActionForms;
@@ -146,19 +145,12 @@ public final class WotDiscoveryThingDirectoryRoute extends AbstractRoute {
                                         .setDescription(Description.of(
                                                 "Maximum number of Thing Descriptions to return"))
                                         .setMinimum(1)
-                                        .build(),
-                                "format", SingleDataSchema.newStringSchemaBuilder()
-                                        .setTitle(Title.of("Format"))
-                                        .setDescription(Description.of(
-                                                "Response format: 'array' returns a plain JSON array " +
-                                                        "of Thing Descriptions"))
-                                        .setEnum(List.of(JsonValue.of("array")))
                                         .build()
                         )))
                         .setReadOnly(true)
                         .setForms(PropertyForms.of(List.of(
                                 PropertyFormElement.newBuilder()
-                                        .setHref(IRI.of("api/2/things{?offset,limit,format}"))
+                                        .setHref(IRI.of("api/2/things{?offset,limit}"))
                                         .setOp(SinglePropertyFormElementOp.READPROPERTY)
                                         .setContentType(ContentType.APPLICATION_JSON.getValue())
                                         .set("htv:statusCode", 200)
