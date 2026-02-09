@@ -29,6 +29,12 @@ import org.eclipse.ditto.json.JsonValue;
  */
 public interface MultipleOAuth2Scopes extends OAuth2Scopes, Iterable<SingleOAuth2Scopes>, Jsonifiable<JsonArray> {
 
+    /**
+     * Creates a MultipleOAuth2Scopes from the specified JSON array.
+     *
+     * @param jsonArray the JSON array of scope strings.
+     * @return the MultipleOAuth2Scopes.
+     */
     static MultipleOAuth2Scopes fromJson(final JsonArray jsonArray) {
         final List<SingleOAuth2Scopes> singleOAuth2Scopes = jsonArray.stream()
                 .filter(JsonValue::isString)
@@ -38,10 +44,21 @@ public interface MultipleOAuth2Scopes extends OAuth2Scopes, Iterable<SingleOAuth
         return of(singleOAuth2Scopes);
     }
 
+    /**
+     * Creates a MultipleOAuth2Scopes from the specified collection of scopes.
+     *
+     * @param scopes the collection of scopes.
+     * @return the MultipleOAuth2Scopes.
+     */
     static MultipleOAuth2Scopes of(final Collection<SingleOAuth2Scopes> scopes) {
         return new ImmutableMultipleOAuth2Scopes(scopes);
     }
 
+    /**
+     * Returns a sequential stream over the scopes.
+     *
+     * @return a stream of scopes.
+     */
     default Stream<SingleOAuth2Scopes> stream() {
         return StreamSupport.stream(spliterator(), false);
     }

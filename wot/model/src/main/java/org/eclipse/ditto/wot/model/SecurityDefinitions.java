@@ -28,6 +28,12 @@ import org.eclipse.ditto.json.JsonObject;
  */
 public interface SecurityDefinitions extends Map<String, SecurityScheme>, Jsonifiable<JsonObject> {
 
+    /**
+     * Creates a SecurityDefinitions from the specified JSON object.
+     *
+     * @param jsonObject the JSON object mapping scheme names to security schemes.
+     * @return the SecurityDefinitions.
+     */
     static SecurityDefinitions fromJson(final JsonObject jsonObject) {
         return of(jsonObject.stream().collect(Collectors.toMap(
                 field -> field.getKey().toString(),
@@ -40,6 +46,12 @@ public interface SecurityDefinitions extends Map<String, SecurityScheme>, Jsonif
         ));
     }
 
+    /**
+     * Creates a SecurityDefinitions from the specified collection of security schemes.
+     *
+     * @param securityDefinitions the collection of security schemes.
+     * @return the SecurityDefinitions.
+     */
     static SecurityDefinitions from(final Collection<SecurityScheme> securityDefinitions) {
         return of(securityDefinitions.stream().collect(Collectors.toMap(
                 SecurityScheme::getSecuritySchemeName,
@@ -52,10 +64,22 @@ public interface SecurityDefinitions extends Map<String, SecurityScheme>, Jsonif
         ));
     }
 
+    /**
+     * Creates a SecurityDefinitions from the specified map of scheme names to security schemes.
+     *
+     * @param securityDefinitions the map of scheme names to security schemes.
+     * @return the SecurityDefinitions.
+     */
     static SecurityDefinitions of(final Map<String, SecurityScheme> securityDefinitions) {
         return new ImmutableSecurityDefinitions(securityDefinitions);
     }
 
+    /**
+     * Returns the security definition with the specified name.
+     *
+     * @param securityDefinitionName the name of the security definition.
+     * @return the optional security scheme.
+     */
     Optional<SecurityScheme> getSecurityDefinition(CharSequence securityDefinitionName);
 
 }

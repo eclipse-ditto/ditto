@@ -28,6 +28,12 @@ import org.eclipse.ditto.json.JsonObject;
  */
 public interface SchemaDefinitions extends Map<String, SingleDataSchema>, Jsonifiable<JsonObject> {
 
+    /**
+     * Creates a SchemaDefinitions from the specified JSON object.
+     *
+     * @param jsonObject the JSON object mapping schema names to data schemas.
+     * @return the SchemaDefinitions.
+     */
     static SchemaDefinitions fromJson(final JsonObject jsonObject) {
         return of(jsonObject.stream().collect(Collectors.toMap(
                 field -> field.getKey().toString(),
@@ -40,10 +46,22 @@ public interface SchemaDefinitions extends Map<String, SingleDataSchema>, Jsonif
         ));
     }
 
+    /**
+     * Creates a SchemaDefinitions from the specified map of schema names to data schemas.
+     *
+     * @param dataSchemas the map of schema names to data schemas.
+     * @return the SchemaDefinitions.
+     */
     static SchemaDefinitions of(final Map<String, SingleDataSchema> dataSchemas) {
         return new ImmutableSchemaDefinitions(dataSchemas);
     }
 
+    /**
+     * Returns the schema definition with the specified name.
+     *
+     * @param key the name of the schema definition.
+     * @return the optional schema.
+     */
     Optional<SingleDataSchema> getSchemaDefinition(CharSequence key);
 
 }

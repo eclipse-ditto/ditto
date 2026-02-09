@@ -21,6 +21,12 @@ package org.eclipse.ditto.wot.model;
  */
 public interface FormElementSubprotocol extends CharSequence {
 
+    /**
+     * Creates a FormElementSubprotocol from the specified subprotocol identifier.
+     *
+     * @param charSequence the subprotocol identifier (e.g., "longpoll", "websub", "sse").
+     * @return the FormElementSubprotocol.
+     */
     static FormElementSubprotocol of(final CharSequence charSequence) {
         if (charSequence instanceof FormElementSubprotocol) {
             return (FormElementSubprotocol) charSequence;

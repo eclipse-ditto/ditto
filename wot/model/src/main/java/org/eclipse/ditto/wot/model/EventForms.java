@@ -27,16 +27,28 @@ import org.eclipse.ditto.json.JsonValue;
  */
 public interface EventForms extends Forms<EventFormElement> {
 
+    /**
+     * Creates EventForms from the specified JSON array.
+     *
+     * @param jsonArray the JSON array of form element objects.
+     * @return the EventForms.
+     */
     static EventForms fromJson(final JsonArray jsonArray) {
         final List<EventFormElement> eventFormElements = jsonArray.stream()
                 .filter(JsonValue::isObject)
                 .map(JsonValue::asObject)
                 .map(EventFormElement::fromJson)
                 .collect(Collectors.toList());
-        
+
         return of(eventFormElements);
     }
 
+    /**
+     * Creates EventForms from the specified collection of form elements.
+     *
+     * @param formElements the collection of form elements.
+     * @return the EventForms.
+     */
     static EventForms of(final Collection<EventFormElement> formElements) {
         return new ImmutableEventForms(formElements);
     }

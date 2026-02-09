@@ -24,14 +24,41 @@ import java.util.Optional;
  * @since 2.4.0
  */
 public enum SingleRootFormElementOp implements RootFormElementOp<SingleRootFormElementOp>, CharSequence {
+    /**
+     * Read all properties in a single request.
+     */
     READALLPROPERTIES("readallproperties"),
+    /**
+     * Write all properties in a single request.
+     */
     WRITEALLPROPERTIES("writeallproperties"),
+    /**
+     * Read multiple selected properties in a single request.
+     */
     READMULTIPLEPROPERTIES("readmultipleproperties"),
+    /**
+     * Write multiple selected properties in a single request.
+     */
     WRITEMULTIPLEPROPERTIES("writemultipleproperties"),
+    /**
+     * Observe all properties for changes.
+     */
     OBSERVEALLPROPERTIES("observeallproperties"),
+    /**
+     * Stop observing all properties.
+     */
     UNOBSERVEALLPROPERTIES("unobserveallproperties"),
+    /**
+     * Query the status of all actions.
+     */
     QUERYALLACTIONS("queryallactions"),
+    /**
+     * Subscribe to all events.
+     */
     SUBSCRIBEALLEVENTS("subscribeallevents"),
+    /**
+     * Unsubscribe from all events.
+     */
     UNSUBSCRIBEALLEVENTS("unsubscribeallevents");
 
     private final String name;
@@ -40,6 +67,11 @@ public enum SingleRootFormElementOp implements RootFormElementOp<SingleRootFormE
         this.name = name;
     }
 
+    /**
+     * Returns the string representation of this operation.
+     *
+     * @return the operation name.
+     */
     public String getName() {
         return name;
     }

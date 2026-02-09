@@ -27,6 +27,12 @@ import org.eclipse.ditto.json.JsonValue;
  */
 public interface RootForms extends Forms<RootFormElement> {
 
+    /**
+     * Creates RootForms from the specified JSON array.
+     *
+     * @param jsonArray the JSON array of form element objects.
+     * @return the RootForms.
+     */
     static RootForms fromJson(final JsonArray jsonArray) {
         final List<RootFormElement> rootFormElements = jsonArray.stream()
                 .filter(JsonValue::isObject)
@@ -36,6 +42,12 @@ public interface RootForms extends Forms<RootFormElement> {
         return of(rootFormElements);
     }
 
+    /**
+     * Creates RootForms from the specified collection of form elements.
+     *
+     * @param formElements the collection of form elements.
+     * @return the RootForms.
+     */
     static RootForms of(final Collection<RootFormElement> formElements) {
         return new ImmutableRootForms(formElements);
     }

@@ -31,6 +31,12 @@ import org.eclipse.ditto.json.JsonValue;
 public interface FormElementAdditionalResponses
         extends Iterable<FormElementAdditionalResponse>, Jsonifiable<JsonArray> {
 
+    /**
+     * Creates FormElementAdditionalResponses from the specified JSON array.
+     *
+     * @param jsonArray the JSON array of additional response objects.
+     * @return the FormElementAdditionalResponses.
+     */
     static FormElementAdditionalResponses fromJson(final JsonArray jsonArray) {
         final List<FormElementAdditionalResponse> baseLinks = jsonArray.stream()
                 .filter(JsonValue::isObject)
@@ -40,10 +46,21 @@ public interface FormElementAdditionalResponses
         return of(baseLinks);
     }
 
+    /**
+     * Creates FormElementAdditionalResponses from the specified collection of additional responses.
+     *
+     * @param links the collection of additional responses.
+     * @return the FormElementAdditionalResponses.
+     */
     static FormElementAdditionalResponses of(final Collection<FormElementAdditionalResponse> links) {
         return new ImmutableFormElementAdditionalResponses(links);
     }
 
+    /**
+     * Returns a sequential stream over the additional responses.
+     *
+     * @return a stream of additional responses.
+     */
     default Stream<FormElementAdditionalResponse> stream() {
         return StreamSupport.stream(spliterator(), false);
     }

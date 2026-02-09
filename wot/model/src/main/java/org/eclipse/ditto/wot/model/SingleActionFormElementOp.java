@@ -24,8 +24,17 @@ import java.util.Optional;
  * @since 2.4.0
  */
 public enum SingleActionFormElementOp implements ActionFormElementOp<SingleActionFormElementOp>, CharSequence {
+    /**
+     * Invoke the action.
+     */
     INVOKEACTION("invokeaction"),
+    /**
+     * Query the status of an ongoing action.
+     */
     QUERYACTION("queryaction"),
+    /**
+     * Cancel an ongoing action.
+     */
     CANCELACTION("cancelaction");
 
     private final String name;
@@ -34,6 +43,11 @@ public enum SingleActionFormElementOp implements ActionFormElementOp<SingleActio
         this.name = name;
     }
 
+    /**
+     * Returns the string representation of this operation.
+     *
+     * @return the operation name.
+     */
     public String getName() {
         return name;
     }

@@ -23,44 +23,103 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 
 /**
- * The Thing Model can be used to mainly provide the data model definitions within Things' {@link Properties},
- * {@link Actions}, and/or {@link Events} and can be potentially used as template for creating
- * {@link ThingDescription} instances
+ * The Thing Model (TM) provides a reusable template for Thing Descriptions.
+ * <p>
+ * Thing Models define the data model definitions within Things' {@link Properties},
+ * {@link Actions}, and/or {@link Events} and can be used as templates for creating
+ * concrete {@link ThingDescription} instances. Unlike Thing Descriptions, Thing Models
+ * are not required to have an {@code id} and may contain placeholders.
+ * </p>
  *
  * @see <a href="https://www.w3.org/TR/wot-thing-description11/#introduction-tm">WoT TD Thing Model</a>
  * @since 2.4.0
  */
 public interface ThingModel extends ThingSkeleton<ThingModel> {
 
+    /**
+     * Creates a new ThingModel from the specified JSON object.
+     *
+     * @param jsonObject the JSON object representing a Thing Model.
+     * @return the ThingModel.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     */
     static ThingModel fromJson(final JsonObject jsonObject) {
         return new ImmutableThingModel(jsonObject);
     }
 
+    /**
+     * Creates a new builder for building a ThingModel.
+     *
+     * @return the builder.
+     */
     static ThingModel.Builder newBuilder() {
         return ThingModel.Builder.newBuilder();
     }
 
+    /**
+     * Creates a new builder for building a ThingModel, initialized with the values from the specified
+     * JSON object.
+     *
+     * @param jsonObject the JSON object providing initial values.
+     * @return the builder.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     */
     static ThingModel.Builder newBuilder(final JsonObject jsonObject) {
         return ThingModel.Builder.newBuilder(jsonObject);
     }
 
+    /**
+     * Returns the optional list of JSON Pointers identifying affordances that are optional in implementations
+     * derived from this Thing Model.
+     *
+     * @return the optional list of optional affordance pointers.
+     * @see <a href="https://www.w3.org/TR/wot-thing-description11/#thing-model">WoT TD Thing Model (tm:optional)</a>
+     */
     Optional<TmOptional> getTmOptional();
 
+    /**
+     * Returns a mutable builder with a fluent API for building a ThingModel, initialized with the values
+     * of this instance.
+     *
+     * @return the builder.
+     */
     @Override
     default ThingModel.Builder toBuilder() {
         return ThingModel.Builder.newBuilder(toJson());
     }
 
+    /**
+     * A mutable builder with a fluent API for building a {@link ThingModel}.
+     */
     interface Builder extends ThingSkeletonBuilder<Builder, ThingModel> {
 
+        /**
+         * Creates a new builder for building a ThingModel.
+         *
+         * @return the builder.
+         */
         static Builder newBuilder() {
             return new MutableThingModelBuilder(JsonObject.newBuilder());
         }
 
+        /**
+         * Creates a new builder for building a ThingModel, initialized with the values from the specified
+         * JSON object.
+         *
+         * @param jsonObject the JSON object providing initial values.
+         * @return the builder.
+         */
         static Builder newBuilder(final JsonObject jsonObject) {
             return new MutableThingModelBuilder(jsonObject.toBuilder());
         }
 
+        /**
+         * Sets the list of optional affordance pointers.
+         *
+         * @param tmOptional the optional affordances, or {@code null} to remove.
+         * @return this builder.
+         * @see <a href="https://www.w3.org/TR/wot-thing-description11/#thing-model">WoT TD Thing Model (tm:optional)</a>
+         */
         Builder setTmOptional(@Nullable TmOptional tmOptional);
     }
 
@@ -70,6 +129,9 @@ public interface ThingModel extends ThingSkeleton<ThingModel> {
     @Immutable
     final class JsonFields {
 
+        /**
+         * JSON field definition for the array of optional affordance pointers.
+         */
         public static final JsonFieldDefinition<JsonArray> TM_OPTIONAL = JsonFactory.newJsonArrayFieldDefinition(
                 "tm:optional");
 

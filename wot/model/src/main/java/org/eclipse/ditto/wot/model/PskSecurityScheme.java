@@ -31,14 +31,37 @@ import org.eclipse.ditto.json.JsonObject;
  */
 public interface PskSecurityScheme extends SecurityScheme {
 
+    /**
+     * Creates a new PskSecurityScheme from the specified JSON object.
+     *
+     * @param securitySchemeName the name of the security scheme.
+     * @param jsonObject the JSON object representing the security scheme.
+     * @return the PskSecurityScheme.
+     */
     static PskSecurityScheme fromJson(final String securitySchemeName, final JsonObject jsonObject) {
         return new ImmutablePskSecurityScheme(securitySchemeName, jsonObject);
     }
 
+    /**
+     * Creates a new builder for building a PskSecurityScheme.
+     *
+     * @param securitySchemeName the name of the security scheme.
+     * @return the builder.
+     * @throws NullPointerException if {@code securitySchemeName} is {@code null}.
+     */
     static PskSecurityScheme.Builder newBuilder(final CharSequence securitySchemeName) {
         return PskSecurityScheme.Builder.newBuilder(securitySchemeName);
     }
 
+    /**
+     * Creates a new builder for building a PskSecurityScheme, initialized with the values from the specified
+     * JSON object.
+     *
+     * @param securitySchemeName the name of the security scheme.
+     * @param jsonObject the JSON object providing initial values.
+     * @return the builder.
+     * @throws NullPointerException if {@code securitySchemeName} is {@code null}.
+     */
     static PskSecurityScheme.Builder newBuilder(final CharSequence securitySchemeName, final JsonObject jsonObject) {
         return PskSecurityScheme.Builder.newBuilder(securitySchemeName, jsonObject);
     }
@@ -48,33 +71,65 @@ public interface PskSecurityScheme extends SecurityScheme {
         return SecuritySchemeScheme.PSK;
     }
 
+    /**
+     * Returns the optional identity hint for the PSK.
+     *
+     * @return the optional identity.
+     * @see <a href="https://www.w3.org/TR/wot-thing-description11/#psksecurityscheme">WoT TD PSKSecurityScheme (identity)</a>
+     */
     Optional<String> getIdentity();
 
 
+    /**
+     * A mutable builder with a fluent API for building a {@link PskSecurityScheme}.
+     */
     interface Builder extends SecurityScheme.Builder<Builder, PskSecurityScheme> {
 
+        /**
+         * Creates a new builder for building a PskSecurityScheme.
+         *
+         * @param securitySchemeName the name of the security scheme.
+         * @return the builder.
+         */
         static Builder newBuilder(final CharSequence securitySchemeName) {
             return new MutablePskSecuritySchemeBuilder(
                     checkNotNull(securitySchemeName, "securitySchemeName").toString(),
                     JsonObject.newBuilder());
         }
 
+        /**
+         * Creates a new builder for building a PskSecurityScheme, initialized with the values from the
+         * specified JSON object.
+         *
+         * @param securitySchemeName the name of the security scheme.
+         * @param jsonObject the JSON object providing initial values.
+         * @return the builder.
+         */
         static Builder newBuilder(final CharSequence securitySchemeName, final JsonObject jsonObject) {
             return new MutablePskSecuritySchemeBuilder(
                     checkNotNull(securitySchemeName, "securitySchemeName").toString(),
                     jsonObject.toBuilder());
         }
 
+        /**
+         * Sets the identity hint for the PSK.
+         *
+         * @param identity the identity, or {@code null} to remove.
+         * @return this builder.
+         */
         Builder setIdentity(@Nullable String identity);
 
     }
-    
+
     /**
      * An enumeration of the known {@link JsonFieldDefinition}s of a PskSecurityScheme.
      */
     @Immutable
     final class JsonFields {
 
+        /**
+         * JSON field definition for the PSK identity.
+         */
         public static final JsonFieldDefinition<String> IDENTITY = JsonFactory.newStringFieldDefinition(
                 "identity");
 
