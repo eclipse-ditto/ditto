@@ -31,6 +31,11 @@ public interface SingleUriAtContext extends SingleAtContext, IRI {
     SingleUriAtContext W3ORG_2022_WOT_TD_V11 = of("https://www.w3.org/2022/wot/td/v1.1");
 
     /**
+     * The W3C WoT Discovery context URI.
+     */
+    SingleUriAtContext W3ORG_2022_WOT_DISCOVERY = of("https://www.w3.org/2022/wot/discovery");
+
+    /**
      * The W3C WoT namespace URI for Thing Descriptions.
      */
     SingleUriAtContext W3ORG_NS_TD = of("http://www.w3.org/ns/td");

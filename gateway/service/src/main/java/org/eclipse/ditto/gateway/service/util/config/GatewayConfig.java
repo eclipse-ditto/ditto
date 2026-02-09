@@ -18,6 +18,7 @@ import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.MessageConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.PublicHealthConfig;
+import org.eclipse.ditto.gateway.service.util.config.endpoints.WotDirectoryConfig;
 import org.eclipse.ditto.gateway.service.util.config.health.HealthCheckConfig;
 import org.eclipse.ditto.gateway.service.util.config.security.AuthenticationConfig;
 import org.eclipse.ditto.gateway.service.util.config.security.CachesConfig;
@@ -95,5 +96,12 @@ public interface GatewayConfig extends ServiceSpecificConfig, WithProtocolConfig
      * @return the config.
      */
     CloudEventsConfig getCloudEventsConfig();
+
+    /**
+     * Returns the configuration for the WoT Discovery "Thing Directory" endpoint.
+     *
+     * @return the config.
+     */
+    WotDirectoryConfig getWotDirectoryConfig();
 
 }

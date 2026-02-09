@@ -24,10 +24,12 @@ import org.eclipse.ditto.gateway.service.util.config.endpoints.DefaultCloudEvent
 import org.eclipse.ditto.gateway.service.util.config.endpoints.DefaultCommandConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.DefaultMessageConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.DefaultPublicHealthConfig;
+import org.eclipse.ditto.gateway.service.util.config.endpoints.DefaultWotDirectoryConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.GatewayHttpConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.MessageConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.PublicHealthConfig;
+import org.eclipse.ditto.gateway.service.util.config.endpoints.WotDirectoryConfig;
 import org.eclipse.ditto.gateway.service.util.config.health.DefaultHealthCheckConfig;
 import org.eclipse.ditto.gateway.service.util.config.health.HealthCheckConfig;
 import org.eclipse.ditto.gateway.service.util.config.security.AuthenticationConfig;
@@ -64,6 +66,7 @@ public final class DittoGatewayConfig implements GatewayConfig, WithConfigPath {
     private final StreamingConfig streamingConfig;
     private final PublicHealthConfig publicHealthConfig;
     private final DefaultCloudEventsConfig cloudEventsConfig;
+    private final WotDirectoryConfig wotDirectoryConfig;
 
     private DittoGatewayConfig(final ScopedConfig dittoScopedConfig) {
 
@@ -79,6 +82,7 @@ public final class DittoGatewayConfig implements GatewayConfig, WithConfigPath {
         streamingConfig = DefaultStreamingConfig.of(dittoServiceConfig);
         publicHealthConfig = DefaultPublicHealthConfig.of(dittoServiceConfig);
         cloudEventsConfig = DefaultCloudEventsConfig.of(dittoServiceConfig);
+        wotDirectoryConfig = DefaultWotDirectoryConfig.of(dittoServiceConfig);
     }
 
     /**
@@ -171,6 +175,11 @@ public final class DittoGatewayConfig implements GatewayConfig, WithConfigPath {
     @Override
     public CloudEventsConfig getCloudEventsConfig() {
         return cloudEventsConfig;
+    }
+
+    @Override
+    public WotDirectoryConfig getWotDirectoryConfig() {
+        return wotDirectoryConfig;
     }
 
     /**
