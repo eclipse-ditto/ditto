@@ -29,11 +29,14 @@ import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.ResourceKey;
+import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.SubjectAnnouncement;
 import org.eclipse.ditto.policies.model.SubjectExpiry;
+import org.eclipse.ditto.policies.model.SubjectExpiryInvalidException;
 import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.SubjectIdInvalidException;
 import org.eclipse.ditto.policies.model.SubjectIssuer;
+import org.eclipse.ditto.policies.model.SubjectType;
 import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegrationResponse;
 import org.eclipse.ditto.policies.model.signals.events.SubjectCreated;
@@ -69,10 +72,38 @@ public final class ActivateTokenIntegrationStrategyTest extends AbstractPolicyCo
         final ActivateTokenIntegration command =
                 ActivateTokenIntegration.of(context.getState(), LABEL, Collections.singleton(subjectId), expiry,
                         dittoHeaders);
-        assertModificationResult(underTest, TestConstants.Policy.POLICY, command,
+
+        final Subject expiredSubject =
+                Subject.newInstance(SubjectId.newInstance(SubjectIssuer.INTEGRATION,  "{{policy-entry:label}}:expired-subject"),
+                        SubjectType.GENERATED, SubjectExpiry.newInstance(Instant.now().minus(Duration.ofHours(1L))));
+        final Policy testPolicy = TestConstants.Policy.POLICY.toBuilder().setSubjectFor(LABEL, expiredSubject).build();
+        assertModificationResult(underTest, testPolicy, command,
                 SubjectCreated.class,
                 ActivateTokenIntegrationResponse.of(context.getState(), LABEL, Collections.singleton(expectedSubjectId),
                         dittoHeaders));
+    }
+    @Test
+    public void activateTokenIntegrationInvalidExpiryRequested() {
+        final CommandStrategy.Context<PolicyId> context = getDefaultContext();
+        final Instant expiry = Instant.now().minus(Duration.ofMinutes(1L));
+        final SubjectId subjectId =
+                SubjectId.newInstance(SubjectIssuer.INTEGRATION, "{{policy-entry:label}}:this-is-me");
+        final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
+        final ActivateTokenIntegration command =
+                ActivateTokenIntegration.of(context.getState(), LABEL, Collections.singleton(subjectId), expiry,
+                        dittoHeaders);
+
+        final Subject expiredSubject =
+                Subject.newInstance(SubjectId.newInstance(SubjectIssuer.INTEGRATION,  "{{policy-entry:label}}:expired-subject"),
+                        SubjectType.GENERATED, SubjectExpiry.newInstance(Instant.now().minus(Duration.ofHours(1L))));
+        final Policy testPolicy = TestConstants.Policy.POLICY.toBuilder().setSubjectFor(LABEL, expiredSubject).build();
+        assertErrorResult(underTest, testPolicy, command, SubjectExpiryInvalidException
+                .newBuilderTimestampInThePast(underTest
+                        .roundPolicySubjectExpiry(SubjectExpiry.newInstance(expiry))
+                        .getTimestamp()
+                        .toString())
+                .dittoHeaders(dittoHeaders)
+                .build());
     }
 
     @Test
