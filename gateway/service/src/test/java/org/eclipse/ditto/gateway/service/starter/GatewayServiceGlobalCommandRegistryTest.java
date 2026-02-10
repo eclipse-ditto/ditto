@@ -25,6 +25,7 @@ import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnecti
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnection;
 import org.eclipse.ditto.gateway.service.endpoints.routes.checkpermissions.CheckPermissions;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.Whoami;
+import org.eclipse.ditto.gateway.service.endpoints.routes.wot.RetrieveWotDiscoveryThingDirectory;
 import org.eclipse.ditto.internal.models.streaming.SudoStreamPids;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
 import org.eclipse.ditto.internal.utils.pubsub.api.PublishSignal;
@@ -35,14 +36,14 @@ import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIn
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubject;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResource;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
+import org.eclipse.ditto.things.model.devops.commands.ModifyWotValidationConfig;
+import org.eclipse.ditto.things.model.devops.commands.RetrieveMergedWotValidationConfig;
+import org.eclipse.ditto.things.model.devops.commands.RetrieveWotValidationConfig;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureProperty;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeature;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateSubscription;
-import org.eclipse.ditto.things.model.devops.commands.RetrieveMergedWotValidationConfig;
-import org.eclipse.ditto.things.model.devops.commands.RetrieveWotValidationConfig;
-import org.eclipse.ditto.things.model.devops.commands.ModifyWotValidationConfig;
 
 public final class GatewayServiceGlobalCommandRegistryTest extends GlobalCommandRegistryTestCases {
 
@@ -77,7 +78,8 @@ public final class GatewayServiceGlobalCommandRegistryTest extends GlobalCommand
                 SubscribeForPersistedEvents.class,
                 RetrieveMergedWotValidationConfig.class,
                 RetrieveWotValidationConfig.class,
-                ModifyWotValidationConfig.class
+                ModifyWotValidationConfig.class,
+                RetrieveWotDiscoveryThingDirectory.class
         );
     }
 

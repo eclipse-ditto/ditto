@@ -23,6 +23,16 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.apache.pekko.Done;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.http.javadsl.model.ContentTypes;
+import org.apache.pekko.http.javadsl.model.HttpEntities;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.http.javadsl.model.ResponseEntity;
+import org.apache.pekko.http.javadsl.model.StatusCodes;
+import org.apache.pekko.testkit.javadsl.TestKit;
+import org.apache.pekko.util.ByteString;
 import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
@@ -51,17 +61,6 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttributeRes
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.junit.Rule;
 import org.junit.Test;
-
-import org.apache.pekko.Done;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.http.javadsl.model.ContentTypes;
-import org.apache.pekko.http.javadsl.model.HttpEntities;
-import org.apache.pekko.http.javadsl.model.HttpRequest;
-import org.apache.pekko.http.javadsl.model.HttpResponse;
-import org.apache.pekko.http.javadsl.model.ResponseEntity;
-import org.apache.pekko.http.javadsl.model.StatusCodes;
-import org.apache.pekko.testkit.javadsl.TestKit;
-import org.apache.pekko.util.ByteString;
 
 /**
  * Unit test for {@link HttpRequestActor}.
@@ -419,8 +418,7 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                 HEADER_TRANSLATOR,
                 getHttpRequest(modifyAttribute),
                 httpResponseFuture,
-                gatewayConfig.getHttpConfig(),
-                gatewayConfig.getCommandConfig()));
+                gatewayConfig));
         final var testKit = ACTOR_SYSTEM_RESOURCE.newTestKit();
 
         underTest.tell(modifyAttribute, testKit.getRef());
@@ -466,8 +464,7 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                 HEADER_TRANSLATOR,
                 getHttpRequest(modifyAttribute),
                 httpResponseFuture,
-                httpConfig,
-                gatewayConfig.getCommandConfig()));
+                gatewayConfig));
         final var commandHandler = ACTOR_SYSTEM_RESOURCE.newTestProbe();
 
         underTest.tell(modifyAttribute, commandHandler.ref());
@@ -530,8 +527,7 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                 HEADER_TRANSLATOR,
                 getHttpRequest(modifyAttribute),
                 httpResponseFuture,
-                httpConfig,
-                gatewayConfig.getCommandConfig()));
+                gatewayConfig));
         final var commandHandler = ACTOR_SYSTEM_RESOURCE.newTestProbe();
 
         underTest.tell(modifyAttribute, commandHandler.ref());
@@ -580,8 +576,7 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                 HEADER_TRANSLATOR,
                 getHttpRequest(modifyAttribute),
                 httpResponseFuture,
-                httpConfig,
-                gatewayConfig.getCommandConfig()));
+                gatewayConfig));
         final var commandHandler = ACTOR_SYSTEM_RESOURCE.newTestProbe();
 
         underTest.tell(modifyAttribute, commandHandler.ref());

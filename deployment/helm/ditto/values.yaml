@@ -2480,6 +2480,14 @@ gateway:
         maximumSize: 2000
         # expireAfterCreate maximum duration of inconsistency after e.g. a policy update
         expireAfterCreate: 2m
+    # wotDirectory contains configuration for the WoT (Web of Things) Discovery Thing Directory endpoint
+    wotDirectory:
+      # basePrefix the base URL prefix used in the Thing Directory TD
+      #  should be set to the externally reachable URL of the Ditto gateway
+      basePrefix: "http://localhost:8080"
+      # authenticationRequired whether authentication is required to access the WoT Thing Directory endpoint
+      #  defaults to false for public access per WoT Discovery specification expectations
+      authenticationRequired: false
 
 ## ----------------------------------------------------------------------------
 ## nginx configuration

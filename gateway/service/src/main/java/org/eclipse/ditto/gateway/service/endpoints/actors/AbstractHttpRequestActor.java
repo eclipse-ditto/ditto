@@ -85,6 +85,7 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.checkpermissions.Check
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.DefaultUserInformation;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.Whoami;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiResponse;
+import org.eclipse.ditto.gateway.service.util.config.GatewayConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
@@ -118,7 +119,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
     private final HeaderTranslator headerTranslator;
     private final CompletableFuture<HttpResponse> httpResponseFuture;
     private final HttpRequest httpRequest;
-    private final CommandConfig commandConfig;
+    private final GatewayConfig gatewayConfig;
     private final AcknowledgementAggregatorActorStarter ackregatorStarter;
     @Nullable private Uri responseLocationUri;
     private Command<?> receivedCommand;
@@ -133,16 +134,15 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
             final HeaderTranslator headerTranslator,
             final HttpRequest request,
             final CompletableFuture<HttpResponse> httpResponseFuture,
-            final HttpConfig httpConfig,
-            final CommandConfig commandConfig) {
+            final GatewayConfig gatewayConfig) {
 
         this.proxyActor = proxyActor;
         this.headerTranslator = headerTranslator;
         this.httpResponseFuture = httpResponseFuture;
         httpRequest = request;
-        this.commandConfig = commandConfig;
+        this.gatewayConfig = gatewayConfig;
         ackregatorStarter = AcknowledgementAggregatorActorStarter.of(getContext(),
-                HttpAcknowledgementConfig.of(httpConfig),
+                HttpAcknowledgementConfig.of(gatewayConfig.getHttpConfig()),
                 headerTranslator,
                 getResponseValidationFailureConsumer(),
                 List.of(
@@ -160,7 +160,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
         timeoutExceptionSupplier = null;
         inCoordinatedShutdown = false;
         logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
-        setReceiveTimeout(httpConfig.getRequestTimeout());
+        setReceiveTimeout(gatewayConfig.getHttpConfig().getRequestTimeout());
     }
 
     private Consumer<MatchingValidationResult.Failure> getResponseValidationFailureConsumer() {
@@ -271,7 +271,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
         try {
             receivedCommand = command;
             setDefaultTimeoutExceptionSupplier(command);
-            final var timeoutOverride = getReceiveTimeout(command, commandConfig);
+            final var timeoutOverride = getReceiveTimeout(command, gatewayConfig.getCommandConfig());
             ackregatorStarter.start(command,
                     timeoutOverride,
                     this::onAggregatedResponseOrError,
@@ -350,7 +350,8 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
 
     private void handleCheckPermissions(final CheckPermissions command) {
         final ActorRef checkPermissionsActor = getContext().actorOf(
-                CheckPermissionsActor.props(proxyActor, getSelf(), getReceiveTimeout(command, commandConfig))
+                CheckPermissionsActor.props(proxyActor, getSelf(),
+                        getReceiveTimeout(command, gatewayConfig.getCommandConfig()))
         );
         getContext().become(getResponseAwaitingBehavior());
         checkPermissionsActor.tell(command, getSelf());

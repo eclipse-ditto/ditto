@@ -14,6 +14,9 @@ package org.eclipse.ditto.gateway.service.endpoints.routes;
 
 import java.util.Collection;
 
+import org.apache.pekko.http.javadsl.server.ExceptionHandler;
+import org.apache.pekko.http.javadsl.server.RejectionHandler;
+import org.apache.pekko.http.javadsl.server.Route;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
@@ -31,12 +34,10 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.websocket.WebSocketRouteBuilder;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiRoute;
+import org.eclipse.ditto.gateway.service.endpoints.routes.wot.WotDiscoveryThingDirectoryRoute;
+import org.eclipse.ditto.gateway.service.util.config.endpoints.WotDirectoryConfig;
 import org.eclipse.ditto.internal.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
-
-import org.apache.pekko.http.javadsl.server.ExceptionHandler;
-import org.apache.pekko.http.javadsl.server.RejectionHandler;
-import org.apache.pekko.http.javadsl.server.Route;
 
 /**
  * A builder for the root {@code Route}.
@@ -74,6 +75,23 @@ public interface RootRouteBuilder {
      * @return the Builder to allow method chaining.
      */
     RootRouteBuilder devopsRoute(DevOpsRoute route);
+
+    /**
+     * Sets the WoT Discovery ThingDirectory sub-route.
+     *
+     * @param route the route to set.
+     * @return the Builder to allow method chaining.
+     */
+    RootRouteBuilder wotDiscoveryThingDirectoryRoute(WotDiscoveryThingDirectoryRoute route);
+
+    /**
+     * Sets the WoT Directory configuration.
+     *
+     * @param config the configuration to set.
+     * @return the Builder to allow method chaining.
+     * @since 3.9.0
+     */
+    RootRouteBuilder wotDirectoryConfig(WotDirectoryConfig config);
 
     /**
      * Sets the policies sub-route.

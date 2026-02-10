@@ -30,6 +30,8 @@ tags:
     description: Process CloudEvents in Ditto
   - name: Connections
     description: Manage connections
+  - name: WoT
+    description: WoT (Web of Things) Discovery endpoints
   - name: Devops
     description: Devops APIs to manage log levels and configuration in runtime and send piggyback command
 security:
@@ -750,6 +752,10 @@ paths:
         - A migration payload containing updates to attributes and features.
         - Patch conditions to ensure consistent updates.
         - Whether properties should be initialized if missing.
+
+        **Placeholders in migration payload:** String values in `migrationPayload` may use the thing-json
+        placeholder. Both brace `{{ thing-json:<json-pointer> }}` and legacy `${ thing-json:<json-pointer> }`
+        are supported. 
 
         If the `dry-run` query parameter or header is set to `true`, the request will return the calculated migration result without applying any changes.
 
@@ -8197,6 +8203,54 @@ paths:
             text/plain:
               schema:
                 $ref: '#/components/schemas/TextUnauthorizeError'
+  /.well-known/wot:
+    get:
+      summary: Retrieve WoT Thing Directory
+      description: |-
+        Returns a WoT (Web of Things) Thing Description of the Ditto Thing Directory,
+        as specified by the [WoT Discovery](https://www.w3.org/TR/wot-discovery/) specification.
+
+        By default, this endpoint is publicly accessible without authentication. This can be configured
+        via the `GATEWAY_WOT_DIRECTORY_AUTHENTICATION_REQUIRED` environment variable.
+
+        Both `GET` and `HEAD` methods are supported per the WoT Discovery specification.
+      tags:
+        - WoT
+      responses:
+        '200':
+          description: The WoT Thing Directory description was successfully retrieved.
+          content:
+            application/td+json:
+              schema:
+                $ref: '#/components/schemas/WotThingDescription'
+              example:
+                '@context':
+                  - 'https://www.w3.org/2022/wot/td/v1.1'
+                  - 'https://www.w3.org/2022/wot/discovery'
+                '@type': ThingDirectory
+                id: 'urn:ditto:wot:thing-directory'
+                title: Thing Description Directory (TDD) of Eclipse Ditto
+                version:
+                  model: 1.0.0
+                  instance: 1.0.0
+        '401':
+          description: The request could not be completed due to missing authentication (when authentication is required).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+    head:
+      summary: Retrieve WoT Thing Directory headers
+      description: |-
+        Returns headers for the WoT Thing Directory endpoint without a response body.
+        Supports the same authentication and configuration as the GET method.
+      tags:
+        - WoT
+      responses:
+        '200':
+          description: The WoT Thing Directory headers were successfully retrieved.
+        '401':
+          description: The request could not be completed due to missing authentication (when authentication is required).
   /devops/wot/config:
     get:
       summary: Get the WoT validation config
@@ -8435,7 +8489,11 @@ components:
                 example: 'https://models.example.com/thing-definition-1.0.0.tm.jsonld'
               migrationPayload:
                 type: object
-                description: Optional migration payload with updates to attributes and features.
+                description: |
+                  Optional migration payload with updates to attributes and features.
+                  String values may contain {{ thing-json:<json-pointer> }} placeholders to reference
+                  existing Thing data (e.g. attributes/location, features/sensor/properties/temp).
+                  Resolved values keep their JSON type; missing paths cause the request to fail.
                 properties:
                   attributes:
                     type: object
