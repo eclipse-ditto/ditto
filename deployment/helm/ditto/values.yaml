@@ -2131,6 +2131,12 @@ connectivity:
       enrichment:
         # the buffer size used for the queue in the message mapping processor actor
         bufferSize: 2000
+      # httpPush contains configuration specific to Ditto HTTP-push connections
+      httpPush:
+        # maxConnectionLifetime configures the maximum amount of time an HTTP connection in the host connection pool
+        #  can be kept open. Helps rebalancing between service instances when reaching the target through a load-balancer.
+        #  Default: "Inf" (infinite)
+        maxConnectionLifetime: "Inf"
       # kafka contains the configuration specific to Ditto connections to Apache Kafka
       kafka:
         # consumer contains configuration for consuming messages from Kafka

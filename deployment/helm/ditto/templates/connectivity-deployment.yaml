@@ -348,6 +348,8 @@ spec:
               value: "{{ .Values.connectivity.config.connections.kafka.producer.queueSize }}"
             - name: KAFKA_PRODUCER_PARALLELISM
               value: "{{ .Values.connectivity.config.connections.kafka.producer.parallelism }}"
+            - name: PEKKO_HTTP_HOSTPOOL_MAX_CONNECTION_LIFETIME
+              value: "{{ .Values.connectivity.config.connections.httpPush.maxConnectionLifetime }}"
             {{- if .Values.connectivity.extraEnv }}
               {{- toYaml .Values.connectivity.extraEnv | nindent 12 }}
             {{- end }}
