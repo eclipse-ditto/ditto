@@ -51,6 +51,7 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.config.IndexInitializa
 import org.eclipse.ditto.internal.utils.persistence.mongo.indices.Index;
 import org.eclipse.ditto.internal.utils.persistence.mongo.indices.IndexInitializer;
 import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.rql.query.Query;
@@ -208,7 +209,41 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
 
     @Override
     public Source<Long, NotUsed> sudoCount(final Query query, final DittoHeaders dittoHeaders) {
-        return count(query, null, dittoHeaders);
+        return sudoCount(query, dittoHeaders, null);
+    }
+
+    @Override
+    public Source<Long, NotUsed> sudoCount(final Query query, final DittoHeaders dittoHeaders,
+            @Nullable final JsonValue indexHint) {
+
+        checkNotNull(query, "query");
+
+        final BsonDocument queryFilter = getMongoFilter(query, null);
+        LOGGER.withCorrelationId(dittoHeaders).debug("sudoCount with query filter <{}>.", queryFilter);
+
+        final CountOptions countOptions = new CountOptions()
+                .skip(query.getSkip())
+                .limit(query.getLimit())
+                .maxTime(maxQueryTime.getSeconds(), TimeUnit.SECONDS);
+        applyHint(countOptions, indexHint);
+
+        return Source.fromPublisher(collection.countDocuments(queryFilter, countOptions))
+                .mapError(handleMongoExecutionTimeExceededException(dittoHeaders))
+                .log("sudoCount");
+    }
+
+    private void applyHint(final CountOptions countOptions, @Nullable final JsonValue indexHint) {
+        if (indexHint != null) {
+            if (indexHint.isString()) {
+                countOptions.hintString(indexHint.asString());
+                return;
+            } else if (indexHint.isObject()) {
+                countOptions.hint(DittoBsonJson.getInstance().parse(indexHint.asObject()));
+                return;
+            }
+        }
+        // fall back to global hint
+        countOptions.hintString(countHintIndexName);
     }
 
     @Override

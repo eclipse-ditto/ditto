@@ -1770,6 +1770,11 @@ thingsSearch:
       #   filter: "eq(attributes/awesome,true)"
       #   tags:
       #     foo: bar
+      #   # optional index hint - string for index name, map for index key spec:
+      #   indexHint: "my_index_name"
+      #   # or as index key spec:
+      #   # indexHint:
+      #   #   "t.attributes.location": 1
       customAggregationMetrics:
       # ditto_my_agg_awesome_things:
       #   enabled: true
@@ -1782,6 +1787,11 @@ thingsSearch:
       #     "hardcoded-tag": "value"
       #     "location": "{{ group-by:location | fn:default('missing location') }}"
       #   filter: "gt(features/ConnectionStatus/properties/status/readyUntil,time:now)"
+      #   # optional index hint - string for index name, map for index key spec:
+      #   indexHint: "my_index_name"
+      #   # or as index key spec:
+      #   # indexHint:
+      #   #   "t.attributes.location": 1
 
 
 ## ----------------------------------------------------------------------------

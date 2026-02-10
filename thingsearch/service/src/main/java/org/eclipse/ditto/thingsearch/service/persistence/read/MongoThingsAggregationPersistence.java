@@ -32,7 +32,9 @@ import org.apache.pekko.event.LoggingAdapter;
 import org.apache.pekko.stream.javadsl.Source;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
@@ -119,11 +121,23 @@ public final class MongoThingsAggregationPersistence implements ThingsAggregatio
             log.debug("aggregation Pipeline: {}",
                     aggregatePipeline.stream().map(bson -> bson.toBsonDocument().toJson()).toList());
         }
+        // Determine hint: per-metric index hint takes precedence over namespace-based hints
+        final Optional<JsonValue> perMetricHint = aggregateCommand.getIndexHint();
+
         // Execute the aggregation pipeline
-        return Source.fromPublisher(collection.aggregate(aggregatePipeline)
-                .hint(hints.getHint(aggregateCommand.getNamespaces())
-                        .orElse(null))
+        final var aggregatePublisher = collection.aggregate(aggregatePipeline)
                 .allowDiskUse(true)
-                .maxTime(maxQueryTime.toMillis(), TimeUnit.MILLISECONDS));
+                .maxTime(maxQueryTime.toMillis(), TimeUnit.MILLISECONDS);
+        if (perMetricHint.isPresent()) {
+            final JsonValue hintValue = perMetricHint.get();
+            if (hintValue.isString()) {
+                aggregatePublisher.hintString(hintValue.asString());
+            } else if (hintValue.isObject()) {
+                aggregatePublisher.hint(DittoBsonJson.getInstance().parse(hintValue.asObject()));
+            }
+        } else {
+            hints.getHint(aggregateCommand.getNamespaces()).ifPresent(aggregatePublisher::hint);
+        }
+        return Source.fromPublisher(aggregatePublisher);
     }
 }
