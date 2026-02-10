@@ -25,6 +25,7 @@ import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnecti
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionResponse;
 import org.eclipse.ditto.gateway.service.endpoints.routes.checkpermissions.CheckPermissionsResponse;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiResponse;
+import org.eclipse.ditto.gateway.service.endpoints.routes.wot.RetrieveWotDiscoveryThingDirectoryResponse;
 import org.eclipse.ditto.gateway.service.streaming.signals.StreamingAck;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealthResponse;
 import org.eclipse.ditto.internal.utils.test.GlobalCommandResponseRegistryTestCases;
@@ -36,14 +37,14 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubjectRes
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResourceResponse;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.things.model.devops.commands.CreateWotValidationConfigResponse;
+import org.eclipse.ditto.things.model.devops.commands.RetrieveMergedWotValidationConfigResponse;
+import org.eclipse.ditto.things.model.devops.commands.RetrieveWotValidationConfigResponse;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeaturePropertyResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureResponse;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoRetrieveNamespaceReportResponse;
 import org.eclipse.ditto.thingsearch.model.signals.commands.SearchErrorResponse;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThingsResponse;
-import org.eclipse.ditto.things.model.devops.commands.RetrieveMergedWotValidationConfigResponse;
-import org.eclipse.ditto.things.model.devops.commands.RetrieveWotValidationConfigResponse;
 
 public final class GatewayServiceGlobalCommandResponseRegistryTest extends GlobalCommandResponseRegistryTestCases {
 
@@ -79,7 +80,8 @@ public final class GatewayServiceGlobalCommandResponseRegistryTest extends Globa
                 CleanupPersistenceResponse.class,
                 RetrieveMergedWotValidationConfigResponse.class,
                 RetrieveWotValidationConfigResponse.class,
-                CreateWotValidationConfigResponse.class
+                CreateWotValidationConfigResponse.class,
+                RetrieveWotDiscoveryThingDirectoryResponse.class
         );
         excludeKnownNotAnnotatedClass("org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase$DummyThingModifyCommandResponse");
     }

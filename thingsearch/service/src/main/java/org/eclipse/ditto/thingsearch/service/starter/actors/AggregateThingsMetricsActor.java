@@ -123,11 +123,13 @@ public final class AggregateThingsMetricsActor extends AbstractActor {
                         .matchAny(error -> Source.single(asDittoRuntimeException(error, command)))
                         .build()
                 ).watchTermination((notUsed, done) -> {
-                    final long now = System.nanoTime();
-                    stopTimer(searchTimer);
-                    final long duration =
-                            Duration.ofNanos(now - searchTimer.getStartInstant().toNanos()).toMillis();
-                    log.withCorrelationId(command).info("Db aggregation for metric <{}> - took: <{}ms>", command.getMetricName(), duration);
+                    done.whenComplete((d, throwable) -> {
+                        final long now = System.nanoTime();
+                        stopTimer(searchTimer);
+                        final long duration =
+                                Duration.ofNanos(now - searchTimer.getStartInstant().toNanos()).toMillis();
+                        log.withCorrelationId(command).info("Db aggregation for metric <{}> - took: <{}ms>", command.getMetricName(), duration);
+                    });
                     return NotUsed.getInstance();
                 });
     }
