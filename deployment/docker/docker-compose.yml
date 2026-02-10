@@ -234,6 +234,7 @@ services:
        - ../../documentation/src/main/resources/openapi:/usr/share/nginx/html/openapi:ro
        - ../../documentation/src/main/resources/images:/usr/share/nginx/html/images:ro
        - ./swagger3-index.html:/usr/share/nginx/html/index.html:ro
+       - ../helm/ditto/swaggerui-config/swagger-oidc.js:/usr/share/nginx/html/swagger-oidc.js:ro
     command: nginx -g 'daemon off;'  
     logging:
       options:

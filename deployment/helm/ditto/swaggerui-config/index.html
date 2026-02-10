@@ -41,34 +41,29 @@
 
 <script src="./swagger-ui-bundle.js"> </script>
 <script src="./swagger-ui-standalone-preset.js"> </script>
+<script src="./swagger-oidc.js"> </script>
 <script>
-    window.onload = function() {
-
-        const ui = SwaggerUIBundle({
-                                       urls: [
-                                           {url: "./openapi/ditto-api-2.yml", name:"Ditto API v2"}
-                                       ],
-                                       "urls.primaryName": "Ditto API v2",
-                                       validatorUrl: null,
-                                       docExpansion: "none",
-                                       dom_id: '#swagger-ui',
-                                       deepLinking: true,
-                                       presets: [
-                                           SwaggerUIBundle.presets.apis,
-                                           SwaggerUIStandalonePreset
-                                       ],
-                                       plugins: [
-                                           SwaggerUIBundle.plugins.DownloadUrl
-                                       ],
-                                       layout: "StandaloneLayout",
-                                       oauth2RedirectUrl: window.location.origin + "./oauth2-redirect.html",
-                                       onComplete: function () {
-                                       }
-                                   });
-        window.ui = ui;
+    window.onload = async function() {
+        await SwaggerOidc.initSwaggerUiWithOidc({
+            urls: [{url: "./openapi/ditto-api-2.yml", name:"Ditto API v2"}],
+            primaryName: "Ditto API v2",
+            openApiFileName: "ditto-api-2.yml",
+            oauth2RedirectPath: "/apidoc/oauth2-redirect.html",
+            oauth: {
+                mode: "whenClientId",
+                useOidcClientId: true,
+                useOidcScopes: true,
+                config: {
+                    clientId: "",
+                    appName: "Eclipse Ditto :: Swagger UI",
+                    scopeSeparator: " ",
+                    scopes: "openid",
+                    usePkceWithAuthorizationCodeGrant: true
+                }
+            }
+        });
     }
 </script>
 </body>
 
 </html>
-
