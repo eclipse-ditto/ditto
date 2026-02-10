@@ -14,8 +14,12 @@ package org.eclipse.ditto.thingsearch.api.commands.sudo;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
+
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.junit.Test;
 
@@ -80,6 +84,55 @@ public final class SudoCountThingsTest {
     private static void assertMinimal(final SudoCountThings command) {
         assertThat(command).isNotNull();
         assertThat(command.getFilter()).isEmpty();
+    }
+
+    @Test
+    public void toJsonWithStringIndexHint() {
+        final SudoCountThings command = SudoCountThings.of(
+                KNOWN_FILTER_STR, List.of("ns1"), JsonValue.of("my_index"), DittoHeaders.empty());
+
+        final String json = command.toJsonString();
+        final SudoCountThings deserialized = SudoCountThings.fromJson(json, DittoHeaders.empty());
+
+        assertThat(deserialized.getFilter()).contains(KNOWN_FILTER_STR);
+        assertThat(deserialized.getIndexHint()).contains(JsonValue.of("my_index"));
+    }
+
+    @Test
+    public void toJsonWithObjectIndexHint() {
+        final JsonObject hint = JsonObject.newBuilder().set("t.attributes.region", 1).build();
+        final SudoCountThings command = SudoCountThings.of(
+                KNOWN_FILTER_STR, null, hint, DittoHeaders.empty());
+
+        final String json = command.toJsonString();
+        final SudoCountThings deserialized = SudoCountThings.fromJson(json, DittoHeaders.empty());
+
+        assertThat(deserialized.getFilter()).contains(KNOWN_FILTER_STR);
+        assertThat(deserialized.getIndexHint()).isPresent();
+        assertThat(deserialized.getIndexHint().get().isObject()).isTrue();
+        assertThat(deserialized.getIndexHint().get().asObject()).isEqualTo(hint);
+    }
+
+    @Test
+    public void toJsonWithoutIndexHint() {
+        final SudoCountThings command = SudoCountThings.of(KNOWN_FILTER_STR, DittoHeaders.empty());
+
+        final String json = command.toJsonString();
+        final SudoCountThings deserialized = SudoCountThings.fromJson(json, DittoHeaders.empty());
+
+        assertThat(deserialized.getFilter()).contains(KNOWN_FILTER_STR);
+        assertThat(deserialized.getIndexHint()).isEmpty();
+    }
+
+    @Test
+    public void setDittoHeadersPreservesIndexHint() {
+        final SudoCountThings command = SudoCountThings.of(
+                KNOWN_FILTER_STR, null, JsonValue.of("my_index"), DittoHeaders.empty());
+
+        final SudoCountThings withNewHeaders = command.setDittoHeaders(
+                DittoHeaders.newBuilder().correlationId("test").build());
+
+        assertThat(withNewHeaders.getIndexHint()).contains(JsonValue.of("my_index"));
     }
 
 }

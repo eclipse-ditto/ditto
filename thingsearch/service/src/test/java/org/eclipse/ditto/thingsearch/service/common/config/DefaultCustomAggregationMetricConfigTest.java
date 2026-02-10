@@ -19,6 +19,8 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.assertj.core.api.JUnitSoftAssertions;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -80,5 +82,28 @@ public class DefaultCustomAggregationMetricConfigTest {
                         customSearchMetricTestConfig.getObject("online_status.tags")
                                 .unwrapped().entrySet().stream().collect(
                                         Collectors.toMap(Map.Entry::getKey, o -> o.getValue().toString())));
+        softly.assertThat(underTest.getIndexHint())
+                .as("indexHint")
+                .contains(JsonValue.of("idx_online_status"));
+    }
+
+    @Test
+    public void gettersReturnConfiguredValuesWithObjectHint() {
+        final DefaultCustomAggregationMetricConfig underTest =
+                DefaultCustomAggregationMetricConfig.of("with_object_hint",
+                        customSearchMetricTestConfig.getConfig("with_object_hint"));
+
+        softly.assertThat(underTest.isEnabled())
+                .as("enabled")
+                .isTrue();
+        softly.assertThat(underTest.getIndexHint())
+                .as("indexHint")
+                .isPresent();
+        softly.assertThat(underTest.getIndexHint().get().isObject())
+                .as("indexHint is object")
+                .isTrue();
+        softly.assertThat(underTest.getIndexHint().get().asObject())
+                .as("indexHint object content")
+                .isEqualTo(JsonObject.newBuilder().set("t.attributes.type", 1).build());
     }
 }

@@ -74,6 +74,17 @@ ditto {
             {{$tagKey}} = "{{$tagValue}}"
           {{- end }}
           }
+          {{- if $cmValue.indexHint }}
+          {{- if kindIs "string" $cmValue.indexHint }}
+          index-hint = "{{$cmValue.indexHint}}"
+          {{- else }}
+          index-hint {
+          {{- range $hintKey, $hintValue := $cmValue.indexHint }}
+            "{{$hintKey}}" = {{$hintValue}}
+          {{- end }}
+          }
+          {{- end }}
+          {{- end }}
         }
         {{- end }}
       }
@@ -101,6 +112,17 @@ ditto {
           {{- end }}
           }
           filter = "{{$camValue.filter}}"
+          {{- if $camValue.indexHint }}
+          {{- if kindIs "string" $camValue.indexHint }}
+          index-hint = "{{$camValue.indexHint}}"
+          {{- else }}
+          index-hint {
+          {{- range $hintKey, $hintValue := $camValue.indexHint }}
+            "{{$hintKey}}" = {{$hintValue}}
+          {{- end }}
+          }
+          {{- end }}
+          {{- end }}
         }
         {{- end }}
       }
