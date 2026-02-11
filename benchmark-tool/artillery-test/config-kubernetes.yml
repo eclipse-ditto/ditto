@@ -113,14 +113,14 @@ scenarios:
         weight: 1
 
   - name: searchThings
-    enabled: disabled
+    enabled: false
     timeout: 10
     channels:
       - name: http
         weight: 1
 
   - name: modifyThings
-    enabled: disabled
+    enabled: false
     timeout: 10
     channels:
       - name: http
@@ -131,7 +131,7 @@ scenarios:
         weight: 1
 
   - name: deviceLiveMessages
-    enabled: disabled
+    enabled: false
     timeout: 10
     channels:
       - name: http

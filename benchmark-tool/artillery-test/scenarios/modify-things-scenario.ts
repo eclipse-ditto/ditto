@@ -14,19 +14,15 @@
 import { Scenario, ThingModifier } from '../interfaces';
 import {
     getConfig,
-    CHANNEL_HTTP,
-    CHANNEL_WEBSOCKET_TWIN,
-    CHANNEL_KAFKA,
     DEVICE_FEATURE_NAME,
     DEVICE_FEATURE_PROPERTY,
-    OPERATION_MODIFY_THING,
-    MODIFY_THINGS
+    OPERATION_MODIFY_THING
 } from '../common';
 import { executeWithMetrics } from './scenario-utils';
 import { HttpChannel } from '../channels/http-channel';
 import { WebSocketChannel } from '../channels/websocket-channel';
 import { KafkaChannel } from '../channels/kafka-channel';
-import { getRandomThingId, getScenarioTimeout } from '../config';
+import { CHANNEL_HTTP, CHANNEL_KAFKA, CHANNEL_WEBSOCKET_TWIN, getRandomThingId, getScenarioTimeout, MODIFY_THINGS } from '../config';
 
 /**
  * MODIFY_THINGS scenario - modify a random thing

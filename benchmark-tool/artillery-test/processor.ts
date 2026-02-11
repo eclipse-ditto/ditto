@@ -14,9 +14,7 @@
 import * as fs from 'fs';
 import {
     getConfig,
-    ALL_CHANNELS,
-    CHANNEL_HTTP,
-    WARMUP
+    ALL_CHANNELS
 } from './common';
 import { debugLog } from './utils';
 import { TestSetup } from './test-setup';
@@ -28,7 +26,7 @@ import { deviceLiveMessagesScenario } from './scenarios/device-live-messages-sce
 import { isServiceAvailable } from './cleanup-util';
 import { setInterrupted } from './kafka-util';
 import { Scenario } from './interfaces';
-import { getConfigEnabledScenarios } from './config';
+import { CHANNEL_HTTP, getConfigEnabledScenarios, WARMUP } from './config';
 
 // ======================
 // GLOBAL STATE (per worker thread)

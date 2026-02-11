@@ -11,11 +11,6 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
-import { debugLog } from '../utils';
-
-// Re-export parseDuration from utils.ts for convenience
-export { parseDuration } from '../utils';
-
 /**
  * Execute an async function and emit metrics to Artillery
  * @param fn - Async function to execute

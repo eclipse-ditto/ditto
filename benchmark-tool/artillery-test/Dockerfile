@@ -25,7 +25,7 @@ COPY channels/ ./channels/
 COPY scenarios/ ./scenarios/
 
 # Install build dependencies
-RUN npm ci --omit=dev && \
+RUN npm ci && \
     npm cache verify
 
 RUN npm run build

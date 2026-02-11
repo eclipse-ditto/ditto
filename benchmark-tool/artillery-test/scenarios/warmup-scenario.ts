@@ -14,14 +14,12 @@
 import { Scenario } from '../interfaces';
 import {
     getConfig,
-    CHANNEL_HTTP,
-    WARMUP,
     OPERATION_GET_THINGS_BATCH
 } from '../common';
-import { executeWithMetrics, parseDuration } from './scenario-utils';
+import { executeWithMetrics } from './scenario-utils';
 import { HttpChannel } from '../channels/http-channel';
-import { debugLog } from '../utils';
-import { getThingId } from '../config';
+import { debugLog, parseDuration } from '../utils';
+import { CHANNEL_HTTP, getThingId, WARMUP } from '../config';
 
 /**
  * WARMUP scenario - pre-cache all things by reading them in batches

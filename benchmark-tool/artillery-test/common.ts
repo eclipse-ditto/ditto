@@ -14,16 +14,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { parse as parseYaml } from 'yaml';
-import { createDefu, defu } from 'defu';
+import { createDefu } from 'defu';
 import { TestConfig, TestConfigData, getDefaultTestConfig } from './config';
-// Re-export scenario and channel types/constants from config
-export {
-    CHANNEL_HTTP,
-    CHANNEL_KAFKA, CHANNEL_WEBSOCKET_LIVE, CHANNEL_WEBSOCKET_TWIN, ChannelName, DEVICE_LIVE_MESSAGES, MODIFY_THINGS, READ_THINGS,
-    SEARCH_THINGS, ScenarioName, WARMUP
-} from './config/scenarios-config';
 
-// Import for local use in this file
 import {
     CHANNEL_HTTP,
     CHANNEL_KAFKA,
@@ -37,6 +30,7 @@ import {
     ScenarioName,
     WARMUP
 } from './config/scenarios-config';
+
 import { debugLog } from './utils';
 
 // ============================================================================

@@ -14,16 +14,13 @@
 import { Scenario, LiveMessenger } from '../interfaces';
 import {
     getConfig,
-    CHANNEL_HTTP,
-    CHANNEL_WEBSOCKET_LIVE,
-    OPERATION_SEND_LIVE_MESSAGE,
-    DEVICE_LIVE_MESSAGES
+    OPERATION_SEND_LIVE_MESSAGE
 } from '../common';
 import { executeWithMetrics } from './scenario-utils';
 import { HttpChannel } from '../channels/http-channel';
 import { WebSocketChannel } from '../channels/websocket-channel';
 import { GenericResponse } from '@eclipse-ditto/ditto-javascript-client-node';
-import { getRandomThingId, getScenarioTimeout } from '../config';
+import { CHANNEL_HTTP, CHANNEL_WEBSOCKET_LIVE, DEVICE_LIVE_MESSAGES, getRandomThingId, getScenarioTimeout } from '../config';
 
 /**
  * DEVICE_LIVE_MESSAGES scenario - send a live message to a random thing

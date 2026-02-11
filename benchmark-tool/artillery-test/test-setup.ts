@@ -11,11 +11,11 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
-import { getConfig, MODIFY_THINGS, DEVICE_LIVE_MESSAGES } from './common';
+import { getConfig } from './common';
 import * as httpUtil from './http-util';
 import * as kafkaUtil from './kafka-util';
 import { logManualCleanupInstructions } from './cleanup-util';
-import { getConfigEnabledScenarios, getThingId, TestConfig } from './config';
+import { DEVICE_LIVE_MESSAGES, getConfigEnabledScenarios, getThingId, MODIFY_THINGS, TestConfig } from './config';
 import { debugLog } from './utils';
 import { WebSocketChannel } from './channels/websocket-channel';
 
@@ -233,7 +233,7 @@ export class TestSetup {
             console.log('=== CLEANUP COMPLETE ===');
         } catch (error: any) {
             // Ditto error messages are included in the _value field.
-            console.error('[Cleanup] Cleanup was interrupted or failed:', error._value.message);
+            console.error('[Cleanup] Cleanup was interrupted or failed:', error);
             if (!alreadyLoggedCleanupInfo) {
                 console.error('');
                 logManualCleanupInstructions(

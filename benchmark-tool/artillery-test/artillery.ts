@@ -13,15 +13,9 @@
 
 import {
     getConfig,
-    READ_THINGS,
-    SEARCH_THINGS,
-    MODIFY_THINGS,
-    DEVICE_LIVE_MESSAGES,
-    SCENARIO_SUPPORTED_CHANNELS,
-    ScenarioName,
-    WARMUP
+    SCENARIO_SUPPORTED_CHANNELS
 } from './common';
-import { getConfigEnabledScenarios } from './config';
+import { DEVICE_LIVE_MESSAGES, getConfigEnabledScenarios, MODIFY_THINGS, READ_THINGS, ScenarioName, SEARCH_THINGS, WARMUP } from './config';
 import { beforeTest, afterTest, runWarmupIfEnabled } from './processor';
 import { debugLog } from './utils';
 
