@@ -13,6 +13,7 @@
 package org.eclipse.ditto.gateway.service.security.authentication.jwt;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -22,6 +23,8 @@ import java.util.UUID;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.gateway.api.GatewayJwtPrerequisiteConditionNotMetException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
 import org.eclipse.ditto.policies.model.SubjectIssuer;
@@ -54,7 +57,7 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
         final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
                 .of(actorSystem, subjectIssuersConfig);
 
-        final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
+        final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken, DittoHeaders.empty());
 
         assertThat(authSubjects).hasSize(1);
         assertThat(authSubjects.get(0)).isEqualTo(AuthorizationSubject.newInstance(subjectIssuer + ":" + tokenSubject));
@@ -72,7 +75,7 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
         final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
                 .of(actorSystem, subjectIssuersConfig);
 
-        final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
+        final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken, DittoHeaders.empty());
 
         assertThat(authSubjects).hasSize(1);
         assertThat(authSubjects.get(0)).isEqualTo(
@@ -117,7 +120,7 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
         final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
                 .of(actorSystem, subjectIssuersConfig);
 
-        final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
+        final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken, DittoHeaders.empty());
 
         assertThat(authSubjects).containsExactlyInAnyOrder(
                 AuthorizationSubject.newInstance(subjectIssuer + ":" + tokenAudience1),
@@ -141,7 +144,7 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
         final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
                 .of(actorSystem, subjectIssuersConfig);
 
-        final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
+        final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken, DittoHeaders.empty());
 
         assertThat(authSubjects).containsExactlyInAnyOrder(
                 AuthorizationSubject.newInstance(subjectIssuer + ":" + tokenAudience1),
@@ -166,7 +169,7 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
         final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
                 .of(actorSystem, subjectIssuersConfig);
 
-        final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
+        final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken, DittoHeaders.empty());
 
         assertThat(authSubjects).containsExactlyInAnyOrder(
                 AuthorizationSubject.newInstance(subjectIssuer + ":" + tokenAudience1),
@@ -190,7 +193,7 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
         final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
                 .of(actorSystem, subjectIssuersConfig);
 
-        final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
+        final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken, DittoHeaders.empty());
 
         assertThat(authSubjects).containsExactlyInAnyOrder(
                 AuthorizationSubject.newInstance(subjectIssuer + ":eni"),
@@ -214,7 +217,7 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
         final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
                 .of(actorSystem, subjectIssuersConfig);
 
-        final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
+        final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken, DittoHeaders.empty());
 
         assertThat(authSubjects).isEmpty();
     }
@@ -236,7 +239,7 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
         final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
                 .of(actorSystem, subjectIssuersConfig);
 
-        final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
+        final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken, DittoHeaders.empty());
 
         assertThat(authSubjects).containsExactly(
                 AuthorizationSubject.newInstance(subjectIssuer + ":" + "openid"),
@@ -265,7 +268,7 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
         final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
                 .of(actorSystem, subjectIssuersConfig);
 
-        final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
+        final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken, DittoHeaders.empty());
 
         assertThat(authSubjects).containsExactly(
                 AuthorizationSubject.newInstance(subjectIssuer + ":" + "openid:test"),
@@ -300,7 +303,7 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
         final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
                 .of(actorSystem, subjectIssuersConfig);
 
-        final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
+        final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken, DittoHeaders.empty());
 
         assertThat(authSubjects).containsExactly(
                 AuthorizationSubject.newInstance(subjectIssuer + ":" + "rest-some-audience-ope-test"),
@@ -347,6 +350,182 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
                 SubjectIssuer.newInstance(subjectIssuer),
                 List.of(JwtTestConstants.ISSUER));
         return JwtSubjectIssuersConfig.fromJwtSubjectIssuerConfigs(List.of(subjectIssuerConfig));
+    }
+
+    private static JwtSubjectIssuersConfig createSubjectIssuersConfigWithPrerequisiteConditions(
+            final String subjectIssuer,
+            final List<String> subjectTemplates,
+            final List<String> prerequisiteConditions) {
+        final JwtSubjectIssuerConfig subjectIssuerConfig = new JwtSubjectIssuerConfig(
+                SubjectIssuer.newInstance(subjectIssuer),
+                List.of(JwtTestConstants.ISSUER),
+                subjectTemplates,
+                Map.of(),
+                prerequisiteConditions
+        );
+        return JwtSubjectIssuersConfig.fromJwtSubjectIssuerConfigs(List.of(subjectIssuerConfig));
+    }
+
+    @Test
+    public void verifyThatPrerequisiteConditionPassesWhenConditionIsMet() {
+        final String subjectIssuer = "testIssuer";
+        final String tokenSubject = "testSubject";
+        final String tokenAudience = "expected-audience";
+
+        final JsonWebToken jsonWebToken = createToken(
+                "{\"sub\": \"" + tokenSubject + "\", \"aud\": \"" + tokenAudience + "\"}");
+        final JwtSubjectIssuersConfig subjectIssuersConfig = createSubjectIssuersConfigWithPrerequisiteConditions(
+                subjectIssuer,
+                List.of("{{ jwt:sub }}"),
+                List.of("{{ jwt:aud | fn:filter('eq','expected-audience') }}")
+        );
+
+        final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
+                .of(actorSystem, subjectIssuersConfig);
+
+        final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken, DittoHeaders.empty());
+
+        assertThat(authSubjects).hasSize(1);
+        assertThat(authSubjects.getFirst()).isEqualTo(AuthorizationSubject.newInstance(subjectIssuer + ":" + tokenSubject));
+    }
+
+    @Test
+    public void verifyThatPrerequisiteConditionFailsWhenConditionIsNotMet() {
+        final String subjectIssuer = "testIssuer";
+        final String tokenSubject = "testSubject";
+        final String tokenAudience = "wrong-audience";
+
+        final JsonWebToken jsonWebToken = createToken(
+                "{\"sub\": \"" + tokenSubject + "\", \"aud\": \"" + tokenAudience + "\"}");
+        final JwtSubjectIssuersConfig subjectIssuersConfig = createSubjectIssuersConfigWithPrerequisiteConditions(
+                subjectIssuer,
+                List.of("{{ jwt:sub }}"),
+                List.of("{{ jwt:aud | fn:filter('eq','expected-audience') }}")
+        );
+
+        final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
+                .of(actorSystem, subjectIssuersConfig);
+
+        assertThatThrownBy(() -> underTest.getAuthorizationSubjects(jsonWebToken, DittoHeaders.empty()))
+                .isInstanceOf(GatewayJwtPrerequisiteConditionNotMetException.class)
+                .hasMessageContaining("did not meet a configured prerequisite condition");
+    }
+
+    @Test
+    public void verifyThatPrerequisiteConditionFailsWhenClaimIsMissing() {
+        final String subjectIssuer = "testIssuer";
+        final String tokenSubject = "testSubject";
+
+        final JsonWebToken jsonWebToken = createToken("{\"sub\": \"" + tokenSubject + "\"}");
+        final JwtSubjectIssuersConfig subjectIssuersConfig = createSubjectIssuersConfigWithPrerequisiteConditions(
+                subjectIssuer,
+                List.of("{{ jwt:sub }}"),
+                List.of("{{ jwt:aud }}")
+        );
+
+        final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
+                .of(actorSystem, subjectIssuersConfig);
+
+        assertThatThrownBy(() -> underTest.getAuthorizationSubjects(jsonWebToken, DittoHeaders.empty()))
+                .isInstanceOf(GatewayJwtPrerequisiteConditionNotMetException.class)
+                .hasMessageContaining("did not meet a configured prerequisite condition");
+    }
+
+    @Test
+    public void verifyThatAllPrerequisiteConditionsMustPass() {
+        final String subjectIssuer = "testIssuer";
+        final String tokenSubject = "testSubject";
+        final String tokenAudience = "expected-audience";
+        final String tokenTenant = "wrong-tenant";
+
+        final JsonWebToken jsonWebToken = createToken(
+                "{\"sub\": \"" + tokenSubject + "\", \"aud\": \"" + tokenAudience + "\", \"tenant\": \"" + tokenTenant + "\"}");
+        final JwtSubjectIssuersConfig subjectIssuersConfig = createSubjectIssuersConfigWithPrerequisiteConditions(
+                subjectIssuer,
+                List.of("{{ jwt:sub }}"),
+                List.of(
+                        "{{ jwt:aud | fn:filter('eq','expected-audience') }}",
+                        "{{ jwt:tenant | fn:filter('like','Acme*') }}"
+                )
+        );
+
+        final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
+                .of(actorSystem, subjectIssuersConfig);
+
+        // Second condition fails because tenant doesn't start with "Acme"
+        assertThatThrownBy(() -> underTest.getAuthorizationSubjects(jsonWebToken, DittoHeaders.empty()))
+                .isInstanceOf(GatewayJwtPrerequisiteConditionNotMetException.class)
+                .hasMessageContaining("did not meet a configured prerequisite condition");
+    }
+
+    @Test
+    public void verifyThatMultiplePrerequisiteConditionsAllPassingWorks() {
+        final String subjectIssuer = "testIssuer";
+        final String tokenSubject = "testSubject";
+        final String tokenAudience = "expected-audience";
+        final String tokenTenant = "AcmeCorp";
+
+        final JsonWebToken jsonWebToken = createToken(
+                "{\"sub\": \"" + tokenSubject + "\", \"aud\": \"" + tokenAudience + "\", \"tenant\": \"" + tokenTenant + "\"}");
+        final JwtSubjectIssuersConfig subjectIssuersConfig = createSubjectIssuersConfigWithPrerequisiteConditions(
+                subjectIssuer,
+                List.of("{{ jwt:sub }}"),
+                List.of(
+                        "{{ jwt:aud | fn:filter('eq','expected-audience') }}",
+                        "{{ jwt:tenant | fn:filter('like','Acme*') }}"
+                )
+        );
+
+        final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
+                .of(actorSystem, subjectIssuersConfig);
+
+        final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken, DittoHeaders.empty());
+
+        assertThat(authSubjects).hasSize(1);
+        assertThat(authSubjects.getFirst()).isEqualTo(AuthorizationSubject.newInstance(subjectIssuer + ":" + tokenSubject));
+    }
+
+    @Test
+    public void verifyThatEmptyPrerequisiteConditionsAllowsAllTokens() {
+        final String subjectIssuer = "testIssuer";
+        final String tokenSubject = "testSubject";
+
+        final JsonWebToken jsonWebToken = createToken("{\"sub\": \"" + tokenSubject + "\"}");
+        final JwtSubjectIssuersConfig subjectIssuersConfig = createSubjectIssuersConfigWithPrerequisiteConditions(
+                subjectIssuer,
+                List.of("{{ jwt:sub }}"),
+                List.of()
+        );
+
+        final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
+                .of(actorSystem, subjectIssuersConfig);
+
+        final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken, DittoHeaders.empty());
+
+        assertThat(authSubjects).hasSize(1);
+        assertThat(authSubjects.getFirst()).isEqualTo(AuthorizationSubject.newInstance(subjectIssuer + ":" + tokenSubject));
+    }
+
+    @Test
+    public void verifyThatPrerequisiteConditionWorksWithArrayClaimMatchingOneValue() {
+        final String subjectIssuer = "testIssuer";
+        final String tokenSubject = "testSubject";
+
+        final JsonWebToken jsonWebToken = createToken(
+                "{\"sub\": \"" + tokenSubject + "\", \"aud\": [\"other-aud\", \"expected-audience\", \"another-aud\"]}");
+        final JwtSubjectIssuersConfig subjectIssuersConfig = createSubjectIssuersConfigWithPrerequisiteConditions(
+                subjectIssuer,
+                List.of("{{ jwt:sub }}"),
+                List.of("{{ jwt:aud | fn:filter('eq','expected-audience') }}")
+        );
+
+        final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
+                .of(actorSystem, subjectIssuersConfig);
+
+        final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken, DittoHeaders.empty());
+
+        assertThat(authSubjects).hasSize(1);
+        assertThat(authSubjects.getFirst()).isEqualTo(AuthorizationSubject.newInstance(subjectIssuer + ":" + tokenSubject));
     }
 
 }
