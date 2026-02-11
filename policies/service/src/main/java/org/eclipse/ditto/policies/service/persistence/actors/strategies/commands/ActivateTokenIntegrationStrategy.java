@@ -43,6 +43,7 @@ import org.eclipse.ditto.policies.model.SubjectAnnouncement;
 import org.eclipse.ditto.policies.model.SubjectExpiry;
 import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.SubjectType;
+import org.eclipse.ditto.policies.model.Subjects;
 import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegrationResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyActionEvent;
@@ -102,7 +103,7 @@ final class ActivateTokenIntegrationStrategy
             final Policy newPolicy = policyBuilder.build();
 
             final Optional<Result<PolicyActionEvent<?>>> alreadyExpiredSubject =
-                    checkForAlreadyExpiredSubject(newPolicy, commandHeaders, command);
+                    checkForAlreadyExpiredSubject(Subjects.newInstance(adjustedSubjects), commandHeaders, command);
             if (alreadyExpiredSubject.isPresent()) {
                 return alreadyExpiredSubject.get();
             }
