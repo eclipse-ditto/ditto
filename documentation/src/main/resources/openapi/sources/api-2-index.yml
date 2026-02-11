@@ -42,6 +42,8 @@ tags:
     description: Process CloudEvents in Ditto
   - name: Connections
     description: Manage connections
+  - name: WoT
+    description: WoT (Web of Things) Discovery endpoints
   - name: Devops
     description: Devops APIs to manage log levels and configuration in runtime and send piggyback command
 
@@ -200,6 +202,12 @@ paths:
     $ref: "./paths/piggyback/serviceName.yml"
   '/devops/piggyback/{serviceName}/{instanceIndex}':
     $ref: "./paths/piggyback/instanceIndex.yml"
+
+  ###
+  ### WoT Discovery
+  ###
+  /.well-known/wot:
+    $ref: "./paths/wot-discovery/index.yml"
 
   ###
   ### WoT Validation Config

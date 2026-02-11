@@ -15,10 +15,17 @@ package org.eclipse.ditto.wot.model;
 /**
  * A Description "provides additional (human-readable) information based on a default language."
  *
+ * @see <a href="https://www.w3.org/TR/wot-thing-description11/#titles-descriptions-serialization-json">WoT TD Human-Readable Metadata</a>
  * @since 2.4.0
  */
 public interface Description extends CharSequence {
 
+    /**
+     * Creates a Description from the specified character sequence.
+     *
+     * @param charSequence the description text.
+     * @return the Description.
+     */
     static Description of(final CharSequence charSequence) {
         if (charSequence instanceof Description) {
             return (Description) charSequence;

@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8" ?>
 <!--
   ~ Copyright (c) 2022 Contributors to the Eclipse Foundation
   ~
@@ -11,7 +12,6 @@
   ~ SPDX-License-Identifier: EPL-2.0
 -->
 <!-- created with https://www.easyrdf.org/converter -->
-<?xml version="1.0" encoding="utf-8" ?>
 <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
          xmlns:owl="http://www.w3.org/2002/07/owl#"
          xmlns:vann="http://purl.org/vocab/vann/"
@@ -22,7 +22,8 @@
   <owl:Ontology rdf:about="https://ditto.eclipseprojects.io/wot/ditto-extension#">
     <vann:preferredNamespacePrefix>ditto</vann:preferredNamespacePrefix>
     <vann:preferredNamespaceUri>https://ditto.eclipseprojects.io/wot/ditto-extension#</vann:preferredNamespaceUri>
-    <owl:versionInfo>3.0.0</owl:versionInfo>
+    <owl:versionInfo>3.9.0</owl:versionInfo>
+    <owl:imports rdf:resource="https://www.w3.org/2019/wot/td#"/>
     <dc:title xml:lang="en">Eclipse Ditto™ - WoT Extension Ontology</dc:title>
     <rdfs:comment xml:lang="en">This ontology provides additional Eclipse Ditto™ specific context for Web of Things (https://www.w3.org/WoT/) TDs and TMs</rdfs:comment>
   </owl:Ontology>
@@ -31,7 +32,48 @@
     <rdfs:label>category</rdfs:label>
     <rdfs:comment xml:lang="en">Optional category for WoT Property affordances, e.g. something like 'status' or 'configuration'</rdfs:comment>
     <schema:domainIncludes rdf:resource="https://www.w3.org/2019/wot/td#PropertyAffordance"/>
-    <schema:rangeIncludes rdf:resource="http://schema.org/Text"/>
+    <schema:rangeIncludes rdf:resource="https://schema.org/Text"/>
+    <rdfs:isDefinedBy rdf:resource="https://ditto.eclipseprojects.io/wot/ditto-extension#"/>
+  </owl:DatatypeProperty>
+
+  <owl:Class rdf:about="https://ditto.eclipseprojects.io/wot/ditto-extension#DeprecationNotice">
+    <rdfs:label>DeprecationNotice</rdfs:label>
+    <rdfs:comment xml:lang="en">A structured object indicating that a WoT Thing, or an affordance (property, action, or event) is deprecated</rdfs:comment>
+    <rdfs:isDefinedBy rdf:resource="https://ditto.eclipseprojects.io/wot/ditto-extension#"/>
+  </owl:Class>
+
+  <owl:ObjectProperty rdf:about="https://ditto.eclipseprojects.io/wot/ditto-extension#deprecationNotice">
+    <rdfs:label>deprecationNotice</rdfs:label>
+    <rdfs:comment xml:lang="en">Indicates that a WoT Thing, or an affordance (property, action, or event) is deprecated. The value is a DeprecationNotice object containing deprecation details.</rdfs:comment>
+    <schema:domainIncludes rdf:resource="https://www.w3.org/2019/wot/td#Thing"/>
+    <schema:domainIncludes rdf:resource="https://www.w3.org/2019/wot/td#PropertyAffordance"/>
+    <schema:domainIncludes rdf:resource="https://www.w3.org/2019/wot/td#ActionAffordance"/>
+    <schema:domainIncludes rdf:resource="https://www.w3.org/2019/wot/td#EventAffordance"/>
+    <schema:rangeIncludes rdf:resource="https://ditto.eclipseprojects.io/wot/ditto-extension#DeprecationNotice"/>
+    <rdfs:isDefinedBy rdf:resource="https://ditto.eclipseprojects.io/wot/ditto-extension#"/>
+  </owl:ObjectProperty>
+
+  <owl:DatatypeProperty rdf:about="https://ditto.eclipseprojects.io/wot/ditto-extension#deprecated">
+    <rdfs:label>deprecated</rdfs:label>
+    <rdfs:comment xml:lang="en">Boolean flag indicating whether the Thing or affordance is deprecated.</rdfs:comment>
+    <schema:domainIncludes rdf:resource="https://ditto.eclipseprojects.io/wot/ditto-extension#DeprecationNotice"/>
+    <schema:rangeIncludes rdf:resource="https://schema.org/Boolean"/>
+    <rdfs:isDefinedBy rdf:resource="https://ditto.eclipseprojects.io/wot/ditto-extension#"/>
+  </owl:DatatypeProperty>
+
+  <owl:DatatypeProperty rdf:about="https://ditto.eclipseprojects.io/wot/ditto-extension#supersededBy">
+    <rdfs:label>supersededBy</rdfs:label>
+    <rdfs:comment xml:lang="en">A JSON Pointer (RFC 6901) referencing the replacement affordance that supersedes the deprecated one, e.g. '#/properties/newProperty'</rdfs:comment>
+    <schema:domainIncludes rdf:resource="https://ditto.eclipseprojects.io/wot/ditto-extension#DeprecationNotice"/>
+    <schema:rangeIncludes rdf:resource="https://schema.org/Text"/>
+    <rdfs:isDefinedBy rdf:resource="https://ditto.eclipseprojects.io/wot/ditto-extension#"/>
+  </owl:DatatypeProperty>
+
+  <owl:DatatypeProperty rdf:about="https://ditto.eclipseprojects.io/wot/ditto-extension#removalVersion">
+    <rdfs:label>removalVersion</rdfs:label>
+    <rdfs:comment xml:lang="en">The semantic version (SemVer) in which the deprecated affordance will be removed, e.g. '2.0.0'</rdfs:comment>
+    <schema:domainIncludes rdf:resource="https://ditto.eclipseprojects.io/wot/ditto-extension#DeprecationNotice"/>
+    <schema:rangeIncludes rdf:resource="https://schema.org/Text"/>
     <rdfs:isDefinedBy rdf:resource="https://ditto.eclipseprojects.io/wot/ditto-extension#"/>
   </owl:DatatypeProperty>
 

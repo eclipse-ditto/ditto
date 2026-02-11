@@ -14,17 +14,15 @@ package org.eclipse.ditto.gateway.service.endpoints.actors;
 
 import java.util.concurrent.CompletableFuture;
 
-import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
-import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
-import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
-
-import com.typesafe.config.Config;
-
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.Props;
 import org.apache.pekko.http.javadsl.model.HttpRequest;
 import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
+import org.eclipse.ditto.gateway.service.util.config.GatewayConfig;
+
+import com.typesafe.config.Config;
 
 /**
  * Default creator of Props of HTTP request actors.
@@ -39,15 +37,13 @@ public final class DefaultHttpRequestActorPropsFactory implements HttpRequestAct
     public Props props(final ActorRef proxyActor, final HeaderTranslator headerTranslator,
             final HttpRequest httpRequest,
             final CompletableFuture<HttpResponse> httpResponseFuture,
-            final HttpConfig httpConfig,
-            final CommandConfig commandConfig) {
+            final GatewayConfig gatewayConfig) {
 
         return HttpRequestActor.props(proxyActor,
                 headerTranslator,
                 httpRequest,
                 httpResponseFuture,
-                httpConfig,
-                commandConfig);
+                gatewayConfig);
     }
 
 }

@@ -29,6 +29,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.thingsearch.service.placeholders.GroupByPlaceholderResolver;
 
 import com.typesafe.config.Config;
@@ -44,6 +45,8 @@ public final class DefaultCustomAggregationMetricConfig implements CustomAggrega
     private final Map<String, String> tags;
     @Nullable
     private final String filter;
+    @Nullable
+    private final JsonValue indexHint;
 
     private DefaultCustomAggregationMetricConfig(final String key, final ConfigWithFallback configWithFallback) {
         this.metricName = key;
@@ -72,6 +75,8 @@ public final class DefaultCustomAggregationMetricConfig implements CustomAggrega
                                 LinkedHashMap::new))
         ));
         filter = configWithFallback.getStringOrNull(CustomMetricConfig.CustomMetricConfigValue.FILTER);
+        indexHint = DefaultCustomMetricConfig.readIndexHint(configWithFallback,
+                CustomSearchMetricConfigValue.INDEX_HINT.getConfigPath());
         validateConfig();
     }
 
@@ -115,6 +120,10 @@ public final class DefaultCustomAggregationMetricConfig implements CustomAggrega
         return (filter == null || filter.isEmpty()) ? Optional.empty() : Optional.of(filter);
     }
 
+    @Override
+    public Optional<JsonValue> getIndexHint() {
+        return Optional.ofNullable(indexHint);
+    }
 
     private void validateConfig() {
         if (getGroupBy().isEmpty()) {
@@ -169,12 +178,13 @@ public final class DefaultCustomAggregationMetricConfig implements CustomAggrega
         return enabled == that.enabled && Objects.equals(metricName, that.metricName) &&
                 Objects.equals(scrapeInterval, that.scrapeInterval) &&
                 Objects.equals(namespaces, that.namespaces) && Objects.equals(groupBy, that.groupBy) &&
-                Objects.equals(tags, that.tags) && Objects.equals(filter, that.filter);
+                Objects.equals(tags, that.tags) && Objects.equals(filter, that.filter) &&
+                Objects.equals(indexHint, that.indexHint);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(metricName, enabled, scrapeInterval, namespaces, groupBy, tags, filter);
+        return Objects.hash(metricName, enabled, scrapeInterval, namespaces, groupBy, tags, filter, indexHint);
     }
 
     @Override
@@ -187,6 +197,7 @@ public final class DefaultCustomAggregationMetricConfig implements CustomAggrega
                 ", groupBy=" + groupBy +
                 ", tags=" + tags +
                 ", filter=" + filter +
+                ", indexHint=" + indexHint +
                 '}';
     }
 }

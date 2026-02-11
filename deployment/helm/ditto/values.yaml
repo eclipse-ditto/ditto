@@ -1770,6 +1770,11 @@ thingsSearch:
       #   filter: "eq(attributes/awesome,true)"
       #   tags:
       #     foo: bar
+      #   # optional index hint - string for index name, map for index key spec:
+      #   indexHint: "my_index_name"
+      #   # or as index key spec:
+      #   # indexHint:
+      #   #   "t.attributes.location": 1
       customAggregationMetrics:
       # ditto_my_agg_awesome_things:
       #   enabled: true
@@ -1782,6 +1787,11 @@ thingsSearch:
       #     "hardcoded-tag": "value"
       #     "location": "{{ group-by:location | fn:default('missing location') }}"
       #   filter: "gt(features/ConnectionStatus/properties/status/readyUntil,time:now)"
+      #   # optional index hint - string for index name, map for index key spec:
+      #   indexHint: "my_index_name"
+      #   # or as index key spec:
+      #   # indexHint:
+      #   #   "t.attributes.location": 1
 
 
 ## ----------------------------------------------------------------------------
@@ -2476,6 +2486,14 @@ gateway:
         maximumSize: 2000
         # expireAfterCreate maximum duration of inconsistency after e.g. a policy update
         expireAfterCreate: 2m
+    # wotDirectory contains configuration for the WoT (Web of Things) Discovery Thing Directory endpoint
+    wotDirectory:
+      # basePrefix the base URL prefix used in the Thing Directory TD
+      #  should be set to the externally reachable URL of the Ditto gateway
+      basePrefix: "http://localhost:8080"
+      # authenticationRequired whether authentication is required to access the WoT Thing Directory endpoint
+      #  defaults to false for public access per WoT Discovery specification expectations
+      authenticationRequired: false
 
 ## ----------------------------------------------------------------------------
 ## nginx configuration

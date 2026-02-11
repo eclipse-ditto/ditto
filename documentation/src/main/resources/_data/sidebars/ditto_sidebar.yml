@@ -389,10 +389,15 @@ entries:
           - title: Authentication and Authorization
             url: /basic-auth.html
             output: web
+
             subfolders:
-              - title: Checking Permissions for Resources
-                url: /basic-auth-checkpermissions.html
+              - title: Auth patterns
                 output: web
+                subfolderitems:
+                  - title: Checking Permissions for Resources
+                    url: /basic-auth-checkpermissions.html
+                    output: web
+
           - title: Messages
             url: /basic-messages.html
             output: web

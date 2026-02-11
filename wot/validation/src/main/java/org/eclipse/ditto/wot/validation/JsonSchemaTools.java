@@ -109,6 +109,7 @@ final class JsonSchemaTools {
         metaSchemaBuilder.keyword(new NonValidationKeyword("@type"));
         metaSchemaBuilder.keyword(new NonValidationKeyword("unit"));
         metaSchemaBuilder.keyword(new NonValidationKeyword("ditto:category"));
+        metaSchemaBuilder.keyword(new NonValidationKeyword("ditto:deprecationNotice"));
         return JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7, builder ->
                         builder.metaSchema(metaSchemaBuilder.build())
                 )

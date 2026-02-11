@@ -25,14 +25,37 @@ import org.eclipse.ditto.json.JsonObject;
  */
 public interface AutoSecurityScheme extends SecurityScheme {
 
+    /**
+     * Creates a new AutoSecurityScheme from the specified JSON object.
+     *
+     * @param securitySchemeName the name of the security scheme.
+     * @param jsonObject the JSON object representing the security scheme.
+     * @return the AutoSecurityScheme.
+     */
     static AutoSecurityScheme fromJson(final String securitySchemeName, final JsonObject jsonObject) {
         return new ImmutableAutoSecurityScheme(securitySchemeName, jsonObject);
     }
 
+    /**
+     * Creates a new builder for building an AutoSecurityScheme.
+     *
+     * @param securitySchemeName the name of the security scheme.
+     * @return the builder.
+     * @throws NullPointerException if {@code securitySchemeName} is {@code null}.
+     */
     static AutoSecurityScheme.Builder newBuilder(final CharSequence securitySchemeName) {
         return AutoSecurityScheme.Builder.newBuilder(securitySchemeName);
     }
 
+    /**
+     * Creates a new builder for building an AutoSecurityScheme, initialized with the values from the specified
+     * JSON object.
+     *
+     * @param securitySchemeName the name of the security scheme.
+     * @param jsonObject the JSON object providing initial values.
+     * @return the builder.
+     * @throws NullPointerException if {@code securitySchemeName} is {@code null}.
+     */
     static AutoSecurityScheme.Builder newBuilder(final CharSequence securitySchemeName, final JsonObject jsonObject) {
         return AutoSecurityScheme.Builder.newBuilder(securitySchemeName, jsonObject);
     }
@@ -42,14 +65,31 @@ public interface AutoSecurityScheme extends SecurityScheme {
         return SecuritySchemeScheme.AUTO;
     }
 
+    /**
+     * A mutable builder with a fluent API for building an {@link AutoSecurityScheme}.
+     */
     interface Builder extends SecurityScheme.Builder<AutoSecurityScheme.Builder, AutoSecurityScheme> {
 
+        /**
+         * Creates a new builder for building an AutoSecurityScheme.
+         *
+         * @param securitySchemeName the name of the security scheme.
+         * @return the builder.
+         */
         static AutoSecurityScheme.Builder newBuilder(final CharSequence securitySchemeName) {
             return new MutableAutoSecuritySchemeBuilder(
                     checkNotNull(securitySchemeName, "securitySchemeName").toString(),
                     JsonObject.newBuilder());
         }
 
+        /**
+         * Creates a new builder for building an AutoSecurityScheme, initialized with the values from the
+         * specified JSON object.
+         *
+         * @param securitySchemeName the name of the security scheme.
+         * @param jsonObject the JSON object providing initial values.
+         * @return the builder.
+         */
         static AutoSecurityScheme.Builder newBuilder(final CharSequence securitySchemeName,
                 final JsonObject jsonObject) {
             return new MutableAutoSecuritySchemeBuilder(

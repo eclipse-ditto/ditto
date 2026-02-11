@@ -26,23 +26,58 @@ import org.eclipse.ditto.json.JsonObject;
  */
 public interface AdditionalSecurityScheme extends SecurityScheme {
 
+    /**
+     * Creates a new AdditionalSecurityScheme from the specified JSON object.
+     *
+     * @param securitySchemeName the name of the security scheme.
+     * @param jsonObject the JSON object representing the security scheme.
+     * @return the AdditionalSecurityScheme.
+     */
     static AdditionalSecurityScheme fromJson(final String securitySchemeName, final JsonObject jsonObject) {
         return new ImmutableAdditionalSecurityScheme(securitySchemeName, jsonObject);
     }
 
+    /**
+     * Creates a new builder for building an AdditionalSecurityScheme.
+     *
+     * @param securitySchemeName the name of the security scheme.
+     * @param contextExtensionScopedScheme the context extension scoped scheme identifier.
+     * @return the builder.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
     static AdditionalSecurityScheme.Builder newBuilder(final CharSequence securitySchemeName,
             final CharSequence contextExtensionScopedScheme) {
         return AdditionalSecurityScheme.Builder.newBuilder(securitySchemeName, contextExtensionScopedScheme);
     }
 
+    /**
+     * Creates a new builder for building an AdditionalSecurityScheme, initialized with the values from the specified
+     * JSON object.
+     *
+     * @param securitySchemeName the name of the security scheme.
+     * @param contextExtensionScopedScheme the context extension scoped scheme identifier.
+     * @param jsonObject the JSON object providing initial values.
+     * @return the builder.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
     static AdditionalSecurityScheme.Builder newBuilder(final CharSequence securitySchemeName,
             final CharSequence contextExtensionScopedScheme,
             final JsonObject jsonObject) {
         return AdditionalSecurityScheme.Builder.newBuilder(securitySchemeName, contextExtensionScopedScheme, jsonObject);
     }
 
+    /**
+     * A mutable builder with a fluent API for building an {@link AdditionalSecurityScheme}.
+     */
     interface Builder extends SecurityScheme.Builder<AdditionalSecurityScheme.Builder, AdditionalSecurityScheme> {
 
+        /**
+         * Creates a new builder for building an AdditionalSecurityScheme.
+         *
+         * @param securitySchemeName the name of the security scheme.
+         * @param contextExtensionScopedScheme the context extension scoped scheme identifier.
+         * @return the builder.
+         */
         static AdditionalSecurityScheme.Builder newBuilder(final CharSequence securitySchemeName,
                 final CharSequence contextExtensionScopedScheme) {
             final SecuritySchemeScheme scheme = SecuritySchemeScheme.of(
@@ -55,6 +90,15 @@ public interface AdditionalSecurityScheme extends SecurityScheme {
             return additionalSecuritySchemeBuilder.setScheme(scheme);
         }
 
+        /**
+         * Creates a new builder for building an AdditionalSecurityScheme, initialized with the values from the
+         * specified JSON object.
+         *
+         * @param securitySchemeName the name of the security scheme.
+         * @param contextExtensionScopedScheme the context extension scoped scheme identifier.
+         * @param jsonObject the JSON object providing initial values.
+         * @return the builder.
+         */
         static AdditionalSecurityScheme.Builder newBuilder(final CharSequence securitySchemeName,
                 final CharSequence contextExtensionScopedScheme, final JsonObject jsonObject) {
             return new MutableAdditionalSecuritySchemeBuilder(

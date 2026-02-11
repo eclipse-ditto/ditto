@@ -49,6 +49,8 @@ interface TypedJsonObject<T extends JsonObject> extends JsonObject {
     T determineResult(Supplier<JsonObject> newWrappedSupplier);
 
     /**
+     * Returns the wrapped, underlying JsonObject.
+     *
      * @return the wrapped, underlying JsonObject.
      */
     JsonObject getWrappedObject();

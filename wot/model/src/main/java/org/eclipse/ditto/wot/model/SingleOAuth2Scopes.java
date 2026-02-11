@@ -19,6 +19,12 @@ package org.eclipse.ditto.wot.model;
  */
 public interface SingleOAuth2Scopes extends OAuth2Scopes, CharSequence {
 
+    /**
+     * Creates a SingleOAuth2Scopes from the specified scope string.
+     *
+     * @param charSequence the OAuth2 scope.
+     * @return the SingleOAuth2Scopes.
+     */
     static SingleOAuth2Scopes of(final CharSequence charSequence) {
         if (charSequence instanceof SingleOAuth2Scopes) {
             return (SingleOAuth2Scopes) charSequence;

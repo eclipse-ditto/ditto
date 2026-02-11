@@ -19,6 +19,12 @@ package org.eclipse.ditto.wot.model;
  */
 public interface SingleProfile extends Profile, IRI {
 
+    /**
+     * Creates a SingleProfile from the specified profile IRI.
+     *
+     * @param charSequence the profile IRI.
+     * @return the SingleProfile.
+     */
     static SingleProfile of(final CharSequence charSequence) {
         if (charSequence instanceof SingleProfile) {
             return (SingleProfile) charSequence;

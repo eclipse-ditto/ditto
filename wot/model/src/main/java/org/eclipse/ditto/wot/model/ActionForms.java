@@ -27,6 +27,12 @@ import org.eclipse.ditto.json.JsonValue;
  */
 public interface ActionForms extends Forms<ActionFormElement> {
 
+    /**
+     * Creates ActionForms from the specified JSON array.
+     *
+     * @param jsonArray the JSON array of form element objects.
+     * @return the ActionForms.
+     */
     static ActionForms fromJson(final JsonArray jsonArray) {
         final List<ActionFormElement> actionFormElements = jsonArray.stream()
                 .filter(JsonValue::isObject)
@@ -37,6 +43,12 @@ public interface ActionForms extends Forms<ActionFormElement> {
         return of(actionFormElements);
     }
 
+    /**
+     * Creates ActionForms from the specified collection of form elements.
+     *
+     * @param formElements the collection of form elements.
+     * @return the ActionForms.
+     */
     static ActionForms of(final Collection<ActionFormElement> formElements) {
         return new ImmutableActionForms(formElements);
     }

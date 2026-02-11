@@ -28,6 +28,12 @@ import org.eclipse.ditto.json.JsonValue;
 public interface MultipleActionFormElementOp
         extends ActionFormElementOp<SingleActionFormElementOp>, MultipleFormElementOp<SingleActionFormElementOp> {
 
+    /**
+     * Creates a MultipleActionFormElementOp from the specified JSON array.
+     *
+     * @param jsonArray the JSON array of operation strings.
+     * @return the MultipleActionFormElementOp.
+     */
     static MultipleActionFormElementOp fromJson(final JsonArray jsonArray) {
         final List<SingleActionFormElementOp> singleActionFormOps = jsonArray.stream()
                 .filter(JsonValue::isString)
@@ -38,6 +44,12 @@ public interface MultipleActionFormElementOp
         return of(singleActionFormOps);
     }
 
+    /**
+     * Creates a MultipleActionFormElementOp from the specified collection of operations.
+     *
+     * @param ops the collection of operations.
+     * @return the MultipleActionFormElementOp.
+     */
     static MultipleActionFormElementOp of(final Collection<SingleActionFormElementOp> ops) {
         return new ImmutableMultipleActionFormElementOp(ops);
     }

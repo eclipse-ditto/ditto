@@ -22,10 +22,22 @@ import java.util.Collection;
  */
 public interface Hreflang {
 
+    /**
+     * Creates a SingleHreflang from the specified language tag.
+     *
+     * @param charSequence the language tag (e.g., "en", "de", "en-US").
+     * @return the SingleHreflang.
+     */
     static SingleHreflang newSingleHreflang(final CharSequence charSequence) {
         return SingleHreflang.of(charSequence);
     }
 
+    /**
+     * Creates a MultipleHreflang from the specified collection of language tags.
+     *
+     * @param hreflangs the collection of language tags.
+     * @return the MultipleHreflang.
+     */
     static MultipleHreflang newMultipleHreflang(final Collection<SingleHreflang> hreflangs) {
         return MultipleHreflang.of(hreflangs);
     }

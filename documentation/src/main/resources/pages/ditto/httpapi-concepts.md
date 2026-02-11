@@ -141,6 +141,9 @@ Request Example:
 }
 ```
 
+String values in `migrationPayload` may use the [thing-json placeholder](basic-placeholders.html#thing-json-placeholder)
+(brace or legacy). When the value is exactly one such placeholder (no pipeline), the resolved value preserves its JSON type. Pipelines and multiple placeholders yield a string. Resolution uses the existing Thing. Missing paths cause the request to fail.
+
 #### `/policies` in API 2
 
 The base endpoint for accessing and working with `Policies`.<br/>

@@ -81,7 +81,7 @@
   </section>
   <section id="3-axiomatization">
     <h2>3. Axiomatization</h2>
-    <section id="2-1-datatype-properties">
+    <section id="3-1-datatype-properties">
       <h3>3.1 Datatype Properties</h3>
       <section id="category">
         <h4 id="3-1-1-category">
@@ -92,12 +92,111 @@
         <table class="def">
           <tbody>
           <tr>
-            <td>Sub-class of</td>
-            <td><code><a href="https://www.w3.org/2019/wot/td#PropertyAffordance" style="">td:PropertyAffordance</a></code></td>
+            <td>Domain</td>
+            <td><code><a href="https://www.w3.org/2019/wot/td#PropertyAffordance">td:PropertyAffordance</a></code></td>
           </tr>
           <tr>
-            <td>In the range of</td>
+            <td>Range</td>
             <td><code><a href="https://schema.org/Text">schema:Text</a></code></td>
+          </tr>
+          </tbody>
+        </table>
+      </section>
+      <section id="deprecated">
+        <h4 id="3-1-2-deprecated">
+          <a href="#deprecated">3.1.2 deprecated</a>
+        </h4>
+        <p>IRI: <code>https://ditto.eclipseprojects.io/wot/ditto-extension#deprecated</code></p>
+        <p>Boolean flag indicating whether the Thing or affordance is deprecated.</p>
+        <table class="def">
+          <tbody>
+          <tr>
+            <td>Domain</td>
+            <td><code><a href="#3-2-1-DeprecationNotice">ditto:DeprecationNotice</a></code></td>
+          </tr>
+          <tr>
+            <td>Range</td>
+            <td><code><a href="https://schema.org/Boolean">schema:Boolean</a></code></td>
+          </tr>
+          </tbody>
+        </table>
+      </section>
+      <section id="supersededBy">
+        <h4 id="3-1-3-supersededBy">
+          <a href="#supersededBy">3.1.3 supersededBy</a>
+        </h4>
+        <p>IRI: <code>https://ditto.eclipseprojects.io/wot/ditto-extension#supersededBy</code></p>
+        <p>A JSON Pointer (RFC 6901) referencing the replacement affordance that supersedes the deprecated one, e.g. <code>'#/properties/newProperty'</code>.</p>
+        <table class="def">
+          <tbody>
+          <tr>
+            <td>Domain</td>
+            <td><code><a href="#3-2-1-DeprecationNotice">ditto:DeprecationNotice</a></code></td>
+          </tr>
+          <tr>
+            <td>Range</td>
+            <td><code><a href="https://schema.org/Text">schema:Text</a></code></td>
+          </tr>
+          </tbody>
+        </table>
+      </section>
+      <section id="removalVersion">
+        <h4 id="3-1-4-removalVersion">
+          <a href="#removalVersion">3.1.4 removalVersion</a>
+        </h4>
+        <p>IRI: <code>https://ditto.eclipseprojects.io/wot/ditto-extension#removalVersion</code></p>
+        <p>The semantic version (SemVer) in which the deprecated affordance will be removed, e.g. <code>'2.0.0'</code>.</p>
+        <table class="def">
+          <tbody>
+          <tr>
+            <td>Domain</td>
+            <td><code><a href="#3-2-1-DeprecationNotice">ditto:DeprecationNotice</a></code></td>
+          </tr>
+          <tr>
+            <td>Range</td>
+            <td><code><a href="https://schema.org/Text">schema:Text</a></code></td>
+          </tr>
+          </tbody>
+        </table>
+      </section>
+    </section>
+    <section id="3-2-classes">
+      <h3>3.2 Classes</h3>
+      <section id="3-2-1-DeprecationNotice">
+        <h4>
+          <a href="#3-2-1-DeprecationNotice">3.2.1 DeprecationNotice</a>
+        </h4>
+        <p>IRI: <code>https://ditto.eclipseprojects.io/wot/ditto-extension#DeprecationNotice</code></p>
+        <p>A structured object indicating that a WoT Thing (ThingModel/ThingDescription), or an affordance (property, action, or event) is deprecated. Contains the following properties:</p>
+        <ul>
+          <li><code>deprecated</code> (boolean, required): Whether the Thing or affordance is deprecated</li>
+          <li><code>supersededBy</code> (string, optional): JSON Pointer to replacement affordance</li>
+          <li><code>removalVersion</code> (string, required): SemVer version when affordance will be removed</li>
+        </ul>
+      </section>
+    </section>
+    <section id="3-3-object-properties">
+      <h3>3.3 Object Properties</h3>
+      <section id="deprecationNotice">
+        <h4 id="3-3-1-deprecationNotice">
+          <a href="#deprecationNotice">3.3.1 deprecationNotice</a>
+        </h4>
+        <p>IRI: <code>https://ditto.eclipseprojects.io/wot/ditto-extension#deprecationNotice</code></p>
+        <p>Indicates that a WoT Thing, or an affordance (property, action, or event) is deprecated. The value is a <code>DeprecationNotice</code> object containing deprecation details.</p>
+        <table class="def">
+          <tbody>
+          <tr>
+            <td>Domain</td>
+            <td>
+              <code><a href="https://www.w3.org/2019/wot/td#Thing">td:Thing</a></code>,
+              <code><a href="https://www.w3.org/2019/wot/td#PropertyAffordance">td:PropertyAffordance</a></code>,
+              <code><a href="https://www.w3.org/2019/wot/td#ActionAffordance">td:ActionAffordance</a></code>,
+              <code><a href="https://www.w3.org/2019/wot/td#EventAffordance">td:EventAffordance</a></code>
+            </td>
+          </tr>
+          <tr>
+            <td>Range</td>
+            <td><code><a href="#3-2-1-DeprecationNotice">ditto:DeprecationNotice</a></code></td>
           </tr>
           </tbody>
         </table>

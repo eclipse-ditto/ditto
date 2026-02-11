@@ -28,6 +28,12 @@ import org.eclipse.ditto.json.JsonValue;
 public interface MultiplePropertyFormElementOp
         extends PropertyFormElementOp<SinglePropertyFormElementOp>, MultipleFormElementOp<SinglePropertyFormElementOp> {
 
+    /**
+     * Creates a MultiplePropertyFormElementOp from the specified JSON array.
+     *
+     * @param jsonArray the JSON array of operation strings.
+     * @return the MultiplePropertyFormElementOp.
+     */
     static MultiplePropertyFormElementOp fromJson(final JsonArray jsonArray) {
         final List<SinglePropertyFormElementOp> singlePropertyFormOps = jsonArray.stream()
                 .filter(JsonValue::isString)
@@ -38,6 +44,12 @@ public interface MultiplePropertyFormElementOp
         return of(singlePropertyFormOps);
     }
 
+    /**
+     * Creates a MultiplePropertyFormElementOp from the specified collection of operations.
+     *
+     * @param ops the collection of operations.
+     * @return the MultiplePropertyFormElementOp.
+     */
     static MultiplePropertyFormElementOp of(final Collection<SinglePropertyFormElementOp> ops) {
         return new ImmutableMultiplePropertyFormElementOp(ops);
     }

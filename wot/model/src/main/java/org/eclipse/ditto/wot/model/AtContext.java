@@ -23,15 +23,37 @@ import java.util.Optional;
  */
 public interface AtContext {
 
+    /**
+     * Creates a new single URI context entry.
+     *
+     * @param context the context URI.
+     * @return the SingleUriAtContext.
+     * @see <a href="https://www.w3.org/TR/wot-thing-description11/#thing">WoT TD Thing (@context)</a>
+     */
     static SingleUriAtContext newSingleUriAtContext(final CharSequence context) {
         return SingleUriAtContext.of(context);
     }
 
+    /**
+     * Creates a new single prefixed context entry with a prefix and a URI.
+     *
+     * @param prefix the prefix to use for the context.
+     * @param context the context URI.
+     * @return the SinglePrefixedAtContext.
+     * @see <a href="https://www.w3.org/TR/wot-thing-description11/#thing">WoT TD Thing (@context)</a>
+     */
     static SinglePrefixedAtContext newSinglePrefixedAtContext(final CharSequence prefix,
             final SingleUriAtContext context) {
         return SinglePrefixedAtContext.of(prefix, context);
     }
 
+    /**
+     * Creates a new multiple context containing multiple single context entries.
+     *
+     * @param contexts the collection of single context entries.
+     * @return the MultipleAtContext.
+     * @see <a href="https://www.w3.org/TR/wot-thing-description11/#thing">WoT TD Thing (@context)</a>
+     */
     static MultipleAtContext newMultipleAtContext(final Collection<SingleAtContext> contexts) {
         return MultipleAtContext.of(contexts);
     }

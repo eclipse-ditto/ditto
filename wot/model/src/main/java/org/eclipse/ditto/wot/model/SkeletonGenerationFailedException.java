@@ -51,6 +51,7 @@ public final class SkeletonGenerationFailedException extends DittoRuntimeExcepti
     /**
      * A mutable builder for a {@code SkeletonGenerationFailedException}.
      *
+     * @param definition the definition that failed to generate.
      * @return the builder.
      */
     public static Builder newBuilder(@Nullable final CharSequence definition) {

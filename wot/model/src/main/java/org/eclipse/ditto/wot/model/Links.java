@@ -29,6 +29,12 @@ import org.eclipse.ditto.json.JsonValue;
  */
 public interface Links extends Iterable<BaseLink<?>>, Jsonifiable<JsonArray> {
 
+    /**
+     * Creates a Links from the specified JSON array.
+     *
+     * @param jsonArray the JSON array of link objects.
+     * @return the Links.
+     */
     static Links fromJson(final JsonArray jsonArray) {
         final List<BaseLink<?>> baseLinks = jsonArray.stream()
                 .filter(JsonValue::isObject)
@@ -38,10 +44,21 @@ public interface Links extends Iterable<BaseLink<?>>, Jsonifiable<JsonArray> {
         return of(baseLinks);
     }
 
+    /**
+     * Creates a Links from the specified collection of links.
+     *
+     * @param links the collection of links.
+     * @return the Links.
+     */
     static Links of(final Collection<BaseLink<?>> links) {
         return new ImmutableLinks(links);
     }
 
+    /**
+     * Returns a sequential stream over the links.
+     *
+     * @return a stream of links.
+     */
     default Stream<BaseLink<?>> stream() {
         return StreamSupport.stream(spliterator(), false);
     }

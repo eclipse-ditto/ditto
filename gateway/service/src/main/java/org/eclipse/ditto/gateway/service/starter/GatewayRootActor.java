@@ -51,6 +51,7 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.websocket.WebSocketRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiRoute;
+import org.eclipse.ditto.gateway.service.endpoints.routes.wot.WotDiscoveryThingDirectoryRoute;
 import org.eclipse.ditto.gateway.service.endpoints.utils.GatewaySignalEnrichmentProvider;
 import org.eclipse.ditto.gateway.service.health.DittoStatusAndHealthProviderFactory;
 import org.eclipse.ditto.gateway.service.health.GatewayHttpReadinessCheck;
@@ -237,8 +238,7 @@ public final class GatewayRootActor extends DittoRootActor {
         final var routeBaseProperties = RouteBaseProperties.newBuilder()
                 .actorSystem(actorSystem)
                 .proxyActor(proxyActor)
-                .httpConfig(httpConfig)
-                .commandConfig(commandConfig)
+                .gatewayConfig(gatewayConfig)
                 .headerTranslator(headerTranslator)
                 .build();
 
@@ -254,6 +254,8 @@ public final class GatewayRootActor extends DittoRootActor {
                 .cachingHealthRoute(new CachingHealthRoute(statusAndHealthProvider,
                         gatewayConfig.getPublicHealthConfig()))
                 .devopsRoute(new DevOpsRoute(routeBaseProperties, devopsAuthenticationDirective))
+                .wotDiscoveryThingDirectoryRoute(new WotDiscoveryThingDirectoryRoute(routeBaseProperties))
+                .wotDirectoryConfig(gatewayConfig.getWotDirectoryConfig())
                 .policiesRoute(new PoliciesRoute(routeBaseProperties,
                         OAuthTokenIntegrationSubjectIdFactory.of(authConfig.getOAuthConfig())))
                 .sseThingsRoute(ThingsSseRouteBuilder

@@ -31,6 +31,12 @@ import org.eclipse.ditto.json.JsonValue;
  */
 public interface TmOptional extends Iterable<TmOptionalElement>, Jsonifiable<JsonArray> {
 
+    /**
+     * Creates a TmOptional from the specified JSON array.
+     *
+     * @param jsonArray the JSON array of optional element pointers.
+     * @return the TmOptional.
+     */
     static TmOptional fromJson(final JsonArray jsonArray) {
         final List<TmOptionalElement> optionalElements = jsonArray.stream()
                 .filter(JsonValue::isString)
@@ -40,10 +46,21 @@ public interface TmOptional extends Iterable<TmOptionalElement>, Jsonifiable<Jso
         return of(optionalElements);
     }
 
+    /**
+     * Creates a TmOptional from the specified collection of optional elements.
+     *
+     * @param optionalElements the collection of optional elements.
+     * @return the TmOptional.
+     */
     static TmOptional of(final Collection<TmOptionalElement> optionalElements) {
         return new ImmutableTmOptional(optionalElements);
     }
 
+    /**
+     * Returns a sequential stream over the optional elements.
+     *
+     * @return a stream of optional elements.
+     */
     default Stream<TmOptionalElement> stream() {
         return StreamSupport.stream(spliterator(), false);
     }

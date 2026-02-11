@@ -28,6 +28,12 @@ import org.eclipse.ditto.json.JsonObject;
  */
 public interface Descriptions extends Map<Locale, Description>, Jsonifiable<JsonObject> {
 
+    /**
+     * Creates a Descriptions from the specified JSON object.
+     *
+     * @param jsonObject the JSON object mapping language tags to descriptions.
+     * @return the Descriptions.
+     */
     static Descriptions fromJson(final JsonObject jsonObject) {
         return of(jsonObject.stream().collect(Collectors.toMap(
                 field -> new Locale(field.getKey().toString()),
@@ -40,6 +46,12 @@ public interface Descriptions extends Map<Locale, Description>, Jsonifiable<Json
         ));
     }
 
+    /**
+     * Creates a Descriptions from the specified map of locale to description.
+     *
+     * @param descriptions the map of locales to descriptions.
+     * @return the Descriptions.
+     */
     static Descriptions of(final Map<Locale, Description> descriptions) {
         return new ImmutableDescriptions(descriptions);
     }
