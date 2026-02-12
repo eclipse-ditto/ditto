@@ -17,7 +17,7 @@
   ],
   "license": "EPL-2.0",
   "dependencies": {
-    "@eclipse-ditto/ditto-javascript-client-node": "^3.9.0-M1.0",
+    "@eclipse-ditto/ditto-javascript-client-node": "^3.9.0-M1.1",
     "artillery": "^2.0.27",
     "defu": "^6.1.4",
     "kafkajs": "^2.2.4",
