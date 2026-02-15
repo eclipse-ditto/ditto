@@ -65,7 +65,20 @@ public interface FieldsEncryptionConfig {
      */
     List<String> getJsonPointers();
 
+    /**
+     * Returns the batch size for the encryption migration process.
+     *
+     * @return the batch size
+     */
+    int getMigrationBatchSize();
 
+    /**
+     * Returns the maximum number of documents to migrate per minute.
+     * This throttles the migration stream to avoid overwhelming the database.
+     *
+     * @return the maximum documents per minute, 0 means no throttling
+     */
+    int getMigrationMaxDocumentsPerMinute();
 
     /**
      * An enumeration of the known config path expressions and their associated default values for {@code FieldsEncryptionConfig}.
@@ -103,7 +116,19 @@ public interface FieldsEncryptionConfig {
                 "/credentials/parameters/sharedKey",
                 "/credentials/clientSecret",
                 "/credentials/password"
-        ));
+        )),
+
+        /**
+         * The batch size for the encryption migration process.
+         */
+        MIGRATION_BATCH_SIZE("migration.batch-size", 100),
+
+        /**
+         * The maximum number of documents to migrate per minute.
+         * This throttles the migration stream to avoid overwhelming the database.
+         * 0 means no throttling.
+         */
+        MIGRATION_MAX_DOCUMENTS_PER_MINUTE("migration.max-documents-per-minute", 100);
 
         private final String configPath;
         private final Object defaultValue;

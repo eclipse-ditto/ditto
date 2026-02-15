@@ -33,6 +33,7 @@ import org.eclipse.ditto.connectivity.service.messaging.ConnectionIdsRetrievalAc
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceOperationsActor;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceStreamingActorCreator;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionSupervisorActor;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.EncryptionMigrationActor;
 import org.eclipse.ditto.edge.service.dispatching.EdgeCommandForwarderActor;
 import org.eclipse.ditto.edge.service.dispatching.ShardRegions;
 import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
@@ -115,6 +116,9 @@ public final class ConnectivityRootActor extends DittoRootActor {
         startChildActor(ConnectionPersistenceOperationsActor.ACTOR_NAME,
                 ConnectionPersistenceOperationsActor.props(pubSubMediator, connectivityConfig.getMongoDbConfig(),
                         config, connectivityConfig.getPersistenceOperationsConfig()));
+
+        startChildActor(EncryptionMigrationActor.ACTOR_NAME,
+                EncryptionMigrationActor.props(connectivityConfig));
 
         RootChildActorStarter.get(actorSystem, ScopedConfig.dittoExtension(config)).execute(getContext());
 

@@ -33,6 +33,8 @@ public final class DefaultFieldsEncryptionConfig implements FieldsEncryptionConf
     private final String symmetricalKey;
     private final String oldSymmetricalKey;
     private final List<String> jsonPointers;
+    private final int migrationBatchSize;
+    private final int migrationMaxDocumentsPerMinute;
 
 
     private DefaultFieldsEncryptionConfig(final ConfigWithFallback config) {
@@ -41,6 +43,8 @@ public final class DefaultFieldsEncryptionConfig implements FieldsEncryptionConf
         this.oldSymmetricalKey = config.getString(ConfigValue.OLD_SYMMETRICAL_KEY.getConfigPath());
         this.jsonPointers = Collections.unmodifiableList(
                 new ArrayList<>(config.getStringList(ConfigValue.JSON_POINTERS.getConfigPath())));
+        this.migrationBatchSize = config.getInt(ConfigValue.MIGRATION_BATCH_SIZE.getConfigPath());
+        this.migrationMaxDocumentsPerMinute = config.getInt(ConfigValue.MIGRATION_MAX_DOCUMENTS_PER_MINUTE.getConfigPath());
 
         validateConfiguration();
     }
@@ -91,6 +95,16 @@ public final class DefaultFieldsEncryptionConfig implements FieldsEncryptionConf
     }
 
     @Override
+    public int getMigrationBatchSize() {
+        return migrationBatchSize;
+    }
+
+    @Override
+    public int getMigrationMaxDocumentsPerMinute() {
+        return migrationMaxDocumentsPerMinute;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -102,12 +116,15 @@ public final class DefaultFieldsEncryptionConfig implements FieldsEncryptionConf
         return isEncryptionEnabled == that.isEncryptionEnabled &&
                 Objects.equals(symmetricalKey, that.symmetricalKey) &&
                 Objects.equals(oldSymmetricalKey, that.oldSymmetricalKey) &&
-                Objects.equals(jsonPointers, that.jsonPointers);
+                Objects.equals(jsonPointers, that.jsonPointers) &&
+                migrationBatchSize == that.migrationBatchSize &&
+                migrationMaxDocumentsPerMinute == that.migrationMaxDocumentsPerMinute;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(isEncryptionEnabled, symmetricalKey, oldSymmetricalKey, jsonPointers);
+        return Objects.hash(isEncryptionEnabled, symmetricalKey, oldSymmetricalKey, jsonPointers,
+                migrationBatchSize, migrationMaxDocumentsPerMinute);
     }
 
     @Override
@@ -117,6 +134,8 @@ public final class DefaultFieldsEncryptionConfig implements FieldsEncryptionConf
                 ", symmetricalKey='***'" +
                 ", oldSymmetricalKey='" + (oldSymmetricalKey.trim().isEmpty() ? "not set" : "***") + "'" +
                 ", jsonPointers=" + jsonPointers +
+                ", migrationBatchSize=" + migrationBatchSize +
+                ", migrationMaxDocumentsPerMinute=" + migrationMaxDocumentsPerMinute +
                 ']';
     }
 
