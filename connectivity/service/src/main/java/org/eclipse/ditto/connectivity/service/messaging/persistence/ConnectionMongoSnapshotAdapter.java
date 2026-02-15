@@ -85,7 +85,7 @@ public final class ConnectionMongoSnapshotAdapter extends AbstractMongoSnapshotA
             return ConnectionMigrationUtil.connectionFromJsonWithMigration(jsonObject);
         }
         final JsonObject decrypted = JsonFieldsEncryptor.decrypt(jsonObject, "", encryptionConfig.getJsonPointers(),
-                encryptionConfig.getSymmetricalKey());
+                encryptionConfig.getSymmetricalKey(), encryptionConfig.getOldSymmetricalKey());
         return ConnectionMigrationUtil.connectionFromJsonWithMigration(decrypted);
     }
 
