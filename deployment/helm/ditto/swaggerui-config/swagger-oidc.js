@@ -19,13 +19,6 @@
     const OIDC_DISCOVERY_PLACEHOLDER = "__OIDC_DISCOVERY_URL__";
     const DITTO_UI_STORAGE_KEY = "ditto-ui-env";
 
-    function normalizeProxyPath(path) {
-        if (!path) {
-            return null;
-        }
-        return path.startsWith("/") ? path : `/${path}`;
-    }
-
     function scopesToObject(scopes) {
         if (Array.isArray(scopes)) {
             return scopes.reduce((acc, scope) => {
@@ -56,25 +49,6 @@
         if (schemes.OpenIDConnect) {
             schemes.OpenIDConnect.openIdConnectUrl = oidcConfig.openIdConnectUrl;
         }
-        if (oidcConfig.authorizationUrl && oidcConfig.tokenUrl) {
-            schemes.OpenID = {
-                type: "oauth2",
-                description: "OpenID Connect login (Authorization Code + PKCE).",
-                flows: {
-                    authorizationCode: {
-                        authorizationUrl: oidcConfig.authorizationUrl,
-                        tokenUrl: oidcConfig.tokenUrl,
-                        scopes: scopesToObject(oidcConfig.scopes)
-                    }
-                }
-            };
-            delete schemes.OpenIDConnect;
-        }
-        if (Array.isArray(spec.security)) {
-            const filtered = spec.security.filter((s) => !s.OpenIDConnect);
-            const hasOpenId = filtered.some((s) => s.OpenID);
-            spec.security = hasOpenId ? filtered : [{ OpenID: [] }, ...filtered];
-        }
         return spec;
     }
 
@@ -95,35 +69,24 @@
             return null;
         }
 
-        const metadataUrl = provider.metadataUrl || provider.metadata_url;
+        const metadataUrl = provider.metadataUrl;
         const authority = provider.authority ? provider.authority.replace(/\/+$/, "") : null;
-        const proxyPath = normalizeProxyPath(provider.proxyPath || provider.proxy_path);
-        const proxyBase = proxyPath ? `${global.location.origin}${proxyPath}` : null;
+        const clientId = provider.client_id;
+        const scope = provider.scope || "openid";
 
         const openIdConnectUrl = metadataUrl
             ? metadataUrl
-            : (proxyBase
-                ? `${proxyBase}/.well-known/openid-configuration`
-                : (authority ? `${authority}/.well-known/openid-configuration` : null));
+            : (authority ? `${authority}/.well-known/openid-configuration` : null);
 
-        const authorizationUrl =
-            provider.authorizationUrl ||
-            provider.authorization_url ||
-            (proxyBase ? `${proxyBase}/auth` : (authority ? `${authority}/auth` : null));
-
-        const tokenUrl =
-            provider.tokenUrl ||
-            provider.token_url ||
-            (proxyBase ? `${proxyBase}/token` : (authority ? `${authority}/token` : null));
-
-        const scopes = provider.scopes || provider.scope || "openid";
+        if (!openIdConnectUrl) {
+            console.warn("SwaggerOidc: Cannot determine OpenID Connect discovery URL - neither metadataUrl nor authority provided");
+            return null;
+        }
 
         return {
             openIdConnectUrl,
-            authorizationUrl,
-            tokenUrl,
-            clientId: provider.client_id || provider.clientId || provider.clientID,
-            scopes
+            clientId,
+            scopes: scope
         };
     }
 
@@ -153,8 +116,11 @@
         let envs = null;
 
         if (environmentsURL) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
             try {
-                const response = await fetch(environmentsURL);
+                const response = await fetch(environmentsURL, { signal: controller.signal });
+                clearTimeout(timeoutId);
                 if (response.ok) {
                     const contentType = response.headers.get("content-type") || "";
                     if (contentType.includes("application/json")) {
@@ -162,7 +128,12 @@
                     }
                 }
             } catch (e) {
-                /* ignore */
+                clearTimeout(timeoutId);
+                if (e.name === 'AbortError') {
+                    console.warn("SwaggerOidc: Fetch timeout loading environments from", environmentsURL);
+                } else {
+                    console.warn("SwaggerOidc: Failed to load environments from", environmentsURL, e);
+                }
             }
         }
 
@@ -173,7 +144,7 @@
                     envs = JSON.parse(stored);
                 }
             } catch (e) {
-                /* ignore */
+                console.warn("SwaggerOidc: Failed to parse environments from localStorage", e);
             }
         }
 
@@ -188,6 +159,7 @@
                     try {
                         patchSpecObject(res.data, oidcConfig);
                     } catch (e) {
+                        console.warn("SwaggerOidc: Failed to patch spec object", e);
                     }
                 } else if (typeof res.text === "string") {
                     res.text = res.text.replaceAll(OIDC_DISCOVERY_PLACEHOLDER, oidcConfig.openIdConnectUrl);
@@ -232,6 +204,7 @@
                         const patched = patchSpecObject(spec, oidcConfig);
                         ui.specActions.updateSpec(JSON.stringify(patched));
                     } catch (e) {
+                        console.warn("SwaggerOidc: Failed to update spec in onComplete", e);
                     }
                 }
                 if (typeof opts.onComplete === "function") {
