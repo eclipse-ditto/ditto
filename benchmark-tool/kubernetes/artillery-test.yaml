@@ -34,7 +34,7 @@ spec:
       containers:
         - name: artillery
           image: artillery-test:0.0.1
-          imagePullPolicy: Never
+          imagePullPolicy: IfNotPresent
           env:
             - name: CONFIG_PATH
               value: /app/config.yml
@@ -56,8 +56,8 @@ spec:
             - name: results
               mountPath: /results
             - name: config
-              mountPath: /app/config-kubernetes.yml
-              subPath: config-kubernetes.yml
+              mountPath: /app/config.yml
+              subPath: config.yml
               readOnly: true
       volumes:
         - name: results

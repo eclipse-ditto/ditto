@@ -23,7 +23,6 @@ import { readThingsScenario } from './scenarios/read-things-scenario';
 import { searchThingsScenario } from './scenarios/search-things-scenario';
 import { modifyThingsScenario } from './scenarios/modify-things-scenario';
 import { deviceLiveMessagesScenario } from './scenarios/device-live-messages-scenario';
-import { isServiceAvailable } from './cleanup-util';
 import { setInterrupted } from './kafka-util';
 import { Scenario } from './interfaces';
 import { CHANNEL_HTTP, getConfigEnabledScenarios, WARMUP } from './config';
@@ -53,20 +52,28 @@ const ABORT_FILE = `${ABORT_FILE_DIR}/${ABORT_FILE_NAME}`;
 let testAborted = false;
 let abortWatcher: fs.FSWatcher | null = null;
 
-function setupAbortWatcher() {
-    if (abortWatcher) return;
-
-    abortWatcher = fs.watch(ABORT_FILE_DIR, (eventType, filename) => {
-        if (filename === ABORT_FILE_NAME && fs.existsSync(ABORT_FILE) && !testAborted) {
-            debugLog('[Abort] Abort file detected, stopping scenarios');
-            testAborted = true;
+function setupAbortWatcher(setupPhase: boolean = false) {
+    if (!abortWatcher) {
+        testAborted = fs.existsSync(ABORT_FILE);
+        if (testAborted) {
+            if (!setupPhase) {
+                debugLog('[Abort] Abort file exists, scenarios will try to run, but won\'t execute.');
+            }
+        } else {
+            abortWatcher = fs.watch(ABORT_FILE_DIR, (eventType, filename) => {
+                if (filename === ABORT_FILE_NAME && fs.existsSync(ABORT_FILE) && !testAborted) {
+                    debugLog('[Abort] Abort file detected, stopping scenarios');
+                    testAborted = true;
+                }
+            });
+            abortWatcher.unref();
         }
-    });
-    abortWatcher.unref();
+    }
 }
 
 function cleanupAbortFile() {
     try {
+        testAborted = false;
         if (fs.existsSync(ABORT_FILE)) {
             fs.unlinkSync(ABORT_FILE);
             debugLog('[Abort] Cleaned up abort file');
@@ -106,6 +113,7 @@ export async function beforeTest(context: any, events: any): Promise<void> {
 
     // Clean up any leftover abort file from previous run
     cleanupAbortFile();
+    setupAbortWatcher(true);
 
     const config = getConfig();
 
@@ -173,6 +181,20 @@ export async function beforeTest(context: any, events: any): Promise<void> {
     }
 }
 
+/**
+ * Check if Ditto service is available (1 second timeout)
+ */
+async function isServiceAvailable(): Promise<boolean> {
+    try {
+        const config = getConfig();
+        const response = await fetch(`${config.ditto.protocol.http}://${config.ditto.baseUri}/`, {
+            signal: AbortSignal.timeout(1000)
+        });
+        return response.status < 500;
+    } catch (error) {
+        return false;
+    }
+}
 
 /**
  * Warmup scenario wrapper - controlled by config warmup.enabled (always uses HTTP)
@@ -216,7 +238,7 @@ async function performCleanup() {
     // Handle SIGINT/SIGTERM during cleanup - print cleanup data
     const cleanupHandler = (signal: NodeJS.Signals) => {
         console.log(`\n[${signal}] Cleanup interrupted`);
-        testSetup?.logManualCleanupInstructions();
+        testSetup?.onCleanupInterrupted();
         process.exit(0);
     };
 

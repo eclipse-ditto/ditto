@@ -38,6 +38,9 @@ export class TestSetup {
     thingsDeleted = false;
     connectionsDeleted = false;
 
+    readonly shouldDeleteThings = this.config.things.deleteAfterTest && this.config.things.count > 0;
+    readonly shouldDeleteConnections = this.config.connections.deleteAfterTest;
+
     public constructor(cleanupOnly: boolean = false) {
         this.cleanupOnly = cleanupOnly;
         if (cleanupOnly) {
@@ -132,7 +135,7 @@ export class TestSetup {
 
     private async deleteThings(ignoreNotFound?: boolean): Promise<boolean> {
 
-        if (!this.config.things.deleteAfterTest || this.config.things.count === 0) {
+        if (!this.shouldDeleteThings) {
             return true;
         }
 
@@ -158,7 +161,7 @@ export class TestSetup {
     }
 
     private async deleteConnections(ignoreNotFound?: boolean): Promise<boolean> {
-        if (!this.config.connections.deleteAfterTest) {
+        if (!this.shouldDeleteConnections) {
             return true;
         }
 
@@ -220,15 +223,13 @@ export class TestSetup {
         WebSocketChannel.resetInstance();
 
         try {
-            if (this.createThingsInitiated) {
+            // Stop producer/consumer first to prevent receiving further messages from ditto
+            await kafkaUtil.stopProducerAndConsumer();
+            if (this.createThingsInitiated || this.cleanupOnly) {
                 this.thingsDeleted = await this.deleteThings(this.cleanupOnly);
             }
             this.connectionsDeleted = await this.deleteConnections(this.cleanupOnly);
-            // Stop producer/consumer first to prevent fetch errors on deleted topics
-            await kafkaUtil.stopProducerAndConsumer();
-            // Delete topics (admin client still connected)
             await this.deleteKafkaTopics();
-            // Disconnect admin client
             await kafkaUtil.disconnectClients();
             console.log('=== CLEANUP COMPLETE ===');
         } catch (error: any) {
@@ -247,11 +248,12 @@ export class TestSetup {
         }
     }
 
-    logManualCleanupInstructions(alreadyLoggedCleanupInfo: boolean = false) {
+    onCleanupInterrupted(alreadyLoggedCleanupInfo: boolean = false) {
         if (!alreadyLoggedCleanupInfo) {
             console.error('');
             logManualCleanupInstructions(
-                this.thingsDeleted, this.connectionsDeleted,
+                this.thingsDeleted || !this.shouldDeleteThings, 
+                this.connectionsDeleted || !this.shouldDeleteConnections,
                 this.config.things.count,
                 this.kafkaSourceConnectionCreated ? this.kafkaSourceConnectionId : null,
                 this.kafkaTargetConnectionCreated ? this.kafkaTargetConnectionId : null,

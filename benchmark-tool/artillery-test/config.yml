@@ -30,7 +30,7 @@ ditto:
 # THING CONFIGURATION
 # ====================
 things:
-  count: 10
+  count: 1000
   startIndex: 1
   idTemplate: test-thing-
   namespace: org.eclipse.ditto
@@ -99,8 +99,8 @@ connections:
 # ARTILLERY CONFIGURATION
 # ====================
 artillery:
-  duration: 5s
-  arrivalRate: 1
+  duration: 60s
+  arrivalRate: 20
 
 # ====================
 # SCENARIO CONFIGURATION
@@ -127,9 +127,9 @@ scenarios:
       - name: http
         weight: 1
       - name: websocketTwin
-        weight: 0
+        weight: 1
       - name: kafka
-        weight: 0
+        weight: 1
 
   - name: deviceLiveMessages
     enabled: true
@@ -138,7 +138,7 @@ scenarios:
       - name: http
         weight: 1
       - name: websocketLive
-        weight: 0
+        weight: 1
 
 # ====================
 # WARMUP CONFIGURATION

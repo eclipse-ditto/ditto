@@ -378,7 +378,7 @@ kubectl create -f ../kubernetes/mmock.yaml
 cd artillery-test/
 
 # Create config (optional - override the default config)
-kubectl create configmap artillery-test-config --from-file=config-kubernetes.yml
+kubectl create configmap artillery-test-config --from-file=config.yml
 
 # Create environment overrides (optional)
 kubectl create configmap artillery-test-env --from-env-file=test.env

@@ -15,21 +15,6 @@ import { getConfig } from './common';
 import { getThingId } from './config';
 
 /**
- * Check if Ditto service is available (1 second timeout)
- */
-export async function isServiceAvailable(): Promise<boolean> {
-    try {
-        const config = getConfig();
-        const response = await fetch(`${config.ditto.protocol.http}://${config.ditto.baseUri}/`, {
-            signal: AbortSignal.timeout(1000)
-        });
-        return response.status < 500;
-    } catch (error) {
-        return false;
-    }
-}
-
-/**
  * Log manual cleanup instructions when automated cleanup fails
  */
 export function logManualCleanupInstructions(
@@ -37,6 +22,11 @@ export function logManualCleanupInstructions(
     thingsCount: number, kafkaSourceConnectionId: string | null,
     kafkaTargetConnectionId: string | null,
     httpPushConnectionId: string | null): void {
+
+
+    if (thingsDeleted && connectionsDeleted) {
+        return;
+    }
 
     const config = getConfig();
     const yamlLines: string[] = [];
