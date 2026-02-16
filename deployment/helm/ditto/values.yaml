@@ -1770,6 +1770,11 @@ thingsSearch:
       #   filter: "eq(attributes/awesome,true)"
       #   tags:
       #     foo: bar
+      #   # optional index hint - string for index name, map for index key spec:
+      #   indexHint: "my_index_name"
+      #   # or as index key spec:
+      #   # indexHint:
+      #   #   "t.attributes.location": 1
       customAggregationMetrics:
       # ditto_my_agg_awesome_things:
       #   enabled: true
@@ -1782,6 +1787,11 @@ thingsSearch:
       #     "hardcoded-tag": "value"
       #     "location": "{{ group-by:location | fn:default('missing location') }}"
       #   filter: "gt(features/ConnectionStatus/properties/status/readyUntil,time:now)"
+      #   # optional index hint - string for index name, map for index key spec:
+      #   indexHint: "my_index_name"
+      #   # or as index key spec:
+      #   # indexHint:
+      #   #   "t.attributes.location": 1
 
 
 ## ----------------------------------------------------------------------------
@@ -2131,6 +2141,12 @@ connectivity:
       enrichment:
         # the buffer size used for the queue in the message mapping processor actor
         bufferSize: 2000
+      # httpPush contains configuration specific to Ditto HTTP-push connections
+      httpPush:
+        # maxConnectionLifetime configures the maximum amount of time an HTTP connection in the host connection pool
+        #  can be kept open. Helps rebalancing between service instances when reaching the target through a load-balancer.
+        #  Default: "Inf" (infinite)
+        maxConnectionLifetime: "Inf"
       # kafka contains the configuration specific to Ditto connections to Apache Kafka
       kafka:
         # consumer contains configuration for consuming messages from Kafka
@@ -2363,6 +2379,9 @@ gateway:
         #    injectClaimsIntoHeaders:
         #      user_email: "{{ jwt:email }}"
         #      user_name: "{{ jwt:name }}"
+        #    # prerequisiteConditions must all evaluate to non-empty values for the JWT to be accepted
+        #    prerequisiteConditions:
+        #    - "{{ jwt:aud | fn:filter('eq','my-expected-audience') }}"
         # configure the subject to inject in policy action activateTokenIntegration
         tokenIntegrationSubject: "integration:{{policy-entry:label}}:{{jwt:aud}}"
       # devops contains the configuration of the gateway's "/devops" API, e.g. access to it
@@ -2387,6 +2406,9 @@ gateway:
           #    injectClaimsIntoHeaders:
           #      user_email: "{{ jwt:email }}"
           #      user_name: "{{ jwt:name }}"
+          #    # prerequisiteConditions must all evaluate to non-empty values for the JWT to be accepted
+          #    prerequisiteConditions:
+          #    - "{{ jwt:aud | fn:filter('eq','my-expected-audience') }}"
         # oauthSubjects contains list of subjects authorized to use "/devops" and "/api/2/connections" resources
         oauthSubjects:
         # - "example-ops:devops-admin"

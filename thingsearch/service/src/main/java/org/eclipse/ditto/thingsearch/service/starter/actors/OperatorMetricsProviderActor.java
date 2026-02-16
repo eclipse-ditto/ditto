@@ -130,7 +130,8 @@ public final class OperatorMetricsProviderActor extends AbstractActorWithTimers 
                 .correlationId("gather-metrics_" + metricName + "_" + UUID.randomUUID())
                 .build();
         final SudoCountThings sudoCountThings = SudoCountThings.of(
-                filter.isEmpty() ? null : filter, namespaces.isEmpty() ? null : namespaces, dittoHeaders);
+                filter.isEmpty() ? null : filter, namespaces.isEmpty() ? null : namespaces,
+                config.getIndexHint().orElse(null), dittoHeaders);
 
         final long startTs = System.nanoTime();
         log.withCorrelationId(dittoHeaders)

@@ -44,7 +44,7 @@ public final class DefaultJwtAuthenticationResultProvider implements JwtAuthenti
     public CompletionStage<JwtAuthenticationResult> getAuthenticationResult(final JsonWebToken jwt,
             final DittoHeaders dittoHeaders) {
 
-        final List<AuthorizationSubject> authSubjects = authSubjectsProvider.getAuthorizationSubjects(jwt);
+        final List<AuthorizationSubject> authSubjects = authSubjectsProvider.getAuthorizationSubjects(jwt, dittoHeaders);
         final Map<String, String> additionalHeadersToInject =
                 authSubjectsProvider.getAdditionalHeadersInjectedFromClaims(jwt);
         final DittoHeaders adjustedHeaders;

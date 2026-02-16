@@ -38,6 +38,7 @@ public final class DefaultSubjectIssuerConfig implements SubjectIssuerConfig {
     private final List<String> issuers;
     private final List<String> authSubjectTemplates;
     private final Map<String, String> injectClaimsIntoHeaders;
+    private final List<String> prerequisiteConditions;
 
     private DefaultSubjectIssuerConfig(final String issuerConfigKey, final ConfigWithFallback configWithFallback) {
         final List<String> issuersList =
@@ -61,14 +62,18 @@ public final class DefaultSubjectIssuerConfig implements SubjectIssuerConfig {
                 .entrySet()
                 .stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, e -> String.valueOf(e.getValue())));
+        prerequisiteConditions = configWithFallback.getStringList(
+                SubjectIssuerConfigValue.PREREQUISITE_CONDITIONS.getConfigPath());
     }
 
     private DefaultSubjectIssuerConfig(final Collection<String> issuers,
             final Collection<String> authSubjectTemplates,
-            final Map<String, String> injectClaimsIntoHeaders) {
+            final Map<String, String> injectClaimsIntoHeaders,
+            final Collection<String> prerequisiteConditions) {
         this.issuers = Collections.unmodifiableList(new ArrayList<>(issuers));
         this.authSubjectTemplates = Collections.unmodifiableList(new ArrayList<>(authSubjectTemplates));
         this.injectClaimsIntoHeaders = Collections.unmodifiableMap(new HashMap<>(injectClaimsIntoHeaders));
+        this.prerequisiteConditions = Collections.unmodifiableList(new ArrayList<>(prerequisiteConditions));
     }
 
     /**
@@ -97,11 +102,32 @@ public final class DefaultSubjectIssuerConfig implements SubjectIssuerConfig {
     public static DefaultSubjectIssuerConfig of(final Collection<String> issuers,
             final Collection<String> authSubjectTemplates,
             final Map<String, String> injectClaimsIntoHeaders) {
+        return of(issuers, authSubjectTemplates, injectClaimsIntoHeaders, List.of());
+    }
+
+    /**
+     * Returns a new SubjectIssuerConfig based on the provided strings.
+     *
+     * @param issuers the list of issuers' endpoint {@code issuers}.
+     * @param authSubjectTemplates list of authorizationsubject placeholder strings.
+     * @param injectClaimsIntoHeaders map of header-key to JWT claim placeholder to inject JWT claims into headers.
+     * @param prerequisiteConditions list of prerequisite condition expressions that must be met for a JWT to be accepted.
+     * @return a new SubjectIssuerConfig.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code issuers} or {@code authSubjectTemplates} is empty.
+     * @since 3.9.0
+     */
+    public static DefaultSubjectIssuerConfig of(final Collection<String> issuers,
+            final Collection<String> authSubjectTemplates,
+            final Map<String, String> injectClaimsIntoHeaders,
+            final Collection<String> prerequisiteConditions) {
         checkNotNull(issuers, "issuers");
         argumentNotEmpty(authSubjectTemplates, "authSubjectTemplates");
         checkNotNull(injectClaimsIntoHeaders, "injectClaimsIntoHeaders");
+        checkNotNull(prerequisiteConditions, "prerequisiteConditions");
 
-        return new DefaultSubjectIssuerConfig(issuers, authSubjectTemplates, injectClaimsIntoHeaders);
+        return new DefaultSubjectIssuerConfig(issuers, authSubjectTemplates, injectClaimsIntoHeaders,
+                prerequisiteConditions);
     }
 
     @Override
@@ -120,6 +146,11 @@ public final class DefaultSubjectIssuerConfig implements SubjectIssuerConfig {
     }
 
     @Override
+    public List<String> getPrerequisiteConditions() {
+        return prerequisiteConditions;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -130,12 +161,13 @@ public final class DefaultSubjectIssuerConfig implements SubjectIssuerConfig {
         final DefaultSubjectIssuerConfig that = (DefaultSubjectIssuerConfig) o;
         return Objects.equals(issuers, that.issuers) &&
                 Objects.equals(authSubjectTemplates, that.authSubjectTemplates) &&
-                Objects.equals(injectClaimsIntoHeaders, that.injectClaimsIntoHeaders);
+                Objects.equals(injectClaimsIntoHeaders, that.injectClaimsIntoHeaders) &&
+                Objects.equals(prerequisiteConditions, that.prerequisiteConditions);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(issuers, authSubjectTemplates, injectClaimsIntoHeaders);
+        return Objects.hash(issuers, authSubjectTemplates, injectClaimsIntoHeaders, prerequisiteConditions);
     }
 
     @Override
@@ -144,6 +176,7 @@ public final class DefaultSubjectIssuerConfig implements SubjectIssuerConfig {
                 "issuers=" + issuers +
                 ", authSubjectTemplates=" + authSubjectTemplates +
                 ", injectClaimsIntoHeaders=" + injectClaimsIntoHeaders +
+                ", prerequisiteConditions=" + prerequisiteConditions +
                 "]";
     }
 }

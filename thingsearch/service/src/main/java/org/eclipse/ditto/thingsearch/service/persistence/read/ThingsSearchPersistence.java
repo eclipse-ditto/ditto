@@ -22,6 +22,7 @@ import org.apache.pekko.NotUsed;
 import org.apache.pekko.stream.javadsl.Source;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.IndexInitializationConfig;
 import org.eclipse.ditto.rql.query.Query;
 import org.eclipse.ditto.things.model.ThingId;
@@ -73,6 +74,21 @@ public interface ThingsSearchPersistence {
      * @throws NullPointerException if {@code query} is {@code null}.
      */
     Source<Long, NotUsed> sudoCount(Query query, DittoHeaders dittoHeaders);
+
+    /**
+     * Returns the count of documents found by the given {@code query} regardless of visibility,
+     * using an optional per-query index hint.
+     *
+     * @param query the query for matching.
+     * @param dittoHeaders the headers of the request.
+     * @param indexHint the optional index hint (string for index name, object for index key spec).
+     * @return an {@link Source} which emits the count.
+     * @throws NullPointerException if {@code query} is {@code null}.
+     */
+    default Source<Long, NotUsed> sudoCount(Query query, DittoHeaders dittoHeaders,
+            @Nullable JsonValue indexHint) {
+        return sudoCount(query, dittoHeaders);
+    }
 
     /**
      * Returns the IDs for all found documents.

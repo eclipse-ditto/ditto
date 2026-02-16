@@ -73,7 +73,8 @@ public final class JwtSubjectIssuersConfig {
                                     entry.getKey(),
                                     issuerConfig.getIssuers(),
                                     issuerConfig.getAuthorizationSubjectTemplates(),
-                                    issuerConfig.getInjectClaimsIntoHeaders()
+                                    issuerConfig.getInjectClaimsIntoHeaders(),
+                                    issuerConfig.getPrerequisiteConditions()
                             );
                         })
                         .collect(Collectors.toSet());

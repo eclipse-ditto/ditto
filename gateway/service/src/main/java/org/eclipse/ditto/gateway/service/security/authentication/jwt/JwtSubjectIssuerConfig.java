@@ -37,6 +37,7 @@ public final class JwtSubjectIssuerConfig {
     private final List<String> issuers;
     private final List<String> authSubjectTemplates;
     private final Map<String, String> injectClaimsIntoHeaders;
+    private final List<String> prerequisiteConditions;
 
     private static final List<String> DEFAULT_AUTH_SUBJECT = Collections.singletonList("{{jwt:sub}}");
 
@@ -48,7 +49,7 @@ public final class JwtSubjectIssuerConfig {
      *
      */
     public JwtSubjectIssuerConfig(final SubjectIssuer subjectIssuer, final Collection<String> issuers) {
-        this(subjectIssuer, issuers, DEFAULT_AUTH_SUBJECT, Map.of());
+        this(subjectIssuer, issuers, DEFAULT_AUTH_SUBJECT, Map.of(), List.of());
     }
 
     /**
@@ -63,11 +64,31 @@ public final class JwtSubjectIssuerConfig {
             final Collection<String> issuers,
             final Collection<String> authSubjectTemplates,
             final Map<String, String> injectClaimsIntoHeaders) {
+        this(subjectIssuer, issuers, authSubjectTemplates, injectClaimsIntoHeaders, List.of());
+    }
+
+    /**
+     * Constructs a new {@code JwtSubjectIssuerConfig}.
+     *
+     * @param subjectIssuer the subject issuer.
+     * @param issuers the list of issuers.
+     * @param authSubjectTemplates the authorization subject templates
+     * @param injectClaimsIntoHeaders map of header-key to JWT claim placeholder to inject JWT claims into headers.
+     * @param prerequisiteConditions the prerequisite conditions that must be met for a JWT to be accepted.
+     * @since 3.9.0
+     */
+    public JwtSubjectIssuerConfig(final SubjectIssuer subjectIssuer,
+            final Collection<String> issuers,
+            final Collection<String> authSubjectTemplates,
+            final Map<String, String> injectClaimsIntoHeaders,
+            final Collection<String> prerequisiteConditions) {
         this.subjectIssuer = requireNonNull(subjectIssuer);
         this.issuers = Collections.unmodifiableList(new ArrayList<>(requireNonNull(issuers)));
         this.authSubjectTemplates = Collections.unmodifiableList(new ArrayList<>(requireNonNull(authSubjectTemplates)));
         this.injectClaimsIntoHeaders =
                 Collections.unmodifiableMap(new HashMap<>(requireNonNull(injectClaimsIntoHeaders)));
+        this.prerequisiteConditions =
+                Collections.unmodifiableList(new ArrayList<>(requireNonNull(prerequisiteConditions)));
     }
 
     /**
@@ -106,6 +127,18 @@ public final class JwtSubjectIssuerConfig {
         return injectClaimsIntoHeaders;
     }
 
+    /**
+     * Returns the prerequisite conditions that must be met for a JWT to be accepted.
+     * These conditions are evaluated as placeholder expressions. If any condition resolves to an empty value,
+     * the JWT is rejected with a 401 response.
+     *
+     * @return a list of prerequisite condition expressions.
+     * @since 3.9.0
+     */
+    public List<String> getPrerequisiteConditions() {
+        return prerequisiteConditions;
+    }
+
     @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) return true;
@@ -114,12 +147,14 @@ public final class JwtSubjectIssuerConfig {
         return Objects.equals(issuers, that.issuers) &&
                 Objects.equals(subjectIssuer, that.subjectIssuer) &&
                 Objects.equals(authSubjectTemplates, that.authSubjectTemplates) &&
-                Objects.equals(injectClaimsIntoHeaders, that.injectClaimsIntoHeaders);
+                Objects.equals(injectClaimsIntoHeaders, that.injectClaimsIntoHeaders) &&
+                Objects.equals(prerequisiteConditions, that.prerequisiteConditions);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(issuers, subjectIssuer, authSubjectTemplates, injectClaimsIntoHeaders);
+        return Objects.hash(issuers, subjectIssuer, authSubjectTemplates, injectClaimsIntoHeaders,
+                prerequisiteConditions);
     }
 
     @Override
@@ -129,6 +164,7 @@ public final class JwtSubjectIssuerConfig {
                 ", issuers=" + issuers +
                 ", authSubjectTemplates=" + authSubjectTemplates +
                 ", injectClaimsIntoHeaders=" + injectClaimsIntoHeaders +
+                ", prerequisiteConditions=" + prerequisiteConditions +
                 "]";
     }
 

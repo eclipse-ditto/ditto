@@ -84,7 +84,7 @@ public final class OperatorAggregateMetricsProviderActor extends AbstractActorWi
         this.customSearchMetricConfigMap.forEach(
                 (metricName, customSearchMetricConfig) -> initializeCustomMetricTimer(metricName,
                         customSearchMetricConfig,
-                        getMaxConfiguredScrapeInterval(searchConfig.getOperatorMetricsConfig())));
+                        searchConfig.getOperatorMetricsConfig().getScrapeInterval()));
         initializeCustomMetricsCleanupTimer(searchConfig.getOperatorMetricsConfig());
     }
 
@@ -134,7 +134,7 @@ public final class OperatorAggregateMetricsProviderActor extends AbstractActorWi
 
         final AggregateThingsMetrics
                 aggregateThingsMetrics = AggregateThingsMetrics.of(metricName, config.getGroupBy(), config.getFilter().orElse(null),
-                config.getNamespaces(), dittoHeaders);
+                config.getNamespaces(), config.getIndexHint().orElse(null), dittoHeaders);
         aggregateThingsMetricsActorSingletonProxy.tell(aggregateThingsMetrics, getSelf());
     }
 
@@ -232,11 +232,13 @@ public final class OperatorAggregateMetricsProviderActor extends AbstractActorWi
     }
 
     private void initializeCustomMetricTimer(final String metricName, final CustomAggregationMetricConfig config,
-            final Duration scrapeInterval) {
+            final Duration defaultScrapeInterval) {
         if (!config.isEnabled()) {
             log.info("Custom search metric Gauge for metric <{}> is DISABLED. Skipping init.", metricName);
             return;
         }
+        final Duration scrapeInterval = config.getScrapeInterval()
+                .orElse(defaultScrapeInterval);
         // start each custom metric provider with a random initialDelay
         final Duration initialDelay = Duration.ofSeconds(
                 ThreadLocalRandom.current().nextInt(MIN_INITIAL_DELAY_SECONDS, MAX_INITIAL_DELAY_SECONDS)

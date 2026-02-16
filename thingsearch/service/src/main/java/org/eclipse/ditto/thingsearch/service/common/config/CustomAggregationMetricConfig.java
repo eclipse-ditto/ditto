@@ -13,6 +13,7 @@
 package org.eclipse.ditto.thingsearch.service.common.config;
 
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
+import org.eclipse.ditto.json.JsonValue;
 
 import java.time.Duration;
 import java.util.List;
@@ -77,6 +78,14 @@ public interface CustomAggregationMetricConfig {
      */
     Optional<String> getFilter();
 
+    /**
+     * Returns the optional index hint to use for the MongoDB aggregation of this custom metric.
+     * The hint can be either a string (index name) or a JSON object (index key specification).
+     *
+     * @return the optional index hint.
+     */
+    Optional<JsonValue> getIndexHint();
+
     enum CustomSearchMetricConfigValue implements KnownConfigValue {
         /**
          * Whether the metrics should be gathered.
@@ -108,7 +117,12 @@ public interface CustomAggregationMetricConfig {
         /**
          * The filter for this custom metric.
          */
-        FILTER("filter", "");
+        FILTER("filter", ""),
+
+        /**
+         * The optional index hint for the MongoDB aggregation (string index name or object index key spec).
+         */
+        INDEX_HINT("index-hint", null);
 
         private final String path;
         private final Object defaultValue;

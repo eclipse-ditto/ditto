@@ -324,12 +324,18 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
 
                             final Source<Long, NotUsed> countResultSource =
                                     DittoJsonException.wrapJsonRuntimeException(query, tracedCountCommand.getDittoHeaders(),
-                                            (theQuery, headers) -> isSudo
-                                                    ? searchPersistence.sudoCount(theQuery, headers)
-                                                    : searchPersistence.count(theQuery,
-                                                    headers.getAuthorizationContext().getAuthorizationSubjectIds(),
-                                                    headers
-                                            )
+                                            (theQuery, headers) -> {
+                                                if (isSudo && tracedCountCommand instanceof SudoCountThings sudoCmd) {
+                                                    return searchPersistence.sudoCount(theQuery, headers,
+                                                            sudoCmd.getIndexHint().orElse(null));
+                                                } else if (isSudo) {
+                                                    return searchPersistence.sudoCount(theQuery, headers);
+                                                } else {
+                                                    return searchPersistence.count(theQuery,
+                                                            headers.getAuthorizationContext().getAuthorizationSubjectIds(),
+                                                            headers);
+                                                }
+                                            }
                                     );
 
                             return processSearchPersistenceResult(countResultSource, dittoHeaders)
