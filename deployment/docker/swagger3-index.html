@@ -42,47 +42,39 @@
 
 <script src="./swagger-ui-bundle.js"> </script>
 <script src="./swagger-ui-standalone-preset.js"> </script>
+<script src="./swagger-oidc.js"> </script>
 <script>
-    window.onload = function() {
-
-        const ui = SwaggerUIBundle({
-                                       urls: [
-                                           {url: "/apidoc/openapi/ditto-api-2.yml", name:"Ditto API v2"}
-                                       ],
-                                       "urls.primaryName": "Ditto API v2",
-                                       validatorUrl: null,
-                                       docExpansion: "none",
-                                       dom_id: '#swagger-ui',
-                                       deepLinking: true,
-                                       presets: [
-                                           SwaggerUIBundle.presets.apis,
-                                           SwaggerUIStandalonePreset
-                                       ],
-                                       plugins: [
-                                           SwaggerUIBundle.plugins.DownloadUrl
-                                       ],
-                                       layout: "StandaloneLayout",
-                                       oauth2RedirectUrl: window.location.origin + "/apidoc/oauth2-redirect.html",
-                                       onComplete: function () {
-                                           ui.preauthorizeBasic("NginxBasic", "ditto", "ditto");
-                                       }
-                                   });
-
-        ui.initOAuth({
-                         clientId: "853201765597-7nmcpg90krhogd9375dl44sse4tup0gj.apps.googleusercontent.com",
-                         clientSecret: "<leave that empty>",
-                         realm: "eclipse-ditto",
-                         appName: "Eclipse Ditto :: Sandbox",
-                         scopeSeparator: " ",
-                         scopes: "openid",
-                         additionalQueryStringParams: {
-                         }
-                     });
-
-        window.ui = ui;
+    window.onload = async function() {
+        const isApidoc = window.location.pathname.startsWith("/apidoc");
+        const openApiPath = isApidoc ? "/apidoc/openapi/ditto-api-2.yml" : "/openapi/ditto-api-2.yml";
+        const oauth2RedirectPath = isApidoc ? "/apidoc/oauth2-redirect.html" : "/oauth2-redirect.html";
+        await SwaggerOidc.initSwaggerUiWithOidc({
+            specUrl: openApiPath,
+            openApiFileName: "ditto-api-2.yml",
+            oauth2RedirectPath: oauth2RedirectPath,
+            preauthorizeBasic: {
+                name: "NginxBasic",
+                username: "ditto",
+                password: "ditto"
+            },
+            oauth: {
+                mode: "always",
+                useOidcClientId: true,
+                useOidcScopes: true,
+                config: {
+                    clientId: "",
+                    realm: "eclipse-ditto",
+                    appName: "Eclipse Ditto",
+                    scopeSeparator: " ",
+                    scopes: "openid",
+                    usePkceWithAuthorizationCodeGrant: true,
+                    additionalQueryStringParams: {
+                    }
+                }
+            }
+        });
     }
 </script>
 </body>
 
 </html>
-

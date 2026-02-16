@@ -35,8 +35,7 @@ tags:
   - name: Devops
     description: Devops APIs to manage log levels and configuration in runtime and send piggyback command
 security:
-  - Google:
-      - openid
+  - OpenIDConnect: []
   - NginxBasic: []
   - Bearer: []
 paths:
@@ -11301,16 +11300,10 @@ components:
       scheme: bearer
       bearerFormat: JWT
       description: A JSON Web Token issued by a supported OAuth 2.0 Identity Provider.
-    Google:
-      type: oauth2
-      description: Allow Eclipse Ditto to perform OAuth2.0 based authentication accessing your Google-ID.
-      x-tokenName: id_token
-      flows:
-        authorizationCode:
-          authorizationUrl: 'https://accounts.google.com/o/oauth2/v2/auth'
-          tokenUrl: /oauth2/google/token
-          scopes:
-            openid: Access your Google-ID
+    OpenIDConnect:
+      type: openIdConnect
+      description: OpenID Connect Discovery URL. The placeholder is replaced by Swagger UI when configured.
+      openIdConnectUrl: "__OIDC_DISCOVERY_URL__"
     DevOpsBasic:
       type: http
       description: Eclipse Ditto devops user (devops) + password (foobar)

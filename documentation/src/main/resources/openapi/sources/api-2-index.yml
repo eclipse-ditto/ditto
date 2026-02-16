@@ -48,8 +48,7 @@ tags:
     description: Devops APIs to manage log levels and configuration in runtime and send piggyback command
 
 security:
-  - Google:
-      - openid
+  - OpenIDConnect: []
   - NginxBasic: [ ]
   - Bearer: [ ]
 
@@ -535,8 +534,8 @@ components:
       $ref: "./security/nginxBasic.yml"
     Bearer:
       $ref: "./security/bearerAuth.yml"
-    Google:
-      $ref: "./security/google.yml"
+    OpenIDConnect:
+      $ref: "./security/openIdConnect.yml"
     DevOpsBasic:
       $ref: "./security/devOpsBasic.yml"
     DevOpsBearer:
