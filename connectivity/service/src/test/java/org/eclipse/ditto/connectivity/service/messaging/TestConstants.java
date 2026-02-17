@@ -409,7 +409,7 @@ public final class TestConstants {
                                 .build(),
                         ConnectivityModelFactory.newSourceBuilder()
                                 .address("source1")
-                                .authorizationContext(Authorization.SOURCE_SPECIFIC_CONTEXT)
+                                .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
                                 .consumerCount(1)
                                 .index(1)
                                 .build());

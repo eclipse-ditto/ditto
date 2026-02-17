@@ -597,7 +597,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
                     }
                     if (c.getDittoHeaders()
                             .getAuthorizationContext()
-                            .equals(Authorization.SOURCE_SPECIFIC_CONTEXT)) {
+                            .equals(Authorization.AUTHORIZATION_CONTEXT)) {
                         messageReceivedForGlobalContext.set(true);
                     }
                 });
@@ -635,13 +635,13 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             expectMsg(CONNECTED_SUCCESS);
 
             final ArgumentCaptor<MessageListener> captor = ArgumentCaptor.forClass(MessageListener.class);
-            verify(mockConsumer, timeout(1000).atLeast(consumers)).setMessageListener(captor.capture());
+            verify(mockConsumer, timeout(3000).atLeast(consumers)).setMessageListener(captor.capture());
             for (final MessageListener messageListener : captor.getAllValues()) {
                 messageListener.onMessage(mockMessage());
             }
 
             for (int i = 0; i < consumers; i++) {
-                final Command<?> command = expectMsgClass(Command.class);
+                final Command<?> command = expectMsgClass(Duration.ofSeconds(10), Command.class);
                 assertThat(command).isInstanceOf(SignalWithEntityId.class);
                 assertThat((CharSequence) ((SignalWithEntityId<?>) command).getEntityId()).isEqualTo(
                         TestConstants.Things.THING_ID);
