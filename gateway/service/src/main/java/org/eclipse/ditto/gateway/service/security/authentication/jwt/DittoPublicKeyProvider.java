@@ -162,7 +162,17 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
         argumentNotNull(issuer);
         argumentNotNull(keyId);
 
-        return publicKeyCache.get(PublicKeyIdWithIssuer.of(keyId, issuer));
+        final PublicKeyIdWithIssuer cacheKey = PublicKeyIdWithIssuer.of(keyId, issuer);
+        return publicKeyCache.get(cacheKey)
+                .thenApply(result -> {
+                    if (result.isEmpty()) {
+                        // Explicitly invalidate so that subsequent lookups trigger a fresh load.
+                        // Caffeine removes null-valued entries asynchronously, which can race with
+                        // the next get() call and return a stale empty result.
+                        publicKeyCache.invalidate(cacheKey);
+                    }
+                    return result;
+                });
     }
 
     /* this method is used to asynchronously load the public key into the cache */

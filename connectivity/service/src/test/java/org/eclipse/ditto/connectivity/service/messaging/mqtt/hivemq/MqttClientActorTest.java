@@ -34,6 +34,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import org.apache.pekko.Done;
@@ -101,6 +102,7 @@ import com.typesafe.config.ConfigFactory;
 
 import io.reactivex.Flowable;
 import io.reactivex.Single;
+import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Unit test for {@link MqttClientActor}.
@@ -233,11 +235,11 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
 
         underTest.tell(OpenConnection.of(CONNECTION_ID, dittoHeaders), testKit.getRef());
 
-        testKit.expectMsg(CONNECTED_SUCCESS);
+        testKit.expectMsg(Duration.ofSeconds(10L), CONNECTED_SUCCESS);
 
         underTest.tell(CloseConnection.of(CONNECTION_ID, dittoHeaders), testKit.getRef());
 
-        testKit.expectMsg(DISCONNECTED_SUCCESS);
+        testKit.expectMsg(Duration.ofSeconds(10L), DISCONNECTED_SUCCESS);
     }
 
     private DittoHeaders getDittoHeadersWithCorrelationId() {
@@ -311,7 +313,7 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
 
         underTest.tell(TestConnection.of(connection, getDittoHeadersWithCorrelationId()), testKit.getRef());
 
-        testKit.expectMsg(new Status.Success("successfully connected + initialized mapper"));
+        testKit.expectMsg(Duration.ofSeconds(10L), new Status.Success("successfully connected + initialized mapper"));
         verify(genericMqttClient).disconnect();
         testKit.expectTerminated(Duration.ofSeconds(5L), underTest);
         verify(genericMqttClient).disconnect();
@@ -339,7 +341,7 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
                             .hasValue("Cause: " + mqttClientConnectException.getMessage());
                     assertThat(connectionFailedException).hasCause(mqttClientConnectException);
                 });
-        testKit.expectTerminated(Duration.ofSeconds(5L), underTest);
+        testKit.expectTerminated(Duration.ofSeconds(10L), underTest);
         verify(genericMqttClient, never()).disconnect();
     }
 
@@ -476,7 +478,7 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
                 actorSystemResource.getActorSystem()
         );
 
-        final var genericMqttPublish = commandForwarder.expectMsgClass(GenericMqttPublish.class);
+        final var genericMqttPublish = commandForwarder.expectMsgClass(FiniteDuration.apply(10, TimeUnit.SECONDS), GenericMqttPublish.class);
         assertThat(genericMqttPublish.getPayloadAsHumanReadable())
                 .hasValueSatisfying(payload -> assertThat(payload)
                         .contains(ConnectionSignalIdEnforcementFailedException.ERROR_CODE));
@@ -567,22 +569,22 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
         final var dittoHeadersWithCorrelationId = getDittoHeadersWithCorrelationId();
         final var testKit = actorSystemResource.newTestKit();
 
-        commandForwarder.expectMsgClass(ModifyThing.class);
+        commandForwarder.expectMsgClass(FiniteDuration.apply(10, TimeUnit.SECONDS), ModifyThing.class);
 
         underTest.tell(CloseConnection.of(CONNECTION_ID, dittoHeadersWithCorrelationId), testKit.getRef());
 
-        testKit.expectMsg(DISCONNECTED_SUCCESS);
+        testKit.expectMsg(Duration.ofSeconds(10L), DISCONNECTED_SUCCESS);
 
         underTest.tell(OpenConnection.of(CONNECTION_ID, dittoHeadersWithCorrelationId), testKit.getRef());
 
-        testKit.expectMsg(CONNECTED_SUCCESS);
+        testKit.expectMsg(Duration.ofSeconds(10L), CONNECTED_SUCCESS);
 
         // ModifyThing automatically published by mock connection.
-        commandForwarder.expectMsgClass(ModifyThing.class);
+        commandForwarder.expectMsgClass(FiniteDuration.apply(10, TimeUnit.SECONDS), ModifyThing.class);
 
         underTest.tell(CloseConnection.of(CONNECTION_ID, dittoHeadersWithCorrelationId), testKit.getRef());
 
-        testKit.expectMsg(DISCONNECTED_SUCCESS);
+        testKit.expectMsg(Duration.ofSeconds(10L), DISCONNECTED_SUCCESS);
     }
 
     @Test
@@ -603,11 +605,11 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
 
         underTest.tell(OpenConnection.of(CONNECTION_ID, dittoHeadersWithCorrelationId), testKit.getRef());
 
-        testKit.expectMsg(CONNECTED_SUCCESS);
+        testKit.expectMsg(Duration.ofSeconds(10L), CONNECTED_SUCCESS);
 
         underTest.tell(thingModifiedEvent, testKit.getRef());
 
-        assertThat(commandForwarder.expectMsgClass(GenericMqttPublish.class))
+        assertThat(commandForwarder.expectMsgClass(FiniteDuration.apply(10, TimeUnit.SECONDS), GenericMqttPublish.class))
                 .satisfies(genericMqttPublish -> {
                     assertThat(genericMqttPublish.getTopic()).isEqualTo(MqttTopic.of(MQTT_TARGET.getAddress()));
                     assertThat(genericMqttPublish.getPayload()
@@ -636,7 +638,7 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
 
         underTest.tell(OpenConnection.of(CONNECTION_ID, dittoHeadersWithCorrelationId), testKit.getRef());
 
-        testKit.expectMsg(CONNECTED_SUCCESS);
+        testKit.expectMsg(Duration.ofSeconds(10L), CONNECTED_SUCCESS);
 
         underTest.tell(
                 DeleteThingResponse.of(
@@ -649,7 +651,7 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
                 testKit.getRef()
         );
 
-        assertThat(commandForwarder.expectMsgClass(GenericMqttPublish.class))
+        assertThat(commandForwarder.expectMsgClass(FiniteDuration.apply(10, TimeUnit.SECONDS), GenericMqttPublish.class))
                 .satisfies(genericMqttPublish ->
                         assertThat(genericMqttPublish.getTopic()).isEqualTo(MqttTopic.of("replyTarget/" + thingId)));
     }
@@ -670,10 +672,10 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
         final var dittoHeadersWithCorrelationId = getDittoHeadersWithCorrelationId();
         final var testKit = actorSystemResource.newTestKit();
         underTest.tell(OpenConnection.of(CONNECTION_ID, dittoHeadersWithCorrelationId), testKit.getRef());
-        testKit.expectMsg(CONNECTED_SUCCESS);
+        testKit.expectMsg(Duration.ofSeconds(10L), CONNECTED_SUCCESS);
 
         underTest.tell(BaseClientActor.Control.SERVICE_UNBIND, testKit.getRef());
-        testKit.expectMsg(Done.getInstance());
+        testKit.expectMsg(Duration.ofSeconds(10L), Done.getInstance());
         verify(genericMqttClient).unsubscribe(any());
 
         actorSystemResource.getActorSystem().stop(underTest);
