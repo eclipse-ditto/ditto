@@ -95,6 +95,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.datatypes.MqttTopic;
+import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import io.reactivex.Flowable;
@@ -192,6 +193,14 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
         return connectionBuilder.build();
     }
 
+    private static final Config CONNECTIVITY_CONFIG_OVERWRITES = ConfigFactory.parseString("""
+            ditto.connectivity.connection.client {
+                connecting-min-timeout = 60s
+                connecting-max-timeout = 60s
+                testing-timeout = 60s
+            }
+            """);
+
     @Override
     protected Props createClientActor(final ActorRef commandForwarder, final Connection connection) {
         when(genericMqttClientFactory.getGenericMqttClient(any())).thenReturn(genericMqttClient);
@@ -200,7 +209,7 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
                 connectionActor.ref(),
                 genericMqttClientFactory,
                 DittoHeaders.empty(),
-                ConfigFactory.empty());
+                CONNECTIVITY_CONFIG_OVERWRITES);
     }
 
     @Override
