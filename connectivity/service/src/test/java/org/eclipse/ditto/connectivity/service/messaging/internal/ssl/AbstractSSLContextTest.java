@@ -20,7 +20,6 @@ import static org.mockito.Mockito.mock;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.concurrent.CompletableFuture;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLHandshakeException;
@@ -250,11 +249,11 @@ public abstract class AbstractSSLContextTest {
 
         serverSocket.setNeedClientAuth(needClientAuth);
 
-        CompletableFuture.runAsync(() -> {
+        Thread.ofPlatform().daemon(true).start(() -> {
             while (true) {
                 try {
                     final Socket socket = serverSocket.accept();
-                    CompletableFuture.runAsync(() -> {
+                    Thread.ofPlatform().daemon(true).start(() -> {
                         try {
                             socket.getOutputStream().write(socket.getInputStream().read());
                         } catch (final IOException e) {
