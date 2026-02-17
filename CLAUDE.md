@@ -4,152 +4,73 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Eclipse Ditto is a digital twin framework for IoT, implementing a microservices architecture using Apache Pekko (an Akka fork maintained by the Apache Software Foundation), event sourcing, and CQRS patterns. The codebase is primarily Java 21 with Maven as the build system.
+Eclipse Ditto is a digital twin framework for IoT, implementing a microservices architecture using Apache Pekko (an Akka fork maintained by the Apache Software Foundation), event sourcing, and CQRS patterns. The codebase is primarily Java 25 with Maven as the build system.
 
-## Quick Reference
+Five microservices communicate via Pekko Cluster (no HTTP between services): **Things**, **Policies**, **Gateway**, **Connectivity**, and **Things-Search**. Key patterns: Event Sourcing via `AbstractPersistenceActor`, CQRS with Strategy pattern, Pekko Cluster Sharding by entity ID.
 
-This repository is organized with detailed context in the `.claude/context/` directory. Each file covers a specific aspect of working with Ditto.
+## Build & Test Commands
 
-### Essential Documentation
+```bash
+# Build without tests (fast)
+mvn clean install -DskipTests
 
-📖 **[Build & Test Commands](.claude/context/build-and-test.md)**
-- How to build the project
-- Running tests (unit, integration, specific tests)
-- Local development environment setup
-- Code quality checks
+# Run tests for a module (always use -T4 for parallel execution)
+mvn test -T4 -pl things/service
 
-🏗️ **[Architecture Overview](.claude/context/architecture.md)**
-- Core microservices and their responsibilities
-- Inter-service communication patterns
-- Key architectural patterns (Event Sourcing, CQRS, Actor Supervision)
-- Technology stack
+# Run a specific test class / method
+mvn test -T4 -Dtest=ThingPersistenceActorTest
+mvn test -T4 -Dtest=ThingPersistenceActorTest#testCreateThing
 
-🎚️ **[Feature Toggle System](.claude/context/feature-toggles.md)** ⚠️ **CRITICAL**
-- Why feature toggles are required for new features
-- How to add a feature toggle
-- Configuration and usage
+# Run integration tests
+mvn verify -T4 -pl connectivity/service
 
-💻 **[Code Patterns & Conventions](.claude/context/code-patterns.md)** ⚠️ **Java 8 for API modules**
-- Signal pattern (Commands/Events/Responses)
-- Immutable model objects
-- Persistence actor pattern
-- **Actor concurrency** - NEVER block or modify state in CompletableFuture lambdas
-- **Java 8 compatibility for public API modules** (model, protocol, json, rql)
-- **Configuration management** (HOCON + Helm updates required)
-- Test organization
-- Naming conventions
-- License headers
-- Code style guide
+# Check/fix license headers
+mvn license:check
+mvn license:format
 
-🔀 **[Git Workflow](.claude/context/git-workflow.md)** ⚠️ **CRITICAL**
-- Eclipse Foundation contribution requirements (ECA, signed commits)
-- GitHub issue-first development process
-- PR creation and approval workflow
-- Commit message format
-
-📦 **[Module Structure](.claude/context/modules.md)**
-- Repository organization
-- Core modules and their purposes
-- Module dependencies
-
-🔧 **[Troubleshooting](.claude/context/troubleshooting.md)**
-- Common build issues
-- Test failures
-- Docker/deployment problems
-- Runtime issues
-
-📚 **[Documentation Sources](.claude/context/documentation-sources.md)**
-- Main documentation pages (architecture, concepts, APIs)
-- OpenAPI specifications
-- JSON schemas
-- Architecture Decision Records (ADRs)
-
-🚀 **[Deployment Options](.claude/context/deployment.md)**
-- Helm deployment (production-ready, actively maintained)
-- Docker Compose (local development)
-- Kubernetes, OpenShift, Azure options
-- Monitoring and operations (Grafana, Prometheus)
-
-### Architecture Deep Dives
-
-🔬 **[Deep Dives](.claude/deep-dives/)** - Core architecture and design decisions
-- **Start here**: [README.md](.claude/deep-dives/README.md) - Guide to deep-dive documents
-- Key topics: Concierge removal, twin updates/events, pub/sub, serialization, acknowledgements
-- Cross-cutting concerns: Authorization, enrichment, placeholders, connections
-- Use when: Understanding architectural decisions, debugging complex flows, working on core features
-
-📄 **[Extended Docs](.claude/docs/)** - Feature-specific documentation
-- Query & Search: RQL syntax, search service architecture
-- Messaging: Live messaging patterns
-- Connections: Kafka, payload mapping, log forwarding
-- Specialized features: WoT integration, OSS process
-
-## Getting Started
-
-1. **First Time Setup**: Read [Build & Test](.claude/context/build-and-test.md) to set up your environment
-2. **Understand the System**: Review [Architecture](.claude/context/architecture.md) for the big picture
-3. **Deep Dive**: Consult [Documentation Sources](.claude/context/documentation-sources.md) for detailed concepts
-4. **Deployment**: Check [Deployment Options](.claude/context/deployment.md) for running Ditto
-5. **Before Contributing**: Read [Git Workflow](.claude/context/git-workflow.md) for contribution requirements
-6. **Writing Code**: Follow [Code Patterns](.claude/context/code-patterns.md) for consistency
-7. **Adding Features**: Always use [Feature Toggles](.claude/context/feature-toggles.md)
+# Start local Ditto via Docker Compose
+cd deployment/docker/ && docker-compose up -d
+```
 
 ## Key Requirements
 
-### For Contributors
+1. **Feature toggles** for new features changing existing behavior - see [feature-toggles.md](.claude/context/feature-toggles.md)
+2. **Java 8 syntax** in public API modules (model, protocol, json, rql) - see [code-patterns.md](.claude/context/code-patterns.md)
+3. **Backward compatibility** in model modules - these are public API
+4. **Helm updates** when adding HOCON configuration - see [code-patterns.md](.claude/context/code-patterns.md)
+5. **`@since` version tag** on new public API - ask the user for the version number
+6. **Unit tests** covering happy path AND corner cases (use Pekko TestKit for actors)
+7. **License headers** on all new files (EPL 2.0, current year)
+8. **Actor concurrency** - NEVER block or modify state in CompletableFuture lambdas - see [code-patterns.md](.claude/context/code-patterns.md)
 
-⚠️ **MUST DO** before contributing:
-1. Sign Eclipse Contributor Agreement (ECA)
-2. Create GitHub issue before starting work
-3. Use feature toggles for new features which would change behavior of existing functionality
-4. Sign all commits with `-s` flag
-5. Include license headers in new files
-6. **Maintain backward compatibility in model modules** (`things/model`, `policies/model`, etc.) - these are public API
-7. **Use Java 8 syntax in public API modules** - see [Code Patterns](.claude/context/code-patterns.md#java-version-compatibility)
-8. **Update Helm when adding configuration** - changes to HOCON config require corresponding Helm updates in `deployment/helm/ditto/`
-9. **Ask for `@since` version** - when adding public API (classes/methods in model modules), ask the user for the version number
-10. **Provide unit tests** - always include tests for generated code, covering happy path AND corner cases (use Pekko TestKit for actors)
+## Contribution Workflow
 
-### Main Branch
+1. Create GitHub issue before starting work
+2. Create draft PR early for feedback
+3. Branch naming: `feature/<desc>`, `bugfix/<desc>`, `refactor/<desc>`
+4. Base branch: `master`
 
-Use `master` as the base branch for all PRs.
+See [git-workflow.md](.claude/context/git-workflow.md) for full details.
 
-## Quick Commands
+## Context Files
 
-```bash
-# Build everything
-mvn clean install
+Detailed guidance lives in `.claude/context/`:
 
-# Build without tests
-mvn clean install -DskipTests
+- **[architecture.md](.claude/context/architecture.md)** - Service details, inter-service communication, technology stack
+- **[code-patterns.md](.claude/context/code-patterns.md)** - Signals, persistence actors, actor concurrency, Java 8 modules, config management, WoT ThingModels, code style
+- **[modules.md](.claude/context/modules.md)** - Repository structure, module dependencies, backward compatibility
+- **[feature-toggles.md](.claude/context/feature-toggles.md)** - How to add and use feature toggles
+- **[build-and-test.md](.claude/context/build-and-test.md)** - Complete build, test, and Docker commands
+- **[git-workflow.md](.claude/context/git-workflow.md)** - ECA, commit format, PR process, branch naming
+- **[deployment.md](.claude/context/deployment.md)** - Helm, Docker Compose, Kubernetes deployment
+- **[troubleshooting.md](.claude/context/troubleshooting.md)** - Common build, test, Docker, and runtime issues
+- **[documentation-sources.md](.claude/context/documentation-sources.md)** - OpenAPI specs, JSON schemas, ADRs
 
-# Run tests for a module
-mvn test -pl things/service
-
-# Start local Ditto
-cd deployment/docker/ && docker-compose up -d
-
-# Check license headers
-mvn license:check
-```
-
-See [Build & Test Commands](.claude/context/build-and-test.md) for complete command reference.
+For architecture deep dives, see [.claude/deep-dives/README.md](.claude/deep-dives/README.md).
 
 ## Project Resources
 
 - **Documentation**: https://www.eclipse.dev/ditto/
 - **Explorer UI**: https://eclipse-ditto.github.io/ditto/
 - **GitHub Issues**: https://github.com/eclipse-ditto/ditto/issues
-- **Gitter Chat**: https://gitter.im/eclipse/ditto
 - **System Tests**: https://github.com/eclipse-ditto/ditto-testing
-
-## Questions or Issues?
-
-1. Check [Troubleshooting](.claude/context/troubleshooting.md) for common problems
-2. Search [GitHub Issues](https://github.com/eclipse-ditto/ditto/issues)
-3. Ask on [Gitter Chat](https://gitter.im/eclipse/ditto)
-4. Create a new GitHub issue with details
-
----
-
-**Note**: This is a high-level overview. For detailed information, see the specific context files in `.claude/context/`.

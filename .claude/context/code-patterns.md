@@ -227,11 +227,11 @@ public final class ThingPersistenceActor
 
 ### Rules for CompletableFuture in Actors
 
-| Rule | Reason |
-|------|--------|
-| **NEVER call `.join()` or `.get()`** | Blocks the actor thread, causing deadlocks and starvation |
-| **NEVER modify actor state in lambdas** | Lambdas run on different threads, breaking actor isolation |
-| **Use `Patterns.pipe()` to send results** | Ensures result is processed on the actor's thread |
+| Rule                                      | Reason                                                     |
+|-------------------------------------------|------------------------------------------------------------|
+| **NEVER call `.join()` or `.get()`**      | Blocks the actor thread, causing deadlocks and starvation  |
+| **NEVER modify actor state in lambdas**   | Lambdas run on different threads, breaking actor isolation |
+| **Use `Patterns.pipe()` to send results** | Ensures result is processed on the actor's thread          |
 
 ### ❌ WRONG: Blocking the Actor Thread
 
@@ -333,14 +333,14 @@ public Receive createReceive() {
 
 ### What to Test
 
-| Category | Examples |
-|----------|----------|
-| **Happy path** | Valid inputs, successful operations |
-| **Null/empty** | `null` values, empty strings, empty collections |
-| **Boundaries** | Min/max values, zero, size limits |
-| **Invalid inputs** | Malformed data, invalid formats |
-| **Error conditions** | Expected exceptions, error responses |
-| **Edge cases** | Unicode, special characters, concurrent access |
+| Category             | Examples                                        |
+|----------------------|-------------------------------------------------|
+| **Happy path**       | Valid inputs, successful operations             |
+| **Null/empty**       | `null` values, empty strings, empty collections |
+| **Boundaries**       | Min/max values, zero, size limits               |
+| **Invalid inputs**   | Malformed data, invalid formats                 |
+| **Error conditions** | Expected exceptions, error responses            |
+| **Edge cases**       | Unicode, special characters, concurrent access  |
 
 ### Example: Unit Test with Corner Cases
 
@@ -415,15 +415,15 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
 The Things API provides direct access to any part of a Thing's JSON structure:
 
-| API Path | Returns JSON at |
-|----------|-----------------|
-| `GET /api/2/things/{thingId}` | Root Thing object |
-| `GET /api/2/things/{thingId}/attributes` | `attributes` field |
-| `GET /api/2/things/{thingId}/attributes/location` | `attributes.location` value |
-| `GET /api/2/things/{thingId}/features` | `features` field |
-| `GET /api/2/things/{thingId}/features/{featureId}` | `features.{featureId}` object |
-| `GET /api/2/things/{thingId}/features/{featureId}/properties` | `features.{featureId}.properties` |
-| `GET /api/2/things/{thingId}/features/{featureId}/properties/temperature` | `features.{featureId}.properties.temperature` value |
+| API Path                                                                  | Returns JSON at                                      |
+|---------------------------------------------------------------------------|------------------------------------------------------|
+| `GET /api/2/things/{thingId}`                                             | Root Thing object                                    |
+| `GET /api/2/things/{thingId}/attributes`                                  | `attributes` field                                   |
+| `GET /api/2/things/{thingId}/attributes/location`                         | `attributes.location` value                          |
+| `GET /api/2/things/{thingId}/features`                                    | `features` field                                     |
+| `GET /api/2/things/{thingId}/features/{featureId}`                        | `features.{featureId}` object                        |
+| `GET /api/2/things/{thingId}/features/{featureId}/properties`             | `features.{featureId}.properties`                    |
+| `GET /api/2/things/{thingId}/features/{featureId}/properties/temperature` | `features.{featureId}.properties.temperature` value  |
 
 ### Design Implications
 
@@ -468,13 +468,13 @@ Use a separate API root (`/api/2/{feature}/...`) when:
 - **Access pattern**: `DefaultScopedConfig.dittoScoped()` for service-specific config
 
 **Service config files:**
-| Service | Config File |
-|---------|-------------|
-| Gateway | `gateway/service/src/main/resources/gateway.conf` |
-| Things | `things/service/src/main/resources/things.conf` |
-| Policies | `policies/service/src/main/resources/policies.conf` |
-| Connectivity | `connectivity/service/src/main/resources/connectivity.conf` |
-| Search | `thingsearch/service/src/main/resources/search.conf` |
+| Service          | Config File                                                |
+|------------------|------------------------------------------------------------|
+| Gateway          | `gateway/service/src/main/resources/gateway.conf`          |
+| Things           | `things/service/src/main/resources/things.conf`            |
+| Policies         | `policies/service/src/main/resources/policies.conf`        |
+| Connectivity     | `connectivity/service/src/main/resources/connectivity.conf` |
+| Search           | `thingsearch/service/src/main/resources/search.conf`       |
 
 **Shared infrastructure configs:**
 - `internal/utils/config/src/main/resources/ditto-mongo.conf` - MongoDB settings
@@ -650,7 +650,7 @@ Key style rules:
 
 ## Java Version Compatibility
 
-⚠️ **CRITICAL**: While the project defaults to **Java 21**, public API modules MUST use **Java 8** source compatibility.
+⚠️ **CRITICAL**: While the project defaults to **Java 25**, public API modules MUST use **Java 8** source compatibility.
 
 ### Why Java 8 for Public API?
 
@@ -660,21 +660,21 @@ These modules are published as OSGi bundles and used by external clients who may
 
 **DO NOT use Java 9+ features in these modules:**
 
-| Category | Modules |
-|----------|---------|
-| **JSON** | `json`, `json-cbor` |
-| **Utilities** | `utils/jsr305` |
-| **Protocol** | `protocol` |
-| **Messages** | `messages/model` |
-| **Placeholders** | `placeholders` |
-| **Base Model** | `base/model` |
-| **Things** | `things/model` |
-| **Policies** | `policies/model` |
-| **Connectivity** | `connectivity/model` |
-| **JWT** | `jwt/model` |
-| **WoT** | `wot/model` |
-| **Search** | `thingsearch/model` |
-| **RQL** | `rql/model`, `rql/parser`, `rql/query`, `rql/search-option-parser` |
+| Category         | Modules                                                            |
+|------------------|--------------------------------------------------------------------|
+| **JSON**         | `json`, `json-cbor`                                                |
+| **Utilities**    | `utils/jsr305`                                                     |
+| **Protocol**     | `protocol`                                                         |
+| **Messages**     | `messages/model`                                                   |
+| **Placeholders** | `placeholders`                                                     |
+| **Base Model**   | `base/model`                                                       |
+| **Things**       | `things/model`                                                     |
+| **Policies**     | `policies/model`                                                   |
+| **Connectivity** | `connectivity/model`                                               |
+| **JWT**          | `jwt/model`                                                        |
+| **WoT**          | `wot/model`                                                        |
+| **Search**       | `thingsearch/model`                                                |
+| **RQL**          | `rql/model`, `rql/parser`, `rql/query`, `rql/search-option-parser` |
 
 ### Java Features to AVOID in Java 8 Modules
 
@@ -712,9 +712,9 @@ if (obj instanceof String) {                  // Traditional instanceof
 }
 ```
 
-### Java 21 Modules (Internal)
+### Java 25 Modules (Internal)
 
-All other modules (especially `/service` modules) use Java 21 and can use modern features like:
+All other modules (especially `/service` modules) use Java 25 and can use modern features like:
 - Records, sealed classes, pattern matching
 - Virtual threads, structured concurrency
 - Text blocks, switch expressions
@@ -728,9 +728,9 @@ Check the module's `pom.xml` for Java version:
 <javac.source>1.8</javac.source>
 <javac.target>1.8</javac.target>
 
-<!-- Java 21 module (default, may not be explicitly set) -->
-<javac.source>21</javac.source>
-<javac.target>21</javac.target>
+<!-- Java 25 module (default, may not be explicitly set) -->
+<javac.source>25</javac.source>
+<javac.target>25</javac.target>
 ```
 
 The build will fail with compilation errors if you use Java 9+ features in a Java 8 module.
@@ -755,13 +755,13 @@ Key sections:
 
 **Mapping to Ditto concepts**:
 
-| WoT ThingModel | Ditto Thing |
-|----------------|-------------|
-| Thing-level `properties` | `attributes` |
-| Thing-level `actions` | Inbox messages |
-| Thing-level `events` | Outbox messages |
-| `links` with `rel: "tm:submodel"` | `features` |
-| Feature-level `properties` | `features/{id}/properties` |
+| WoT ThingModel                    | Ditto Thing                |
+|-----------------------------------|----------------------------|
+| Thing-level `properties`          | `attributes`               |
+| Thing-level `actions`             | Inbox messages             |
+| Thing-level `events`              | Outbox messages            |
+| `links` with `rel: "tm:submodel"` | `features`                 |
+| Feature-level `properties`        | `features/{id}/properties` |
 
 ### Correct tm:submodel Syntax
 
