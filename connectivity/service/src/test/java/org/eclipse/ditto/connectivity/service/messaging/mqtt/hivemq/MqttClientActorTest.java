@@ -314,7 +314,6 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
         underTest.tell(TestConnection.of(connection, getDittoHeadersWithCorrelationId()), testKit.getRef());
 
         testKit.expectMsg(Duration.ofSeconds(10L), new Status.Success("successfully connected + initialized mapper"));
-        verify(genericMqttClient).disconnect();
         testKit.expectTerminated(Duration.ofSeconds(5L), underTest);
         verify(genericMqttClient).disconnect();
     }

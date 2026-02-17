@@ -157,10 +157,10 @@ final class ConnectionTesterActor extends AbstractActor {
                         .thenCombine(subscribe(clientContext), handleTotalSubscribeResult())
                         .thenCompose(getChildActorStatuses())
                         .whenComplete((childActorStatusesContext, error) -> {
+                            disconnectMqttClient(clientContext);
                             if (null == error) {
                                 replyWithTotalStatus(childActorStatusesContext);
                             }
-                            disconnectMqttClient(clientContext);
                         }))
                 .whenComplete((childActorStatusesContext, throwable) -> {
                     if (null != throwable) {
