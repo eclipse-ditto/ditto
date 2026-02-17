@@ -79,7 +79,7 @@ Ditto consists of five main microservices that communicate via Pekko clustering:
 
 ## Technology Stack
 
-- **Language**: Java 21
+- **Language**: Java 25
 - **Build**: Maven 3.9.x
 - **Actor System**: Apache Pekko (Akka fork)
 - **Persistence**: MongoDB 7.0+ (event store and snapshots)
