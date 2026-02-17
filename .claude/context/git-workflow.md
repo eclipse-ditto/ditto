@@ -32,28 +32,13 @@ This is a project requirement per the OSS development process.
 - Prevent implementation from going in wrong direction
 - Mark as "Ready for Review" when complete
 
-### 4. Sign Your Commits
-
-All commits MUST be signed using the `-s` flag:
-
-```bash
-git commit -s -m "Brief description of change"
-```
-
-This adds a "Signed-off-by" line to your commit:
-```
-Signed-off-by: Your Name <your.email@example.com>
-```
-
-Use the same email address as your Eclipse Foundation account.
-
-### 5. Squash Commits Before Merge
+### 4. Squash Commits Before Merge
 
 - Combine multiple commits into a single commit
 - Use interactive rebase: `git rebase -i HEAD~N`
 - Keep commit history clean
 
-### 6. Get Approval
+### 5. Get Approval
 
 - **At least 1 approval** required from:
   - An existing Ditto committer (preferred), OR
@@ -65,7 +50,7 @@ Use the same email address as your Eclipse Foundation account.
   - Test coverage
   - License headers
 
-### 7. Commit Message Format
+### 6. Commit Message Format
 
 ```
 Brief description of change (50 chars or less)
@@ -75,8 +60,7 @@ Explain what and why, not how. The code shows the how.
 
 Fixes #123
 
-Signed-off-by: Your Name <your.email@example.com>
-Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
 ```
 
 **Key points:**
@@ -84,7 +68,6 @@ Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
 - Blank line after first line
 - Body: detailed explanation if needed
 - Reference issue: `Fixes #123`, `Relates to #456`
-- Signed-off-by: REQUIRED
 - Co-Authored-By: If applicable (like when using Claude Code)
 
 ## Branch Naming
@@ -137,7 +120,6 @@ New features **which change existing behavior** MUST use feature toggles. See `f
 
 ### What NOT to Do
 
-- Don't skip signing commits (will be rejected)
 - Don't create PR without GitHub issue first
 - Don't push to master directly
 - Don't force push after code review starts
