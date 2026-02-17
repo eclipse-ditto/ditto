@@ -58,6 +58,7 @@ import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.internal.utils.pubsub.actors.ActorEvent;
 import org.eclipse.ditto.internal.utils.pubsub.api.LocalAcksChanged;
+import org.eclipse.ditto.internal.utils.pubsub.api.RemoteAcksChanged;
 import org.eclipse.ditto.internal.utils.pubsub.api.SubAck;
 import org.eclipse.ditto.internal.utils.pubsub.api.Subscribe;
 import org.eclipse.ditto.internal.utils.pubsub.api.Unsubscribe;
@@ -475,7 +476,7 @@ public final class PubSubFactoryTest {
                     subscriber2.ref()));
 
             // GIVEN: the update is replicated to system1
-            waitForHeartBeats(system2, factory2);
+            waitForRemoteAcks(system1, factory1, "sit");
 
             // WHEN: another subscriber from system1 declares conflicting labels with the subscriber from system2
             // THEN: the declaration should fail
@@ -766,6 +767,18 @@ public final class PubSubFactoryTest {
         for (int i = 0; i < howManyHeartBeats; ++i) {
             probe.expectMsgClass(LocalAcksChanged.class);
         }
+        system.stop(probe.ref());
+    }
+
+    private static void waitForRemoteAcks(final ActorSystem system, final TestPubSubFactory factory,
+            final String expectedLabel) {
+        final TestProbe probe = TestProbe.apply(system);
+        factory.getDistributedAcks().receiveDistributedDeclaredAcks(probe.ref());
+        RemoteAcksChanged changed;
+        do {
+            changed = probe.expectMsgClass(
+                    scala.concurrent.duration.Duration.apply(10, TimeUnit.SECONDS), RemoteAcksChanged.class);
+        } while (!changed.contains(expectedLabel));
         system.stop(probe.ref());
     }
 
