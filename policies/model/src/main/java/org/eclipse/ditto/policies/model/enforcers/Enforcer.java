@@ -12,6 +12,9 @@
  */
 package org.eclipse.ditto.policies.model.enforcers;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
@@ -353,6 +356,53 @@ public interface Enforcer {
                         DittoAuthorizationContextType.UNSPECIFIED,
                         authorizationSubject),
                 permissions);
+    }
+
+    /**
+     * Returns the set of accessible JSON paths for each of the given {@code authorizationSubjects} based on
+     * the provided {@code jsonFields}. This batch method avoids redundant JSON flattening when checking
+     * multiple subjects against the same JSON structure.
+     *
+     * @param resourceKey the ResourceKey (containing Resource type and path) to start from.
+     * @param jsonFields the full JsonFields from which to determine accessible paths.
+     * @param authorizationSubjects the set of AuthorizationSubjects to check.
+     * @param permissions the permissions to check.
+     * @return a map from AuthorizationSubject to their accessible paths (subjects with no accessible paths are omitted).
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 3.9.0
+     */
+    default Map<AuthorizationSubject, Set<JsonPointer>> getAccessiblePathsForSubjects(
+            final ResourceKey resourceKey, final Iterable<JsonField> jsonFields,
+            final Set<AuthorizationSubject> authorizationSubjects, final Permissions permissions) {
+        final Map<AuthorizationSubject, Set<JsonPointer>> result = new HashMap<>();
+        for (final AuthorizationSubject subject : authorizationSubjects) {
+            final Set<JsonPointer> paths = getAccessiblePaths(resourceKey, jsonFields, subject, permissions);
+            if (!paths.isEmpty()) {
+                result.put(subject, paths);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Classifies all authorization subjects into three categories based on their permissions on the given resource:
+     * unrestricted, partial-only, and effected granted. This performs a single classification pass instead of
+     * requiring separate calls to {@link #getSubjectsWithPartialPermission}, {@link #getSubjectsWithUnrestrictedPermission},
+     * and {@link #getSubjectsWithPermission}.
+     *
+     * @param resourceKey the ResourceKey (containing Resource type and path) to classify subjects for.
+     * @param permissions the permissions to check.
+     * @return the classification of subjects.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 3.9.0
+     */
+    default SubjectClassification classifySubjects(final ResourceKey resourceKey, final Permissions permissions) {
+        final Set<AuthorizationSubject> partial = getSubjectsWithPartialPermission(resourceKey, permissions);
+        final Set<AuthorizationSubject> unrestricted = getSubjectsWithUnrestrictedPermission(resourceKey, permissions);
+        final EffectedSubjects effected = getSubjectsWithPermission(resourceKey, permissions);
+        final Set<AuthorizationSubject> partialOnly = new HashSet<>(partial);
+        partialOnly.removeAll(unrestricted);
+        return SubjectClassification.of(unrestricted, partialOnly, effected.getGranted());
     }
 
 }
