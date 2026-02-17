@@ -92,7 +92,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import com.hivemq.client.mqtt.MqttVersion;
@@ -107,10 +106,8 @@ import scala.concurrent.duration.FiniteDuration;
 /**
  * Unit test for {@link MqttClientActor}.
  */
-// It is crucial to use `TestActorRef` for the GenericMqttClientActor.
+// It is crucial to use `TestActorRef` for the MqttClientActor.
 // This ensures that the actor runs in the same thread as the tests.
-// The same thread is necessary because otherwise Mockito's static mocking
-// of `GenericMqttClientFactory` would not work.
 @RunWith(MockitoJUnitRunner.class)
 public final class MqttClientActorTest extends AbstractBaseClientActorTest {
 
@@ -140,7 +137,6 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
     private static final Status.Success DISCONNECTED_SUCCESS = new Status.Success(BaseClientState.DISCONNECTED);
 
     private static Supplier<ConnectionType> mqttConnectionTypeSupplier;
-    @Mock private static MockedStatic<GenericMqttClientFactory> genericMqttClientFactoryMock;
 
     @Rule public final ActorSystemResource actorSystemResource = ActorSystemResource.newInstance(TestConstants.CONFIG);
     @Rule public final TestNameCorrelationId testNameCorrelationId = TestNameCorrelationId.newInstance();
@@ -167,7 +163,6 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
         connectionActor = actorSystemResource.newTestProbe();
 
         enableGenericMqttClientMethodStubbing();
-        enableGenericMqttClientFactoryMethodStubbing();
     }
 
     private void enableGenericMqttClientMethodStubbing() {
@@ -184,12 +179,6 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
                     commandForwarderRef.tell(genericMqttPublish, ActorRef.noSender());
                     return CompletableFuture.completedFuture(GenericMqttPublishResult.success(genericMqttPublish));
                 });
-    }
-
-    private void enableGenericMqttClientFactoryMethodStubbing() {
-        when(genericMqttClientFactory.getGenericMqttClient(any())).thenReturn(genericMqttClient);
-        genericMqttClientFactoryMock.when(() -> GenericMqttClientFactory.newInstance())
-                .thenReturn(genericMqttClientFactory);
     }
 
     @Override
@@ -209,9 +198,11 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
 
     @Override
     protected Props createClientActor(final ActorRef commandForwarder, final Connection connection) {
-        return MqttClientActor.props(connection,
+        when(genericMqttClientFactory.getGenericMqttClient(any())).thenReturn(genericMqttClient);
+        return MqttClientActor.propsForTests(connection,
                 commandForwarder,
                 connectionActor.ref(),
+                genericMqttClientFactory,
                 DittoHeaders.empty(),
                 ConfigFactory.empty());
     }
