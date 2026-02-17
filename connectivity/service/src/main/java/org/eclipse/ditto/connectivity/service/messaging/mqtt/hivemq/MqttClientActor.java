@@ -100,6 +100,21 @@ public final class MqttClientActor extends BaseClientActor {
             final DittoHeaders dittoHeaders,
             final Config connectivityConfigOverwrites) {
 
+        this(connection, commandForwarder, connectionActor, dittoHeaders, connectivityConfigOverwrites,
+                GenericMqttClientFactory.newInstance());
+    }
+
+    /*
+     * This constructor is called via reflection by the static method propsForTests.
+     */
+    @SuppressWarnings("unused")
+    private MqttClientActor(final Connection connection,
+            final ActorRef commandForwarder,
+            final ActorRef connectionActor,
+            final DittoHeaders dittoHeaders,
+            final Config connectivityConfigOverwrites,
+            final GenericMqttClientFactory genericMqttClientFactory) {
+
         super(connection, commandForwarder, connectionActor, dittoHeaders, connectivityConfigOverwrites);
 
         final var connectivityConfig = connectivityConfig();
@@ -110,7 +125,7 @@ public final class MqttClientActor extends BaseClientActor {
 
         mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection, mqttConfig);
 
-        genericMqttClientFactory = GenericMqttClientFactory.newInstance();
+        this.genericMqttClientFactory = genericMqttClientFactory;
         genericMqttClient = null;
         automaticReconnect = new AtomicBoolean(true);
         publishingActorRef = null;
@@ -140,6 +155,34 @@ public final class MqttClientActor extends BaseClientActor {
                 ConditionChecker.checkNotNull(connectionActor, "connectionActor"),
                 ConditionChecker.checkNotNull(dittoHeaders, "dittoHeaders"),
                 ConditionChecker.checkNotNull(connectivityConfigOverwrites, "connectivityConfigOverwrites"));
+    }
+
+    /**
+     * Creates Pekko configuration object for this actor for use in tests, allowing injection of a
+     * {@code GenericMqttClientFactory}.
+     *
+     * @param mqttConnection the MQTT connection.
+     * @param commandForwarder the actor used to send signals into the Ditto cluster.
+     * @param connectionActor the connection persistence actor which creates the returned client actor.
+     * @param genericMqttClientFactory the factory to use for creating MQTT clients.
+     * @param dittoHeaders headers of the command that caused the returned client actor to be created.
+     * @param connectivityConfigOverwrites the overwrites of the connectivity config for the given connection.
+     * @return the Props.
+     */
+    static Props propsForTests(final Connection mqttConnection,
+            final ActorRef commandForwarder,
+            final ActorRef connectionActor,
+            final GenericMqttClientFactory genericMqttClientFactory,
+            final DittoHeaders dittoHeaders,
+            final Config connectivityConfigOverwrites) {
+
+        return Props.create(MqttClientActor.class,
+                mqttConnection,
+                commandForwarder,
+                connectionActor,
+                dittoHeaders,
+                connectivityConfigOverwrites,
+                genericMqttClientFactory);
     }
 
     @Override
