@@ -145,7 +145,25 @@ public final class ImmutableTimePlaceholderTest {
 
     @Test
     public void testReplaceCurrentTimestampMillisSinceEpochMinusSecondsTruncateHour() {
-        testWithTimePlaceholder("now-30s[h]", Instant.now().minus(Duration.ofSeconds(4)).truncatedTo(ChronoUnit.HOURS));
+        // Bracket the resolver call with before/after timestamps to handle the case where
+        // now-30s crosses an hour boundary between the test's Instant.now() and the resolver's.
+        final String placeholder = "now-30s[h]";
+        final Instant before = Instant.now();
+        final List<Instant> resolved = UNDER_TEST.resolveValues(SOME_OBJECT, placeholder).stream()
+                .map(Instant::parse)
+                .collect(Collectors.toList());
+        final Instant after = Instant.now();
+
+        final Instant expectedBefore = before.minus(Duration.ofSeconds(30)).truncatedTo(ChronoUnit.HOURS);
+        final Instant expectedAfter = after.minus(Duration.ofSeconds(30)).truncatedTo(ChronoUnit.HOURS);
+        final TemporalUnitLessThanOffset tolerance =
+                new TemporalUnitLessThanOffset(1000, ChronoUnit.MILLIS);
+        assertThat(resolved)
+                .hasSize(1)
+                .allSatisfy(i -> assertThat(i).satisfiesAnyOf(
+                        inst -> assertThat(inst).isCloseTo(expectedBefore, tolerance),
+                        inst -> assertThat(inst).isCloseTo(expectedAfter, tolerance)
+                ));
     }
 
     private static void testWithTimePlaceholder(final String placeholder, final Instant expectedTimestamp) {
