@@ -158,7 +158,7 @@ docker-compose up -d
 **Solution**:
 - Reimport Maven project
 - Invalidate caches and restart IDE
-- Ensure JDK 21 is configured
+- Ensure JDK 25 is configured
 - Run `mvn clean install` to generate any generated sources
 
 ### Code Style Check Fails
