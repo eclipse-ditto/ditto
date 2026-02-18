@@ -15,7 +15,6 @@ package org.eclipse.ditto.connectivity.service.messaging.mqtt;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.Nullable;
 
@@ -35,6 +34,8 @@ public final class MqttServerRule extends ExternalResource {
 
     @Nullable
     private ServerSocket serverSocket;
+    @Nullable
+    private Thread acceptThread;
 
     public MqttServerRule(final int port) {
         LOGGER.info("Starting server at port {}", port);
@@ -44,9 +45,11 @@ public final class MqttServerRule extends ExternalResource {
     @Override
     protected void before() throws Exception {
         serverSocket = new ServerSocket(port);
-        // start server that closes accepted socket immediately
-        // so that failure is not triggered by connection failure shortcut
-        CompletableFuture.runAsync(() -> {
+        // Start server that closes accepted socket immediately
+        // so that failure is not triggered by connection failure shortcut.
+        // Uses a dedicated daemon thread instead of ForkJoinPool.commonPool() to avoid
+        // blocking the common pool's single thread on CI environments with 1-2 cores.
+        acceptThread = new Thread(() -> {
             while (true) {
                 try (final Socket socket = serverSocket.accept()) {
                     LOGGER.info("Incoming connection to port {} accepted at port {} ",
@@ -57,14 +60,15 @@ public final class MqttServerRule extends ExternalResource {
                     break;
                 }
             }
-        });
+        }, "MqttServerRule-accept-" + port);
+        acceptThread.setDaemon(true);
+        acceptThread.start();
     }
 
     @Override
     protected void after() {
         try {
             if (serverSocket != null) {
-                // should complete future exceptionally via IOException in dispatcher thread
                 serverSocket.close();
             }
         } catch (final IOException e) {
