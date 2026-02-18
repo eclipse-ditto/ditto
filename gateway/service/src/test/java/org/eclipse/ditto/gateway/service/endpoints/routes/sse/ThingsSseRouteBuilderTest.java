@@ -20,6 +20,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
 import org.assertj.core.util.Lists;
@@ -84,6 +85,14 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
 
     private static final String THINGS_ROUTE = "/things";
     private static final String SEARCH_ROUTE = "/search/things";
+
+    // Uses a dedicated daemon thread instead of ForkJoinPool.commonPool() to avoid
+    // blocking the common pool's single thread on CI environments with 1-2 cores.
+    private static final Executor ASYNC_TEST_EXECUTOR = command -> {
+        final Thread thread = new Thread(command, "ThingsSseRouteBuilderTest-async");
+        thread.setDaemon(true);
+        thread.start();
+    };
 
     private static ActorSystem actorSystem;
     private static HttpHeader acceptHeader;
@@ -175,7 +184,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                 CompletableFuture.runAsync(() -> {
                     routeResult.assertMediaType(MediaTypes.TEXT_EVENT_STREAM);
                     routeResult.assertStatusCode(StatusCodes.OK);
-                });
+                }, ASYNC_TEST_EXECUTOR);
         proxyActor.expectMsgClass(StreamThings.class);
         replySourceRef(proxyActor, Source.lazily(Source::empty));
         assertions.join();
@@ -192,7 +201,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                 CompletableFuture.runAsync(() -> {
                     routeResult.assertMediaType(MediaTypes.TEXT_EVENT_STREAM);
                     routeResult.assertStatusCode(StatusCodes.OK);
-                });
+                }, ASYNC_TEST_EXECUTOR);
         final StreamThings streamThings = proxyActor.expectMsgClass(StreamThings.class);
         replySourceRef(proxyActor, Source.lazily(Source::empty));
         assertions.join();
@@ -215,7 +224,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                 CompletableFuture.runAsync(() -> {
                     routeResult.assertMediaType(MediaTypes.TEXT_EVENT_STREAM);
                     routeResult.assertStatusCode(StatusCodes.OK);
-                });
+                }, ASYNC_TEST_EXECUTOR);
         final RetrieveThing retrieveThing = proxyActor.expectMsgClass(RetrieveThing.class);
         final Thing thing = Thing.newBuilder().setId(ThingId.of(lastEventId)).build();
         proxyActor.reply(RetrieveThingResponse.of(ThingId.of(lastEventId),
@@ -462,7 +471,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
             final CompletableFuture<Void> routeTestAssertions = CompletableFuture.runAsync(() -> {
                 routeResult.assertMediaType(MediaTypes.TEXT_EVENT_STREAM);
                 routeResult.assertStatusCode(StatusCodes.OK);
-            });
+            }, ASYNC_TEST_EXECUTOR);
 
             final Connect receivedConnect = streamingActor.expectMsgClass(Connect.class);
             streamingActor.reply(streamingActor.ref());
