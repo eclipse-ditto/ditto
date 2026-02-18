@@ -1,0 +1,128 @@
+# Eclipse Ditto
+
+> Eclipse Ditto is an open source digital twin framework for the IoT (Internet of Things). It implements the "digital twin" pattern, providing a cloud-based virtual representation of real-world devices (Things). Ditto exposes a fully-fledged, authorization-aware API (HTTP, WebSocket, and various messaging protocols) for interacting with digital twins, abstracting away the complexity of device connectivity. It is implemented in Java using a microservices architecture with Apache Pekko, event sourcing, and CQRS.
+
+Eclipse Ditto provides five microservices (Things, Policies, Gateway, Connectivity, Things-Search) that communicate via Apache Pekko Cluster. It persists digital twin state using event sourcing, supports fine-grained authorization via Policies, and offers connectivity to devices through AMQP, MQTT, HTTP, Kafka, and Eclipse Hono protocol bindings. Ditto uses the RQL (Resource Query Language) for filtering and searching twins, supports change notifications via WebSocket and Server-Sent Events, and integrates with the W3C Web of Things (WoT) standard. It can be deployed via Docker Compose or Helm charts on Kubernetes.
+
+- [GitHub Repository](https://github.com/eclipse-ditto/ditto)
+- [OpenAPI specification](https://www.eclipse.dev/ditto/openapi/): HTTP API reference for all Ditto REST endpoints
+- [JSON Schemas](https://www.eclipse.dev/ditto/jsonschema/): Schema definitions for Ditto protocol messages
+
+## Introduction
+
+- [Overview](https://www.eclipse.dev/ditto/intro-overview.html.md): What Eclipse Ditto is, what it is not, and when to use it
+- [Digital Twins](https://www.eclipse.dev/ditto/intro-digitaltwins.html.md): The digital twin concept and how Ditto implements it
+- [Hello World](https://www.eclipse.dev/ditto/intro-hello-world.html.md): Quick-start guide for creating your first digital twin
+
+## Core Concepts
+
+- [Basic Overview](https://www.eclipse.dev/ditto/basic-overview.html.md): Overview of Ditto's basic concepts and model
+- [Thing](https://www.eclipse.dev/ditto/basic-thing.html.md): The central entity representing a digital twin with attributes and features
+- [Feature](https://www.eclipse.dev/ditto/basic-feature.html.md): Functional aspects of a Thing with properties and desired properties
+- [Policy](https://www.eclipse.dev/ditto/basic-policy.html.md): Fine-grained access control for Things and other resources
+- [Namespaces and Names](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html.md): How entities are identified (namespace:name pattern)
+- [Thing Metadata](https://www.eclipse.dev/ditto/basic-metadata.html.md): Metadata attached to Things and their sub-entities
+- [Errors](https://www.eclipse.dev/ditto/basic-errors.html.md): Error model and common error codes
+- [Authentication and Authorization](https://www.eclipse.dev/ditto/basic-auth.html.md): How Ditto handles identity and access control
+- [Messages](https://www.eclipse.dev/ditto/basic-messages.html.md): Sending messages to and from Things (command & control)
+- [Signals](https://www.eclipse.dev/ditto/basic-signals.html.md): The different signal types (commands, events, responses, announcements)
+- [APIs Overview](https://www.eclipse.dev/ditto/basic-apis.html.md): Overview of the available APIs (HTTP, WebSocket, Ditto Protocol, Connections)
+- [Connections](https://www.eclipse.dev/ditto/basic-connections.html.md): How Ditto connects to external messaging systems
+- [Placeholders](https://www.eclipse.dev/ditto/basic-placeholders.html.md): Dynamic placeholders for payload and header mapping
+- [Change Notifications](https://www.eclipse.dev/ditto/basic-changenotifications.html.md): Getting notified about Thing changes via various channels
+- [RQL Expressions](https://www.eclipse.dev/ditto/basic-rql.html.md): Resource Query Language for filtering and querying
+- [Conditional Requests](https://www.eclipse.dev/ditto/basic-conditional-requests.html.md): Conditional operations based on RQL conditions or ETags
+- [Search](https://www.eclipse.dev/ditto/basic-search.html.md): Searching across all digital twins using RQL
+- [History](https://www.eclipse.dev/ditto/basic-history.html.md): Accessing historical state of Things via event journal
+- [Acknowledgements / QoS](https://www.eclipse.dev/ditto/basic-acknowledgements.html.md): At-least-once delivery and acknowledgement handling
+
+## Architecture
+
+- [Architecture Overview](https://www.eclipse.dev/ditto/architecture-overview.html.md): Microservices architecture, technology stack, and component interaction
+- [Policies Service](https://www.eclipse.dev/ditto/architecture-services-policies.html.md): Authorization service managing access control policies
+- [Things Service](https://www.eclipse.dev/ditto/architecture-services-things.html.md): Core service for persisting and managing digital twins
+- [Things-Search Service](https://www.eclipse.dev/ditto/architecture-services-things-search.html.md): Search index service for querying across all Things
+- [Connectivity Service](https://www.eclipse.dev/ditto/architecture-services-connectivity.html.md): Manages connections to external messaging systems
+- [Gateway Service](https://www.eclipse.dev/ditto/architecture-services-gateway.html.md): API gateway handling HTTP and WebSocket requests
+
+## Installation and Operation
+
+- [Building Ditto](https://www.eclipse.dev/ditto/installation-building.html.md): How to build Ditto from source
+- [Running Ditto](https://www.eclipse.dev/ditto/installation-running.html.md): Running Ditto via Docker Compose or Kubernetes/Helm
+- [Operating Ditto](https://www.eclipse.dev/ditto/installation-operating.html.md): Configuration, monitoring, and operational aspects
+- [Extending Ditto](https://www.eclipse.dev/ditto/installation-extending.html.md): Custom protocol adapters and other extension points
+
+## HTTP API
+
+- [HTTP API Overview](https://www.eclipse.dev/ditto/httpapi-overview.html.md): REST API for managing Things, Policies, and Connections
+- [HTTP API Concepts](https://www.eclipse.dev/ditto/httpapi-concepts.html.md): Content types, error handling, field selectors, and pagination
+- [HTTP API Search](https://www.eclipse.dev/ditto/httpapi-search.html.md): Searching Things via HTTP with RQL filters
+- [HTTP API Messages](https://www.eclipse.dev/ditto/httpapi-messages.html.md): Sending and receiving messages via HTTP
+- [WebSocket Protocol Binding](https://www.eclipse.dev/ditto/httpapi-protocol-bindings-websocket.html.md): Real-time bidirectional communication via WebSocket
+- [CloudEvents HTTP Binding](https://www.eclipse.dev/ditto/httpapi-protocol-bindings-cloudevents.html.md): CNCF CloudEvents protocol binding
+- [Server-Sent Events](https://www.eclipse.dev/ditto/httpapi-sse.html.md): Streaming Thing changes via SSE
+
+## Connectivity API
+
+- [Connectivity Overview](https://www.eclipse.dev/ditto/connectivity-overview.html.md): Managing connections to external messaging systems
+- [Manage Connections via HTTP](https://www.eclipse.dev/ditto/connectivity-manage-connections.html.md): CRUD operations for connections
+- [Payload Mapping](https://www.eclipse.dev/ditto/connectivity-mapping.html.md): Transforming messages between external formats and Ditto Protocol
+- [Header Mapping](https://www.eclipse.dev/ditto/connectivity-header-mapping.html.md): Mapping external message headers
+
+## Ditto Protocol
+
+- [Protocol Overview](https://www.eclipse.dev/ditto/protocol-overview.html.md): The Ditto Protocol for communicating with digital twins
+- [Twin/Live Channel](https://www.eclipse.dev/ditto/protocol-twinlive.html.md): Twin channel (persisted state) vs. live channel (direct device communication)
+- [Protocol Specification](https://www.eclipse.dev/ditto/protocol-specification.html.md): Structure of Ditto Protocol messages (envelope, topic, headers, payload)
+- [Protocol Topic](https://www.eclipse.dev/ditto/protocol-specification-topic.html.md): Topic path structure (namespace/name/group/channel/criterion/action)
+- [Things Commands](https://www.eclipse.dev/ditto/protocol-specification-things.html.md): Protocol commands for the Things entity group
+- [Policies Commands](https://www.eclipse.dev/ditto/protocol-specification-policies.html.md): Protocol commands for the Policies entity group
+- [Protocol Bindings](https://www.eclipse.dev/ditto/protocol-bindings.html.md): How the Ditto Protocol is bound to transport protocols
+
+## Client SDKs
+
+- [Client SDK Overview](https://www.eclipse.dev/ditto/client-sdk-overview.html.md): Available client libraries for interacting with Ditto
+- [Java Client SDK](https://www.eclipse.dev/ditto/client-sdk-java.html.md): Java client for the Ditto HTTP and WebSocket API
+- [JavaScript Client SDK](https://www.eclipse.dev/ditto/client-sdk-javascript.html.md): JavaScript/TypeScript client for browser and Node.js
+
+## Optional
+
+- [Checking Permissions](https://www.eclipse.dev/ditto/basic-auth-checkpermissions.html.md): Checking permissions for specific resources
+- [Signal Enrichment](https://www.eclipse.dev/ditto/basic-enrichment.html.md): Enriching change notifications with extra data
+- [Command Signals](https://www.eclipse.dev/ditto/basic-signals-command.html.md): Details on command signal type
+- [Command Response Signals](https://www.eclipse.dev/ditto/basic-signals-commandresponse.html.md): Details on response signal type
+- [Error Response Signals](https://www.eclipse.dev/ditto/basic-signals-errorresponse.html.md): Details on error response signal type
+- [Event Signals](https://www.eclipse.dev/ditto/basic-signals-event.html.md): Details on event signal type
+- [Announcement Signals](https://www.eclipse.dev/ditto/basic-signals-announcement.html.md): Details on announcement signal type
+- [Data By-Pass](https://www.eclipse.dev/ditto/advanced-data-by-pass.html.md): Bypassing persistence for high-throughput live data
+- [WoT Integration](https://www.eclipse.dev/ditto/basic-wot-integration.html.md): W3C Web of Things (WoT) Thing Description integration
+- [WoT Validation Config](https://www.eclipse.dev/ditto/basic-wot-validation-config.html.md): Configuring WoT-based validation for Things
+- [WoT Integration Example](https://www.eclipse.dev/ditto/basic-wot-integration-example.html.md): Step-by-step example of WoT integration
+- [AMQP 0.9.1 Binding](https://www.eclipse.dev/ditto/connectivity-protocol-bindings-amqp091.html.md): Connecting to AMQP 0.9.1 brokers (e.g. RabbitMQ)
+- [AMQP 1.0 Binding](https://www.eclipse.dev/ditto/connectivity-protocol-bindings-amqp10.html.md): Connecting to AMQP 1.0 brokers (e.g. Azure Service Bus)
+- [MQTT 3.1.1 Binding](https://www.eclipse.dev/ditto/connectivity-protocol-bindings-mqtt.html.md): Connecting to MQTT 3.1.1 brokers
+- [MQTT 5 Binding](https://www.eclipse.dev/ditto/connectivity-protocol-bindings-mqtt5.html.md): Connecting to MQTT 5 brokers
+- [HTTP 1.1 Binding](https://www.eclipse.dev/ditto/connectivity-protocol-bindings-http.html.md): Pushing data to HTTP endpoints
+- [Kafka 2.x Binding](https://www.eclipse.dev/ditto/connectivity-protocol-bindings-kafka2.html.md): Connecting to Apache Kafka
+- [Hono Binding](https://www.eclipse.dev/ditto/connectivity-protocol-bindings-hono.html.md): Integration with Eclipse Hono
+- [TLS Certificates](https://www.eclipse.dev/ditto/connectivity-tls-certificates.html.md): Configuring TLS for connections
+- [SSH Tunneling](https://www.eclipse.dev/ditto/connectivity-ssh-tunneling.html.md): SSH tunneling for connections
+- [HMAC Signing](https://www.eclipse.dev/ditto/connectivity-hmac-signing.html.md): Request signing for HTTP connections
+- [Manage Connections via Piggyback](https://www.eclipse.dev/ditto/connectivity-manage-connections-piggyback.html.md): Managing connections via piggyback commands
+- [Things Create/Modify](https://www.eclipse.dev/ditto/protocol-specification-things-create-or-modify.html.md): Protocol specification for creating and modifying Things
+- [Things Merge](https://www.eclipse.dev/ditto/protocol-specification-things-merge.html.md): Protocol specification for merging (patching) Things
+- [Things Retrieve](https://www.eclipse.dev/ditto/protocol-specification-things-retrieve.html.md): Protocol specification for retrieving Things
+- [Things Delete](https://www.eclipse.dev/ditto/protocol-specification-things-delete.html.md): Protocol specification for deleting Things
+- [Things Search Protocol](https://www.eclipse.dev/ditto/protocol-specification-things-search.html.md): Protocol specification for searching Things
+- [Things Messages Protocol](https://www.eclipse.dev/ditto/protocol-specification-things-messages.html.md): Protocol specification for Thing messages
+- [Protocol Acknowledgements](https://www.eclipse.dev/ditto/protocol-specification-acks.html.md): Acknowledgement handling in the Ditto Protocol
+- [Protocol Errors](https://www.eclipse.dev/ditto/protocol-specification-errors.html.md): Error responses in the Ditto Protocol
+- [Policies Create/Modify](https://www.eclipse.dev/ditto/protocol-specification-policies-create-or-modify.html.md): Protocol specification for creating and modifying Policies
+- [Policies Retrieve](https://www.eclipse.dev/ditto/protocol-specification-policies-retrieve.html.md): Protocol specification for retrieving Policies
+- [Policies Delete](https://www.eclipse.dev/ditto/protocol-specification-policies-delete.html.md): Protocol specification for deleting Policies
+- [Policies Announcement](https://www.eclipse.dev/ditto/protocol-specification-policies-announcement.html.md): Policy announcement protocol messages
+- [Connections Announcement](https://www.eclipse.dev/ditto/protocol-specification-connections-announcement.html.md): Connection announcement protocol messages
+- [Streaming Subscriptions](https://www.eclipse.dev/ditto/protocol-specification-streaming-subscription.html.md): Protocol for streaming historical events
+- [Protocol Examples](https://www.eclipse.dev/ditto/protocol-examples.html.md): Overview of Ditto Protocol message examples
+- [User Interface](https://www.eclipse.dev/ditto/user-interface.html.md): Ditto Explorer UI for managing Things and Policies
+- [Release Notes 3.8.12](https://www.eclipse.dev/ditto/release_notes_3812.html.md): Latest release notes
