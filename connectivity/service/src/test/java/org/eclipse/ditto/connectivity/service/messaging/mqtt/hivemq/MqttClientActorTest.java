@@ -194,7 +194,7 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
     }
 
     private static final Config CONNECTIVITY_CONFIG_OVERWRITES = ConfigFactory.parseString("""
-            ditto.connectivity.connection.client {
+            ditto.connectivity.client {
                 connecting-min-timeout = 60s
                 connecting-max-timeout = 60s
                 testing-timeout = 60s
