@@ -9725,16 +9725,44 @@ components:
           type: array
           default: []
           description: |-
-            The policy entries to import from the referenced policy identified by their labels. 
-            In case the field is omitted or an empty array is provided, 
+            The policy entries to import from the referenced policy identified by their labels.
+            In case the field is omitted or an empty array is provided,
             all policy entries defined as implicit ("importable": "implicit") are imported.
           items:
             type: string
             description: Label of a policy entry to import from the referenced policy.
+        entriesAdditions:
+          type: object
+          description: |-
+            Optional additional subjects and/or resources to additively merge into imported policy entries.
+            Each key is a label of an imported policy entry. The value is an object with optional "subjects"
+            and/or "resources" fields that will be merged into the corresponding imported entry.
+            Subjects are added (existing subjects from the template are preserved).
+            For resources, new paths are added and overlapping paths get their permissions merged (union of
+            grants and revokes; template revokes are always preserved).
+            The imported policy entry must explicitly allow these additions via its "allowedImportAdditions"
+            field, otherwise the additions are rejected.
+          additionalProperties:
+            type: object
+            properties:
+              subjects:
+                $ref: '#/components/schemas/Subjects'
+              resources:
+                $ref: '#/components/schemas/Resources'
       example:
         entries:
           - default
           - import
+        entriesAdditions:
+          default:
+            subjects:
+              'integration:my-connection':
+                type: generated
+            resources:
+              'thing:/features':
+                grant:
+                  - READ
+                revoke: []
     Importable:
       type: string
       description: |-
@@ -9768,6 +9796,22 @@ components:
           $ref: '#/components/schemas/Resources'
         importable:
           $ref: '#/components/schemas/Importable'
+        allowedImportAdditions:
+          type: array
+          description: |-
+            Defines which types of additions are allowed when this entry is imported by other policies
+            via `entriesAdditions`. If omitted or empty, no additions are allowed. This default ensures
+            that existing policies cannot be extended with additional subjects or resources unless the
+            policy author explicitly opts in.
+            * `subjects` — allows importing policies to add additional subjects to this entry
+            * `resources` — allows importing policies to add additional resources to this entry
+          items:
+            type: string
+            enum:
+              - subjects
+              - resources
+          example:
+            - subjects
       required:
         - subjects
         - resources
@@ -11303,7 +11347,7 @@ components:
     OpenIDConnect:
       type: openIdConnect
       description: OpenID Connect Discovery URL. The placeholder is replaced by Swagger UI when configured.
-      openIdConnectUrl: "__OIDC_DISCOVERY_URL__"
+      openIdConnectUrl: __OIDC_DISCOVERY_URL__
     DevOpsBasic:
       type: http
       description: Eclipse Ditto devops user (devops) + password (foobar)

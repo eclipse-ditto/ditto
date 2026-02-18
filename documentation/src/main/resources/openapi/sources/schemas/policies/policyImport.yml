@@ -15,11 +15,38 @@ properties:
     type: array
     default: []
     description:  |-
-      The policy entries to import from the referenced policy identified by their labels. 
-      In case the field is omitted or an empty array is provided, 
+      The policy entries to import from the referenced policy identified by their labels.
+      In case the field is omitted or an empty array is provided,
       all policy entries defined as implicit ("importable": "implicit") are imported.
     items:
       type: string
       description: Label of a policy entry to import from the referenced policy.
+  entriesAdditions:
+    type: object
+    description: |-
+      Optional additional subjects and/or resources to additively merge into imported policy entries.
+      Each key is a label of an imported policy entry. The value is an object with optional "subjects"
+      and/or "resources" fields that will be merged into the corresponding imported entry.
+      Subjects are added (existing subjects from the template are preserved).
+      For resources, new paths are added and overlapping paths get their permissions merged (union of
+      grants and revokes; template revokes are always preserved).
+      The imported policy entry must explicitly allow these additions via its "allowedImportAdditions"
+      field, otherwise the additions are rejected.
+    additionalProperties:
+      type: object
+      properties:
+        subjects:
+          $ref: 'subjects.yml'
+        resources:
+          $ref: 'resources.yml'
 example:
   entries: [ "default", "import" ]
+  entriesAdditions:
+    default:
+      subjects:
+        "integration:my-connection":
+          type: "generated"
+      resources:
+        "thing:/features":
+          grant: [ "READ" ]
+          revoke: []

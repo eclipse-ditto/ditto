@@ -14,6 +14,7 @@ package org.eclipse.ditto.policies.model;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -21,6 +22,8 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import javax.annotation.Nullable;
 
 /**
  * Policy model functionality used in order to perform the importing/merging of imported {@link PolicyEntry}s into the
@@ -54,25 +57,52 @@ public final class PolicyImporter {
                         final ImportedLabels importedLabels = policyImport.getEffectedImports()
                                 .map(EffectedImports::getImportedLabels)
                                 .orElse(ImportedLabels.none());
-                        return rewriteImportedLabels(importedPolicyId, loadedPolicy, importedLabels);
+                        final EntriesAdditions entriesAdditions = policyImport.getEntriesAdditions()
+                                .orElse(null);
+                        return rewriteImportedLabels(importedPolicyId, loadedPolicy, importedLabels,
+                                entriesAdditions);
                     }).orElse(Collections.emptySet()));
                 })
                 .reduce(CompletableFuture.completedFuture(policy.getEntriesSet()), PolicyImporter::combineSets,
                         PolicyImporter::combineSets);
     }
 
-    private static Set<PolicyEntry> rewriteImportedLabels(final PolicyId importedPolicyId, final Policy importedPolicy,
-            final Collection<Label> importedLabels) {
+    private static Set<PolicyEntry> rewriteImportedLabels(final PolicyId importedPolicyId,
+            final Policy importedPolicy, final Collection<Label> importedLabels,
+            @Nullable final EntriesAdditions entriesAdditions) {
 
         return importedPolicy.getEntriesSet().stream()
                 .flatMap(importedEntry -> importEntry(importedLabels, importedEntry))
-                .map(entry -> PoliciesModelFactory.newPolicyEntry(
-                        PoliciesModelFactory.newImportedLabel(importedPolicyId, entry.getLabel()),
-                        entry.getSubjects(),
-                        entry.getResources(),
-                        entry.getImportableType()
-                ))
+                .map(entry -> applyAdditionsAndRewrite(importedPolicyId, entry, entriesAdditions))
                 .collect(Collectors.toSet());
+    }
+
+    private static PolicyEntry applyAdditionsAndRewrite(final PolicyId importedPolicyId,
+            final PolicyEntry entry, @Nullable final EntriesAdditions entriesAdditions) {
+
+        Subjects mergedSubjects = entry.getSubjects();
+        Resources mergedResources = entry.getResources();
+
+        if (entriesAdditions != null) {
+            final Optional<EntryAddition> addition = entriesAdditions.getAddition(entry.getLabel());
+            if (addition.isPresent()) {
+                final EntryAddition add = addition.get();
+                final Set<AllowedImportAddition> allowed = entry.getAllowedImportAdditions();
+                if (add.getSubjects().isPresent() && allowed.contains(AllowedImportAddition.SUBJECTS)) {
+                    mergedSubjects = mergeSubjects(mergedSubjects, add.getSubjects().get());
+                }
+                if (add.getResources().isPresent() && allowed.contains(AllowedImportAddition.RESOURCES)) {
+                    mergedResources = mergeResources(mergedResources, add.getResources().get());
+                }
+            }
+        }
+
+        return PoliciesModelFactory.newPolicyEntry(
+                PoliciesModelFactory.newImportedLabel(importedPolicyId, entry.getLabel()),
+                mergedSubjects,
+                mergedResources,
+                entry.getImportableType()
+        );
     }
 
     private static Stream<PolicyEntry> importEntry(final Collection<Label> importedLabels,
@@ -86,6 +116,39 @@ public final class PolicyImporter {
             default:
                 return Stream.empty();
         }
+    }
+
+    private static Subjects mergeSubjects(final Subjects templateSubjects, final Subjects additionalSubjects) {
+        return templateSubjects.setSubjects(additionalSubjects);
+    }
+
+    private static Resources mergeResources(final Resources templateResources, final Resources additionalResources) {
+        Resources result = templateResources;
+        for (final Resource additionalResource : additionalResources) {
+            final Optional<Resource> existingOpt = templateResources.getResource(additionalResource.getResourceKey());
+            if (existingOpt.isPresent()) {
+                result = result.setResource(mergeResource(existingOpt.get(), additionalResource));
+            } else {
+                result = result.setResource(additionalResource);
+            }
+        }
+        return result;
+    }
+
+    private static Resource mergeResource(final Resource templateResource, final Resource additionalResource) {
+        final EffectedPermissions templatePerms = templateResource.getEffectedPermissions();
+        final EffectedPermissions additionalPerms = additionalResource.getEffectedPermissions();
+
+        final Set<String> mergedGrants = new LinkedHashSet<>(templatePerms.getGrantedPermissions());
+        mergedGrants.addAll(additionalPerms.getGrantedPermissions());
+
+        final Set<String> mergedRevokes = new LinkedHashSet<>(templatePerms.getRevokedPermissions());
+        mergedRevokes.addAll(additionalPerms.getRevokedPermissions());
+
+        return PoliciesModelFactory.newResource(
+                templateResource.getResourceKey(),
+                PoliciesModelFactory.newEffectedPermissions(mergedGrants, mergedRevokes)
+        );
     }
 
     private static CompletionStage<Set<PolicyEntry>> combineSets(final CompletionStage<Set<PolicyEntry>> set1Cs,

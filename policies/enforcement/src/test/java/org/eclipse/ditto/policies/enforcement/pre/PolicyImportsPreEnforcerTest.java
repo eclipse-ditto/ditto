@@ -46,11 +46,13 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.policies.model.EffectedImports;
+import org.eclipse.ditto.policies.model.EntriesAdditions;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyImport;
+import org.eclipse.ditto.policies.model.PolicyImportInvalidException;
 import org.eclipse.ditto.policies.model.PolicyImports;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
@@ -91,6 +93,9 @@ class PolicyImportsPreEnforcerTest {
                 .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(IMPORTING))));
         when(policyEnforcerProvider.getPolicyEnforcer(IMPORT_NOT_FOUND_POLICY_ID))
                 .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(IMPORT_NOT_FOUND))));
+        when(policyEnforcerProvider.getPolicyEnforcer(Policies.IMPORTED_WITH_ADDITIONS_POLICY_ID))
+                .thenReturn(CompletableFuture.completedFuture(
+                        Optional.of(PolicyEnforcer.of(Policies.IMPORTED_WITH_ADDITIONS))));
         when(policyEnforcerProvider.getPolicyEnforcer(argThat(id -> !KNOWN_IDS.contains(id))))
                 .thenReturn(CompletableFuture.completedFuture(Optional.empty()));
 
@@ -129,6 +134,142 @@ class PolicyImportsPreEnforcerTest {
         assertThatExceptionOfType(CompletionException.class)
                 .isThrownBy(signalFuture::join)
                 .withCauseInstanceOf(PolicyNotAccessibleException.class);
+    }
+
+    @Test
+    void testDisallowedSubjectAdditionsRejected() {
+        // IMPORTED policy's IMPLICIT entry does NOT have allowedImportAdditions=["subjects"]
+        // so adding subjects via entriesAdditions should be rejected
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .authorizationContext(AuthorizationModelFactory.newAuthContext(
+                        DittoAuthorizationContextType.UNSPECIFIED,
+                        java.util.Collections.singletonList(AuthorizationSubject.newInstance("ditto:implicit"))))
+                .build();
+
+        final EntriesAdditions additions = PoliciesModelFactory.newEntriesAdditions(
+                java.util.Collections.singletonList(
+                        PoliciesModelFactory.newEntryAddition(Label.of("IMPLICIT"),
+                                PoliciesModelFactory.newSubjects(
+                                        PoliciesModelFactory.newSubject(
+                                        PoliciesModelFactory.newSubjectId("ditto:extra"),
+                                        PoliciesModelFactory.newSubjectType("test"))),
+                                null)));
+
+        final EffectedImports effectedImports = PoliciesModelFactory.newEffectedImportedLabels(
+                java.util.Collections.singletonList(Label.of("IMPLICIT")), additions);
+
+        final PolicyImport policyImport = PolicyImport.newInstance(IMPORTED_POLICY_ID, effectedImports);
+
+        final ModifyPolicyImport command = ModifyPolicyImport.of(IMPORTING_POLICY_ID, policyImport, dittoHeaders);
+
+        final CompletableFuture<Signal<?>> applyFuture = policyImportsPreEnforcer.apply(command).toCompletableFuture();
+
+        assertThatExceptionOfType(CompletionException.class)
+                .isThrownBy(applyFuture::join)
+                .withCauseInstanceOf(PolicyImportInvalidException.class)
+                .withMessageContaining("subject additions");
+    }
+
+    @Test
+    void testDisallowedResourceAdditionsRejected() {
+        // IMPORTED policy's IMPLICIT entry does NOT have allowedImportAdditions=["resources"]
+        // so adding resources via entriesAdditions should be rejected
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .authorizationContext(AuthorizationModelFactory.newAuthContext(
+                        DittoAuthorizationContextType.UNSPECIFIED,
+                        java.util.Collections.singletonList(AuthorizationSubject.newInstance("ditto:implicit"))))
+                .build();
+
+        final EntriesAdditions additions = PoliciesModelFactory.newEntriesAdditions(
+                java.util.Collections.singletonList(
+                        PoliciesModelFactory.newEntryAddition(Label.of("IMPLICIT"),
+                                null,
+                                PoliciesModelFactory.newResources(
+                                        PoliciesModelFactory.newResource("thing", "/features",
+                                                PoliciesModelFactory.newEffectedPermissions(
+                                                        java.util.Collections.singletonList("READ"),
+                                                        java.util.Collections.emptyList()))))));
+
+        final EffectedImports effectedImports = PoliciesModelFactory.newEffectedImportedLabels(
+                java.util.Collections.singletonList(Label.of("IMPLICIT")), additions);
+
+        final PolicyImport policyImport = PolicyImport.newInstance(IMPORTED_POLICY_ID, effectedImports);
+
+        final ModifyPolicyImport command = ModifyPolicyImport.of(IMPORTING_POLICY_ID, policyImport, dittoHeaders);
+
+        final CompletableFuture<Signal<?>> applyFuture = policyImportsPreEnforcer.apply(command).toCompletableFuture();
+
+        assertThatExceptionOfType(CompletionException.class)
+                .isThrownBy(applyFuture::join)
+                .withCauseInstanceOf(PolicyImportInvalidException.class)
+                .withMessageContaining("resource additions");
+    }
+
+    @Test
+    void testAllowedAdditionsPassValidation() {
+        // Use IMPORTED_WITH_ADDITIONS policy that allows subject additions on IMPLICIT entry
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .authorizationContext(AuthorizationModelFactory.newAuthContext(
+                        DittoAuthorizationContextType.UNSPECIFIED,
+                        java.util.Collections.singletonList(AuthorizationSubject.newInstance("ditto:implicit"))))
+                .build();
+
+        final EntriesAdditions additions = PoliciesModelFactory.newEntriesAdditions(
+                java.util.Collections.singletonList(
+                        PoliciesModelFactory.newEntryAddition(Label.of("IMPLICIT"),
+                                PoliciesModelFactory.newSubjects(
+                                        PoliciesModelFactory.newSubject(
+                                        PoliciesModelFactory.newSubjectId("ditto:extra"),
+                                        PoliciesModelFactory.newSubjectType("test"))),
+                                null)));
+
+        final EffectedImports effectedImports = PoliciesModelFactory.newEffectedImportedLabels(
+                java.util.Collections.singletonList(Label.of("IMPLICIT")), additions);
+
+        final PolicyImport policyImport =
+                PolicyImport.newInstance(Policies.IMPORTED_WITH_ADDITIONS_POLICY_ID, effectedImports);
+
+        final ModifyPolicyImport command =
+                ModifyPolicyImport.of(IMPORTING_POLICY_ID, policyImport, dittoHeaders);
+
+        final CompletableFuture<Signal<?>> applyFuture = policyImportsPreEnforcer.apply(command).toCompletableFuture();
+
+        final Signal<?> signal = applyFuture.join();
+        assertThat(signal).isSameAs(command);
+    }
+
+    @Test
+    void testEntriesAdditionsForEntryNotInEntriesArrayIsRejected() {
+        // Additions referencing a label not listed in the 'entries' array must be rejected
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .authorizationContext(AuthorizationModelFactory.newAuthContext(
+                        DittoAuthorizationContextType.UNSPECIFIED,
+                        java.util.Collections.singletonList(AuthorizationSubject.newInstance("ditto:implicit"))))
+                .build();
+
+        final EntriesAdditions additions = PoliciesModelFactory.newEntriesAdditions(
+                java.util.Collections.singletonList(
+                        PoliciesModelFactory.newEntryAddition(Label.of("NOT_IN_ENTRIES"),
+                                PoliciesModelFactory.newSubjects(
+                                        PoliciesModelFactory.newSubject(
+                                        PoliciesModelFactory.newSubjectId("ditto:extra"),
+                                        PoliciesModelFactory.newSubjectType("test"))),
+                                null)));
+
+        final EffectedImports effectedImports = PoliciesModelFactory.newEffectedImportedLabels(
+                java.util.Collections.emptyList(), additions);
+
+        final PolicyImport policyImport = PolicyImport.newInstance(IMPORTED_POLICY_ID, effectedImports);
+
+        final ModifyPolicyImport command = ModifyPolicyImport.of(IMPORTING_POLICY_ID, policyImport, dittoHeaders);
+
+        final CompletableFuture<Signal<?>> applyFuture = policyImportsPreEnforcer.apply(command).toCompletableFuture();
+
+        assertThatExceptionOfType(CompletionException.class)
+                .isThrownBy(applyFuture::join)
+                .withCauseInstanceOf(PolicyImportInvalidException.class)
+                .withMessageContaining("NOT_IN_ENTRIES")
+                .withMessageContaining("not listed in 'entries'");
     }
 
     static class PolicyModifyCommandsProvider implements ArgumentsProvider {
@@ -302,6 +443,32 @@ class PolicyImportsPreEnforcerTest {
                     }
                 }
                 """);
+        static final Policy IMPORTED_WITH_ADDITIONS = PoliciesModelFactory.newPolicy("""
+                {
+                    "policyId": "test:imported.with.additions",
+                    "entries" : {
+                        "DEFAULT" : {
+                            "subjects": {
+                                "ditto:admin" : { "type": "test" }
+                            },
+                            "resources": {
+                                "policy:/": { "grant": [ "READ", "WRITE" ], "revoke": [] }
+                            },
+                            "importable":"never"
+                        },
+                        "IMPLICIT" : {
+                            "subjects": {
+                                "ditto:implicit" : { "type": "test" }
+                            },
+                            "resources": {
+                                "policy:/entries/IMPLICIT": { "grant": [ "READ" ], "revoke": [] }
+                            },
+                            "importable": "implicit",
+                            "allowedImportAdditions": [ "subjects" ]
+                        }
+                    }
+                }
+                """);
         static final Policy IMPORT_NOT_FOUND = PoliciesModelFactory.newPolicy("""
                 {
                     "policyId": "test:import.not.found",
@@ -322,9 +489,12 @@ class PolicyImportsPreEnforcerTest {
                 """);
         static final PolicyId IMPORTING_POLICY_ID = IMPORTING.getEntityId().orElseThrow();
         static final PolicyId IMPORTED_POLICY_ID = IMPORTED.getEntityId().orElseThrow();
+        static final PolicyId IMPORTED_WITH_ADDITIONS_POLICY_ID =
+                IMPORTED_WITH_ADDITIONS.getEntityId().orElseThrow();
         static final PolicyId IMPORT_NOT_FOUND_POLICY_ID = IMPORT_NOT_FOUND.getEntityId().orElseThrow();
 
         static final Collection<PolicyId> KNOWN_IDS =
-                List.of(IMPORTED_POLICY_ID, IMPORTING_POLICY_ID, IMPORT_NOT_FOUND_POLICY_ID);
+                List.of(IMPORTED_POLICY_ID, IMPORTING_POLICY_ID, IMPORT_NOT_FOUND_POLICY_ID,
+                        IMPORTED_WITH_ADDITIONS_POLICY_ID);
     }
 }

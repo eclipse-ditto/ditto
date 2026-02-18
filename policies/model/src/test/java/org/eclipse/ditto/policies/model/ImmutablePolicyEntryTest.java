@@ -16,6 +16,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
@@ -169,6 +171,77 @@ public final class ImmutablePolicyEntryTest {
                 Collections.singleton(Subject.newInstance(subjectId, SubjectType.UNKNOWN)), // only difference is the subjectType!
                 Collections.singleton(resource),
                 ImportableType.NEVER
+        );
+        assertThat(entry1.isSemanticallySameAs(entry2)).isFalse();
+    }
+
+    @Test
+    public void testToAndFromJsonWithAllowedImportAdditions() {
+        final Set<AllowedImportAddition> allowedAdditions = new HashSet<>();
+        allowedAdditions.add(AllowedImportAddition.SUBJECTS);
+        allowedAdditions.add(AllowedImportAddition.RESOURCES);
+
+        final PolicyEntry policyEntry = ImmutablePolicyEntry.of(LABEL_END_USER,
+                Subjects.newInstance(TestConstants.Policy.SUBJECT),
+                Resources.newInstance(
+                        Resource.newInstance(TestConstants.Policy.RESOURCE_TYPE, TestConstants.Policy.RESOURCE_PATH,
+                                EffectedPermissions.newInstance(
+                                        Permissions.newInstance(TestConstants.Policy.PERMISSION_READ),
+                                        Permissions.newInstance(TestConstants.Policy.PERMISSION_WRITE)))),
+                ImportableType.EXPLICIT,
+                allowedAdditions);
+
+        final JsonObject policyEntryJson = policyEntry.toJson();
+        final PolicyEntry parsed = ImmutablePolicyEntry.fromJson(policyEntry.getLabel(), policyEntryJson);
+
+        assertThat(parsed).isEqualTo(policyEntry);
+        assertThat(parsed.getAllowedImportAdditions()).isEqualTo(allowedAdditions);
+    }
+
+    @Test
+    public void testFromJsonWithoutAllowedImportAdditionsDefaultsToEmpty() {
+        final PolicyEntry entry = ImmutablePolicyEntry.fromJson("DEFAULT", JsonObject.of(
+                "{ \"subjects\": {}, \"resources\": {} }"));
+        assertThat(entry.getAllowedImportAdditions()).isEmpty();
+    }
+
+    @Test(expected = PolicyEntryInvalidException.class)
+    public void testFromJsonWithInvalidAllowedImportAdditionsValue() {
+        ImmutablePolicyEntry.fromJson("DEFAULT", JsonObject.of(
+                "{ \"subjects\": {}, \"resources\": {}, \"allowedImportAdditions\": [\"invalid\"] }"));
+    }
+
+    @Test
+    public void testToJsonOmitsAllowedImportAdditionsWhenEmpty() {
+        final PolicyEntry policyEntry = ImmutablePolicyEntry.of(LABEL_END_USER,
+                Subjects.newInstance(TestConstants.Policy.SUBJECT),
+                Resources.newInstance(
+                        Resource.newInstance(TestConstants.Policy.RESOURCE_TYPE, TestConstants.Policy.RESOURCE_PATH,
+                                EffectedPermissions.newInstance(
+                                        Permissions.newInstance(TestConstants.Policy.PERMISSION_READ),
+                                        Permissions.newInstance(TestConstants.Policy.PERMISSION_WRITE)))));
+
+        final JsonObject json = policyEntry.toJson();
+        assertThat(json.contains("allowedImportAdditions")).isFalse();
+    }
+
+    @Test
+    public void ensureTwoPolicyEntriesAreSemanticallyDifferentIfAllowedImportAdditionsDiffer() {
+        final SubjectId subjectId = SubjectId.newInstance("the:subject");
+        final Resource resource = Resource.newInstance("thing", "/",
+                EffectedPermissions.newInstance(Collections.singleton("READ"), null));
+
+        final PolicyEntry entry1 = ImmutablePolicyEntry.of(Label.of("foo"),
+                Subjects.newInstance(Subject.newInstance(subjectId, SubjectType.GENERATED)),
+                Resources.newInstance(resource),
+                ImportableType.IMPLICIT,
+                Collections.singleton(AllowedImportAddition.SUBJECTS)
+        );
+        final PolicyEntry entry2 = ImmutablePolicyEntry.of(Label.of("foo"),
+                Subjects.newInstance(Subject.newInstance(subjectId, SubjectType.GENERATED)),
+                Resources.newInstance(resource),
+                ImportableType.IMPLICIT,
+                Collections.emptySet()
         );
         assertThat(entry1.isSemanticallySameAs(entry2)).isFalse();
     }

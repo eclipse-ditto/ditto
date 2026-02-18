@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -531,6 +532,27 @@ public final class PoliciesModelFactory {
     }
 
     /**
+     * Returns a new immutable {@link PolicyEntry} with the given authorization subject, permissions, and allowed
+     * import additions.
+     *
+     * @param label the Label of the PolicyEntry to create.
+     * @param subjects the Subjects contained in the PolicyEntry to create.
+     * @param resources the Resources of the PolicyEntry to create.
+     * @param importable whether and how the entry is importable by others.
+     * @param allowedImportAdditions which types of additions are allowed when importing this entry.
+     * @return the new Policy entry.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code label} is empty.
+     * @since 3.9.0
+     */
+    public static PolicyEntry newPolicyEntry(final CharSequence label, final Iterable<Subject> subjects,
+            final Iterable<Resource> resources, final ImportableType importable,
+            final Set<AllowedImportAddition> allowedImportAdditions) {
+        return ImmutablePolicyEntry.of(Label.of(label), newSubjects(subjects), newResources(resources), importable,
+                allowedImportAdditions);
+    }
+
+    /**
      * Returns a new immutable {@link PolicyEntry} based on the given JSON object.
      *
      * @param label the Label for the PolicyEntry to create.
@@ -708,6 +730,43 @@ public final class PoliciesModelFactory {
     }
 
     /**
+     * Returns a new {@link EntryAddition} with the given parameters.
+     *
+     * @param label the label of the imported policy entry this addition applies to.
+     * @param subjects the additional subjects, or {@code null}.
+     * @param resources the additional resources, or {@code null}.
+     * @return the new {@code EntryAddition}.
+     * @throws NullPointerException if {@code label} is {@code null}.
+     * @since 3.9.0
+     */
+    public static EntryAddition newEntryAddition(final Label label, @Nullable final Subjects subjects,
+            @Nullable final Resources resources) {
+        return ImmutableEntryAddition.of(label, subjects, resources);
+    }
+
+    /**
+     * Returns a new {@link EntriesAdditions} containing the given entry additions.
+     *
+     * @param additions the entry additions.
+     * @return the new {@code EntriesAdditions}.
+     * @throws NullPointerException if {@code additions} is {@code null}.
+     * @since 3.9.0
+     */
+    public static EntriesAdditions newEntriesAdditions(final Iterable<EntryAddition> additions) {
+        return ImmutableEntriesAdditions.of(additions);
+    }
+
+    /**
+     * Returns a new empty {@link EntriesAdditions}.
+     *
+     * @return the empty {@code EntriesAdditions}.
+     * @since 3.9.0
+     */
+    public static EntriesAdditions emptyEntriesAdditions() {
+        return ImmutableEntriesAdditions.empty();
+    }
+
+    /**
      * Returns a new {@link EffectedImports} containing the optionally passed policy entry labels.
      *
      * @param importedLabels the labels of the policy entries which should be imported.
@@ -717,6 +776,21 @@ public final class PoliciesModelFactory {
     public static EffectedImports newEffectedImportedLabels(@Nullable final Iterable<Label> importedLabels) {
 
         return ImmutableEffectedImports.of(getOrEmptyCollection(importedLabels));
+    }
+
+    /**
+     * Returns a new {@link EffectedImports} containing the optionally passed policy entry labels and entries
+     * additions.
+     *
+     * @param importedLabels the labels of the policy entries which should be imported.
+     * @param entriesAdditions the additional subjects/resources to merge into imported entries, or {@code null}.
+     * @return the new {@code EffectedImports}.
+     * @since 3.9.0
+     */
+    public static EffectedImports newEffectedImportedLabels(@Nullable final Iterable<Label> importedLabels,
+            @Nullable final EntriesAdditions entriesAdditions) {
+
+        return ImmutableEffectedImports.of(getOrEmptyCollection(importedLabels), entriesAdditions);
     }
 
     /**
