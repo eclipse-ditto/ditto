@@ -196,6 +196,7 @@ public final class StreamingSessionActorHeaderInteractionTest {
         final Connect connect =
                 new Connect(sourceQueue, "connectionCorrelationId", "ws",
                         JsonSchemaVersion.V_2, null, Set.of(), AuthorizationModelFactory.emptyAuthContext(),
+                        DittoHeaders.empty(),
                         List.of(),
                         null);
         final Props props = StreamingSessionActor.props(connect, dittoProtocolSub, commandRouterProbe.ref(),
@@ -203,7 +204,8 @@ public final class StreamingSessionActorHeaderInteractionTest {
                 Props.create(TestProbeForwarder.class, subscriptionManagerProbe),
                 Props.create(TestProbeForwarder.class, streamingSubscriptionManagerProbe),
                 Mockito.mock(JwtValidator.class),
-                Mockito.mock(JwtAuthenticationResultProvider.class));
+                Mockito.mock(JwtAuthenticationResultProvider.class),
+                null);
         final ActorRef createdActor = actorSystem.actorOf(props);
         createdActors.add(createdActor);
         return createdActor;

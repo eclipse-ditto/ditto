@@ -27,6 +27,26 @@ ditto {
         }
       }
 
+      {{- if .Values.gateway.config.authentication.namespaceAccess }}
+      namespace-access = {
+        conditions = [
+        {{- range $condIndex, $condition := .Values.gateway.config.authentication.namespaceAccess.conditions }}
+          "{{$condition}}"
+        {{- end }}
+        ]
+        allowed-namespaces = [
+        {{- range $nsIndex, $namespace := .Values.gateway.config.authentication.namespaceAccess.allowedNamespaces }}
+          "{{$namespace}}"
+        {{- end }}
+        ]
+        blocked-namespaces = [
+        {{- range $bnsIndex, $namespace := .Values.gateway.config.authentication.namespaceAccess.blockedNamespaces }}
+          "{{$namespace}}"
+        {{- end }}
+        ]
+      }
+      {{- end }}
+
       devops {
         oauth {
           openid-connect-issuers {

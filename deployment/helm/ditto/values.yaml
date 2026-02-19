@@ -2384,6 +2384,19 @@ gateway:
         #    - "{{ jwt:aud | fn:filter('eq','my-expected-audience') }}"
         # configure the subject to inject in policy action activateTokenIntegration
         tokenIntegrationSubject: "integration:{{policy-entry:label}}:{{jwt:aud}}"
+        # namespaceAccess contains namespace-based access control configuration
+        #  Allows restricting which namespaces can be accessed based on JWT claims or HTTP headers
+        #  This provides an additional enforcement layer before policy-based access control
+        #  conditions must all evaluate to true (AND semantics)
+        # namespaceAccess:
+        #   conditions:
+        #   - "{{ jwt:iss | fn:filter('like','https://eclipse.org*') }}"
+        #   - "{{ header:someheader | fn:filter('ne','dangerous') }}"
+        #   allowedNamespaces:
+        #   - "org.eclipse.*"
+        #   - "another.concrete.namespace"
+        #   blockedNamespaces:
+        #   - "forbidden.namespace"
       # devops contains the configuration of the gateway's "/devops" API, e.g. access to it
       devops:
         # secured this controls whether "/devops" and "/api/2/connections" resources are secured or not

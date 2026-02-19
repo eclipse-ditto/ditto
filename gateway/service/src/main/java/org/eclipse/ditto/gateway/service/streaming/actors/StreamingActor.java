@@ -16,10 +16,13 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.stream.StreamSupport;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.edge.service.streaming.StreamingSubscriptionManager;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationResultProvider;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtValidator;
+import org.eclipse.ditto.gateway.service.security.authorization.NamespaceAccessValidatorFactory;
 import org.eclipse.ditto.gateway.service.streaming.signals.Connect;
 import org.eclipse.ditto.gateway.service.util.config.streaming.DefaultStreamingConfig;
 import org.eclipse.ditto.gateway.service.util.config.streaming.StreamingConfig;
@@ -65,6 +68,8 @@ public final class StreamingActor extends AbstractActorWithTimers implements Ret
     private final Props streamingSubscriptionManagerProps;
     private final DittoDiagnosticLoggingAdapter logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     private final HeaderTranslator headerTranslator;
+    @Nullable
+    private final NamespaceAccessValidatorFactory namespaceAccessValidatorFactory;
     private int childCounter = -1;
 
     private StreamingConfig streamingConfig;
@@ -86,7 +91,8 @@ public final class StreamingActor extends AbstractActorWithTimers implements Ret
             final StreamingConfig streamingConfig,
             final HeaderTranslator headerTranslator,
             final ActorRef pubSubMediator,
-            final ActorRef commandForwarder) {
+            final ActorRef commandForwarder,
+            @Nullable final NamespaceAccessValidatorFactory namespaceAccessValidatorFactory) {
 
         this.dittoProtocolSub = dittoProtocolSub;
         this.commandRouter = commandRouter;
@@ -94,6 +100,7 @@ public final class StreamingActor extends AbstractActorWithTimers implements Ret
         this.jwtAuthenticationResultProvider = jwtAuthenticationResultProvider;
         this.streamingConfig = streamingConfig;
         this.headerTranslator = headerTranslator;
+        this.namespaceAccessValidatorFactory = namespaceAccessValidatorFactory;
         streamingSessionsCounter = DittoMetrics.gauge("streaming_sessions_count");
         final ActorSelection commandForwarderSelection = ActorSelection.apply(commandForwarder, "");
         final Materializer materializer = Materializer.createMaterializer(getContext());
@@ -117,6 +124,7 @@ public final class StreamingActor extends AbstractActorWithTimers implements Ret
      * @param headerTranslator translates headers from external sources or to external sources.
      * @param pubSubMediator the ActorRef to the Pekko pub/sub mediator.
      * @param commandForwarder the ActorRef of the actor to forward commands to.
+     * @param namespaceAccessValidatorFactory the factory for creating namespace access validators, may be null.
      * @return the Pekko configuration Props object.
      */
     public static Props props(final DittoProtocolSub dittoProtocolSub,
@@ -126,10 +134,12 @@ public final class StreamingActor extends AbstractActorWithTimers implements Ret
             final StreamingConfig streamingConfig,
             final HeaderTranslator headerTranslator,
             final ActorRef pubSubMediator,
-            final ActorRef commandForwarder) {
+            final ActorRef commandForwarder,
+            @Nullable final NamespaceAccessValidatorFactory namespaceAccessValidatorFactory) {
 
         return Props.create(StreamingActor.class, dittoProtocolSub, commandRouter, jwtValidator,
-                jwtAuthenticationResultProvider, streamingConfig, headerTranslator, pubSubMediator, commandForwarder);
+                jwtAuthenticationResultProvider, streamingConfig, headerTranslator, pubSubMediator, commandForwarder,
+                namespaceAccessValidatorFactory);
     }
 
     @Override
@@ -155,7 +165,7 @@ public final class StreamingActor extends AbstractActorWithTimers implements Ret
                             StreamingSessionActor.props(connect, dittoProtocolSub,
                                     commandRouter, streamingConfig, headerTranslator,
                                     subscriptionManagerProps, streamingSubscriptionManagerProps,
-                                    jwtValidator, jwtAuthenticationResultProvider),
+                                    jwtValidator, jwtAuthenticationResultProvider, namespaceAccessValidatorFactory),
                             sessionActorName);
                     getSender().tell(streamingSessionActor, ActorRef.noSender());
                 })

@@ -14,6 +14,8 @@ package org.eclipse.ditto.gateway.service.starter;
 
 import java.util.concurrent.CompletionStage;
 
+import javax.annotation.Nullable;
+
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorRefFactory;
 import org.apache.pekko.actor.ActorSystem;
@@ -33,6 +35,8 @@ import org.eclipse.ditto.edge.service.dispatching.ShardRegions;
 import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirectiveFactory;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.GatewayAuthenticationDirectiveFactory;
+import org.eclipse.ditto.gateway.service.endpoints.directives.auth.NamespaceAccessEnforcementDirective;
+import org.eclipse.ditto.gateway.service.security.authorization.NamespaceAccessValidatorFactory;
 import org.eclipse.ditto.gateway.service.endpoints.routes.CustomApiRoutesProvider;
 import org.eclipse.ditto.gateway.service.endpoints.routes.HttpBindFlowProvider;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RootRoute;
@@ -136,6 +140,10 @@ public final class GatewayRootActor extends DittoRootActor {
                 ProtocolAdapterProvider.load(gatewayConfig.getProtocolConfig(), actorSystem);
         final HeaderTranslator headerTranslator = protocolAdapterProvider.getHttpHeaderTranslator();
 
+        final var namespaceAccessConfigs = authenticationConfig.getNamespaceAccessConfigs();
+        final var namespaceAccessValidatorFactory = namespaceAccessConfigs.isEmpty() ? null :
+                new NamespaceAccessValidatorFactory(namespaceAccessConfigs);
+
         final ActorRef streamingActor = startChildActor(StreamingActor.ACTOR_NAME,
                 StreamingActor.props(dittoProtocolSub,
                         proxyActor,
@@ -144,7 +152,8 @@ public final class GatewayRootActor extends DittoRootActor {
                         gatewayConfig.getStreamingConfig(),
                         headerTranslator,
                         pubSubMediator,
-                        edgeCommandForwarder));
+                        edgeCommandForwarder,
+                        namespaceAccessValidatorFactory));
 
         RootChildActorStarter.get(actorSystem, dittoExtensionConfig).execute(getContext());
 
@@ -153,7 +162,8 @@ public final class GatewayRootActor extends DittoRootActor {
 
         final Route rootRoute = createRoute(actorSystem, gatewayConfig, proxyActor, streamingActor,
                 healthCheckActor, pubSubMediator, healthCheckConfig, jwtAuthenticationFactory,
-                devopsAuthenticationDirectiveFactory, protocolAdapterProvider, headerTranslator);
+                devopsAuthenticationDirectiveFactory, protocolAdapterProvider, headerTranslator,
+                namespaceAccessValidatorFactory);
 
         httpBinding = Http.get(actorSystem)
                 .newServerAt(hostname, httpConfig.getPort())
@@ -206,7 +216,8 @@ public final class GatewayRootActor extends DittoRootActor {
             final JwtAuthenticationFactory jwtAuthenticationFactory,
             final DevopsAuthenticationDirectiveFactory devopsAuthenticationDirectiveFactory,
             final ProtocolAdapterProvider protocolAdapterProvider,
-            final HeaderTranslator headerTranslator) {
+            final HeaderTranslator headerTranslator,
+            @Nullable final NamespaceAccessValidatorFactory namespaceAccessValidatorFactory) {
 
         final var dittoExtensionConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
         final var authConfig = gatewayConfig.getAuthenticationConfig();
@@ -235,6 +246,9 @@ public final class GatewayRootActor extends DittoRootActor {
 
         final var commandConfig = gatewayConfig.getCommandConfig();
 
+        final var namespaceAccessDirective = namespaceAccessValidatorFactory == null ? null :
+                new NamespaceAccessEnforcementDirective(namespaceAccessValidatorFactory);
+
         final var routeBaseProperties = RouteBaseProperties.newBuilder()
                 .actorSystem(actorSystem)
                 .proxyActor(proxyActor)
@@ -257,16 +271,18 @@ public final class GatewayRootActor extends DittoRootActor {
                 .wotDiscoveryThingDirectoryRoute(new WotDiscoveryThingDirectoryRoute(routeBaseProperties))
                 .wotDirectoryConfig(gatewayConfig.getWotDirectoryConfig())
                 .policiesRoute(new PoliciesRoute(routeBaseProperties,
-                        OAuthTokenIntegrationSubjectIdFactory.of(authConfig.getOAuthConfig())))
+                        OAuthTokenIntegrationSubjectIdFactory.of(authConfig.getOAuthConfig()),
+                        namespaceAccessDirective))
                 .sseThingsRoute(ThingsSseRouteBuilder
                         .getInstance(actorSystem, streamingActor, streamingConfig, pubSubMediator, headerTranslator)
                         .withProxyActor(proxyActor)
                         .withSignalEnrichmentProvider(signalEnrichmentProvider))
                 .thingsRoute(new ThingsRoute(routeBaseProperties,
                         gatewayConfig.getMessageConfig(),
-                        gatewayConfig.getClaimMessageConfig()))
+                        gatewayConfig.getClaimMessageConfig(),
+                        namespaceAccessDirective))
                 .connectionsRoute(new ConnectionsRoute(routeBaseProperties, devopsAuthenticationDirective))
-                .thingSearchRoute(new ThingSearchRoute(routeBaseProperties))
+                .thingSearchRoute(new ThingSearchRoute(routeBaseProperties, namespaceAccessValidatorFactory))
                 .whoamiRoute(new WhoamiRoute(routeBaseProperties))
                 .checkPermissionsRoute(new CheckPermissionsRoute(routeBaseProperties))
                 .cloudEventsRoute(new CloudEventsRoute(routeBaseProperties, gatewayConfig.getCloudEventsConfig()))
