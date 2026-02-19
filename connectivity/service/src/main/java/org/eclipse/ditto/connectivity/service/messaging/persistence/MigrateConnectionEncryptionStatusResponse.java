@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Contributors to the Eclipse Foundation
+ * Copyright (c) 2026 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.persistence;
 
+import java.time.Instant;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -119,66 +120,48 @@ public final class MigrateConnectionEncryptionStatusResponse
      * Creates a new {@code MigrateConnectionEncryptionStatusResponse}.
      *
      * @param phase the current migration phase.
-     * @param snapshotsProcessed number of snapshots processed.
-     * @param snapshotsSkipped number of snapshots skipped.
-     * @param snapshotsFailed number of snapshots that failed.
-     * @param journalProcessed number of journal documents processed.
-     * @param journalSkipped number of journal documents skipped.
-     * @param journalFailed number of journal documents that failed.
-     * @param lastProcessedSnapshotId last processed snapshot document ID, may be {@code null}.
-     * @param lastProcessedSnapshotPid last processed snapshot persistence ID (connection ID), may be {@code null}.
-     * @param lastProcessedJournalId last processed journal document ID, may be {@code null}.
-     * @param lastProcessedJournalPid last processed journal persistence ID (connection ID), may be {@code null}.
-     * @param startedAt when migration started, may be {@code null}.
-     * @param updatedAt when migration was last updated, may be {@code null}.
+     * @param migrationProgress the migration progress containing counters, last-processed IDs and timing.
      * @param dryRun whether the migration was/is a dry-run.
      * @param migrationActive whether migration is currently active.
      * @param dittoHeaders the headers.
      * @return the response.
      */
     public static MigrateConnectionEncryptionStatusResponse of(final String phase,
-            final long snapshotsProcessed, final long snapshotsSkipped, final long snapshotsFailed,
-            final long journalProcessed, final long journalSkipped, final long journalFailed,
-            @Nullable final String lastProcessedSnapshotId, @Nullable final String lastProcessedSnapshotPid,
-            @Nullable final String lastProcessedJournalId, @Nullable final String lastProcessedJournalPid,
-            @Nullable final String startedAt, @Nullable final String updatedAt,
+            final MigrationProgress migrationProgress,
             final boolean dryRun,
             final boolean migrationActive,
             final DittoHeaders dittoHeaders) {
 
         final JsonObject snapshots = JsonFactory.newObjectBuilder()
-                .set("processed", snapshotsProcessed)
-                .set("skipped", snapshotsSkipped)
-                .set("failed", snapshotsFailed)
+                .set("processed", migrationProgress.snapshotsProcessed())
+                .set("skipped", migrationProgress.snapshotsSkipped())
+                .set("failed", migrationProgress.snapshotsFailed())
                 .build();
         final JsonObject journal = JsonFactory.newObjectBuilder()
-                .set("processed", journalProcessed)
-                .set("skipped", journalSkipped)
-                .set("failed", journalFailed)
+                .set("processed", migrationProgress.journalProcessed())
+                .set("skipped", migrationProgress.journalSkipped())
+                .set("failed", migrationProgress.journalFailed())
                 .build();
 
         final JsonObjectBuilder progressBuilder = JsonFactory.newObjectBuilder();
-        if (lastProcessedSnapshotId != null) {
-            progressBuilder.set("lastProcessedSnapshotId", lastProcessedSnapshotId);
+        if (migrationProgress.lastProcessedSnapshotId() != null) {
+            progressBuilder.set("lastProcessedSnapshotId", migrationProgress.lastProcessedSnapshotId());
         }
-        if (lastProcessedSnapshotPid != null) {
-            progressBuilder.set("lastProcessedSnapshotPid", lastProcessedSnapshotPid);
+        if (migrationProgress.lastProcessedSnapshotPid() != null) {
+            progressBuilder.set("lastProcessedSnapshotPid", migrationProgress.lastProcessedSnapshotPid());
         }
-        if (lastProcessedJournalId != null) {
-            progressBuilder.set("lastProcessedJournalId", lastProcessedJournalId);
+        if (migrationProgress.lastProcessedJournalId() != null) {
+            progressBuilder.set("lastProcessedJournalId", migrationProgress.lastProcessedJournalId());
         }
-        if (lastProcessedJournalPid != null) {
-            progressBuilder.set("lastProcessedJournalPid", lastProcessedJournalPid);
+        if (migrationProgress.lastProcessedJournalPid() != null) {
+            progressBuilder.set("lastProcessedJournalPid", migrationProgress.lastProcessedJournalPid());
         }
         final JsonObject progress = progressBuilder.build();
 
         final JsonObjectBuilder timingBuilder = JsonFactory.newObjectBuilder();
-        if (startedAt != null) {
-            timingBuilder.set("startedAt", startedAt);
-        }
-        if (updatedAt != null) {
-            timingBuilder.set("updatedAt", updatedAt);
-        }
+        timingBuilder.set("startedAt", migrationProgress.startedAt());
+        final String updatedAt = Instant.now().toString();
+        timingBuilder.set("updatedAt", updatedAt);
         final JsonObject timing = timingBuilder.build();
 
         return new MigrateConnectionEncryptionStatusResponse(phase, snapshots, journal,
@@ -281,7 +264,8 @@ public final class MigrateConnectionEncryptionStatusResponse
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), phase, snapshots, journalEvents, progress, timing, dryRun, migrationActive);
+        return Objects.hash(super.hashCode(), phase, snapshots, journalEvents, progress, timing, dryRun,
+                migrationActive);
     }
 
     @Override

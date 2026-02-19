@@ -128,7 +128,7 @@ public interface FieldsEncryptionConfig {
          * This throttles the migration stream to avoid overwhelming the database.
          * 0 means no throttling.
          */
-        MIGRATION_MAX_DOCUMENTS_PER_MINUTE("migration.max-documents-per-minute", 100);
+        MIGRATION_MAX_DOCUMENTS_PER_MINUTE("migration.max-documents-per-minute", 200);
 
         private final String configPath;
         private final Object defaultValue;

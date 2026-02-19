@@ -264,10 +264,11 @@ old events that are no longer needed for the event sourcing.
 Encryption is done using a 256-bit AES symmetrical key and the AES/GCM/NoPadding transformation.
 
 #### Symmetric key
+To generate it you can run in terminal:
 
-To generate it you can use a convenience method already available
-at [EncryptorAesGcm.generateAESKeyAsString()](https://github.com/eclipse-ditto/ditto/blob/master/connectivity/service/src/main/java/org/eclipse/ditto/connectivity/service/util/EncryptorAesGcm.java#L100)
-
+```shell
+$ openssl rand -base64 32
+```
 or you can use the java standard library
 
 ```java
@@ -275,12 +276,8 @@ or you can use the java standard library
         keyGen.init(256);
         javax.crypto.SecretKey aes256SymetricKey = keyGen.generateKey();
 ```
-
-or with a terminal command.
-
-```shell
-$ openssl rand 32 | basenc --base64url
-```
+or use a convenience method already available
+at [EncryptorAesGcm.generateAESKeyAsString()](https://github.com/eclipse-ditto/ditto/blob/master/connectivity/service/src/main/java/org/eclipse/ditto/connectivity/service/util/EncryptorAesGcm.java#L100)
 
 The key must be **256-bit [Base64-encoded with url-safe alphabet](https://www.rfc-editor.org/rfc/rfc4648#section-5) using the UTF-8** charset.
 This is done already by the convenience method mentioned
@@ -314,7 +311,7 @@ the encrypted parts and save them.
 
 #### Encryption key rotation
 
-Since Ditto 3.10.0, it is possible to rotate encryption keys without downtime or data loss using a dual-key configuration
+Since Ditto 3.9.0, it is possible to rotate encryption keys without downtime or data loss using a dual-key configuration
 and a migration command.
 
 ##### Dual-key configuration
@@ -460,7 +457,7 @@ To rotate an encryption key:
 - Progress is persisted to allow resuming after abort or service restart
 - Migration runs in batches to avoid overwhelming the database
 - The batch size can be configured via `ditto.connectivity.connection.encryption.migration.batch-size`
-- Migration is throttled to prevent database overload (default: 100 documents/minute)
+- Migration is throttled to prevent database overload (default: 200 documents/minute)
 - Throttling rate can be configured via `ditto.connectivity.connection.encryption.migration.max-documents-per-minute`
 - Set throttling to 0 to disable (not recommended for production)
 
@@ -661,7 +658,10 @@ ditto {
             ]
           }
         ]
-    //...
+        //...
+      }
+    }
+  }
 }
 ```
 
@@ -707,6 +707,7 @@ ditto {
       }
     ]
   }
+}
 ```
 
 There is a new implementation of the caching signal enrichment facade provider that must be configured to enable this

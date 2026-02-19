@@ -2170,6 +2170,31 @@ connectivity:
           queueSize: 1000
           # Messages to publish in parallel per Kafka-Publisher (one per connectivity client)
           parallelism: 10
+      # encryption contains configuration for encrypting sensitive connection fields
+      encryption:
+        # enabled controls whether field encryption is enabled
+        enabled: false
+        # secretName is the name of the Kubernetes Secret containing encryption keys
+        # The Secret must have the following keys:
+        #   - current-key: The current encryption key (required when enabled=true)
+        #   - old-key: The old encryption key (optional, only needed for key rotation)
+        # For production deployments, create the Secret before enabling encryption
+        secretName: ""
+        # migration contains configuration for the encryption migration process
+        migration:
+          # batchSize defines the number of documents processed per batch
+          # Higher values improve performance but increase memory usage
+          # Lower values are safer for initial deployments
+          # Recommendation: Start with 10-20, increase to 50-100 after successful tests
+          batchSize: 10
+          # maxDocumentsPerMinute limits the migration throughput to protect the database
+          # Protects MongoDB from excessive load during migration
+          # Set to 0 to disable (not recommended for production)
+          # Adjust based on cluster capacity:
+          #   Small (<100 connections): 200-500
+          #   Medium (100-1000 connections): 100-200
+          #   Large (>1000 connections): 50-100
+          maxDocumentsPerMinute: 200
 
 ## ----------------------------------------------------------------------------
 ## gateway configuration

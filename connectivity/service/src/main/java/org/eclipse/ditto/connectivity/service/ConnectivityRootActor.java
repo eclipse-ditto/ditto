@@ -22,6 +22,8 @@ import org.apache.pekko.actor.SupervisorStrategy;
 import org.apache.pekko.cluster.sharding.ClusterSharding;
 import org.apache.pekko.cluster.sharding.ClusterShardingSettings;
 import org.apache.pekko.event.DiagnosticLoggingAdapter;
+import org.apache.pekko.cluster.singleton.ClusterSingletonProxy;
+import org.apache.pekko.cluster.singleton.ClusterSingletonProxySettings;
 import org.apache.pekko.japi.pf.DeciderBuilder;
 import org.eclipse.ditto.base.service.RootChildActorStarter;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
@@ -47,6 +49,7 @@ import org.eclipse.ditto.internal.utils.health.config.HealthCheckConfig;
 import org.eclipse.ditto.internal.utils.health.config.PersistenceConfig;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.PersistencePingActor;
@@ -117,8 +120,7 @@ public final class ConnectivityRootActor extends DittoRootActor {
                 ConnectionPersistenceOperationsActor.props(pubSubMediator, connectivityConfig.getMongoDbConfig(),
                         config, connectivityConfig.getPersistenceOperationsConfig()));
 
-        startChildActor(EncryptionMigrationActor.ACTOR_NAME,
-                EncryptionMigrationActor.props(connectivityConfig));
+        startEncryptionMigrationSingleton(actorSystem, connectivityConfig);
 
         RootChildActorStarter.get(actorSystem, ScopedConfig.dittoExtension(config)).execute(getContext());
 
@@ -152,6 +154,21 @@ public final class ConnectivityRootActor extends DittoRootActor {
             log.warning("NamingException '{}' occurred.", e.getMessage());
             return restartChild();
         }).build().orElse(super.getSupervisionDecider());
+    }
+
+    private void startEncryptionMigrationSingleton(final ActorSystem actorSystem,
+            final ConnectivityConfig connectivityConfig) {
+        final MongoClientWrapper mongoClientWrapper =
+                MongoClientWrapper.newInstance(connectivityConfig.getMongoDbConfig());
+        final String managerName = EncryptionMigrationActor.ACTOR_NAME + "Singleton";
+        final ActorRef singletonManager = startClusterSingletonActor(
+                EncryptionMigrationActor.props(connectivityConfig, mongoClientWrapper), managerName);
+
+        final ClusterSingletonProxySettings proxySettings =
+                ClusterSingletonProxySettings.create(actorSystem).withRole(CLUSTER_ROLE);
+        final Props proxyProps = ClusterSingletonProxy.props(
+                singletonManager.path().toStringWithoutAddress(), proxySettings);
+        getContext().actorOf(proxyProps, EncryptionMigrationActor.ACTOR_NAME);
     }
 
     private ActorRef startClusterSingletonActor(final Props props, final String name) {

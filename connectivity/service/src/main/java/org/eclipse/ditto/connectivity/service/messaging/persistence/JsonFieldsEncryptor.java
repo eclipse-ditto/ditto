@@ -157,7 +157,7 @@ public final class JsonFieldsEncryptor {
 
     private static String decryptValue(final String value, final String symmetricKey) {
         if (value.startsWith(ENCRYPTED_PREFIX)) {
-            final String striped = value.replace(ENCRYPTED_PREFIX, "");
+            final String striped = value.substring(ENCRYPTED_PREFIX.length());
             try {
                 return EncryptorAesGcm.decryptWithPrefixIV(striped, symmetricKey);
             } catch (final Exception e) {
@@ -177,7 +177,7 @@ public final class JsonFieldsEncryptor {
             return value;
         }
 
-        final String stripped = value.replace(ENCRYPTED_PREFIX, "");
+        final String stripped = value.substring(ENCRYPTED_PREFIX.length());
 
         // Try current key first
         try {
@@ -189,6 +189,7 @@ public final class JsonFieldsEncryptor {
                 try {
                     return EncryptorAesGcm.decryptWithPrefixIV(stripped, oldSymmetricKey.get());
                 } catch (final Exception oldKeyException) {
+                    oldKeyException.addSuppressed(currentKeyException);
                     throw ConnectionConfigurationInvalidException.newBuilder(
                             "Decryption of connection field failed with both current and old keys. " +
                                     "Verify that the configured encryption keys match the keys used to encrypt the data.")

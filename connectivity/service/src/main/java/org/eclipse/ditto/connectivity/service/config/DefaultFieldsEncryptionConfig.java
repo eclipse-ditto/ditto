@@ -59,6 +59,15 @@ public final class DefaultFieldsEncryptionConfig implements FieldsEncryptionConf
                     "Missing 'symmetrical-key'. It is mandatory when encryption is enabled for connections!");
         }
 
+        if (migrationBatchSize <= 0) {
+            throw new DittoConfigError(
+                    "'migration.batch-size' must be greater than 0, was: " + migrationBatchSize);
+        }
+        if (migrationMaxDocumentsPerMinute < 0) {
+            throw new DittoConfigError(
+                    "'migration.max-documents-per-minute' must be >= 0, was: " + migrationMaxDocumentsPerMinute);
+        }
+
         // If both keys are set, they must be different
         if (hasSymmetricalKey && hasOldKey && symmetricalKey.equals(oldSymmetricalKey)) {
             throw new DittoConfigError(

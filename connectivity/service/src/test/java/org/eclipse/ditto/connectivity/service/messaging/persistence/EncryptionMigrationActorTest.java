@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Contributors to the Eclipse Foundation
+ * Copyright (c) 2026 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -13,11 +13,14 @@
 package org.eclipse.ditto.connectivity.service.messaging.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
+import java.util.Optional;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.migration.DocumentProcessor;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.migration.MigrationContext;
 import org.eclipse.ditto.connectivity.service.util.EncryptorAesGcm;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -55,11 +58,11 @@ public final class EncryptionMigrationActorTest {
         final JsonObject plain = createPlainSnapshotJson();
         final JsonObject encryptedWithOldKey = JsonFieldsEncryptor.encrypt(plain, "", POINTERS, OLD_KEY);
 
-        final JsonObject result = EncryptionMigrationActor.reEncryptFields(
-                encryptedWithOldKey, "", POINTERS, OLD_KEY, NEW_KEY);
+        final MigrationContext context = MigrationContext.forSnapshots(OLD_KEY, NEW_KEY, POINTERS);
+        final Optional<JsonObject> result = DocumentProcessor.reEncryptFields(encryptedWithOldKey, context);
 
-        assertThat(result).isNotNull();
-        final JsonObject decryptedWithNewKey = JsonFieldsEncryptor.decrypt(result, "", POINTERS, NEW_KEY);
+        assertThat(result).isPresent();
+        final JsonObject decryptedWithNewKey = JsonFieldsEncryptor.decrypt(result.get(), "", POINTERS, NEW_KEY);
         assertThat(decryptedWithNewKey.getValue("/credentials/password"))
                 .contains(plain.getValue("/credentials/password").get());
     }
@@ -70,11 +73,11 @@ public final class EncryptionMigrationActorTest {
         final JsonObject encryptedWithOldKey = JsonFieldsEncryptor.encrypt(
                 plain, "connection", POINTERS, OLD_KEY);
 
-        final JsonObject result = EncryptionMigrationActor.reEncryptFields(
-                encryptedWithOldKey, "connection", POINTERS, OLD_KEY, NEW_KEY);
+        final MigrationContext context = MigrationContext.forJournal(OLD_KEY, NEW_KEY, POINTERS);
+        final Optional<JsonObject> result = DocumentProcessor.reEncryptFields(encryptedWithOldKey, context);
 
-        assertThat(result).isNotNull();
-        final JsonObject decrypted = JsonFieldsEncryptor.decrypt(result, "connection", POINTERS, NEW_KEY);
+        assertThat(result).isPresent();
+        final JsonObject decrypted = JsonFieldsEncryptor.decrypt(result.get(), "connection", POINTERS, NEW_KEY);
         assertThat(decrypted.getValue("/connection/credentials/password"))
                 .contains(plain.getValue("/connection/credentials/password").get());
     }
@@ -84,28 +87,39 @@ public final class EncryptionMigrationActorTest {
         final JsonObject plain = createPlainSnapshotJson();
         final JsonObject encryptedWithNewKey = JsonFieldsEncryptor.encrypt(plain, "", POINTERS, NEW_KEY);
 
-        final JsonObject result = EncryptionMigrationActor.reEncryptFields(
-                encryptedWithNewKey, "", POINTERS, OLD_KEY, NEW_KEY);
+        final MigrationContext context = MigrationContext.forSnapshots(OLD_KEY, NEW_KEY, POINTERS);
+        final Optional<JsonObject> result = DocumentProcessor.reEncryptFields(encryptedWithNewKey, context);
 
-        assertThat(result).isNull();
+        assertThat(result).isEmpty();
     }
 
     @Test
-    public void whenBothKeysFailTreatsAsPlaintextAndEncrypts() {
-        // When neither old nor new key can decrypt, the data is treated as plaintext
-        // and encrypted with the new key. This handles the case where data was stored
-        // before encryption was enabled.
+    public void keyRotationEncryptsPlaintextFieldsWithNewKey() {
+        // During key rotation, plaintext fields (no encrypted_ prefix) are treated as plaintext:
+        // decrypt passes them through unchanged, then encrypt wraps them with the new key.
         final JsonObject plain = createPlainSnapshotJson();
 
-        final JsonObject result = EncryptionMigrationActor.reEncryptFields(
-                plain, "", POINTERS, OLD_KEY, NEW_KEY);
+        final MigrationContext context = MigrationContext.forSnapshots(OLD_KEY, NEW_KEY, POINTERS);
+        final Optional<JsonObject> result = DocumentProcessor.reEncryptFields(plain, context);
 
-        // Should encrypt the plaintext data with new key
-        assertThat(result).isNotNull();
+        assertThat(result).isPresent();
 
-        // Verify it can be decrypted with the new key
-        final JsonObject decrypted = JsonFieldsEncryptor.decrypt(result, "", POINTERS, NEW_KEY);
+        final JsonObject decrypted = JsonFieldsEncryptor.decrypt(result.get(), "", POINTERS, NEW_KEY);
         assertThat(decrypted).isEqualTo(plain);
+    }
+
+    @Test
+    public void whenBothKeysFailOnEncryptedDataThrowsException() {
+        // Data encrypted with a wrong key (has encrypted_ prefix but neither old nor new key
+        // can decrypt it) should throw an error — not silently double-encrypt.
+        final JsonObject plain = createPlainSnapshotJson();
+        final JsonObject encryptedWithWrongKey = JsonFieldsEncryptor.encrypt(plain, "", POINTERS, WRONG_KEY);
+
+        final MigrationContext context = MigrationContext.forSnapshots(OLD_KEY, NEW_KEY, POINTERS);
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                () -> DocumentProcessor.reEncryptFields(encryptedWithWrongKey, context))
+                .isInstanceOf(org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException.class);
     }
 
     @Test
@@ -113,12 +127,12 @@ public final class EncryptionMigrationActorTest {
         // Initial encryption: oldKey is null, newKey is set
         final JsonObject plain = createPlainSnapshotJson();
 
-        final JsonObject result = EncryptionMigrationActor.reEncryptFields(
-                plain, "", POINTERS, null, NEW_KEY);
+        final MigrationContext context = MigrationContext.forSnapshots(null, NEW_KEY, POINTERS);
+        final Optional<JsonObject> result = DocumentProcessor.reEncryptFields(plain, context);
 
-        assertThat(result).isNotNull();
+        assertThat(result).isPresent();
         // Verify it can be decrypted with the new key
-        final JsonObject decrypted = JsonFieldsEncryptor.decrypt(result, "", POINTERS, NEW_KEY);
+        final JsonObject decrypted = JsonFieldsEncryptor.decrypt(result.get(), "", POINTERS, NEW_KEY);
         assertThat(decrypted).isEqualTo(plain);
     }
 
@@ -128,11 +142,11 @@ public final class EncryptionMigrationActorTest {
         final JsonObject plain = createPlainSnapshotJson();
         final JsonObject alreadyEncrypted = JsonFieldsEncryptor.encrypt(plain, "", POINTERS, NEW_KEY);
 
-        final JsonObject result = EncryptionMigrationActor.reEncryptFields(
-                alreadyEncrypted, "", POINTERS, null, NEW_KEY);
+        final MigrationContext context = MigrationContext.forSnapshots(null, NEW_KEY, POINTERS);
+        final Optional<JsonObject> result = DocumentProcessor.reEncryptFields(alreadyEncrypted, context);
 
         // Should skip - already encrypted
-        assertThat(result).isNull();
+        assertThat(result).isEmpty();
     }
 
     @Test
@@ -146,31 +160,17 @@ public final class EncryptionMigrationActorTest {
         final String encryptedUri = encryptedWithOldKey.getValue("/uri").get().asString();
         assertThat(encryptedUri).contains("encrypted_");
 
-        final JsonObject result = EncryptionMigrationActor.reEncryptFields(
-                encryptedWithOldKey, "", POINTERS, OLD_KEY, NEW_KEY);
+        final MigrationContext context = MigrationContext.forSnapshots(OLD_KEY, NEW_KEY, POINTERS);
+        final Optional<JsonObject> result = DocumentProcessor.reEncryptFields(encryptedWithOldKey, context);
 
-        assertThat(result).isNotNull();
-        final JsonObject decrypted = JsonFieldsEncryptor.decrypt(result, "", POINTERS, NEW_KEY);
+        assertThat(result).isPresent();
+        final JsonObject decrypted = JsonFieldsEncryptor.decrypt(result.get(), "", POINTERS, NEW_KEY);
         assertThat(decrypted.getValue("/uri").map(v -> v.asString()))
                 .hasValue("amqps://user:secretpassword@broker.example.com:5671");
     }
 
     @Test
-    public void plainTextFieldsNotAffected() {
-        final JsonObject plain = createPlainSnapshotJson();
-
-        final JsonObject result = EncryptionMigrationActor.reEncryptFields(
-                plain, "", POINTERS, OLD_KEY, NEW_KEY);
-
-        assertThat(result).isNotNull();
-        final String encryptedPwd = result.getValue("/credentials/password").get().asString();
-        assertThat(encryptedPwd).startsWith("encrypted_");
-    }
-
-    @Test
     public void initialEncryptionSkipsUriWithAlreadyEncryptedPassword() {
-        // Bug 1: URI fields like amqps://user:encrypted_XXX@host were not detected
-        // as already encrypted because startsWith("encrypted_") checks the full URI string
         final JsonObject plain = JsonFactory.newObjectBuilder()
                 .set("/uri", "amqps://user:secretpassword@broker.example.com:5671")
                 .set("/credentials/password", "mypassword")
@@ -183,23 +183,21 @@ public final class EncryptionMigrationActorTest {
         assertThat(encUri).contains("encrypted_");
 
         // Initial encryption (oldKey=null) should detect the encrypted URI and skip
-        final JsonObject result = EncryptionMigrationActor.reEncryptFields(
-                encrypted, "", POINTERS, null, NEW_KEY);
+        final MigrationContext context = MigrationContext.forSnapshots(null, NEW_KEY, POINTERS);
+        final Optional<JsonObject> result = DocumentProcessor.reEncryptFields(encrypted, context);
 
-        assertThat(result).isNull();
+        assertThat(result).isEmpty();
     }
 
     @Test
     public void disableWorkflowSkipsAlreadyPlaintextEntity() {
-        // Bug 2: decrypt() silently passes through plaintext, so disable workflow
-        // was counting plaintext entities as "processed" instead of "skipped"
         final JsonObject plain = createPlainSnapshotJson();
 
-        final JsonObject result = EncryptionMigrationActor.reEncryptFields(
-                plain, "", POINTERS, OLD_KEY, null);
+        final MigrationContext context = MigrationContext.forSnapshots(OLD_KEY, null, POINTERS);
+        final Optional<JsonObject> result = DocumentProcessor.reEncryptFields(plain, context);
 
-        // Should return null (skip) because decrypt returns unchanged plaintext
-        assertThat(result).isNull();
+        // Should return empty (skip) because decrypt returns unchanged plaintext
+        assertThat(result).isEmpty();
     }
 
     @Test
@@ -211,13 +209,13 @@ public final class EncryptionMigrationActorTest {
         final JsonObject encrypted = JsonFieldsEncryptor.encrypt(plain, "", POINTERS, OLD_KEY);
 
         // Disable workflow (newKey=null) should decrypt and return plaintext
-        final JsonObject result = EncryptionMigrationActor.reEncryptFields(
-                encrypted, "", POINTERS, OLD_KEY, null);
+        final MigrationContext context = MigrationContext.forSnapshots(OLD_KEY, null, POINTERS);
+        final Optional<JsonObject> result = DocumentProcessor.reEncryptFields(encrypted, context);
 
-        assertThat(result).isNotNull();
-        assertThat(result.getValue("/uri").get().asString())
+        assertThat(result).isPresent();
+        assertThat(result.get().getValue("/uri").get().asString())
                 .isEqualTo("amqps://user:secretpassword@broker.example.com:5671");
-        assertThat(result.getValue("/credentials/password").get().asString())
+        assertThat(result.get().getValue("/credentials/password").get().asString())
                 .isEqualTo("mypassword");
     }
 
@@ -230,23 +228,21 @@ public final class EncryptionMigrationActorTest {
                 .build();
 
         // Initial encryption
-        assertThat(EncryptionMigrationActor.reEncryptFields(
-                emptyEvent, "connection", POINTERS, null, NEW_KEY)).isNull();
+        final MigrationContext initialContext = MigrationContext.forJournal(null, NEW_KEY, POINTERS);
+        assertThat(DocumentProcessor.reEncryptFields(emptyEvent, initialContext)).isEmpty();
 
         // Key rotation
-        assertThat(EncryptionMigrationActor.reEncryptFields(
-                emptyEvent, "connection", POINTERS, OLD_KEY, NEW_KEY)).isNull();
+        final MigrationContext rotationContext = MigrationContext.forJournal(OLD_KEY, NEW_KEY, POINTERS);
+        assertThat(DocumentProcessor.reEncryptFields(emptyEvent, rotationContext)).isEmpty();
 
         // Disable workflow
-        assertThat(EncryptionMigrationActor.reEncryptFields(
-                emptyEvent, "connection", POINTERS, OLD_KEY, null)).isNull();
+        final MigrationContext disableContext = MigrationContext.forJournal(OLD_KEY, null, POINTERS);
+        assertThat(DocumentProcessor.reEncryptFields(emptyEvent, disableContext)).isEmpty();
     }
-
-    // --- MigrateConnectionEncryption command tests ---
 
     @Test
     public void commandSerializationRoundTrip() {
-        final var headers = org.eclipse.ditto.base.model.headers.DittoHeaders.empty();
+        final var headers = DittoHeaders.empty();
         final var command = MigrateConnectionEncryption.of(true, false, headers);
 
         final JsonObject json = command.toJson();
@@ -262,7 +258,7 @@ public final class EncryptionMigrationActorTest {
         final JsonObject minimalJson = JsonFactory.newObjectBuilder()
                 .set("type", MigrateConnectionEncryption.TYPE)
                 .build();
-        final var headers = org.eclipse.ditto.base.model.headers.DittoHeaders.empty();
+        final var headers = DittoHeaders.empty();
 
         final var command = MigrateConnectionEncryption.fromJson(minimalJson, headers);
 
@@ -270,11 +266,9 @@ public final class EncryptionMigrationActorTest {
         assertThat(command.isResume()).isFalse();
     }
 
-    // --- MigrateConnectionEncryptionAbort command tests ---
-
     @Test
     public void abortCommandSerializationRoundTrip() {
-        final var headers = org.eclipse.ditto.base.model.headers.DittoHeaders.empty();
+        final var headers = DittoHeaders.empty();
         final var command = MigrateConnectionEncryptionAbort.of(headers);
 
         final JsonObject json = command.toJson();
@@ -284,11 +278,9 @@ public final class EncryptionMigrationActorTest {
         assertThat(deserialized.getType()).isEqualTo("connectivity.commands:migrateEncryptionAbort");
     }
 
-    // --- MigrateConnectionEncryptionStatus command tests ---
-
     @Test
     public void statusCommandSerializationRoundTrip() {
-        final var headers = org.eclipse.ditto.base.model.headers.DittoHeaders.empty();
+        final var headers = DittoHeaders.empty();
         final var command = MigrateConnectionEncryptionStatus.of(headers);
 
         final JsonObject json = command.toJson();
@@ -298,11 +290,9 @@ public final class EncryptionMigrationActorTest {
         assertThat(deserialized.getType()).isEqualTo("connectivity.commands:migrateEncryptionStatus");
     }
 
-    // --- Response tests ---
-
     @Test
     public void acceptedResponseSerializationRoundTrip() {
-        final var headers = org.eclipse.ditto.base.model.headers.DittoHeaders.empty();
+        final var headers = DittoHeaders.empty();
         final var response = MigrateConnectionEncryptionResponse.accepted(
                 false, "2026-02-16T10:00:00Z", false, headers);
 
@@ -318,7 +308,7 @@ public final class EncryptionMigrationActorTest {
 
     @Test
     public void dryRunResponseSerializationRoundTrip() {
-        final var headers = org.eclipse.ditto.base.model.headers.DittoHeaders.empty();
+        final var headers = DittoHeaders.empty();
         final var response = MigrateConnectionEncryptionResponse.dryRunCompleted(
                 "completed", false, "2026-02-16T10:00:00Z",
                 100, 10, 2, 200, 20, 5, headers);
@@ -337,17 +327,16 @@ public final class EncryptionMigrationActorTest {
 
     @Test
     public void statusResponseSerializationRoundTrip() {
-        final var headers = org.eclipse.ditto.base.model.headers.DittoHeaders.empty();
-        final var response = MigrateConnectionEncryptionStatusResponse.of(
+        final var headers = DittoHeaders.empty();
+        final var progress = new MigrationProgress(
                 "in_progress:snapshots",
-                150, 10, 2,
-                0, 0, 0,
                 "507f1f77bcf86cd799439011", "connection:mqtt-prod-sensor-01",
                 null, null,
-                "2026-02-16T10:00:00Z", "2026-02-16T10:30:00Z",
-                true,
-                true,
-                headers);
+                150, 10, 2,
+                0, 0, 0,
+                "2026-02-16T10:00:00Z");
+        final var response = MigrateConnectionEncryptionStatusResponse.of(
+                "in_progress:snapshots", progress, true, true, headers);
 
         final JsonObject json = response.toJson();
         final var deserialized = MigrateConnectionEncryptionStatusResponse.fromJson(json, headers);
@@ -359,7 +348,7 @@ public final class EncryptionMigrationActorTest {
 
     @Test
     public void abortResponseSerializationRoundTrip() {
-        final var headers = org.eclipse.ditto.base.model.headers.DittoHeaders.empty();
+        final var headers = DittoHeaders.empty();
         final var response = MigrateConnectionEncryptionAbortResponse.of(
                 "aborted:snapshots",
                 150, 10, 2,
@@ -375,32 +364,86 @@ public final class EncryptionMigrationActorTest {
         assertThat(deserialized.getType()).isEqualTo(MigrateConnectionEncryptionAbortResponse.TYPE);
     }
 
-    // --- Progress tracking tests ---
-
     @Test
     public void migrationProgressTracking() {
-        final EncryptionMigrationActor.MigrationProgress progress =
-                new EncryptionMigrationActor.MigrationProgress();
+        final MigrationProgress initial =
+                new MigrationProgress();
 
-        progress.incrementSnapshotsProcessed()
+        final MigrationProgress afterSnapshots = initial
+                .incrementSnapshotsProcessed()
                 .incrementSnapshotsProcessed()
                 .incrementSnapshotsSkipped()
                 .incrementSnapshotsFailed();
 
-        assertThat(progress.snapshotsProcessed).isEqualTo(2);
-        assertThat(progress.snapshotsSkipped).isEqualTo(1);
-        assertThat(progress.snapshotsFailed).isEqualTo(1);
+        assertThat(afterSnapshots.snapshotsProcessed()).isEqualTo(2);
+        assertThat(afterSnapshots.snapshotsSkipped()).isEqualTo(1);
+        assertThat(afterSnapshots.snapshotsFailed()).isEqualTo(1);
+        // Original should be unchanged (immutable)
+        assertThat(initial.snapshotsProcessed()).isEqualTo(0);
 
-        progress.withPhase("journal")
+        final MigrationProgress afterJournal = afterSnapshots
+                .withPhase("journal")
                 .incrementJournalProcessed()
                 .incrementJournalSkipped();
 
-        assertThat(progress.phase).isEqualTo("journal");
-        assertThat(progress.journalProcessed).isEqualTo(1);
-        assertThat(progress.journalSkipped).isEqualTo(1);
+        assertThat(afterJournal.phase()).isEqualTo("journal");
+        assertThat(afterJournal.journalProcessed()).isEqualTo(1);
+        assertThat(afterJournal.journalSkipped()).isEqualTo(1);
+        // Snapshot counts should be preserved
+        assertThat(afterJournal.snapshotsProcessed()).isEqualTo(2);
     }
 
-    // --- Helper methods ---
+    @Test
+    public void bulkWriteFailureAdjustsSnapshotCounters() {
+        final MigrationProgress progress =
+                new MigrationProgress()
+                        .incrementSnapshotsProcessed()
+                        .incrementSnapshotsProcessed()
+                        .incrementSnapshotsProcessed();
+
+        assertThat(progress.snapshotsProcessed()).isEqualTo(3);
+        assertThat(progress.snapshotsFailed()).isEqualTo(0);
+
+        final MigrationProgress adjusted =
+                progress.adjustForBulkWriteFailure(2, true);
+
+        assertThat(adjusted.snapshotsProcessed()).isEqualTo(1);
+        assertThat(adjusted.snapshotsFailed()).isEqualTo(2);
+        // Journal counters should be unaffected
+        assertThat(adjusted.journalProcessed()).isEqualTo(0);
+        assertThat(adjusted.journalFailed()).isEqualTo(0);
+    }
+
+    @Test
+    public void bulkWriteFailureAdjustsJournalCounters() {
+        final MigrationProgress progress =
+                new MigrationProgress()
+                        .withPhase("journal")
+                        .incrementJournalProcessed()
+                        .incrementJournalProcessed();
+
+        final MigrationProgress adjusted =
+                progress.adjustForBulkWriteFailure(2, false);
+
+        assertThat(adjusted.journalProcessed()).isEqualTo(0);
+        assertThat(adjusted.journalFailed()).isEqualTo(2);
+        // Snapshot counters should be unaffected
+        assertThat(adjusted.snapshotsProcessed()).isEqualTo(0);
+    }
+
+    @Test
+    public void bulkWriteFailureDoesNotGoNegative() {
+        final MigrationProgress progress =
+                new MigrationProgress()
+                        .incrementSnapshotsProcessed();
+
+        // More failures than processed: should clamp to 0
+        final MigrationProgress adjusted =
+                progress.adjustForBulkWriteFailure(5, true);
+
+        assertThat(adjusted.snapshotsProcessed()).isEqualTo(0);
+        assertThat(adjusted.snapshotsFailed()).isEqualTo(5);
+    }
 
     private static JsonObject createPlainSnapshotJson() {
         return JsonFactory.newObjectBuilder()
