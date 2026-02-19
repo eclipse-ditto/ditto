@@ -32,6 +32,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonKey;
@@ -49,6 +50,7 @@ import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.Subjects;
 import org.eclipse.ditto.policies.model.enforcers.EffectedSubjects;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
+import org.eclipse.ditto.policies.model.enforcers.SubjectClassification;
 
 /**
  * Holds Algorithms to create a policy tree and to perform different policy checks on this tree.
@@ -56,6 +58,7 @@ import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 public final class TreeBasedPolicyEnforcer implements Enforcer {
 
     private static final String ROOT_RESOURCE = "/";
+    private static final JsonPointer ROOT_RESOURCE_POINTER = JsonFactory.newPointer(ROOT_RESOURCE);
 
     /**
      * Maps subject ID to {@link org.eclipse.ditto.policies.model.enforcers.tree.SubjectNode} whose children are {@link org.eclipse.ditto.policies.model.enforcers.tree.ResourceNode} for which the subject is granted
@@ -228,6 +231,14 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
     }
 
     @Override
+    public SubjectClassification classifySubjects(final ResourceKey resourceKey, final Permissions permissions) {
+        checkResourceKey(resourceKey);
+        checkPermissions(permissions);
+        final JsonPointer resourcePointer = createAbsoluteResourcePointer(resourceKey);
+        return visitTree(new ClassifySubjectsVisitor(resourcePointer, permissions));
+    }
+
+    @Override
     public JsonObject buildJsonView(
             final ResourceKey resourceKey,
             final Iterable<JsonField> jsonFields,
@@ -240,7 +251,7 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
         final Collection<String> authorizationSubjectIds = getAuthorizationSubjectIds(authorizationContext);
 
         final EffectedResources effectedResources = getGrantedAndRevokedSubResource(
-                JsonFactory.newPointer(ROOT_RESOURCE), resourceKey.getResourceType(), authorizationSubjectIds,
+                ROOT_RESOURCE_POINTER, resourceKey.getResourceType(), authorizationSubjectIds,
                 permissions);
 
         if (jsonFields instanceof JsonObject && ((JsonObject) jsonFields).isNull()) {
@@ -272,7 +283,7 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
         final Collection<String> authorizationSubjectIds = getAuthorizationSubjectIds(authorizationContext);
 
         final EffectedResources effectedResources = getGrantedAndRevokedSubResource(
-                JsonFactory.newPointer(ROOT_RESOURCE), resourceKey.getResourceType(), authorizationSubjectIds,
+                ROOT_RESOURCE_POINTER, resourceKey.getResourceType(), authorizationSubjectIds,
                 permissions);
 
         if (jsonFields instanceof JsonObject && ((JsonObject) jsonFields).isNull()) {
@@ -289,6 +300,46 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
                 .map(pv -> new PointerAndValue(resourcePath.append(pv.pointer), pv.value))
                 .collect(Collectors.toList());
         return extractAccessiblePaths(prefixedPointers, grantedResources, revokedResources, resourcePath);
+    }
+
+    @Override
+    public Map<AuthorizationSubject, Set<JsonPointer>> getAccessiblePathsForSubjects(
+            final ResourceKey resourceKey, final Iterable<JsonField> jsonFields,
+            final Set<AuthorizationSubject> authorizationSubjects, final Permissions permissions) {
+
+        checkResourceKey(resourceKey);
+        checkNotNull(jsonFields, "JSON fields");
+        checkPermissions(permissions);
+
+        if (jsonFields instanceof JsonObject && ((JsonObject) jsonFields).isNull()) {
+            return Collections.emptyMap();
+        }
+
+        // 1. Flatten once
+        final List<PointerAndValue> flatPointers = new ArrayList<>();
+        jsonFields.forEach(jf -> collectFlatPointers(jf.getKey().asPointer(), jf, flatPointers));
+        final JsonPointer resourcePath = resourceKey.getResourcePath();
+        final List<PointerAndValue> prefixedPointers = flatPointers.stream()
+                .map(pv -> new PointerAndValue(resourcePath.append(pv.pointer), pv.value))
+                .collect(Collectors.toList());
+
+        // 2. Per-subject: tree walk + filter (reusing prefixedPointers)
+        final Map<AuthorizationSubject, Set<JsonPointer>> result = new HashMap<>();
+        for (final AuthorizationSubject subject : authorizationSubjects) {
+            final Collection<String> subjectIds = Collections.singleton(subject.getId());
+            final EffectedResources effectedResources = getGrantedAndRevokedSubResource(
+                    ROOT_RESOURCE_POINTER, resourceKey.getResourceType(), subjectIds, permissions);
+
+            final Set<JsonPointer> grantedResources = extractJsonPointers(effectedResources.getGrantedResources());
+            final Set<JsonPointer> revokedResources = extractJsonPointers(effectedResources.getRevokedResources());
+
+            final Set<JsonPointer> paths = extractAccessiblePaths(
+                    prefixedPointers, grantedResources, revokedResources, resourcePath);
+            if (!paths.isEmpty()) {
+                result.put(subject, paths);
+            }
+        }
+        return result;
     }
 
     private static Set<JsonPointer> extractJsonPointers(final Collection<PointerAndPermission> resources) {
@@ -385,9 +436,8 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
     private static boolean isAccessible(final JsonPointer pointer,
             final Collection<JsonPointer> grantedResources,
             final Collection<JsonPointer> revokedResources) {
-        final JsonPointer rootResourcePointer = JsonFactory.newPointer(ROOT_RESOURCE);
-        boolean accessible = grantedResources.contains(rootResourcePointer) &&
-                !revokedResources.contains(rootResourcePointer);
+        boolean accessible = grantedResources.contains(ROOT_RESOURCE_POINTER) &&
+                !revokedResources.contains(ROOT_RESOURCE_POINTER);
 
         final int levelCount = pointer.getLevelCount();
         if (levelCount > 0) {
@@ -597,7 +647,7 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
             final ResourceNode resourceNode) {
 
         final JsonPointer resourceToAdd = ROOT_RESOURCE.equals(resource.toString())
-                ? JsonFactory.newPointer(ROOT_RESOURCE)
+                ? ROOT_RESOURCE_POINTER
                 : getPrefixPointerOrThrow(resource, level);
         final EffectedPermissions effectedPermissions = resourceNode.getPermissions();
         if (effectedPermissions.getGrantedPermissions().contains(permission)) {
