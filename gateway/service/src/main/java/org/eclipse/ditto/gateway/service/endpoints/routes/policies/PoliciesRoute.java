@@ -18,12 +18,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.gateway.service.endpoints.directives.auth.NamespaceAccessEnforcementDirective;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationResult;
@@ -76,6 +78,8 @@ public final class PoliciesRoute extends AbstractRoute {
     private final PolicyImportsRoute policyImportsRoute;
 
     private final TokenIntegrationSubjectIdFactory tokenIntegrationSubjectIdFactory;
+    @Nullable
+    private final NamespaceAccessEnforcementDirective namespaceAccessDirective;
 
     /**
      * Constructs a {@code PoliciesRoute} object.
@@ -86,8 +90,23 @@ public final class PoliciesRoute extends AbstractRoute {
      */
     public PoliciesRoute(final RouteBaseProperties routeBaseProperties,
             final TokenIntegrationSubjectIdFactory tokenIntegrationSubjectIdFactory) {
+        this(routeBaseProperties, tokenIntegrationSubjectIdFactory, null);
+    }
+
+    /**
+     * Constructs a {@code PoliciesRoute} object with namespace access enforcement.
+     *
+     * @param routeBaseProperties the base properties of the route.
+     * @param tokenIntegrationSubjectIdFactory factory of resolvers for placeholders.
+     * @param namespaceAccessDirective the directive for enforcing namespace access control, may be null.
+     * @throws NullPointerException if any required argument is {@code null}.
+     */
+    public PoliciesRoute(final RouteBaseProperties routeBaseProperties,
+            final TokenIntegrationSubjectIdFactory tokenIntegrationSubjectIdFactory,
+            @Nullable final NamespaceAccessEnforcementDirective namespaceAccessDirective) {
 
         super(routeBaseProperties);
+        this.namespaceAccessDirective = namespaceAccessDirective;
         policyEntriesRoute = new PolicyEntriesRoute(routeBaseProperties, tokenIntegrationSubjectIdFactory);
         policyImportsRoute = new PolicyImportsRoute(routeBaseProperties);
         this.tokenIntegrationSubjectIdFactory = tokenIntegrationSubjectIdFactory;
@@ -134,11 +153,13 @@ public final class PoliciesRoute extends AbstractRoute {
 
     private Route policyRoute(final RequestContext ctx, final DittoHeaders dittoHeaders, final PolicyId policyId,
             final AuthenticationResult authenticationResult) {
-        return concat(
-                policyId(ctx, dittoHeaders, policyId),
-                policyImports(ctx, dittoHeaders, policyId),
-                policyEntries(ctx, dittoHeaders, policyId, authenticationResult),
-                policyActions(ctx, dittoHeaders, policyId, authenticationResult)
+        return enforceNamespaceAccess(ctx, dittoHeaders, policyId, () ->
+                concat(
+                        policyId(ctx, dittoHeaders, policyId),
+                        policyImports(ctx, dittoHeaders, policyId),
+                        policyEntries(ctx, dittoHeaders, policyId, authenticationResult),
+                        policyActions(ctx, dittoHeaders, policyId, authenticationResult)
+                )
         );
     }
 
@@ -315,6 +336,14 @@ public final class PoliciesRoute extends AbstractRoute {
         return route.extractRequestContext(context ->
                 route.handlePerRequest(context, dittoHeaders, context.getRequest().entity().getDataBytes(),
                         body -> commandConstructor.apply(toSubjectAnnouncement(body))));
+    }
+
+    private Route enforceNamespaceAccess(final RequestContext ctx, final DittoHeaders dittoHeaders,
+            final PolicyId policyId, final Supplier<Route> inner) {
+        if (namespaceAccessDirective != null) {
+            return namespaceAccessDirective.enforceNamespaceAccessForEntityId(ctx, dittoHeaders, policyId, inner);
+        }
+        return inner.get();
     }
 
 }

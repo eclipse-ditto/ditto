@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.gateway.service.util.config.security;
 
+import java.util.List;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
@@ -37,6 +38,7 @@ public final class DefaultAuthenticationConfig implements AuthenticationConfig, 
     private final HttpProxyConfig httpProxyConfig;
     private final DevOpsConfig devOpsConfig;
     private final OAuthConfig oAuthConfig;
+    private final List<NamespaceAccessConfig> namespaceAccessConfigs;
 
     private DefaultAuthenticationConfig(final ScopedConfig scopedConfig) {
         preAuthenticationEnabled =
@@ -44,6 +46,7 @@ public final class DefaultAuthenticationConfig implements AuthenticationConfig, 
         httpProxyConfig = DefaultHttpProxyConfig.ofHttpProxy(scopedConfig);
         devOpsConfig = DefaultDevOpsConfig.of(scopedConfig);
         oAuthConfig = DefaultOAuthConfig.of(scopedConfig);
+        namespaceAccessConfigs = DefaultNamespaceAccessConfig.ofList(scopedConfig);
     }
 
     /**
@@ -78,6 +81,11 @@ public final class DefaultAuthenticationConfig implements AuthenticationConfig, 
         return oAuthConfig;
     }
 
+    @Override
+    public List<NamespaceAccessConfig> getNamespaceAccessConfigs() {
+        return namespaceAccessConfigs;
+    }
+
     /**
      * @return always {@value CONFIG_PATH}.
      */
@@ -94,13 +102,14 @@ public final class DefaultAuthenticationConfig implements AuthenticationConfig, 
         return preAuthenticationEnabled == that.preAuthenticationEnabled &&
                 Objects.equals(httpProxyConfig, that.httpProxyConfig) &&
                 Objects.equals(devOpsConfig, that.devOpsConfig) &&
-                Objects.equals(oAuthConfig, that.oAuthConfig);
+                Objects.equals(oAuthConfig, that.oAuthConfig) &&
+                Objects.equals(namespaceAccessConfigs, that.namespaceAccessConfigs);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(preAuthenticationEnabled, httpProxyConfig,
-                devOpsConfig, oAuthConfig);
+                devOpsConfig, oAuthConfig, namespaceAccessConfigs);
     }
 
     @Override
@@ -110,6 +119,7 @@ public final class DefaultAuthenticationConfig implements AuthenticationConfig, 
                 ", httpProxyConfig=" + httpProxyConfig +
                 ", devOpsConfig=" + devOpsConfig +
                 ", oAuthConfig=" + oAuthConfig +
+                ", namespaceAccessConfigs=" + namespaceAccessConfigs +
                 "]";
     }
 

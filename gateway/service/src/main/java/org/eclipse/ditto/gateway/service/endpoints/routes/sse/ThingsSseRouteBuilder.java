@@ -439,7 +439,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                             connectionCorrelationId, dittoHeaders);
                                     final var connect = new Connect(withQueue.getSourceQueue(), connectionCorrelationId,
                                             STREAMING_TYPE_SSE, jsonSchemaVersion, null, Set.of(),
-                                            authorizationContext, namespaces, null);
+                                            authorizationContext, dittoHeaders, namespaces, null);
                                     Patterns.ask(streamingActor, connect, LOCAL_ASK_TIMEOUT)
                                             .thenApply(ActorRef.class::cast)
                                             .thenAccept(streamingSessionActor ->
@@ -515,7 +515,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                         final var connect =
                                                 new Connect(withQueue.getSourceQueue(), connectionCorrelationId,
                                                         STREAMING_TYPE_SSE, jsonSchemaVersion, null, Set.of(),
-                                                        authorizationContext, namespaces, null);
+                                                        authorizationContext, dittoHeaders, namespaces, null);
                                         final String resourcePathRqlStatement;
                                         if (INBOX_OUTBOX_WITH_SUBJECT_PATTERN.matcher(messagePath).matches()) {
                                             resourcePathRqlStatement = String.format(

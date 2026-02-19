@@ -30,6 +30,8 @@ import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
+import org.eclipse.ditto.gateway.service.security.authorization.NamespaceAccessValidator;
+import org.eclipse.ditto.gateway.service.security.authorization.NamespaceAccessValidatorFactory;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.CountThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 
@@ -43,6 +45,9 @@ public final class ThingSearchRoute extends AbstractRoute {
 
     private static final String PATH_COUNT = "count";
 
+    @Nullable
+    private final NamespaceAccessValidatorFactory validatorFactory;
+
     /**
      * Constructs a {@code ThingSearchRoute} object.
      *
@@ -50,7 +55,20 @@ public final class ThingSearchRoute extends AbstractRoute {
      * @throws NullPointerException if {@code routeBaseProperties} is {@code null}.
      */
     public ThingSearchRoute(final RouteBaseProperties routeBaseProperties) {
+        this(routeBaseProperties, null);
+    }
+
+    /**
+     * Constructs a {@code ThingSearchRoute} object with namespace access enforcement.
+     *
+     * @param routeBaseProperties the base properties of the route.
+     * @param validatorFactory the factory for creating namespace access validators, may be null.
+     * @throws NullPointerException if {@code routeBaseProperties} is {@code null}.
+     */
+    public ThingSearchRoute(final RouteBaseProperties routeBaseProperties,
+            @Nullable final NamespaceAccessValidatorFactory validatorFactory) {
         super(routeBaseProperties);
+        this.validatorFactory = validatorFactory;
     }
 
     /**
@@ -81,25 +99,35 @@ public final class ThingSearchRoute extends AbstractRoute {
         return concat(
                 // GET things/count?filter=<filterString>&namespaces=<namespacesString>
                 get(() -> thingSearchParameterOptional(
-                        params -> handlePerRequest(ctx,
-                                CountThings.of(calculateFilter(params.get(ThingSearchParameter.FILTER)),
-                                        calculateNamespaces(params.get(ThingSearchParameter.NAMESPACES)),
-                                        dittoHeaders)))),
+                        params -> {
+                            final Set<String> requestedNamespaces =
+                                    calculateNamespaces(params.get(ThingSearchParameter.NAMESPACES));
+                            final Set<String> filteredNamespaces =
+                                    applyNamespaceAccessControl(requestedNamespaces, dittoHeaders);
+                            return handlePerRequest(ctx,
+                                    CountThings.of(calculateFilter(params.get(ThingSearchParameter.FILTER)),
+                                            filteredNamespaces,
+                                            dittoHeaders));
+                        })),
                 // POST things/count
                 post(() -> ensureMediaTypeFormUrlEncodedThenExtractData(
                         ctx,
                         dittoHeaders,
-                        formFields -> handlePerRequest(
-                                ctx,
-                                CountThings.of(
-                                        calculateFilter(
-                                                formFields.getOrDefault(ThingSearchParameter.FILTER.toString(),
-                                                        List.of())),
-                                        calculateNamespaces(
-                                                formFields.getOrDefault(ThingSearchParameter.NAMESPACES.toString(),
-                                                        List.of())),
-                                        dittoHeaders)
-                        )
+                        formFields -> {
+                            final Set<String> requestedNamespaces = calculateNamespaces(
+                                    formFields.getOrDefault(ThingSearchParameter.NAMESPACES.toString(), List.of()));
+                            final Set<String> filteredNamespaces =
+                                    applyNamespaceAccessControl(requestedNamespaces, dittoHeaders);
+                            return handlePerRequest(
+                                    ctx,
+                                    CountThings.of(
+                                            calculateFilter(
+                                                    formFields.getOrDefault(ThingSearchParameter.FILTER.toString(),
+                                                            List.of())),
+                                            filteredNamespaces,
+                                            dittoHeaders)
+                            );
+                        }
                 ))
         );
     }
@@ -116,41 +144,51 @@ public final class ThingSearchRoute extends AbstractRoute {
                 //           &fields=<fieldsString>
                 //           &namespaces=<namespacesString>
                 get(() -> thingSearchParameterOptional(
-                                params -> handlePerRequest(ctx,
-                                        QueryThings.of(
-                                                calculateFilter(params.get(ThingSearchParameter.FILTER)),
-                                                calculateOptions(params.get(ThingSearchParameter.OPTION)),
-                                                AbstractRoute.calculateSelectedFields(params.get(ThingSearchParameter.FIELDS))
-                                                        .orElse(null),
-                                                calculateNamespaces(params.get(ThingSearchParameter.NAMESPACES)),
-                                                dittoHeaders
-                                        )
-                                )
+                                params -> {
+                                    final Set<String> requestedNamespaces =
+                                            calculateNamespaces(params.get(ThingSearchParameter.NAMESPACES));
+                                    final Set<String> filteredNamespaces =
+                                            applyNamespaceAccessControl(requestedNamespaces, dittoHeaders);
+                                    return handlePerRequest(ctx,
+                                            QueryThings.of(
+                                                    calculateFilter(params.get(ThingSearchParameter.FILTER)),
+                                                    calculateOptions(params.get(ThingSearchParameter.OPTION)),
+                                                    AbstractRoute.calculateSelectedFields(params.get(ThingSearchParameter.FIELDS))
+                                                            .orElse(null),
+                                                    filteredNamespaces,
+                                                    dittoHeaders
+                                            )
+                                    );
+                                }
                         )
                 ),
                 // POST /search/things
                 post(() -> ensureMediaTypeFormUrlEncodedThenExtractData(
                         ctx,
                         dittoHeaders,
-                        formFields -> handlePerRequest(ctx,
-                                QueryThings.of(
-                                        calculateFilter(
-                                                formFields.getOrDefault(ThingSearchParameter.FILTER.toString(),
-                                                        List.of())),
-                                        calculateOptions(
-                                                formFields.getOrDefault(ThingSearchParameter.OPTION.toString(),
-                                                        List.of())),
-                                        AbstractRoute.calculateSelectedFields(
-                                                formFields.getOrDefault(ThingSearchParameter.FIELDS.toString(),
-                                                        List.of())).orElse(null),
-                                        calculateNamespaces(
-                                                formFields.getOrDefault(ThingSearchParameter.NAMESPACES.toString(),
-                                                        List.of())),
-                                        calculateSearchPostDittoHeaders(dittoHeaders,
-                                                formFields.getOrDefault(DittoHeaderDefinition.CONDITION.getKey(),
-                                                        List.of()))
-                                )
-                        )
+                        formFields -> {
+                            final Set<String> requestedNamespaces = calculateNamespaces(
+                                    formFields.getOrDefault(ThingSearchParameter.NAMESPACES.toString(), List.of()));
+                            final Set<String> filteredNamespaces =
+                                    applyNamespaceAccessControl(requestedNamespaces, dittoHeaders);
+                            return handlePerRequest(ctx,
+                                    QueryThings.of(
+                                            calculateFilter(
+                                                    formFields.getOrDefault(ThingSearchParameter.FILTER.toString(),
+                                                            List.of())),
+                                            calculateOptions(
+                                                    formFields.getOrDefault(ThingSearchParameter.OPTION.toString(),
+                                                            List.of())),
+                                            AbstractRoute.calculateSelectedFields(
+                                                    formFields.getOrDefault(ThingSearchParameter.FIELDS.toString(),
+                                                            List.of())).orElse(null),
+                                            filteredNamespaces,
+                                            calculateSearchPostDittoHeaders(dittoHeaders,
+                                                    formFields.getOrDefault(DittoHeaderDefinition.CONDITION.getKey(),
+                                                            List.of()))
+                                    )
+                            );
+                        }
                 ))
         );
 
@@ -226,6 +264,23 @@ public final class ThingSearchRoute extends AbstractRoute {
                                     .collect(Collectors.joining(",", "and(", ")"))
                     )
                     .build();
+        }
+    }
+
+    @Nullable
+    private Set<String> applyNamespaceAccessControl(@Nullable final Set<String> requestedNamespaces,
+            final DittoHeaders dittoHeaders) {
+        if (validatorFactory == null) {
+            return requestedNamespaces;
+        }
+
+        final NamespaceAccessValidator validator =
+                validatorFactory.createValidator(dittoHeaders);
+
+        if (requestedNamespaces != null) {
+            return validator.filterAllowedNamespaces(requestedNamespaces);
+        } else {
+            return validator.getApplicableNamespacePatterns().orElse(null);
         }
     }
 

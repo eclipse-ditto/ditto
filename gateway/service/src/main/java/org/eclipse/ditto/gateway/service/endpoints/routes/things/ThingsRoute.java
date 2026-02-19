@@ -19,8 +19,10 @@ import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -41,6 +43,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.service.UriEncoding;
+import org.eclipse.ditto.gateway.service.endpoints.directives.auth.NamespaceAccessEnforcementDirective;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.gateway.service.endpoints.routes.thingsearch.ThingSearchParameter;
@@ -97,6 +100,8 @@ public final class ThingsRoute extends AbstractRoute {
 
     private final FeaturesRoute featuresRoute;
     private final MessagesRoute messagesRoute;
+    @Nullable
+    private final NamespaceAccessEnforcementDirective namespaceAccessDirective;
 
     /**
      * Constructs a {@code ThingsRoute} object.
@@ -109,8 +114,25 @@ public final class ThingsRoute extends AbstractRoute {
     public ThingsRoute(final RouteBaseProperties routeBaseProperties,
             final MessageConfig messageConfig,
             final MessageConfig claimMessageConfig) {
+        this(routeBaseProperties, messageConfig, claimMessageConfig, null);
+    }
+
+    /**
+     * Constructs a {@code ThingsRoute} object with namespace access enforcement.
+     *
+     * @param routeBaseProperties the base properties of the route.
+     * @param messageConfig the MessageConfig.
+     * @param claimMessageConfig the MessageConfig for claim messages.
+     * @param namespaceAccessDirective the directive for enforcing namespace access control, may be null.
+     * @throws NullPointerException if any required argument is {@code null}.
+     */
+    public ThingsRoute(final RouteBaseProperties routeBaseProperties,
+            final MessageConfig messageConfig,
+            final MessageConfig claimMessageConfig,
+            @Nullable final NamespaceAccessEnforcementDirective namespaceAccessDirective) {
 
         super(routeBaseProperties);
+        this.namespaceAccessDirective = namespaceAccessDirective;
         featuresRoute = new FeaturesRoute(routeBaseProperties, messageConfig, claimMessageConfig);
         messagesRoute = new MessagesRoute(routeBaseProperties, messageConfig, claimMessageConfig);
     }
@@ -151,15 +173,17 @@ public final class ThingsRoute extends AbstractRoute {
     private Route buildThingEntryRoute(final RequestContext ctx,
             final DittoHeaders dittoHeaders,
             final ThingId thingId) {
-        return concat(
-                thingsEntry(ctx, dittoHeaders, thingId),
-                thingsEntryPolicyId(ctx, dittoHeaders, thingId),
-                thingsEntryAttributes(ctx, dittoHeaders, thingId),
-                thingsEntryAttributesEntry(ctx, dittoHeaders, thingId),
-                thingsEntryDefinition(ctx, dittoHeaders, thingId),
-                thingsEntryMigrateDefinition(ctx, dittoHeaders, thingId),
-                thingsEntryFeatures(ctx, dittoHeaders, thingId),
-                thingsEntryInboxOutbox(ctx, dittoHeaders, thingId)
+        return enforceNamespaceAccess(ctx, dittoHeaders, thingId, () ->
+                concat(
+                        thingsEntry(ctx, dittoHeaders, thingId),
+                        thingsEntryPolicyId(ctx, dittoHeaders, thingId),
+                        thingsEntryAttributes(ctx, dittoHeaders, thingId),
+                        thingsEntryAttributesEntry(ctx, dittoHeaders, thingId),
+                        thingsEntryDefinition(ctx, dittoHeaders, thingId),
+                        thingsEntryMigrateDefinition(ctx, dittoHeaders, thingId),
+                        thingsEntryFeatures(ctx, dittoHeaders, thingId),
+                        thingsEntryInboxOutbox(ctx, dittoHeaders, thingId)
+                )
         );
     }
 
@@ -185,8 +209,14 @@ public final class ThingsRoute extends AbstractRoute {
         return parameterList(ThingsParameter.IDS.toString(), idsStrings -> {
             if (!idsStrings.isEmpty()) {
                 // GET /things?ids=...
+                final List<ThingId> thingIds = splitThingIdStrings(idsStrings);
+                if (namespaceAccessDirective != null) {
+                    for (final ThingId thingId : thingIds) {
+                        namespaceAccessDirective.validateNamespaceAccessForEntityId(ctx, dittoHeaders, thingId);
+                    }
+                }
                 return parameterList(ThingsParameter.FIELDS.toString(), fields ->
-                        handlePerRequest(ctx, RetrieveThings.getBuilder(splitThingIdStrings(idsStrings))
+                        handlePerRequest(ctx, RetrieveThings.getBuilder(thingIds)
                                         .selectedFields(calculateSelectedFields(fields))
                                         .dittoHeaders(dittoHeaders)
                                         .build(),
@@ -197,21 +227,28 @@ public final class ThingsRoute extends AbstractRoute {
                 );
             } else {
                 // GET /things
-                return thingSearchParameterOptional(params ->
-                        parameterList(ThingsParameter.FIELDS.toString(), fields ->
-                                handlePerRequest(ctx,
-                                        QueryThings.of(null, // allow filter only on /search/things but not here
-                                                ThingSearchRoute.calculateOptions(
-                                                        params.get(ThingSearchParameter.OPTION)),
-                                                calculateSelectedFields(fields).orElse(null),
-                                                ThingSearchRoute.calculateNamespaces(
-                                                        params.get(ThingSearchParameter.NAMESPACES)),
-                                                dittoHeaders),
-                                        (responseValue, response) ->
-                                                transformQueryThingsResult(ctx, responseValue, response)
-                                )
-                        )
-                );
+                return thingSearchParameterOptional(params -> {
+                    final Set<String> requestedNamespaces = ThingSearchRoute.calculateNamespaces(
+                            params.get(ThingSearchParameter.NAMESPACES));
+                    if (requestedNamespaces != null && namespaceAccessDirective != null) {
+                        for (final String namespace : requestedNamespaces) {
+                            final ThingId tempThingId = ThingId.of(namespace + ":temp");
+                            namespaceAccessDirective.validateNamespaceAccessForEntityId(ctx, dittoHeaders, tempThingId);
+                        }
+                    }
+                    return parameterList(ThingsParameter.FIELDS.toString(), fields ->
+                            handlePerRequest(ctx,
+                                    QueryThings.of(null, // allow filter only on /search/things but not here
+                                            ThingSearchRoute.calculateOptions(
+                                                    params.get(ThingSearchParameter.OPTION)),
+                                            calculateSelectedFields(fields).orElse(null),
+                                            requestedNamespaces,
+                                            dittoHeaders),
+                                    (responseValue, response) ->
+                                            transformQueryThingsResult(ctx, responseValue, response)
+                            )
+                    );
+                });
             }
         });
     }
@@ -301,16 +338,29 @@ public final class ThingsRoute extends AbstractRoute {
             if (isLiveChannel(channelOpt, dittoHeaders)) {
                 throw ThingNotCreatableException.forLiveChannel(dittoHeaders);
             }
-            return parameterOptional(NAMESPACE_PARAMETER, namespaceOpt ->
-                    ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
-                            payloadSource ->
-                                    handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                            thingJson -> CreateThing.of(
-                                                    createThingForPost(thingJson, namespaceOpt.orElse(null), dittoHeaders),
-                                                    createInlinePolicyJson(thingJson),
-                                                    getCopyPolicyFrom(thingJson),
-                                                    dittoHeaders)))
-            );
+            return parameterOptional(NAMESPACE_PARAMETER, namespaceOpt -> {
+                if (namespaceOpt.isPresent() && namespaceAccessDirective != null) {
+                    final ThingId tempThingId = ThingId.of(namespaceOpt.get() + ":temp");
+                    return enforceNamespaceAccess(ctx, dittoHeaders, tempThingId, () ->
+                            ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                                    payloadSource ->
+                                            handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                                    thingJson -> CreateThing.of(
+                                                            createThingForPost(thingJson, namespaceOpt.get(), dittoHeaders),
+                                                            createInlinePolicyJson(thingJson),
+                                                            getCopyPolicyFrom(thingJson),
+                                                            dittoHeaders)))
+                    );
+                }
+                return ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                        payloadSource ->
+                                handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                        thingJson -> CreateThing.of(
+                                                createThingForPost(thingJson, namespaceOpt.orElse(null), dittoHeaders),
+                                                createInlinePolicyJson(thingJson),
+                                                getCopyPolicyFrom(thingJson),
+                                                dittoHeaders)));
+            });
         });
     }
 
@@ -332,6 +382,14 @@ public final class ThingsRoute extends AbstractRoute {
         return ThingsModelFactory.newThingBuilder(inputJson)
                 .setId(ThingBuilder.generateRandomTypedThingId(namespace))
                 .build();
+    }
+
+    private Route enforceNamespaceAccess(final RequestContext ctx, final DittoHeaders dittoHeaders, final ThingId thingId,
+            final Supplier<Route> inner) {
+        if (namespaceAccessDirective != null) {
+            return namespaceAccessDirective.enforceNamespaceAccessForEntityId(ctx, dittoHeaders, thingId, inner);
+        }
+        return inner.get();
     }
 
     /*

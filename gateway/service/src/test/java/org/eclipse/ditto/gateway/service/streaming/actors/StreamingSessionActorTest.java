@@ -57,6 +57,9 @@ import org.eclipse.ditto.base.model.signals.acks.AcknowledgementCorrelationIdMis
 import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionAbortedException;
 import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionExpiredException;
+import org.eclipse.ditto.gateway.api.NamespaceNotAccessibleException;
+import org.eclipse.ditto.gateway.service.security.authorization.NamespaceAccessValidator;
+import org.eclipse.ditto.gateway.service.security.authorization.NamespaceAccessValidatorFactory;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationResult;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationResultProvider;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtValidator;
@@ -374,6 +377,60 @@ public final class StreamingSessionActorTest {
         });
     }
 
+    @Test
+    public void blockIncomingCommandForInaccessibleNamespaceWhenResponseIsRequired() {
+        final NamespaceAccessValidatorFactory namespaceAccessValidatorFactory =
+                Mockito.mock(NamespaceAccessValidatorFactory.class);
+        final NamespaceAccessValidator namespaceAccessValidator = Mockito.mock(NamespaceAccessValidator.class);
+        Mockito.when(namespaceAccessValidatorFactory.createValidator(Mockito.any(DittoHeaders.class)))
+                .thenReturn(namespaceAccessValidator);
+        Mockito.when(namespaceAccessValidator.isNamespaceAccessible("org.eclipse.test.blocked")).thenReturn(false);
+
+        final var command = org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing.of(
+                ThingId.of("org.eclipse.test.blocked:thing"),
+                org.eclipse.ditto.things.model.Thing.newBuilder().build(),
+                null,
+                DittoHeaders.newBuilder()
+                        .responseRequired(true)
+                        .correlationId("corr:" + testName.getMethodName())
+                        .build()
+        );
+
+        final var underTest = actorSystemResource.newActor(getProps(namespaceAccessValidatorFactory));
+        underTest.tell(IncomingSignal.of(command), ActorRef.noSender());
+
+        final var sessionedJsonifiable = sinkProbe.requestNext();
+        assertThat(sessionedJsonifiable.getJsonifiable()).isInstanceOf(NamespaceNotAccessibleException.class);
+        commandRouterProbe.expectNoMessage();
+    }
+
+    @Test
+    public void dropIncomingCommandForInaccessibleNamespaceWhenResponseIsNotRequired() {
+        final NamespaceAccessValidatorFactory namespaceAccessValidatorFactory =
+                Mockito.mock(NamespaceAccessValidatorFactory.class);
+        final NamespaceAccessValidator namespaceAccessValidator = Mockito.mock(NamespaceAccessValidator.class);
+        Mockito.when(namespaceAccessValidatorFactory.createValidator(Mockito.any(DittoHeaders.class)))
+                .thenReturn(namespaceAccessValidator);
+        Mockito.when(namespaceAccessValidator.isNamespaceAccessible("org.eclipse.test.blocked")).thenReturn(false);
+
+        final var command = org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing.of(
+                ThingId.of("org.eclipse.test.blocked:thing"),
+                org.eclipse.ditto.things.model.Thing.newBuilder().build(),
+                null,
+                DittoHeaders.newBuilder()
+                        .responseRequired(false)
+                        .correlationId("corr:" + testName.getMethodName())
+                        .build()
+        );
+
+        final var underTest = actorSystemResource.newActor(getProps(namespaceAccessValidatorFactory));
+        underTest.tell(IncomingSignal.of(command), ActorRef.noSender());
+
+        commandRouterProbe.expectNoMessage();
+        sinkProbe.ensureSubscription();
+        sinkProbe.expectNoMessage();
+    }
+
     private static String getTokenString() {
         return getTokenString(Instant.now().plusSeconds(60L));
     }
@@ -398,7 +455,21 @@ public final class StreamingSessionActorTest {
                 Props.create(Actor.class, () -> new TestActor(new LinkedBlockingDeque<>())),
                 Props.create(Actor.class, () -> new TestActor(new LinkedBlockingDeque<>())),
                 mockValidator,
-                mockAuthenticationResultProvider);
+                mockAuthenticationResultProvider,
+                null);
+    }
+
+    private Props getProps(final NamespaceAccessValidatorFactory namespaceAccessValidatorFactory) {
+        return StreamingSessionActor.props(getConnect(getAcknowledgementLabels()),
+                mockSub,
+                commandRouterProbe.ref(),
+                DefaultStreamingConfig.of(ConfigFactory.empty()),
+                HeaderTranslator.empty(),
+                Props.create(Actor.class, () -> new TestActor(new LinkedBlockingDeque<>())),
+                Props.create(Actor.class, () -> new TestActor(new LinkedBlockingDeque<>())),
+                mockValidator,
+                mockAuthenticationResultProvider,
+                namespaceAccessValidatorFactory);
     }
 
     private void onDeclareAckLabels(final CompletionStage<Void> answer) {
@@ -433,6 +504,7 @@ public final class StreamingSessionActorTest {
                 null,
                 declaredAcks,
                 authorizationContext,
+                DittoHeaders.empty(),
                 List.of(),
                 killSwitch);
     }
