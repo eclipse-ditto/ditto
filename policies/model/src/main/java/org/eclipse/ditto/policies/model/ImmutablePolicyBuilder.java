@@ -309,6 +309,14 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
         return this;
     }
 
+    @Override
+    public ImmutablePolicyBuilder setAllowedImportAdditionsFor(final CharSequence label,
+            final Set<AllowedImportAddition> additions) {
+        checkNotNull(additions, "allowedImportAdditions");
+        allowedImportAdditions.put(Label.of(label), additions);
+        return this;
+    }
+
     private Map<ResourceKey, Permissions> retrieveGrantedPermissions(final CharSequence label) {
         return getPermissions(label, grantedPermissions);
     }

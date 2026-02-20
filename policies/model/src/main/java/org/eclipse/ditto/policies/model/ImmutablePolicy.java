@@ -463,6 +463,28 @@ final class ImmutablePolicy implements Policy {
     }
 
     @Override
+    public Policy setAllowedImportAdditionsFor(final CharSequence label,
+            final Set<AllowedImportAddition> allowedImportAdditions) {
+
+        final Label lbl = Label.of(label);
+
+        final Map<Label, PolicyEntry> entriesCopy = copyEntries();
+        final PolicyEntry modifiedEntry;
+
+        if (!entriesCopy.containsKey(lbl)) {
+            modifiedEntry = newPolicyEntry(label, PoliciesModelFactory.emptySubjects(), emptyResources(),
+                    ImportableType.IMPLICIT, allowedImportAdditions);
+        } else {
+            final PolicyEntry policyEntry = entriesCopy.get(lbl);
+            modifiedEntry = newPolicyEntry(label, policyEntry.getSubjects(),
+                    policyEntry.getResources(), policyEntry.getImportableType(), allowedImportAdditions);
+        }
+
+        entriesCopy.put(lbl, modifiedEntry);
+        return new ImmutablePolicy(policyId, imports, entriesCopy, lifecycle, revision, modified, created, metadata);
+    }
+
+    @Override
     public Optional<EffectedPermissions> getEffectedPermissionsFor(final CharSequence label, final SubjectId subjectId,
             final ResourceKey resourceKey) {
 

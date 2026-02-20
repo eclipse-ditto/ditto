@@ -65,6 +65,25 @@ public final class PolicyCommandStrategies
         addStrategy(new RetrievePolicyImportStrategy(policyConfig));
         addStrategy(new DeletePolicyImportStrategy(policyConfig));
 
+        // Policy Entry Allowed Import Additions
+        addStrategy(new RetrievePolicyEntryAllowedImportAdditionsStrategy(policyConfig));
+        addStrategy(new ModifyPolicyEntryAllowedImportAdditionsStrategy(policyConfig));
+
+        // Policy Entry Importable
+        addStrategy(new RetrievePolicyEntryImportableStrategy(policyConfig));
+        addStrategy(new ModifyPolicyEntryImportableStrategy(policyConfig));
+
+        // Policy Import Entries
+        addStrategy(new RetrievePolicyImportEntriesStrategy(policyConfig));
+        addStrategy(new ModifyPolicyImportEntriesStrategy(policyConfig));
+
+        // Policy Import Entries Additions
+        addStrategy(new RetrievePolicyImportEntriesAdditionsStrategy(policyConfig));
+        addStrategy(new ModifyPolicyImportEntriesAdditionsStrategy(policyConfig));
+        addStrategy(new RetrievePolicyImportEntryAdditionStrategy(policyConfig));
+        addStrategy(new ModifyPolicyImportEntryAdditionStrategy(policyConfig));
+        addStrategy(new DeletePolicyImportEntryAdditionStrategy(policyConfig));
+
         // Subjects
         addStrategy(new ModifySubjectsStrategy(policyConfig));
         addStrategy(new ModifySubjectStrategy(policyConfig));

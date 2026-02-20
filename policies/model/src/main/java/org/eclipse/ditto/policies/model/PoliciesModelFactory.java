@@ -32,6 +32,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.common.Validator;
 import org.eclipse.ditto.base.model.entity.validation.NoControlCharactersValidator;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
@@ -745,6 +746,19 @@ public final class PoliciesModelFactory {
     }
 
     /**
+     * Returns a new {@link EntryAddition} parsed from the given label and JSON object.
+     *
+     * @param label the label of the imported policy entry this addition applies to.
+     * @param jsonObject the JSON object representation of the entry addition.
+     * @return the new {@code EntryAddition}.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 3.9.0
+     */
+    public static EntryAddition newEntryAddition(final Label label, final JsonObject jsonObject) {
+        return ImmutableEntryAddition.fromJson(label, jsonObject);
+    }
+
+    /**
      * Returns a new {@link EntriesAdditions} containing the given entry additions.
      *
      * @param additions the entry additions.
@@ -754,6 +768,18 @@ public final class PoliciesModelFactory {
      */
     public static EntriesAdditions newEntriesAdditions(final Iterable<EntryAddition> additions) {
         return ImmutableEntriesAdditions.of(additions);
+    }
+
+    /**
+     * Returns a new {@link EntriesAdditions} parsed from the given JSON object.
+     *
+     * @param jsonObject the JSON object representation of the entries additions.
+     * @return the new {@code EntriesAdditions}.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @since 3.9.0
+     */
+    public static EntriesAdditions newEntriesAdditions(final JsonObject jsonObject) {
+        return ImmutableEntriesAdditions.fromJson(jsonObject);
     }
 
     /**
@@ -817,6 +843,24 @@ public final class PoliciesModelFactory {
     public static ImportedLabels newImportedEntries(final CharSequence entryLabel,
             final CharSequence... furtherEntryLabels) {
         return ImmutableImportedLabels.of(entryLabel, furtherEntryLabels);
+    }
+
+    /**
+     * Returns a new immutable instance of {@link ImportedLabels} parsed from the given JSON array.
+     *
+     * @param jsonArray the JSON array of label strings to parse.
+     * @return the new {@code ImportedLabels}.
+     * @throws NullPointerException if {@code jsonArray} is {@code null}.
+     * @since 3.9.0
+     */
+    public static ImportedLabels newImportedEntries(final JsonArray jsonArray) {
+        checkNotNull(jsonArray, "jsonArray");
+        final Collection<Label> labels = jsonArray.stream()
+                .filter(JsonValue::isString)
+                .map(JsonValue::asString)
+                .map(Label::of)
+                .collect(Collectors.toList());
+        return ImmutableImportedLabels.of(labels);
     }
 
     /**

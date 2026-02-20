@@ -86,6 +86,25 @@ final class ImmutableEntriesAdditions implements EntriesAdditions {
     }
 
     @Override
+    public EntriesAdditions setAddition(final EntryAddition addition) {
+        checkNotNull(addition, "addition");
+        final Map<Label, EntryAddition> copy = new LinkedHashMap<>(additions);
+        copy.put(addition.getLabel(), addition);
+        return new ImmutableEntriesAdditions(copy);
+    }
+
+    @Override
+    public EntriesAdditions removeAddition(final Label label) {
+        checkNotNull(label, "label");
+        if (!additions.containsKey(label)) {
+            return this;
+        }
+        final Map<Label, EntryAddition> copy = new LinkedHashMap<>(additions);
+        copy.remove(label);
+        return new ImmutableEntriesAdditions(copy);
+    }
+
+    @Override
     public Optional<EntryAddition> getAddition(final Label label) {
         checkNotNull(label, "label");
         return Optional.ofNullable(additions.get(label));

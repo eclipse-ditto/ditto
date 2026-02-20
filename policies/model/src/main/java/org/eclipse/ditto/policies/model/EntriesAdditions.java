@@ -55,6 +55,26 @@ public interface EntriesAdditions extends Iterable<EntryAddition>,
     boolean isEmpty();
 
     /**
+     * Returns a new {@code EntriesAdditions} with the given addition added or replaced (by label).
+     *
+     * @param addition the entry addition to set.
+     * @return a new EntriesAdditions containing the given addition.
+     * @throws NullPointerException if {@code addition} is {@code null}.
+     * @since 3.9.0
+     */
+    EntriesAdditions setAddition(EntryAddition addition);
+
+    /**
+     * Returns a new {@code EntriesAdditions} with the addition for the given label removed.
+     *
+     * @param label the label of the addition to remove.
+     * @return a new EntriesAdditions without the given addition.
+     * @throws NullPointerException if {@code label} is {@code null}.
+     * @since 3.9.0
+     */
+    EntriesAdditions removeAddition(Label label);
+
+    /**
      * Returns a sequential stream of the contained {@link EntryAddition}s.
      *
      * @return a stream of entry additions.
