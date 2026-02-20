@@ -17,10 +17,12 @@ import static org.eclipse.ditto.policies.model.PoliciesModelFactory.DITTO_LIMITS
 
 import java.time.Instant;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -39,6 +41,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
     private final Map<Label, Map<ResourceKey, Permissions>> grantedPermissions;
     private final Map<Label, Map<ResourceKey, Permissions>> revokedPermissions;
     private final Map<Label, ImportableType> importableTypes;
+    private final Map<Label, Set<AllowedImportAddition>> allowedImportAdditions;
     private PolicyImports policyImports;
     @Nullable private PolicyId id;
     @Nullable private PolicyLifecycle lifecycle;
@@ -52,6 +55,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
         grantedPermissions = new LinkedHashMap<>();
         revokedPermissions = new LinkedHashMap<>();
         importableTypes = new LinkedHashMap<>();
+        allowedImportAdditions = new LinkedHashMap<>();
         policyImports = PolicyImports.emptyInstance();
         id = null;
         lifecycle = null;
@@ -201,6 +205,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
 
         setResourcesFor(entry.getLabel(), entry.getResources());
         setImportableFor(label, entry.getImportableType());
+        allowedImportAdditions.put(label, entry.getAllowedImportAdditions());
     }
 
     private void putAllSubjects(final PolicyEntry policyEntry) {
@@ -229,6 +234,8 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
         subjects.remove(label);
         grantedPermissions.remove(label);
         revokedPermissions.remove(label);
+        importableTypes.remove(label);
+        allowedImportAdditions.remove(label);
     }
 
     @Override
@@ -376,11 +383,14 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
         final Collection<Label> allLabels = getAllLabels();
 
         final Collection<PolicyEntry> policyEntries = allLabels.stream()
-                .map(lbl -> getImportableType(lbl).map(
-                                importableType -> PoliciesModelFactory.newPolicyEntry(lbl, getSubjectsForLabel(lbl),
-                                        getResourcesForLabel(lbl), importableType))
-                        .orElseGet(() -> PoliciesModelFactory.newPolicyEntry(lbl, getSubjectsForLabel(lbl),
-                                getResourcesForLabel(lbl))))
+                .map(lbl -> {
+                    final ImportableType importableType =
+                            getImportableType(lbl).orElse(ImportableType.IMPLICIT);
+                    final Set<AllowedImportAddition> additions =
+                            getAllowedImportAdditions(lbl);
+                    return PoliciesModelFactory.newPolicyEntry(lbl, getSubjectsForLabel(lbl),
+                            getResourcesForLabel(lbl), importableType, additions);
+                })
                 .collect(Collectors.toList());
 
         return ImmutablePolicy.of(id, lifecycle, revision, modified, created, metadata, policyImports, policyEntries);
@@ -399,6 +409,10 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
 
     private Optional<ImportableType> getImportableType(final CharSequence label) {
         return Optional.ofNullable(importableTypes.get(Label.of(label)));
+    }
+
+    private Set<AllowedImportAddition> getAllowedImportAdditions(final CharSequence label) {
+        return allowedImportAdditions.getOrDefault(Label.of(label), Collections.emptySet());
     }
 
     private Resources getResourcesForLabel(final CharSequence label) {

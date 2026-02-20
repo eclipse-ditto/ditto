@@ -99,7 +99,8 @@ public final class PolicyImporterTest {
         return ImmutablePolicyEntry.of(PoliciesModelFactory.newImportedLabel(importedPolicyId, entry.getLabel()),
                 entry.getSubjects(),
                 entry.getResources(),
-                entry.getImportableType());
+                entry.getImportableType(),
+                entry.getAllowedImportAdditions());
     }
 
     @Test
@@ -663,6 +664,43 @@ public final class PolicyImporterTest {
         assertThat(mergedEntry.getSubjects().getSubject(additionalSubject.getId())).isPresent();
         // Resource additions should be silently ignored
         assertThat(mergedEntry.getResources().getResource(newKey)).isNotPresent();
+    }
+
+    @Test
+    public void importedEntryPreservesAllowedImportAdditions() {
+        final EffectedImports importedLabels = PoliciesModelFactory.newEffectedImportedLabels(
+                Collections.singletonList(Label.of(ImportableType.EXPLICIT.getName() + "SupportGroup")));
+
+        final Policy importedPolicy =
+                createImportedPolicyWithAdditions(IMPORTED_POLICY_ID, ALLOWED_BOTH);
+        final Function<PolicyId, CompletionStage<Optional<Policy>>> loader = (id) ->
+                IMPORTED_POLICY_ID.equals(id)
+                        ? CompletableFuture.completedFuture(Optional.of(importedPolicy))
+                        : CompletableFuture.completedFuture(Optional.empty());
+
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(createPolicy())
+                .setPolicyImport(PoliciesModelFactory.newPolicyImport(IMPORTED_POLICY_ID, importedLabels))
+                .build();
+
+        final Set<PolicyEntry> entries =
+                PolicyImporter.mergeImportedPolicyEntries(policy, loader).toCompletableFuture().join();
+
+        // Verify both implicit and explicit imported entries preserve allowedImportAdditions
+        final Label implicitLabel = Label.of(ImportableType.IMPLICIT.getName() + "SupportGroup");
+        final Label importedImplicitLabel = PoliciesModelFactory.newImportedLabel(IMPORTED_POLICY_ID, implicitLabel);
+        final PolicyEntry implicitEntry = entries.stream()
+                .filter(e -> e.getLabel().equals(importedImplicitLabel))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Expected implicit imported entry not found"));
+        assertThat(implicitEntry.getAllowedImportAdditions()).isEqualTo(ALLOWED_BOTH);
+
+        final Label explicitLabel = Label.of(ImportableType.EXPLICIT.getName() + "SupportGroup");
+        final Label importedExplicitLabel = PoliciesModelFactory.newImportedLabel(IMPORTED_POLICY_ID, explicitLabel);
+        final PolicyEntry explicitEntry = entries.stream()
+                .filter(e -> e.getLabel().equals(importedExplicitLabel))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Expected explicit imported entry not found"));
+        assertThat(explicitEntry.getAllowedImportAdditions()).isEqualTo(ALLOWED_BOTH);
     }
 
     private static Policy createImportedPolicy(final PolicyId importedPolicyId) {

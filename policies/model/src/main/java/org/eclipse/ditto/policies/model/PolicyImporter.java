@@ -101,7 +101,8 @@ public final class PolicyImporter {
                 PoliciesModelFactory.newImportedLabel(importedPolicyId, entry.getLabel()),
                 mergedSubjects,
                 mergedResources,
-                entry.getImportableType()
+                entry.getImportableType(),
+                entry.getAllowedImportAdditions()
         );
     }
 

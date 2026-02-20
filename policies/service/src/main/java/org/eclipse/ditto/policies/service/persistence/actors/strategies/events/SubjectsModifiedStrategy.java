@@ -27,7 +27,8 @@ final class SubjectsModifiedStrategy extends AbstractPolicyEventStrategy<Subject
             final PolicyBuilder policyBuilder) {
         return policy.getEntryFor(sm.getLabel())
                 .map(policyEntry -> PoliciesModelFactory.newPolicyEntry(sm.getLabel(), sm.getSubjects(),
-                        policyEntry.getResources()))
+                        policyEntry.getResources(), policyEntry.getImportableType(),
+                        policyEntry.getAllowedImportAdditions()))
                 .map(policyBuilder::set)
                 .orElse(policyBuilder.setSubjectsFor(sm.getLabel(), sm.getSubjects()));
     }

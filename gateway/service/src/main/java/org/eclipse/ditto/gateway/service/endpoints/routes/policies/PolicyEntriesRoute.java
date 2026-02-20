@@ -28,7 +28,6 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
 import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
-import org.eclipse.ditto.policies.model.ImportableType;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PolicyEntry;
@@ -178,17 +177,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
 
     private static PolicyEntry createPolicyEntryForPut(final String jsonString, final CharSequence labelString) {
         final JsonObject jsonObject = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
-        final Subjects subjects =
-                PoliciesModelFactory.newSubjects(jsonObject.getValueOrThrow(PolicyEntry.JsonFields.SUBJECTS));
-        final Resources resources =
-                PoliciesModelFactory.newResources(jsonObject.getValueOrThrow(PolicyEntry.JsonFields.RESOURCES));
-
-        final Optional<ImportableType> importableOpt = jsonObject.getValue(PolicyEntry.JsonFields.IMPORTABLE_TYPE)
-                .flatMap(ImportableType::forName);
-        return importableOpt
-                .map(importableType -> PoliciesModelFactory.newPolicyEntry(Label.of(labelString), subjects, resources,
-                        importableType))
-                .orElseGet(() -> PoliciesModelFactory.newPolicyEntry(Label.of(labelString), subjects, resources));
+        return PoliciesModelFactory.newPolicyEntry(labelString, jsonObject);
     }
 
     /*

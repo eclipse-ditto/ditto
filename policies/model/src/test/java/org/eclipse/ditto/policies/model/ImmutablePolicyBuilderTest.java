@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
+import java.util.Set;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
@@ -217,6 +218,56 @@ public final class ImmutablePolicyBuilderTest {
     public void buildPolicyWithoutPolicyId() {
         final Policy policyWithoutPolicyId = ImmutablePolicyBuilder.newInstance().build();
         DittoPolicyAssertions.assertThat(policyWithoutPolicyId.getEntityId()).isEqualTo(Optional.empty());
+    }
+
+    @Test
+    public void toBuilderBuildPreservesAllowedImportAdditions() {
+        final Label endUserLabel = Label.of("EndUser");
+        final Set<AllowedImportAddition> allowedAdditions =
+                Collections.singleton(AllowedImportAddition.SUBJECTS);
+
+        final PolicyEntry entryWithAdditions = PoliciesModelFactory.newPolicyEntry(endUserLabel,
+                Subjects.newInstance(Subject.newInstance(TestConstants.Policy.SUBJECT_ID,
+                        TestConstants.Policy.SUBJECT_TYPE)),
+                Resources.newInstance(Resource.newInstance(TestConstants.Policy.RESOURCE_TYPE, "/",
+                        EffectedPermissions.newInstance(
+                                PoliciesModelFactory.newPermissions(TestConstants.Policy.PERMISSION_READ),
+                                PoliciesModelFactory.noPermissions()))),
+                ImportableType.EXPLICIT,
+                allowedAdditions);
+
+        final Policy policy = ImmutablePolicyBuilder.of(POLICY_ID).set(entryWithAdditions).build();
+        final Policy rebuilt = policy.toBuilder().build();
+
+        final PolicyEntry rebuiltEntry = rebuilt.getEntryFor(endUserLabel)
+                .orElseThrow(() -> new AssertionError("Entry not found after toBuilder().build()"));
+        DittoPolicyAssertions.assertThat(rebuiltEntry.getImportableType()).isEqualTo(ImportableType.EXPLICIT);
+        DittoPolicyAssertions.assertThat(rebuiltEntry.getAllowedImportAdditions()).isEqualTo(allowedAdditions);
+    }
+
+    @Test
+    public void setEntryPreservesAllowedImportAdditions() {
+        final Label label = Label.of("template");
+        final Set<AllowedImportAddition> allowedAdditions =
+                new java.util.HashSet<>(Arrays.asList(AllowedImportAddition.SUBJECTS,
+                        AllowedImportAddition.RESOURCES));
+
+        final PolicyEntry entry = PoliciesModelFactory.newPolicyEntry(label,
+                Subjects.newInstance(Subject.newInstance(TestConstants.Policy.SUBJECT_ID,
+                        TestConstants.Policy.SUBJECT_TYPE)),
+                Resources.newInstance(Resource.newInstance(TestConstants.Policy.RESOURCE_TYPE, "/",
+                        EffectedPermissions.newInstance(
+                                PoliciesModelFactory.newPermissions(TestConstants.Policy.PERMISSION_READ),
+                                PoliciesModelFactory.noPermissions()))),
+                ImportableType.IMPLICIT,
+                allowedAdditions);
+
+        final Policy policy = ImmutablePolicyBuilder.of(POLICY_ID).set(entry).build();
+
+        final PolicyEntry result = policy.getEntryFor(label)
+                .orElseThrow(() -> new AssertionError("Entry not found"));
+        DittoPolicyAssertions.assertThat(result.getAllowedImportAdditions()).isEqualTo(allowedAdditions);
+        DittoPolicyAssertions.assertThat(result.getImportableType()).isEqualTo(ImportableType.IMPLICIT);
     }
 
 }
