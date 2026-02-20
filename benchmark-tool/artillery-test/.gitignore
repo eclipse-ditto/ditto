@@ -1,0 +1,13 @@
+# Compiled output
+dist/
+
+# Dependencies
+node_modules/
+
+# Test results
+results.json
+
+# Old compiled JavaScript files (from pre-TypeScript conversion)
+*.js
+!parse-results.js
+
