@@ -14,8 +14,10 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.policies;
 
 import static org.eclipse.ditto.base.model.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
+import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -24,10 +26,13 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationResult;
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
 import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
+import org.eclipse.ditto.policies.model.AllowedImportAddition;
 import org.eclipse.ditto.policies.model.ImportableType;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
@@ -49,12 +54,16 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteResource;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubject;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntries;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntry;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryAllowedImportAdditions;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryImportable;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResource;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResources;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubject;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjects;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntries;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntry;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryAllowedImportAdditions;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryImportable;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResource;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResources;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubject;
@@ -71,6 +80,8 @@ final class PolicyEntriesRoute extends AbstractRoute {
 
     private static final String PATH_SUFFIX_SUBJECTS = "subjects";
     private static final String PATH_SUFFIX_RESOURCES = "resources";
+    private static final String PATH_SUFFIX_ALLOWED_IMPORT_ADDITIONS = "allowedImportAdditions";
+    private static final String PATH_SUFFIX_IMPORTABLE = "importable";
 
     private static final String PATH_ACTIONS = "actions";
 
@@ -107,6 +118,8 @@ final class PolicyEntriesRoute extends AbstractRoute {
                 policyEntrySubjectsEntry(ctx, dittoHeaders, policyId),
                 policyEntryResources(ctx, dittoHeaders, policyId),
                 policyEntryResourcesEntry(ctx, dittoHeaders, policyId),
+                policyEntryAllowedImportAdditions(ctx, dittoHeaders, policyId),
+                policyEntryImportable(ctx, dittoHeaders, policyId),
                 policyEntryActions(ctx, dittoHeaders, policyId, authResult)
         );
     }
@@ -178,17 +191,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
 
     private static PolicyEntry createPolicyEntryForPut(final String jsonString, final CharSequence labelString) {
         final JsonObject jsonObject = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
-        final Subjects subjects =
-                PoliciesModelFactory.newSubjects(jsonObject.getValueOrThrow(PolicyEntry.JsonFields.SUBJECTS));
-        final Resources resources =
-                PoliciesModelFactory.newResources(jsonObject.getValueOrThrow(PolicyEntry.JsonFields.RESOURCES));
-
-        final Optional<ImportableType> importableOpt = jsonObject.getValue(PolicyEntry.JsonFields.IMPORTABLE_TYPE)
-                .flatMap(ImportableType::forName);
-        return importableOpt
-                .map(importableType -> PoliciesModelFactory.newPolicyEntry(Label.of(labelString), subjects, resources,
-                        importableType))
-                .orElseGet(() -> PoliciesModelFactory.newPolicyEntry(Label.of(labelString), subjects, resources));
+        return PoliciesModelFactory.newPolicyEntry(labelString, jsonObject);
     }
 
     /*
@@ -355,6 +358,95 @@ final class PolicyEntriesRoute extends AbstractRoute {
                         )
                 )
         );
+    }
+
+    /*
+     * Describes {@code /entries/<label>/allowedImportAdditions} route.
+     */
+    private Route policyEntryAllowedImportAdditions(final RequestContext ctx, final DittoHeaders dittoHeaders,
+            final PolicyId policyId) {
+
+        return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), label ->
+                rawPathPrefix(PathMatchers.slash().concat(PATH_SUFFIX_ALLOWED_IMPORT_ADDITIONS), () ->
+                        pathEndOrSingleSlash(() ->
+                                concat(
+                                        get(() -> // GET /entries/<label>/allowedImportAdditions
+                                                handlePerRequest(ctx, RetrievePolicyEntryAllowedImportAdditions.of(
+                                                        policyId, Label.of(label), dittoHeaders))
+                                        ),
+                                        put(() -> // PUT /entries/<label>/allowedImportAdditions
+                                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx,
+                                                        dittoHeaders,
+                                                        payloadSource ->
+                                                                handlePerRequest(ctx, dittoHeaders,
+                                                                        payloadSource,
+                                                                        additionsJson ->
+                                                                                ModifyPolicyEntryAllowedImportAdditions.of(
+                                                                                        policyId,
+                                                                                        Label.of(label),
+                                                                                        parseAllowedImportAdditions(additionsJson),
+                                                                                        dittoHeaders)))
+                                        )
+                                )
+                        )
+                )
+        );
+    }
+
+    private static Set<AllowedImportAddition> parseAllowedImportAdditions(final String jsonString) {
+        final JsonArray jsonArray = wrapJsonRuntimeException(() -> JsonFactory.newArray(jsonString));
+        return jsonArray.stream()
+                .filter(JsonValue::isString)
+                .map(JsonValue::asString)
+                .map(AllowedImportAddition::forName)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    /*
+     * Describes {@code /entries/<label>/importable} route.
+     */
+    private Route policyEntryImportable(final RequestContext ctx, final DittoHeaders dittoHeaders,
+            final PolicyId policyId) {
+
+        return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), label ->
+                rawPathPrefix(PathMatchers.slash().concat(PATH_SUFFIX_IMPORTABLE), () ->
+                        pathEndOrSingleSlash(() ->
+                                concat(
+                                        get(() -> // GET /entries/<label>/importable
+                                                handlePerRequest(ctx, RetrievePolicyEntryImportable.of(
+                                                        policyId, Label.of(label), dittoHeaders))
+                                        ),
+                                        put(() -> // PUT /entries/<label>/importable
+                                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx,
+                                                        dittoHeaders,
+                                                        payloadSource ->
+                                                                handlePerRequest(ctx, dittoHeaders,
+                                                                        payloadSource,
+                                                                        importableJson ->
+                                                                                ModifyPolicyEntryImportable.of(
+                                                                                        policyId,
+                                                                                        Label.of(label),
+                                                                                        parseImportableType(importableJson),
+                                                                                        dittoHeaders)))
+                                        )
+                                )
+                        )
+                )
+        );
+    }
+
+    private static ImportableType parseImportableType(final String jsonString) {
+        final String importableString = wrapJsonRuntimeException(() -> {
+            final JsonValue value = JsonFactory.readFrom(jsonString);
+            if (value.isString()) {
+                return value.asString();
+            }
+            return jsonString;
+        });
+        return ImportableType.forName(importableString)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown ImportableType: " + importableString));
     }
 
     /*

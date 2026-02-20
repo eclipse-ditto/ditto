@@ -1,0 +1,229 @@
+# Copyright (c) 2026 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+get:
+  summary: Retrieve a specific entry addition of a policy import
+  description: |-
+    Returns the entry addition for the specified label of the policy import identified by the
+    `policyId` path parameter and the `importedPolicyId` path parameter.
+
+    An entry addition defines additional subjects and/or resources to be additively merged
+    into the imported policy entry identified by the label.
+  tags:
+    - Policies
+  parameters:
+    - $ref: '../../parameters/policyIdPathParam.yml'
+    - $ref: '../../parameters/importedPolicyIdPathParam.yml'
+    - $ref: '../../parameters/labelPathParam.yml'
+    - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
+    - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+  responses:
+    '200':
+      description: The request successfully returned. The entry addition is returned.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/policies/entryAddition.yml'
+    '304':
+      $ref: '../../responses/notModified.yml'
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+
+          * the `policyId` or the `importedPolicyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. The policy with the given ID,
+        the policy import, or the entry addition was not found in the context
+        of the authenticated user.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'
+put:
+  summary: Create or modify a specific entry addition of a policy import
+  description: |-
+    Create or modify the entry addition for the specified label of the policy import identified
+    by the `policyId` path parameter and the `importedPolicyId` path parameter.
+
+    * If the entry addition does not yet exist, it will be created.
+    * If the entry addition already exists, it will be updated.
+
+    The imported policy entry must explicitly allow these additions via its "allowedImportAdditions"
+    field, otherwise the additions are rejected.
+  tags:
+    - Policies
+  parameters:
+    - $ref: '../../parameters/policyIdPathParam.yml'
+    - $ref: '../../parameters/importedPolicyIdPathParam.yml'
+    - $ref: '../../parameters/labelPathParam.yml'
+    - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
+    - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/ifEqualHeaderParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+    - $ref: '../../parameters/responseRequiredParam.yml'
+  responses:
+    '201':
+      description: The entry addition was successfully created.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+        Location:
+          description: The location of the created entry addition
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/policies/entryAddition.yml'
+    '204':
+      description: The entry addition was successfully updated.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+
+          * the `policyId` or the `importedPolicyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
+          * the JSON body of the entry addition is invalid
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '403':
+      description: |-
+        The request could not be completed. Possible reasons:
+        * the caller has insufficient permissions.
+          You need `WRITE` permission on the `policy:/imports/{importedPolicyId}` resource,
+          without any revoke in a deeper path of the policy resource.
+        * the imported policy entry does not allow the specified additions via its
+          "allowedImportAdditions" field.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. The policy with the given ID or
+        the policy import was not found in the context of the authenticated
+        user.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'
+    '413':
+      $ref: '../../responses/entityTooLarge.yml'
+  requestBody:
+    content:
+      application/json:
+        schema:
+          $ref: '../../schemas/policies/entryAddition.yml'
+        example:
+          subjects:
+            "integration:my-connection":
+              type: "generated"
+          resources:
+            "thing:/features":
+              grant: [ "READ" ]
+              revoke: []
+    description: |-
+      JSON representation of the entry addition.
+    required: true
+delete:
+  summary: Delete a specific entry addition of a policy import
+  description: |-
+    Deletes the entry addition for the specified label of the policy import identified by the
+    `policyId` path parameter and the `importedPolicyId` path parameter.
+  tags:
+    - Policies
+  parameters:
+    - $ref: '../../parameters/policyIdPathParam.yml'
+    - $ref: '../../parameters/importedPolicyIdPathParam.yml'
+    - $ref: '../../parameters/labelPathParam.yml'
+    - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
+    - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+    - $ref: '../../parameters/responseRequiredParam.yml'
+  responses:
+    '204':
+      description: The entry addition was successfully deleted.
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+
+          * the `policyId` or the `importedPolicyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '403':
+      description: |-
+        The request could not be completed. Possible reasons:
+         * the caller has insufficient permissions.
+           You need `WRITE` permission on the `policy:/imports/{importedPolicyId}` resource,
+           without any revoke in a deeper path of the policy resource.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. The policy with the given ID,
+        the policy import, or the entry addition was not found in the context
+        of the authenticated user.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'

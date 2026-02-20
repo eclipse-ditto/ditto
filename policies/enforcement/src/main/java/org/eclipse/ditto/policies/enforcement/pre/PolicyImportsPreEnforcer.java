@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.policies.enforcement.pre;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -30,13 +31,19 @@ import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProviderExtension;
+import org.eclipse.ditto.policies.model.AllowedImportAddition;
+import org.eclipse.ditto.policies.model.EffectedImports;
+import org.eclipse.ditto.policies.model.EntriesAdditions;
+import org.eclipse.ditto.policies.model.EntryAddition;
 import org.eclipse.ditto.policies.model.ImportableType;
+import org.eclipse.ditto.policies.model.ImportedLabels;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyImport;
+import org.eclipse.ditto.policies.model.PolicyImportInvalidException;
 import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
@@ -155,8 +162,58 @@ public class PolicyImportsPreEnforcer implements PreEnforcer {
         }
         if (!hasAccess) {
             throw errorForPolicyModifyCommand(policyImport);
-        } else {
-            return true;
+        }
+
+        // validate entriesAdditions against the imported policy's allowedImportAdditions
+        validateEntriesAdditions(policyImport, importedPolicy);
+
+        return true;
+    }
+
+    private static void validateEntriesAdditions(final PolicyImport policyImport, final Policy importedPolicy) {
+        final Optional<EntriesAdditions> additionsOpt = policyImport.getEntriesAdditions();
+        if (!additionsOpt.isPresent()) {
+            return;
+        }
+        final ImportedLabels declaredEntries = policyImport.getEffectedImports()
+                .map(EffectedImports::getImportedLabels)
+                .orElse(ImportedLabels.none());
+        final EntriesAdditions additions = additionsOpt.get();
+        for (final EntryAddition addition : additions) {
+            final Label label = addition.getLabel();
+            if (!declaredEntries.contains(label)) {
+                throw PolicyImportInvalidException.newBuilder()
+                        .message("The policy import for '" + policyImport.getImportedPolicyId() +
+                                "' contains entriesAdditions for entry '" + label +
+                                "' which is not listed in 'entries'.")
+                        .description("Every label used in 'entriesAdditions' must also be declared in the " +
+                                "'entries' array of the policy import.")
+                        .build();
+            }
+            final Optional<PolicyEntry> entryOpt = importedPolicy.getEntryFor(label);
+            if (!entryOpt.isPresent()) {
+                // entry doesn't exist in imported policy — will be silently ignored at merge time
+                continue;
+            }
+            final Set<AllowedImportAddition> allowed = entryOpt.get().getAllowedImportAdditions();
+            if (addition.getSubjects().isPresent() &&
+                    !allowed.contains(AllowedImportAddition.SUBJECTS)) {
+                throw PolicyImportInvalidException.newBuilder()
+                        .message("The policy import for '" + policyImport.getImportedPolicyId() +
+                                "' contains disallowed subject additions for entry '" + label + "'.")
+                        .description("The imported policy entry '" + label +
+                                "' does not allow subject additions. Its 'allowedImportAdditions' is: " + allowed)
+                        .build();
+            }
+            if (addition.getResources().isPresent() &&
+                    !allowed.contains(AllowedImportAddition.RESOURCES)) {
+                throw PolicyImportInvalidException.newBuilder()
+                        .message("The policy import for '" + policyImport.getImportedPolicyId() +
+                                "' contains disallowed resource additions for entry '" + label + "'.")
+                        .description("The imported policy entry '" + label +
+                                "' does not allow resource additions. Its 'allowedImportAdditions' is: " + allowed)
+                        .build();
+            }
         }
     }
 

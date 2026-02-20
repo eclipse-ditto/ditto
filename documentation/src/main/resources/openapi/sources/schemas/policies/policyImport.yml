@@ -15,11 +15,22 @@ properties:
     type: array
     default: []
     description:  |-
-      The policy entries to import from the referenced policy identified by their labels. 
-      In case the field is omitted or an empty array is provided, 
+      The policy entries to import from the referenced policy identified by their labels.
+      In case the field is omitted or an empty array is provided,
       all policy entries defined as implicit ("importable": "implicit") are imported.
     items:
       type: string
       description: Label of a policy entry to import from the referenced policy.
+  entriesAdditions:
+    $ref: 'entriesAdditions.yml'
 example:
   entries: [ "default", "import" ]
+  entriesAdditions:
+    default:
+      subjects:
+        "integration:my-connection":
+          type: "generated"
+      resources:
+        "thing:/features":
+          grant: [ "READ" ]
+          revoke: []

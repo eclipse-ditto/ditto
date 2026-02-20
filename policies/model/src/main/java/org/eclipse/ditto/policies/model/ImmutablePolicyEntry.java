@@ -15,19 +15,26 @@ package org.eclipse.ditto.policies.model;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonArrayBuilder;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * An immutable implementation of {@link PolicyEntry}.
@@ -39,13 +46,16 @@ final class ImmutablePolicyEntry implements PolicyEntry {
     private final Subjects subjects;
     private final Resources resources;
     private final ImportableType importableType;
+    private final Set<AllowedImportAddition> allowedImportAdditions;
 
     private ImmutablePolicyEntry(final Label theLabel, final Subjects theSubjects, final Resources theResources,
-            final ImportableType importableType) {
+            final ImportableType importableType, final Set<AllowedImportAddition> allowedImportAdditions) {
         label = checkNotNull(theLabel, "label");
         subjects = theSubjects;
         resources = theResources;
         this.importableType = importableType;
+        this.allowedImportAdditions = Collections.unmodifiableSet(
+                new LinkedHashSet<>(allowedImportAdditions));
     }
 
     /**
@@ -60,7 +70,8 @@ final class ImmutablePolicyEntry implements PolicyEntry {
     public static PolicyEntry of(final Label label, final Subjects subjects, final Resources resources) {
         checkNotNull(subjects, "subjects");
         checkNotNull(resources, "resources");
-        return new ImmutablePolicyEntry(label, subjects, resources, ImportableType.IMPLICIT);
+        return new ImmutablePolicyEntry(label, subjects, resources, ImportableType.IMPLICIT,
+                Collections.emptySet());
     }
 
     /**
@@ -79,7 +90,28 @@ final class ImmutablePolicyEntry implements PolicyEntry {
         checkNotNull(subjects, "subjects");
         checkNotNull(resources, "resources");
         checkNotNull(importableType, "importableType");
-        return new ImmutablePolicyEntry(label, subjects, resources, importableType);
+        return new ImmutablePolicyEntry(label, subjects, resources, importableType, Collections.emptySet());
+    }
+
+    /**
+     * Returns a new {@code PolicyEntry} object of the given Subjects, Resources and allowed import additions.
+     *
+     * @param label the Label of the PolicyEntry to create.
+     * @param subjects the Subjects contained in the PolicyEntry to create.
+     * @param resources the Resources of the PolicyEntry to create.
+     * @param importableType specifies whether and how this entry is allowed to be imported by others.
+     * @param allowedImportAdditions which types of additions are allowed when importing this entry.
+     * @return a new {@code PolicyEntry} object.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 3.9.0
+     */
+    public static PolicyEntry of(final Label label, final Subjects subjects, final Resources resources,
+            final ImportableType importableType, final Set<AllowedImportAddition> allowedImportAdditions) {
+        checkNotNull(subjects, "subjects");
+        checkNotNull(resources, "resources");
+        checkNotNull(importableType, "importableType");
+        checkNotNull(allowedImportAdditions, "allowedImportAdditions");
+        return new ImmutablePolicyEntry(label, subjects, resources, importableType, allowedImportAdditions);
     }
 
     /**
@@ -106,10 +138,9 @@ final class ImmutablePolicyEntry implements PolicyEntry {
             final Subjects subjectsFromJson = PoliciesModelFactory.newSubjects(subjectsJsonObject);
             final JsonObject resourcesJsonObject = jsonObject.getValueOrThrow(JsonFields.RESOURCES);
             final Resources resourcesFromJson = PoliciesModelFactory.newResources(resourcesJsonObject);
-            final Optional<ImportableType> importableTypeOpt = readImportableType(jsonObject);
-            return importableTypeOpt
-                    .map(importableType -> of(lbl, subjectsFromJson, resourcesFromJson, importableType))
-                    .orElseGet(() -> of(lbl, subjectsFromJson, resourcesFromJson));
+            final ImportableType importType = readImportableType(jsonObject).orElse(ImportableType.IMPLICIT);
+            final Set<AllowedImportAddition> additions = readAllowedImportAdditions(jsonObject);
+            return new ImmutablePolicyEntry(lbl, subjectsFromJson, resourcesFromJson, importType, additions);
         } catch (final JsonMissingFieldException e) {
             throw new DittoJsonException(e);
         }
@@ -125,6 +156,24 @@ final class ImmutablePolicyEntry implements PolicyEntry {
                             return String.format("The value '%s' of field '%s' is not valid. Valid values are: %s", typeFromJson, field, validTypes);
                         })
                         .build()));
+    }
+
+    private static Set<AllowedImportAddition> readAllowedImportAdditions(final JsonObject json) {
+        return json.getValue(JsonFields.ALLOWED_IMPORT_ADDITIONS)
+                .map(array -> array.stream()
+                        .filter(JsonValue::isString)
+                        .map(JsonValue::asString)
+                        .map(value -> AllowedImportAddition.forName(value)
+                                .orElseThrow(() -> PolicyEntryInvalidException.newBuilder()
+                                        .description("The value '" + value + "' of field '" +
+                                                JsonFields.ALLOWED_IMPORT_ADDITIONS.getPointer() +
+                                                "' is not valid. Valid values are: " +
+                                                Arrays.toString(AllowedImportAddition.values()))
+                                        .build()))
+                        .collect(Collectors.<AllowedImportAddition, Set<AllowedImportAddition>>toCollection(
+                                LinkedHashSet::new)))
+                .map(Collections::unmodifiableSet)
+                .orElse(Collections.emptySet());
     }
 
     @Override
@@ -148,20 +197,33 @@ final class ImmutablePolicyEntry implements PolicyEntry {
     }
 
     @Override
+    public Set<AllowedImportAddition> getAllowedImportAdditions() {
+        return allowedImportAdditions;
+    }
+
+    @Override
     public boolean isSemanticallySameAs(final PolicyEntry otherPolicyEntry) {
         return subjects.isSemanticallySameAs(otherPolicyEntry.getSubjects()) &&
                 resources.equals(otherPolicyEntry.getResources()) &&
-                importableType.equals(otherPolicyEntry.getImportableType());
+                importableType.equals(otherPolicyEntry.getImportableType()) &&
+                allowedImportAdditions.equals(otherPolicyEntry.getAllowedImportAdditions());
     }
 
     @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        return JsonFactory.newObjectBuilder()
+        final org.eclipse.ditto.json.JsonObjectBuilder builder = JsonFactory.newObjectBuilder()
                 .set(JsonFields.SUBJECTS, subjects.toJson(schemaVersion, thePredicate), predicate)
                 .set(JsonFields.RESOURCES, resources.toJson(schemaVersion, thePredicate), predicate)
-                .set(JsonFields.IMPORTABLE_TYPE, importableType.toString(), predicate)
-                .build();
+                .set(JsonFields.IMPORTABLE_TYPE, importableType.toString(), predicate);
+        if (!allowedImportAdditions.isEmpty()) {
+            final JsonArrayBuilder arrayBuilder = JsonFactory.newArrayBuilder();
+            for (final AllowedImportAddition addition : allowedImportAdditions) {
+                arrayBuilder.add(JsonValue.of(addition.getName()));
+            }
+            builder.set(JsonFields.ALLOWED_IMPORT_ADDITIONS, arrayBuilder.build(), predicate);
+        }
+        return builder.build();
     }
 
     @Override
@@ -176,12 +238,13 @@ final class ImmutablePolicyEntry implements PolicyEntry {
         return Objects.equals(label, that.label) &&
                 Objects.equals(subjects, that.subjects) &&
                 Objects.equals(resources, that.resources) &&
-                Objects.equals(importableType, that.importableType);
+                Objects.equals(importableType, that.importableType) &&
+                Objects.equals(allowedImportAdditions, that.allowedImportAdditions);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(label, subjects, resources, importableType);
+        return Objects.hash(label, subjects, resources, importableType, allowedImportAdditions);
     }
 
     @Override
@@ -191,6 +254,7 @@ final class ImmutablePolicyEntry implements PolicyEntry {
                 ", subjects=" + subjects +
                 ", resources=" + resources +
                 ", importableType=" + importableType +
+                ", allowedImportAdditions=" + allowedImportAdditions +
                 "]";
     }
 

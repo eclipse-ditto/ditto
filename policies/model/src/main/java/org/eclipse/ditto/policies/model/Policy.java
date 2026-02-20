@@ -364,6 +364,18 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
     Policy setImportableFor(CharSequence label, ImportableType importableType);
 
     /**
+     * Sets the allowed import additions for the specified label.
+     *
+     * @param label the label identifying the PolicyEntry to modify.
+     * @param allowedImportAdditions the set of allowed import additions to set.
+     * @return a copy of this Policy with the changed state.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code label} is empty.
+     * @since 3.9.0
+     */
+    Policy setAllowedImportAdditionsFor(CharSequence label, Set<AllowedImportAddition> allowedImportAdditions);
+
+    /**
      * Indicates whether this Policy is empty.
      *
      * @return {@code true} if this Policy does not contain any entry, {@code false} else.

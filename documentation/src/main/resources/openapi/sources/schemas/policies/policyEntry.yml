@@ -17,6 +17,8 @@ properties:
     $ref: 'resources.yml'
   importable:
     $ref: 'importable.yml'
+  allowedImportAdditions:
+    $ref: 'allowedImportAdditions.yml'
 required:
   - subjects
   - resources
