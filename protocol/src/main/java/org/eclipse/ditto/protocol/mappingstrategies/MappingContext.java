@@ -575,7 +575,7 @@ final class MappingContext {
         if (payloadValueOptional.isPresent()) {
             final JsonValue jsonValue = payloadValueOptional.get();
             if (jsonValue.isObject()) {
-                result = Optional.of(PoliciesModelFactory.newPolicyImport(getPolicyIdOrThrow(), jsonValue.asObject()));
+                result = Optional.of(PoliciesModelFactory.newPolicyImport(getImportedPolicyId(), jsonValue.asObject()));
             } else {
                 throw newPayloadValueNotJsonObjectException(PolicyImports.class, jsonValue);
             }

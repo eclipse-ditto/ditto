@@ -165,14 +165,15 @@ public class PolicyImportsPreEnforcer implements PreEnforcer {
         }
 
         // validate entriesAdditions against the imported policy's allowedImportAdditions
-        validateEntriesAdditions(policyImport, importedPolicy);
+        validateEntriesAdditions(policyImport, importedPolicy, command.getDittoHeaders());
 
         return true;
     }
 
-    private static void validateEntriesAdditions(final PolicyImport policyImport, final Policy importedPolicy) {
+    private static void validateEntriesAdditions(final PolicyImport policyImport, final Policy importedPolicy,
+            final DittoHeaders dittoHeaders) {
         final Optional<EntriesAdditions> additionsOpt = policyImport.getEntriesAdditions();
-        if (!additionsOpt.isPresent()) {
+        if (additionsOpt.isEmpty()) {
             return;
         }
         final ImportedLabels declaredEntries = policyImport.getEffectedImports()
@@ -188,10 +189,11 @@ public class PolicyImportsPreEnforcer implements PreEnforcer {
                                 "' which is not listed in 'entries'.")
                         .description("Every label used in 'entriesAdditions' must also be declared in the " +
                                 "'entries' array of the policy import.")
+                        .dittoHeaders(dittoHeaders)
                         .build();
             }
             final Optional<PolicyEntry> entryOpt = importedPolicy.getEntryFor(label);
-            if (!entryOpt.isPresent()) {
+            if (entryOpt.isEmpty()) {
                 // entry doesn't exist in imported policy — will be silently ignored at merge time
                 continue;
             }
@@ -203,6 +205,7 @@ public class PolicyImportsPreEnforcer implements PreEnforcer {
                                 "' contains disallowed subject additions for entry '" + label + "'.")
                         .description("The imported policy entry '" + label +
                                 "' does not allow subject additions. Its 'allowedImportAdditions' is: " + allowed)
+                        .dittoHeaders(dittoHeaders)
                         .build();
             }
             if (addition.getResources().isPresent() &&
@@ -212,6 +215,7 @@ public class PolicyImportsPreEnforcer implements PreEnforcer {
                                 "' contains disallowed resource additions for entry '" + label + "'.")
                         .description("The imported policy entry '" + label +
                                 "' does not allow resource additions. Its 'allowedImportAdditions' is: " + allowed)
+                        .dittoHeaders(dittoHeaders)
                         .build();
             }
         }
