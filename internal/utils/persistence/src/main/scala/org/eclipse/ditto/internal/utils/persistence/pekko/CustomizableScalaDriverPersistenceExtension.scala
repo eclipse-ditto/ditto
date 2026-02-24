@@ -13,13 +13,18 @@
 package org.eclipse.ditto.internal.utils.persistence.pekko
 
 import com.mongodb.MongoCredential
+import com.mongodb.connection.TransportSettings
 import com.typesafe.config.Config
+import io.netty.handler.ssl.SslContextBuilder
 import org.apache.pekko.actor.ActorSystem
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig
 import org.eclipse.ditto.internal.utils.persistence.mongo.auth.AwsAuthenticationHelper
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig
 import pekko.contrib.persistence.mongodb.driver.{ScalaDriverPersistenceJournaller, ScalaDriverPersistenceReadJournaller, ScalaDriverPersistenceSnapshotter, ScalaMongoDriver}
 import pekko.contrib.persistence.mongodb.{ConfiguredExtension, MongoPersistenceExtension, MongoPersistenceJournalMetrics, MongoPersistenceJournallingApi}
+
+import java.io.File
+import javax.net.ssl.SSLException
 
 /**
  * An adjustment of the original pekko-persistence
@@ -41,16 +46,31 @@ class CustomizableScalaDriverPersistenceExtension(val actorSystem: ActorSystem)
       val mongoDbConfig = DefaultMongoDbConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings.config))
       val optionsConfig = mongoDbConfig.getOptionsConfig
 
-      if (optionsConfig.isUseAwsIamRole) {
-        val mongoCredential = AwsAuthenticationHelper.provideAwsIamBasedMongoCredential(
+      val mongoCredential = if (optionsConfig.isUseAwsIamRole) {
+        AwsAuthenticationHelper.provideAwsIamBasedMongoCredential(
           optionsConfig.awsRegion(),
           optionsConfig.awsRoleArn(),
           optionsConfig.awsSessionName()
         )
-        new CustomizableScalaMongoDriver(actorSystem, config, builder => builder.credential(mongoCredential))
+      } else if (optionsConfig.isUseX509Authentication) {
+        MongoCredential.createMongoX509Credential()
       } else {
-        new ScalaMongoDriver(actorSystem, config)
+        null
       }
+
+      new CustomizableScalaMongoDriver(actorSystem, config, builder => {
+        if (mongoCredential != null) {
+          builder.credential(mongoCredential)
+        }
+
+        builder.applyToSslSettings(sslBuilder => sslBuilder.enabled(optionsConfig.isSslEnabled))
+          .transportSettings(TransportSettings.nettyBuilder()
+            .sslContext(tryToCreateAndInitSslContext(optionsConfig.sslCaFile(), optionsConfig.sslClientCertFile(),
+                optionsConfig.sslClientKeyFile(), optionsConfig.sslClientKeyPassword()))
+            .build())
+
+        builder
+      })
     }
 
     override lazy val journaler: MongoPersistenceJournallingApi = new ScalaDriverPersistenceJournaller(driver)
@@ -60,6 +80,31 @@ class CustomizableScalaDriverPersistenceExtension(val actorSystem: ActorSystem)
     override lazy val snapshotter = new ScalaDriverPersistenceSnapshotter(driver)
 
     override lazy val readJournal = new ScalaDriverPersistenceReadJournaller(driver)
+
+    private def tryToCreateAndInitSslContext(sslCa: String, sslClientCert: String, sslClientKey: String, sslClientKeyPassword: String)
+    = try createAndInitSslContext(sslCa, sslClientCert, sslClientKey, sslClientKeyPassword)
+    catch {
+      case e: SSLException =>
+        throw new IllegalArgumentException("SSLException!", e)
+    }
+
+    @throws[SSLException]
+    private def createAndInitSslContext(sslCa: String, sslClientCert: String, sslClientKey: String, sslClientKeyPassword: String) = {
+      val builder = SslContextBuilder.forClient
+      if (sslCa != null && sslCa.nonEmpty) {
+        val sslCaFile = new File(sslCa)
+        builder.trustManager(sslCaFile)
+      }
+
+      if (sslClientCert != null && sslClientCert.nonEmpty) {
+        val sslClientCertFile = new File(sslClientCert)
+        val sslClientKeyFile = new File(sslClientKey)
+        builder.keyManager(sslClientCertFile, sslClientKeyFile,
+          if (sslClientKeyPassword.isEmpty) null else sslClientKeyPassword)
+      }
+
+      builder.build
+    }
   }
 
 }

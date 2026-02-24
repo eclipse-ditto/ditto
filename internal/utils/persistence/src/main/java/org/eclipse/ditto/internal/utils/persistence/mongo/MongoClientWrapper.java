@@ -14,8 +14,7 @@ package org.eclipse.ditto.internal.utils.persistence.mongo;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
+import java.io.File;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
@@ -23,7 +22,13 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
-import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLException;
+
+import com.mongodb.MongoCredential;
+
+import io.netty.handler.ssl.SslContext;
+
+import io.netty.handler.ssl.SslContextBuilder;
 
 import org.bson.Document;
 import org.bson.codecs.configuration.CodecRegistry;
@@ -349,10 +354,15 @@ public final class MongoClientWrapper implements DittoMongoClient {
         @Nullable private ConnectionString connectionString;
         private String defaultDatabaseName;
         private boolean sslEnabled;
+        private String sslCa;
         private boolean isUseAwsIamRole;
         private String awsRegion;
         private String awsRoleArn;
         private String awsSessionName;
+        private boolean isUseX509Authentication;
+        private String sslClientCert;
+        private String sslClientKey;
+        private String sslClientKeyPassword;
         @Nullable private EventLoopGroup eventLoopGroup;
 
         private MongoClientWrapperBuilder() {
@@ -401,6 +411,7 @@ public final class MongoClientWrapper implements DittoMongoClient {
 
             final MongoDbConfig.OptionsConfig optionsConfig = mongoDbConfig.getOptionsConfig();
             builder.enableSsl(optionsConfig.isSslEnabled());
+            builder.sslCaFile(optionsConfig.sslCaFile());
             builder.useAwsIamRole(optionsConfig.isUseAwsIamRole());
             builder.awsRegion(optionsConfig.awsRegion());
             builder.awsRoleArn(optionsConfig.awsRoleArn());
@@ -409,6 +420,10 @@ public final class MongoClientWrapper implements DittoMongoClient {
             builder.setReadConcern(optionsConfig.readConcern().getMongoReadConcern());
             builder.setWriteConcern(optionsConfig.writeConcern());
             builder.setRetryWrites(optionsConfig.isRetryWrites());
+            builder.useX509Authentication(optionsConfig.isUseX509Authentication());
+            builder.sslClientCertFile(optionsConfig.sslClientCertFile());
+            builder.sslClientKeyFile(optionsConfig.sslClientKeyFile());
+            builder.sslClientKeyPassword(optionsConfig.sslClientKeyPassword());
 
             return builder;
         }
@@ -446,6 +461,12 @@ public final class MongoClientWrapper implements DittoMongoClient {
         @Override
         public MongoClientWrapperBuilder enableSsl(final boolean enabled) {
             sslEnabled = enabled;
+            return this;
+        }
+
+        @Override
+        public MongoClientWrapperBuilder sslCaFile(final String sslCaFile) {
+            this.sslCa = sslCaFile;
             return this;
         }
 
@@ -555,6 +576,30 @@ public final class MongoClientWrapper implements DittoMongoClient {
         }
 
         @Override
+        public MongoClientWrapperBuilder useX509Authentication(final boolean useX509Authentication) {
+            this.isUseX509Authentication = useX509Authentication;
+            return this;
+        }
+
+        @Override
+        public MongoClientWrapperBuilder sslClientCertFile(final String sslClientCertFile) {
+            this.sslClientCert = sslClientCertFile;
+            return this;
+        }
+
+        @Override
+        public MongoClientWrapperBuilder sslClientKeyFile(final String sslClientKeyFile) {
+            this.sslClientKey = sslClientKeyFile;
+            return this;
+        }
+
+        @Override
+        public MongoClientWrapperBuilder sslClientKeyPassword(final String sslClientKeyPassword) {
+            this.sslClientKeyPassword = sslClientKeyPassword;
+            return this;
+        }
+
+        @Override
         public MongoClientWrapper build() {
             buildAndApplySslSettings();
 
@@ -563,40 +608,50 @@ public final class MongoClientWrapper implements DittoMongoClient {
                         AwsAuthenticationHelper.provideAwsIamBasedMongoCredential(awsRegion, awsRoleArn, awsSessionName)
                 );
             }
+
+            if (isUseX509Authentication) {
+                mongoClientSettingsBuilder.credential(MongoCredential.createMongoX509Credential());
+            }
+
             return new MongoClientWrapper(mongoClientSettingsBuilder.build(), defaultDatabaseName,
                     dittoMongoClientSettingsBuilder.build(), eventLoopGroup);
         }
 
         private void buildAndApplySslSettings() {
-            if (sslEnabled) {
-                eventLoopGroup = new NioEventLoopGroup();
-                mongoClientSettingsBuilder
-                        .transportSettings(TransportSettings.nettyBuilder().eventLoopGroup(eventLoopGroup).build())
-                        .applyToSslSettings(builder -> builder
-                                .context(tryToCreateAndInitSslContext())
-                                .enabled(sslEnabled));
-            } else if (null != connectionString) {
-                eventLoopGroup = null;
-                mongoClientSettingsBuilder
-                        .applyToSslSettings(builder -> builder
-                                .enabled(sslEnabled));
-            }
+            eventLoopGroup = new NioEventLoopGroup();
+            mongoClientSettingsBuilder
+                    .transportSettings(TransportSettings.nettyBuilder()
+                            .eventLoopGroup(eventLoopGroup)
+                            .sslContext(tryToCreateAndInitSslContext(sslCa, sslClientCert, sslClientKey, sslClientKeyPassword))
+                            .build())
+                    .applyToSslSettings(builder -> builder.enabled(sslEnabled));
         }
 
-        private static SSLContext tryToCreateAndInitSslContext() {
+        private static SslContext tryToCreateAndInitSslContext(String sslCa, String sslClientCert, String sslClientKey, String sslClientKeyPassword) {
             try {
-                return createAndInitSslContext();
-            } catch (final NoSuchAlgorithmException e) {
-                throw new IllegalArgumentException("No such Algorithm is supported!", e);
-            } catch (final KeyManagementException e) {
-                throw new IllegalStateException("KeyManagementException!", e);
+                return createAndInitSslContext(sslCa, sslClientCert, sslClientKey, sslClientKeyPassword);
+            } catch (final SSLException e) {
+                throw new IllegalArgumentException("SSLException!", e);
             }
         }
 
-        private static SSLContext createAndInitSslContext() throws NoSuchAlgorithmException, KeyManagementException {
-            final SSLContext result = SSLContext.getInstance("TLSv1.2");
-            result.init(null, null, null);
-            return result;
+        private static SslContext createAndInitSslContext(String sslCa, String sslClientCert, String sslClientKey, String sslClientKeyPassword)
+                throws SSLException {
+            final var builder = SslContextBuilder.forClient();
+
+            if (sslCa != null && !sslCa.isEmpty()) {
+                final var sslCaFile = new File(sslCa);
+                builder.trustManager(sslCaFile);
+            }
+
+            if (sslClientCert != null && !sslClientCert.isEmpty()) {
+                final var sslClientCertFile = new File(sslClientCert);
+                final var sslClientKeyFile = new File(sslClientKey);
+                builder.keyManager(sslClientCertFile, sslClientKeyFile,
+                        sslClientKeyPassword.isEmpty() ? null : sslClientKeyPassword);
+            }
+
+            return builder.build();
         }
     }
 }

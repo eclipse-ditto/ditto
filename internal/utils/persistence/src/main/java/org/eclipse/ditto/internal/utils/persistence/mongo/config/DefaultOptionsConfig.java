@@ -44,10 +44,15 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
     private final String awsArnRole;
     private final String awsSessionName;
     private final boolean sslEnabled;
+    private final String sslCaFile;
     private final ReadPreference readPreference;
     private final ReadConcern readConcern;
     private final WriteConcern writeConcern;
     private final boolean retryWrites;
+    private final boolean useX509Authentication;
+    private final String sslClientCertFile;
+    private final String sslClientKeyFile;
+    private final String sslClientKeyPassword;
     private final Map<String, Object> extraUriOptions;
 
     private DefaultOptionsConfig(final ScopedConfig config) {
@@ -55,6 +60,7 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
         awsRegion = config.getString(OptionsConfigValue.AWS_REGION.getConfigPath());
         awsArnRole = config.getString(OptionsConfigValue.AWS_ROLE_ARN.getConfigPath());
         sslEnabled = config.getBoolean(OptionsConfigValue.SSL_ENABLED.getConfigPath());
+        sslCaFile = config.getString(OptionsConfigValue.SSL_CA_FILE.getConfigPath());
         this.awsSessionName = config.getString(OptionsConfigValue.AWS_SESSION_NAME.getConfigPath());
         final var readPreferenceString = config.getString(OptionsConfigValue.READ_PREFERENCE.getConfigPath());
         readPreference = ReadPreference.ofReadPreference(readPreferenceString)
@@ -80,6 +86,10 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
             return new DittoConfigError(msg);
         });
         retryWrites = config.getBoolean(OptionsConfigValue.RETRY_WRITES.getConfigPath());
+        useX509Authentication = config.getBoolean(OptionsConfigValue.USE_X509_AUTHENTICATION.getConfigPath());
+        sslClientCertFile = config.getString(OptionsConfigValue.SSL_CLIENT_CERT_FILE.getConfigPath());
+        sslClientKeyFile = config.getString(OptionsConfigValue.SSL_CLIENT_KEY_FILE.getConfigPath());
+        sslClientKeyPassword = config.getString(OptionsConfigValue.SSL_CLIENT_KEY_PASSWORD.getConfigPath());
         extraUriOptions = Collections.unmodifiableMap(new HashMap<>(
                 configToMap(config.getConfig(OptionsConfigValue.EXTRA_URI_OPTIONS.getConfigPath()))
         ));
@@ -104,6 +114,11 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
     @Override
     public boolean isSslEnabled() {
         return sslEnabled;
+    }
+
+    @Override
+    public String sslCaFile() {
+        return sslCaFile;
     }
 
     @Override
@@ -145,6 +160,18 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
     public String awsSessionName() {return awsSessionName;}
 
     @Override
+    public boolean isUseX509Authentication() {return useX509Authentication;}
+
+    @Override
+    public String sslClientCertFile() {return sslClientCertFile;}
+
+    @Override
+    public String sslClientKeyFile() {return sslClientKeyFile;}
+
+    @Override
+    public String sslClientKeyPassword() {return sslClientKeyPassword;}
+
+    @Override
     public Map<String, Object> extraUriOptions() {
         return extraUriOptions;
     }
@@ -163,17 +190,23 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
                 && Objects.equals(awsArnRole, that.awsArnRole)
                 && Objects.equals(awsSessionName, that.awsSessionName)
                 && sslEnabled == that.sslEnabled
+                && Objects.equals(sslCaFile, that.sslCaFile)
                 && retryWrites == that.retryWrites &&
                 readPreference == that.readPreference &&
                 readConcern == that.readConcern &&
                 Objects.equals(writeConcern, that.writeConcern) &&
-                Objects.equals(extraUriOptions, that.extraUriOptions);
+                Objects.equals(extraUriOptions, that.extraUriOptions)
+                && useX509Authentication == that.useX509Authentication
+                && Objects.equals(sslClientCertFile, that.sslClientCertFile)
+                && Objects.equals(sslClientKeyFile, that.sslClientKeyFile)
+                && Objects.equals(sslClientKeyPassword, that.sslClientKeyPassword);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(useAwsIamRole, awsRegion, awsArnRole, awsArnRole, awsSessionName, sslEnabled,
-                readPreference, readConcern, writeConcern, retryWrites, extraUriOptions);
+        return Objects.hash(useAwsIamRole, awsRegion, awsArnRole, awsArnRole, awsSessionName, sslEnabled, sslCaFile,
+                readPreference, readConcern, writeConcern, retryWrites, extraUriOptions, useX509Authentication,
+                sslClientCertFile, sslClientKeyFile, sslClientKeyPassword);
     }
 
     @Override

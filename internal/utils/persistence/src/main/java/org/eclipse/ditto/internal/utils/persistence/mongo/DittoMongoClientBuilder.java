@@ -91,6 +91,14 @@ public interface DittoMongoClientBuilder {
         GeneralPropertiesStep enableSsl(boolean enabled);
 
         /**
+         * Sets the CA root certificate file to use for SSL.
+         *
+         * @param sslCaFile the CA root certificate file path.
+         * @return this builder instance to allow method chaining.
+         */
+        GeneralPropertiesStep sslCaFile(String sslCaFile);
+
+        /**
          * Sets the maximum duration of a query.
          * Default is defined at {@link org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig.MongoDbConfigValue#MAX_QUERY_TIME}.
          *
@@ -202,6 +210,38 @@ public interface DittoMongoClientBuilder {
          * @return this builder instance with the updated retryWrites.
          */
         GeneralPropertiesStep setRetryWrites(boolean retryWrites);
+
+        /**
+         * Determines whether to use X509 certificates for authentication.
+         *
+         * @param useX509Authentication {@code true} if X509 Authentication should be used, {@code false} otherwise.
+         * @return this builder instance to allow method chaining.
+         */
+        GeneralPropertiesStep useX509Authentication(boolean useX509Authentication);
+
+        /**
+         * Sets the client certificate file for use in X509 authentication.
+         *
+         * @param sslClientCertFile the client certificate file path.
+         * @return this builder instance to allow method chaining.
+         */
+        GeneralPropertiesStep sslClientCertFile(String sslClientCertFile);
+
+        /**
+         * Sets the client key file for use in X509 authentication.
+         *
+         * @param sslClientKeyFile the client key file path.
+         * @return this builder instance to allow method chaining.
+         */
+        GeneralPropertiesStep sslClientKeyFile(String sslClientKeyFile);
+
+        /**
+         * Sets the client key file's encryption password.
+         *
+         * @param sslClientKeyPassword the client key file's password.
+         * @return this builder instance to allow method chaining.
+         */
+        GeneralPropertiesStep sslClientKeyPassword(String sslClientKeyPassword);
 
         /**
          * Creates a new instance of {@code DittoMongoClient} with the properties of this builder.
