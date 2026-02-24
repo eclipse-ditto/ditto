@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.policies.model.signals.commands.modify;
 
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -35,6 +36,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.ImportableType;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
+import org.eclipse.ditto.policies.model.PolicyEntryInvalidException;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 
@@ -141,8 +143,11 @@ public final class ModifyPolicyEntryImportable
                     final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
                     final String importableString = jsonObject.getValueOrThrow(JSON_IMPORTABLE);
                     final ImportableType importableType = ImportableType.forName(importableString)
-                            .orElseThrow(() -> new IllegalArgumentException(
-                                    "Unknown ImportableType: " + importableString));
+                            .orElseThrow(() -> PolicyEntryInvalidException.newBuilder()
+                                    .description("The value '" + importableString +
+                                            "' is not a valid importable type. Valid values are: " +
+                                            Arrays.toString(ImportableType.values()))
+                                    .build());
 
                     return of(policyId, label, importableType, dittoHeaders);
                 });
@@ -180,7 +185,11 @@ public final class ModifyPolicyEntryImportable
     public ModifyPolicyEntryImportable setEntity(final JsonValue entity) {
         final String importableString = entity.asString();
         final ImportableType type = ImportableType.forName(importableString)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown ImportableType: " + importableString));
+                .orElseThrow(() -> PolicyEntryInvalidException.newBuilder()
+                        .description("The value '" + importableString +
+                                "' is not a valid importable type. Valid values are: " +
+                                Arrays.toString(ImportableType.values()))
+                        .build());
         return of(policyId, label, type, getDittoHeaders());
     }
 

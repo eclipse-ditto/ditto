@@ -14,6 +14,7 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.policies;
 
 import static org.eclipse.ditto.base.model.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
+import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -35,6 +36,7 @@ import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.policies.model.AllowedImportAddition;
 import org.eclipse.ditto.policies.model.ImportableType;
 import org.eclipse.ditto.policies.model.Label;
+import org.eclipse.ditto.policies.model.PolicyEntryInvalidException;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
@@ -398,9 +400,12 @@ final class PolicyEntriesRoute extends AbstractRoute {
         return jsonArray.stream()
                 .filter(JsonValue::isString)
                 .map(JsonValue::asString)
-                .map(AllowedImportAddition::forName)
-                .filter(Optional::isPresent)
-                .map(Optional::get)
+                .map(value -> AllowedImportAddition.forName(value)
+                        .orElseThrow(() -> PolicyEntryInvalidException.newBuilder()
+                                .description("The value '" + value +
+                                        "' is not a valid allowedImportAddition. Valid values are: " +
+                                        Arrays.toString(AllowedImportAddition.values()))
+                                .build()))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
@@ -446,7 +451,11 @@ final class PolicyEntriesRoute extends AbstractRoute {
             return jsonString;
         });
         return ImportableType.forName(importableString)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown ImportableType: " + importableString));
+                .orElseThrow(() -> PolicyEntryInvalidException.newBuilder()
+                        .description("The value '" + importableString +
+                                "' is not a valid importable type. Valid values are: " +
+                                Arrays.toString(ImportableType.values()))
+                        .build());
     }
 
     /*

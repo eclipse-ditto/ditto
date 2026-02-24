@@ -12,11 +12,14 @@
  */
 package org.eclipse.ditto.policies.model.signals.commands.modify;
 
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.policies.model.PolicyEntryInvalidException;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.TestConstants;
 import org.junit.Test;
@@ -80,6 +83,28 @@ public final class ModifyPolicyEntryImportableTest {
         assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Policy.POLICY_ID);
         assertThat(underTest.getLabel()).isEqualTo(TestConstants.Policy.LABEL);
         assertThat(underTest.getImportableType()).isEqualTo(TestConstants.Policy.IMPORTABLE_TYPE);
+    }
+
+    @Test
+    public void fromJsonWithInvalidImportableTypeThrowsPolicyEntryInvalidException() {
+        final JsonObject invalidJson = KNOWN_JSON.toBuilder()
+                .set(ModifyPolicyEntryImportable.JSON_IMPORTABLE, "bogus")
+                .build();
+
+        assertThatExceptionOfType(PolicyEntryInvalidException.class)
+                .isThrownBy(() -> ModifyPolicyEntryImportable.fromJson(invalidJson,
+                        TestConstants.EMPTY_DITTO_HEADERS));
+    }
+
+    @Test
+    public void setEntityWithInvalidImportableTypeThrowsPolicyEntryInvalidException() {
+        final ModifyPolicyEntryImportable underTest =
+                ModifyPolicyEntryImportable.of(TestConstants.Policy.POLICY_ID,
+                        TestConstants.Policy.LABEL, TestConstants.Policy.IMPORTABLE_TYPE,
+                        TestConstants.EMPTY_DITTO_HEADERS);
+
+        assertThatExceptionOfType(PolicyEntryInvalidException.class)
+                .isThrownBy(() -> underTest.setEntity(JsonValue.of("bogus")));
     }
 
 }

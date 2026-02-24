@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.policies.model.signals.commands.modify;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Objects;
@@ -40,6 +41,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.AllowedImportAddition;
 import org.eclipse.ditto.policies.model.Label;
+import org.eclipse.ditto.policies.model.PolicyEntryInvalidException;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
@@ -152,9 +154,12 @@ public final class ModifyPolicyEntryAllowedImportAdditions
                     final Set<AllowedImportAddition> allowedImportAdditions = allowedImportAdditionsArray.stream()
                             .filter(JsonValue::isString)
                             .map(JsonValue::asString)
-                            .map(AllowedImportAddition::forName)
-                            .filter(Optional::isPresent)
-                            .map(Optional::get)
+                            .map(value -> AllowedImportAddition.forName(value)
+                                    .orElseThrow(() -> PolicyEntryInvalidException.newBuilder()
+                                            .description("The value '" + value +
+                                                    "' is not a valid allowedImportAddition. Valid values are: " +
+                                                    Arrays.toString(AllowedImportAddition.values()))
+                                            .build()))
                             .collect(Collectors.toCollection(LinkedHashSet::new));
 
                     return of(policyId, label, allowedImportAdditions, dittoHeaders);
@@ -202,9 +207,12 @@ public final class ModifyPolicyEntryAllowedImportAdditions
         final Set<AllowedImportAddition> additions = jsonArray.stream()
                 .filter(JsonValue::isString)
                 .map(JsonValue::asString)
-                .map(AllowedImportAddition::forName)
-                .filter(Optional::isPresent)
-                .map(Optional::get)
+                .map(value -> AllowedImportAddition.forName(value)
+                        .orElseThrow(() -> PolicyEntryInvalidException.newBuilder()
+                                .description("The value '" + value +
+                                        "' is not a valid allowedImportAddition. Valid values are: " +
+                                        Arrays.toString(AllowedImportAddition.values()))
+                                .build()))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         return of(policyId, label, additions, getDittoHeaders());
     }

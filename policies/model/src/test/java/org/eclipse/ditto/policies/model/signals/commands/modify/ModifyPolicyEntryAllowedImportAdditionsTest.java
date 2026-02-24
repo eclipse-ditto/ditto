@@ -12,13 +12,16 @@
  */
 package org.eclipse.ditto.policies.model.signals.commands.modify;
 
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
 import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.policies.model.PolicyEntryInvalidException;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.TestConstants;
 import org.junit.Test;
@@ -84,6 +87,31 @@ public final class ModifyPolicyEntryAllowedImportAdditionsTest {
 
         assertThat(underTest).isNotNull();
         assertThat(underTest.getAllowedImportAdditions()).isEqualTo(TestConstants.Policy.ALLOWED_IMPORT_ADDITIONS);
+    }
+
+    @Test
+    public void fromJsonWithInvalidAllowedImportAdditionThrowsPolicyEntryInvalidException() {
+        final JsonObject invalidJson = KNOWN_JSON.toBuilder()
+                .set(ModifyPolicyEntryAllowedImportAdditions.JSON_ALLOWED_IMPORT_ADDITIONS,
+                        JsonArray.of(JsonValue.of("subjects"), JsonValue.of("bogus")))
+                .build();
+
+        assertThatExceptionOfType(PolicyEntryInvalidException.class)
+                .isThrownBy(() -> ModifyPolicyEntryAllowedImportAdditions.fromJson(invalidJson,
+                        TestConstants.EMPTY_DITTO_HEADERS));
+    }
+
+    @Test
+    public void setEntityWithInvalidAllowedImportAdditionThrowsPolicyEntryInvalidException() {
+        final ModifyPolicyEntryAllowedImportAdditions underTest =
+                ModifyPolicyEntryAllowedImportAdditions.of(TestConstants.Policy.POLICY_ID,
+                        TestConstants.Policy.LABEL, TestConstants.Policy.ALLOWED_IMPORT_ADDITIONS,
+                        TestConstants.EMPTY_DITTO_HEADERS);
+
+        final JsonArray invalidArray = JsonArray.of(JsonValue.of("subjects"), JsonValue.of("bogus"));
+
+        assertThatExceptionOfType(PolicyEntryInvalidException.class)
+                .isThrownBy(() -> underTest.setEntity(invalidArray));
     }
 
 }
