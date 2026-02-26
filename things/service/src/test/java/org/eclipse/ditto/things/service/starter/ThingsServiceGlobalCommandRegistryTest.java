@@ -13,6 +13,7 @@
 package org.eclipse.ditto.things.service.starter;
 
 import org.eclipse.ditto.base.api.common.Shutdown;
+import org.eclipse.ditto.base.api.common.checkpermissions.CheckPermissions;
 import org.eclipse.ditto.base.api.common.purge.PurgeEntities;
 import org.eclipse.ditto.base.api.devops.signals.commands.ExecutePiggybackCommand;
 import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
@@ -66,7 +67,8 @@ public final class ThingsServiceGlobalCommandRegistryTest extends GlobalCommandR
                 SudoCountThings.class,
                 RetrieveMergedWotValidationConfig.class,
                 RetrieveWotValidationConfig.class,
-                ModifyWotValidationConfig.class
+                ModifyWotValidationConfig.class,
+                CheckPermissions.class
         );
     }
 
