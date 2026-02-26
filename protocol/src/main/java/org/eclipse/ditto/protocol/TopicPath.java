@@ -224,7 +224,14 @@ public interface TopicPath {
          *
          * @since 2.1.0
          */
-        CONNECTIONS("connections", ConnectivityConstants.ENTITY_TYPE);
+        CONNECTIONS("connections", ConnectivityConstants.ENTITY_TYPE),
+
+        /**
+         * Common group (no entity type).
+         *
+         * @since 3.9.0
+         */
+        COMMON("common", null);
 
         private final String name;
         private final EntityType entityType;
@@ -255,6 +262,13 @@ public interface TopicPath {
             return name;
         }
 
+        /**
+         * Returns the entity type for this group, or {@code null} for groups that have no associated
+         * entity type (e.g., {@link #COMMON}).
+         *
+         * @return the entity type, or {@code null}.
+         */
+        @Nullable
         public EntityType getEntityType() {
             return entityType;
         }
@@ -417,7 +431,14 @@ public interface TopicPath {
 
         MIGRATED("migrated"),
 
-        DELETED("deleted");
+        DELETED("deleted"),
+
+        /**
+         * Action for checking permissions.
+         *
+         * @since 3.9.0
+         */
+        CHECK_PERMISSIONS("checkPermissions");
 
         private final String name;
 

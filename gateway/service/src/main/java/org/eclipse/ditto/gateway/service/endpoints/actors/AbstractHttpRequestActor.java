@@ -81,7 +81,8 @@ import org.eclipse.ditto.edge.service.acknowledgements.things.ThingCommandRespon
 import org.eclipse.ditto.edge.service.acknowledgements.things.ThingLiveCommandAckRequestSetter;
 import org.eclipse.ditto.edge.service.acknowledgements.things.ThingModifyCommandAckRequestSetter;
 import org.eclipse.ditto.gateway.api.GatewayServiceUnavailableException;
-import org.eclipse.ditto.gateway.service.endpoints.routes.checkpermissions.CheckPermissions;
+import org.eclipse.ditto.base.api.common.checkpermissions.CheckPermissions;
+import org.eclipse.ditto.edge.service.dispatching.checkpermissions.CheckPermissionsActor;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.DefaultUserInformation;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.Whoami;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiResponse;

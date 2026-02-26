@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.gateway.service.endpoints.actors;
+package org.eclipse.ditto.edge.service.dispatching.checkpermissions;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -28,19 +28,19 @@ import org.apache.pekko.actor.Props;
 import org.apache.pekko.actor.ReceiveTimeout;
 import org.apache.pekko.japi.pf.ReceiveBuilder;
 import org.apache.pekko.pattern.Patterns;
+import org.eclipse.ditto.base.api.common.checkpermissions.CheckPermissions;
+import org.eclipse.ditto.base.api.common.checkpermissions.CheckPermissionsResponse;
+import org.eclipse.ditto.base.api.common.checkpermissions.ImmutablePermissionCheck;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.gateway.service.endpoints.routes.checkpermissions.CheckPermissions;
-import org.eclipse.ditto.gateway.service.endpoints.routes.checkpermissions.CheckPermissionsResponse;
-import org.eclipse.ditto.gateway.service.endpoints.routes.checkpermissions.ImmutablePermissionCheck;
-import org.eclipse.ditto.gateway.service.endpoints.routes.checkpermissions.PermissionCheckWrapper;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.policies.api.commands.sudo.CheckPolicyPermissions;
 import org.eclipse.ditto.policies.api.commands.sudo.CheckPolicyPermissionsResponse;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.ResourcePermissionFactory;
 import org.eclipse.ditto.policies.model.ResourcePermissions;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
@@ -62,7 +62,7 @@ import org.eclipse.ditto.things.model.ThingId;
  *
  * @since 3.7.0
  */
-final class CheckPermissionsActor extends AbstractActor {
+public final class CheckPermissionsActor extends AbstractActor {
 
     private final DittoLogger logger = DittoLoggerFactory.getLogger(CheckPermissionsActor.class);
     private final ActorRef edgeCommandForwarder;
@@ -120,26 +120,40 @@ final class CheckPermissionsActor extends AbstractActor {
      * @param command the {@link CheckPermissions} message to handle.
      */
     private void handleCheckPermissions(final CheckPermissions command) {
+        for (final Map.Entry<String, ImmutablePermissionCheck> entry : command.getPermissionChecks().entrySet()) {
+            try {
+                ResourceKey.newInstance(entry.getValue().getResource());
+            } catch (final Exception e) {
+                final DittoRuntimeException dre = DittoRuntimeException.asDittoRuntimeException(e,
+                        cause -> DittoInternalErrorException.newBuilder()
+                                .dittoHeaders(command.getDittoHeaders())
+                                .cause(cause)
+                                .build());
+                sender.tell(dre.setDittoHeaders(command.getDittoHeaders()), getSelf());
+                stopSelf();
+                return;
+            }
+        }
+
         final List<String> permissionOrder = new ArrayList<>(command.getPermissionChecks().keySet());
         final Map<String, Map<String, ImmutablePermissionCheck>> groupedByEntityId =
                 groupByEntityAndPolicyResource(command);
 
-        final CompletableFuture<Map<String, Map<String, PermissionCheckWrapper>>> allPolicyRetrievals =
+        final List<Map.Entry<String, CompletableFuture<Map<String, PermissionCheckWrapper>>>> retrievalFutures =
                 groupedByEntityId.entrySet().stream()
-                        .reduce(
-                                CompletableFuture.completedFuture(new LinkedHashMap<>()),
-                                (future, entry) -> future.thenCompose(resultMap ->
-                                        retrieveOrSetPolicyId(entry.getKey(), entry.getValue(), command)
-                                                .thenApply(retrieved -> {
-                                                    resultMap.put(entry.getKey(), retrieved);
-                                                    return resultMap;
-                                                })
-                                ),
-                                (f1, f2) -> f1.thenCombine(f2, (map1, map2) -> {
-                                    map1.putAll(map2);
-                                    return map1;
-                                })
-                        );
+                        .map(entry -> Map.entry(entry.getKey(),
+                                retrieveOrSetPolicyId(entry.getKey(), entry.getValue(), command)))
+                        .toList();
+
+        final CompletableFuture<Map<String, Map<String, PermissionCheckWrapper>>> allPolicyRetrievals =
+                CompletableFuture.allOf(retrievalFutures.stream()
+                                .map(Map.Entry::getValue)
+                                .toArray(CompletableFuture[]::new))
+                        .thenApply(v -> {
+                            final Map<String, Map<String, PermissionCheckWrapper>> resultMap = new LinkedHashMap<>();
+                            retrievalFutures.forEach(e -> resultMap.put(e.getKey(), e.getValue().join()));
+                            return resultMap;
+                        });
 
         allPolicyRetrievals
                 .thenCompose(enrichedGroupedByEntityId ->
@@ -315,11 +329,6 @@ final class CheckPermissionsActor extends AbstractActor {
 
     /**
      * Logs a warn message when a permission check fails for a given request.
-     * <p>
-     * This method logs the failure of a permission check operation using a {@code logger} with correlation ID
-     * extracted from the provided {@code DittoHeaders}. The logged message includes the details of the failed
-     * permission check request and the associated exception message.
-     * </p>
      *
      * @param ex the exception that occurred during the permission check.
      * @param permissionChecks the map containing the permission checks that failed.
@@ -333,15 +342,13 @@ final class CheckPermissionsActor extends AbstractActor {
 
     /**
      * Creates a {@link ResourcePermissions} object from the {@link ImmutablePermissionCheck}.
-     * <p>
-     * This method constructs a {@link ResourcePermissions} object for a specific resource by
-     * extracting the resource type, resource path, and the list of permissions.
      *
      * @param check the {@link ImmutablePermissionCheck} containing the permission data.
      * @return the constructed {@link ResourcePermissions}.
      */
     private ResourcePermissions createResourcePermissions(final ImmutablePermissionCheck check) {
-        return ResourcePermissionFactory.newInstance(check.getResourceKey(), check.getHasPermissions());
+        return ResourcePermissionFactory.newInstance(
+                ResourceKey.newInstance(check.getResource()), check.getHasPermissions());
     }
 
     private CompletionStage<PolicyId> retrievePolicyIdForEntity(final String entityId, DittoHeaders headers) {

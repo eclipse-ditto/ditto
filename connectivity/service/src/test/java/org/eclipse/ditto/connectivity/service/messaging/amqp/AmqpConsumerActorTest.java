@@ -380,6 +380,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
         final var inboundDispatchingSink = InboundDispatchingSink.createSink(CONNECTION,
                 protocolAdapter.headerTranslator(),
                 ActorSelection.apply(testRef, ""),
+                testRef,
                 connectionActorProbe.ref(),
                 testRef,
                 TestProbe.apply(actorSystem).ref(),

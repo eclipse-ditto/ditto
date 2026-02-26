@@ -15,6 +15,7 @@ package org.eclipse.ditto.connectivity.service.messaging;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
+import java.time.Duration;
 import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Collections;
@@ -70,7 +71,9 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProv
 import org.eclipse.ditto.connectivity.service.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
+import org.eclipse.ditto.base.api.common.checkpermissions.CheckPermissions;
 import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementAggregatorActorStarter;
+import org.eclipse.ditto.edge.service.dispatching.checkpermissions.CheckPermissionsActor;
 import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementConfig;
 import org.eclipse.ditto.edge.service.acknowledgements.message.MessageCommandAckRequestSetter;
 import org.eclipse.ditto.edge.service.acknowledgements.message.MessageCommandResponseAcknowledgementProvider;
@@ -131,6 +134,7 @@ public final class InboundDispatchingSink
     private final HeaderTranslator headerTranslator;
     private final Connection connection;
     private final ActorSelection proxyActor;
+    private final ActorRef commandForwarderActorRef;
     private final ActorRef connectionActor;
     private final ActorRef outboundMessageMappingProcessorActor;
     private final ActorRef clientActor;
@@ -139,6 +143,7 @@ public final class InboundDispatchingSink
     private final DefaultConnectionMonitorRegistry connectionMonitorRegistry;
     private final ConnectionMonitor responseMappedMonitor;
     private final DittoRuntimeExceptionToErrorResponseFunction toErrorResponseFunction;
+    private final ActorRefFactory actorRefFactory;
     private final AcknowledgementAggregatorActorStarter ackregatorStarter;
     private final AcknowledgementConfig acknowledgementConfig;
 
@@ -146,6 +151,7 @@ public final class InboundDispatchingSink
     private InboundDispatchingSink(final Connection connection,
             final HeaderTranslator headerTranslator,
             final ActorSelection proxyActor,
+            final ActorRef commandForwarderActorRef,
             final ActorRef connectionActor,
             final ActorRef outboundMessageMappingProcessorActor,
             final ActorRef clientActor,
@@ -157,12 +163,14 @@ public final class InboundDispatchingSink
         this.connection = checkNotNull(connection, "connection");
         this.headerTranslator = checkNotNull(headerTranslator, "headerTranslator");
         this.proxyActor = checkNotNull(proxyActor, "proxyActor");
+        this.commandForwarderActorRef = checkNotNull(commandForwarderActorRef, "commandForwarderActorRef");
         this.connectionActor = checkNotNull(connectionActor, "connectionActor");
         this.outboundMessageMappingProcessorActor = checkNotNull(outboundMessageMappingProcessorActor,
                 "outboundMessageMappingProcessorActor");
         this.clientActor = checkNotNull(clientActor, "clientActor");
         checkNotNull(connectivityConfig, "connectivityConfig");
         checkNotNull(actorRefFactory, "actorRefFactory");
+        this.actorRefFactory = actorRefFactory;
 
         logger = DittoLoggerFactory.getThreadSafeLogger(InboundDispatchingSink.class)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connection.getId());
@@ -209,6 +217,7 @@ public final class InboundDispatchingSink
     public static Sink<Object, NotUsed> createSink(final Connection connection,
             final HeaderTranslator headerTranslator,
             final ActorSelection proxyActor,
+            final ActorRef commandForwarderActorRef,
             final ActorRef connectionActor,
             final ActorRef outboundMessageMappingProcessorActor,
             final ActorRef clientActor,
@@ -221,6 +230,7 @@ public final class InboundDispatchingSink
                 connection,
                 headerTranslator,
                 proxyActor,
+                commandForwarderActorRef,
                 connectionActor,
                 outboundMessageMappingProcessorActor,
                 clientActor,
@@ -547,6 +557,13 @@ public final class InboundDispatchingSink
             }
 
             return 1;
+        } else if (signal instanceof CheckPermissions checkPermissions) {
+            final Duration timeout = checkPermissions.getDittoHeaders().getTimeout()
+                    .orElse(Duration.ofSeconds(60));
+            final ActorRef checkPermissionsActor = actorRefFactory.actorOf(
+                    CheckPermissionsActor.props(commandForwarderActorRef, sender, timeout));
+            checkPermissionsActor.tell(checkPermissions, ActorRef.noSender());
+            return 0;
         } else {
             if (sender != null && isLive(signal)) {
                 final DittoHeaders originalHeaders = signal.getDittoHeaders();

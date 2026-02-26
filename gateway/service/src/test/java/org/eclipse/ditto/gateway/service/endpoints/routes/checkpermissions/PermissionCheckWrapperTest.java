@@ -12,8 +12,9 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.routes.checkpermissions;
 
+import org.eclipse.ditto.base.api.common.checkpermissions.ImmutablePermissionCheck;
+import org.eclipse.ditto.edge.service.dispatching.checkpermissions.PermissionCheckWrapper;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.model.ResourceKey;
 
 import java.util.List;
 import org.junit.Test;
@@ -26,7 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public final class PermissionCheckWrapperTest {
 
     private static final ImmutablePermissionCheck PERMISSION_CHECK = ImmutablePermissionCheck.of(
-            ResourceKey.newInstance("thing:/features/lamp/properties/on"),
+            "thing:/features/lamp/properties/on",
             "org.eclipse.ditto:some-thing-1",
             List.of("READ")
             );

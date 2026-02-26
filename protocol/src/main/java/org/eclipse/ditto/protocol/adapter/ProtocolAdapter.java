@@ -18,6 +18,8 @@ import static org.eclipse.ditto.protocol.TopicPath.Channel.TWIN;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.api.common.checkpermissions.CheckPermissions;
+import org.eclipse.ditto.base.api.common.checkpermissions.CheckPermissionsResponse;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.signals.Signal;
@@ -131,7 +133,9 @@ public interface ProtocolAdapter {
      * @return the default channel determined from the signal
      */
     static TopicPath.Channel determineDefaultChannel(final Signal<?> signal) {
-        if (signal instanceof PolicyCommand || signal instanceof PolicyCommandResponse ||
+        if (signal instanceof CheckPermissions || signal instanceof CheckPermissionsResponse) {
+            return NONE;
+        } else if (signal instanceof PolicyCommand || signal instanceof PolicyCommandResponse ||
                 signal instanceof PolicyEvent) {
             return NONE;
         } else if (signal instanceof ConnectivityCommand || signal instanceof ConnectivityCommandResponse ||

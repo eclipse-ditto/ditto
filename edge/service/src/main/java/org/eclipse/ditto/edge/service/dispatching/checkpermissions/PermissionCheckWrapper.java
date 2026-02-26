@@ -10,9 +10,9 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
+package org.eclipse.ditto.edge.service.dispatching.checkpermissions;
 
-package org.eclipse.ditto.gateway.service.endpoints.routes.checkpermissions;
-
+import org.eclipse.ditto.base.api.common.checkpermissions.ImmutablePermissionCheck;
 import org.eclipse.ditto.policies.model.PolicyId;
 
 /**

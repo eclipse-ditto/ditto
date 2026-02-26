@@ -23,7 +23,7 @@ import org.eclipse.ditto.connectivity.api.commands.sudo.SudoAddConnectionLogEntr
 import org.eclipse.ditto.connectivity.api.commands.sudo.SudoRetrieveConnectionIdsByTag;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnection;
-import org.eclipse.ditto.gateway.service.endpoints.routes.checkpermissions.CheckPermissions;
+import org.eclipse.ditto.base.api.common.checkpermissions.CheckPermissions;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.Whoami;
 import org.eclipse.ditto.gateway.service.endpoints.routes.wot.RetrieveWotDiscoveryThingDirectory;
 import org.eclipse.ditto.internal.models.streaming.SudoStreamPids;

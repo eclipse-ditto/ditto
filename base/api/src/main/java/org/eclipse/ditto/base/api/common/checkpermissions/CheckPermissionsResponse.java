@@ -10,8 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
-package org.eclipse.ditto.gateway.service.endpoints.routes.checkpermissions;
+package org.eclipse.ditto.base.api.common.checkpermissions;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator.validateHttpStatus;

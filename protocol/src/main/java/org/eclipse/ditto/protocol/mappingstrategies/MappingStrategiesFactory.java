@@ -134,4 +134,13 @@ public final class MappingStrategiesFactory {
         return StreamingSubscriptionEventMappingStrategies.getInstance(errorRegistry);
     }
 
+    public static CheckPermissionsCommandMappingStrategies getCheckPermissionsCommandMappingStrategies() {
+        return CheckPermissionsCommandMappingStrategies.getInstance();
+    }
+
+    public static CheckPermissionsCommandResponseMappingStrategies
+            getCheckPermissionsCommandResponseMappingStrategies() {
+        return CheckPermissionsCommandResponseMappingStrategies.getInstance();
+    }
+
 }

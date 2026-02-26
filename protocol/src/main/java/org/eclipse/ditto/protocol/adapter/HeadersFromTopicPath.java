@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.protocol.TopicPath;
@@ -98,10 +99,14 @@ public final class HeadersFromTopicPath {
 
     private static Optional<String> getEntityId(final TopicPath topicPath) {
         final TopicPath.Group group = topicPath.getGroup();
+        final EntityType entityType = group.getEntityType();
+        if (entityType == null) {
+            return Optional.empty();
+        }
         final String namespace = topicPath.getNamespace();
         final String entityName = topicPath.getEntityName();
         if (!TopicPath.ID_PLACEHOLDER.equals(namespace) && !TopicPath.ID_PLACEHOLDER.equals(entityName)) {
-            return Optional.of(String.join(":", group.getEntityType(), namespace, entityName));
+            return Optional.of(String.join(":", entityType, namespace, entityName));
         } else {
             return Optional.empty();
         }

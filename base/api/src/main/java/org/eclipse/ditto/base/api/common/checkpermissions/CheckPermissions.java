@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.gateway.service.endpoints.routes.checkpermissions;
+package org.eclipse.ditto.base.api.common.checkpermissions;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -46,7 +46,7 @@ public final class CheckPermissions extends CommonCommand<CheckPermissions> {
     /**
      * The name of the command.
      */
-    static final String NAME = "checkPermissions";
+    public static final String NAME = "checkPermissions";
 
     /**
      * The type of the command.
