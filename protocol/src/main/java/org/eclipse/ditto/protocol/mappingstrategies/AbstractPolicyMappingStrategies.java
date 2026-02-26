@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonField;
@@ -322,7 +323,9 @@ abstract class AbstractPolicyMappingStrategies<T extends Jsonifiable.WithPredica
                 .orElseThrow(() -> new NullPointerException("Payload value must not be null."));
         final String importableString = value.isString() ? value.asString() : value.toString();
         return ImportableType.forName(importableString)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown ImportableType: " + importableString));
+                .orElseThrow(() -> new DittoJsonException(JsonParseException.newBuilder()
+                        .message("Unknown ImportableType: " + importableString)
+                        .build(), adaptable.getDittoHeaders()));
     }
 
     /**

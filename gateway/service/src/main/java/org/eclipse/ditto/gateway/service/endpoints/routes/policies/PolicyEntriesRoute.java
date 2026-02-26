@@ -16,7 +16,6 @@ import static org.eclipse.ditto.base.model.exceptions.DittoJsonException.wrapJso
 
 import java.util.Arrays;
 import java.util.LinkedHashSet;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 

@@ -23,6 +23,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableEvent;
@@ -33,6 +34,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.ImportableType;
@@ -145,8 +147,9 @@ public final class PolicyEntryImportableModified
                     final Label label = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
                     final String importableString = jsonObject.getValueOrThrow(JSON_IMPORTABLE);
                     final ImportableType extractedImportableType = ImportableType.forName(importableString)
-                            .orElseThrow(() -> new IllegalArgumentException(
-                                    "Unknown ImportableType: " + importableString));
+                            .orElseThrow(() -> new DittoJsonException(JsonParseException.newBuilder()
+                                    .message("Unknown ImportableType: " + importableString)
+                                    .build(), dittoHeaders));
 
                     return of(policyId, label, extractedImportableType, revision, timestamp, dittoHeaders, metadata);
                 });
@@ -179,7 +182,9 @@ public final class PolicyEntryImportableModified
     public PolicyEntryImportableModified setEntity(final JsonValue entity) {
         final String importableString = entity.asString();
         final ImportableType type = ImportableType.forName(importableString)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown ImportableType: " + importableString));
+                .orElseThrow(() -> new DittoJsonException(JsonParseException.newBuilder()
+                        .message("Unknown ImportableType: " + importableString)
+                        .build(), getDittoHeaders()));
         return of(getPolicyEntityId(), label, type, getRevision(), getTimestamp().orElse(null),
                 getDittoHeaders(), getMetadata().orElse(null));
     }
