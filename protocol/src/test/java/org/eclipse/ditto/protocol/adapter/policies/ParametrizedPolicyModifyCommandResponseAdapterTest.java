@@ -16,6 +16,7 @@ import java.util.Collection;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocol.adapter.ParametrizedCommandAdapterTest;
@@ -26,11 +27,17 @@ import org.eclipse.ditto.protocol.TestConstants.Policies.TopicPaths;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntryResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImportEntryAdditionResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteResourceResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubjectResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntriesResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryAllowedImportAdditionsResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryImportableResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportEntriesAdditionsResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportEntriesResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportEntryAdditionResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResourceResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResourcesResponse;
@@ -65,7 +72,14 @@ public final class ParametrizedPolicyModifyCommandResponseAdapterTest
                 modifySubjectCreatedResponse(),
                 modifySubjectModifiedResponse(),
                 deleteSubjectResponse(),
-                modifySubjectsResponse());
+                modifySubjectsResponse(),
+                modifyPolicyEntryAllowedImportAdditionsResponse(),
+                modifyPolicyEntryImportableResponse(),
+                modifyPolicyImportEntriesResponse(),
+                modifyPolicyImportEntriesAdditionsResponse(),
+                modifyPolicyImportEntryAdditionCreatedResponse(),
+                modifyPolicyImportEntryAdditionModifiedResponse(),
+                deletePolicyImportEntryAdditionResponse());
     }
 
     private PolicyModifyCommandResponseAdapter underTest;
@@ -224,6 +238,79 @@ public final class ParametrizedPolicyModifyCommandResponseAdapterTest
         final Adaptable adaptable = TestConstants.adaptable(TopicPaths.DELETE,
                 subjectsPath(Policies.POLICY_ENTRY_LABEL, Policies.SUBJECT1.getId()), HttpStatus.NO_CONTENT);
         return TestParameter.of("deleteSubjectResponse", adaptable, response);
+    }
+
+    private static TestParameter<PolicyModifyCommandResponse<?>> modifyPolicyEntryAllowedImportAdditionsResponse() {
+        final ModifyPolicyEntryAllowedImportAdditionsResponse response =
+                ModifyPolicyEntryAllowedImportAdditionsResponse.of(Policies.POLICY_ID,
+                        Policies.POLICY_ENTRY_LABEL, Policies.HEADERS);
+        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY,
+                JsonPointer.of("/entries/" + Policies.POLICY_ENTRY_LABEL + "/allowedImportAdditions"),
+                HttpStatus.NO_CONTENT);
+        return TestParameter.of("modifyPolicyEntryAllowedImportAdditionsResponse", adaptable, response);
+    }
+
+    private static TestParameter<PolicyModifyCommandResponse<?>> modifyPolicyEntryImportableResponse() {
+        final ModifyPolicyEntryImportableResponse response =
+                ModifyPolicyEntryImportableResponse.of(Policies.POLICY_ID,
+                        Policies.POLICY_ENTRY_LABEL, Policies.HEADERS);
+        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY,
+                JsonPointer.of("/entries/" + Policies.POLICY_ENTRY_LABEL + "/importable"),
+                HttpStatus.NO_CONTENT);
+        return TestParameter.of("modifyPolicyEntryImportableResponse", adaptable, response);
+    }
+
+    private static TestParameter<PolicyModifyCommandResponse<?>> modifyPolicyImportEntriesResponse() {
+        final ModifyPolicyImportEntriesResponse response =
+                ModifyPolicyImportEntriesResponse.modified(Policies.POLICY_ID,
+                        Policies.IMPORTED_POLICY_ID, Policies.HEADERS);
+        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY,
+                JsonPointer.of("/imports/" + Policies.IMPORTED_POLICY_ID + "/entries"),
+                HttpStatus.NO_CONTENT);
+        return TestParameter.of("modifyPolicyImportEntriesResponse", adaptable, response);
+    }
+
+    private static TestParameter<PolicyModifyCommandResponse<?>> modifyPolicyImportEntriesAdditionsResponse() {
+        final ModifyPolicyImportEntriesAdditionsResponse response =
+                ModifyPolicyImportEntriesAdditionsResponse.modified(Policies.POLICY_ID,
+                        Policies.IMPORTED_POLICY_ID, Policies.HEADERS);
+        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY,
+                JsonPointer.of("/imports/" + Policies.IMPORTED_POLICY_ID + "/entriesAdditions"),
+                HttpStatus.NO_CONTENT);
+        return TestParameter.of("modifyPolicyImportEntriesAdditionsResponse", adaptable, response);
+    }
+
+    private static TestParameter<PolicyModifyCommandResponse<?>> modifyPolicyImportEntryAdditionCreatedResponse() {
+        final ModifyPolicyImportEntryAdditionResponse response =
+                ModifyPolicyImportEntryAdditionResponse.created(Policies.POLICY_ID,
+                        Policies.IMPORTED_POLICY_ID, Policies.ENTRY_ADDITION, Policies.HEADERS);
+        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY,
+                JsonPointer.of("/imports/" + Policies.IMPORTED_POLICY_ID + "/entriesAdditions/" +
+                        Policies.ENTRY_ADDITION.getLabel()),
+                Policies.ENTRY_ADDITION.toJson(FieldType.notHidden()), HttpStatus.CREATED);
+        return TestParameter.of("modifyPolicyImportEntryAdditionCreatedResponse", adaptable, response);
+    }
+
+    private static TestParameter<PolicyModifyCommandResponse<?>> modifyPolicyImportEntryAdditionModifiedResponse() {
+        final ModifyPolicyImportEntryAdditionResponse response =
+                ModifyPolicyImportEntryAdditionResponse.modified(Policies.POLICY_ID,
+                        Policies.IMPORTED_POLICY_ID, Policies.POLICY_ENTRY_LABEL, Policies.HEADERS);
+        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY,
+                JsonPointer.of("/imports/" + Policies.IMPORTED_POLICY_ID + "/entriesAdditions/" +
+                        Policies.POLICY_ENTRY_LABEL),
+                HttpStatus.NO_CONTENT);
+        return TestParameter.of("modifyPolicyImportEntryAdditionModifiedResponse", adaptable, response);
+    }
+
+    private static TestParameter<PolicyModifyCommandResponse<?>> deletePolicyImportEntryAdditionResponse() {
+        final DeletePolicyImportEntryAdditionResponse response =
+                DeletePolicyImportEntryAdditionResponse.of(Policies.POLICY_ID,
+                        Policies.IMPORTED_POLICY_ID, Policies.POLICY_ENTRY_LABEL, Policies.HEADERS);
+        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.DELETE,
+                JsonPointer.of("/imports/" + Policies.IMPORTED_POLICY_ID + "/entriesAdditions/" +
+                        Policies.POLICY_ENTRY_LABEL),
+                HttpStatus.NO_CONTENT);
+        return TestParameter.of("deletePolicyImportEntryAdditionResponse", adaptable, response);
     }
 
 }

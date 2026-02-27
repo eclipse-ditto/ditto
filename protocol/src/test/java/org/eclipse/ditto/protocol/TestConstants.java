@@ -39,7 +39,12 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.messages.model.MessageHeaderDefinition;
+import org.eclipse.ditto.policies.model.AllowedImportAddition;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
+import org.eclipse.ditto.policies.model.EntriesAdditions;
+import org.eclipse.ditto.policies.model.EntryAddition;
+import org.eclipse.ditto.policies.model.ImportableType;
+import org.eclipse.ditto.policies.model.ImportedLabels;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
@@ -301,6 +306,22 @@ public final class TestConstants {
                 new HashSet<>(Arrays.asList(POLICY_ENTRY, POLICY_ENTRY2));
         public static final Resources RESOURCES = Resources.newInstance(RESOURCE1, RESOURCE2);
         public static final Subjects SUBJECTS = Subjects.newInstance(SUBJECT1, SUBJECT2);
+
+        public static final PolicyId IMPORTED_POLICY_ID = PolicyId.of(NAMESPACE, "importedPolicy");
+
+        public static final ImportableType IMPORTABLE_TYPE = ImportableType.EXPLICIT;
+
+        public static final Set<AllowedImportAddition> ALLOWED_IMPORT_ADDITIONS =
+                new HashSet<>(Arrays.asList(AllowedImportAddition.SUBJECTS, AllowedImportAddition.RESOURCES));
+
+        public static final ImportedLabels IMPORTED_LABELS =
+                PoliciesModelFactory.newImportedEntries("admin", "frontend");
+
+        public static final EntryAddition ENTRY_ADDITION = PoliciesModelFactory.newEntryAddition(
+                POLICY_ENTRY_LABEL, Subjects.newInstance(SUBJECT1), Resources.newInstance(RESOURCE1));
+
+        public static final EntriesAdditions ENTRIES_ADDITIONS =
+                PoliciesModelFactory.newEntriesAdditions(singletonList(ENTRY_ADDITION));
 
         public static class TopicPaths {
 

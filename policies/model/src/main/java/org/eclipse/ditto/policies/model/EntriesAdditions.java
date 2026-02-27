@@ -60,7 +60,6 @@ public interface EntriesAdditions extends Iterable<EntryAddition>,
      * @param addition the entry addition to set.
      * @return a new EntriesAdditions containing the given addition.
      * @throws NullPointerException if {@code addition} is {@code null}.
-     * @since 3.9.0
      */
     EntriesAdditions setAddition(EntryAddition addition);
 
@@ -70,7 +69,6 @@ public interface EntriesAdditions extends Iterable<EntryAddition>,
      * @param label the label of the addition to remove.
      * @return a new EntriesAdditions without the given addition.
      * @throws NullPointerException if {@code label} is {@code null}.
-     * @since 3.9.0
      */
     EntriesAdditions removeAddition(Label label);
 

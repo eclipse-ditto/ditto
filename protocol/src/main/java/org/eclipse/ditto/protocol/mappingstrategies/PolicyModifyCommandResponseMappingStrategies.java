@@ -22,7 +22,10 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonKey;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.policies.model.EntryAddition;
 import org.eclipse.ditto.policies.model.Label;
+import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntryResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImportEntryAdditionResponse;
@@ -251,14 +254,23 @@ final class PolicyModifyCommandResponseMappingStrategies implements MappingStrat
                         mappingContext.getDittoHeaders())));
 
         streamBuilder.accept(AdaptableToSignalMapper.of(ModifyPolicyImportEntryAdditionResponse.TYPE,
-                mappingContext -> ModifyPolicyImportEntryAdditionResponse.newInstance(
-                        mappingContext.getPolicyIdFromTopicPath(),
-                        mappingContext.getImportedPolicyId(),
-                        Label.of(mappingContext.getAdaptable().getPayload().getPath().get(3)
-                                .map(JsonKey::toString).orElse("")),
-                        null,
-                        mappingContext.getHttpStatusOrThrow(),
-                        mappingContext.getDittoHeaders())));
+                mappingContext -> {
+                    final Label label = Label.of(mappingContext.getAdaptable().getPayload().getPath().get(3)
+                            .map(JsonKey::toString).orElse(""));
+                    final EntryAddition entryAddition =
+                            mappingContext.getAdaptable().getPayload().getValue()
+                                    .filter(JsonValue::isObject)
+                                    .map(JsonValue::asObject)
+                                    .map(obj -> PoliciesModelFactory.newEntryAddition(label, obj))
+                                    .orElse(null);
+                    return ModifyPolicyImportEntryAdditionResponse.newInstance(
+                            mappingContext.getPolicyIdFromTopicPath(),
+                            mappingContext.getImportedPolicyId(),
+                            label,
+                            entryAddition,
+                            mappingContext.getHttpStatusOrThrow(),
+                            mappingContext.getDittoHeaders());
+                }));
 
         streamBuilder.accept(AdaptableToSignalMapper.of(DeletePolicyImportEntryAdditionResponse.TYPE,
                 mappingContext -> DeletePolicyImportEntryAdditionResponse.newInstance(
