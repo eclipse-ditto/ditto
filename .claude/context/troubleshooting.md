@@ -64,6 +64,32 @@ mvn test -Dtest=YourTest -X
 - Check if actor system is properly shut down in `@AfterEach`
 - Look for deadlocks in actor message flow
 
+### Flaky Actor Tests / Tests Hang on CI
+
+**Problem**: Actor tests pass locally but fail or hang on CI (especially with 1-2 cores).
+
+**Common causes and solutions**:
+
+1. **Avoid `TestActorRef`** - It synchronously processes messages, which can deadlock on low-core machines. Use regular actors with `TestProbe` instead:
+   ```java
+   // ❌ WRONG: Can deadlock on CI
+   final TestActorRef<MyActor> ref = TestActorRef.create(system, MyActor.props());
+
+   // ✅ CORRECT: Use regular actor + TestProbe
+   final ActorRef ref = system.actorOf(MyActor.props());
+   final TestProbe probe = new TestProbe(system);
+   ```
+
+2. **Avoid `MockedStatic` for factory classes** - Static mocking is fragile and can cause timeouts. Use constructor injection with a `propsForTests()` method instead (see `RabbitMQClientActor` pattern):
+   ```java
+   // ✅ Package-private constructor for tests
+   static Props propsForTests(final MyFactory factory) {
+       return Props.create(MyActor.class, factory);
+   }
+   ```
+
+3. **Increase FSM timeouts via config** - Override tight default timeouts in test configuration rather than changing production code.
+
 ## Docker / Deployment Issues
 
 ### Docker Compose Fails with "Insufficient Resources"
