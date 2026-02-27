@@ -930,11 +930,8 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private static Adaptable jsonifiableToAdaptable(final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable,
             final ProtocolAdapter adapter, @Nullable final AuthorizationContext subscriberContext) {
         final Adaptable adaptable;
-        final TopicPath.Channel channel = jsonifiable instanceof Signal signal
-                ? ProtocolAdapter.determineChannel(signal)
-                : TopicPath.Channel.TWIN;
-
         if (jsonifiable instanceof Signal signal) {
+            final TopicPath.Channel channel = ProtocolAdapter.determineChannel(signal);
             adaptable = adapter.toAdaptable(signal, channel, subscriberContext);
         } else if (jsonifiable instanceof DittoRuntimeException dittoRuntimeException) {
             final Signal<?> signal;
@@ -945,6 +942,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             } else {
                 signal = buildThingErrorResponse(dittoRuntimeException);
             }
+            final TopicPath.Channel channel = ProtocolAdapter.determineChannel(signal);
             adaptable = adapter.toAdaptable(signal, channel);
         } else {
             throw new IllegalArgumentException("Jsonifiable was neither Signal nor DittoRuntimeException: " +

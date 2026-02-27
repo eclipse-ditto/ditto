@@ -15,6 +15,9 @@ package org.eclipse.ditto.policies.model.signals.commands;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
@@ -23,11 +26,16 @@ import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.policies.model.AllowedImportAddition;
 import org.eclipse.ditto.policies.model.EffectedImports;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
+import org.eclipse.ditto.policies.model.EntriesAdditions;
+import org.eclipse.ditto.policies.model.EntryAddition;
 import org.eclipse.ditto.policies.model.ImportableType;
+import org.eclipse.ditto.policies.model.ImportedLabels;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PolicyEntry;
@@ -318,6 +326,35 @@ public final class TestConstants {
          */
         public static final SubjectNotModifiableException SUBJECT_NOT_MODIFIABLE_EXCEPTION =
                 SubjectNotModifiableException.newBuilder(POLICY_ID, LABEL.toString(), SUBJECT_ID.toString()).build();
+
+        /**
+         * Known {@code ImportableType} for a {@code PolicyEntry}.
+         */
+        public static final ImportableType IMPORTABLE_TYPE = ImportableType.EXPLICIT;
+
+        /**
+         * Known {@code AllowedImportAddition}s for a {@code PolicyEntry}.
+         */
+        public static final Set<AllowedImportAddition> ALLOWED_IMPORT_ADDITIONS =
+                new LinkedHashSet<>(Arrays.asList(AllowedImportAddition.SUBJECTS));
+
+        /**
+         * A known {@code EntryAddition} for an import.
+         */
+        public static final EntryAddition ENTRY_ADDITION =
+                PoliciesModelFactory.newEntryAddition(LABEL, SUBJECTS, RESOURCES);
+
+        /**
+         * Known {@code EntriesAdditions} for a {@code PolicyImport}.
+         */
+        public static final EntriesAdditions ENTRIES_ADDITIONS =
+                PoliciesModelFactory.newEntriesAdditions(Collections.singletonList(ENTRY_ADDITION));
+
+        /**
+         * Known {@code ImportedLabels} for a {@code PolicyImport}.
+         */
+        public static final ImportedLabels IMPORTED_LABELS =
+                PoliciesModelFactory.newImportedEntries("default", "import");
 
         /**
          * A known identifier for a {@code Policy}.

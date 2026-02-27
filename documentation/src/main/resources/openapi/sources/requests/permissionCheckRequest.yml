@@ -8,8 +8,14 @@
 # http://www.eclipse.org/legal/epl-2.0
 #
 # SPDX-License-Identifier: EPL-2.0
-type: object
+content:
+  application/json:
+    schema:
+      type: object
+      description: |-
+        Request to check permissions for various entities and resources.
+      additionalProperties:
+        $ref: '../schemas/checkPermissions/permissionEntityCheck.yml'
 description: |-
-  Request to check permissions for various entities and resources.
-additionalProperties:
-  $ref: '../schemas/checkPermissions/permissionEntityCheck.yml'
+  JSON object containing permission check requests, keyed by an arbitrary identifier.
+required: true

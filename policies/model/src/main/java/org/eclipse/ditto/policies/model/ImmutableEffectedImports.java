@@ -18,10 +18,12 @@ import static org.eclipse.ditto.base.model.exceptions.DittoJsonException.wrapJso
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
@@ -29,6 +31,7 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 
 /**
@@ -38,9 +41,12 @@ import org.eclipse.ditto.json.JsonValue;
 final class ImmutableEffectedImports implements EffectedImports {
 
     private final ImportedLabels importedLabels;
+    @Nullable private final EntriesAdditions entriesAdditions;
 
-    private ImmutableEffectedImports(final ImportedLabels importedLabels) {
+    private ImmutableEffectedImports(final ImportedLabels importedLabels,
+            @Nullable final EntriesAdditions entriesAdditions) {
         this.importedLabels = importedLabels;
+        this.entriesAdditions = entriesAdditions;
     }
 
     /**
@@ -51,11 +57,25 @@ final class ImmutableEffectedImports implements EffectedImports {
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static EffectedImports of(final Iterable<Label> labels) {
+        return of(labels, null);
+    }
+
+    /**
+     * Returns a new {@code EffectedImports} object of the given {@code importedLabels} and
+     * {@code entriesAdditions}.
+     *
+     * @param labels the labels of the policy entries which should be added from the imported policy.
+     * @param entriesAdditions additional subjects/resources to merge into imported entries, or {@code null}.
+     * @return a new {@code EffectedImports} object.
+     * @throws NullPointerException if {@code labels} is {@code null}.
+     */
+    public static EffectedImports of(final Iterable<Label> labels,
+            @Nullable final EntriesAdditions entriesAdditions) {
 
         final ImportedLabels importedLabels =
                 toImportedEntries(toSet(checkNotNull(labels, "importedLabels")));
 
-        return new ImmutableEffectedImports(importedLabels);
+        return new ImmutableEffectedImports(importedLabels, entriesAdditions);
     }
 
     private static Collection<Label> toSet(final Iterable<Label> iterable) {
@@ -87,7 +107,10 @@ final class ImmutableEffectedImports implements EffectedImports {
     public static EffectedImports fromJson(final JsonObject jsonObject) {
         checkNotNull(jsonObject, "JSON object");
         final Set<Label> importedLabels = wrapJsonRuntimeException(() -> getImportedEntries(jsonObject));
-        return of(importedLabels);
+        final EntriesAdditions entriesAdditions = jsonObject.getValue(JsonFields.ENTRIES_ADDITIONS)
+                .map(ImmutableEntriesAdditions::fromJson)
+                .orElse(null);
+        return of(importedLabels, entriesAdditions);
     }
 
     private static Set<Label> getImportedEntries(final JsonObject jsonObject) {
@@ -107,11 +130,19 @@ final class ImmutableEffectedImports implements EffectedImports {
     }
 
     @Override
+    public Optional<EntriesAdditions> getEntriesAdditions() {
+        return Optional.ofNullable(entriesAdditions);
+    }
+
+    @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        return JsonFactory.newObjectBuilder()
-                .set(JsonFields.ENTRIES, importedLabels.toJson(), predicate)
-                .build();
+        final JsonObjectBuilder builder = JsonFactory.newObjectBuilder()
+                .set(JsonFields.ENTRIES, importedLabels.toJson(), predicate);
+        if (entriesAdditions != null && !entriesAdditions.isEmpty()) {
+            builder.set(JsonFields.ENTRIES_ADDITIONS, entriesAdditions.toJson(schemaVersion, thePredicate), predicate);
+        }
+        return builder.build();
     }
 
     @Override
@@ -123,18 +154,20 @@ final class ImmutableEffectedImports implements EffectedImports {
             return false;
         }
         final ImmutableEffectedImports that = (ImmutableEffectedImports) o;
-        return Objects.equals(importedLabels, that.importedLabels);
+        return Objects.equals(importedLabels, that.importedLabels) &&
+                Objects.equals(entriesAdditions, that.entriesAdditions);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(importedLabels);
+        return Objects.hash(importedLabels, entriesAdditions);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "importedLabels=" + importedLabels +
+                ", entriesAdditions=" + entriesAdditions +
                 "]";
     }
 

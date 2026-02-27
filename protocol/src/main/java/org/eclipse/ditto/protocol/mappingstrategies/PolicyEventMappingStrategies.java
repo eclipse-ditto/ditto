@@ -23,10 +23,17 @@ import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.policies.model.signals.events.PolicyCreated;
 import org.eclipse.ditto.policies.model.signals.events.PolicyDeleted;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEntriesModified;
+import org.eclipse.ditto.policies.model.signals.events.PolicyEntryAllowedImportAdditionsModified;
+import org.eclipse.ditto.policies.model.signals.events.PolicyEntryImportableModified;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEntryCreated;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEntryDeleted;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEntryModified;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
+import org.eclipse.ditto.policies.model.signals.events.PolicyImportEntriesAdditionsModified;
+import org.eclipse.ditto.policies.model.signals.events.PolicyImportEntriesModified;
+import org.eclipse.ditto.policies.model.signals.events.PolicyImportEntryAdditionCreated;
+import org.eclipse.ditto.policies.model.signals.events.PolicyImportEntryAdditionDeleted;
+import org.eclipse.ditto.policies.model.signals.events.PolicyImportEntryAdditionModified;
 import org.eclipse.ditto.policies.model.signals.events.PolicyModified;
 import org.eclipse.ditto.policies.model.signals.events.ResourceCreated;
 import org.eclipse.ditto.policies.model.signals.events.ResourceDeleted;
@@ -66,6 +73,10 @@ final class PolicyEventMappingStrategies extends AbstractPolicyMappingStrategies
         addResourceEvents(mappingStrategies);
         addSubjectsEvents(mappingStrategies);
         addSubjectEvents(mappingStrategies);
+        addAllowedImportAdditionsEvents(mappingStrategies);
+        addImportableEvents(mappingStrategies);
+        addImportEntriesEvents(mappingStrategies);
+        addImportEntriesAdditionsEvents(mappingStrategies);
         return mappingStrategies;
     }
 
@@ -215,6 +226,78 @@ final class PolicyEventMappingStrategies extends AbstractPolicyMappingStrategies
                 adaptable -> SubjectDeleted.of(policyIdFrom(adaptable),
                         labelFrom(adaptable),
                         entrySubjectIdFromPath(adaptable.getPayload().getPath()),
+                        revisionFrom(adaptable),
+                        timestampFrom(adaptable),
+                        dittoHeadersFrom(adaptable),
+                        metadataFrom(adaptable)));
+    }
+
+    private static void addAllowedImportAdditionsEvents(
+            final Map<String, JsonifiableMapper<PolicyEvent<?>>> mappingStrategies) {
+        mappingStrategies.put(PolicyEntryAllowedImportAdditionsModified.TYPE,
+                adaptable -> PolicyEntryAllowedImportAdditionsModified.of(policyIdFrom(adaptable),
+                        labelFrom(adaptable),
+                        allowedImportAdditionsFrom(adaptable),
+                        revisionFrom(adaptable),
+                        timestampFrom(adaptable),
+                        dittoHeadersFrom(adaptable),
+                        metadataFrom(adaptable)));
+    }
+
+    private static void addImportableEvents(
+            final Map<String, JsonifiableMapper<PolicyEvent<?>>> mappingStrategies) {
+        mappingStrategies.put(PolicyEntryImportableModified.TYPE,
+                adaptable -> PolicyEntryImportableModified.of(policyIdFrom(adaptable),
+                        labelFrom(adaptable),
+                        importableTypeFrom(adaptable),
+                        revisionFrom(adaptable),
+                        timestampFrom(adaptable),
+                        dittoHeadersFrom(adaptable),
+                        metadataFrom(adaptable)));
+    }
+
+    private static void addImportEntriesEvents(
+            final Map<String, JsonifiableMapper<PolicyEvent<?>>> mappingStrategies) {
+        mappingStrategies.put(PolicyImportEntriesModified.TYPE,
+                adaptable -> PolicyImportEntriesModified.of(policyIdFrom(adaptable),
+                        importedPolicyIdFrom(adaptable),
+                        importedLabelsFrom(adaptable),
+                        revisionFrom(adaptable),
+                        timestampFrom(adaptable),
+                        dittoHeadersFrom(adaptable),
+                        metadataFrom(adaptable)));
+    }
+
+    private static void addImportEntriesAdditionsEvents(
+            final Map<String, JsonifiableMapper<PolicyEvent<?>>> mappingStrategies) {
+        mappingStrategies.put(PolicyImportEntriesAdditionsModified.TYPE,
+                adaptable -> PolicyImportEntriesAdditionsModified.of(policyIdFrom(adaptable),
+                        importedPolicyIdFrom(adaptable),
+                        entriesAdditionsFrom(adaptable),
+                        revisionFrom(adaptable),
+                        timestampFrom(adaptable),
+                        dittoHeadersFrom(adaptable),
+                        metadataFrom(adaptable)));
+        mappingStrategies.put(PolicyImportEntryAdditionCreated.TYPE,
+                adaptable -> PolicyImportEntryAdditionCreated.of(policyIdFrom(adaptable),
+                        importedPolicyIdFrom(adaptable),
+                        entryAdditionFrom(adaptable),
+                        revisionFrom(adaptable),
+                        timestampFrom(adaptable),
+                        dittoHeadersFrom(adaptable),
+                        metadataFrom(adaptable)));
+        mappingStrategies.put(PolicyImportEntryAdditionModified.TYPE,
+                adaptable -> PolicyImportEntryAdditionModified.of(policyIdFrom(adaptable),
+                        importedPolicyIdFrom(adaptable),
+                        entryAdditionFrom(adaptable),
+                        revisionFrom(adaptable),
+                        timestampFrom(adaptable),
+                        dittoHeadersFrom(adaptable),
+                        metadataFrom(adaptable)));
+        mappingStrategies.put(PolicyImportEntryAdditionDeleted.TYPE,
+                adaptable -> PolicyImportEntryAdditionDeleted.of(policyIdFrom(adaptable),
+                        importedPolicyIdFrom(adaptable),
+                        entryAdditionLabelFromImportPath(adaptable.getPayload().getPath()),
                         revisionFrom(adaptable),
                         timestampFrom(adaptable),
                         dittoHeadersFrom(adaptable),

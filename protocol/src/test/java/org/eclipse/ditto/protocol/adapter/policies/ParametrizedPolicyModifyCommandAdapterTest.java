@@ -14,7 +14,10 @@ package org.eclipse.ditto.protocol.adapter.policies;
 
 import java.util.Collection;
 
+import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonKey;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.policies.model.Resources;
 import org.eclipse.ditto.protocol.Adaptable;
@@ -28,11 +31,17 @@ import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntry;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImportEntryAddition;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteResource;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubject;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntries;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntry;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryAllowedImportAdditions;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryImportable;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportEntries;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportEntriesAdditions;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportEntryAddition;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResource;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResources;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubject;
@@ -62,7 +71,13 @@ public final class ParametrizedPolicyModifyCommandAdapterTest
                 modifyResources(),
                 modifySubject(),
                 deleteSubject(),
-                modifySubjects());
+                modifySubjects(),
+                modifyPolicyEntryAllowedImportAdditions(),
+                modifyPolicyEntryImportable(),
+                modifyPolicyImportEntries(),
+                modifyPolicyImportEntriesAdditions(),
+                modifyPolicyImportEntryAddition(),
+                deletePolicyImportEntryAddition());
     }
 
     private PolicyModifyCommandAdapter underTest;
@@ -190,5 +205,68 @@ public final class ParametrizedPolicyModifyCommandAdapterTest
                 subjectsPath(Policies.POLICY_ENTRY_LABEL),
                 Policies.SUBJECTS.toJson(FieldType.regularOrSpecial()));
         return TestParameter.of("modifySubjects", adaptable, command);
+    }
+
+    private static TestParameter<PolicyModifyCommand<?>> modifyPolicyEntryAllowedImportAdditions() {
+        final ModifyPolicyEntryAllowedImportAdditions command =
+                ModifyPolicyEntryAllowedImportAdditions.of(Policies.POLICY_ID, Policies.POLICY_ENTRY_LABEL,
+                        Policies.ALLOWED_IMPORT_ADDITIONS, Policies.HEADERS);
+        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY,
+                JsonPointer.of("/entries/" + Policies.POLICY_ENTRY_LABEL + "/allowedImportAdditions"),
+                Policies.ALLOWED_IMPORT_ADDITIONS.stream()
+                        .map(a -> JsonValue.of(a.getName()))
+                        .collect(JsonCollectors.valuesToArray()));
+        return TestParameter.of("modifyPolicyEntryAllowedImportAdditions", adaptable, command);
+    }
+
+    private static TestParameter<PolicyModifyCommand<?>> modifyPolicyEntryImportable() {
+        final ModifyPolicyEntryImportable command =
+                ModifyPolicyEntryImportable.of(Policies.POLICY_ID, Policies.POLICY_ENTRY_LABEL,
+                        Policies.IMPORTABLE_TYPE, Policies.HEADERS);
+        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY,
+                JsonPointer.of("/entries/" + Policies.POLICY_ENTRY_LABEL + "/importable"),
+                JsonValue.of(Policies.IMPORTABLE_TYPE.getName()));
+        return TestParameter.of("modifyPolicyEntryImportable", adaptable, command);
+    }
+
+    private static TestParameter<PolicyModifyCommand<?>> modifyPolicyImportEntries() {
+        final ModifyPolicyImportEntries command =
+                ModifyPolicyImportEntries.of(Policies.POLICY_ID, Policies.IMPORTED_POLICY_ID,
+                        Policies.IMPORTED_LABELS, Policies.HEADERS);
+        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY,
+                JsonPointer.of("/imports/" + Policies.IMPORTED_POLICY_ID + "/entries"),
+                Policies.IMPORTED_LABELS.toJson());
+        return TestParameter.of("modifyPolicyImportEntries", adaptable, command);
+    }
+
+    private static TestParameter<PolicyModifyCommand<?>> modifyPolicyImportEntriesAdditions() {
+        final ModifyPolicyImportEntriesAdditions command =
+                ModifyPolicyImportEntriesAdditions.of(Policies.POLICY_ID, Policies.IMPORTED_POLICY_ID,
+                        Policies.ENTRIES_ADDITIONS, Policies.HEADERS);
+        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY,
+                JsonPointer.of("/imports/" + Policies.IMPORTED_POLICY_ID + "/entriesAdditions"),
+                Policies.ENTRIES_ADDITIONS.toJson(FieldType.regularOrSpecial()));
+        return TestParameter.of("modifyPolicyImportEntriesAdditions", adaptable, command);
+    }
+
+    private static TestParameter<PolicyModifyCommand<?>> modifyPolicyImportEntryAddition() {
+        final ModifyPolicyImportEntryAddition command =
+                ModifyPolicyImportEntryAddition.of(Policies.POLICY_ID, Policies.IMPORTED_POLICY_ID,
+                        Policies.ENTRY_ADDITION, Policies.HEADERS);
+        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY,
+                JsonPointer.of("/imports/" + Policies.IMPORTED_POLICY_ID + "/entriesAdditions/" +
+                        Policies.ENTRY_ADDITION.getLabel()),
+                Policies.ENTRY_ADDITION.toJson(FieldType.regularOrSpecial()));
+        return TestParameter.of("modifyPolicyImportEntryAddition", adaptable, command);
+    }
+
+    private static TestParameter<PolicyModifyCommand<?>> deletePolicyImportEntryAddition() {
+        final DeletePolicyImportEntryAddition command =
+                DeletePolicyImportEntryAddition.of(Policies.POLICY_ID, Policies.IMPORTED_POLICY_ID,
+                        Policies.POLICY_ENTRY_LABEL, Policies.HEADERS);
+        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.DELETE,
+                JsonPointer.of("/imports/" + Policies.IMPORTED_POLICY_ID + "/entriesAdditions/" +
+                        Policies.POLICY_ENTRY_LABEL));
+        return TestParameter.of("deletePolicyImportEntryAddition", adaptable, command);
     }
 }

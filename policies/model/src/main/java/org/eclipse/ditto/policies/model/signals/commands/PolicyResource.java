@@ -18,6 +18,7 @@ import java.util.Optional;
 
 import org.eclipse.ditto.base.model.signals.commands.ResourceMap;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.policies.model.EffectedImports;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 
@@ -32,19 +33,29 @@ public enum PolicyResource {
     POLICY,
     POLICY_IMPORTS,
     POLICY_IMPORT,
+    POLICY_IMPORT_ENTRIES,
+    POLICY_IMPORT_ENTRIES_ADDITIONS,
+    POLICY_IMPORT_ENTRY_ADDITION,
     POLICY_ENTRIES,
     POLICY_ENTRY,
     POLICY_ENTRY_RESOURCES,
     POLICY_ENTRY_RESOURCE,
     POLICY_ENTRY_SUBJECTS,
-    POLICY_ENTRY_SUBJECT;
+    POLICY_ENTRY_SUBJECT,
+    POLICY_ENTRY_IMPORTABLE,
+    POLICY_ENTRY_ALLOWED_IMPORT_ADDITIONS;
 
     private static final ResourceMap<PolicyResource> resources;
 
     static {
         resources = ResourceMap.newBuilder(POLICY)
                 .add(Policy.JsonFields.IMPORTS, ResourceMap.newBuilder(POLICY_IMPORTS)
-                        .addOne(ResourceMap.newBuilder(POLICY_IMPORT).end())
+                        .addOne(ResourceMap.newBuilder(POLICY_IMPORT)
+                                .add(EffectedImports.JsonFields.ENTRIES, POLICY_IMPORT_ENTRIES)
+                                .add(EffectedImports.JsonFields.ENTRIES_ADDITIONS,
+                                        ResourceMap.newBuilder(POLICY_IMPORT_ENTRIES_ADDITIONS)
+                                                .addOne(POLICY_IMPORT_ENTRY_ADDITION))
+                                .end())
                 )
                 .add(Policy.JsonFields.ENTRIES, ResourceMap.newBuilder(POLICY_ENTRIES)
                         .addOne(ResourceMap.newBuilder(POLICY_ENTRY)
@@ -52,6 +63,9 @@ public enum PolicyResource {
                                         ResourceMap.newBuilder(POLICY_ENTRY_RESOURCES).addAny(POLICY_ENTRY_RESOURCE))
                                 .add(PolicyEntry.JsonFields.SUBJECTS,
                                         ResourceMap.newBuilder(POLICY_ENTRY_SUBJECTS).addAny(POLICY_ENTRY_SUBJECT))
+                                .add(PolicyEntry.JsonFields.IMPORTABLE_TYPE, POLICY_ENTRY_IMPORTABLE)
+                                .add(PolicyEntry.JsonFields.ALLOWED_IMPORT_ADDITIONS,
+                                        POLICY_ENTRY_ALLOWED_IMPORT_ADDITIONS)
                                 .end())
                 ).end();
     }

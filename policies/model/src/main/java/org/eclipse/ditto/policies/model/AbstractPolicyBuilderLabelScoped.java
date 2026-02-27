@@ -13,6 +13,7 @@
 package org.eclipse.ditto.policies.model;
 
 import java.time.Instant;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -100,6 +101,13 @@ public abstract class AbstractPolicyBuilderLabelScoped implements PolicyBuilder.
     @Override
     public PolicyBuilder setImportableFor(final CharSequence label, final ImportableType importableType) {
         delegate.setImportableFor(label, importableType);
+        return this;
+    }
+
+    @Override
+    public PolicyBuilder setAllowedImportAdditionsFor(final CharSequence label,
+            final Set<AllowedImportAddition> allowedImportAdditions) {
+        delegate.setAllowedImportAdditionsFor(label, allowedImportAdditions);
         return this;
     }
 

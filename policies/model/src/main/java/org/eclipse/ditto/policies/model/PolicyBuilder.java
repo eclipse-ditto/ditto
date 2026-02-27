@@ -15,6 +15,7 @@ package org.eclipse.ditto.policies.model;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.time.Instant;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -934,6 +935,18 @@ public interface PolicyBuilder {
      * @since 3.1.0
      */
     PolicyBuilder setImportableFor(CharSequence label, ImportableType importableType);
+
+    /**
+     * Sets the allowed import additions for the entry specified by {@code label} to this builder.
+     *
+     * @param label the label identifying the PolicyEntry to modify.
+     * @param allowedImportAdditions which types of additions are allowed when importing this entry.
+     * @return this builder to allow method chaining.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code label} is empty.
+     * @since 3.9.0
+     */
+    PolicyBuilder setAllowedImportAdditionsFor(CharSequence label, Set<AllowedImportAddition> allowedImportAdditions);
 
     /**
      * Returns a new immutable {@link Policy} which contains all the entries which were set to this builder beforehand.

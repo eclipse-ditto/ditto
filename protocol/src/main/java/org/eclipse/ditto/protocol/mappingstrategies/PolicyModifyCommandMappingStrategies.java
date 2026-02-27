@@ -19,12 +19,18 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntry;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImport;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImportEntryAddition;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteResource;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubject;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntries;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntry;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryAllowedImportAdditions;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryImportable;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImport;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportEntries;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportEntriesAdditions;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportEntryAddition;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImports;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResource;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResources;
@@ -123,6 +129,49 @@ final class PolicyModifyCommandMappingStrategies extends AbstractPolicyMappingSt
                 adaptable -> DeletePolicyImport.of(policyIdFromTopicPath(adaptable.getTopicPath()),
                         importedPolicyIdFrom(adaptable),
                         dittoHeadersFrom(adaptable)));
+
+        mappingStrategies.put(ModifyPolicyEntryAllowedImportAdditions.TYPE,
+                adaptable -> ModifyPolicyEntryAllowedImportAdditions.of(
+                        policyIdFromTopicPath(adaptable.getTopicPath()),
+                        labelFrom(adaptable),
+                        allowedImportAdditionsFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
+
+        mappingStrategies.put(ModifyPolicyEntryImportable.TYPE,
+                adaptable -> ModifyPolicyEntryImportable.of(
+                        policyIdFromTopicPath(adaptable.getTopicPath()),
+                        labelFrom(adaptable),
+                        importableTypeFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
+
+        mappingStrategies.put(ModifyPolicyImportEntries.TYPE,
+                adaptable -> ModifyPolicyImportEntries.of(
+                        policyIdFromTopicPath(adaptable.getTopicPath()),
+                        importedPolicyIdFrom(adaptable),
+                        importedLabelsFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
+
+        mappingStrategies.put(ModifyPolicyImportEntriesAdditions.TYPE,
+                adaptable -> ModifyPolicyImportEntriesAdditions.of(
+                        policyIdFromTopicPath(adaptable.getTopicPath()),
+                        importedPolicyIdFrom(adaptable),
+                        entriesAdditionsFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
+
+        mappingStrategies.put(ModifyPolicyImportEntryAddition.TYPE,
+                adaptable -> ModifyPolicyImportEntryAddition.of(
+                        policyIdFromTopicPath(adaptable.getTopicPath()),
+                        importedPolicyIdFrom(adaptable),
+                        entryAdditionFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
+
+        mappingStrategies.put(DeletePolicyImportEntryAddition.TYPE,
+                adaptable -> DeletePolicyImportEntryAddition.of(
+                        policyIdFromTopicPath(adaptable.getTopicPath()),
+                        importedPolicyIdFrom(adaptable),
+                        entryAdditionLabelFromImportPath(adaptable.getPayload().getPath()),
+                        dittoHeadersFrom(adaptable)));
+
         return mappingStrategies;
     }
 
