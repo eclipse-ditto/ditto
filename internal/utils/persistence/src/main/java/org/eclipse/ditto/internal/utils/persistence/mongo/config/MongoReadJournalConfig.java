@@ -93,7 +93,7 @@ public interface MongoReadJournalConfig {
          * Whether additional index for "pid" + "sn" + "_id" should be created in order to speed up MongoReadJournal aggregation
          * queries on the snapshot collection.
          */
-        SHOULD_CREATE_ADDITIONAL_SNAPSHOT_AGGREGATION_INDEX_PID_SN_ID("should-create-additional-snapshot-aggregation-index-pid-sn-id", false),
+        SHOULD_CREATE_ADDITIONAL_SNAPSHOT_AGGREGATION_INDEX_PID_SN_ID("should-create-additional-snapshot-aggregation-index-pid-sn-id", true),
 
         /**
          * Hint name for aggregation done in {@code filterPidsThatDoesntContainTagInNewestEntry}.
