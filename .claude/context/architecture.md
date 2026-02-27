@@ -13,6 +13,7 @@ Ditto consists of five main microservices that communicate via Pekko clustering:
 - Fetches policies from the Policies Service and creates policy enforcers used for enforcing policies with `PolicyEnforcerProvider`
 - Handles both "twin" (persisted) and "live" (real-time) channels
 - Performs WoT (Web of Things) model validation on Things and their features, including sent messages and their responses
+- Supports per-namespace activity check configuration (different passivation intervals per namespace pattern)
 
 ### 2. Policies Service (`/policies/service/`)
 - Manages authorization policies controlling access to Things
@@ -21,8 +22,9 @@ Ditto consists of five main microservices that communicate via Pekko clustering:
 
 ### 3. Gateway Service (`/gateway/service/`)
 - Stateless HTTP/WebSocket/SSE entry point
-- Handles authentication (JWT, OAuth2)
+- Handles authentication (JWT, OAuth2) with support for `prerequisite-conditions` on OpenID Connect issuers (early JWT rejection before policy checks)
 - Routes commands to appropriate shard regions
+- Provides WoT Discovery Thing Directory endpoint at `/.well-known/wot` per [W3C WoT Discovery](https://www.w3.org/TR/wot-discovery/) spec
 - No persistence layer
 - Considered as an "edge" service
 
@@ -37,9 +39,11 @@ Ditto consists of five main microservices that communicate via Pekko clustering:
 - Maintains separate read model synchronized via Thing events
 - Implements CQRS query side
 - Uses MongoDB for building up a wildcard index based search index for Things
+- Supports configurable custom compound indexes (`custom-indexes` in search.conf) for query optimization
 - Translates RQL queries to MongoDB queries
 - **MongoDB-level authorization enforcement**: Search queries are augmented at the MongoDB query level to ensure the user has `READ` permission on all fields referenced in the RQL filter. The search index stores policy information alongside Thing data, enabling database-level filtering of unauthorized data.
-- Performs periodically execution of configured custom metrics, exposing the results via a Prometheus endpoint
+- **Slow query logging**: Configurable logging of queries exceeding a threshold (default: 1s), including duration, namespaces, RQL filter, and MongoDB BSON filter
+- Performs periodically execution of configured custom metrics (with optional per-metric `index-hint` config), exposing the results via a Prometheus endpoint
 
 ## Inter-Service Communication
 
@@ -85,7 +89,7 @@ Ditto consists of five main microservices that communicate via Pekko clustering:
 - **Persistence**: MongoDB 7.0+ (event store and snapshots)
 - **HTTP**: Pekko HTTP
 - **Clustering**: Pekko Cluster with Sharding
-- **Metrics**: Kamon with Prometheus reporter
+- **Metrics**: Kamon with Prometheus reporter (includes `live_entities` gauge per namespace/type)
 - **Logging**: Logback (SLF4J)
 - **JSON**: Jackson + custom Ditto JSON API
 - **Testing**: JUnit 5, Mockito, Pekko TestKit
