@@ -837,6 +837,19 @@ Ditto defines its own extensions via the `ditto:` prefix:
 
 **Available Ditto extensions**: See [Ditto WoT Extension](https://eclipse.dev/ditto/basic-wot-integration.html#ditto-wot-extension)
 
+Key extensions include:
+- `ditto:category` - Categorize properties (e.g., `"configuration"`, `"status"`)
+- `ditto:deprecationNotice` - Mark items as deprecated with structured metadata:
+  ```json
+  {
+    "ditto:deprecationNotice": {
+      "deprecated": true,
+      "supersededBy": "/properties/temperatureV2",
+      "removalVersion": "4.0.0"
+    }
+  }
+  ```
+
 ### Example ThingModels
 
 **Ditto examples repository**: [eclipse-ditto/ditto-examples/wot/models](https://github.com/eclipse-ditto/ditto-examples/tree/master/wot/models)
