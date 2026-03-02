@@ -73,9 +73,12 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.base.model.signals.commands.streaming.SubscribeForPersistedEvents;
 import org.eclipse.ditto.base.service.UriEncoding;
+import org.eclipse.ditto.gateway.api.NamespaceNotAccessibleException;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.things.ThingsParameter;
 import org.eclipse.ditto.gateway.service.endpoints.utils.GatewaySignalEnrichmentProvider;
+import org.eclipse.ditto.gateway.service.security.authorization.NamespaceAccessValidator;
+import org.eclipse.ditto.gateway.service.security.authorization.NamespaceAccessValidatorFactory;
 import org.eclipse.ditto.gateway.service.streaming.StreamingAuthorizationEnforcer;
 import org.eclipse.ditto.gateway.service.streaming.actors.SessionedJsonifiable;
 import org.eclipse.ditto.gateway.service.streaming.actors.StreamingSession;
@@ -91,6 +94,7 @@ import org.eclipse.ditto.internal.utils.protocol.JsonPartialAccessFilter;
 import org.eclipse.ditto.internal.utils.protocol.PartialAccessPathResolver;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.search.SearchSource;
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -112,6 +116,7 @@ import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
@@ -173,6 +178,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
     private StreamingAuthorizationEnforcer sseAuthorizationEnforcer;
     @Nullable private GatewaySignalEnrichmentProvider signalEnrichmentProvider;
     @Nullable private ActorRef proxyActor;
+    @Nullable private NamespaceAccessValidatorFactory namespaceAccessValidatorFactory;
 
     private ThingsSseRouteBuilder(final ActorSystem actorSystem,
             final ActorRef streamingActor,
@@ -252,6 +258,13 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
     @Override
     public SseRouteBuilder withProxyActor(@Nullable final ActorRef proxyActor) {
         this.proxyActor = proxyActor;
+        return this;
+    }
+
+    @Override
+    public SseRouteBuilder withNamespaceAccessValidatorFactory(
+            @Nullable final NamespaceAccessValidatorFactory validatorFactory) {
+        this.namespaceAccessValidatorFactory = validatorFactory;
         return this;
     }
 
@@ -439,7 +452,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                             connectionCorrelationId, dittoHeaders);
                                     final var connect = new Connect(withQueue.getSourceQueue(), connectionCorrelationId,
                                             STREAMING_TYPE_SSE, jsonSchemaVersion, null, Set.of(),
-                                            authorizationContext, namespaces, null);
+                                            authorizationContext, dittoHeaders, namespaces, null);
                                     Patterns.ask(streamingActor, connect, LOCAL_ASK_TIMEOUT)
                                             .thenApply(ActorRef.class::cast)
                                             .thenAccept(streamingSessionActor ->
@@ -515,7 +528,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                         final var connect =
                                                 new Connect(withQueue.getSourceQueue(), connectionCorrelationId,
                                                         STREAMING_TYPE_SSE, jsonSchemaVersion, null, Set.of(),
-                                                        authorizationContext, namespaces, null);
+                                                        authorizationContext, dittoHeaders, namespaces, null);
                                         final String resourcePathRqlStatement;
                                         if (INBOX_OUTBOX_WITH_SUBJECT_PATTERN.matcher(messagePath).matches()) {
                                             resourcePathRqlStatement = String.format(
@@ -581,6 +594,41 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                 .map(Charset::forName);
     }
 
+    private Optional<JsonArray> computeEffectiveNamespacesArray(final DittoHeaders dittoHeaders,
+            @Nullable final String namespacesParam) {
+        if (namespaceAccessValidatorFactory == null) {
+            if (namespacesParam == null || namespacesParam.isBlank()) {
+                return Optional.empty();
+            }
+            return Optional.of(Arrays.stream(namespacesParam.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .map(JsonValue::of)
+                    .collect(JsonCollectors.valuesToArray()));
+        }
+
+        final NamespaceAccessValidator validator = namespaceAccessValidatorFactory.createValidator(dittoHeaders,
+                ThingConstants.ENTITY_TYPE.toString());
+
+        if (namespacesParam != null && !namespacesParam.isBlank()) {
+            final List<String> requested = Arrays.stream(namespacesParam.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .toList();
+            for (final String namespace : requested) {
+                if (!validator.isNamespaceAccessible(namespace)) {
+                    throw NamespaceNotAccessibleException.forNamespace(namespace, dittoHeaders);
+                }
+            }
+            return Optional.of(requested.stream().map(JsonValue::of).collect(JsonCollectors.valuesToArray()));
+        } else {
+            return validator.getApplicableNamespacePatterns()
+                    .map(patterns -> patterns.stream()
+                            .map(JsonValue::of)
+                            .collect(JsonCollectors.valuesToArray()));
+        }
+    }
+
     private Route createSearchSseRoute(final RequestContext ctx,
             final CompletionStage<DittoHeaders> dittoHeadersStage,
             final Map<String, String> parameters) {
@@ -599,7 +647,8 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                             .filter(parameters.get(PARAM_FILTER))
                             .options(parameters.get(PARAM_OPTION))
                             .fields(parameters.get(PARAM_FIELDS))
-                            .namespaces(parameters.get(PARAM_NAMESPACES))
+                            .namespaces(computeEffectiveNamespacesArray(dittoHeaders,
+                                            parameters.get(PARAM_NAMESPACES)).orElse(null))
                             .dittoHeaders(dittoHeaders);
 
                     // ctx.getRequest().getHeader(LastEventId.class) is not working
