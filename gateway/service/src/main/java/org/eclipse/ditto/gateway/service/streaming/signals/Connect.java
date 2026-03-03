@@ -26,6 +26,7 @@ import org.apache.pekko.stream.KillSwitch;
 import org.apache.pekko.stream.javadsl.SourceQueueWithComplete;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.gateway.service.streaming.actors.SessionedJsonifiable;
 
@@ -41,6 +42,7 @@ public final class Connect {
     @Nullable private final Instant sessionExpirationTime;
     private final Set<AcknowledgementLabel> declaredAcknowledgementLabels;
     private final AuthorizationContext connectionAuthContext;
+    private final DittoHeaders connectionHeaders;
     private final List<String> namespaces;
     @Nullable private final KillSwitch killSwitch;
 
@@ -54,6 +56,7 @@ public final class Connect {
      * @param sessionExpirationTime how long to keep the session alive when idling.
      * @param declaredAcknowledgementLabels labels of acknowledgements this session may send.
      * @param connectionAuthContext the authorizationContext of the streaming session.
+     * @param connectionHeaders the Ditto headers of the streaming session request.
      * @param namespaces the namespaces to subscribe to in the streaming session (if already known).
      * @param killSwitch the kill switch to terminate the streaming session.
      */
@@ -64,6 +67,7 @@ public final class Connect {
             @Nullable final Instant sessionExpirationTime,
             final Set<AcknowledgementLabel> declaredAcknowledgementLabels,
             final AuthorizationContext connectionAuthContext,
+            final DittoHeaders connectionHeaders,
             final List<String> namespaces,
             @Nullable final KillSwitch killSwitch) {
         this.eventAndResponsePublisher = eventAndResponsePublisher;
@@ -74,6 +78,7 @@ public final class Connect {
         this.sessionExpirationTime = sessionExpirationTime;
         this.declaredAcknowledgementLabels = declaredAcknowledgementLabels;
         this.connectionAuthContext = connectionAuthContext;
+        this.connectionHeaders = checkNotNull(connectionHeaders, "connectionHeaders");
         this.namespaces = namespaces;
         this.killSwitch = killSwitch;
     }
@@ -106,6 +111,10 @@ public final class Connect {
         return connectionAuthContext;
     }
 
+    public DittoHeaders getConnectionHeaders() {
+        return connectionHeaders;
+    }
+
     public List<String> getNamespaces() {
         return namespaces;
     }
@@ -129,6 +138,7 @@ public final class Connect {
                 Objects.equals(sessionExpirationTime, connect.sessionExpirationTime) &&
                 Objects.equals(declaredAcknowledgementLabels, connect.declaredAcknowledgementLabels) &&
                 Objects.equals(connectionAuthContext, connect.connectionAuthContext) &&
+                Objects.equals(connectionHeaders, connect.connectionHeaders) &&
                 Objects.equals(namespaces, connect.namespaces) &&
                 Objects.equals(killSwitch, connect.killSwitch);
     }
@@ -136,7 +146,7 @@ public final class Connect {
     @Override
     public int hashCode() {
         return Objects.hash(eventAndResponsePublisher, connectionCorrelationId, type, sessionExpirationTime,
-                declaredAcknowledgementLabels, connectionAuthContext, namespaces, killSwitch);
+                declaredAcknowledgementLabels, connectionAuthContext, connectionHeaders, namespaces, killSwitch);
     }
 
     @Override
@@ -148,6 +158,7 @@ public final class Connect {
                 ", sessionExpirationTime=" + sessionExpirationTime +
                 ", declaredAcknowledgementLabels=" + declaredAcknowledgementLabels +
                 ", connectionAuthContext=" + connectionAuthContext +
+                ", connectionHeaders=" + connectionHeaders +
                 ", namespaces=" + namespaces +
                 ", killSwitch=" + killSwitch +
                 "]";

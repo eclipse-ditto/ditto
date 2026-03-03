@@ -17,6 +17,7 @@ import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.pekko.http.javadsl.model.FormData;
 import org.apache.pekko.http.javadsl.model.HttpRequest;
@@ -27,12 +28,17 @@ import org.apache.pekko.japi.Pair;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
+import org.eclipse.ditto.gateway.service.security.authorization.NamespaceAccessValidatorFactory;
+import org.eclipse.ditto.gateway.service.util.config.security.DefaultNamespaceAccessConfig;
+import org.eclipse.ditto.gateway.service.util.config.security.NamespaceAccessConfig;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.typesafe.config.ConfigFactory;
 
 /**
  * Builder for creating Akka HTTP routes for {@code /search/things}.
@@ -205,5 +211,71 @@ public final class ThingSearchRouteTest extends EndpointTestBase {
     public void countThingsShouldAssertBadRequest() {
         final var result = underTest.run(HttpRequest.POST("/search/things/count"));
         result.assertStatusCode(StatusCodes.UNSUPPORTED_MEDIA_TYPE);
+    }
+
+    @Test
+    public void searchThingsInjectsConfiguredExactNamespaceForUnscopedRequest() {
+        final TestRoute routeWithNamespaceAccess = testRouteWithNamespaceAccess(List.of("org.eclipse.demo"));
+
+        final var result = routeWithNamespaceAccess.run(HttpRequest.GET("/search/things"));
+        result.assertStatusCode(StatusCodes.OK);
+
+        assertThat(JsonObject.of(result.entityString()))
+                .contains(JsonPointer.of("payload/namespaces"),
+                        JsonArray.newBuilder().add("org.eclipse.demo").build());
+    }
+
+    @Test
+    public void searchThingsInjectsEmptyNamespaceSetForWildcardOnlyUnscopedRequest() {
+        final TestRoute routeWithNamespaceAccess = testRouteWithNamespaceAccess(List.of("org.eclipse.*"));
+
+        final var result = routeWithNamespaceAccess.run(HttpRequest.GET("/search/things"));
+        result.assertStatusCode(StatusCodes.OK);
+
+        assertThat(JsonObject.of(result.entityString()))
+                .contains(JsonPointer.of("payload/namespaces"), JsonArray.empty());
+    }
+
+    @Test
+    public void searchThingsRejectsExplicitDisallowedNamespace() {
+        final TestRoute routeWithNamespaceAccess = testRouteWithNamespaceAccess(List.of("org.eclipse.demo"));
+
+        final var result =
+                routeWithNamespaceAccess.run(HttpRequest.GET("/search/things?namespaces=org.eclipse.demo,com.acme"));
+        result.assertStatusCode(StatusCodes.FORBIDDEN);
+
+        assertThat(result.entityString()).contains("gateway:namespace.notaccessible");
+    }
+
+    @Test
+    public void searchThingsPassesThroughAllowedExplicitNamespace() {
+        final TestRoute routeWithNamespaceAccess = testRouteWithNamespaceAccess(List.of("org.eclipse.demo"));
+
+        final var result =
+                routeWithNamespaceAccess.run(HttpRequest.GET("/search/things?namespaces=org.eclipse.demo"));
+        result.assertStatusCode(StatusCodes.OK);
+
+        assertThat(JsonObject.of(result.entityString()))
+                .contains(JsonPointer.of("payload/namespaces"),
+                        JsonArray.newBuilder().add("org.eclipse.demo").build());
+    }
+
+    private TestRoute testRouteWithNamespaceAccess(final List<String> allowedNamespaces) {
+        final NamespaceAccessValidatorFactory validatorFactory =
+                new NamespaceAccessValidatorFactory(List.of(namespaceAccessConfig(allowedNamespaces)));
+        final ThingSearchRoute route = new ThingSearchRoute(routeBaseProperties, validatorFactory);
+        return testRoute(handleExceptions(() -> extractRequestContext(ctx -> route.buildSearchRoute(ctx, dittoHeaders))));
+    }
+
+    private static NamespaceAccessConfig namespaceAccessConfig(final List<String> allowedNamespaces) {
+        return DefaultNamespaceAccessConfig.of(ConfigFactory.parseString(String.format(
+                "{ conditions = [], allowed-namespaces = [%s], blocked-namespaces = [] }",
+                toConfigArray(allowedNamespaces))));
+    }
+
+    private static String toConfigArray(final List<String> items) {
+        return items.stream()
+                .map(item -> "\"" + item + "\"")
+                .collect(Collectors.joining(", "));
     }
 }

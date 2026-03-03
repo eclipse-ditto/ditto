@@ -15,6 +15,7 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.policies;
 import static org.apache.pekko.http.javadsl.model.ContentTypes.APPLICATION_JSON;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
@@ -23,9 +24,13 @@ import org.eclipse.ditto.base.model.common.DittoDuration;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
+import org.eclipse.ditto.gateway.service.endpoints.directives.auth.NamespaceAccessEnforcementDirective;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationResult;
 import org.eclipse.ditto.gateway.service.security.authentication.DefaultAuthenticationResult;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationResult;
+import org.eclipse.ditto.gateway.service.security.authorization.NamespaceAccessValidatorFactory;
+import org.eclipse.ditto.gateway.service.util.config.security.DefaultNamespaceAccessConfig;
+import org.eclipse.ditto.gateway.service.util.config.security.NamespaceAccessConfig;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PolicyId;
@@ -42,6 +47,8 @@ import org.junit.Test;
 import org.apache.pekko.http.javadsl.model.HttpRequest;
 import org.apache.pekko.http.javadsl.model.StatusCodes;
 import org.apache.pekko.http.javadsl.testkit.TestRoute;
+
+import com.typesafe.config.ConfigFactory;
 
 /**
  * Tests {@link PoliciesRoute}.
@@ -219,6 +226,49 @@ public final class PoliciesRouteTest extends EndpointTestBase {
                 extractRequestContext(ctx ->
                         policiesRoute.buildPoliciesRoute(ctx, dittoHeaders, authResult))
         ));
+    }
+
+    @Test
+    public void getPolicyIsBlockedForDisallowedNamespace() {
+        final TestRoute routeWithNamespaceAccess = testRouteWithNamespaceAccess(List.of("org.eclipse.allowed"));
+
+        final var result = routeWithNamespaceAccess.run(
+                HttpRequest.GET("/policies/com.acme%3Adummy"));
+        result.assertStatusCode(StatusCodes.FORBIDDEN);
+        org.assertj.core.api.Assertions.assertThat(result.entityString())
+                .contains("gateway:namespace.notaccessible");
+    }
+
+    @Test
+    public void getPolicyPassesThroughForAllowedNamespace() {
+        final TestRoute routeWithNamespaceAccess = testRouteWithNamespaceAccess(List.of("org.eclipse.allowed"));
+
+        final var result = routeWithNamespaceAccess.run(
+                HttpRequest.GET("/policies/org.eclipse.allowed%3Adummy"));
+        result.assertStatusCode(StatusCodes.OK);
+    }
+
+    private TestRoute testRouteWithNamespaceAccess(final List<String> allowedNamespaces) {
+        final NamespaceAccessEnforcementDirective namespaceAccessDirective =
+                new NamespaceAccessEnforcementDirective(
+                        new NamespaceAccessValidatorFactory(List.of(namespaceAccessConfig(allowedNamespaces))));
+        final PoliciesRoute route = new PoliciesRoute(routeBaseProperties,
+                OAuthTokenIntegrationSubjectIdFactory.of(authConfig.getOAuthConfig()),
+                namespaceAccessDirective);
+        return testRoute(handleExceptions(() ->
+                extractRequestContext(ctx -> route.buildPoliciesRoute(ctx, dittoHeaders, getPreAuthResult()))));
+    }
+
+    private static NamespaceAccessConfig namespaceAccessConfig(final List<String> allowedNamespaces) {
+        return DefaultNamespaceAccessConfig.of(ConfigFactory.parseString(String.format(
+                "{ conditions = [], allowed-namespaces = [%s], blocked-namespaces = [] }",
+                toConfigArray(allowedNamespaces))));
+    }
+
+    private static String toConfigArray(final List<String> items) {
+        return items.stream()
+                .map(item -> "\"" + item + "\"")
+                .collect(Collectors.joining(", "));
     }
 
     @Test

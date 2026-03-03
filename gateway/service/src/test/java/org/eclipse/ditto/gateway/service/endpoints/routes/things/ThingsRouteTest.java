@@ -14,9 +14,20 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.things;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants;
+import org.eclipse.ditto.gateway.service.endpoints.directives.auth.NamespaceAccessEnforcementDirective;
+import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
+import org.eclipse.ditto.gateway.service.security.authorization.NamespaceAccessValidatorFactory;
+import org.eclipse.ditto.gateway.service.util.config.security.DefaultNamespaceAccessConfig;
+import org.eclipse.ditto.gateway.service.util.config.security.NamespaceAccessConfig;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.ThingIdInvalidException;
@@ -26,6 +37,7 @@ import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyPolicyId;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThingDefinition;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttributes;
+import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -38,6 +50,8 @@ import org.apache.pekko.http.javadsl.model.StatusCodes;
 import org.apache.pekko.http.javadsl.server.Route;
 import org.apache.pekko.http.javadsl.testkit.TestRoute;
 import org.apache.pekko.http.scaladsl.model.HttpEntity;
+
+import com.typesafe.config.ConfigFactory;
 
 /**
  * Tests {@link ThingsRoute}.
@@ -203,6 +217,39 @@ public final class ThingsRouteTest extends EndpointTestBase {
     }
 
     @Test
+    public void getThingsInjectsConfiguredExactNamespaceForUnscopedRequest() {
+        final RouteWithCapturedQuery routeWithNamespaceAccess = testRouteWithNamespaceAccess(List.of("org.eclipse.demo"));
+
+        final var result = routeWithNamespaceAccess.testRoute().run(HttpRequest.GET("/things"));
+        result.assertStatusCode(StatusCodes.OK);
+        final QueryThings sentCommand = routeWithNamespaceAccess.lastQueryThings().get();
+        org.assertj.core.api.Assertions.assertThat(sentCommand).isNotNull();
+        org.assertj.core.api.Assertions.assertThat(sentCommand.getNamespaces()).contains(Set.of("org.eclipse.demo"));
+    }
+
+    @Test
+    public void getThingsInjectsEmptyNamespaceSetForWildcardOnlyUnscopedRequest() {
+        final RouteWithCapturedQuery routeWithNamespaceAccess = testRouteWithNamespaceAccess(List.of("org.eclipse.*"));
+
+        final var result = routeWithNamespaceAccess.testRoute().run(HttpRequest.GET("/things"));
+        result.assertStatusCode(StatusCodes.OK);
+        final QueryThings sentCommand = routeWithNamespaceAccess.lastQueryThings().get();
+        org.assertj.core.api.Assertions.assertThat(sentCommand).isNotNull();
+        org.assertj.core.api.Assertions.assertThat(sentCommand.getNamespaces()).contains(Set.of());
+    }
+
+    @Test
+    public void getThingsRejectsExplicitDisallowedNamespaceWhenNamespaceAccessConfigured() {
+        final RouteWithCapturedQuery routeWithNamespaceAccess = testRouteWithNamespaceAccess(List.of("org.eclipse.demo"));
+
+        final var result = routeWithNamespaceAccess.testRoute().run(HttpRequest.GET("/things?namespaces=com.acme"));
+        result.assertStatusCode(StatusCodes.FORBIDDEN);
+        assertThat(JsonObject.of(result.entityString()))
+                .contains(JsonKey.of("error"), "gateway:namespace.notaccessible");
+        org.assertj.core.api.Assertions.assertThat(routeWithNamespaceAccess.lastQueryThings().get()).isNull();
+    }
+
+    @Test
     public void getAttributesWithTrailingSlash() {
         final var request = HttpRequest.GET("/things/org.eclipse.ditto%3Adummy/attributes/");
         final var result = underTest.run(request);
@@ -308,6 +355,43 @@ public final class ThingsRouteTest extends EndpointTestBase {
                                         .withContentType(MediaTypes.APPLICATION_MERGE_PATCH_JSON.toContentType())))
                         .entityString();
         assertThat(JsonObject.of(jsonStringResponse)).contains(JsonKey.of("type"), MergeThing.TYPE);
+    }
+
+    private RouteWithCapturedQuery testRouteWithNamespaceAccess(final List<String> allowedNamespaces) {
+        final AtomicReference<QueryThings> lastQueryThings = new AtomicReference<>();
+        final var proxyActor = startEchoActor(QueryThings.class, queryThings -> {
+            lastQueryThings.set(queryThings);
+            return (CommandResponse<?>) DummyThingModifyCommandResponse.echo(queryThings).orElseThrow();
+        });
+
+        final RouteBaseProperties routeBasePropertiesWithCapture = RouteBaseProperties.newBuilder(routeBaseProperties)
+                .proxyActor(proxyActor)
+                .build();
+
+        final NamespaceAccessEnforcementDirective namespaceAccessDirective =
+                new NamespaceAccessEnforcementDirective(
+                        new NamespaceAccessValidatorFactory(List.of(namespaceAccessConfig(allowedNamespaces))));
+        final ThingsRoute route =
+                new ThingsRoute(routeBasePropertiesWithCapture, messageConfig, claimMessageConfig,
+                        namespaceAccessDirective);
+        final TestRoute testRoute =
+                testRoute(handleExceptions(() -> extractRequestContext(ctx -> route.buildThingsRoute(ctx, dittoHeaders))));
+        return new RouteWithCapturedQuery(testRoute, lastQueryThings);
+    }
+
+    private static NamespaceAccessConfig namespaceAccessConfig(final List<String> allowedNamespaces) {
+        return DefaultNamespaceAccessConfig.of(ConfigFactory.parseString(String.format(
+                "{ conditions = [], allowed-namespaces = [%s], blocked-namespaces = [] }",
+                toConfigArray(allowedNamespaces))));
+    }
+
+    private static String toConfigArray(final List<String> items) {
+        return items.stream()
+                .map(item -> "\"" + item + "\"")
+                .collect(Collectors.joining(", "));
+    }
+
+    private record RouteWithCapturedQuery(TestRoute testRoute, AtomicReference<QueryThings> lastQueryThings) {
     }
 
 }

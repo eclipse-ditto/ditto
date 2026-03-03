@@ -578,6 +578,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                             return new Connect(withQueue.getSourceQueue(), connectionCorrelationId, STREAMING_TYPE_WS,
                                     version, optJsonWebToken.map(JsonWebToken::getExpirationTime).orElse(null),
                                     readDeclaredAcknowledgementLabels(additionalHeaders), connectionAuthContext,
+                                    additionalHeaders,
                                     List.of(), wsKillSwitch);
                         })
                 .recoverWithRetries(1, new PFBuilder<Throwable, Source<SessionedJsonifiable, NotUsed>>()

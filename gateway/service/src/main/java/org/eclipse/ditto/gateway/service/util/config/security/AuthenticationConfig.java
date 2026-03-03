@@ -17,6 +17,8 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 import org.eclipse.ditto.internal.utils.http.config.HttpProxyConfig;
 
+import java.util.List;
+
 /**
  * Provides configuration settings for the Gateway authentication.
  */
@@ -50,6 +52,14 @@ public interface AuthenticationConfig {
      * @return the config.
      */
     DevOpsConfig getDevOpsConfig();
+
+    /**
+     * Returns the list of namespace access control configurations.
+     * Namespace access control allows restricting which namespaces can be accessed based on JWT claims or HTTP headers.
+     *
+     * @return the list of namespace access configurations.
+     */
+    List<NamespaceAccessConfig> getNamespaceAccessConfigs();
 
     /**
      * An enumeration of the known config path expressions and their associated default values for
