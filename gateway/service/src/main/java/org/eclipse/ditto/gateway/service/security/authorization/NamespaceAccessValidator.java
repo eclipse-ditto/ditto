@@ -24,14 +24,14 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtPlaceholder;
 import org.eclipse.ditto.gateway.service.util.config.security.NamespaceAccessConfig;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
 import org.eclipse.ditto.placeholders.PipelineElement;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 
@@ -98,7 +98,7 @@ public final class NamespaceAccessValidator {
             if (allConditionsMet(rule.conditions())) {
                 if (rule.matcher().isBlocked(namespace)) {
                     LOGGER.withCorrelationId(dittoHeaders)
-                            .info("Namespace '{}' is blocked by namespace-access rule", namespace);
+                            .info("Namespace <{}> is blocked by namespace-access rule: <{}>", namespace, rule);
                     return false;
                 }
                 if (rule.matcher().isAllowedByRule(namespace)) {
@@ -109,7 +109,7 @@ public final class NamespaceAccessValidator {
 
         if (!allowedByAnyRule) {
             LOGGER.withCorrelationId(dittoHeaders)
-                    .info("Namespace '{}' is not accessible: no rule granted access", namespace);
+                    .info("Namespace <{}> is not accessible: no rule granted access", namespace);
         }
         return allowedByAnyRule;
     }
@@ -191,14 +191,24 @@ public final class NamespaceAccessValidator {
         return true;
     }
 
-    private record NamespaceAccessRule(List<String> conditions, List<String> allowedNamespaces,
-            NamespacePatternMatcher matcher) {
-
+    private record NamespaceAccessRule(List<String> conditions,
+                                       List<String> allowedNamespaces,
+                                       List<String> blockedNamespaces,
+                                       NamespacePatternMatcher matcher
+    ) {
         private NamespaceAccessRule(final NamespaceAccessConfig config) {
-            this(config.getConditions(), config.getAllowedNamespaces(),
+            this(config.getConditions(), config.getAllowedNamespaces(), config.getBlockedNamespaces(),
                     new NamespacePatternMatcher(config.getAllowedNamespaces(), config.getBlockedNamespaces()));
         }
 
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + "[" +
+                    "conditions=" + conditions +
+                    ", allowedNamespaces=" + allowedNamespaces +
+                    ", blockedNamespaces=" + blockedNamespaces +
+                    ']';
+        }
     }
 
 }

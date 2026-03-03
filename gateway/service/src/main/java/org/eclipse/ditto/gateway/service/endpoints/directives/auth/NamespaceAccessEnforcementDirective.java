@@ -27,9 +27,9 @@ import org.eclipse.ditto.gateway.api.NamespaceNotAccessibleException;
 import org.eclipse.ditto.gateway.service.security.authorization.AuthorizationHeaderJwtExtractor;
 import org.eclipse.ditto.gateway.service.security.authorization.NamespaceAccessValidator;
 import org.eclipse.ditto.gateway.service.security.authorization.NamespaceAccessValidatorFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Pekko HTTP directive enforcing namespace access control based on JWT claims, HTTP headers,
@@ -37,7 +37,8 @@ import org.slf4j.LoggerFactory;
  */
 public final class NamespaceAccessEnforcementDirective {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(NamespaceAccessEnforcementDirective.class);
+    private static final ThreadSafeDittoLogger LOGGER =
+            DittoLoggerFactory.getThreadSafeLogger(NamespaceAccessEnforcementDirective.class);
 
     private final NamespaceAccessValidatorFactory validatorFactory;
 
@@ -116,7 +117,8 @@ public final class NamespaceAccessEnforcementDirective {
         final NamespaceAccessValidator validator = createValidator(ctx, dittoHeaders, resourceType);
 
         if (!validator.isNamespaceAccessible(namespace)) {
-            LOGGER.debug("Namespace access denied for: {}", namespace);
+            LOGGER.withCorrelationId(dittoHeaders)
+                    .info("Namespace access denied for resource <{}> in namespace <{}>", resourceType, namespace);
             throw NamespaceNotAccessibleException.forNamespace(namespace, dittoHeaders);
         }
     }

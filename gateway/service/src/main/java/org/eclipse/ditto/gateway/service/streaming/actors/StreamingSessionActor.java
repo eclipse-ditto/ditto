@@ -102,12 +102,12 @@ import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.policies.model.PolicyConstants;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
-import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
 import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
+import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
 
@@ -781,7 +781,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                     final boolean accessible = validator.isNamespaceAccessible(namespace);
                     if (!accessible) {
                         logger.withCorrelationId(signal)
-                                .debug("Signal blocked by namespace access control for namespace: {}", namespace);
+                                .info("Signal blocked by namespace access control for namespace: {}", namespace);
                     }
                     return accessible;
                 })
