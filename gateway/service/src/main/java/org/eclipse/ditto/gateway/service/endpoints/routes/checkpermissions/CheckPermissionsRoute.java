@@ -15,7 +15,7 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.checkpermissions;
 import org.apache.pekko.http.javadsl.server.PathMatchers;
 import org.apache.pekko.http.javadsl.server.RequestContext;
 import org.apache.pekko.http.javadsl.server.Route;
-import org.eclipse.ditto.base.api.common.checkpermissions.CheckPermissions;
+import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.CheckPermissions;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;

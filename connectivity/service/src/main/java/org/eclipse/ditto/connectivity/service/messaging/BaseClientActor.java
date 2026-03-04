@@ -212,7 +212,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final Connection connection;
     private final ConnectivityConfig connectivityConfig;
     private final ActorRef connectionActor;
-    private final ActorRef commandForwarderActor;
     private final ActorSelection commandForwarderActorSelection;
     private final Gauge clientGauge;
     private final Gauge clientConnectingGauge;
@@ -263,7 +262,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         // log the default client ID for tracing
         logger.info("Using default client ID <{}>", getDefaultClientId());
 
-        this.commandForwarderActor = commandForwarderActor;
         commandForwarderActorSelection = getLocalActorOfSamePath(commandForwarderActor);
         childActorNanny = ChildActorNanny.newInstance(getContext(), logger);
         dittoHeadersValidator = DittoHeadersValidator.get(system, ScopedConfig.dittoExtension(config));
@@ -1954,7 +1952,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return InboundDispatchingSink.createSink(connection,
                 protocolAdapter.headerTranslator(),
                 commandForwarderActorSelection,
-                commandForwarderActor,
                 connectionActor,
                 outboundMappingProcessorActor,
                 getSelf(),

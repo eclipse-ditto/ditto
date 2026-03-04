@@ -183,8 +183,8 @@ public final class ImmutableTopicPathParameterizedParsingTest {
                 {"_/myName/connections/announcements",
                         ImmutableTopicPath.newBuilder(TopicPath.ID_PLACEHOLDER, ENTITY_NAME).connections().announcements().build()},
 
-                {"_/_/common/commands/checkPermissions",
-                        ImmutableTopicPath.parseTopicPath("_/_/common/commands/checkPermissions")}
+                {"_/_/policies/commands/checkPermissions",
+                        ImmutableTopicPath.parseTopicPath("_/_/policies/commands/checkPermissions")}
         };
         return Arrays.asList(data);
     }

@@ -270,7 +270,6 @@ public abstract class AbstractConsumerActorTest<M> {
         final Sink<Object, NotUsed> inboundDispatchingSink = InboundDispatchingSink.createSink(CONNECTION,
                 protocolAdapter.headerTranslator(),
                 ActorSelection.apply(proxyActor, ""),
-                proxyActor,
                 connectionActorProbe.ref(),
                 outboundProcessorActor,
                 TestProbe.apply(actorSystem).ref(),

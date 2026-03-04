@@ -14,8 +14,8 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.checkpermissions;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.eclipse.ditto.base.api.common.checkpermissions.CheckPermissions;
-import org.eclipse.ditto.base.api.common.checkpermissions.ImmutablePermissionCheck;
+import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.CheckPermissions;
+import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.ImmutablePermissionCheck;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonObject;
 import org.junit.Test;

@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.protocol.mapper;
 
-import org.eclipse.ditto.base.api.common.checkpermissions.CheckPermissionsResponse;
+import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.CheckPermissionsResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocol.PayloadBuilder;
 import org.eclipse.ditto.protocol.ProtocolFactory;
@@ -26,7 +26,7 @@ import org.eclipse.ditto.protocol.TopicPath;
 final class CheckPermissionsResponseSignalMapper extends AbstractSignalMapper<CheckPermissionsResponse>
         implements ResponseSignalMapper {
 
-    private static final String TOPIC_PATH_STRING = "_/_/common/commands/checkPermissions";
+    private static final String TOPIC_PATH_STRING = "_/_/policies/commands/checkPermissions";
 
     @Override
     TopicPath getTopicPath(final CheckPermissionsResponse signal, final TopicPath.Channel channel) {

@@ -24,13 +24,14 @@ import java.util.stream.Collectors;
 
 import org.apache.pekko.actor.AbstractActor;
 import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSelection;
 import org.apache.pekko.actor.Props;
 import org.apache.pekko.actor.ReceiveTimeout;
 import org.apache.pekko.japi.pf.ReceiveBuilder;
 import org.apache.pekko.pattern.Patterns;
-import org.eclipse.ditto.base.api.common.checkpermissions.CheckPermissions;
-import org.eclipse.ditto.base.api.common.checkpermissions.CheckPermissionsResponse;
-import org.eclipse.ditto.base.api.common.checkpermissions.ImmutablePermissionCheck;
+import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.CheckPermissions;
+import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.CheckPermissionsResponse;
+import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.ImmutablePermissionCheck;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -65,7 +66,7 @@ import org.eclipse.ditto.things.model.ThingId;
 public final class CheckPermissionsActor extends AbstractActor {
 
     private final DittoLogger logger = DittoLoggerFactory.getLogger(CheckPermissionsActor.class);
-    private final ActorRef edgeCommandForwarder;
+    private final ActorSelection edgeCommandForwarder;
     private final ActorRef sender;
     private final Duration defaultAskTimeout;
 
@@ -78,7 +79,7 @@ public final class CheckPermissionsActor extends AbstractActor {
      * @param defaultTimeout the default timeout for async operations.
      */
     @SuppressWarnings("unused")
-    private CheckPermissionsActor(final ActorRef edgeCommandForwarder, final ActorRef sender,
+    private CheckPermissionsActor(final ActorSelection edgeCommandForwarder, final ActorRef sender,
             final Duration defaultTimeout) {
         this.edgeCommandForwarder = edgeCommandForwarder;
         this.sender = sender;
@@ -94,7 +95,7 @@ public final class CheckPermissionsActor extends AbstractActor {
      * @param defaultTimeout the default timeout for async operations.
      * @return a {@link Props} object to create the actor.
      */
-    public static Props props(final ActorRef edgeCommandForwarder, final ActorRef sender,
+    public static Props props(final ActorSelection edgeCommandForwarder, final ActorRef sender,
             final Duration defaultTimeout) {
         return Props.create(CheckPermissionsActor.class, edgeCommandForwarder, sender, defaultTimeout);
     }
@@ -209,13 +210,26 @@ public final class CheckPermissionsActor extends AbstractActor {
         }
 
         return retrievePolicyIdForEntity(entityId, command.getDittoHeaders())
-                .thenApply(policyId ->
-                        permissionCheckMap.entrySet().stream()
-                                .collect(Collectors.toMap(
-                                        Map.Entry::getKey,
-                                        entry -> new PermissionCheckWrapper(entry.getValue(), policyId)
-                                ))
-                ).toCompletableFuture();
+                .thenApply(policyId -> {
+                    if (null == policyId) {
+                        logger.withCorrelationId(command.getDittoHeaders())
+                                .debug("No policy ID could be resolved for entity '{}', all its permission checks " +
+                                                "will be false.", entityId);
+                        return Map.<String, PermissionCheckWrapper>of();
+                    }
+                    return permissionCheckMap.entrySet().stream()
+                            .collect(Collectors.toMap(
+                                    Map.Entry::getKey,
+                                    entry -> new PermissionCheckWrapper(entry.getValue(), policyId)
+                            ));
+                })
+                .exceptionally(ex -> {
+                    logger.withCorrelationId(command.getDittoHeaders())
+                            .debug("Entity '{}' not accessible, all its permission checks will be false: {}",
+                                    entityId, ex.getMessage());
+                    return Map.of();
+                })
+                .toCompletableFuture();
 
     }
 
@@ -368,7 +382,11 @@ public final class CheckPermissionsActor extends AbstractActor {
                     }
                     return switch (result) {
                         case SudoRetrieveThingResponse thingResponse ->
-                                thingResponse.getThing().getPolicyId().orElse(null);
+                                thingResponse.getThing().getPolicyId().orElseThrow(() ->
+                                        DittoInternalErrorException.newBuilder()
+                                                .dittoHeaders(headers)
+                                                .message("Retrieved thing did not contain a policy ID: " + entityId)
+                                                .build());
                         case DittoRuntimeException dre -> throw dre;
                         default -> throw DittoInternalErrorException.newBuilder()
                                 .dittoHeaders(headers)

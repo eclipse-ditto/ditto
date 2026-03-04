@@ -18,8 +18,8 @@ import static org.eclipse.ditto.protocol.TopicPath.Channel.TWIN;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.base.api.common.checkpermissions.CheckPermissions;
-import org.eclipse.ditto.base.api.common.checkpermissions.CheckPermissionsResponse;
+import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.CheckPermissions;
+import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.CheckPermissionsResponse;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.signals.Signal;

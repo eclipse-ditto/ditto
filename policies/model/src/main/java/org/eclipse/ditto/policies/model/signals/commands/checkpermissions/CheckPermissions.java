@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.base.api.common.checkpermissions;
+package org.eclipse.ditto.policies.model.signals.commands.checkpermissions;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -21,16 +21,19 @@ import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.api.common.CommonCommand;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommand;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 
 /**
  * Command to check multiple permissions for different resources in a single request.
@@ -39,9 +42,9 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
  */
 @Immutable
 @JsonParsableCommand(typePrefix = CheckPermissions.TYPE_PREFIX, name = CheckPermissions.NAME)
-public final class CheckPermissions extends CommonCommand<CheckPermissions> {
+public final class CheckPermissions extends AbstractCommand<CheckPermissions> {
 
-    static final String TYPE_PREFIX = CommonCommand.TYPE_PREFIX;
+    static final String TYPE_PREFIX = "policies." + TYPE_QUALIFIER + ":";
 
     /**
      * The name of the command.
@@ -67,7 +70,7 @@ public final class CheckPermissions extends CommonCommand<CheckPermissions> {
      */
     private CheckPermissions(final DittoHeaders dittoHeaders,
             final Map<String, ImmutablePermissionCheck> permissionChecks) {
-        super(TYPE, Category.QUERY, dittoHeaders);
+        super(TYPE, dittoHeaders);
         this.permissionChecks = Collections.unmodifiableMap(new LinkedHashMap<>(permissionChecks));
     }
 
@@ -108,6 +111,26 @@ public final class CheckPermissions extends CommonCommand<CheckPermissions> {
      */
     public Map<String, ImmutablePermissionCheck> getPermissionChecks() {
         return permissionChecks;
+    }
+
+    @Override
+    public String getTypePrefix() {
+        return TYPE_PREFIX;
+    }
+
+    @Override
+    public Command.Category getCategory() {
+        return Category.QUERY;
+    }
+
+    @Override
+    public String getResourceType() {
+        return PolicyCommand.RESOURCE_TYPE;
+    }
+
+    @Override
+    public JsonPointer getResourcePath() {
+        return JsonPointer.empty();
     }
 
     @Override

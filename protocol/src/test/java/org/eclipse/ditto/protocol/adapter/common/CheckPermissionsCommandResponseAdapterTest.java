@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.eclipse.ditto.base.api.common.checkpermissions.CheckPermissionsResponse;
+import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.CheckPermissionsResponse;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -34,12 +34,12 @@ import org.junit.Test;
 /**
  * Unit tests for {@link CheckPermissionsCommandResponseAdapter}.
  * Verifies round-trip serialization/deserialization of {@link CheckPermissionsResponse} signals
- * over the topic path {@code _/_/common/commands/checkPermissions}.
+ * over the topic path {@code _/_/policies/commands/checkPermissions}.
  */
 public final class CheckPermissionsCommandResponseAdapterTest implements ProtocolAdapterTest {
 
     private static final TopicPath TOPIC_PATH =
-            ProtocolFactory.newTopicPath("_/_/common/commands/checkPermissions");
+            ProtocolFactory.newTopicPath("_/_/policies/commands/checkPermissions");
 
     private static final Map<String, Boolean> PERMISSION_RESULTS;
 
@@ -157,7 +157,7 @@ public final class CheckPermissionsCommandResponseAdapterTest implements Protoco
 
     @Test
     public void adapterMetadata() {
-        assertThat(underTest.getGroups()).containsExactly(TopicPath.Group.COMMON);
+        assertThat(underTest.getGroups()).containsExactly(TopicPath.Group.POLICIES);
         assertThat(underTest.getChannels()).containsExactly(TopicPath.Channel.NONE);
         assertThat(underTest.getCriteria()).containsExactly(TopicPath.Criterion.COMMANDS);
         assertThat(underTest.getActions()).containsExactly(TopicPath.Action.CHECK_PERMISSIONS);

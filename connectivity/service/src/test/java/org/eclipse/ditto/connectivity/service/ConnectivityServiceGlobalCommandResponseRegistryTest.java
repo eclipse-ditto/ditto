@@ -13,7 +13,7 @@
 package org.eclipse.ditto.connectivity.service;
 
 import org.eclipse.ditto.base.api.common.RetrieveConfigResponse;
-import org.eclipse.ditto.base.api.common.checkpermissions.CheckPermissionsResponse;
+import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.CheckPermissionsResponse;
 import org.eclipse.ditto.base.api.common.purge.PurgeEntitiesResponse;
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveLoggerConfigResponse;
 import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistenceResponse;

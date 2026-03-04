@@ -62,7 +62,7 @@ import org.eclipse.ditto.base.model.signals.commands.streaming.StreamingSubscrip
 import org.eclipse.ditto.base.model.signals.commands.streaming.SubscribeForPersistedEvents;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.model.signals.events.streaming.StreamingSubscriptionEvent;
-import org.eclipse.ditto.base.api.common.checkpermissions.CheckPermissions;
+import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.CheckPermissions;
 import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementForwarderActor;
 import org.eclipse.ditto.edge.service.dispatching.checkpermissions.CheckPermissionsActor;
@@ -289,7 +289,8 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                     final Duration timeout = checkPermissions.getDittoHeaders().getTimeout()
                             .orElse(Duration.ofSeconds(60));
                     final ActorRef checkPermissionsActor = getContext().actorOf(
-                            CheckPermissionsActor.props(commandForwarder, getSelf(), timeout));
+                            CheckPermissionsActor.props(getContext().actorSelection(commandForwarder.path()),
+                                    getSelf(), timeout));
                     checkPermissionsActor.tell(checkPermissions, getSelf());
                 })
                 .match(Signal.class, signal ->

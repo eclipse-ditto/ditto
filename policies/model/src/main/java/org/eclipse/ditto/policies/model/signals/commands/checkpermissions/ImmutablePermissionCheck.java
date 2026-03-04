@@ -10,10 +10,13 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.base.api.common.checkpermissions;
+package org.eclipse.ditto.policies.model.signals.commands.checkpermissions;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -61,7 +64,7 @@ public final class ImmutablePermissionCheck implements Jsonifiable<JsonObject> {
         this.resource = resource;
         this.entityId = entityId;
         this.isPolicyResource = resource.startsWith(POLICY_RESOURCE_PREFIX);
-        this.hasPermissions = List.copyOf(hasPermissions);
+        this.hasPermissions = Collections.unmodifiableList(new ArrayList<>(hasPermissions));
     }
 
     /**
@@ -126,7 +129,7 @@ public final class ImmutablePermissionCheck implements Jsonifiable<JsonObject> {
                 .set("entityId", entityId)
                 .set("isPolicyResource", isPolicyResource)
                 .set("hasPermissions", JsonFactory.newArrayBuilder()
-                        .addAll(hasPermissions.stream().map(JsonFactory::newValue).toList())
+                        .addAll(hasPermissions.stream().map(JsonFactory::newValue).collect(Collectors.toList()))
                         .build())
                 .build();
     }
@@ -143,7 +146,7 @@ public final class ImmutablePermissionCheck implements Jsonifiable<JsonObject> {
         final JsonArray permissionsArray = jsonObject.getValueOrThrow(PERMISSIONS_FIELD);
         final List<String> permissions = permissionsArray.stream()
                 .map(JsonValue::asString)
-                .toList();
+                .collect(Collectors.toList());
 
         return ImmutablePermissionCheck.of(resource, entityId, permissions);
     }

@@ -368,7 +368,6 @@ public abstract class AbstractMessageMappingProcessorActorTest {
         final var inboundDispatchingSink = InboundDispatchingSink.createSink(CONNECTION,
                 protocolAdapter.headerTranslator(),
                 ActorSelection.apply(proxyActor, ""),
-                proxyActor,
                 connectionActorProbe.ref(),
                 outboundMappingProcessorActor,
                 testKit.getRef(),

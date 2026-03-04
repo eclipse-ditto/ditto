@@ -17,7 +17,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.EnumSet;
 import java.util.Set;
 
-import org.eclipse.ditto.base.api.common.checkpermissions.CheckPermissions;
+import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.CheckPermissions;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.TopicPath;
@@ -30,7 +30,7 @@ import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
 /**
  * Adapter for mapping a {@link CheckPermissions} command to and from an {@link Adaptable}.
  * <p>
- * Topic path: {@code _/_/common/commands/checkPermissions}
+ * Topic path: {@code _/_/policies/commands/checkPermissions}
  *
  * @since 3.9.0
  */
@@ -72,7 +72,7 @@ public final class CheckPermissionsCommandAdapter extends AbstractAdapter<CheckP
 
     @Override
     public Set<TopicPath.Group> getGroups() {
-        return EnumSet.of(TopicPath.Group.COMMON);
+        return EnumSet.of(TopicPath.Group.POLICIES);
     }
 
     @Override

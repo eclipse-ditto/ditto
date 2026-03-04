@@ -61,11 +61,6 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-messages-model</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-base-api</artifactId>
-        </dependency>
-
         <!-- ### Provided ### -->
         <dependency>
             <groupId>com.google.code.findbugs</groupId>

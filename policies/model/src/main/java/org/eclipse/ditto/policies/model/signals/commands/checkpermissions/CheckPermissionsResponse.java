@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.base.api.common.checkpermissions;
+package org.eclipse.ditto.policies.model.signals.commands.checkpermissions;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator.validateHttpStatus;
@@ -24,18 +24,20 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.api.common.CommonCommandResponse;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.WithEntity;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 
 /**
  * Response for a {@link CheckPermissions} command in the Eclipse Ditto framework.
@@ -49,8 +51,10 @@ import org.eclipse.ditto.json.JsonValue;
  */
 @Immutable
 @JsonParsableCommandResponse(type = CheckPermissionsResponse.TYPE)
-public final class CheckPermissionsResponse extends CommonCommandResponse<CheckPermissionsResponse>
+public final class CheckPermissionsResponse extends AbstractCommandResponse<CheckPermissionsResponse>
         implements WithEntity<CheckPermissionsResponse> {
+
+    static final String TYPE_PREFIX = "policies." + TYPE_QUALIFIER + ":";
 
     /**
      * The type identifier for the response.
@@ -118,6 +122,16 @@ public final class CheckPermissionsResponse extends CommonCommandResponse<CheckP
     }
 
     @Override
+    public String getResourceType() {
+        return PolicyCommand.RESOURCE_TYPE;
+    }
+
+    @Override
+    public JsonPointer getResourcePath() {
+        return JsonPointer.empty();
+    }
+
+    @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
             final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> predicate)
@@ -133,7 +147,8 @@ public final class CheckPermissionsResponse extends CommonCommandResponse<CheckP
 
     @Override
     public boolean equals(@Nullable final Object o) {
-        if (super.equals(o) && o instanceof CheckPermissionsResponse that) {
+        if (super.equals(o) && o instanceof CheckPermissionsResponse) {
+            final CheckPermissionsResponse that = (CheckPermissionsResponse) o;
             return Objects.equals(permissionResults, that.permissionResults);
         }
         return false;

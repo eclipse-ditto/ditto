@@ -18,8 +18,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.eclipse.ditto.base.api.common.checkpermissions.CheckPermissions;
-import org.eclipse.ditto.base.api.common.checkpermissions.ImmutablePermissionCheck;
+import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.CheckPermissions;
+import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.ImmutablePermissionCheck;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.protocol.Adaptable;
@@ -35,12 +35,12 @@ import org.junit.Test;
 /**
  * Unit tests for {@link CheckPermissionsCommandAdapter}.
  * Verifies round-trip serialization/deserialization of {@link CheckPermissions} signals
- * over the topic path {@code _/_/common/commands/checkPermissions}.
+ * over the topic path {@code _/_/policies/commands/checkPermissions}.
  */
 public final class CheckPermissionsCommandAdapterTest implements ProtocolAdapterTest {
 
     private static final TopicPath TOPIC_PATH =
-            ProtocolFactory.newTopicPath("_/_/common/commands/checkPermissions");
+            ProtocolFactory.newTopicPath("_/_/policies/commands/checkPermissions");
 
     private static final ImmutablePermissionCheck THING_READ_CHECK = ImmutablePermissionCheck.of(
             "thing:/",
@@ -137,11 +137,11 @@ public final class CheckPermissionsCommandAdapterTest implements ProtocolAdapter
     }
 
     @Test
-    public void topicPathHasCommonGroupAndNoneChannel() {
+    public void topicPathHasPoliciesGroupAndNoneChannel() {
         final CheckPermissions command = CheckPermissions.of(PERMISSION_CHECKS, TestConstants.DITTO_HEADERS_V_2);
         final TopicPath topicPath = underTest.toTopicPath(command, TopicPath.Channel.NONE);
 
-        assertThat(topicPath.getGroup()).isEqualTo(TopicPath.Group.COMMON);
+        assertThat(topicPath.getGroup()).isEqualTo(TopicPath.Group.POLICIES);
         assertThat(topicPath.getChannel()).isEqualTo(TopicPath.Channel.NONE);
         assertThat(topicPath.getCriterion()).isEqualTo(TopicPath.Criterion.COMMANDS);
         assertThat(topicPath.getAction()).contains(TopicPath.Action.CHECK_PERMISSIONS);
@@ -160,7 +160,7 @@ public final class CheckPermissionsCommandAdapterTest implements ProtocolAdapter
 
     @Test
     public void adapterMetadata() {
-        assertThat(underTest.getGroups()).containsExactly(TopicPath.Group.COMMON);
+        assertThat(underTest.getGroups()).containsExactly(TopicPath.Group.POLICIES);
         assertThat(underTest.getChannels()).containsExactly(TopicPath.Channel.NONE);
         assertThat(underTest.getCriteria()).containsExactly(TopicPath.Criterion.COMMANDS);
         assertThat(underTest.getActions()).containsExactly(TopicPath.Action.CHECK_PERMISSIONS);
