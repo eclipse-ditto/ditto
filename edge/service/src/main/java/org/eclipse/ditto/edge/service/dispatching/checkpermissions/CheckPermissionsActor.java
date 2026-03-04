@@ -18,6 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
@@ -29,25 +30,30 @@ import org.apache.pekko.actor.Props;
 import org.apache.pekko.actor.ReceiveTimeout;
 import org.apache.pekko.japi.pf.ReceiveBuilder;
 import org.apache.pekko.pattern.Patterns;
-import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.CheckPermissions;
-import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.CheckPermissionsResponse;
-import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.ImmutablePermissionCheck;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
+import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.policies.api.commands.sudo.CheckPolicyPermissions;
 import org.eclipse.ditto.policies.api.commands.sudo.CheckPolicyPermissionsResponse;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.ResourcePermissionFactory;
 import org.eclipse.ditto.policies.model.ResourcePermissions;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
+import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.CheckPermissions;
+import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.CheckPermissionsResponse;
+import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.ImmutablePermissionCheck;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 
 /**
  * Actor that handles permission checks for resources and entities.
@@ -64,6 +70,12 @@ import org.eclipse.ditto.things.model.ThingId;
  * @since 3.7.0
  */
 public final class CheckPermissionsActor extends AbstractActor {
+
+    private static final Set<String> SUPPORTED_RESOURCE_TYPES = Set.of(
+            PolicyCommand.RESOURCE_TYPE,
+            ThingCommand.RESOURCE_TYPE,
+            MessageCommand.RESOURCE_TYPE
+    );
 
     private final DittoLogger logger = DittoLoggerFactory.getLogger(CheckPermissionsActor.class);
     private final ActorSelection edgeCommandForwarder;
@@ -123,7 +135,7 @@ public final class CheckPermissionsActor extends AbstractActor {
     private void handleCheckPermissions(final CheckPermissions command) {
         for (final Map.Entry<String, ImmutablePermissionCheck> entry : command.getPermissionChecks().entrySet()) {
             try {
-                ResourceKey.newInstance(entry.getValue().getResource());
+                validatePermissionCheck(entry.getKey(), entry.getValue());
             } catch (final Exception e) {
                 final DittoRuntimeException dre = DittoRuntimeException.asDittoRuntimeException(e,
                         cause -> DittoInternalErrorException.newBuilder()
@@ -168,6 +180,26 @@ public final class CheckPermissionsActor extends AbstractActor {
                 });
     }
 
+    private static void validatePermissionCheck(final String checkName,
+            final ImmutablePermissionCheck permissionCheck) {
+
+        final ResourceKey resourceKey = ResourceKey.newInstance(permissionCheck.getResource());
+
+        final String resourceType = resourceKey.getResourceType();
+        if (!SUPPORTED_RESOURCE_TYPES.contains(resourceType)) {
+            throw new DittoJsonException(JsonParseException.newBuilder()
+                    .message(String.format(
+                            "Unsupported resource type '%s' in check '%s'. Supported resource types are: %s",
+                            resourceType, checkName, SUPPORTED_RESOURCE_TYPES))
+                    .build());
+        }
+
+        if (permissionCheck.isPolicyResource()) {
+            PolicyId.of(permissionCheck.getEntityId());
+        } else {
+            ThingId.of(permissionCheck.getEntityId());
+        }
+    }
 
     private void stopSelf() {
         final var context = getContext();
@@ -230,7 +262,6 @@ public final class CheckPermissionsActor extends AbstractActor {
                     return Map.of();
                 })
                 .toCompletableFuture();
-
     }
 
 
@@ -395,6 +426,5 @@ public final class CheckPermissionsActor extends AbstractActor {
                                 .build();
                     };
                 });
-
     }
 }
