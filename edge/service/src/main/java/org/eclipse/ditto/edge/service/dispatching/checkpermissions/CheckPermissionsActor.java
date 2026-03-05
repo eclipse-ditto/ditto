@@ -183,7 +183,7 @@ public final class CheckPermissionsActor extends AbstractActor {
     private static void validatePermissionCheck(final String checkName,
             final ImmutablePermissionCheck permissionCheck) {
 
-        final ResourceKey resourceKey = permissionCheck.getResource();
+        final ResourceKey resourceKey = permissionCheck.getResourceKey();
 
         final String resourceType = resourceKey.getResourceType();
         if (!SUPPORTED_RESOURCE_TYPES.contains(resourceType)) {
@@ -393,7 +393,7 @@ public final class CheckPermissionsActor extends AbstractActor {
      */
     private ResourcePermissions createResourcePermissions(final ImmutablePermissionCheck check) {
         return ResourcePermissionFactory.newInstance(
-                check.getResource(), check.getHasPermissions());
+                check.getResourceKey(), check.getHasPermissions());
     }
 
     private CompletionStage<PolicyId> retrievePolicyIdForEntity(final String entityId, DittoHeaders headers) {

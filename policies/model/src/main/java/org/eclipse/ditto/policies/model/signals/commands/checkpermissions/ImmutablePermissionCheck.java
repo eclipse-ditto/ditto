@@ -84,7 +84,7 @@ public final class ImmutablePermissionCheck implements Jsonifiable<JsonObject> {
      *
      * @return the resource key.
      */
-    public ResourceKey getResource() {
+    public ResourceKey getResourceKey() {
         return resourceKey;
     }
 
