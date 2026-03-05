@@ -546,9 +546,9 @@ final class ImmutableTopicPath implements TopicPath {
         }
 
         private void validateChannel() {
-            if ((Group.POLICIES == group || Group.CONNECTIONS == group || Group.COMMON == group) &&
+            if ((Group.POLICIES == group || Group.CONNECTIONS == group) &&
                     Channel.NONE != channel) {
-                throw new IllegalStateException("The policies, connection and common groups require no channel.");
+                throw new IllegalStateException("The policies and connection groups require no channel.");
             }
         }
 
@@ -652,7 +652,7 @@ final class ImmutableTopicPath implements TopicPath {
 
         private Channel tryToGetChannelForGroup(final Group group) {
             final Channel result;
-            if (Group.POLICIES == group || Group.CONNECTIONS == group || Group.COMMON == group) {
+            if (Group.POLICIES == group || Group.CONNECTIONS == group) {
                 result = Channel.NONE;
             } else {
                 result = tryToGetChannelForName(tryToGetChannelName());

@@ -14,6 +14,7 @@ package org.eclipse.ditto.protocol.adapter.common;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -133,7 +134,9 @@ public final class CheckPermissionsCommandResponseAdapterTest implements Protoco
 
     @Test
     public void allGrantedRoundTrips() {
-        final Map<String, Boolean> allGranted = Map.of("check1", true, "check2", true);
+        final Map<String, Boolean> allGranted = new LinkedHashMap<>();
+        allGranted.put("check1", true);
+        allGranted.put("check2", true);
         final CheckPermissionsResponse response =
                 CheckPermissionsResponse.of(allGranted, TestConstants.DITTO_HEADERS_V_2);
 
@@ -146,7 +149,7 @@ public final class CheckPermissionsCommandResponseAdapterTest implements Protoco
     @Test
     public void emptyResultsRoundTrips() {
         final CheckPermissionsResponse response =
-                CheckPermissionsResponse.of(Map.of(), TestConstants.DITTO_HEADERS_V_2);
+                CheckPermissionsResponse.of(Collections.emptyMap(), TestConstants.DITTO_HEADERS_V_2);
 
         final Adaptable adaptable = underTest.toAdaptable(response, TopicPath.Channel.NONE);
         final CheckPermissionsResponse roundTripped = underTest.fromAdaptable(adaptable);

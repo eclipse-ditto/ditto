@@ -14,6 +14,7 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.checkpermissions;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.CheckPermissions;
 import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.ImmutablePermissionCheck;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -37,7 +38,7 @@ public final class CheckPermissionsTest {
                 .correlationId("test-correlation-id")
                 .build();
         var permissionResource =
-                ImmutablePermissionCheck.of("thing:/features/lamp/properties/on",
+                ImmutablePermissionCheck.of(ResourceKey.newInstance("thing:/features/lamp/properties/on"),
                         "org.eclipse.ditto:some-thing-1",
                         List.of("WRITE"));
         Map<String, ImmutablePermissionCheck> permissionChecks = new LinkedHashMap<>();

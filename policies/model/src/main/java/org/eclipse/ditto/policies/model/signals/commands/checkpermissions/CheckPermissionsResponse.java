@@ -37,7 +37,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
 
 /**
  * Response for a {@link CheckPermissions} command in the Eclipse Ditto framework.
@@ -52,7 +53,7 @@ import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 @Immutable
 @JsonParsableCommandResponse(type = CheckPermissionsResponse.TYPE)
 public final class CheckPermissionsResponse extends AbstractCommandResponse<CheckPermissionsResponse>
-        implements WithEntity<CheckPermissionsResponse> {
+        implements WithEntity<CheckPermissionsResponse>, PolicyCommandResponse<CheckPermissionsResponse> {
 
     static final String TYPE_PREFIX = "policies." + TYPE_QUALIFIER + ":";
 
@@ -68,6 +69,7 @@ public final class CheckPermissionsResponse extends AbstractCommandResponse<Chec
             JsonFieldDefinition.ofJsonObject("permissionResults", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private static final HttpStatus HTTP_STATUS = HttpStatus.OK;
+    private static final PolicyId ENTITY_ID = PolicyId.of("ditto:check-permissions");
 
     private final JsonObject permissionResults;
 
@@ -122,8 +124,8 @@ public final class CheckPermissionsResponse extends AbstractCommandResponse<Chec
     }
 
     @Override
-    public String getResourceType() {
-        return PolicyCommand.RESOURCE_TYPE;
+    public PolicyId getEntityId() {
+        return ENTITY_ID;
     }
 
     @Override

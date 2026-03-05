@@ -33,6 +33,8 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 
 /**
@@ -42,14 +44,14 @@ import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
  */
 @Immutable
 @JsonParsableCommand(typePrefix = CheckPermissions.TYPE_PREFIX, name = CheckPermissions.NAME)
-public final class CheckPermissions extends AbstractCommand<CheckPermissions> {
+public final class CheckPermissions extends AbstractCommand<CheckPermissions> implements PolicyCommand<CheckPermissions> {
 
     static final String TYPE_PREFIX = "policies." + TYPE_QUALIFIER + ":";
 
     /**
      * The name of the command.
      */
-    public static final String NAME = "checkPermissions";
+    static final String NAME = "checkPermissions";
 
     /**
      * The type of the command.
@@ -59,6 +61,7 @@ public final class CheckPermissions extends AbstractCommand<CheckPermissions> {
     private static final JsonFieldDefinition<JsonObject> PERMISSION_CHECKS_FIELD = JsonFactory.newJsonObjectFieldDefinition(
             "permissionChecks", FieldType.REGULAR, JsonSchemaVersion.V_2
     );
+    private static final PolicyId ENTITY_ID = PolicyId.of("ditto:check-permissions");
 
     private final Map<String, ImmutablePermissionCheck> permissionChecks;
 
@@ -94,7 +97,13 @@ public final class CheckPermissions extends AbstractCommand<CheckPermissions> {
      * @return a new {@code CheckPermissionsCommand}.
      */
     public static CheckPermissions fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        final LinkedHashMap<String, ImmutablePermissionCheck> permissionChecks = jsonObject.stream()
+        final JsonObject permissionChecksJson = jsonObject.getValue(PERMISSION_CHECKS_FIELD)
+                .filter(JsonValue::isObject)
+                .map(JsonValue::asObject)
+                .orElse(jsonObject);
+
+        final LinkedHashMap<String, ImmutablePermissionCheck> permissionChecks = permissionChecksJson.stream()
+                .filter(entry -> entry.getValue().isObject())
                 .collect(Collectors.toMap(
                         entry -> String.valueOf(entry.getKey()),
                         entry -> ImmutablePermissionCheck.fromJson(entry.getValue().asObject()),
@@ -114,6 +123,11 @@ public final class CheckPermissions extends AbstractCommand<CheckPermissions> {
     }
 
     @Override
+    public PolicyId getEntityId() {
+        return ENTITY_ID;
+    }
+
+    @Override
     public String getTypePrefix() {
         return TYPE_PREFIX;
     }
@@ -121,11 +135,6 @@ public final class CheckPermissions extends AbstractCommand<CheckPermissions> {
     @Override
     public Command.Category getCategory() {
         return Category.QUERY;
-    }
-
-    @Override
-    public String getResourceType() {
-        return PolicyCommand.RESOURCE_TYPE;
     }
 
     @Override

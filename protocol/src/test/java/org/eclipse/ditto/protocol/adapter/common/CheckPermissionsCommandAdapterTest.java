@@ -14,10 +14,12 @@ package org.eclipse.ditto.protocol.adapter.common;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.CheckPermissions;
 import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.ImmutablePermissionCheck;
 import org.eclipse.ditto.json.JsonObject;
@@ -43,14 +45,14 @@ public final class CheckPermissionsCommandAdapterTest implements ProtocolAdapter
             ProtocolFactory.newTopicPath("_/_/policies/commands/checkPermissions");
 
     private static final ImmutablePermissionCheck THING_READ_CHECK = ImmutablePermissionCheck.of(
-            "thing:/",
+            ResourceKey.newInstance("thing:/"),
             "org.eclipse.ditto.test:myThing",
-            List.of("READ"));
+            Collections.singletonList("READ"));
 
     private static final ImmutablePermissionCheck POLICY_READ_CHECK = ImmutablePermissionCheck.of(
-            "policy:/",
+            ResourceKey.newInstance("policy:/"),
             "org.eclipse.ditto.test:myPolicy",
-            List.of("READ"));
+            Collections.singletonList("READ"));
 
     private static final Map<String, ImmutablePermissionCheck> PERMISSION_CHECKS;
 
@@ -150,7 +152,7 @@ public final class CheckPermissionsCommandAdapterTest implements ProtocolAdapter
 
     @Test
     public void emptyPermissionChecksRoundTrips() {
-        final CheckPermissions command = CheckPermissions.of(Map.of(), TestConstants.DITTO_HEADERS_V_2);
+        final CheckPermissions command = CheckPermissions.of(Collections.emptyMap(), TestConstants.DITTO_HEADERS_V_2);
 
         final Adaptable adaptable = underTest.toAdaptable(command, TopicPath.Channel.NONE);
         final CheckPermissions roundTripped = underTest.fromAdaptable(adaptable);

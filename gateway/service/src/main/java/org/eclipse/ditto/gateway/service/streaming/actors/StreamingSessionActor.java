@@ -120,6 +120,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
      * ultimately does not matter because each shutdown phase has its own timeout.
      */
     private static final Duration SHUTDOWN_ASK_TIMEOUT = Duration.ofMinutes(2L);
+    private static final Duration DEFAULT_CHECK_PERMISSIONS_TIMEOUT = Duration.ofSeconds(60L);
 
     /**
      * Maximum lifetime of an expiring session.
@@ -287,7 +288,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 .match(StreamingSubscriptionCommand.class, this::forwardStreamingSubscriptionCommand)
                 .match(CheckPermissions.class, checkPermissions -> {
                     final Duration timeout = checkPermissions.getDittoHeaders().getTimeout()
-                            .orElse(Duration.ofSeconds(60));
+                            .orElse(DEFAULT_CHECK_PERMISSIONS_TIMEOUT);
                     final ActorRef checkPermissionsActor = getContext().actorOf(
                             CheckPermissionsActor.props(getContext().actorSelection(commandForwarder.path()),
                                     getSelf(), timeout));

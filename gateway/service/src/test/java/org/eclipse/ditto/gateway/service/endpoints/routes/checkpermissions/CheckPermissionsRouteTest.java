@@ -18,6 +18,7 @@ import org.apache.pekko.http.javadsl.model.HttpRequest;
 import org.apache.pekko.http.javadsl.model.StatusCodes;
 import org.apache.pekko.http.javadsl.server.Route;
 import org.apache.pekko.http.javadsl.testkit.TestRoute;
+import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.ImmutablePermissionCheck;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
 import org.eclipse.ditto.json.JsonObject;
@@ -43,7 +44,7 @@ public final class CheckPermissionsRouteTest extends EndpointTestBase {
     @Test
     public void postCheckPermissionsForwardCommand() {
         final var permissionResource =
-                ImmutablePermissionCheck.of("policy:/",
+                ImmutablePermissionCheck.of(ResourceKey.newInstance("policy:/"),
                         "org.eclipse.ditto:some-policy-1",
                         List.of("WRITE"));
         final var jsonPayload = JsonObject.newBuilder().set("check1", permissionResource.toJson()).build();

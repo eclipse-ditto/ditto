@@ -128,6 +128,7 @@ public final class InboundDispatchingSink
     public static final String ACTOR_NAME = "inboundDispatching";
 
     private static final String UNKNOWN_MAPPER_ID = "?";
+    private static final Duration DEFAULT_CHECK_PERMISSIONS_TIMEOUT = Duration.ofSeconds(60L);
 
     private final ThreadSafeDittoLogger logger;
 
@@ -554,7 +555,7 @@ public final class InboundDispatchingSink
             return 1;
         } else if (signal instanceof CheckPermissions checkPermissions) {
             final Duration timeout = checkPermissions.getDittoHeaders().getTimeout()
-                    .orElse(Duration.ofSeconds(60));
+                    .orElse(DEFAULT_CHECK_PERMISSIONS_TIMEOUT);
             final ActorRef checkPermissionsActor = actorRefFactory.actorOf(
                     CheckPermissionsActor.props(proxyActor, sender, timeout));
             checkPermissionsActor.tell(checkPermissions, ActorRef.noSender());

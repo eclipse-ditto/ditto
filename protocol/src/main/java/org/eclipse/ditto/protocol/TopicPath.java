@@ -224,14 +224,7 @@ public interface TopicPath {
          *
          * @since 2.1.0
          */
-        CONNECTIONS("connections", ConnectivityConstants.ENTITY_TYPE),
-
-        /**
-         * Common group (no entity type).
-         *
-         * @since 3.9.0
-         */
-        COMMON("common", null);
+        CONNECTIONS("connections", ConnectivityConstants.ENTITY_TYPE);
 
         private final String name;
         private final EntityType entityType;
@@ -263,12 +256,10 @@ public interface TopicPath {
         }
 
         /**
-         * Returns the entity type for this group, or {@code null} for groups that have no associated
-         * entity type (e.g., {@link #COMMON}).
+         * Returns the entity type for this group.
          *
-         * @return the entity type, or {@code null}.
+         * @return the entity type.
          */
-        @Nullable
         public EntityType getEntityType() {
             return entityType;
         }
