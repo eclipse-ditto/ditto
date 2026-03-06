@@ -189,6 +189,11 @@ final class AdapterResolverBySignal {
             return (Adapter<T>) thingsAdapters.getMessageCommandResponseAdapter();
         }
 
+        if (commandResponse instanceof CheckPermissionsResponse) {
+            validateChannel(channel, commandResponse, NONE);
+            return (Adapter<T>) checkPermissionsCommandResponseAdapter;
+        }
+
         if (commandResponse instanceof PolicyModifyCommandResponse) {
             validateChannel(channel, commandResponse, NONE);
             return (Adapter<T>) policiesAdapters.getModifyCommandResponseAdapter();
@@ -214,11 +219,6 @@ final class AdapterResolverBySignal {
         if (commandResponse instanceof Acknowledgements) {
             validateChannel(channel, commandResponse, LIVE, TWIN);
             return (Adapter<T>) acknowledgementAdapters.getAcknowledgementsAdapter();
-        }
-
-        if (commandResponse instanceof CheckPermissionsResponse) {
-            validateChannel(channel, commandResponse, NONE);
-            return (Adapter<T>) checkPermissionsCommandResponseAdapter;
         }
 
         throw UnknownSignalException.newBuilder(commandResponse.getName())
@@ -268,6 +268,11 @@ final class AdapterResolverBySignal {
             return (Adapter<T>) streamingSubscriptionCommandAdapter;
         }
 
+        if (command instanceof CheckPermissions) {
+            validateChannel(channel, command, NONE);
+            return (Adapter<T>) checkPermissionsCommandAdapter;
+        }
+
         if (command instanceof PolicyModifyCommand) {
             validateChannel(channel, command, NONE);
             return (Adapter<T>) policiesAdapters.getModifyCommandAdapter();
@@ -275,11 +280,6 @@ final class AdapterResolverBySignal {
         if (command instanceof PolicyQueryCommand) {
             validateChannel(channel, command, NONE);
             return (Adapter<T>) policiesAdapters.getQueryCommandAdapter();
-        }
-
-        if (command instanceof CheckPermissions) {
-            validateChannel(channel, command, NONE);
-            return (Adapter<T>) checkPermissionsCommandAdapter;
         }
 
         throw UnknownSignalException.newBuilder(command.getName())

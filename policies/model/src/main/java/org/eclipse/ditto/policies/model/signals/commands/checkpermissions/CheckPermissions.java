@@ -36,7 +36,6 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
-import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommand;
 
 /**
  * Command to check multiple permissions for different resources in a single request.
@@ -46,7 +45,7 @@ import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryComman
 @Immutable
 @JsonParsableCommand(typePrefix = PolicyCommand.TYPE_PREFIX, name = CheckPermissions.NAME)
 public final class CheckPermissions extends AbstractCommand<CheckPermissions> implements
-        PolicyQueryCommand<CheckPermissions> {
+        PolicyCommand<CheckPermissions> {
 
     /**
      * The type of the command.
@@ -61,7 +60,7 @@ public final class CheckPermissions extends AbstractCommand<CheckPermissions> im
     private static final JsonFieldDefinition<JsonObject> PERMISSION_CHECKS_FIELD = JsonFactory.newJsonObjectFieldDefinition(
             "permissionChecks", FieldType.REGULAR, JsonSchemaVersion.V_2
     );
-    private static final PolicyId ENTITY_ID = PolicyId.of(":check-permissions");
+    private static final PolicyId ENTITY_ID = PolicyId.of("ditto:check-permissions");
 
     private final Map<String, ImmutablePermissionCheck> permissionChecks;
 
