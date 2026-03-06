@@ -15,6 +15,7 @@ package org.eclipse.ditto.connectivity.service.messaging;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
+import java.time.Duration;
 import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Collections;
@@ -70,7 +71,9 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProv
 import org.eclipse.ditto.connectivity.service.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
+import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.CheckPermissions;
 import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementAggregatorActorStarter;
+import org.eclipse.ditto.edge.service.dispatching.checkpermissions.CheckPermissionsActor;
 import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementConfig;
 import org.eclipse.ditto.edge.service.acknowledgements.message.MessageCommandAckRequestSetter;
 import org.eclipse.ditto.edge.service.acknowledgements.message.MessageCommandResponseAcknowledgementProvider;
@@ -125,6 +128,7 @@ public final class InboundDispatchingSink
     public static final String ACTOR_NAME = "inboundDispatching";
 
     private static final String UNKNOWN_MAPPER_ID = "?";
+    private static final Duration DEFAULT_CHECK_PERMISSIONS_TIMEOUT = Duration.ofSeconds(60L);
 
     private final ThreadSafeDittoLogger logger;
 
@@ -139,6 +143,7 @@ public final class InboundDispatchingSink
     private final DefaultConnectionMonitorRegistry connectionMonitorRegistry;
     private final ConnectionMonitor responseMappedMonitor;
     private final DittoRuntimeExceptionToErrorResponseFunction toErrorResponseFunction;
+    private final ActorRefFactory actorRefFactory;
     private final AcknowledgementAggregatorActorStarter ackregatorStarter;
     private final AcknowledgementConfig acknowledgementConfig;
 
@@ -163,6 +168,7 @@ public final class InboundDispatchingSink
         this.clientActor = checkNotNull(clientActor, "clientActor");
         checkNotNull(connectivityConfig, "connectivityConfig");
         checkNotNull(actorRefFactory, "actorRefFactory");
+        this.actorRefFactory = actorRefFactory;
 
         logger = DittoLoggerFactory.getThreadSafeLogger(InboundDispatchingSink.class)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connection.getId());
@@ -547,6 +553,13 @@ public final class InboundDispatchingSink
             }
 
             return 1;
+        } else if (signal instanceof CheckPermissions checkPermissions) {
+            final Duration timeout = checkPermissions.getDittoHeaders().getTimeout()
+                    .orElse(DEFAULT_CHECK_PERMISSIONS_TIMEOUT);
+            final ActorRef checkPermissionsActor = actorRefFactory.actorOf(
+                    CheckPermissionsActor.props(proxyActor, sender, timeout));
+            checkPermissionsActor.tell(checkPermissions, ActorRef.noSender());
+            return 0;
         } else {
             if (sender != null && isLive(signal)) {
                 final DittoHeaders originalHeaders = signal.getDittoHeaders();

@@ -81,7 +81,8 @@ import org.eclipse.ditto.edge.service.acknowledgements.things.ThingCommandRespon
 import org.eclipse.ditto.edge.service.acknowledgements.things.ThingLiveCommandAckRequestSetter;
 import org.eclipse.ditto.edge.service.acknowledgements.things.ThingModifyCommandAckRequestSetter;
 import org.eclipse.ditto.gateway.api.GatewayServiceUnavailableException;
-import org.eclipse.ditto.gateway.service.endpoints.routes.checkpermissions.CheckPermissions;
+import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.CheckPermissions;
+import org.eclipse.ditto.edge.service.dispatching.checkpermissions.CheckPermissionsActor;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.DefaultUserInformation;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.Whoami;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiResponse;
@@ -350,7 +351,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
 
     private void handleCheckPermissions(final CheckPermissions command) {
         final ActorRef checkPermissionsActor = getContext().actorOf(
-                CheckPermissionsActor.props(proxyActor, getSelf(),
+                CheckPermissionsActor.props(getContext().actorSelection(proxyActor.path()), getSelf(),
                         getReceiveTimeout(command, gatewayConfig.getCommandConfig()))
         );
         getContext().become(getResponseAwaitingBehavior());

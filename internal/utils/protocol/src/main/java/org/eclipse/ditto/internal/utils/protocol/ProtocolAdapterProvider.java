@@ -65,7 +65,7 @@ public abstract class ProtocolAdapterProvider {
                 Collections.singletonList(new Tuple2<>(ProtocolConfig.class, protocolConfig));
         final DynamicAccess dynamicAccess = ((ExtendedActorSystem) actorSystem).dynamicAccess();
         final Try<ProtocolAdapterProvider> providerBox = dynamicAccess.createInstanceFor(className,
-                CollectionConverters.asScala(constructorArgs).toList(), tag);
+                CollectionConverters.asScala(constructorArgs).toSeq(), tag);
 
         return providerBox.get();
     }

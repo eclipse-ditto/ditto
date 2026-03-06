@@ -23,7 +23,7 @@ import org.eclipse.ditto.connectivity.api.commands.sudo.SudoRetrieveConnectionId
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityErrorResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnectionResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionResponse;
-import org.eclipse.ditto.gateway.service.endpoints.routes.checkpermissions.CheckPermissionsResponse;
+import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.CheckPermissionsResponse;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiResponse;
 import org.eclipse.ditto.gateway.service.endpoints.routes.wot.RetrieveWotDiscoveryThingDirectoryResponse;
 import org.eclipse.ditto.gateway.service.streaming.signals.StreamingAck;

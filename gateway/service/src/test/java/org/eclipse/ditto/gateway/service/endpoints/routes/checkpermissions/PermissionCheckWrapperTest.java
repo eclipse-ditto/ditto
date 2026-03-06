@@ -12,8 +12,10 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.routes.checkpermissions;
 
-import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.ResourceKey;
+import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.ImmutablePermissionCheck;
+import org.eclipse.ditto.edge.service.dispatching.checkpermissions.PermissionCheckWrapper;
+import org.eclipse.ditto.policies.model.PolicyId;
 
 import java.util.List;
 import org.junit.Test;
