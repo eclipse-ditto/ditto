@@ -51,6 +51,15 @@ public final class DittoSystemProperties {
      */
     public static final String DITTO_JSON_ESCAPING_BUFFER_FACTOR = "ditto.json.escaping-buffer-factor";
 
+    /**
+     * System property name of the property defining a comma-separated list of header keys whose values should be
+     * redacted in {@code DittoHeaders.toString()} output.
+     * Default: {@code "authorization"}.
+     *
+     * @since 3.9.0
+     */
+    public static final String DITTO_HEADERS_REDACTED_IN_LOG = "ditto.headers.redacted-in-log";
+
     private DittoSystemProperties() {
         throw new AssertionError();
     }

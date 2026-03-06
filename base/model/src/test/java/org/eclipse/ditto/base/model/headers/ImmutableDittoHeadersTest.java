@@ -880,6 +880,33 @@ public final class ImmutableDittoHeadersTest {
                 .collect(JsonCollectors.valuesToArray());
     }
 
+    @Test
+    public void toStringRedactsAuthorizationHeader() {
+        final DittoHeaders headers = DittoHeaders.newBuilder()
+                .correlationId("test-correlation-id")
+                .putHeader(DittoHeaderDefinition.AUTHORIZATION.getKey(), "Bearer some-secret-token")
+                .build();
+
+        final String result = headers.toString();
+
+        assertThat(result).contains("authorization=***");
+        assertThat(result).doesNotContain("some-secret-token");
+        assertThat(result).contains("test-correlation-id");
+    }
+
+    @Test
+    public void toStringDoesNotRedactNonSensitiveHeaders() {
+        final DittoHeaders headers = DittoHeaders.newBuilder()
+                .correlationId("test-correlation-id")
+                .channel("twin")
+                .build();
+
+        final String result = headers.toString();
+
+        assertThat(result).contains("test-correlation-id");
+        assertThat(result).contains("twin");
+    }
+
     private static JsonObject toJsonObject(final Map<String, String> stringMap) {
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
         stringMap.forEach(jsonObjectBuilder::set);
