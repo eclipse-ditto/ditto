@@ -357,7 +357,7 @@ Clears all currently stored connection logs.
   "headers": {
     "aggregate": false,
     "is-group-topic": false,
-    "ditto-sudo": true 
+    "ditto-sudo": true
   },
   "piggybackCommand": {
     "type": "connectivity.commands:resetConnectionLogs",
@@ -366,6 +366,203 @@ Clears all currently stored connection logs.
 }
 ```
 
+## Encryption of secrets migration commands
+
+Since Ditto 3.9.0, the following commands are available for managing encryption key rotation:
+
+* [migrate encryption](#migrate-encryption)
+* [migration status](#migration-status)
+* [abort migration](#abort-migration)
+
+These commands enable safe encryption key rotation and encryption disable workflows without downtime or data loss.
+For detailed information about encryption configuration and workflows, refer to
+[Encrypt sensitive data in Connections](installation-operating.html#encrypt-sensitive-data-in-connections).
+
+### Migrate encryption
+
+Trigger batch processing of all persisted connection data (snapshots and journal events). The command supports two workflows:
+
+**Migration Logic:**
+- **Key Rotation:** `encryption-enabled = true` + both keys set → Decrypt with old key, re-encrypt with new key
+- **Disable Encryption:** `encryption-enabled = false` + old key set → Decrypt with old key, write plaintext
+
+The configuration determines which workflow is executed.
+
+**Start a new migration:**
+
+```json
+{
+  "targetActorSelection": "/user/connectivityRoot/encryptionMigration",
+  "headers": {
+    "aggregate": false
+  },
+  "piggybackCommand": {
+    "type": "connectivity.commands:migrateEncryption",
+    "dryRun": false,
+    "resume": false
+  }
+}
+```
+
+**Dry-run migration (count affected documents without making changes):**
+
+```json
+{
+  "targetActorSelection": "/user/connectivityRoot/encryptionMigration",
+  "headers": {
+    "aggregate": false
+  },
+  "piggybackCommand": {
+    "type": "connectivity.commands:migrateEncryption",
+    "dryRun": true,
+    "resume": false
+  }
+}
+```
+
+**Resume a previously started/aborted migration:**
+
+```json
+{
+  "targetActorSelection": "/user/connectivityRoot/encryptionMigration",
+  "headers": {
+    "aggregate": false
+  },
+  "piggybackCommand": {
+    "type": "connectivity.commands:migrateEncryption",
+    "dryRun": false,
+    "resume": true
+  }
+}
+```
+
+If the previous migration already completed, or no previous migration exists (e.g., after a dry run which does
+not persist progress), the response will be `200 OK` with `phase: "already_completed"` instead of starting a new
+migration.
+
+**Example response when starting/resuming migration:**
+
+```json
+{
+  "type": "connectivity.responses:migrateEncryption",
+  "status": 202,
+  "phase": "snapshots",
+  "dryRun": false,
+  "resumed": true,
+  "startedAt": "2026-02-16T10:00:00Z"
+}
+```
+
+**Example response when there is nothing to resume (already completed or never started):**
+
+```json
+{
+  "type": "connectivity.responses:migrateEncryption",
+  "status": 200,
+  "phase": "already_completed",
+  "dryRun": false,
+  "resumed": true,
+  "startedAt": "2026-02-16T10:00:00Z"
+}
+```
+
+The response indicates:
+- **phase**: Starting phase of the migration
+- **dryRun**: Whether this is a dry-run (no changes made)
+- **resumed**: Whether migration was resumed from previous state or started fresh
+- **startedAt**: When migration originally started (for resumed migrations) or now (for new migrations)
+
+### Migration status
+
+Query the current status and progress of an encryption migration.
+
+```json
+{
+  "targetActorSelection": "/user/connectivityRoot/encryptionMigration",
+  "headers": {
+    "aggregate": false
+  },
+  "piggybackCommand": {
+    "type": "connectivity.commands:migrateEncryptionStatus"
+  }
+}
+```
+
+**Example response:**
+
+```json
+{
+  "type": "connectivity.responses:migrateEncryptionStatus",
+  "status": 200,
+  "phase": "in_progress:snapshots",
+  "snapshots": {
+    "processed": 150,
+    "skipped": 10,
+    "failed": 2
+  },
+  "journalEvents": {
+    "processed": 0,
+    "skipped": 0,
+    "failed": 0
+  },
+  "progress": {
+    "lastProcessedSnapshotId": "507f1f77bcf86cd799439011",
+    "lastProcessedSnapshotPid": "connection:mqtt-prod-sensor-01",
+    "lastProcessedJournalId": null,
+    "lastProcessedJournalPid": null
+  },
+  "timing": {
+    "startedAt": "2026-02-16T10:00:00Z",
+    "updatedAt": "2026-02-16T10:30:00Z"
+  },
+  "migrationActive": true
+}
+```
+
+The response includes:
+- **phase**: Current migration phase (`snapshots`, `journal`, `completed`, or `in_progress:<phase>`)
+- **snapshots/journalEvents**: Document counters (processed, skipped, failed)
+- **progress**: Last processed document IDs and persistence IDs (connection IDs) for resume tracking
+- **timing**: When migration started and was last updated
+- **migrationActive**: Whether migration is currently running
+
+### Abort migration
+
+Abort a currently running encryption migration. The migration will stop after the current batch completes,
+and progress will be saved to allow resuming later.
+
+```json
+{
+  "targetActorSelection": "/user/connectivityRoot/encryptionMigration",
+  "headers": {
+    "aggregate": false
+  },
+  "piggybackCommand": {
+    "type": "connectivity.commands:migrateEncryptionAbort"
+  }
+}
+```
+
+**Example response:**
+
+```json
+{
+  "type": "connectivity.responses:migrateEncryptionAbort",
+  "status": 200,
+  "phase": "aborted:snapshots",
+  "snapshots": {
+    "processed": 150,
+    "skipped": 10,
+    "failed": 2
+  },
+  "journalEvents": {
+    "processed": 0,
+    "skipped": 0,
+    "failed": 0
+  },
+  "abortedAt": "2026-02-16T10:35:00Z"
+}
+```
 
 ## Publishing connection logs
 
@@ -374,5 +571,5 @@ HTTP API section about managing connections.
 
 ## Payload mapping configuration
 
-Please refer to [Payload mapping configuration](connectivity-manage-connections.html#payload-mapping-configuration) in 
+Please refer to [Payload mapping configuration](connectivity-manage-connections.html#payload-mapping-configuration) in
 HTTP API section about managing connections.

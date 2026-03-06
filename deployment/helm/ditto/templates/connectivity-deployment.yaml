@@ -350,6 +350,28 @@ spec:
               value: "{{ .Values.connectivity.config.connections.kafka.producer.parallelism }}"
             - name: PEKKO_HTTP_HOSTPOOL_MAX_CONNECTION_LIFETIME
               value: "{{ .Values.connectivity.config.connections.httpPush.maxConnectionLifetime }}"
+            {{- if .Values.connectivity.config.connections.encryption.enabled }}
+            {{- if not .Values.connectivity.config.connections.encryption.secretName }}
+            {{ fail "encryption.enabled is true but encryption.secretName is not set. Please create a Kubernetes Secret and reference it." }}
+            {{- end }}
+            - name: CONNECTIVITY_CONNECTION_ENCRYPTION_ENABLED
+              value: "true"
+            - name: CONNECTIVITY_CONNECTION_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.connectivity.config.connections.encryption.secretName }}
+                  key: current-key
+            - name: CONNECTIVITY_CONNECTION_OLD_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.connectivity.config.connections.encryption.secretName }}
+                  key: old-key
+                  optional: true
+            {{- end }}
+            - name: CONNECTIVITY_ENCRYPTION_MIGRATION_BATCH_SIZE
+              value: "{{ .Values.connectivity.config.connections.encryption.migration.batchSize }}"
+            - name: CONNECTIVITY_ENCRYPTION_MIGRATION_MAX_DOCS_PER_MINUTE
+              value: "{{ .Values.connectivity.config.connections.encryption.migration.maxDocumentsPerMinute }}"
             {{- if .Values.connectivity.extraEnv }}
               {{- toYaml .Values.connectivity.extraEnv | nindent 12 }}
             {{- end }}

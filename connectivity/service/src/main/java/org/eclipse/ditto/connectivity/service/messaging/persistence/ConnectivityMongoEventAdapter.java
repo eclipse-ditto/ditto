@@ -74,7 +74,8 @@ public final class ConnectivityMongoEventAdapter extends AbstractMongoEventAdapt
     @Override
     protected JsonObject performFromJournalMigration(final JsonObject jsonObject) {
         return JsonFieldsEncryptor.decrypt(jsonObject, ConnectivityConstants.ENTITY_TYPE.toString(),
-                encryptionConfig.getJsonPointers(), encryptionConfig.getSymmetricalKey());
+                encryptionConfig.getJsonPointers(), encryptionConfig.getSymmetricalKey(),
+                encryptionConfig.getOldSymmetricalKey());
     }
 
     private static EventRegistry<ConnectivityEvent<?>> createEventRegistry() {

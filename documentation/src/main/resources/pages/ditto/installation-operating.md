@@ -250,7 +250,7 @@ ssl-config {
 }
 ```
 
-### Encrypt sensitive data in Connections 
+### Encrypt sensitive data in Connections
 
 Since Ditto 3.1.0 there is the option to enable encryption on some connection fields before they are written to the
 database.
@@ -264,10 +264,11 @@ old events that are no longer needed for the event sourcing.
 Encryption is done using a 256-bit AES symmetrical key and the AES/GCM/NoPadding transformation.
 
 #### Symmetric key
+To generate it you can run in terminal:
 
-To generate it you can use a convenience method already available
-at [EncryptorAesGcm.generateAESKeyAsString()](https://github.com/eclipse-ditto/ditto/blob/master/connectivity/service/src/main/java/org/eclipse/ditto/connectivity/service/util/EncryptorAesGcm.java#L100)
-
+```shell
+$ openssl rand -base64 32
+```
 or you can use the java standard library
 
 ```java
@@ -275,12 +276,8 @@ or you can use the java standard library
         keyGen.init(256);
         javax.crypto.SecretKey aes256SymetricKey = keyGen.generateKey();
 ```
-
-or with a terminal command.
-
-```shell
-$ openssl rand 32 | basenc --base64url
-```
+or use a convenience method already available
+at [EncryptorAesGcm.generateAESKeyAsString()](https://github.com/eclipse-ditto/ditto/blob/master/connectivity/service/src/main/java/org/eclipse/ditto/connectivity/service/util/EncryptorAesGcm.java#L100)
 
 The key must be **256-bit [Base64-encoded with url-safe alphabet](https://www.rfc-editor.org/rfc/rfc4648#section-5) using the UTF-8** charset.
 This is done already by the convenience method mentioned
@@ -308,9 +305,196 @@ Configuration can be seen at [Ditto service configuration files](#ditto-configur
 the [connectivity.conf](https://github.com/eclipse-ditto/ditto/blob/master/connectivity/service/src/main/resources/connectivity.conf)
 at "ditto.connectivity.connection.encryption" section of the config.
 
-If at some point encryption is decided to be disabled the symmetric key is important to be kept in the 
+If at some point encryption is decided to be disabled the symmetric key is important to be kept in the
 configuration otherwise the encrypted values will not be decrypted and the only way to fix the connections will be to edit
 the encrypted parts and save them.
+
+#### Encryption key rotation
+
+Since Ditto 3.9.0, it is possible to rotate encryption keys without downtime or data loss using a dual-key configuration
+and a migration command.
+
+##### Dual-key configuration
+
+The encryption configuration supports both a current key and an optional old key for fallback decryption:
+
+```hocon
+ditto.connectivity.connection.encryption {
+  encryption-enabled = true
+  symmetrical-key = "YOUR_NEW_KEY_HERE"           # Current key for encrypting new data
+  old-symmetrical-key = "YOUR_OLD_KEY_HERE"       # Optional fallback key for decrypting old data
+  json-pointers = [...]
+}
+```
+
+**Behavior:**
+- **Encryption:** Always uses `symmetrical-key` for encrypting new data
+- **Decryption:** Tries `symmetrical-key` first, falls back to `old-symmetrical-key` if decryption fails
+- **Migration:** Explicit DevOps command re-encrypts existing data from old key to new key
+
+**Migration Decision Logic:**
+
+The migration command automatically detects the intended workflow based on configuration:
+
+- **Encryption enabled + both keys set** → Key rotation (decrypt with old, encrypt with new)
+- **Encryption enabled + only current key** → Error (nothing to migrate)
+- **Encryption disabled + old key set** → Disable workflow (decrypt with old, write plaintext)
+- **Encryption disabled + no keys** → Error (cannot migrate)
+
+##### Key rotation workflow
+
+To rotate an encryption key:
+
+1. **Generate a new encryption key** using the methods described above
+
+2. **Update configuration** with both keys:
+   ```hocon
+   ditto.connectivity.connection.encryption {
+     encryption-enabled = true
+     symmetrical-key = "NEW_KEY"      # New key
+     old-symmetrical-key = "OLD_KEY"  # Current key becomes old key
+   }
+   ```
+
+3. **Restart connectivity service** to load the new configuration
+
+4. **Run dry-run migration** to verify affected documents:
+   ```bash
+   curl -X POST http://localhost:8080/devops/piggyback/connectivity \
+     -u devops:devopsPw1! \
+     -H 'Content-Type: application/json' \
+     -d '{
+     "targetActorSelection": "/user/connectivityRoot/encryptionMigration",
+     "headers": {
+       "aggregate": false
+     },
+     "piggybackCommand": {
+       "type": "connectivity.commands:migrateEncryption",
+       "dryRun": true,
+       "resume": false
+     }
+   }'
+   ```
+
+5. **Start actual migration** to re-encrypt all persisted data:
+   ```bash
+   curl -X POST http://localhost:8080/devops/piggyback/connectivity \
+     -u devops:devopsPw1! \
+     -H 'Content-Type: application/json' \
+     -d '{
+     "targetActorSelection": "/user/connectivityRoot/encryptionMigration",
+     "headers": {
+       "aggregate": false
+     },
+     "piggybackCommand": {
+       "type": "connectivity.commands:migrateEncryption",
+       "dryRun": false,
+       "resume": false
+     }
+   }'
+   ```
+
+6. **Monitor migration progress**:
+   ```bash
+   curl -X POST http://localhost:8080/devops/piggyback/connectivity \
+     -u devops:devopsPw1! \
+     -H 'Content-Type: application/json' \
+     -d '{
+     "targetActorSelection": "/user/connectivityRoot/encryptionMigration",
+     "headers": {
+       "aggregate": false
+     },
+     "piggybackCommand": {
+       "type": "connectivity.commands:migrateEncryptionStatus"
+     }
+   }'
+   ```
+
+7. **After successful migration**, remove the old key from configuration and restart the service
+
+**Additional migration commands:**
+
+- **Abort running migration:**
+  ```bash
+  curl -X POST http://localhost:8080/devops/piggyback/connectivity \
+    -u devops:devopsPw1! \
+    -H 'Content-Type: application/json' \
+    -d '{
+    "targetActorSelection": "/user/connectivityRoot/encryptionMigration",
+    "headers": {
+      "aggregate": false
+    },
+    "piggybackCommand": {
+      "type": "connectivity.commands:migrateEncryptionAbort"
+    }
+  }'
+  ```
+
+- **Resume aborted migration:**
+  ```bash
+  curl -X POST http://localhost:8080/devops/piggyback/connectivity \
+    -u devops:devopsPw1! \
+    -H 'Content-Type: application/json' \
+    -d '{
+    "targetActorSelection": "/user/connectivityRoot/encryptionMigration",
+    "headers": {
+      "aggregate": false
+    },
+    "piggybackCommand": {
+      "type": "connectivity.commands:migrateEncryption",
+      "dryRun": false,
+      "resume": true
+    }
+  }'
+  ```
+
+  **Note:** If the previous migration already completed, was never started, or only ran as a dry run (which does not
+  persist progress), the resume command returns `200 OK` with `phase: "already_completed"` instead of starting a new
+  migration. This makes resume safe to call idempotently.
+
+**Migration details:**
+- The migration processes both connection snapshots and journal events in MongoDB
+- Progress is persisted to allow resuming after abort or service restart
+- Migration runs in batches to avoid overwhelming the database
+- The batch size can be configured via `ditto.connectivity.connection.encryption.migration.batch-size`
+- Migration is throttled to prevent database overload (default: 200 documents/minute)
+- Throttling rate can be configured via `ditto.connectivity.connection.encryption.migration.max-documents-per-minute`
+- Set throttling to 0 to disable (not recommended for production)
+
+##### Disabling encryption
+
+To disable encryption while preserving access to already encrypted data:
+
+1. **Update configuration** with encryption disabled but old key present:
+   ```hocon
+   ditto.connectivity.connection.encryption {
+     encryption-enabled = false
+     symmetrical-key = ""                       # Empty - no new encryption
+     old-symmetrical-key = "YOUR_CURRENT_KEY"   # Keep for decryption
+   }
+   ```
+
+2. **Restart connectivity service**
+
+3. **Run migration** to decrypt all existing encrypted data:
+   ```bash
+   curl -X POST http://localhost:8080/devops/piggyback/connectivity \
+     -u devops:devopsPw1! \
+     -H 'Content-Type: application/json' \
+     -d '{
+     "targetActorSelection": "/user/connectivityRoot/encryptionMigration",
+     "headers": {
+       "aggregate": false
+     },
+     "piggybackCommand": {
+       "type": "connectivity.commands:migrateEncryption",
+       "dryRun": false,
+       "resume": false
+     }
+   }'
+   ```
+
+4. **After migration completes**, remove the old key from configuration and restart
 
 ### Rate limiting
 
@@ -558,7 +742,10 @@ ditto {
             ]
           }
         ]
-    //...
+        //...
+      }
+    }
+  }
 }
 ```
 
@@ -604,6 +791,7 @@ ditto {
       }
     ]
   }
+}
 ```
 
 There is a new implementation of the caching signal enrichment facade provider that must be configured to enable this
