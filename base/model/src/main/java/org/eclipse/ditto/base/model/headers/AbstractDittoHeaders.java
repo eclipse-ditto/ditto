@@ -18,6 +18,7 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.AbstractMap;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -40,6 +41,7 @@ import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.common.DittoDuration;
+import org.eclipse.ditto.base.model.common.DittoSystemProperties;
 import org.eclipse.ditto.base.model.common.ResponseType;
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
@@ -62,6 +64,9 @@ import org.eclipse.ditto.json.JsonValue;
 @Immutable
 @SuppressWarnings("squid:S2160")
 public abstract class AbstractDittoHeaders implements DittoHeaders {
+
+    private static final String REDACTED_VALUE = "***";
+    private static final Set<String> REDACTED_HEADER_KEYS = loadRedactedHeaderKeys();
 
     final Map<String, Header> headers;
 
@@ -540,7 +545,38 @@ public abstract class AbstractDittoHeaders implements DittoHeaders {
 
     @Override
     public String toString() {
-        return headers.toString();
+        if (REDACTED_HEADER_KEYS.isEmpty()) {
+            return headers.toString();
+        }
+        final StringBuilder sb = new StringBuilder("{");
+        boolean first = true;
+        for (final Map.Entry<String, Header> entry : headers.entrySet()) {
+            if (!first) {
+                sb.append(", ");
+            }
+            first = false;
+            sb.append(entry.getKey());
+            sb.append('=');
+            if (REDACTED_HEADER_KEYS.contains(entry.getKey())) {
+                sb.append(REDACTED_VALUE);
+            } else {
+                sb.append(entry.getValue());
+            }
+        }
+        sb.append('}');
+        return sb.toString();
+    }
+
+    private static Set<String> loadRedactedHeaderKeys() {
+        final String property = System.getProperty(DittoSystemProperties.DITTO_HEADERS_REDACTED_IN_LOG);
+        if (property == null || property.isEmpty()) {
+            return Collections.singleton(DittoHeaderDefinition.AUTHORIZATION.getKey());
+        }
+        return Collections.unmodifiableSet(Arrays.stream(property.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .map(String::toLowerCase)
+                .collect(Collectors.toSet()));
     }
 
     @Override
