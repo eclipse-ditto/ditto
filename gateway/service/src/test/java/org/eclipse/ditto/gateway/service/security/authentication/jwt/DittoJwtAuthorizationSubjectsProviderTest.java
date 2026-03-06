@@ -569,19 +569,19 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
 
         final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken, DittoHeaders.empty());
 
-        // IMPORTANT: Each placeholder resolves independently across all array elements,
-        // then a Cartesian product is formed. This produces cross-combinations:
+        // Each placeholder resolves independently across all array elements,
+        // then a Cartesian product is formed — this is the expected default behavior:
         //   authz/reseller          → ["io.test"]  (deduplicated)
         //   authz/service_provider  → ["acme", ""]
         //   authz/customer          → [""]  (deduplicated)
         //   authz/roles             → ["op", "resellerAdmin"]
         // Cartesian product: 1 × 2 × 1 × 2 = 4 subjects
-        // Two of these are WRONG cross-combinations (acme+resellerAdmin, ""(no-sp)+op)
+        // To keep fields correlated per object instead, use fn:format()
         assertThat(authSubjects).containsExactlyInAnyOrder(
-                AuthorizationSubject.newInstance("idp:io.test#acme##op"),           // ✓ correct SP-level
-                AuthorizationSubject.newInstance("idp:io.test#acme##resellerAdmin"), // ✗ wrong mix
-                AuthorizationSubject.newInstance("idp:io.test###op"),                // ✗ wrong mix
-                AuthorizationSubject.newInstance("idp:io.test###resellerAdmin")      // ✓ correct reseller-level
+                AuthorizationSubject.newInstance("idp:io.test#acme##op"),
+                AuthorizationSubject.newInstance("idp:io.test#acme##resellerAdmin"),
+                AuthorizationSubject.newInstance("idp:io.test###op"),
+                AuthorizationSubject.newInstance("idp:io.test###resellerAdmin")
         );
     }
 
