@@ -433,6 +433,8 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
         final JsonConfig jsonConfig = serviceSpecificConfig.getJsonConfig();
         System.setProperty(DittoSystemProperties.DITTO_JSON_ESCAPING_BUFFER_FACTOR,
                 Double.toString(jsonConfig.getEscapingBufferFactor()));
+        System.setProperty(DittoSystemProperties.DITTO_HEADERS_REDACTED_IN_LOG,
+                String.join(",", rawConfig.getStringList(DittoSystemProperties.DITTO_HEADERS_REDACTED_IN_LOG)));
     }
 
     private static ActorRef getDistributedPubSubMediatorActor(final ActorSystem actorSystem) {
