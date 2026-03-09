@@ -14,6 +14,7 @@ package org.eclipse.ditto.connectivity.service.messaging.persistence;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.pekko.actor.ExtendedActorSystem;
 import org.eclipse.ditto.base.model.signals.JsonParsable;
@@ -62,10 +63,10 @@ public final class ConnectivityMongoEventAdapter extends AbstractMongoEventAdapt
 
     @Override
     protected JsonObjectBuilder performToJournalMigration(final Event<?> event, final JsonObject jsonObject) {
-        if (encryptionConfig.isEncryptionEnabled()) {
+        if (encryptionConfig.isEncryptionEnabled() && encryptionConfig.getSymmetricalKey().isPresent()) {
             final JsonObject superObject = super.performToJournalMigration(event, jsonObject).build();
             return JsonFieldsEncryptor.encrypt(superObject, ConnectivityConstants.ENTITY_TYPE.toString(),
-                    encryptionConfig.getJsonPointers(), encryptionConfig.getSymmetricalKey())
+                    encryptionConfig.getJsonPointers(), encryptionConfig.getSymmetricalKey().get())
                     .toBuilder();
         }
         return super.performToJournalMigration(event, jsonObject);
@@ -73,9 +74,15 @@ public final class ConnectivityMongoEventAdapter extends AbstractMongoEventAdapt
 
     @Override
     protected JsonObject performFromJournalMigration(final JsonObject jsonObject) {
-        return JsonFieldsEncryptor.decrypt(jsonObject, ConnectivityConstants.ENTITY_TYPE.toString(),
-                encryptionConfig.getJsonPointers(), encryptionConfig.getSymmetricalKey(),
-                encryptionConfig.getOldSymmetricalKey());
+        final Optional<String> currentKey = encryptionConfig.getSymmetricalKey();
+        final Optional<String> oldKey = encryptionConfig.getOldSymmetricalKey();
+        if (currentKey.isPresent() || oldKey.isPresent()) {
+            final String primaryKey = currentKey.orElseGet(oldKey::get);
+            final Optional<String> fallbackKey = currentKey.isPresent() ? oldKey : Optional.empty();
+            return JsonFieldsEncryptor.decrypt(jsonObject, ConnectivityConstants.ENTITY_TYPE.toString(),
+                    encryptionConfig.getJsonPointers(), primaryKey, fallbackKey);
+        }
+        return super.performFromJournalMigration(jsonObject);
     }
 
     private static EventRegistry<ConnectivityEvent<?>> createEventRegistry() {

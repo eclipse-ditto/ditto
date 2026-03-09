@@ -89,8 +89,8 @@ public final class DefaultFieldsEncryptionConfig implements FieldsEncryptionConf
     }
 
     @Override
-    public String getSymmetricalKey() {
-        return this.symmetricalKey;
+    public Optional<String> getSymmetricalKey() {
+        return symmetricalKey.trim().isEmpty() ? Optional.empty() : Optional.of(symmetricalKey);
     }
 
     @Override

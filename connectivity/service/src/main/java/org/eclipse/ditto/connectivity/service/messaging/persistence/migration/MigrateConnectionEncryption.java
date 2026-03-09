@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.connectivity.service.messaging.persistence;
+package org.eclipse.ditto.connectivity.service.messaging.persistence.migration;
 
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -34,7 +34,7 @@ import org.eclipse.ditto.json.JsonPointer;
  * Command to trigger re-encryption of all persisted connection data (snapshots and journal events)
  * from the old encryption key to the new encryption key.
  * <p>
- * This command is sent via the DevOps piggyback endpoint to the {@link EncryptionMigrationActor}.
+ * This command is sent via the DevOps piggyback endpoint to the {@link org.eclipse.ditto.connectivity.service.messaging.persistence.migration.EncryptionMigrationActor}.
  */
 @Immutable
 @JsonParsableCommand(typePrefix = MigrateConnectionEncryption.TYPE_PREFIX, name = MigrateConnectionEncryption.NAME)

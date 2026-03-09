@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.connectivity.service.messaging.persistence;
+package org.eclipse.ditto.connectivity.service.messaging.persistence.migration;
 
 import java.time.Instant;
 import java.util.Collections;

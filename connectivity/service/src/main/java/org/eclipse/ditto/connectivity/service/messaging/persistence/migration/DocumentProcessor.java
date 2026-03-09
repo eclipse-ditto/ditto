@@ -178,75 +178,90 @@ public final class DocumentProcessor {
      * @param context the migration context (keys, pointers, entity prefix)
      * @return the transformed JSON object, or {@code Optional.empty()} if already in the desired state (skip)
      */
-    public static Optional<JsonObject> reEncryptFields(final JsonObject jsonObject,
-            final MigrationContext context) {
-
+    public static Optional<JsonObject> reEncryptFields(final JsonObject jsonObject, final MigrationContext context) {
         final String oldKey = context.oldKey();
         final String newKey = context.newKey();
-        final List<String> pointers = context.pointers();
-        final String entityTypePrefix = context.entityTypePrefix();
 
         if (oldKey == null && newKey != null) {
-            // Initial encryption: data is plaintext, encrypt with new key
-            // Check if any field already has the encrypted_ prefix — if so, skip
-            final boolean alreadyEncrypted = pointers.stream()
-                    .map(p -> entityTypePrefix + p)
-                    .map(JsonPointer::of)
-                    .flatMap(pointer -> jsonObject.getValue(pointer).stream())
-                    .filter(JsonValue::isString)
-                    .anyMatch(v -> containsEncryptedValue(v.asString()));
-            if (alreadyEncrypted) {
-                return Optional.empty();
-            }
-            final JsonObject encrypted = JsonFieldsEncryptor.encrypt(jsonObject, entityTypePrefix, pointers, newKey);
-            // Skip if encrypt produced no changes (e.g. no matching pointers in this entity)
-            return encrypted.equals(jsonObject) ? Optional.empty() : Optional.of(encrypted);
+            return initialEncrypt(jsonObject, context);
+        } else if (oldKey != null && newKey == null) {
+            return disableEncryption(jsonObject, context);
+        } else if (oldKey != null) {
+            return rotateKey(jsonObject, context);
+        } else {
+            return Optional.empty();
         }
+    }
 
-        // Key rotation or disable workflow — oldKey must be set
-        // Try decrypting with the old key
+    private static Optional<JsonObject> initialEncrypt(final JsonObject jsonObject,
+            final MigrationContext context) {
+        if (hasAnyEncryptedField(jsonObject, context)) {
+            return Optional.empty();
+        }
+        final JsonObject encrypted = JsonFieldsEncryptor.encrypt(
+                jsonObject, context.entityTypePrefix(), context.pointers(), context.newKey());
+        return ifChanged(jsonObject, encrypted);
+    }
+
+    private static Optional<JsonObject> disableEncryption(final JsonObject jsonObject,
+            final MigrationContext context) {
         try {
-            final JsonObject decrypted = JsonFieldsEncryptor.decrypt(jsonObject, entityTypePrefix,
-                    pointers, oldKey);
-
-            if (newKey == null) {
-                // Disable workflow: return decrypted plaintext, but skip if nothing changed
-                // (decrypt silently passes through plaintext values, so unchanged means already plain)
-                return decrypted.equals(jsonObject) ? Optional.empty() : Optional.of(decrypted);
-            } else {
-                // Key rotation: re-encrypt with new key
-                final JsonObject reEncrypted = JsonFieldsEncryptor.encrypt(decrypted, entityTypePrefix, pointers, newKey);
-                // Skip if the result is identical (e.g. no matching pointers in this entity)
-                return reEncrypted.equals(jsonObject) ? Optional.empty() : Optional.of(reEncrypted);
-            }
+            final JsonObject decrypted = JsonFieldsEncryptor.decrypt(
+                    jsonObject, context.entityTypePrefix(), context.pointers(), context.oldKey());
+            return ifChanged(jsonObject, decrypted);
         } catch (final ConnectionConfigurationInvalidException e) {
-            // Old key failed — try new key to see if already migrated
-            // (Only applicable for key rotation, not disable workflow)
-            if (newKey == null) {
-                // Disable workflow: if old key fails, data is already plaintext - skip
-                return Optional.empty();
-            }
+            LOGGER.debug("Decryption failed in disable workflow, assuming already plaintext — skipping");
+            return Optional.empty();
+        }
+    }
 
-            try {
-                JsonFieldsEncryptor.decrypt(jsonObject, entityTypePrefix, pointers, newKey);
-                // Already encrypted with new key — skip
-                return Optional.empty();
-            } catch (final ConnectionConfigurationInvalidException e2) {
-                // Both keys failed on encrypted_ prefixed data — this is an error, not plaintext.
-                // Re-encrypting would cause double encryption.
-                e2.addSuppressed(e);
-                throw e2;
-            }
+    private static Optional<JsonObject> rotateKey(final JsonObject jsonObject,
+            final MigrationContext context) {
+        try {
+            final JsonObject decrypted = JsonFieldsEncryptor.decrypt(
+                    jsonObject, context.entityTypePrefix(), context.pointers(), context.oldKey());
+            final JsonObject reEncrypted = JsonFieldsEncryptor.encrypt(
+                    decrypted, context.entityTypePrefix(), context.pointers(), context.newKey());
+            return ifChanged(jsonObject, reEncrypted);
+        } catch (final ConnectionConfigurationInvalidException oldKeyFailed) {
+            return skipIfAlreadyMigratedOrThrow(jsonObject, context, oldKeyFailed);
         }
     }
 
     /**
-     * Checks whether a string value contains an encrypted portion — either as a direct
-     * {@code encrypted_} prefix (non-URI fields) or embedded in the password part of a URI.
-     *
-     * @param value the string value to check
-     * @return true if the value contains encrypted data
+     * When old-key decryption fails during key rotation, checks whether the data is already
+     * encrypted with the new key. If so, the document was already migrated — skip it.
+     * If the new key also fails, both exceptions are combined and re-thrown.
      */
+    private static Optional<JsonObject> skipIfAlreadyMigratedOrThrow(final JsonObject jsonObject,
+            final MigrationContext context, final ConnectionConfigurationInvalidException oldKeyFailed) {
+        try {
+            JsonFieldsEncryptor.decrypt(jsonObject, context.entityTypePrefix(),
+                    context.pointers(), context.newKey());
+            return Optional.empty();
+        } catch (final ConnectionConfigurationInvalidException newKeyFailed) {
+            newKeyFailed.addSuppressed(oldKeyFailed);
+            throw newKeyFailed;
+        }
+    }
+
+    private static Optional<JsonObject> ifChanged(final JsonObject original, final JsonObject result) {
+        return result.equals(original) ? Optional.empty() : Optional.of(result);
+    }
+
+    /**
+     * Checks whether any targeted field already contains encrypted data — either as a direct
+     * {@code encrypted_} prefix or embedded in the password part of a URI.
+     */
+    private static boolean hasAnyEncryptedField(final JsonObject jsonObject, final MigrationContext context) {
+        return context.pointers().stream()
+                .map(p -> context.entityTypePrefix() + p)
+                .map(JsonPointer::of)
+                .flatMap(pointer -> jsonObject.getValue(pointer).stream())
+                .filter(JsonValue::isString)
+                .anyMatch(v -> containsEncryptedValue(v.asString()));
+    }
+
     private static boolean containsEncryptedValue(final String value) {
         final String encryptedPrefix = "encrypted_";
         if (value.startsWith(encryptedPrefix)) {

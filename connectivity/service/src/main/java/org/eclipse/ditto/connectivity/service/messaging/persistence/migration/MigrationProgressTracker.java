@@ -21,7 +21,6 @@ import org.apache.pekko.stream.Materializer;
 import org.apache.pekko.stream.javadsl.Sink;
 import org.apache.pekko.stream.javadsl.Source;
 import org.bson.Document;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.MigrationProgress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,7 +68,7 @@ public final class MigrationProgressTracker {
     public CompletionStage<Void> saveProgress(final MigrationProgress progress) {
         final Document progressDoc = new Document()
                 .append(ID_FIELD, PROGRESS_ID)
-                .append("phase", progress.phase())
+                .append("phase", progress.phase().getValue())
                 .append("lastProcessedSnapshotId", progress.lastProcessedSnapshotId())
                 .append("lastProcessedSnapshotPid", progress.lastProcessedSnapshotPid())
                 .append("lastProcessedJournalId", progress.lastProcessedJournalId())
@@ -88,8 +87,12 @@ public final class MigrationProgressTracker {
                         Filters.eq(ID_FIELD, PROGRESS_ID),
                         progressDoc,
                         new ReplaceOptions().upsert(true)))
-                .runWith(Sink.ignore(), materializer)
-                .thenApply(done -> null);
+                .runWith(Sink.head(), materializer)
+                .thenApply(result -> {
+                    LOGGER.info("Progress saved: modified={}, upserted={}",
+                            result.getModifiedCount(), result.getUpsertedId() != null ? 1 : 0);
+                    return (Void) null;
+                });
     }
 
     /**
@@ -124,26 +127,31 @@ public final class MigrationProgressTracker {
         return Source.fromPublisher(
                 progressCollection.find(Filters.eq(ID_FIELD, PROGRESS_ID)).first())
                 .runWith(Sink.headOption(), materializer)
-                .thenApply(optDoc -> optDoc.map(doc -> new MigrationProgress(
-                        doc.getString("phase"),
-                        doc.getString("lastProcessedSnapshotId"),
-                        doc.getString("lastProcessedSnapshotPid"),
-                        doc.getString("lastProcessedJournalId"),
-                        doc.getString("lastProcessedJournalPid"),
-                        doc.getLong("snapshotsProcessed") != null
-                                ? doc.getLong("snapshotsProcessed") : 0L,
-                        doc.getLong("snapshotsSkipped") != null
-                                ? doc.getLong("snapshotsSkipped") : 0L,
-                        doc.getLong("snapshotsFailed") != null
-                                ? doc.getLong("snapshotsFailed") : 0L,
-                        doc.getLong("journalProcessed") != null
-                                ? doc.getLong("journalProcessed") : 0L,
-                        doc.getLong("journalSkipped") != null
-                                ? doc.getLong("journalSkipped") : 0L,
-                        doc.getLong("journalFailed") != null
-                                ? doc.getLong("journalFailed") : 0L,
-                        doc.getString("startedAt")
-                )));
+                .thenApply(optDoc -> optDoc.map(doc -> {
+                        final String phaseStr = doc.getString("phase");
+                        final MigrationPhase phase = MigrationPhase.fromValue(phaseStr)
+                                .orElse(MigrationPhase.COMPLETED);
+                        return new MigrationProgress(
+                            phase,
+                            doc.getString("lastProcessedSnapshotId"),
+                            doc.getString("lastProcessedSnapshotPid"),
+                            doc.getString("lastProcessedJournalId"),
+                            doc.getString("lastProcessedJournalPid"),
+                            doc.getLong("snapshotsProcessed") != null
+                                    ? doc.getLong("snapshotsProcessed") : 0L,
+                            doc.getLong("snapshotsSkipped") != null
+                                    ? doc.getLong("snapshotsSkipped") : 0L,
+                            doc.getLong("snapshotsFailed") != null
+                                    ? doc.getLong("snapshotsFailed") : 0L,
+                            doc.getLong("journalProcessed") != null
+                                    ? doc.getLong("journalProcessed") : 0L,
+                            doc.getLong("journalSkipped") != null
+                                    ? doc.getLong("journalSkipped") : 0L,
+                            doc.getLong("journalFailed") != null
+                                    ? doc.getLong("journalFailed") : 0L,
+                            doc.getString("startedAt")
+                        );
+                }));
     }
 
     /**

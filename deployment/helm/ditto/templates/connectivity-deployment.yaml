@@ -361,6 +361,8 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.connectivity.config.connections.encryption.secretName }}
                   key: current-key
+            {{- end }}
+            {{- if .Values.connectivity.config.connections.encryption.secretName }}
             - name: CONNECTIVITY_CONNECTION_OLD_ENCRYPTION_KEY
               valueFrom:
                 secretKeyRef:

@@ -38,7 +38,7 @@ public interface FieldsEncryptionConfig {
      *
      * @return the current symmetrical key
      */
-    String getSymmetricalKey();
+    Optional<String> getSymmetricalKey();
 
     /**
      * Returns the old symmetrical key used for decryption fallback during key rotation.

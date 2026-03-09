@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.connectivity.service.messaging.persistence;
+package org.eclipse.ditto.connectivity.service.messaging.persistence.migration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -19,8 +19,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.migration.DocumentProcessor;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.migration.MigrationContext;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.JsonFieldsEncryptor;
 import org.eclipse.ditto.connectivity.service.util.EncryptorAesGcm;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -28,7 +27,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
- * Tests for the encryption migration logic in {@link EncryptionMigrationActor}.
+ * Tests for the encryption migration logic in {@link org.eclipse.ditto.connectivity.service.messaging.persistence.migration.EncryptionMigrationActor}.
  * <p>
  * Tests the core re-encryption logic (snapshot and journal field re-encryption),
  * command/response serialization, and validation behavior.
@@ -329,7 +328,7 @@ public final class EncryptionMigrationActorTest {
     public void statusResponseSerializationRoundTrip() {
         final var headers = DittoHeaders.empty();
         final var progress = new MigrationProgress(
-                "in_progress:snapshots",
+                MigrationPhase.SNAPSHOTS,
                 "507f1f77bcf86cd799439011", "connection:mqtt-prod-sensor-01",
                 null, null,
                 150, 10, 2,
@@ -382,11 +381,11 @@ public final class EncryptionMigrationActorTest {
         assertThat(initial.snapshotsProcessed()).isEqualTo(0);
 
         final MigrationProgress afterJournal = afterSnapshots
-                .withPhase("journal")
+                .withPhase(MigrationPhase.JOURNAL)
                 .incrementJournalProcessed()
                 .incrementJournalSkipped();
 
-        assertThat(afterJournal.phase()).isEqualTo("journal");
+        assertThat(afterJournal.phase()).isEqualTo(MigrationPhase.JOURNAL);
         assertThat(afterJournal.journalProcessed()).isEqualTo(1);
         assertThat(afterJournal.journalSkipped()).isEqualTo(1);
         // Snapshot counts should be preserved
@@ -418,7 +417,7 @@ public final class EncryptionMigrationActorTest {
     public void bulkWriteFailureAdjustsJournalCounters() {
         final MigrationProgress progress =
                 new MigrationProgress()
-                        .withPhase("journal")
+                        .withPhase(MigrationPhase.JOURNAL)
                         .incrementJournalProcessed()
                         .incrementJournalProcessed();
 

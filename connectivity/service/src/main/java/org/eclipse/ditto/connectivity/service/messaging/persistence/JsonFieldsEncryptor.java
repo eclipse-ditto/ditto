@@ -17,7 +17,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -60,8 +60,8 @@ public final class JsonFieldsEncryptor {
      */
     public static JsonObject encrypt(final JsonObject jsonObject, final String pointersPrefix, final List<String> jsonPointers,
             final String symmetricKey) {
-        return handle(jsonObject, prefixPointers(pointersPrefix, jsonPointers).map(JsonPointer::of).collect(Collectors.toList()), symmetricKey,
-                JsonFieldsEncryptor::encryptValue);
+        return handle(jsonObject, prefixPointers(pointersPrefix, jsonPointers).map(JsonPointer::of).collect(Collectors.toList()),
+                (value) -> encryptValue(value, symmetricKey));
     }
 
     /**
@@ -100,8 +100,7 @@ public final class JsonFieldsEncryptor {
             final Optional<String> oldSymmetricKey) {
         return handle(jsonObject,
                 prefixPointers(pointersPrefix, jsonPointers).map(JsonPointer::of).collect(Collectors.toList()),
-                symmetricKey,
-                (value, key) -> decryptValueWithFallback(value, key, oldSymmetricKey));
+                (value) -> decryptValueWithFallback(value, symmetricKey, oldSymmetricKey));
     }
 
     static String replaceUriPassword(final String uriStringRepresentation, final String patchedPassword) {
@@ -114,33 +113,34 @@ public final class JsonFieldsEncryptor {
     }
 
     public static Stream<String> prefixPointers(final String prefix, final List<String> pointers) {
-        final String thePrefix = (prefix.startsWith("/") | prefix.isEmpty()) ? prefix : "/" + prefix;
+        final String thePrefix = (prefix.startsWith("/") || prefix.isEmpty()) ? prefix : "/" + prefix;
         return pointers.stream().map(pointer -> thePrefix + pointer);
     }
+
     private static JsonObject handle(final JsonObject jsonObject, final List<JsonPointer> jsonPointers,
-            final String symmetricKey, final BiFunction<String, String, String> encryptionHandler) {
+            final Function<String, String> encryptionHandler) {
         return jsonPointers.stream()
-                .filter(pointer -> jsonObject.getValue(pointer).filter(JsonValue::isString).isPresent())
-                .map(pointer -> jsonObject.getValue(pointer).map(jsonValue ->
-                        createPatch(pointer, jsonValue.asString(), encryptionHandler, symmetricKey)).orElse(JsonObject.empty()))
+                .map(pointer -> jsonObject.getValue(pointer)
+                        .filter(JsonValue::isString)
+                        .map(jsonValue -> createPatch(pointer, jsonValue.asString(), encryptionHandler))
+                        .orElse(JsonObject.empty()))
                 .filter(patch -> !patch.isEmpty())
                 .reduce(jsonObject, (updatedJsonObject, patch) -> JsonFactory.mergeJsonValues(patch, updatedJsonObject)
                         .asObject());
     }
 
-
     private static JsonObject createPatch(final JsonPointer pointer, final String oldValue,
-            final BiFunction<String, String, String> encryptionHandler, final String symmetricKey) {
+            final Function<String, String> encryptionHandler) {
         try {
             final Optional<String> password = getUriPassword(oldValue);
             return password.map(pwd -> {
-                final String patchedPwd = encryptionHandler.apply(pwd, symmetricKey);
+                final String patchedPwd = encryptionHandler.apply(pwd);
                 final String patchedUri = replaceUriPassword(oldValue, patchedPwd);
                 return JsonFactory.newObject(pointer, JsonValue.of(patchedUri));
             }).orElse(JsonObject.empty());
         } catch (ConnectionUriInvalidException | URISyntaxException e) {
             LOGGER.trace("<{}> value is not a uri, will encrypt whole value.", pointer);
-            final String encryptedValue = encryptionHandler.apply(oldValue, symmetricKey);
+            final String encryptedValue = encryptionHandler.apply(oldValue);
             return JsonFactory.newObject(pointer, JsonValue.of(encryptedValue));
         } catch (final ConnectionConfigurationInvalidException e) {
             throw e;

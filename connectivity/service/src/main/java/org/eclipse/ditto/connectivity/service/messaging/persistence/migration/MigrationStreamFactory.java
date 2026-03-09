@@ -22,7 +22,6 @@ import org.apache.pekko.stream.javadsl.Source;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.MigrationProgress;
 
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Sorts;
@@ -112,9 +111,7 @@ public final class MigrationStreamFactory {
             final int batchSize,
             final int maxDocumentsPerMinute) {
 
-        final Bson resumeFilter = progress.lastProcessedJournalId() != null
-                ? Filters.gt(ID_FIELD, new ObjectId(progress.lastProcessedJournalId()))
-                : Filters.empty();
+        final Bson resumeFilter = buildResumeFilter(progress.lastProcessedJournalId());
         final Bson encryptableFieldsFilter = buildEncryptableFieldsFilter(
                 JOURNAL_EVENTS_FIELD + "." + JOURNAL_PAYLOAD_FIELD,
                 JOURNAL_ENTITY_TYPE_PREFIX, pointers);

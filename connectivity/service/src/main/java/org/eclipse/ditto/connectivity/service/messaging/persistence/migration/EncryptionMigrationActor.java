@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.connectivity.service.messaging.persistence;
+package org.eclipse.ditto.connectivity.service.messaging.persistence.migration;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -35,15 +35,9 @@ import org.apache.pekko.stream.javadsl.Source;
 import org.bson.Document;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.FieldsEncryptionConfig;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.migration.DocumentProcessingResult;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.migration.DocumentProcessor;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.migration.MigrationContext;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.migration.MigrationProgressTracker;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.migration.MigrationStreamFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import com.mongodb.client.model.BulkWriteOptions;
 import com.mongodb.client.model.WriteModel;
 import com.mongodb.reactivestreams.client.MongoCollection;
@@ -102,10 +96,6 @@ public final class EncryptionMigrationActor extends AbstractActor {
     private static final String JOURNAL_COLLECTION = "connection_journal";
     private static final String PROGRESS_COLLECTION = "connection_encryption_migration";
 
-    private static final String PHASE_SNAPSHOTS = "snapshots";
-    private static final String PHASE_JOURNAL = "journal";
-    private static final String PHASE_COMPLETED = "completed";
-    private static final String PHASE_ABORTED_PREFIX = "aborted:";
 
     // MongoDB field name for document ID
     private static final String ID_FIELD = "_id";
@@ -122,7 +112,7 @@ public final class EncryptionMigrationActor extends AbstractActor {
 
     private boolean migrationInProgress = false;
     private boolean currentDryRun = false;
-    private volatile boolean abortRequested = false;
+    private boolean abortRequested = false;
     private SharedKillSwitch activeKillSwitch;
     @Nullable
     private MigrationProgress currentProgress;
@@ -151,6 +141,14 @@ public final class EncryptionMigrationActor extends AbstractActor {
     }
 
     @Override
+    public void postStop() throws Exception {
+        if (activeKillSwitch != null) {
+            activeKillSwitch.shutdown();
+        }
+        super.postStop();
+    }
+
+    @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(MigrateConnectionEncryption.class, this::handleMigration)
@@ -163,6 +161,7 @@ public final class EncryptionMigrationActor extends AbstractActor {
 
     private void handleProgressUpdate(final ProgressUpdate update) {
         this.currentProgress = update.progress;
+        migrationInProgress = update.progress.phase() != MigrationPhase.COMPLETED;
     }
 
     private void handleMigrationCompleted(final MigrationCompleted completed) {
@@ -177,8 +176,8 @@ public final class EncryptionMigrationActor extends AbstractActor {
             log.error("Encryption migration failed", completed.error);
         } else {
             final String finalPhase = wasAborted
-                    ? "aborted:" + (progress != null ? progress.phase() : "unknown")
-                    : (progress != null ? progress.phase() : "unknown");
+                    ? MigrationPhase.getAbortedPrefix() + (progress != null ? progress.phase().getValue() : "unknown")
+                    : (progress != null ? progress.phase().getValue() : "unknown");
             log.info("Encryption migration {} (dryRun={}): snapshots(p={}/s={}/f={}), " +
                             "journal(p={}/s={}/f={}), finalPhase={}",
                     wasAborted ? "aborted" : "completed", dryRun,
@@ -190,9 +189,9 @@ public final class EncryptionMigrationActor extends AbstractActor {
                     progress != null ? progress.journalFailed() : 0,
                     finalPhase);
             if (progress != null) {
-                currentProgress = progress.withPhase(finalPhase);
+                currentProgress = progress;
                 if (wasAborted && !dryRun) {
-                    progressTracker.saveProgressWithRetry(progress.withPhase(finalPhase), 2)
+                    progressTracker.saveProgressWithRetry(progress, 2)
                             .whenComplete((v, saveErr) -> {
                                 if (saveErr != null) {
                                     log.error("Failed to save abort progress after retries: {}",
@@ -213,8 +212,8 @@ public final class EncryptionMigrationActor extends AbstractActor {
         if (inMemory != null) {
             // Use in-memory progress (available during and after migration, including dry-run)
             final String phase = migrationInProgress
-                    ? "in_progress:" + inMemory.phase()
-                    : inMemory.phase();
+                    ? inMemory.phase().toInProgressString()
+                    : inMemory.phase().getValue();
             sender.tell(MigrateConnectionEncryptionStatusResponse.of(
                     phase, inMemory, currentDryRun, migrationInProgress,
                     command.getDittoHeaders()), getSelf());
@@ -224,7 +223,7 @@ public final class EncryptionMigrationActor extends AbstractActor {
             progressTracker.loadProgress().thenApply(optProgress -> {
                 final MigrationProgress progress = optProgress.orElseGet(MigrationProgress::new);
                 return MigrateConnectionEncryptionStatusResponse.of(
-                        progress.phase(), progress, false, false,
+                        progress.phase().getValue(), progress, false, false,
                         command.getDittoHeaders());
             }).whenComplete((response, error) -> {
                 if (error != null) {
@@ -253,7 +252,7 @@ public final class EncryptionMigrationActor extends AbstractActor {
 
         final MigrationProgress progress = currentProgress != null ? currentProgress : new MigrationProgress();
         sender.tell(MigrateConnectionEncryptionAbortResponse.of(
-                "aborted:" + progress.phase(),
+                progress.phase().toAbortedString(),
                 progress.snapshotsProcessed(), progress.snapshotsSkipped(), progress.snapshotsFailed(),
                 progress.journalProcessed(), progress.journalSkipped(), progress.journalFailed(),
                 Instant.now().toString(),
@@ -289,21 +288,8 @@ public final class EncryptionMigrationActor extends AbstractActor {
             return;
         }
 
-        final String newKey;
-        final String oldKey;
-        if (isDisableWorkflow) {
-            // Decrypt with old key, write plaintext
-            newKey = null;
-            oldKey = oldKeyOpt.get();
-        } else if (isInitialEncryption) {
-            // Encrypt plaintext data with current key (no old key needed)
-            newKey = encryptionConfig.getSymmetricalKey();
-            oldKey = null;
-        } else {
-            // Key rotation: decrypt with old key, encrypt with new key
-            newKey = encryptionConfig.getSymmetricalKey();
-            oldKey = oldKeyOpt.get();
-        }
+        final String newKey = encryptionConfig.getSymmetricalKey().orElse(null);
+        final String oldKey = oldKeyOpt.orElse(null);
         final List<String> pointers = encryptionConfig.getJsonPointers();
         final boolean dryRun = command.isDryRun();
         final boolean resume = command.isResume();
@@ -319,15 +305,13 @@ public final class EncryptionMigrationActor extends AbstractActor {
         final CompletionStage<MigrationProgress> migrationResult;
         if (resume) {
             migrationResult = progressTracker.loadProgress().thenCompose(optProgress -> {
-                if (optProgress.isEmpty() || PHASE_COMPLETED.equals(optProgress.get().phase())) {
+                if (optProgress.isEmpty() || optProgress.get().phase() == MigrationPhase.COMPLETED) {
                     // No previous migration exists or it already completed — nothing to resume
                     final String reason = optProgress.isEmpty()
                             ? "no previous migration found" : "previous migration already completed";
                     log.info("Resume requested but {}, nothing to do", reason);
-                    migrationInProgress = false;
                     final MigrationProgress completed = optProgress.orElseGet(MigrationProgress::new)
-                            .withPhase(PHASE_COMPLETED);
-                    currentProgress = completed;
+                            .withPhase(MigrationPhase.COMPLETED);
                     sender.tell(MigrateConnectionEncryptionResponse.alreadyCompleted(
                             Instant.now().toString(), command.getDittoHeaders()), getSelf());
                     return CompletableFuture.completedFuture(completed);
@@ -349,8 +333,14 @@ public final class EncryptionMigrationActor extends AbstractActor {
         }
 
         final ActorRef self = getSelf();
-        migrationResult.whenComplete((progress, error) ->
-                self.tell(new MigrationCompleted(progress, error, dryRun), ActorRef.noSender()));
+        migrationResult.whenComplete((progress, error) -> {
+            try {
+                self.tell(new MigrationCompleted(progress, error, dryRun), ActorRef.noSender());
+            } catch (final Exception e) {
+                log.error("Failed to send MigrationCompleted message, forcing cleanup", e);
+                self.tell(new MigrationCompleted(null, e, dryRun), ActorRef.noSender());
+            }
+        });
     }
 
     /**
@@ -367,7 +357,7 @@ public final class EncryptionMigrationActor extends AbstractActor {
      * @return completion stage with final migration progress
      */
     private CompletionStage<MigrationProgress> runMigration(final MigrationProgress initialProgress,
-            final String oldKey, final String newKey, final List<String> pointers, final boolean dryRun) {
+            @Nullable final String oldKey, @Nullable final String newKey, final List<String> pointers, final boolean dryRun) {
 
         log.info("runMigration: loaded progress phase={}, lastSnapshotId={}, lastJournalId={}, " +
                         "snapshots(p={}/s={}/f={}), journal(p={}/s={}/f={})",
@@ -378,25 +368,15 @@ public final class EncryptionMigrationActor extends AbstractActor {
                 initialProgress.journalProcessed(), initialProgress.journalSkipped(),
                 initialProgress.journalFailed());
 
-        // Strip "aborted:" prefix to get the effective phase for resume
-        final String effectivePhase;
-        if (initialProgress.phase().startsWith(PHASE_ABORTED_PREFIX)) {
-            effectivePhase = initialProgress.phase().substring(PHASE_ABORTED_PREFIX.length());
-            log.info("Stripped aborted prefix: effective phase={}", effectivePhase);
-        } else {
-            effectivePhase = initialProgress.phase();
-        }
+        // Get the effective phase for resume
+        final MigrationPhase effectivePhase = initialProgress.phase();
 
         final CompletionStage<MigrationProgress> afterSnapshots;
-        if (PHASE_JOURNAL.equals(effectivePhase) || initialProgress.lastProcessedJournalId() != null) {
-            // Resume from journal phase — snapshots already done.
-            // Belt-and-suspenders: also skip snapshots if journal progress exists (handles legacy "aborted" format)
-            if (initialProgress.lastProcessedJournalId() != null && !PHASE_JOURNAL.equals(effectivePhase)) {
-                log.info("Skipping snapshots: lastProcessedJournalId is set (legacy aborted format)");
-            }
-            afterSnapshots = CompletableFuture.completedFuture(initialProgress);
-        } else if (PHASE_COMPLETED.equals(effectivePhase)) {
+        if (effectivePhase == MigrationPhase.COMPLETED) {
             return CompletableFuture.completedFuture(initialProgress);
+        } else if (effectivePhase == MigrationPhase.JOURNAL) {
+            // Resume from journal phase — snapshots already done
+            afterSnapshots = CompletableFuture.completedFuture(initialProgress);
         } else {
             afterSnapshots = migrateSnapshots(initialProgress, oldKey, newKey, pointers, dryRun);
         }
@@ -405,13 +385,13 @@ public final class EncryptionMigrationActor extends AbstractActor {
             if (abortRequested) {
                 return CompletableFuture.completedFuture(progress);
             }
-            final MigrationProgress journalProgress = progress.withPhase(PHASE_JOURNAL);
+            final MigrationProgress journalProgress = progress.withPhase(MigrationPhase.JOURNAL);
             return migrateJournal(journalProgress, oldKey, newKey, pointers, dryRun);
         }).thenCompose(progress -> {
             if (abortRequested) {
                 return CompletableFuture.completedFuture(progress);
             }
-            final MigrationProgress completed = progress.withPhase(PHASE_COMPLETED);
+            final MigrationProgress completed = progress.withPhase(MigrationPhase.COMPLETED);
             if (!dryRun) {
                 return progressTracker.saveProgress(completed).thenApply(v -> completed);
             }
@@ -434,7 +414,7 @@ public final class EncryptionMigrationActor extends AbstractActor {
      * @return completion stage with updated progress after snapshot migration
      */
     private CompletionStage<MigrationProgress> migrateSnapshots(final MigrationProgress progress,
-            final String oldKey, final String newKey, final List<String> pointers, final boolean dryRun) {
+            @Nullable final String oldKey, @Nullable final String newKey, final List<String> pointers, final boolean dryRun) {
 
         log.info("Starting snapshot migration (dryRun={}, throttling={} docs/min)", dryRun,
                 maxDocumentsPerMinute > 0 ? maxDocumentsPerMinute : "disabled");
@@ -473,13 +453,13 @@ public final class EncryptionMigrationActor extends AbstractActor {
      * @return completion stage with updated progress
      */
     private CompletionStage<MigrationProgress> processSnapshotBatch(final MigrationProgress progress,
-            final List<Document> batch, final String oldKey, final String newKey,
+            final List<Document> batch, @Nullable final String oldKey, @Nullable final String newKey,
             final List<String> pointers, final boolean dryRun) {
 
         log.debug("processSnapshotBatch: batchSize={}, firstId={}, lastId={}",
                 batch.size(),
-                batch.isEmpty() ? "N/A" : batch.get(0).get(ID_FIELD),
-                batch.isEmpty() ? "N/A" : batch.get(batch.size() - 1).get(ID_FIELD));
+                batch.isEmpty() ? "N/A" : batch.getFirst().get(ID_FIELD),
+                batch.isEmpty() ? "N/A" : batch.getLast().get(ID_FIELD));
         MigrationProgress currentProgress = progress;
         final List<WriteModel<Document>> writeModels = new ArrayList<>();
 
@@ -490,22 +470,23 @@ public final class EncryptionMigrationActor extends AbstractActor {
             switch (result.outcome()) {
                 case PROCESSED -> currentProgress = currentProgress.incrementSnapshotsProcessed();
                 case SKIPPED -> currentProgress = currentProgress.incrementSnapshotsSkipped();
-                case FAILED -> currentProgress = currentProgress.incrementSnapshotsFailed();
+                case FAILED -> {
+                    currentProgress = currentProgress.incrementSnapshotsFailed();
+                    log.warning("Failed to process snapshot document {} (pid={}), skipping", docId, pid);
+                }
             }
             if (result.writeModel() != null) {
                 writeModels.add(result.writeModel());
             }
-            currentProgress = currentProgress
-                    .withLastSnapshotId(docId)
-                    .withLastSnapshotPid(pid);
+            currentProgress = currentProgress.withLastSnapshot(docId, pid);
         }
 
         return executeBatchWriteAndSaveProgress(
-                currentProgress, writeModels, snapshotCollection, PHASE_SNAPSHOTS, dryRun, true);
+                currentProgress, writeModels, snapshotCollection, MigrationPhase.SNAPSHOTS, dryRun, true);
     }
 
-    private DocumentProcessingResult processSnapshotDocument(final Document doc, final String oldKey,
-            final String newKey, final List<String> pointers, final boolean dryRun) {
+    private DocumentProcessingResult processSnapshotDocument(final Document doc, @Nullable final String oldKey,
+            @Nullable final String newKey, final List<String> pointers, final boolean dryRun) {
         final MigrationContext context = MigrationContext.forSnapshots(oldKey, newKey, pointers);
         return DocumentProcessor.processSnapshotDocument(doc, context, dryRun);
     }
@@ -524,7 +505,7 @@ public final class EncryptionMigrationActor extends AbstractActor {
      * @return completion stage with updated progress after journal migration
      */
     private CompletionStage<MigrationProgress> migrateJournal(final MigrationProgress progress,
-            final String oldKey, final String newKey, final List<String> pointers, final boolean dryRun) {
+            @Nullable final String oldKey, @Nullable final String newKey, final List<String> pointers, final boolean dryRun) {
 
         log.info("Starting journal migration (dryRun={}, throttling={} docs/min)", dryRun,
                 maxDocumentsPerMinute > 0 ? maxDocumentsPerMinute : "disabled");
@@ -548,7 +529,7 @@ public final class EncryptionMigrationActor extends AbstractActor {
     }
 
     private CompletionStage<MigrationProgress> processJournalBatch(final MigrationProgress progress,
-            final List<Document> batch, final String oldKey, final String newKey,
+            final List<Document> batch, @Nullable final String oldKey, @Nullable final String newKey,
             final List<String> pointers, final boolean dryRun) {
 
         log.debug("processJournalBatch: batchSize={}, firstId={}, lastId={}",
@@ -565,21 +546,23 @@ public final class EncryptionMigrationActor extends AbstractActor {
             switch (result.outcome()) {
                 case PROCESSED -> currentProgress = currentProgress.incrementJournalProcessed();
                 case SKIPPED -> currentProgress = currentProgress.incrementJournalSkipped();
-                case FAILED -> currentProgress = currentProgress.incrementJournalFailed();
+                case FAILED -> {
+                    currentProgress = currentProgress.incrementJournalFailed();
+                    log.warning("Failed to process journal document {} (pid={}), skipping", docIdStr, pid);
+                }
             }
             if (result.writeModel() != null) {
                 writeModels.add(result.writeModel());
             }
-            currentProgress = currentProgress.withLastJournalId(docIdStr);
-            currentProgress = currentProgress.withLastJournalPid(pid);
+            currentProgress = currentProgress.withLastJournal(docIdStr, pid);
         }
 
         return executeBatchWriteAndSaveProgress(
-                currentProgress, writeModels, journalCollection, PHASE_JOURNAL, dryRun, false);
+                currentProgress, writeModels, journalCollection, MigrationPhase.JOURNAL, dryRun, false);
     }
 
-    private DocumentProcessingResult processJournalDocument(final Document doc, final String oldKey,
-            final String newKey, final List<String> pointers, final boolean dryRun) {
+    private DocumentProcessingResult processJournalDocument(final Document doc, @Nullable final String oldKey,
+            @Nullable String newKey, final List<String> pointers, final boolean dryRun) {
         final MigrationContext context = MigrationContext.forJournal(oldKey, newKey, pointers);
         return DocumentProcessor.processJournalDocument(doc, context, dryRun);
     }
@@ -603,7 +586,7 @@ public final class EncryptionMigrationActor extends AbstractActor {
             final MigrationProgress progress,
             final List<WriteModel<Document>> writeModels,
             final MongoCollection<Document> collection,
-            final String phase,
+            final MigrationPhase phase,
             final boolean dryRun,
             final boolean isSnapshot) {
 
@@ -615,8 +598,14 @@ public final class EncryptionMigrationActor extends AbstractActor {
                             new BulkWriteOptions().ordered(false)))
                     .runWith(Sink.head(), materializer)
                     .thenApply(r -> {
-                        log.debug("Bulk write completed for {} batch: {} documents written",
-                                phase, r.getModifiedCount() + r.getInsertedCount());
+                        final long written = r.getModifiedCount() + r.getInsertedCount();
+                        if (written < batchWriteCount) {
+                            log.warning("Partial bulk write for {} batch: {}/{} documents written",
+                                    phase, written, batchWriteCount);
+                        } else {
+                            log.debug("Bulk write completed for {} batch: {} documents written",
+                                    phase, written);
+                        }
                         return progress;
                     })
                     .exceptionally(e -> {

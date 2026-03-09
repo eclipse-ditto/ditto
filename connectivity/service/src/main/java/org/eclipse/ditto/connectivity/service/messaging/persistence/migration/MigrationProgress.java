@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.connectivity.service.messaging.persistence;
+package org.eclipse.ditto.connectivity.service.messaging.persistence.migration;
 
 import java.time.Instant;
 
@@ -23,7 +23,7 @@ import javax.annotation.Nullable;
  * last processed IDs for resume functionality, and timing information.
  */
 public record MigrationProgress(
-        String phase,
+        MigrationPhase phase,
         @Nullable String lastProcessedSnapshotId,
         @Nullable String lastProcessedSnapshotPid,
         @Nullable String lastProcessedJournalId,
@@ -41,42 +41,28 @@ public record MigrationProgress(
      * Creates a new MigrationProgress with default values starting in the snapshots phase.
      */
     public MigrationProgress() {
-        this("snapshots", null, null, null, null,
+        this(MigrationPhase.SNAPSHOTS, null, null, null, null,
                 0L, 0L, 0L, 0L, 0L, 0L,
                 Instant.now().toString());
     }
 
-    MigrationProgress withPhase(final String newPhase) {
+    MigrationProgress withPhase(final MigrationPhase newPhase) {
         return new MigrationProgress(newPhase, lastProcessedSnapshotId, lastProcessedSnapshotPid,
                 lastProcessedJournalId, lastProcessedJournalPid,
                 snapshotsProcessed, snapshotsSkipped, snapshotsFailed,
                 journalProcessed, journalSkipped, journalFailed, startedAt);
     }
 
-    MigrationProgress withLastSnapshotId(final String id) {
-        return new MigrationProgress(phase, id, lastProcessedSnapshotPid,
+    MigrationProgress withLastSnapshot(final String id, final String pid) {
+        return new MigrationProgress(phase, id, pid,
                 lastProcessedJournalId, lastProcessedJournalPid,
                 snapshotsProcessed, snapshotsSkipped, snapshotsFailed,
                 journalProcessed, journalSkipped, journalFailed, startedAt);
     }
 
-    MigrationProgress withLastSnapshotPid(final String pid) {
-        return new MigrationProgress(phase, lastProcessedSnapshotId, pid,
-                lastProcessedJournalId, lastProcessedJournalPid,
-                snapshotsProcessed, snapshotsSkipped, snapshotsFailed,
-                journalProcessed, journalSkipped, journalFailed, startedAt);
-    }
-
-    MigrationProgress withLastJournalId(final String id) {
+    MigrationProgress withLastJournal(final String id, final String pid) {
         return new MigrationProgress(phase, lastProcessedSnapshotId, lastProcessedSnapshotPid,
-                id, lastProcessedJournalPid,
-                snapshotsProcessed, snapshotsSkipped, snapshotsFailed,
-                journalProcessed, journalSkipped, journalFailed, startedAt);
-    }
-
-    MigrationProgress withLastJournalPid(final String pid) {
-        return new MigrationProgress(phase, lastProcessedSnapshotId, lastProcessedSnapshotPid,
-                lastProcessedJournalId, pid,
+                id, pid,
                 snapshotsProcessed, snapshotsSkipped, snapshotsFailed,
                 journalProcessed, journalSkipped, journalFailed, startedAt);
     }

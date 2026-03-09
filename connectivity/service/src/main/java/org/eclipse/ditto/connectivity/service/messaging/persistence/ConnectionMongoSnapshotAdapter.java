@@ -22,6 +22,7 @@ import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.AbstractMongoSnapshotAdapter;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,25 +78,40 @@ public final class ConnectionMongoSnapshotAdapter extends AbstractMongoSnapshotA
 
     @Override
     protected Connection createJsonifiableFrom(final JsonObject jsonObject) {
+        final boolean hasEncryptedFields = encryptionConfig.getJsonPointers().stream()
+                .map(JsonPointer::of)
+                .flatMap(p -> jsonObject.getValue(p).filter(JsonValue::isString).map(JsonValue::asString).stream())
+                .anyMatch(v -> v.contains(JsonFieldsEncryptor.ENCRYPTED_PREFIX));
+
         if (encryptionConfig.getSymmetricalKey().isEmpty()) {
-            if(jsonObject.formatAsString().contains(JsonFieldsEncryptor.ENCRYPTED_PREFIX)){
+            if (hasEncryptedFields) {
                 LOGGER.warn("Encrypted fields will not be decrypted. Missing symmetrical key. " +
                         "Either configure the one used for encryption or edit connections and update encrypted fields");
             }
             return ConnectionMigrationUtil.connectionFromJsonWithMigration(jsonObject);
         }
+
+        if (!hasEncryptedFields) {
+            return ConnectionMigrationUtil.connectionFromJsonWithMigration(jsonObject);
+        }
+
         final JsonObject decrypted = JsonFieldsEncryptor.decrypt(jsonObject, "", encryptionConfig.getJsonPointers(),
-                encryptionConfig.getSymmetricalKey(), encryptionConfig.getOldSymmetricalKey());
+                encryptionConfig.getSymmetricalKey().get(), encryptionConfig.getOldSymmetricalKey());
         return ConnectionMigrationUtil.connectionFromJsonWithMigration(decrypted);
     }
 
     @Override
     protected JsonObject convertToJson(final Connection snapshotEntity) {
-        if (encryptionConfig.isEncryptionEnabled()) {
+        if (encryptionConfig.isEncryptionEnabled() && isCurrentKeyConfigured()) {
             final JsonObject jsonObject = super.convertToJson(snapshotEntity);
             return JsonFieldsEncryptor.encrypt(jsonObject, "", encryptionConfig.getJsonPointers(),
-                    encryptionConfig.getSymmetricalKey());
+                    encryptionConfig.getSymmetricalKey().orElseThrow());
         }
         return super.convertToJson(snapshotEntity);
+    }
+
+    private boolean isCurrentKeyConfigured() {
+        final Optional<String> symmetricalKey = encryptionConfig.getSymmetricalKey();
+        return symmetricalKey.isPresent() && !symmetricalKey.get().isEmpty();
     }
 }

@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.connectivity.service.messaging.persistence;
+package org.eclipse.ditto.connectivity.service.messaging.persistence.migration;
 
 import java.util.function.Predicate;
 
@@ -28,18 +28,18 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 
 /**
- * Command to abort a currently running encryption migration.
+ * Command to query the current status of an encryption migration.
  * <p>
- * If no migration is running, responds with an error. Otherwise cancels the running stream
- * after the current batch, saves progress, and responds with the progress at the time of abort.
+ * Returns the progress from the migration progress collection, including whether a migration
+ * is currently running, the current phase, and document counts.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = MigrateConnectionEncryptionAbort.TYPE_PREFIX,
-        name = MigrateConnectionEncryptionAbort.NAME)
-public final class MigrateConnectionEncryptionAbort extends AbstractCommand<MigrateConnectionEncryptionAbort> {
+@JsonParsableCommand(typePrefix = MigrateConnectionEncryptionStatus.TYPE_PREFIX,
+        name = MigrateConnectionEncryptionStatus.NAME)
+public final class MigrateConnectionEncryptionStatus extends AbstractCommand<MigrateConnectionEncryptionStatus> {
 
     static final String TYPE_PREFIX = "connectivity.commands:";
-    static final String NAME = "migrateEncryptionAbort";
+    static final String NAME = "migrateEncryptionStatus";
 
     /**
      * Type of this command.
@@ -48,30 +48,30 @@ public final class MigrateConnectionEncryptionAbort extends AbstractCommand<Migr
 
     private static final String RESOURCE_TYPE = "connectivity";
 
-    private MigrateConnectionEncryptionAbort(final DittoHeaders dittoHeaders) {
+    private MigrateConnectionEncryptionStatus(final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
     }
 
     /**
-     * Creates a new {@code MigrateConnectionEncryptionAbort} command.
+     * Creates a new {@code MigrateConnectionEncryptionStatus} command.
      *
      * @param dittoHeaders the headers of the command.
      * @return the command.
      */
-    public static MigrateConnectionEncryptionAbort of(final DittoHeaders dittoHeaders) {
-        return new MigrateConnectionEncryptionAbort(dittoHeaders);
+    public static MigrateConnectionEncryptionStatus of(final DittoHeaders dittoHeaders) {
+        return new MigrateConnectionEncryptionStatus(dittoHeaders);
     }
 
     /**
-     * Creates a new {@code MigrateConnectionEncryptionAbort} from a JSON object.
+     * Creates a new {@code MigrateConnectionEncryptionStatus} from a JSON object.
      *
      * @param jsonObject the JSON object of which the command is to be created.
      * @param dittoHeaders the headers of the command.
      * @return the command.
      */
-    public static MigrateConnectionEncryptionAbort fromJson(final JsonObject jsonObject,
+    public static MigrateConnectionEncryptionStatus fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<MigrateConnectionEncryptionAbort>(TYPE, jsonObject)
+        return new CommandJsonDeserializer<MigrateConnectionEncryptionStatus>(TYPE, jsonObject)
                 .deserialize(() -> of(dittoHeaders));
     }
 
@@ -88,11 +88,11 @@ public final class MigrateConnectionEncryptionAbort extends AbstractCommand<Migr
 
     @Override
     public Category getCategory() {
-        return Category.MODIFY;
+        return Category.QUERY;
     }
 
     @Override
-    public MigrateConnectionEncryptionAbort setDittoHeaders(final DittoHeaders dittoHeaders) {
+    public MigrateConnectionEncryptionStatus setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(dittoHeaders);
     }
 
@@ -108,7 +108,7 @@ public final class MigrateConnectionEncryptionAbort extends AbstractCommand<Migr
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return other instanceof MigrateConnectionEncryptionAbort;
+        return other instanceof MigrateConnectionEncryptionStatus;
     }
 
     @Override

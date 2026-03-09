@@ -23,9 +23,9 @@ import org.eclipse.ditto.connectivity.api.commands.sudo.SudoAddConnectionLogEntr
 import org.eclipse.ditto.connectivity.api.commands.sudo.SudoRetrieveConnectionIdsByTag;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnection;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.MigrateConnectionEncryption;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.MigrateConnectionEncryptionAbort;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.MigrateConnectionEncryptionStatus;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.migration.MigrateConnectionEncryption;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.migration.MigrateConnectionEncryptionAbort;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.migration.MigrateConnectionEncryptionStatus;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.StagedCommand;
 import org.eclipse.ditto.internal.models.streaming.SudoStreamPids;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealth;

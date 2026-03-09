@@ -50,7 +50,7 @@ public class JsonFieldsEncryptorTest {
     public static void initTestFixture() throws NoSuchAlgorithmException {
         final Config config = ConfigFactory.load("connection-fields-encryption-test");
         TEST_CONFIG = DefaultFieldsEncryptionConfig.of(config.getConfig("connection"));
-        SYMMETRICAL_KEY = TEST_CONFIG.getSymmetricalKey();
+        SYMMETRICAL_KEY = TEST_CONFIG.getSymmetricalKey().get();
         KEY_A = EncryptorAesGcm.generateAESKeyAsString();
         KEY_B = EncryptorAesGcm.generateAESKeyAsString();
         KEY_C = EncryptorAesGcm.generateAESKeyAsString();
