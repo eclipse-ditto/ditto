@@ -60,7 +60,7 @@ public class DefaultFieldsEncryptionConfigTest {
                 "/credentials/password"
                 ));
 
-        softly.assertThat(underTest.getSymmetricalKey()).isEqualTo("vJFSTPE9PO2BtZlcMAwNjs8jdFvQCk0Ya9MVdYjRJUU=");
+        softly.assertThat(underTest.getSymmetricalKey().get()).isEqualTo("vJFSTPE9PO2BtZlcMAwNjs8jdFvQCk0Ya9MVdYjRJUU=");
 
     }
 
