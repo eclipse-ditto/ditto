@@ -25,6 +25,7 @@ import org.eclipse.ditto.policies.enforcement.AbstractPolicyLoadingEnforcerActor
 import org.eclipse.ditto.policies.enforcement.PolicyCacheLoader;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
+import org.eclipse.ditto.policies.enforcement.config.DefaultNamespacePoliciesConfig;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
@@ -76,7 +77,9 @@ public final class PolicyEnforcerActor extends
             final Function<PolicyId, CompletionStage<Optional<Policy>>> importedPolicyResolver =
                     importedPolicyId -> policyCacheLoader.asyncLoad(importedPolicyId, getContext().dispatcher())
                             .thenApply(Entry::get);
-            return PolicyEnforcer.withResolvedImports(createPolicy.getPolicy(), importedPolicyResolver)
+            return PolicyEnforcer.withResolvedImportsAndNamespacePolicies(createPolicy.getPolicy(),
+                            importedPolicyResolver,
+                            DefaultNamespacePoliciesConfig.of(getContext().system().settings().config()))
                     .thenApply(Optional::of);
         }
         return super.loadPolicyEnforcer(signal);

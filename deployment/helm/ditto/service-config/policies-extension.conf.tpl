@@ -37,6 +37,15 @@ ditto {
     ]
   }
   policies {
+    namespace-policies {
+    {{- range $namespace, $policyIds := .Values.policies.config.namespacePolicies }}
+      "{{$namespace}}" = [
+      {{- range $index, $policyId := $policyIds }}
+        "{{$policyId}}"
+      {{- end }}
+      ]
+    {{- end }}
+    }
     policy {
       namespace-activity-check = [
       {{- range $index, $nsActivityCheck := .Values.policies.config.persistence.namespaceActivityCheckOverrides }}

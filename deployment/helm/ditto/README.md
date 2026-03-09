@@ -63,6 +63,38 @@ Alternatively, a YAML file that specifies the values for the parameters can be p
 Please consult the [values.yaml](https://github.com/eclipse-ditto/ditto/blob/master/deployment/helm/ditto/values.yaml) 
 for all available configuration options of the Ditto Helm chart.  
 
+### Namespace root policies
+
+Namespace root policies allow operators to define namespace-wide access grants that are transparently
+merged into every policy in that namespace at enforcer-build time. The canonical default configuration
+and full documentation is in
+[`ditto-namespace-policies.conf`](../../../internal/utils/config/src/main/resources/ditto-namespace-policies.conf).
+
+For Helm deployments, configure via the service-scoped values (same style as `entityCreation`):
+- `policies.config.namespacePolicies`
+- `things.config.namespacePolicies`
+
+To keep enforcement consistent across services, configure the same mapping in both sections.
+
+Example:
+```yaml
+policies:
+  config:
+    namespacePolicies:
+      org.example.devices:
+        - org.example:tenant-root
+      org.example.sensors:
+        - org.example:tenant-root
+
+things:
+  config:
+    namespacePolicies:
+      org.example.devices:
+        - org.example:tenant-root
+      org.example.sensors:
+        - org.example:tenant-root
+```
+
 ### Scaling options
 
 Please note the defaults the chart comes with:

@@ -12,7 +12,9 @@
  */
 package org.eclipse.ditto.policies.enforcement;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
@@ -20,16 +22,24 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
+import org.eclipse.ditto.policies.enforcement.config.NamespacePoliciesConfig;
+import org.eclipse.ditto.policies.model.ImportableType;
 import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Policy together with its enforcer.
  */
 @Immutable
 public final class PolicyEnforcer {
+
+    private static final Logger LOG = LoggerFactory.getLogger(PolicyEnforcer.class);
 
     @Nullable private final Policy policy;
     private final Enforcer enforcer;
@@ -52,6 +62,80 @@ public final class PolicyEnforcer {
                     final var enforcer = PolicyEnforcers.defaultEvaluator(resolvedPolicy);
                     return new PolicyEnforcer(resolvedPolicy, enforcer);
                 });
+    }
+
+    /**
+     * Creates a policy enforcer from a policy, resolving both its explicit imports and any namespace root policies
+     * configured for the policy's namespace. Namespace root policies are resolved with their own imports and their
+     * implicit entries are merged last with local entries taking precedence on label conflicts.
+     * <p>
+     * This is the preferred factory method to use in the cache loader. Namespace root policy resolution bypasses
+     * the normal READ permission pre-enforcer check, since namespace policies are operator-configured and injected
+     * transparently — the user never explicitly declares them in the policy's {@code imports} field.
+     * </p>
+     *
+     * @param policy the policy to build an enforcer for.
+     * @param policyResolver resolves imported policies by ID.
+     * @param namespacePoliciesConfig the static namespace policies configuration.
+     * @return a completion stage with the fully resolved PolicyEnforcer.
+     * @since 3.9.0
+     */
+    public static CompletionStage<PolicyEnforcer> withResolvedImportsAndNamespacePolicies(
+            final Policy policy,
+            final Function<PolicyId, CompletionStage<Optional<Policy>>> policyResolver,
+            final NamespacePoliciesConfig namespacePoliciesConfig) {
+
+        return policy.withResolvedImports(policyResolver)
+                .thenCompose(resolvedPolicy -> mergeNamespacePolicies(resolvedPolicy, policyResolver,
+                        namespacePoliciesConfig))
+                .thenApply(finalPolicy -> {
+                    final var enforcer = PolicyEnforcers.defaultEvaluator(finalPolicy);
+                    return new PolicyEnforcer(finalPolicy, enforcer);
+                });
+    }
+
+    /**
+     * Merges importable entries from configured namespace root policies into {@code resolvedPolicy}.
+     * Local/imported entries always win: if a label already exists in {@code resolvedPolicy}, the corresponding
+     * namespace root entry is skipped. Missing or deleted namespace root policies are logged as errors and silently
+     * skipped — the policy continues to function without them.
+     */
+    private static CompletionStage<Policy> mergeNamespacePolicies(
+            final Policy resolvedPolicy,
+            final Function<PolicyId, CompletionStage<Optional<Policy>>> policyResolver,
+            final NamespacePoliciesConfig namespacePoliciesConfig) {
+
+        final String namespace = resolvedPolicy.getNamespace().orElse("");
+        final List<PolicyId> rootPolicies = namespacePoliciesConfig.getRootPoliciesForNamespace(namespace);
+
+        if (rootPolicies.isEmpty()) {
+            return CompletableFuture.completedFuture(resolvedPolicy);
+        }
+
+        CompletionStage<Policy> resultStage = CompletableFuture.completedFuture(resolvedPolicy);
+        for (final PolicyId rootPolicyId : rootPolicies) {
+            resultStage = resultStage.thenCompose(currentPolicy ->
+                    policyResolver.apply(rootPolicyId).thenCompose(rootPolicyOpt -> {
+                        if (rootPolicyOpt.isEmpty()) {
+                            LOG.error("Namespace root policy <{}> for namespace <{}> does not exist or was deleted" +
+                                    " - skipping its entries.", rootPolicyId, namespace);
+                            return CompletableFuture.completedFuture(currentPolicy);
+                        }
+                        return rootPolicyOpt.get().withResolvedImports(policyResolver)
+                                .thenApply(rootPolicy -> mergeImplicitEntries(rootPolicy, currentPolicy));
+                    }));
+        }
+        return resultStage;
+    }
+
+    private static Policy mergeImplicitEntries(final Policy rootPolicy, final Policy currentPolicy) {
+        Policy result = currentPolicy;
+        for (final PolicyEntry entry : rootPolicy) {
+            if (ImportableType.IMPLICIT.equals(entry.getImportableType()) && !result.contains(entry.getLabel())) {
+                result = result.setEntry(entry);
+            }
+        }
+        return result;
     }
 
     /**

@@ -35,6 +35,8 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.internal.utils.cache.config.DefaultCacheConfig;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
+import org.eclipse.ditto.policies.enforcement.config.DefaultNamespacePoliciesConfig;
+import org.eclipse.ditto.policies.enforcement.config.NamespacePoliciesConfig;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
@@ -56,17 +58,21 @@ final class CachingPolicyEnforcerProvider extends AbstractPolicyEnforcerProvider
     private final ActorRef cachingPolicyEnforcerProviderActor;
 
     CachingPolicyEnforcerProvider(final ActorSystem actorSystem) {
-        this(actorSystem, policyEnforcerCacheLoader(actorSystem), enforcementCacheDispatcher(actorSystem),
+        this(actorSystem,
+                DefaultNamespacePoliciesConfig.of(actorSystem.settings().config()),
+                enforcementCacheDispatcher(actorSystem),
                 DefaultCacheConfig.of(actorSystem.settings().config(),
                         PolicyEnforcerProvider.ENFORCER_CACHE_CONFIG_KEY));
     }
 
     private CachingPolicyEnforcerProvider(final ActorSystem actorSystem,
-            final AsyncCacheLoader<PolicyId, Entry<PolicyEnforcer>> policyEnforcerCacheLoader,
+            final NamespacePoliciesConfig namespacePoliciesConfig,
             final MessageDispatcher cacheDispatcher,
             final CacheConfig cacheConfig) {
 
-        this(actorSystem, new PolicyEnforcerCache(policyEnforcerCacheLoader, cacheDispatcher, cacheConfig),
+        this(actorSystem,
+                new PolicyEnforcerCache(policyEnforcerCacheLoader(actorSystem, namespacePoliciesConfig),
+                        cacheDispatcher, cacheConfig, namespacePoliciesConfig),
                 BlockedNamespaces.of(actorSystem),
                 DistributedPubSub.get(actorSystem).mediator(),
                 cacheDispatcher
