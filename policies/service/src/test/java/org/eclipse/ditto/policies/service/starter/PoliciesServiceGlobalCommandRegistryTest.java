@@ -13,6 +13,7 @@
 package org.eclipse.ditto.policies.service.starter;
 
 import org.eclipse.ditto.base.api.common.Shutdown;
+import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.CheckPermissions;
 import org.eclipse.ditto.base.api.common.purge.PurgeEntities;
 import org.eclipse.ditto.base.api.devops.signals.commands.ExecutePiggybackCommand;
 import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
@@ -49,7 +50,8 @@ public final class PoliciesServiceGlobalCommandRegistryTest extends GlobalComman
                 PublishSignal.class,
                 ModifyPolicyImports.class,
                 ModifySplitBrainResolver.class,
-                SubscribeForPersistedEvents.class
+                SubscribeForPersistedEvents.class,
+                CheckPermissions.class
         );
     }
 }

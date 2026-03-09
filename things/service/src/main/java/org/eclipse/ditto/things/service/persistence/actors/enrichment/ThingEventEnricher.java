@@ -108,8 +108,11 @@ public final class ThingEventEnricher {
             @Nullable final PolicyId policyId,
             final T withDittoHeaders
     ) {
+        // Cache thing.toJson() once to avoid redundant serialization across all enrichment steps
+        final JsonObject thingJson = thing != null ? thing.toJson() : null;
+
         final CompletionStage<T> partialAccessPathsStage =
-                enrichWithPartialAccessPathsIfNecessary(withDittoHeaders, thing, policyId);
+                enrichWithPartialAccessPathsIfNecessary(withDittoHeaders, thing, policyId, thingJson);
 
         if (null != thing && !preDefinedExtraFieldsConfigs.isEmpty()) {
             final List<PreDefinedExtraFieldsConfig> matchingPreDefinedFieldsConfigs =
@@ -130,28 +133,28 @@ public final class ThingEventEnricher {
                         combinedPointerSet.addAll(b.getPointers());
                         return JsonFactory.newFieldSelector(combinedPointerSet);
                     });
-            
+
             if (combinedPredefinedExtraFields.isEmpty()) {
                 return partialAccessPathsStage;
             }
-            
+
             return partialAccessPathsStage.thenCompose(enrichedWithPartialAccessPaths -> {
                     final DittoHeaders dittoHeaders = enrichedWithPartialAccessPaths.getDittoHeaders();
                     return buildPredefinedExtraFieldsHeaderReadGrantObject(
-                            policyId, combinedPredefinedExtraFields, thing, dittoHeaders)
+                            policyId, combinedPredefinedExtraFields, thingJson, dittoHeaders)
                             .thenApply(indexedGrants -> {
                                 final String extraFieldsKey = DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS.getKey();
                                 final String readGrantKey = DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT.getKey();
                                 final String extraFieldsObjectKey = DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_OBJECT.getKey();
-                                
+
                                 final DittoHeadersBuilder<?, ?> headersBuilder = dittoHeaders.toBuilder()
                                         .putHeader(extraFieldsKey,
                                                 buildPredefinedExtraFieldsHeaderList(combinedPredefinedExtraFields))
                                         .putHeader(readGrantKey, indexedGrants.pathsToJson().toString())
                                         .putHeader(extraFieldsObjectKey,
-                                                buildPredefinedExtraFieldsHeaderObject(thing,
+                                                buildPredefinedExtraFieldsHeaderObject(thingJson,
                                                         combinedPredefinedExtraFields).toString());
-                                
+
                                 return enrichedWithPartialAccessPaths.setDittoHeaders(headersBuilder.build());
                             });
             });
@@ -163,7 +166,8 @@ public final class ThingEventEnricher {
     private <T extends DittoHeadersSettable<? extends T>> CompletionStage<T> enrichWithPartialAccessPathsIfNecessary(
             final T withDittoHeaders,
             @Nullable final Thing thing,
-            @Nullable final PolicyId policyId) {
+            @Nullable final PolicyId policyId,
+            @Nullable final JsonObject thingJson) {
 
         if (!partialAccessEventsEnabled) {
             return CompletableFuture.completedStage(withDittoHeaders);
@@ -173,7 +177,7 @@ public final class ThingEventEnricher {
             return CompletableFuture.completedStage(withDittoHeaders);
         }
 
-        return enrichWithPartialAccessPaths(thingEvent, thing, policyId)
+        return enrichWithPartialAccessPaths(thingEvent, thing, policyId, thingJson)
                 .thenApply(partialAccessPathsJson -> {
                     if (hasNoPartialSubjects(partialAccessPathsJson)) {
                         return withDittoHeaders;
@@ -254,7 +258,7 @@ public final class ThingEventEnricher {
     private CompletionStage<IndexedReadGrant> buildPredefinedExtraFieldsHeaderReadGrantObject(
             @Nullable final PolicyId policyId,
             final JsonFieldSelector preDefinedExtraFields,
-            final Thing thing,
+            final JsonObject thingJson,
             final DittoHeaders dittoHeaders
     ) {
         return getPolicyEnforcerSafely(policyId).thenApply(policyEnforcerOpt -> {
@@ -268,7 +272,7 @@ public final class ThingEventEnricher {
 
             final ReadGrant readGrant = ReadGrantCollector.collect(
                     preDefinedExtraFields,
-                    thing,
+                    thingJson,
                     policyEnforcer
             );
 
@@ -287,12 +291,14 @@ public final class ThingEventEnricher {
     private CompletionStage<JsonObject> enrichWithPartialAccessPaths(
             final ThingEvent<?> thingEvent,
             final Thing thing,
-            @Nullable final PolicyId policyId
+            @Nullable final PolicyId policyId,
+            @Nullable final JsonObject thingJson
     ) {
         final DittoHeaders dittoHeaders = thingEvent.getDittoHeaders();
         LOGGER.withCorrelationId(dittoHeaders)
                 .debug("Enriching event '{}' (thingId: {}) with partial access paths, policyId: {}",
                         thingEvent.getType(), thingEvent.getEntityId(), policyId);
+        final JsonObject effectiveThingJson = thingJson != null ? thingJson : thing.toJson();
         return getPolicyEnforcerSafely(policyId).thenApply(policyEnforcerOpt -> {
                     if (policyEnforcerOpt.isEmpty()) {
                         LOGGER.withCorrelationId(dittoHeaders)
@@ -302,7 +308,7 @@ public final class ThingEventEnricher {
                     }
                     final Map<String, List<JsonPointer>> partialAccessPaths =
                             PartialAccessPathCalculator.calculatePartialAccessPaths(
-                                    thing, policyEnforcerOpt.get());
+                                    thing, policyEnforcerOpt.get(), effectiveThingJson);
                     // Return consistent empty structure (will be filtered out in caller)
                     if (partialAccessPaths.isEmpty()) {
                         return createEmptyPartialAccessPathsJson();
@@ -365,15 +371,13 @@ public final class ThingEventEnricher {
     }
 
     /**
-     * Builds JSON object for predefined extra fields, optimized to avoid full thing.toJson() when possible.
-     * For large Things, this reduces memory allocation significantly.
+     * Builds JSON object for predefined extra fields from the pre-computed thing JSON.
      */
     private static JsonObject buildPredefinedExtraFieldsHeaderObject(
-            final Thing thing,
+            final JsonObject thingJson,
             final JsonFieldSelector preDefinedExtraFields
     ) {
         final JsonObjectBuilder builder = JsonObject.newBuilder();
-        final JsonObject thingJson = thing.toJson();
         preDefinedExtraFields.getPointers().forEach(pointer ->
                 thingJson.getValue(pointer).ifPresent(thingValue -> builder.set(pointer, thingValue))
         );

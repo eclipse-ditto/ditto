@@ -129,10 +129,20 @@ paths:
     $ref: "./paths/policies/resources.yml"
   '/api/2/policies/{policyId}/entries/{label}/resources/{resourcePath}':
     $ref: "./paths/policies/resource.yml"
+  '/api/2/policies/{policyId}/entries/{label}/allowedImportAdditions':
+    $ref: "./paths/policies/allowedImportAdditions.yml"
+  '/api/2/policies/{policyId}/entries/{label}/importable':
+    $ref: "./paths/policies/importable.yml"
   '/api/2/policies/{policyId}/imports':
     $ref: "./paths/policies/imports.yml"
   '/api/2/policies/{policyId}/imports/{importedPolicyId}':
     $ref: "./paths/policies/import.yml"
+  '/api/2/policies/{policyId}/imports/{importedPolicyId}/entries':
+    $ref: "./paths/policies/importEntries.yml"
+  '/api/2/policies/{policyId}/imports/{importedPolicyId}/entriesAdditions':
+    $ref: "./paths/policies/entriesAdditions.yml"
+  '/api/2/policies/{policyId}/imports/{importedPolicyId}/entriesAdditions/{label}':
+    $ref: "./paths/policies/entryAddition.yml"
 
   ###
   ### Who Am I
@@ -424,6 +434,12 @@ components:
       $ref: "./schemas/policies/resourceEntry.yml"
     Permission:
       $ref: "./schemas/policies/permission.yml"
+    AllowedImportAdditions:
+      $ref: "./schemas/policies/allowedImportAdditions.yml"
+    EntriesAdditions:
+      $ref: "./schemas/policies/entriesAdditions.yml"
+    EntryAddition:
+      $ref: "./schemas/policies/entryAddition.yml"
     SubjectAnnouncement:
       $ref: "./schemas/policies/subjectAnnouncement.yml"
     Features:

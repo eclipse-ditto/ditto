@@ -590,6 +590,90 @@ entities (things/policies) and no-one other:
 
 These system properties would have to be configured for the "things" and "policies" services.
 
+## Gateway namespace access control
+
+Since Ditto *3.9.0*, the Ditto **gateway** service supports restricting which namespaces a client can access based on
+the JWT claims or HTTP headers present in the request. This provides a cheap enforcement layer at the API gateway level,
+before policy-based access control is evaluated.
+
+Namespace access control is configured via `ditto.gateway.authentication.namespace-access` in
+[gateway.conf](https://github.com/eclipse/ditto/blob/master/gateway/service/src/main/resources/gateway.conf).
+
+### How it works
+
+A list of **rules** is defined. Each rule can specify:
+- **`conditions`** (AND semantics): a list of placeholder expressions that must all evaluate to a non-empty value for
+  the rule to apply. Placeholders: `{{ jwt:claim }}` for JWT claims, `{{ header:name }}` for HTTP headers.
+  Functions `fn:filter` and `fn:default` can be used (see below).
+- **`resource-types`**: list of resource types this rule applies to (`"thing"`, `"policy"`).
+  An empty list means the rule applies to all resource types.
+- **`allowed-namespaces`**: list of exact namespace names or wildcard patterns (`*` = any chars, `?` = single char).
+  Examples: `"org.eclipse.ditto"` (exact match), `"org.eclipse.*"` (wildcard).
+  An empty list means all namespaces are allowed (unless blocked).
+- **`blocked-namespaces`**: list of exact namespace names or wildcard patterns that are explicitly blocked (takes precedence over allowed).
+
+Multiple rules are evaluated with **OR semantics**: a namespace is accessible if it is allowed by *any* matching rule.
+**Fail-closed**: if namespace-access rules are configured but none of them match the current request (i.e. no rule's
+conditions are satisfied), access is **denied**. If no rules are configured at all, access is allowed (backward compatible).
+This means a request from an unrecognized issuer or with unexpected headers will be denied rather than silently granted full access.
+
+### Search behavior
+
+For `GET /search/things` requests without an explicit `namespaces` parameter, Ditto automatically injects the
+allowed namespaces from the applicable rule. If only wildcard patterns are configured (e.g. `"org.eclipse.*"`),
+or if no rule conditions match (fail-closed), Ditto injects an **empty namespaces set**, returning no results.
+In this case, clients should provide explicit namespace values in the `namespaces` query parameter.
+
+### WebSocket and SSE behavior
+
+Namespace access rules are evaluated once at **connection time** using the JWT present when the WebSocket or SSE
+session is established. The validator is **not updated** when a JWT is refreshed mid-session; namespace access
+continues to reflect the access granted at connect time.
+
+Namespace enforcement applies to incoming commands (things and policies) sent over WebSocket. Search commands
+(`QueryThings`) are not blocked at the namespace level since they carry no entity ID; namespace filtering for
+search is handled via the `namespaces` parameter instead.
+
+### Configuration example
+
+```hocon
+ditto.gateway.authentication {
+  namespace-access = [
+    {
+      # Rule applies only when the JWT issuer matches
+      conditions = [
+        "{{ jwt:iss | fn:filter('like','https://my-idp.example.com*') }}"
+      ]
+      resource-types = ["thing", "policy"]
+      allowed-namespaces = [
+        "org.example.*"
+        "concrete.namespace"
+      ]
+      blocked-namespaces = [
+        "forbidden.namespace"
+      ]
+    }
+  ]
+}
+```
+
+### Using `fn:default` before `fn:filter` for optional headers
+
+When a condition references an HTTP header that may be absent, always add `fn:default` before `fn:filter`:
+
+```
+"{{ header:someheader | fn:default('safe') | fn:filter('ne','dangerous') }}"
+```
+
+Without `fn:default`, an absent header produces an empty pipeline result which causes the entire condition to fail.
+This would silently bypass the rule rather than enforcing it, which is a security footgun.
+
+### Invalid namespace patterns
+
+If a namespace pattern (in `allowed-namespaces` or `blocked-namespaces`) is syntactically invalid, Ditto will fail
+at startup with a `DittoConfigError`. This prevents operators from inadvertently deploying a configuration where
+access control rules are silently skipped.
+
 ## Configuring pre-defined extra fields
 
 Starting with Ditto 3.7.0, it is possible to configure [enrichment of `extraFields`](basic-enrichment.html) statically 

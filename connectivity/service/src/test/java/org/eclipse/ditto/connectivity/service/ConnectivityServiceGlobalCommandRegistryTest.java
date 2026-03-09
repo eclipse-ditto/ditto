@@ -13,6 +13,7 @@
 package org.eclipse.ditto.connectivity.service;
 
 import org.eclipse.ditto.base.api.common.Shutdown;
+import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.CheckPermissions;
 import org.eclipse.ditto.base.api.common.purge.PurgeEntities;
 import org.eclipse.ditto.base.api.devops.signals.commands.ExecutePiggybackCommand;
 import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
@@ -75,6 +76,7 @@ public class ConnectivityServiceGlobalCommandRegistryTest extends GlobalCommandR
                 SudoAddConnectionLogEntry.class,
                 SubscribeForPersistedEvents.class,
                 CreateWotValidationConfig.class,
+                CheckPermissions.class,
                 MigrateConnectionEncryption.class,
                 MigrateConnectionEncryptionAbort.class,
                 MigrateConnectionEncryptionStatus.class

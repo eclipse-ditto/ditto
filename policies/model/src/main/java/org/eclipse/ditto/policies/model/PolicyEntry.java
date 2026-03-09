@@ -12,11 +12,14 @@
  */
 package org.eclipse.ditto.policies.model;
 
+import java.util.Set;
+
 import javax.annotation.Nonnull;
 
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -100,6 +103,15 @@ public interface PolicyEntry extends Jsonifiable.WithFieldSelectorAndPredicate<J
     ImportableType getImportableType();
 
     /**
+     * Returns which types of additions are allowed when this entry is imported by other policies via
+     * {@code entriesAdditions}. An empty set means no additions are allowed.
+     *
+     * @return the set of allowed import addition types.
+     * @since 3.9.0
+     */
+    Set<AllowedImportAddition> getAllowedImportAdditions();
+
+    /**
      * Checks if the passed {@code otherPolicyEntry} is semantically the same as this entry.
      * I.e. that it contains the same subject ids having the same resources.
      *
@@ -148,6 +160,13 @@ public interface PolicyEntry extends Jsonifiable.WithFieldSelectorAndPredicate<J
          */
         public static final JsonFieldDefinition<String> IMPORTABLE_TYPE = JsonFactory
                 .newStringFieldDefinition("importable", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing which types of additions are allowed when this entry is imported.
+         * @since 3.9.0
+         */
+        public static final JsonFieldDefinition<JsonArray> ALLOWED_IMPORT_ADDITIONS = JsonFactory
+                .newJsonArrayFieldDefinition("allowedImportAdditions", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

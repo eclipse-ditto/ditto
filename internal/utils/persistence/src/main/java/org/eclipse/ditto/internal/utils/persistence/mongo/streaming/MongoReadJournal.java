@@ -166,6 +166,44 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
 
     private static final Duration MAX_BACK_OFF_DURATION = Duration.ofSeconds(128L);
 
+    private static final BsonDocument FILTER_PRIORITY_TAGS_EXPR = BsonDocument.parse(
+            "{" +
+                    "  $filter: {" +
+                    "    input: \"$" + J_TAGS + "\"," +
+                    "    as: \"tags\"," +
+                    "    cond: {" +
+                    "      $eq: [" +
+                    "        { $substrCP: [\"$$tags\", 0, " + PRIORITY_TAG_PREFIX.length() + "] }," +
+                    "        \"" + PRIORITY_TAG_PREFIX + "\"" +
+                    "      ]" +
+                    "    }" +
+                    "  }" +
+                    "}");
+
+    private static final BsonDocument DOCDB_MAP_PRIORITY_TAGS_EXPR = BsonDocument.parse(
+            "{" +
+                    "  $map: {" +
+                    "    input: \"$" + J_TAGS + "\"," +
+                    "    as: \"tag\"," +
+                    "    in: {" +
+                    "      $reduce: {" +
+                    "        input: {" +
+                    "          $range: [0, {" +
+                    "            $subtract: [1000, {" +
+                    "              $strLenCP: {" +
+                    "                $substrCP: [\"$$tag\", " + PRIORITY_TAG_PREFIX.length() +
+                    ", { $strLenCP: \"$$tag\" }]" +
+                    "              }" +
+                    "            }]" +
+                    "          }]" +
+                    "        }," +
+                    "        initialValue: \"$$tag\"," +
+                    "        in: { $concat: [\" \", \"$$value\"] }" +
+                    "      }" +
+                    "    }" +
+                    "  }" +
+                    "}");
+
     private static final Index TAG_PID_INDEX =
             IndexFactory.newInstance("ditto_tag_pid", List.of(J_TAGS, J_PROCESSOR_ID), false, true);
 
@@ -398,16 +436,20 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
 
     private Source<String, NotUsed> filterPidsThatDoesntContainTagInNewestEntry(final MongoCollection<Document> journal,
             final List<String> pids, final String tag) {
-        final AggregatePublisher<Document> aggregate = journal.aggregate(List.of(
-                Aggregates.match(Filters.in(J_PROCESSOR_ID, pids)),
-                Aggregates.sort(Sorts.descending(J_TO)),
-                Aggregates.group(
-                        "$" + J_PROCESSOR_ID,
-                        toFirstJournalEntryFields(Set.of(J_PROCESSOR_ID, J_TAGS))
-                ),
-                Aggregates.match(Filters.eq(J_TAGS, tag)),
-                Aggregates.sort(Sorts.ascending(J_PROCESSOR_ID))
+        final List<Bson> filterPipeline = new ArrayList<>(6);
+        filterPipeline.add(Aggregates.match(Filters.in(J_PROCESSOR_ID, pids)));
+        // project stage -- reduce document size before $sort to save memory
+        filterPipeline.add(Aggregates.project(Projections.include(
+                J_PROCESSOR_ID, J_TO,
+                J_EVENT + "." + J_PROCESSOR_ID, J_EVENT + "." + J_TAGS)));
+        filterPipeline.add(Aggregates.sort(Sorts.descending(J_TO)));
+        filterPipeline.add(Aggregates.group(
+                "$" + J_PROCESSOR_ID,
+                toFirstJournalEntryFields(Set.of(J_PROCESSOR_ID, J_TAGS))
         ));
+        filterPipeline.add(Aggregates.match(Filters.eq(J_TAGS, tag)));
+        filterPipeline.add(Aggregates.sort(Sorts.ascending(J_PROCESSOR_ID)));
+        final AggregatePublisher<Document> aggregate = journal.aggregate(filterPipeline);
         final AggregatePublisher<Document> hintedAggregate =
                 readJournalConfig.getIndexNameHintForFilterPidsThatDoesntContainTagInNewestEntry()
                         .filter(hint -> !hint.equals("null"))
@@ -811,73 +853,25 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
             final String tag,
             final int maxRestarts) {
 
-        final List<Bson> pipeline = new ArrayList<>(4);
+        final List<Bson> pipeline = new ArrayList<>(5);
         // optional match stages: consecutive match stages are optimized together ($match + $match coalescence)
         if (!tag.isEmpty()) {
             pipeline.add(Aggregates.match(Filters.eq(J_TAGS, tag)));
         }
 
+        // project stage -- reduce document size before $group to save memory
+        pipeline.add(Aggregates.project(Projections.include(J_PROCESSOR_ID, J_TAGS)));
+
         // group stage. We can assume that the $last element ist also new latest event because of the insert order.
         pipeline.add(Aggregates.group("$" + J_PROCESSOR_ID, Accumulators.last(J_TAGS, "$" + J_TAGS)));
 
         // Filter irrelevant tags for priority ordering.
-        pipeline.add(Aggregates.project(Projections.computed(J_TAGS, BsonDocument.parse(
-                "{\n" +
-                        "    $filter: {\n" +
-                        "        input: \"$" + J_TAGS + "\",\n" +
-                        "        as: \"tags\",\n" +
-                        "        cond: {\n" +
-                        "            $eq: [\n" +
-                        "                {\n" +
-                        "                    $substrCP: [\"$$tags\", 0, " + PRIORITY_TAG_PREFIX.length() + "]\n" +
-                        "                },\n" +
-                        "                \"" + PRIORITY_TAG_PREFIX + "\"\n" +
-                        "            ]\n" +
-                        "        }\n" +
-                        "    }\n" +
-                        "}"
-        ))));
+        pipeline.add(Aggregates.project(Projections.computed(J_TAGS, FILTER_PRIORITY_TAGS_EXPR)));
 
         if (mongoClient.getDittoSettings().isDocumentDbCompatibilityMode()) {
             // extract priority as "int" from relevant tags so that they can be compared numerically:
-            pipeline.add(Aggregates.project(Projections.computed(J_TAGS, BsonDocument.parse(
-                    "{\n" +
-                            "   $map: {\n" +
-                            "      input: \"$" + J_TAGS + "\",\n" +
-                            "      as: \"tag\",\n" +
-                            "      in: {\n" +
-                            "         $reduce: {\n" +
-                            "            input: {\n" +
-                            "               $range: [\n" +
-                            "                  0,\n" +
-                            "                  {\n" +
-                            "                     $subtract: [\n" +
-                            "                        1000,\n" +
-                            // assumption: max prio is 1000 - all higher prios are not correctly ordered
-                            "                        {\n" +
-                            "                           $strLenCP: {\n" +
-                            "                              $substrCP: [\n" +
-                            "                                 \"$$tag\", " + PRIORITY_TAG_PREFIX.length() +
-                            ", { $strLenCP: \"$$tag\" }\n" +
-                            "                              ]\n" +
-                            "                           }\n" +
-                            "                        }\n" +
-                            "                     ]\n" +
-                            "                  }\n" +
-                            "               ],\n" +
-                            "            },\n" +
-                            "            initialValue: \"$$tag\",\n" +
-                            "            in: {\n" +
-                            "               $concat: [\n" +
-                            "                  \" \",\n" +
-                            "                  \"$$value\"\n" +
-                            "               ]\n" +
-                            "            }\n" +
-                            "         }\n" +
-                            "      }\n" +
-                            "   }\n" +
-                            "}\n"
-            ))));
+            // assumption: max prio is 1000 - all higher prios are not correctly ordered
+            pipeline.add(Aggregates.project(Projections.computed(J_TAGS, DOCDB_MAP_PRIORITY_TAGS_EXPR)));
         }
 
         // sort stage 2 -- order after group stage is not defined
@@ -918,7 +912,7 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
             final int maxRestarts,
             final String... fieldNames) {
 
-        final List<Bson> pipeline = new ArrayList<>(6);
+        final List<Bson> pipeline = new ArrayList<>(7);
         // optional match stages: consecutive match stages are optimized together ($match + $match coalescence)
         if (!tag.isEmpty()) {
             pipeline.add(Aggregates.match(Filters.eq(J_TAGS, tag)));
@@ -927,13 +921,22 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
             pipeline.add(Aggregates.match(Filters.gt(J_PROCESSOR_ID, startPid)));
         }
 
+        final Set<String> fieldNamesWithOptionalTags = Arrays.stream(fieldNames).collect(Collectors.toSet());
+
+        // project stage -- reduce document size before $sort to save memory
+        final List<String> journalProjectFields = new ArrayList<>();
+        journalProjectFields.add(J_PROCESSOR_ID);
+        journalProjectFields.add(J_TO);
+        for (final String fieldName : fieldNamesWithOptionalTags) {
+            journalProjectFields.add(J_EVENT + "." + fieldName);
+        }
+        pipeline.add(Aggregates.project(Projections.include(journalProjectFields)));
+
         // sort stage
         pipeline.add(Aggregates.sort(Sorts.orderBy(Sorts.ascending(J_PROCESSOR_ID), Sorts.descending(J_TO))));
 
         // limit stage. It should come before group stage or MongoDB would scan the entire journal collection.
         pipeline.add(Aggregates.limit(batchSize));
-
-        final Set<String> fieldNamesWithOptionalTags = Arrays.stream(fieldNames).collect(Collectors.toSet());
         // group stage
         pipeline.add(Aggregates.group("$" + J_PROCESSOR_ID, toFirstJournalEntryFields(fieldNamesWithOptionalTags)));
 
@@ -991,10 +994,20 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
             final boolean includeDeleted,
             final String... snapshotFields) {
 
-        final List<Bson> pipeline = new ArrayList<>(5);
+        final List<Bson> pipeline = new ArrayList<>(6);
         // match stage
         final Bson matchFilter = snapshotFilter.toMongoFilter();
         pipeline.add(Aggregates.match(matchFilter));
+
+        // project stage -- reduce document size before $sort to save memory
+        final List<String> snapshotProjectFields = new ArrayList<>();
+        snapshotProjectFields.add(S_PROCESSOR_ID);
+        snapshotProjectFields.add(S_SN);
+        snapshotProjectFields.add(S_SERIALIZED_SNAPSHOT + "." + LIFECYCLE);
+        for (final String snapshotField : snapshotFields) {
+            snapshotProjectFields.add(S_SERIALIZED_SNAPSHOT + "." + snapshotField);
+        }
+        pipeline.add(Aggregates.project(Projections.include(snapshotProjectFields)));
 
         // sort stage
         pipeline.add(Aggregates.sort(Sorts.orderBy(Sorts.ascending(S_PROCESSOR_ID), Sorts.descending(S_SN))));
@@ -1016,17 +1029,16 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
                 Accumulators.max(maxPid, "$" + S_ID),
                 Accumulators.push(items, "$$ROOT")));
 
-        // redact stage - "$$PRUNE"s documents with "__lifecycle" = DELETED if includeDeleted=false
-        // if includeDeleted=true keeps them using "$$DESCEND"
-        // redacts operates recursively, so it evaluates all documents in items array which
-        // allows us to preserve maxPid even when all elements in the array are PRUNE-ed
-        pipeline.add(new Document().append("$redact", new Document()
-                .append("$cond", new Document()
-                        .append("if",
-                                new Document().append("$ne", Arrays.asList("$" + LIFECYCLE, "DELETED")))
-                        .append("then", "$$DESCEND")
-                        .append("else", includeDeleted ? "$$DESCEND" : "$$PRUNE")
-                )));
+        // filter stage - remove DELETED snapshots from items array (when not including deleted)
+        if (!includeDeleted) {
+            pipeline.add(new Document("$addFields", new Document(items,
+                    new Document("$filter", new Document()
+                            .append("input", "$" + items)
+                            .append("as", "item")
+                            .append("cond", new Document("$ne",
+                                    Arrays.asList("$$item." + LIFECYCLE, "DELETED")))
+                    ))));
+        }
 
         final AggregatePublisher<Document> aggregate = snapshotStore.aggregate(pipeline);
         final Optional<String> indexHint = calculateIndexHint(matchFilter);

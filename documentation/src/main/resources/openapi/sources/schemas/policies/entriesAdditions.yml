@@ -1,0 +1,31 @@
+# Copyright (c) 2026 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+type: object
+description: |-
+  Additional subjects and/or resources to additively merge into imported policy entries.
+  Each key is a label of an imported policy entry. The value is an object with optional "subjects"
+  and/or "resources" fields that will be merged into the corresponding imported entry.
+  Subjects are added (existing subjects from the template are preserved).
+  For resources, new paths are added and overlapping paths get their permissions merged (union of
+  grants and revokes; template revokes are always preserved).
+  The imported policy entry must explicitly allow these additions via its "allowedImportAdditions"
+  field, otherwise the additions are rejected.
+additionalProperties:
+  $ref: 'entryAddition.yml'
+example:
+  default:
+    subjects:
+      "integration:my-connection":
+        type: "generated"
+    resources:
+      "thing:/features":
+        grant: [ "READ" ]
+        revoke: []

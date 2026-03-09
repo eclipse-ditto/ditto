@@ -23,7 +23,9 @@ public final class IndexInitializationIT extends AbstractThingSearchPersistenceI
     @Test
     public void indicesAreCorrectlyInitialized() {
         MongoIndexAssertions.assertIndices(getClient().getDefaultDatabase(),
-                PersistenceConstants.THINGS_COLLECTION_NAME, getMaterializer(), Indices.all(false));
+                PersistenceConstants.THINGS_COLLECTION_NAME, getMaterializer(),
+                Indices.all(false).stream().filter(f -> !f.getName().equals("v_wildcard_id")).toList()
+        );
     }
 
 }

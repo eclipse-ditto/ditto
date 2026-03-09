@@ -27,6 +27,8 @@ import java.util.stream.Collectors;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.protocol.adapter.common.CheckPermissionsCommandAdapter;
+import org.eclipse.ditto.protocol.adapter.common.CheckPermissionsCommandResponseAdapter;
 import org.eclipse.ditto.protocol.adapter.connectivity.ConnectivityCommandAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.provider.AcknowledgementAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.provider.PolicyCommandAdapterProvider;
@@ -45,7 +47,9 @@ final class DefaultAdapterResolver implements AdapterResolver {
             final ConnectivityCommandAdapterProvider connectivityAdapters,
             final AcknowledgementAdapterProvider acknowledgementAdapters,
             final StreamingSubscriptionCommandAdapter streamingSubscriptionCommandAdapter,
-            final StreamingSubscriptionEventAdapter streamingSubscriptionEventAdapter) {
+            final StreamingSubscriptionEventAdapter streamingSubscriptionEventAdapter,
+            final CheckPermissionsCommandAdapter checkPermissionsCommandAdapter,
+            final CheckPermissionsCommandResponseAdapter checkPermissionsCommandResponseAdapter) {
         final List<Adapter<?>> adapters = new ArrayList<>();
         adapters.addAll(thingsAdapters.getAdapters());
         adapters.addAll(policiesAdapters.getAdapters());
@@ -53,9 +57,12 @@ final class DefaultAdapterResolver implements AdapterResolver {
         adapters.addAll(acknowledgementAdapters.getAdapters());
         adapters.add(streamingSubscriptionCommandAdapter);
         adapters.add(streamingSubscriptionEventAdapter);
+        adapters.add(checkPermissionsCommandAdapter);
+        adapters.add(checkPermissionsCommandResponseAdapter);
         resolver = computeResolver(adapters);
         resolverBySignal = new AdapterResolverBySignal(thingsAdapters, policiesAdapters, connectivityAdapters,
-                acknowledgementAdapters, streamingSubscriptionCommandAdapter, streamingSubscriptionEventAdapter);
+                acknowledgementAdapters, streamingSubscriptionCommandAdapter, streamingSubscriptionEventAdapter,
+                checkPermissionsCommandAdapter, checkPermissionsCommandResponseAdapter);
     }
 
     @Override

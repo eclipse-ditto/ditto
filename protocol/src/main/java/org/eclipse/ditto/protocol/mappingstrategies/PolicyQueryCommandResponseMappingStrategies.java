@@ -15,9 +15,16 @@ package org.eclipse.ditto.protocol.mappingstrategies;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntriesResponse;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryAllowedImportAdditionsResponse;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryImportableResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryResponse;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImportEntriesResponse;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImportEntriesAdditionsResponse;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImportEntryAdditionResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImportResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImportsResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyResponse;
@@ -51,6 +58,10 @@ final class PolicyQueryCommandResponseMappingStrategies
         addPolicyEntryResourceResponses(mappingStrategies);
         addPolicyEntrySubjectResponses(mappingStrategies);
         addPolicyImportResponses(mappingStrategies);
+        addPolicyEntryAllowedImportAdditionsResponses(mappingStrategies);
+        addPolicyEntryImportableResponses(mappingStrategies);
+        addPolicyImportEntriesResponses(mappingStrategies);
+        addPolicyImportEntriesAdditionsResponses(mappingStrategies);
         return mappingStrategies;
     }
 
@@ -110,5 +121,66 @@ final class PolicyQueryCommandResponseMappingStrategies
         mappingStrategies.put(RetrieveSubjectsResponse.TYPE,
                 adaptable -> RetrieveSubjectsResponse.of(policyIdFromTopicPath(adaptable.getTopicPath()),
                         labelFrom(adaptable), subjectsFrom(adaptable), dittoHeadersFrom(adaptable)));
+    }
+
+    private static void addPolicyEntryAllowedImportAdditionsResponses(
+            final Map<String, JsonifiableMapper<PolicyQueryCommandResponse<?>>> mappingStrategies) {
+
+        mappingStrategies.put(RetrievePolicyEntryAllowedImportAdditionsResponse.TYPE,
+                adaptable -> RetrievePolicyEntryAllowedImportAdditionsResponse.of(
+                        policyIdFromTopicPath(adaptable.getTopicPath()),
+                        labelFrom(adaptable),
+                        adaptable.getPayload().getValue()
+                                .filter(JsonValue::isArray)
+                                .map(JsonValue::asArray)
+                                .orElse(JsonArray.empty()),
+                        dittoHeadersFrom(adaptable)));
+    }
+
+    private static void addPolicyEntryImportableResponses(
+            final Map<String, JsonifiableMapper<PolicyQueryCommandResponse<?>>> mappingStrategies) {
+
+        mappingStrategies.put(RetrievePolicyEntryImportableResponse.TYPE,
+                adaptable -> RetrievePolicyEntryImportableResponse.of(
+                        policyIdFromTopicPath(adaptable.getTopicPath()),
+                        labelFrom(adaptable),
+                        adaptable.getPayload().getValue()
+                                .filter(JsonValue::isString)
+                                .map(JsonValue::asString)
+                                .orElse("implicit"),
+                        dittoHeadersFrom(adaptable)));
+    }
+
+    private static void addPolicyImportEntriesResponses(
+            final Map<String, JsonifiableMapper<PolicyQueryCommandResponse<?>>> mappingStrategies) {
+
+        mappingStrategies.put(RetrievePolicyImportEntriesResponse.TYPE,
+                adaptable -> RetrievePolicyImportEntriesResponse.of(
+                        policyIdFromTopicPath(adaptable.getTopicPath()),
+                        importedPolicyIdFrom(adaptable),
+                        adaptable.getPayload().getValue()
+                                .filter(JsonValue::isArray)
+                                .map(JsonValue::asArray)
+                                .orElse(JsonArray.empty()),
+                        dittoHeadersFrom(adaptable)));
+    }
+
+    private static void addPolicyImportEntriesAdditionsResponses(
+            final Map<String, JsonifiableMapper<PolicyQueryCommandResponse<?>>> mappingStrategies) {
+
+        mappingStrategies.put(RetrievePolicyImportEntriesAdditionsResponse.TYPE,
+                adaptable -> RetrievePolicyImportEntriesAdditionsResponse.of(
+                        policyIdFromTopicPath(adaptable.getTopicPath()),
+                        importedPolicyIdFrom(adaptable),
+                        getValueFromPayload(adaptable),
+                        dittoHeadersFrom(adaptable)));
+
+        mappingStrategies.put(RetrievePolicyImportEntryAdditionResponse.TYPE,
+                adaptable -> RetrievePolicyImportEntryAdditionResponse.of(
+                        policyIdFromTopicPath(adaptable.getTopicPath()),
+                        importedPolicyIdFrom(adaptable),
+                        entryAdditionLabelFromImportPath(adaptable.getPayload().getPath()),
+                        getValueFromPayload(adaptable),
+                        dittoHeadersFrom(adaptable)));
     }
 }

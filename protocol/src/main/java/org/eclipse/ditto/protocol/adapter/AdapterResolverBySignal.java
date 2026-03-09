@@ -18,6 +18,8 @@ import static org.eclipse.ditto.protocol.TopicPath.Channel.TWIN;
 
 import java.util.Arrays;
 
+import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.CheckPermissions;
+import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.CheckPermissionsResponse;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
@@ -39,6 +41,8 @@ import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.UnknownChannelException;
 import org.eclipse.ditto.protocol.UnknownSignalException;
+import org.eclipse.ditto.protocol.adapter.common.CheckPermissionsCommandAdapter;
+import org.eclipse.ditto.protocol.adapter.common.CheckPermissionsCommandResponseAdapter;
 import org.eclipse.ditto.protocol.adapter.connectivity.ConnectivityCommandAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.provider.AcknowledgementAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.provider.PolicyCommandAdapterProvider;
@@ -69,13 +73,17 @@ final class AdapterResolverBySignal {
     private final AcknowledgementAdapterProvider acknowledgementAdapters;
     private final StreamingSubscriptionCommandAdapter streamingSubscriptionCommandAdapter;
     private final StreamingSubscriptionEventAdapter streamingSubscriptionEventAdapter;
+    private final CheckPermissionsCommandAdapter checkPermissionsCommandAdapter;
+    private final CheckPermissionsCommandResponseAdapter checkPermissionsCommandResponseAdapter;
 
     AdapterResolverBySignal(final ThingCommandAdapterProvider thingsAdapters,
             final PolicyCommandAdapterProvider policiesAdapters,
             final ConnectivityCommandAdapterProvider connectivityAdapters,
             final AcknowledgementAdapterProvider acknowledgementAdapters,
             final StreamingSubscriptionCommandAdapter streamingSubscriptionCommandAdapter,
-            final StreamingSubscriptionEventAdapter streamingSubscriptionEventAdapter) {
+            final StreamingSubscriptionEventAdapter streamingSubscriptionEventAdapter,
+            final CheckPermissionsCommandAdapter checkPermissionsCommandAdapter,
+            final CheckPermissionsCommandResponseAdapter checkPermissionsCommandResponseAdapter) {
 
         this.thingsAdapters = thingsAdapters;
         this.policiesAdapters = policiesAdapters;
@@ -83,6 +91,8 @@ final class AdapterResolverBySignal {
         this.acknowledgementAdapters = acknowledgementAdapters;
         this.streamingSubscriptionCommandAdapter = streamingSubscriptionCommandAdapter;
         this.streamingSubscriptionEventAdapter = streamingSubscriptionEventAdapter;
+        this.checkPermissionsCommandAdapter = checkPermissionsCommandAdapter;
+        this.checkPermissionsCommandResponseAdapter = checkPermissionsCommandResponseAdapter;
     }
 
     @SuppressWarnings("unchecked")
@@ -179,6 +189,11 @@ final class AdapterResolverBySignal {
             return (Adapter<T>) thingsAdapters.getMessageCommandResponseAdapter();
         }
 
+        if (commandResponse instanceof CheckPermissionsResponse) {
+            validateChannel(channel, commandResponse, NONE);
+            return (Adapter<T>) checkPermissionsCommandResponseAdapter;
+        }
+
         if (commandResponse instanceof PolicyModifyCommandResponse) {
             validateChannel(channel, commandResponse, NONE);
             return (Adapter<T>) policiesAdapters.getModifyCommandResponseAdapter();
@@ -251,6 +266,11 @@ final class AdapterResolverBySignal {
         if (command instanceof StreamingSubscriptionCommand) {
             validateNotLive(command);
             return (Adapter<T>) streamingSubscriptionCommandAdapter;
+        }
+
+        if (command instanceof CheckPermissions) {
+            validateChannel(channel, command, NONE);
+            return (Adapter<T>) checkPermissionsCommandAdapter;
         }
 
         if (command instanceof PolicyModifyCommand) {

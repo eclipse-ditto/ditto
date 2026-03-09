@@ -19,6 +19,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.service.endpoints.utils.GatewaySignalEnrichmentProvider;
+import org.eclipse.ditto.gateway.service.security.authorization.NamespaceAccessValidatorFactory;
 import org.eclipse.ditto.gateway.service.streaming.StreamingAuthorizationEnforcer;
 
 import org.apache.pekko.actor.ActorRef;
@@ -76,6 +77,15 @@ public interface SseRouteBuilder {
      * @return this builder.
      */
     SseRouteBuilder withProxyActor(@Nullable ActorRef proxyActor);
+
+    /**
+     * Set the namespace access validator factory.
+     * If not set or set to null, no namespace-based access control is applied to SSE search requests.
+     *
+     * @param validatorFactory the factory, may be null to disable namespace access control.
+     * @return this builder.
+     */
+    SseRouteBuilder withNamespaceAccessValidatorFactory(@Nullable NamespaceAccessValidatorFactory validatorFactory);
 
     /**
      * Creates the Pekko HTTP route for SSE.

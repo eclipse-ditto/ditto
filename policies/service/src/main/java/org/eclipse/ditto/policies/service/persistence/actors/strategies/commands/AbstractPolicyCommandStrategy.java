@@ -36,6 +36,7 @@ import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.policies.api.commands.sudo.PolicySudoCommand;
 import org.eclipse.ditto.policies.model.Label;
+import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
@@ -162,8 +163,9 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
      */
     protected PolicyEntry potentiallyAdjustPolicyEntry(final PolicyEntry policyEntry) {
         final var adjustedSubjects = potentiallyAdjustSubjects(policyEntry.getSubjects());
-        return PolicyEntry.newInstance(policyEntry.getLabel(), adjustedSubjects, policyEntry.getResources(),
-                policyEntry.getImportableType());
+        return PoliciesModelFactory.newPolicyEntry(policyEntry.getLabel(), adjustedSubjects,
+                policyEntry.getResources(), policyEntry.getImportableType(),
+                policyEntry.getAllowedImportAdditions());
     }
 
     /**

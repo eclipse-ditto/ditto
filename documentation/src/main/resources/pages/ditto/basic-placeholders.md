@@ -181,7 +181,60 @@ are resolved in the following way:
 * `{%raw%}{{ jwt:scopes | fn:split(' ') }}{%endraw%}` - resolves to 2 entries: `"openid"` and `"email"`
 * `{%raw%}{{ jwt:extra/roles | fn:filter('like','*moderator') }}@{{ jwt:aud }}{%endraw%}` - resolves to 2 entries: `"super-moderator@client-id-0815"` and `"moderator@client-id-0815"`
 
+#### Correlated field extraction with fn:format()
 
+When a JWT claim contains an **array of JSON objects** and the authorization subject template references multiple fields
+from that array, each `{%raw%}{{ jwt:<path> }}{%endraw%}` placeholder resolves independently across all array elements
+and a Cartesian product is formed — which produces incorrect cross-combinations.
+
+The `fn:format()` function solves this by processing each JSON object individually, keeping field extractions
+**correlated** within each object.
+
+**Example**: Assuming the JWT contains:
+
+```json
+{
+  "authz": [
+    { "reseller": "io.test", "service_provider": "acme", "roles": ["op"] },
+    { "reseller": "io.test", "service_provider": "", "roles": ["resellerAdmin"] }
+  ]
+}
+```
+
+Using separate placeholders (produces **wrong** cross-combinations):
+* `{%raw%}{{ jwt:authz/reseller }}#{{ jwt:authz/service_provider }}#{{ jwt:authz/roles }}{%endraw%}` - resolves to **4** entries including incorrect mixes like `"io.test#acme#resellerAdmin"` and `"io.test##op"`
+
+Using `fn:format()` (keeps fields correlated per object):
+* `{%raw%}{{ jwt:authz | fn:format('{reseller}#{service_provider}#{roles}') }}{%endraw%}` - resolves to only the **2 correct** entries: `"io.test#acme#op"` and `"io.test##resellerAdmin"`
+
+#### Section syntax for nested arrays
+
+When fields contain arrays of objects (or nested arrays), use Mustache-inspired **section syntax**
+`{#arrayField}...{/arrayField}` to iterate over each element. Inside a section, field references
+resolve against each array element. Use `{.}` for arrays of primitives.
+
+**Example**: Assuming the JWT contains:
+
+```json
+{
+  "authz": [
+    {
+      "reseller": "io.test",
+      "service_provider": "acme",
+      "permissions": [
+        { "resource": "things", "actions": ["read", "write"] },
+        { "resource": "policies", "actions": ["read"] }
+      ]
+    }
+  ]
+}
+```
+
+* `{%raw%}{{ jwt:authz | fn:format('{reseller}:{service_provider}:{#permissions}{resource}:{#actions}{.}{/actions}{/permissions}') }}{%endraw%}` - resolves to **3** entries: `"io.test:acme:things:read"`, `"io.test:acme:things:write"` and `"io.test:acme:policies:read"`
+
+The `{#permissions}` section iterates over the 2 permission objects. Within each, `{#actions}{.}{/actions}`
+iterates over the actions array. Results from all iterations are collected, and combined with the outer
+fields via Cartesian product.
 
 
 ### Scope: Policy actions
@@ -312,6 +365,7 @@ The following functions are provided by Ditto out of the box:
 | `fn:replace`          | `(String from, String to)`                                       | Replaces a string with another using Java's `String::replace` method.                                                                                                                                                                                                              | `fn:replace('foo', 'bar')`                                                        |
 | `fn:split`            | `(String separator)`                                             | Splits the previous pipeline using the passed `separator` resulting an "array" pipeline output containing several elements.<br/>May only be used in combination with the [JWT placeholder](#scope-openid-connect-configuration) as input placeholder.                              | `fn:split(' ')`<br/>`fn:split(',')`                                               |
 | `fn:join`             | `(String delimiter)`                                             | Joins the previous pipeline elements (when they were an array) resulting a single string pipeline output delimited with the passed `delimiter`.                                                                                                                                    | `fn:join(':')`<br/>`fn:join(',')`                                                 |
+| `fn:format`           | `(String template)`                                              | Formats each input value (a JSON object string) using the given `template`. Field references like `{fieldName}` or `{/json/pointer}` are extracted from each JSON object individually, keeping fields **correlated** within each object.<br/>Array fields of primitives produce multiple results (Cartesian product within a single object). Missing or null fields are substituted with an empty string.<br/>Use `\{` and `\}` to include literal braces.<br/>Supports Mustache-inspired **section syntax** for iterating over arrays of objects: `{#arrayField}...{/arrayField}`. Inside a section, field references resolve against each array element. Use `{.}` to reference the current element itself (for arrays of primitives). Sections can be nested.<br/>Especially useful with the [JWT placeholder](#scope-openid-connect-configuration) when JWT claims contain arrays of JSON objects and multiple fields must stay correlated per object (avoiding incorrect cross-combinations). | `fn:format('{reseller}#{service_provider}#{roles}')`<br/>`fn:format('{#permissions}{resource}:{#actions}{.}{/actions}{/permissions}')` |
 
 ### RQL functions
 

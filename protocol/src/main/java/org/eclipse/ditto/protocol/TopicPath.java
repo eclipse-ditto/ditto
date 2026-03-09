@@ -255,6 +255,11 @@ public interface TopicPath {
             return name;
         }
 
+        /**
+         * Returns the entity type for this group.
+         *
+         * @return the entity type.
+         */
         public EntityType getEntityType() {
             return entityType;
         }
@@ -417,7 +422,14 @@ public interface TopicPath {
 
         MIGRATED("migrated"),
 
-        DELETED("deleted");
+        DELETED("deleted"),
+
+        /**
+         * Action for checking permissions.
+         *
+         * @since 3.9.0
+         */
+        CHECK_PERMISSIONS("checkPermissions");
 
         private final String name;
 

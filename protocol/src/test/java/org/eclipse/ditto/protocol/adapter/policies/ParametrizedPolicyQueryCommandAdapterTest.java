@@ -27,6 +27,11 @@ import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryComman
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntries;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntry;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryAllowedImportAdditions;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryImportable;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImportEntries;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImportEntriesAdditions;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImportEntryAddition;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResource;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResources;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubject;
@@ -50,7 +55,12 @@ public final class ParametrizedPolicyQueryCommandAdapterTest
                 retrieveResource(),
                 retrieveResources(),
                 retrieveSubject(),
-                retrieveSubjects());
+                retrieveSubjects(),
+                retrievePolicyEntryAllowedImportAdditions(),
+                retrievePolicyEntryImportable(),
+                retrievePolicyImportEntries(),
+                retrievePolicyImportEntriesAdditions(),
+                retrievePolicyImportEntryAddition());
     }
 
     private PolicyQueryCommandAdapter underTest;
@@ -123,6 +133,52 @@ public final class ParametrizedPolicyQueryCommandAdapterTest
         final Adaptable adaptable =
                 TestConstants.adaptable(TopicPaths.RETRIEVE, subjectsPath(Policies.POLICY_ENTRY_LABEL));
         return TestParameter.of("retrieveSubjects", adaptable, command);
+    }
+
+    private static TestParameter<PolicyQueryCommand<?>> retrievePolicyEntryAllowedImportAdditions() {
+        final RetrievePolicyEntryAllowedImportAdditions command =
+                RetrievePolicyEntryAllowedImportAdditions.of(Policies.POLICY_ID, Policies.POLICY_ENTRY_LABEL,
+                        Policies.HEADERS);
+        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.RETRIEVE,
+                JsonPointer.of("/entries/" + Policies.POLICY_ENTRY_LABEL + "/allowedImportAdditions"));
+        return TestParameter.of("retrievePolicyEntryAllowedImportAdditions", adaptable, command);
+    }
+
+    private static TestParameter<PolicyQueryCommand<?>> retrievePolicyEntryImportable() {
+        final RetrievePolicyEntryImportable command =
+                RetrievePolicyEntryImportable.of(Policies.POLICY_ID, Policies.POLICY_ENTRY_LABEL,
+                        Policies.HEADERS);
+        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.RETRIEVE,
+                JsonPointer.of("/entries/" + Policies.POLICY_ENTRY_LABEL + "/importable"));
+        return TestParameter.of("retrievePolicyEntryImportable", adaptable, command);
+    }
+
+    private static TestParameter<PolicyQueryCommand<?>> retrievePolicyImportEntries() {
+        final RetrievePolicyImportEntries command =
+                RetrievePolicyImportEntries.of(Policies.POLICY_ID, Policies.IMPORTED_POLICY_ID,
+                        Policies.HEADERS);
+        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.RETRIEVE,
+                JsonPointer.of("/imports/" + Policies.IMPORTED_POLICY_ID + "/entries"));
+        return TestParameter.of("retrievePolicyImportEntries", adaptable, command);
+    }
+
+    private static TestParameter<PolicyQueryCommand<?>> retrievePolicyImportEntriesAdditions() {
+        final RetrievePolicyImportEntriesAdditions command =
+                RetrievePolicyImportEntriesAdditions.of(Policies.POLICY_ID, Policies.IMPORTED_POLICY_ID,
+                        Policies.HEADERS);
+        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.RETRIEVE,
+                JsonPointer.of("/imports/" + Policies.IMPORTED_POLICY_ID + "/entriesAdditions"));
+        return TestParameter.of("retrievePolicyImportEntriesAdditions", adaptable, command);
+    }
+
+    private static TestParameter<PolicyQueryCommand<?>> retrievePolicyImportEntryAddition() {
+        final RetrievePolicyImportEntryAddition command =
+                RetrievePolicyImportEntryAddition.of(Policies.POLICY_ID, Policies.IMPORTED_POLICY_ID,
+                        Policies.POLICY_ENTRY_LABEL, Policies.HEADERS);
+        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.RETRIEVE,
+                JsonPointer.of("/imports/" + Policies.IMPORTED_POLICY_ID + "/entriesAdditions/" +
+                        Policies.POLICY_ENTRY_LABEL));
+        return TestParameter.of("retrievePolicyImportEntryAddition", adaptable, command);
     }
 
 }

@@ -2146,7 +2146,10 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 RetrieveThing retrieveThing = RetrieveThing.of(thingId, dittoHeaders);
                 underTest.tell(retrieveThing, getRef());
                 policiesShardRegionTestProbe.expectNoMessage();
-                expectMsgClass(ThingUnavailableException.class);
+                // Use explicit timeout: on CI with 1-2 cores, the child actor creation may not have
+                // completed yet when the command arrives, causing the supervisor to forward the command
+                // to the dying child via ask with localAskTimeoutDuringRecovery (5s in test config).
+                expectMsgClass(java.time.Duration.ofSeconds(10), ThingUnavailableException.class);
                 expectNoMessage();
 
             }

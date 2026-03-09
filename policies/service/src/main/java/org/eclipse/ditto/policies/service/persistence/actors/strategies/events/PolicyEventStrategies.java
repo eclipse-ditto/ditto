@@ -17,6 +17,8 @@ import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.signals.events.PolicyCreated;
 import org.eclipse.ditto.policies.model.signals.events.PolicyDeleted;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEntriesModified;
+import org.eclipse.ditto.policies.model.signals.events.PolicyEntryAllowedImportAdditionsModified;
+import org.eclipse.ditto.policies.model.signals.events.PolicyEntryImportableModified;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEntryCreated;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEntryDeleted;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEntryModified;
@@ -24,6 +26,11 @@ import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 import org.eclipse.ditto.policies.model.signals.events.PolicyImportCreated;
 import org.eclipse.ditto.policies.model.signals.events.PolicyImportDeleted;
 import org.eclipse.ditto.policies.model.signals.events.PolicyImportModified;
+import org.eclipse.ditto.policies.model.signals.events.PolicyImportEntriesAdditionsModified;
+import org.eclipse.ditto.policies.model.signals.events.PolicyImportEntriesModified;
+import org.eclipse.ditto.policies.model.signals.events.PolicyImportEntryAdditionCreated;
+import org.eclipse.ditto.policies.model.signals.events.PolicyImportEntryAdditionDeleted;
+import org.eclipse.ditto.policies.model.signals.events.PolicyImportEntryAdditionModified;
 import org.eclipse.ditto.policies.model.signals.events.PolicyImportsModified;
 import org.eclipse.ditto.policies.model.signals.events.PolicyModified;
 import org.eclipse.ditto.policies.model.signals.events.ResourceCreated;
@@ -66,6 +73,13 @@ public final class PolicyEventStrategies extends AbstractEventStrategies<PolicyE
         addStrategy(ResourceCreated.class, new ResourceCreatedStrategy());
         addStrategy(ResourceModified.class, new ResourceModifiedStrategy());
         addStrategy(ResourceDeleted.class, new ResourceDeletedStrategy());
+        addStrategy(PolicyEntryAllowedImportAdditionsModified.class, new PolicyEntryAllowedImportAdditionsModifiedStrategy());
+        addStrategy(PolicyEntryImportableModified.class, new PolicyEntryImportableModifiedStrategy());
+        addStrategy(PolicyImportEntriesModified.class, new PolicyImportEntriesModifiedStrategy());
+        addStrategy(PolicyImportEntriesAdditionsModified.class, new PolicyImportEntriesAdditionsModifiedStrategy());
+        addStrategy(PolicyImportEntryAdditionCreated.class, new PolicyImportEntryAdditionCreatedStrategy());
+        addStrategy(PolicyImportEntryAdditionModified.class, new PolicyImportEntryAdditionModifiedStrategy());
+        addStrategy(PolicyImportEntryAdditionDeleted.class, new PolicyImportEntryAdditionDeletedStrategy());
     }
 
     /**

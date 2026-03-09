@@ -62,8 +62,10 @@ import org.eclipse.ditto.base.model.signals.commands.streaming.StreamingSubscrip
 import org.eclipse.ditto.base.model.signals.commands.streaming.SubscribeForPersistedEvents;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.model.signals.events.streaming.StreamingSubscriptionEvent;
+import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.CheckPermissions;
 import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementForwarderActor;
+import org.eclipse.ditto.edge.service.dispatching.checkpermissions.CheckPermissionsActor;
 import org.eclipse.ditto.edge.service.acknowledgements.message.MessageCommandAckRequestSetter;
 import org.eclipse.ditto.edge.service.acknowledgements.message.MessageCommandResponseAcknowledgementProvider;
 import org.eclipse.ditto.edge.service.acknowledgements.things.ThingCommandResponseAcknowledgementProvider;
@@ -77,8 +79,11 @@ import org.eclipse.ditto.gateway.api.GatewayInternalErrorException;
 import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionAbortedException;
 import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionExpiredException;
+import org.eclipse.ditto.gateway.api.NamespaceNotAccessibleException;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationResultProvider;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtValidator;
+import org.eclipse.ditto.gateway.service.security.authorization.NamespaceAccessValidator;
+import org.eclipse.ditto.gateway.service.security.authorization.NamespaceAccessValidatorFactory;
 import org.eclipse.ditto.gateway.service.streaming.signals.Connect;
 import org.eclipse.ditto.gateway.service.streaming.signals.IncomingSignal;
 import org.eclipse.ditto.gateway.service.streaming.signals.InvalidJwt;
@@ -97,12 +102,14 @@ import org.eclipse.ditto.jwt.model.ImmutableJsonWebToken;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.TimePlaceholder;
+import org.eclipse.ditto.policies.model.PolicyConstants;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
 import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
+import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
 
@@ -118,6 +125,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
      * ultimately does not matter because each shutdown phase has its own timeout.
      */
     private static final Duration SHUTDOWN_ASK_TIMEOUT = Duration.ofMinutes(2L);
+    private static final Duration DEFAULT_CHECK_PERMISSIONS_TIMEOUT = Duration.ofSeconds(60L);
 
     /**
      * Maximum lifetime of an expiring session.
@@ -141,6 +149,8 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     private final AcknowledgementAggregatorActorStarter ackregatorStarter;
     private final Set<AcknowledgementLabel> declaredAcks;
     private final ThreadSafeDittoLoggingAdapter logger;
+    private final Map<String, NamespaceAccessValidator> namespaceAccessValidatorsByType;
+    private final DittoHeaders connectionHeaders;
     private AuthorizationContext authorizationContext;
     private List<String> namespaces;
 
@@ -156,7 +166,8 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
             final Props subscriptionManagerProps,
             final Props streamingSubscriptionManagerProps,
             final JwtValidator jwtValidator,
-            final JwtAuthenticationResultProvider jwtAuthenticationResultProvider) {
+            final JwtAuthenticationResultProvider jwtAuthenticationResultProvider,
+            @Nullable final NamespaceAccessValidatorFactory namespaceAccessValidatorFactory) {
 
         jsonSchemaVersion = connect.getJsonSchemaVersion();
         connectionCorrelationId = connect.getConnectionCorrelationId();
@@ -167,6 +178,20 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         this.streamingConfig = streamingConfig;
         this.jwtValidator = jwtValidator;
         this.jwtAuthenticationResultProvider = jwtAuthenticationResultProvider;
+        connectionHeaders = connect.getConnectionHeaders();
+        // Namespace access validators are intentionally snapshotted at connection time using the
+        // initial connection headers (including the JWT present at connect). They are NOT updated when
+        // a token refresh occurs mid-session. This means namespace access rules based on JWT claims
+        // reflect the access granted at session establishment, not the refreshed token.
+        this.namespaceAccessValidatorsByType = namespaceAccessValidatorFactory != null
+                ? Map.of(
+                        ThingConstants.ENTITY_TYPE.toString(),
+                        namespaceAccessValidatorFactory.createValidator(connectionHeaders,
+                                ThingConstants.ENTITY_TYPE.toString()),
+                        PolicyConstants.ENTITY_TYPE.toString(),
+                        namespaceAccessValidatorFactory.createValidator(connectionHeaders,
+                                PolicyConstants.ENTITY_TYPE.toString()))
+                : Map.of();
         outstandingSubscriptionAcks = EnumSet.noneOf(StreamingType.class);
         authorizationContext = connect.getConnectionAuthContext();
         namespaces = connect.getNamespaces();
@@ -217,7 +242,8 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
             final Props subscriptionManagerProps,
             final Props streamingSubscriptionManagerProps,
             final JwtValidator jwtValidator,
-            final JwtAuthenticationResultProvider jwtAuthenticationResultProvider) {
+            final JwtAuthenticationResultProvider jwtAuthenticationResultProvider,
+            @Nullable final NamespaceAccessValidatorFactory namespaceAccessValidatorFactory) {
 
         return Props.create(StreamingSessionActor.class,
                 connect,
@@ -228,7 +254,8 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 subscriptionManagerProps,
                 streamingSubscriptionManagerProps,
                 jwtValidator,
-                jwtAuthenticationResultProvider);
+                jwtAuthenticationResultProvider,
+                namespaceAccessValidatorFactory);
     }
 
     @Override
@@ -269,6 +296,11 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 .match(IncomingSignal.class, IncomingSignal::getSignal)
                 .build();
 
+        final PartialFunction<Object, Object> enforceIncomingNamespaceAccess = new PFBuilder<>()
+                .match(Signal.class, this::enforceNamespaceAccessForIncomingSignal)
+                .matchAny(x -> x)
+                .build();
+
         final PartialFunction<Object, Object> setAckRequestAndStartAckregator = new PFBuilder<>()
                 .match(Signal.class, this::startAckregatorAndForward)
                 .matchAny(x -> x)
@@ -283,13 +315,41 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 .match(CommandResponse.class, this::forwardAcknowledgementOrLiveCommandResponse)
                 .match(ThingSearchCommand.class, this::forwardSearchCommand)
                 .match(StreamingSubscriptionCommand.class, this::forwardStreamingSubscriptionCommand)
+                .match(CheckPermissions.class, checkPermissions -> {
+                    final Duration timeout = checkPermissions.getDittoHeaders().getTimeout()
+                            .orElse(DEFAULT_CHECK_PERMISSIONS_TIMEOUT);
+                    final ActorRef checkPermissionsActor = getContext().actorOf(
+                            CheckPermissionsActor.props(getContext().actorSelection(commandForwarder.path()),
+                                    getSelf(), timeout));
+                    checkPermissionsActor.tell(checkPermissions, getSelf());
+                })
                 .match(Signal.class, signal ->
                         // forward signals for which no reply is expected with self return address for downstream errors
                         commandForwarder.tell(signal, getReturnAddress(signal)))
                 .matchEquals(Done.getInstance(), done -> {})
                 .build();
 
-        return addPreprocessors(List.of(stripEnvelope, setAckRequestAndStartAckregator), signalBehavior);
+        return addPreprocessors(List.of(stripEnvelope, enforceIncomingNamespaceAccess,
+                setAckRequestAndStartAckregator), signalBehavior);
+    }
+
+    private Object enforceNamespaceAccessForIncomingSignal(final Signal<?> signal) {
+        if (!(signal instanceof Command<?>)) {
+            return signal;
+        }
+
+        if (isNamespaceAccessible(signal)) {
+            return signal;
+        }
+
+        final String namespace = namespaceFromId(signal);
+        logger.withCorrelationId(signal).debug("Incoming signal blocked by namespace access control for namespace: {}",
+                namespace);
+
+        if (signal.getDittoHeaders().isResponseRequired()) {
+            publishResponseOrError(NamespaceNotAccessibleException.forNamespace(namespace, signal.getDittoHeaders()));
+        }
+        return Done.getInstance();
     }
 
     private Receive createOutgoingSignalBehavior() {
@@ -656,7 +716,8 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
             final boolean isAuthorizedToRead = authorizationContext.isAuthorized(headers.getReadGrantedSubjects(),
                     headers.getReadRevokedSubjects());
             final boolean matchesNamespace = matchesNamespaces(signal, session);
-            return isAuthorizedToRead && matchesNamespace;
+            final boolean namespaceAccessible = isNamespaceAccessible(signal);
+            return isAuthorizedToRead && matchesNamespace && namespaceAccessible;
         }
     }
 
@@ -713,6 +774,29 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
             logger.withCorrelationId(signal).debug("Signal does not match namespaces.");
         }
         return result;
+    }
+
+    private boolean isNamespaceAccessible(final Signal<?> signal) {
+        if (namespaceAccessValidatorsByType.isEmpty()) {
+            return true;
+        }
+
+        final String namespace = namespaceFromId(signal);
+        if (namespace == null || namespace.isEmpty()) {
+            return true;
+        }
+
+        return WithEntityId.getEntityId(signal)
+                .map(entityId -> namespaceAccessValidatorsByType.get(entityId.getEntityType().toString()))
+                .map(validator -> {
+                    final boolean accessible = validator.isNamespaceAccessible(namespace);
+                    if (!accessible) {
+                        logger.withCorrelationId(signal)
+                                .info("Signal blocked by namespace access control for namespace: {}", namespace);
+                    }
+                    return accessible;
+                })
+                .orElse(true);
     }
 
     private void refreshWebSocketSession(final Jwt jwt) {

@@ -45,7 +45,8 @@ final class ImmutableFunctionExpression implements FunctionExpression {
             new PipelineFunctionDelete(),          // fn:delete()
             new PipelineFunctionReplace(),         // fn:replace('from', 'to')
             new PipelineFunctionSplit(),           // fn:split(' ')
-            new PipelineFunctionJoin()             // fn:join(',')
+            new PipelineFunctionJoin(),            // fn:join(',')
+            new PipelineFunctionFormat()           // fn:format('{field1}#{field2}')
     ));
 
     @Override

@@ -1,3 +1,5 @@
+# Deprecated, replaced with artillery based load test in [./artillery-test](./artillery-test/)
+
 The benchmark-tool is used to run benchmark tests on ditto.
 
 It is implemented using the load-testing tool [k6](https://github.com/grafana/k6) with the [xk6-kafka extension](https://github.com/mostafa/xk6-kafka).

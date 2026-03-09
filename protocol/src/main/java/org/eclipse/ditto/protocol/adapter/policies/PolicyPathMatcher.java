@@ -39,12 +39,17 @@ final class PolicyPathMatcher implements PayloadPathMatcher {
         resourceNames.put(PolicyResource.POLICY, "policy");
         resourceNames.put(PolicyResource.POLICY_IMPORTS, "policyImports");
         resourceNames.put(PolicyResource.POLICY_IMPORT, "policyImport");
+        resourceNames.put(PolicyResource.POLICY_IMPORT_ENTRIES, "policyImportEntries");
+        resourceNames.put(PolicyResource.POLICY_IMPORT_ENTRIES_ADDITIONS, "policyImportEntriesAdditions");
+        resourceNames.put(PolicyResource.POLICY_IMPORT_ENTRY_ADDITION, "policyImportEntryAddition");
         resourceNames.put(PolicyResource.POLICY_ENTRIES, "policyEntries");
         resourceNames.put(PolicyResource.POLICY_ENTRY, "policyEntry");
         resourceNames.put(PolicyResource.POLICY_ENTRY_RESOURCES, "resources");
         resourceNames.put(PolicyResource.POLICY_ENTRY_RESOURCE, "resource");
         resourceNames.put(PolicyResource.POLICY_ENTRY_SUBJECTS, "subjects");
         resourceNames.put(PolicyResource.POLICY_ENTRY_SUBJECT, "subject");
+        resourceNames.put(PolicyResource.POLICY_ENTRY_IMPORTABLE, "policyEntryImportable");
+        resourceNames.put(PolicyResource.POLICY_ENTRY_ALLOWED_IMPORT_ADDITIONS, "policyEntryAllowedImportAdditions");
     }
 
     private static final PolicyPathMatcher INSTANCE = new PolicyPathMatcher();

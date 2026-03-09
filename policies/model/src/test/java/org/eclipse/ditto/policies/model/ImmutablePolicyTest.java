@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -531,5 +532,108 @@ public final class ImmutablePolicyTest {
                     PolicyId.of(POLICY_ID + "-imported" + i)));
         }
         return PoliciesModelFactory.newPolicyImports(allPolicyImports);
+    }
+
+    private static final Set<AllowedImportAddition> ALLOWED_SUBJECTS =
+            Collections.singleton(AllowedImportAddition.SUBJECTS);
+
+    private static PolicyEntry createEntryWithAllowedAdditions() {
+        return ImmutablePolicyEntry.of(END_USER_LABEL,
+                Subjects.newInstance(Subject.newInstance(END_USER_SUBJECT_ID_1, END_USER_SUBJECT_TYPE_1)),
+                Resources.newInstance(Resource.newInstance(TestConstants.Policy.RESOURCE_TYPE, END_USER_RESOURCE_1,
+                        END_USER_EFFECTED_PERMISSIONS_1)),
+                ImportableType.EXPLICIT,
+                ALLOWED_SUBJECTS);
+    }
+
+    private static Policy createPolicyWithAllowedAdditions() {
+        return ImmutablePolicy.of(POLICY_ID, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null,
+                null, POLICY_IMPORTS, Arrays.asList(createEntryWithAllowedAdditions(), createPolicyEntry2()));
+    }
+
+    @Test
+    public void setSubjectsForPreservesAllowedImportAdditions() {
+        final Policy policy = createPolicyWithAllowedAdditions();
+        final Subjects newSubjects = Subjects.newInstance(
+                Subject.newInstance(SubjectIssuer.GOOGLE, "replaced"));
+        final Policy modified = policy.setSubjectsFor(END_USER_LABEL, newSubjects);
+
+        final PolicyEntry entry = modified.getEntryFor(END_USER_LABEL)
+                .orElseThrow(() -> new AssertionError("Entry not found"));
+        assertThat(entry.getImportableType()).isEqualTo(ImportableType.EXPLICIT);
+        assertThat(entry.getAllowedImportAdditions()).isEqualTo(ALLOWED_SUBJECTS);
+    }
+
+    @Test
+    public void setSubjectForPreservesAllowedImportAdditions() {
+        final Policy policy = createPolicyWithAllowedAdditions();
+        final Subject newSubject = Subject.newInstance(END_USER_SUBJECT_ID_2, END_USER_SUBJECT_TYPE_2);
+        final Policy modified = policy.setSubjectFor(END_USER_LABEL, newSubject);
+
+        final PolicyEntry entry = modified.getEntryFor(END_USER_LABEL)
+                .orElseThrow(() -> new AssertionError("Entry not found"));
+        assertThat(entry.getImportableType()).isEqualTo(ImportableType.EXPLICIT);
+        assertThat(entry.getAllowedImportAdditions()).isEqualTo(ALLOWED_SUBJECTS);
+    }
+
+    @Test
+    public void removeSubjectForPreservesAllowedImportAdditions() {
+        final Policy policy = createPolicyWithAllowedAdditions();
+        final Policy modified = policy.removeSubjectFor(END_USER_LABEL, END_USER_SUBJECT_ID_1);
+
+        final PolicyEntry entry = modified.getEntryFor(END_USER_LABEL)
+                .orElseThrow(() -> new AssertionError("Entry not found"));
+        assertThat(entry.getImportableType()).isEqualTo(ImportableType.EXPLICIT);
+        assertThat(entry.getAllowedImportAdditions()).isEqualTo(ALLOWED_SUBJECTS);
+    }
+
+    @Test
+    public void setResourcesForPreservesAllowedImportAdditions() {
+        final Policy policy = createPolicyWithAllowedAdditions();
+        final Resources newResources = Resources.newInstance(
+                Resource.newInstance(TestConstants.Policy.RESOURCE_TYPE, END_USER_RESOURCE_2,
+                        END_USER_EFFECTED_PERMISSIONS_1));
+        final Policy modified = policy.setResourcesFor(END_USER_LABEL, newResources);
+
+        final PolicyEntry entry = modified.getEntryFor(END_USER_LABEL)
+                .orElseThrow(() -> new AssertionError("Entry not found"));
+        assertThat(entry.getImportableType()).isEqualTo(ImportableType.EXPLICIT);
+        assertThat(entry.getAllowedImportAdditions()).isEqualTo(ALLOWED_SUBJECTS);
+    }
+
+    @Test
+    public void setResourceForPreservesAllowedImportAdditions() {
+        final Policy policy = createPolicyWithAllowedAdditions();
+        final Resource newResource = Resource.newInstance(TestConstants.Policy.RESOURCE_TYPE, END_USER_RESOURCE_2,
+                END_USER_EFFECTED_PERMISSIONS_1);
+        final Policy modified = policy.setResourceFor(END_USER_LABEL, newResource);
+
+        final PolicyEntry entry = modified.getEntryFor(END_USER_LABEL)
+                .orElseThrow(() -> new AssertionError("Entry not found"));
+        assertThat(entry.getImportableType()).isEqualTo(ImportableType.EXPLICIT);
+        assertThat(entry.getAllowedImportAdditions()).isEqualTo(ALLOWED_SUBJECTS);
+    }
+
+    @Test
+    public void removeResourceForPreservesAllowedImportAdditions() {
+        final Policy policy = createPolicyWithAllowedAdditions();
+        final Policy modified = policy.removeResourceFor(END_USER_LABEL,
+                TestConstants.Policy.RESOURCE_TYPE, END_USER_RESOURCE_1);
+
+        final PolicyEntry entry = modified.getEntryFor(END_USER_LABEL)
+                .orElseThrow(() -> new AssertionError("Entry not found"));
+        assertThat(entry.getImportableType()).isEqualTo(ImportableType.EXPLICIT);
+        assertThat(entry.getAllowedImportAdditions()).isEqualTo(ALLOWED_SUBJECTS);
+    }
+
+    @Test
+    public void setImportableForPreservesAllowedImportAdditions() {
+        final Policy policy = createPolicyWithAllowedAdditions();
+        final Policy modified = policy.setImportableFor(END_USER_LABEL, ImportableType.IMPLICIT);
+
+        final PolicyEntry entry = modified.getEntryFor(END_USER_LABEL)
+                .orElseThrow(() -> new AssertionError("Entry not found"));
+        assertThat(entry.getImportableType()).isEqualTo(ImportableType.IMPLICIT);
+        assertThat(entry.getAllowedImportAdditions()).isEqualTo(ALLOWED_SUBJECTS);
     }
 }

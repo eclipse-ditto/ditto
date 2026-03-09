@@ -46,7 +46,8 @@ public class ImmutableFunctionExpressionTest {
             "delete",
             "replace",
             "split",
-            "join"
+            "join",
+            "format"
     )));
     private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
 
@@ -175,6 +176,52 @@ public class ImmutableFunctionExpressionTest {
         assertThat(UNDER_TEST.resolve(String.format("fn:filter(header:foo1,'eq','%s')", HEADER_VAL),
                 PipelineElement.resolved(HEADER_VAL), EXPRESSION_RESOLVER))
                 .contains(HEADER_VAL);
+    }
+
+    @Test
+    public void testFunctionFormatWithSimpleFields() {
+        assertThat(UNDER_TEST.resolve("fn:format('{name}:{role}')",
+                PipelineElement.resolved("{\"name\":\"alice\",\"role\":\"admin\"}"), EXPRESSION_RESOLVER))
+                .contains("alice:admin");
+    }
+
+    @Test
+    public void testFunctionFormatWithJsonPointer() {
+        assertThat(UNDER_TEST.resolve("fn:format('{/user/name}')",
+                PipelineElement.resolved("{\"user\":{\"name\":\"alice\"}}"), EXPRESSION_RESOLVER))
+                .contains("alice");
+    }
+
+    @Test
+    public void testFunctionFormatWithArrayField() {
+        final PipelineElement result = UNDER_TEST.resolve("fn:format('{tenant}:{roles}')",
+                PipelineElement.resolved("{\"tenant\":\"acme\",\"roles\":[\"op\",\"admin\"]}"),
+                EXPRESSION_RESOLVER);
+        assertThat(result.toStream()).containsExactlyInAnyOrder("acme:op", "acme:admin");
+    }
+
+    @Test
+    public void testFunctionFormatWithSectionSyntax() {
+        final PipelineElement result = UNDER_TEST.resolve(
+                "fn:format('{tenant}:{#users}{name}{/users}')",
+                PipelineElement.resolved(
+                        "{\"tenant\":\"acme\",\"users\":[{\"name\":\"alice\"},{\"name\":\"bob\"}]}"),
+                EXPRESSION_RESOLVER);
+        assertThat(result.toStream()).containsExactly("acme:alice", "acme:bob");
+    }
+
+    @Test
+    public void testFunctionFormatWithUnresolvedInput() {
+        final PipelineElement result = UNDER_TEST.resolve("fn:format('{field}')",
+                PipelineElement.unresolved(), EXPRESSION_RESOLVER);
+        assertThat(result.toStream()).isEmpty();
+    }
+
+    @Test
+    public void testFunctionFormatWrongSignature() {
+        assertThatExceptionOfType(PlaceholderFunctionSignatureInvalidException.class).isThrownBy(() ->
+                UNDER_TEST.resolve("fn:format()", PipelineElement.resolved("{\"name\":\"alice\"}"),
+                        EXPRESSION_RESOLVER));
     }
 
 }
