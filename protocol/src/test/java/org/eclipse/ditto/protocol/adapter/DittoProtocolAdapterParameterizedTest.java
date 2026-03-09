@@ -45,6 +45,8 @@ import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryComman
 import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommandResponse;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.UnknownChannelException;
+import org.eclipse.ditto.protocol.adapter.common.CheckPermissionsCommandAdapter;
+import org.eclipse.ditto.protocol.adapter.common.CheckPermissionsCommandResponseAdapter;
 import org.eclipse.ditto.protocol.adapter.connectivity.ConnectivityCommandAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.provider.AcknowledgementAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.provider.PolicyCommandAdapterProvider;
@@ -253,7 +255,9 @@ public final class DittoProtocolAdapterParameterizedTest {
 
         final AdapterResolver adapterResolver = new DefaultAdapterResolver(thingCommandAdapterProvider,
                 policyCommandAdapterProvider, connectivityCommandAdapterProvider, acknowledgementAdapterProvider,
-                streamingSubscriptionCommandAdapter, streamingSubscriptionEventAdapter);
+                streamingSubscriptionCommandAdapter, streamingSubscriptionEventAdapter,
+                CheckPermissionsCommandAdapter.of(HeaderTranslator.empty()),
+                CheckPermissionsCommandResponseAdapter.of(HeaderTranslator.empty()));
         underTest = DittoProtocolAdapter.newInstance(HeaderTranslator.empty(), thingCommandAdapterProvider,
                 policyCommandAdapterProvider, connectivityCommandAdapterProvider, acknowledgementAdapterProvider,
                 streamingSubscriptionCommandAdapter, streamingSubscriptionEventAdapter,

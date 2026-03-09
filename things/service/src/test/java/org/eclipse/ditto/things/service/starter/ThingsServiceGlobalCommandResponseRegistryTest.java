@@ -13,6 +13,7 @@
 package org.eclipse.ditto.things.service.starter;
 
 import org.eclipse.ditto.base.api.common.RetrieveConfigResponse;
+import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.CheckPermissionsResponse;
 import org.eclipse.ditto.base.api.common.purge.PurgeEntitiesResponse;
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveLoggerConfigResponse;
 import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistenceResponse;
@@ -63,7 +64,8 @@ public final class ThingsServiceGlobalCommandResponseRegistryTest extends Global
                 SearchErrorResponse.class,
                 SudoRetrieveNamespaceReportResponse.class,
                 RetrieveMergedWotValidationConfigResponse.class,
-                RetrieveWotValidationConfigResponse.class
+                RetrieveWotValidationConfigResponse.class,
+                CheckPermissionsResponse.class
         );
     }
 

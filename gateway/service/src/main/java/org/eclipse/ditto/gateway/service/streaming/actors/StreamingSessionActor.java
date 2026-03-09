@@ -62,8 +62,10 @@ import org.eclipse.ditto.base.model.signals.commands.streaming.StreamingSubscrip
 import org.eclipse.ditto.base.model.signals.commands.streaming.SubscribeForPersistedEvents;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.model.signals.events.streaming.StreamingSubscriptionEvent;
+import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.CheckPermissions;
 import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementForwarderActor;
+import org.eclipse.ditto.edge.service.dispatching.checkpermissions.CheckPermissionsActor;
 import org.eclipse.ditto.edge.service.acknowledgements.message.MessageCommandAckRequestSetter;
 import org.eclipse.ditto.edge.service.acknowledgements.message.MessageCommandResponseAcknowledgementProvider;
 import org.eclipse.ditto.edge.service.acknowledgements.things.ThingCommandResponseAcknowledgementProvider;
@@ -123,6 +125,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
      * ultimately does not matter because each shutdown phase has its own timeout.
      */
     private static final Duration SHUTDOWN_ASK_TIMEOUT = Duration.ofMinutes(2L);
+    private static final Duration DEFAULT_CHECK_PERMISSIONS_TIMEOUT = Duration.ofSeconds(60L);
 
     /**
      * Maximum lifetime of an expiring session.
@@ -312,6 +315,14 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 .match(CommandResponse.class, this::forwardAcknowledgementOrLiveCommandResponse)
                 .match(ThingSearchCommand.class, this::forwardSearchCommand)
                 .match(StreamingSubscriptionCommand.class, this::forwardStreamingSubscriptionCommand)
+                .match(CheckPermissions.class, checkPermissions -> {
+                    final Duration timeout = checkPermissions.getDittoHeaders().getTimeout()
+                            .orElse(DEFAULT_CHECK_PERMISSIONS_TIMEOUT);
+                    final ActorRef checkPermissionsActor = getContext().actorOf(
+                            CheckPermissionsActor.props(getContext().actorSelection(commandForwarder.path()),
+                                    getSelf(), timeout));
+                    checkPermissionsActor.tell(checkPermissions, getSelf());
+                })
                 .match(Signal.class, signal ->
                         // forward signals for which no reply is expected with self return address for downstream errors
                         commandForwarder.tell(signal, getReturnAddress(signal)))

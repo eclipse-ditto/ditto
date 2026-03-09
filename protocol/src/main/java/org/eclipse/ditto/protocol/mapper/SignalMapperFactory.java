@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.protocol.mapper;
 
+import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.CheckPermissions;
+import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.CheckPermissionsResponse;
 import org.eclipse.ditto.base.model.signals.commands.streaming.StreamingSubscriptionCommand;
 import org.eclipse.ditto.base.model.signals.events.streaming.StreamingSubscriptionEvent;
 import org.eclipse.ditto.connectivity.model.signals.announcements.ConnectivityAnnouncement;
@@ -114,6 +116,14 @@ public final class SignalMapperFactory {
 
     public static ThingDefinitionMigrateSignalMapper newThingDefinitionMigrateSignalMapper() {
         return new ThingDefinitionMigrateSignalMapper();
+    }
+
+    public static SignalMapper<CheckPermissions> newCheckPermissionsSignalMapper() {
+        return new CheckPermissionsSignalMapper();
+    }
+
+    public static SignalMapper<CheckPermissionsResponse> newCheckPermissionsResponseSignalMapper() {
+        return new CheckPermissionsResponseSignalMapper();
     }
 
     public static SignalMapper<PolicyModifyCommand<?>> newPolicyModifySignalMapper() {
