@@ -31,16 +31,48 @@ public final class DefaultFieldsEncryptionConfig implements FieldsEncryptionConf
     private static final String CONFIG_PATH = "encryption";
     private final boolean isEncryptionEnabled;
     private final String symmetricalKey;
+    private final String oldSymmetricalKey;
     private final List<String> jsonPointers;
+    private final int migrationBatchSize;
+    private final int migrationMaxDocumentsPerMinute;
 
 
     private DefaultFieldsEncryptionConfig(final ConfigWithFallback config) {
         this.isEncryptionEnabled = config.getBoolean(ConfigValue.ENCRYPTION_ENABLED.getConfigPath());
         this.symmetricalKey = config.getString(ConfigValue.SYMMETRICAL_KEY.getConfigPath());
+        this.oldSymmetricalKey = config.getString(ConfigValue.OLD_SYMMETRICAL_KEY.getConfigPath());
         this.jsonPointers = Collections.unmodifiableList(
                 new ArrayList<>(config.getStringList(ConfigValue.JSON_POINTERS.getConfigPath())));
-        if (isEncryptionEnabled && symmetricalKey.trim().isEmpty()) {
-            throw new DittoConfigError("Missing Symmetric key. It is mandatory when encryption is enabled for connections!");
+        this.migrationBatchSize = config.getInt(ConfigValue.MIGRATION_BATCH_SIZE.getConfigPath());
+        this.migrationMaxDocumentsPerMinute = config.getInt(ConfigValue.MIGRATION_MAX_DOCUMENTS_PER_MINUTE.getConfigPath());
+
+        validateConfiguration();
+    }
+
+    private void validateConfiguration() {
+        final boolean hasSymmetricalKey = !symmetricalKey.trim().isEmpty();
+        final boolean hasOldKey = !oldSymmetricalKey.trim().isEmpty();
+
+        // When encryption is enabled, we must have a current encryption key
+        if (isEncryptionEnabled && !hasSymmetricalKey) {
+            throw new DittoConfigError(
+                    "Missing 'symmetrical-key'. It is mandatory when encryption is enabled for connections!");
+        }
+
+        if (migrationBatchSize <= 0) {
+            throw new DittoConfigError(
+                    "'migration.batch-size' must be greater than 0, was: " + migrationBatchSize);
+        }
+        if (migrationMaxDocumentsPerMinute < 0) {
+            throw new DittoConfigError(
+                    "'migration.max-documents-per-minute' must be >= 0, was: " + migrationMaxDocumentsPerMinute);
+        }
+
+        // If both keys are set, they must be different
+        if (hasSymmetricalKey && hasOldKey && symmetricalKey.equals(oldSymmetricalKey)) {
+            throw new DittoConfigError(
+                    "Configuration error: 'symmetrical-key' and 'old-symmetrical-key' must be different! " +
+                    "If you're not rotating keys, remove 'old-symmetrical-key'.");
         }
     }
 
@@ -57,13 +89,28 @@ public final class DefaultFieldsEncryptionConfig implements FieldsEncryptionConf
     }
 
     @Override
-    public String getSymmetricalKey() {
-        return this.symmetricalKey;
+    public Optional<String> getSymmetricalKey() {
+        return symmetricalKey.trim().isEmpty() ? Optional.empty() : Optional.of(symmetricalKey);
+    }
+
+    @Override
+    public Optional<String> getOldSymmetricalKey() {
+        return oldSymmetricalKey.trim().isEmpty() ? Optional.empty() : Optional.of(oldSymmetricalKey);
     }
 
     @Override
     public List<String> getJsonPointers() {
         return this.jsonPointers;
+    }
+
+    @Override
+    public int getMigrationBatchSize() {
+        return migrationBatchSize;
+    }
+
+    @Override
+    public int getMigrationMaxDocumentsPerMinute() {
+        return migrationMaxDocumentsPerMinute;
     }
 
     @Override
@@ -77,12 +124,16 @@ public final class DefaultFieldsEncryptionConfig implements FieldsEncryptionConf
         final DefaultFieldsEncryptionConfig that = (DefaultFieldsEncryptionConfig) o;
         return isEncryptionEnabled == that.isEncryptionEnabled &&
                 Objects.equals(symmetricalKey, that.symmetricalKey) &&
-                Objects.equals(jsonPointers, that.jsonPointers);
+                Objects.equals(oldSymmetricalKey, that.oldSymmetricalKey) &&
+                Objects.equals(jsonPointers, that.jsonPointers) &&
+                migrationBatchSize == that.migrationBatchSize &&
+                migrationMaxDocumentsPerMinute == that.migrationMaxDocumentsPerMinute;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(isEncryptionEnabled, symmetricalKey, jsonPointers);
+        return Objects.hash(isEncryptionEnabled, symmetricalKey, oldSymmetricalKey, jsonPointers,
+                migrationBatchSize, migrationMaxDocumentsPerMinute);
     }
 
     @Override
@@ -90,7 +141,10 @@ public final class DefaultFieldsEncryptionConfig implements FieldsEncryptionConf
         return getClass().getSimpleName() + "[" +
                 "enabled=" + isEncryptionEnabled +
                 ", symmetricalKey='***'" +
+                ", oldSymmetricalKey='" + (oldSymmetricalKey.trim().isEmpty() ? "not set" : "***") + "'" +
                 ", jsonPointers=" + jsonPointers +
+                ", migrationBatchSize=" + migrationBatchSize +
+                ", migrationMaxDocumentsPerMinute=" + migrationMaxDocumentsPerMinute +
                 ']';
     }
 

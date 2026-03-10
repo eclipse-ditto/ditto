@@ -39,6 +39,9 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureResp
 import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoRetrieveNamespaceReportResponse;
 import org.eclipse.ditto.thingsearch.model.signals.commands.SearchErrorResponse;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThingsResponse;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.migration.MigrateConnectionEncryptionAbortResponse;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.migration.MigrateConnectionEncryptionResponse;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.migration.MigrateConnectionEncryptionStatusResponse;
 import org.eclipse.ditto.things.model.devops.commands.CreateWotValidationConfigResponse;
 
 public final class ConnectivityServiceGlobalCommandResponseRegistryTest extends GlobalCommandResponseRegistryTestCases {
@@ -71,7 +74,10 @@ public final class ConnectivityServiceGlobalCommandResponseRegistryTest extends 
                 ModifySplitBrainResolverResponse.class,
                 CreateWotValidationConfigResponse.class,
                 Acknowledgement.class,
-                CheckPermissionsResponse.class
+                CheckPermissionsResponse.class,
+                MigrateConnectionEncryptionResponse.class,
+                MigrateConnectionEncryptionStatusResponse.class,
+                MigrateConnectionEncryptionAbortResponse.class
         );
     }
 
