@@ -116,11 +116,14 @@ public final class ConnectivityRootActor extends DittoRootActor {
         startChildActor(ConnectionIdsRetrievalActor.ACTOR_NAME, ConnectionIdsRetrievalActor.props(mongoReadJournal,
                 connectionIdsRetrievalConfig));
 
+        final MongoClientWrapper mongoClientWrapper =
+                MongoClientWrapper.newInstance(connectivityConfig.getMongoDbConfig());
+
         startChildActor(ConnectionPersistenceOperationsActor.ACTOR_NAME,
-                ConnectionPersistenceOperationsActor.props(pubSubMediator, connectivityConfig.getMongoDbConfig(),
+                ConnectionPersistenceOperationsActor.props(pubSubMediator, mongoClientWrapper,
                         config, connectivityConfig.getPersistenceOperationsConfig()));
 
-        startEncryptionMigrationSingleton(actorSystem, connectivityConfig);
+        optionallyStartEncryptionMigrationSingleton(actorSystem, connectivityConfig, mongoClientWrapper);
 
         RootChildActorStarter.get(actorSystem, ScopedConfig.dittoExtension(config)).execute(getContext());
 
@@ -156,15 +159,13 @@ public final class ConnectivityRootActor extends DittoRootActor {
         }).build().orElse(super.getSupervisionDecider());
     }
 
-    private void startEncryptionMigrationSingleton(final ActorSystem actorSystem,
-            final ConnectivityConfig connectivityConfig) {
+    private void optionallyStartEncryptionMigrationSingleton(final ActorSystem actorSystem,
+            final ConnectivityConfig connectivityConfig, final MongoClientWrapper mongoClient) {
         final var encryptionConfig = connectivityConfig.getConnectionConfig().getFieldsEncryptionConfig();
         if (encryptionConfig.isEncryptionEnabled() || encryptionConfig.getOldSymmetricalKey().isPresent()) {
-            final MongoClientWrapper mongoClientWrapper =
-                    MongoClientWrapper.newInstance(connectivityConfig.getMongoDbConfig());
             final String managerName = EncryptionMigrationActor.ACTOR_NAME + "Singleton";
             final ActorRef singletonManager = startClusterSingletonActor(
-                    EncryptionMigrationActor.props(connectivityConfig, mongoClientWrapper), managerName);
+                    EncryptionMigrationActor.props(connectivityConfig, mongoClient), managerName);
 
             final ClusterSingletonProxySettings proxySettings =
                     ClusterSingletonProxySettings.create(actorSystem).withRole(CLUSTER_ROLE);

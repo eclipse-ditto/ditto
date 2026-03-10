@@ -14,7 +14,6 @@ package org.eclipse.ditto.connectivity.service.messaging.persistence;
 
 import org.eclipse.ditto.connectivity.model.ConnectivityConstants;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEntitiesPersistenceOperations;
 import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEventSourceSettings;
 import org.eclipse.ditto.internal.utils.persistence.operations.AbstractPersistenceOperationsActor;
@@ -51,13 +50,13 @@ public final class ConnectionPersistenceOperationsActor extends AbstractPersiste
      * Create Props of this actor.
      *
      * @param pubSubMediator Pekko pub-sub mediator.
-     * @param mongoDbConfig the MongoDB configuration settings.
+     * @param mongoClient the MongoDB client.
      * @param config configuration with info about event journal, snapshot store and database.
      * @param persistenceOperationsConfig the persistence operations configuration settings.
      * @return a Props object.
      */
     public static Props props(final ActorRef pubSubMediator,
-            final MongoDbConfig mongoDbConfig,
+            final MongoClientWrapper mongoClient,
             final Config config,
             final PersistenceOperationsConfig persistenceOperationsConfig) {
 
@@ -67,7 +66,6 @@ public final class ConnectionPersistenceOperationsActor extends AbstractPersiste
                             false, ConnectionPersistenceActor.JOURNAL_PLUGIN_ID,
                             ConnectionPersistenceActor.SNAPSHOT_PLUGIN_ID);
 
-            final MongoClientWrapper mongoClient = MongoClientWrapper.newInstance(mongoDbConfig);
             final MongoDatabase db = mongoClient.getDefaultDatabase();
 
             final EntityPersistenceOperations entitiesOps =
