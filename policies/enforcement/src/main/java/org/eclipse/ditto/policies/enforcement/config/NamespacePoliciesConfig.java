@@ -29,16 +29,16 @@ import org.eclipse.ditto.policies.model.PolicyId;
  * policies to declare explicit imports. The injection happens transparently at enforcer-build time, so
  * the stored policy's {@code imports} field is never modified.
  * </p>
- * <p>
- * Namespace patterns support the following syntax:
+ * <p>Namespace patterns support the following syntax:</p>
  * <ul>
- *   <li>{@code *} — matches every namespace</li>
- *   <li>{@code org.example.*} — matches any namespace whose name starts with {@code org.example.}</li>
- *   <li>exact string — matches only that exact namespace</li>
+ *   <li>{@code *} - matches every namespace</li>
+ *   <li>{@code org.example.*} - matches any namespace whose name starts with {@code org.example.}</li>
+ *   <li>exact string - matches only that exact namespace</li>
  * </ul>
- * Matching namespace roots are applied in deterministic precedence order:
- * exact match first, then prefix wildcards ordered from most specific to least specific, and finally
- * the catch-all pattern {@code *}.
+ * <p>
+ * Matching namespace roots are applied in deterministic precedence order: exact match first, then
+ * prefix wildcards ordered from most specific to least specific, and finally the catch-all pattern
+ * {@code *}.
  * </p>
  *
  * @since 3.9.0
