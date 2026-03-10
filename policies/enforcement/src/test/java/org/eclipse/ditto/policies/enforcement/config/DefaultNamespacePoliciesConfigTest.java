@@ -20,6 +20,8 @@ import java.util.List;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.junit.Test;
 
+import org.eclipse.ditto.internal.utils.config.DittoConfigError;
+
 import com.typesafe.config.ConfigFactory;
 
 /**
@@ -95,6 +97,132 @@ public final class DefaultNamespacePoliciesConfigTest {
         assertThat(underTest.getRootPoliciesForNamespace("org.example.empty")).isEmpty();
         // empty lists must not appear in the forward map
         assertThat(underTest.getNamespacePolicies()).doesNotContainKey("org.example.empty");
+    }
+
+    @Test
+    public void prefixWildcardMatchesNamespacesUnderPrefix() {
+        final var config = ConfigFactory.parseString(
+                "ditto.policies.namespace-policies {\n" +
+                "  \"org.example.*\" = [\"org.example:tenant-root\"]\n" +
+                "}");
+
+        final var underTest = DefaultNamespacePoliciesConfig.of(config);
+
+        assertThat(underTest.getRootPoliciesForNamespace("org.example.devices"))
+                .containsExactly(PolicyId.of("org.example:tenant-root"));
+        assertThat(underTest.getRootPoliciesForNamespace("org.example.sensors"))
+                .containsExactly(PolicyId.of("org.example:tenant-root"));
+        assertThat(underTest.getRootPoliciesForNamespace("org.examples")).isEmpty();
+        assertThat(underTest.getRootPoliciesForNamespace("com.other.ns")).isEmpty();
+    }
+
+    @Test
+    public void catchAllWildcardMatchesEveryNamespace() {
+        final var config = ConfigFactory.parseString(
+                "ditto.policies.namespace-policies {\n" +
+                "  \"*\" = [\"root:catch-all\"]\n" +
+                "}");
+
+        final var underTest = DefaultNamespacePoliciesConfig.of(config);
+
+        assertThat(underTest.getRootPoliciesForNamespace("org.example.devices"))
+                .containsExactly(PolicyId.of("root:catch-all"));
+        assertThat(underTest.getRootPoliciesForNamespace("com.completely.different"))
+                .containsExactly(PolicyId.of("root:catch-all"));
+    }
+
+    @Test
+    public void exactAndWildcardPoliciesAreCombinedForMatchingNamespace() {
+        final var config = ConfigFactory.parseString(
+                "ditto.policies.namespace-policies {\n" +
+                "  \"org.example.devices\" = [\"org.example:device-root\"]\n" +
+                "  \"org.example.*\"       = [\"org.example:tenant-root\"]\n" +
+                "}");
+
+        final var underTest = DefaultNamespacePoliciesConfig.of(config);
+
+        assertThat(underTest.getRootPoliciesForNamespace("org.example.devices"))
+                .containsExactly(
+                        PolicyId.of("org.example:device-root"),
+                        PolicyId.of("org.example:tenant-root"));
+        assertThat(underTest.getRootPoliciesForNamespace("org.example.sensors"))
+                .containsExactly(PolicyId.of("org.example:tenant-root"));
+    }
+
+    @Test
+    public void rejectsUnsupportedWildcardInMiddleOfPattern() {
+        final var config = ConfigFactory.parseString(
+                "ditto.policies.namespace-policies {\n" +
+                "  \"org.*.devices\" = [\"org.example:tenant-root\"]\n" +
+                "}");
+
+        assertThatThrownBy(() -> DefaultNamespacePoliciesConfig.of(config))
+                .isInstanceOf(DittoConfigError.class)
+                .hasMessageContaining("Unsupported namespace policy pattern <org.*.devices>");
+    }
+
+    @Test
+    public void rejectsUnsupportedWildcardSuffixPattern() {
+        final var config = ConfigFactory.parseString(
+                "ditto.policies.namespace-policies {\n" +
+                "  \"foo*\" = [\"org.example:tenant-root\"]\n" +
+                "}");
+
+        assertThatThrownBy(() -> DefaultNamespacePoliciesConfig.of(config))
+                .isInstanceOf(DittoConfigError.class)
+                .hasMessageContaining("Unsupported namespace policy pattern <foo*>");
+    }
+
+    @Test
+    public void rejectsInvalidCatchAllLikePattern() {
+        final var config = ConfigFactory.parseString(
+                "ditto.policies.namespace-policies {\n" +
+                "  \"**\" = [\"org.example:tenant-root\"]\n" +
+                "}");
+
+        assertThatThrownBy(() -> DefaultNamespacePoliciesConfig.of(config))
+                .isInstanceOf(DittoConfigError.class)
+                .hasMessageContaining("Unsupported namespace policy pattern <**>");
+    }
+
+    @Test
+    public void matchingPoliciesAreReturnedInDeterministicPrecedenceOrder() {
+        final var config = ConfigFactory.parseString(
+                "ditto.policies.namespace-policies {\n" +
+                "  \"*\"                     = [\"root:catch-all\"]\n" +
+                "  \"org.example.*\"         = [\"org.example:tenant-root\"]\n" +
+                "  \"org.example.devices.*\" = [\"org.example:devices-root\"]\n" +
+                "  \"org.example.devices\"   = [\"org.example:device-root\"]\n" +
+                "}");
+
+        final var underTest = DefaultNamespacePoliciesConfig.of(config);
+
+        assertThat(underTest.getRootPoliciesForNamespace("org.example.devices"))
+                .containsExactly(
+                        PolicyId.of("org.example:device-root"),
+                        PolicyId.of("org.example:tenant-root"),
+                        PolicyId.of("root:catch-all"));
+        assertThat(underTest.getRootPoliciesForNamespace("org.example.devices.alpha"))
+                .containsExactly(
+                        PolicyId.of("org.example:devices-root"),
+                        PolicyId.of("org.example:tenant-root"),
+                        PolicyId.of("root:catch-all"));
+    }
+
+    @Test
+    public void moreSpecificPrefixWildcardPrecedesBroaderPrefixWildcard() {
+        final var config = ConfigFactory.parseString(
+                "ditto.policies.namespace-policies {\n" +
+                "  \"org.example.*\"         = [\"org.example:tenant-root\"]\n" +
+                "  \"org.example.devices.*\" = [\"org.example:devices-root\"]\n" +
+                "}");
+
+        final var underTest = DefaultNamespacePoliciesConfig.of(config);
+
+        assertThat(underTest.getRootPoliciesForNamespace("org.example.devices.alpha"))
+                .containsExactly(
+                        PolicyId.of("org.example:devices-root"),
+                        PolicyId.of("org.example:tenant-root"));
     }
 
     @Test

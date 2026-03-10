@@ -68,6 +68,8 @@ public final class PolicyEnforcer {
      * Creates a policy enforcer from a policy, resolving both its explicit imports and any namespace root policies
      * configured for the policy's namespace. Namespace root policies are resolved with their own imports and their
      * implicit entries are merged last with local entries taking precedence on label conflicts.
+     * Matching namespace roots are applied in config precedence order: exact match first, then more
+     * specific prefix wildcards, then broader prefix wildcards, and finally {@code *}.
      * <p>
      * This is the preferred factory method to use in the cache loader. Namespace root policy resolution bypasses
      * the normal READ permission pre-enforcer check, since namespace policies are operator-configured and injected

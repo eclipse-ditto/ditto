@@ -14,6 +14,7 @@ package org.eclipse.ditto.policies.enforcement.config;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -23,6 +24,8 @@ import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.entity.id.RegexPatterns;
+import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.policies.model.PolicyId;
 
 import com.typesafe.config.Config;
@@ -34,13 +37,24 @@ import com.typesafe.config.ConfigValueType;
  * Default implementation of {@link NamespacePoliciesConfig}.
  * <p>
  * Reads from the HOCON config path {@value #CONFIG_PATH}, which must be a config object mapping
- * namespace strings to lists of policy ID strings:
+ * namespace patterns to lists of policy ID strings. Keys may be exact namespaces, prefix wildcards,
+ * or {@code *} to match every namespace:
  * <pre>{@code
  * ditto.policies.namespace-policies {
- *   "org.example.devices"  = ["org.example:tenant-root"]
+ *   "org.example.devices"  = ["org.example:tenant-root"]          # exact namespace
  *   "org.example.sensors"  = ["org.example:tenant-root", "org.example:audit-policy"]
+ *   "org.example.*"        = ["org.example:tenant-root"]          # all namespaces under org.example
+ *   "*"                    = ["root:catch-all-policy"]            # every namespace
  * }
  * }</pre>
+ * <p>
+ * Matching patterns are resolved in deterministic precedence order:
+ * exact match first, then prefix wildcards ordered from most specific to least specific,
+ * and finally {@code *}.
+ * </p>
+ * <p>
+ * See {@link NamespacePoliciesConfig#namespaceMatchesPattern} for the supported pattern syntax.
+ * </p>
  */
 @Immutable
 public final class DefaultNamespacePoliciesConfig implements NamespacePoliciesConfig {
@@ -49,11 +63,15 @@ public final class DefaultNamespacePoliciesConfig implements NamespacePoliciesCo
 
     private final Map<String, List<PolicyId>> forwardMap;
     private final Map<PolicyId, Set<String>> reverseMap;
+    private final List<String> sortedPatterns;
 
     private DefaultNamespacePoliciesConfig(final Map<String, List<PolicyId>> forwardMap,
             final Map<PolicyId, Set<String>> reverseMap) {
         this.forwardMap = toUnmodifiableForwardMap(forwardMap);
         this.reverseMap = toUnmodifiableReverseMap(reverseMap);
+        this.sortedPatterns = this.forwardMap.keySet().stream()
+                .sorted(Comparator.comparingInt(DefaultNamespacePoliciesConfig::patternPrecedence).reversed())
+                .toList();
     }
 
     /**
@@ -62,6 +80,7 @@ public final class DefaultNamespacePoliciesConfig implements NamespacePoliciesCo
      *
      * @param config the root config (from {@code actorSystem.settings().config()}).
      * @return the parsed instance.
+     * @throws DittoConfigError if any configured namespace pattern is invalid.
      */
     public static DefaultNamespacePoliciesConfig of(final Config config) {
         if (!config.hasPath(CONFIG_PATH)) {
@@ -75,6 +94,7 @@ public final class DefaultNamespacePoliciesConfig implements NamespacePoliciesCo
         for (final Map.Entry<String, ConfigValue> entry : nsPoliciesConfig.root().entrySet()) {
             final String namespace = entry.getKey();
             final ConfigValue value = entry.getValue();
+            patternPrecedence(namespace);
 
             if (value.valueType() != ConfigValueType.LIST) {
                 continue;
@@ -103,7 +123,10 @@ public final class DefaultNamespacePoliciesConfig implements NamespacePoliciesCo
 
     @Override
     public List<PolicyId> getRootPoliciesForNamespace(final String namespace) {
-        return forwardMap.getOrDefault(namespace, List.of());
+        return sortedPatterns.stream()
+                .filter(p -> NamespacePoliciesConfig.namespaceMatchesPattern(namespace, p))
+                .flatMap(p -> forwardMap.get(p).stream())
+                .toList();
     }
 
     @Override
@@ -137,6 +160,22 @@ public final class DefaultNamespacePoliciesConfig implements NamespacePoliciesCo
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [namespacePolicies=" + forwardMap + "]";
+    }
+
+
+    private static int patternPrecedence(final String pattern) {
+        if ("*".equals(pattern)) {
+            return 0;
+        }
+        if (pattern.endsWith(".*") &&
+                RegexPatterns.NAMESPACE_PATTERN.matcher(pattern.substring(0, pattern.length() - 2)).matches()) {
+            return pattern.length();
+        }
+        if (RegexPatterns.NAMESPACE_PATTERN.matcher(pattern).matches()) {
+            return Integer.MAX_VALUE;
+        }
+        throw new DittoConfigError("Unsupported namespace policy pattern <" + pattern + "> at config path <" +
+                CONFIG_PATH + ">. Supported syntax is exact namespace, prefix wildcard '<namespace>.*', or '*'.");
     }
 
     private static Map<String, List<PolicyId>> toUnmodifiableForwardMap(final Map<String, List<PolicyId>> source) {

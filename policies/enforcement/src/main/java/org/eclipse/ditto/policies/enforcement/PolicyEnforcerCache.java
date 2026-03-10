@@ -147,7 +147,9 @@ final class PolicyEnforcerCache implements Cache<PolicyId, Entry<PolicyEnforcer>
         }
 
         return delegate.asMap().keySet().stream()
-                .filter(cachedPolicyId -> affectedNamespaces.contains(cachedPolicyId.getNamespace()))
+                .filter(cachedPolicyId -> affectedNamespaces.stream()
+                        .anyMatch(pattern -> NamespacePoliciesConfig.namespaceMatchesPattern(
+                                cachedPolicyId.getNamespace(), pattern)))
                 .map(invalidateFunction)
                 .reduce((a, b) -> a || b)
                 .orElse(false);

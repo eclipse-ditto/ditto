@@ -24,6 +24,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.policies.enforcement.config.DefaultNamespacePoliciesConfig;
 import org.eclipse.ditto.policies.enforcement.config.NamespacePoliciesConfig;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.ImportableType;
@@ -40,6 +41,8 @@ import org.eclipse.ditto.policies.model.SubjectIssuer;
 import org.eclipse.ditto.policies.model.SubjectType;
 import org.eclipse.ditto.policies.model.Subjects;
 import org.junit.Test;
+
+import com.typesafe.config.ConfigFactory;
 
 /**
  * Unit tests for the namespace-root-policy merge logic in
@@ -152,6 +155,44 @@ public final class PolicyEnforcerNamespacePoliciesTest {
         assertThat(merged.contains(LOCAL_LABEL)).isTrue();
         // only the local label should be present
         assertThat(merged.stream().count()).isEqualTo(1);
+    }
+
+    @Test
+    public void moreSpecificNamespaceWildcardWinsOnLabelConflict() {
+        final PolicyId generalRootPolicyId = PolicyId.of("org.example", "tenant-root-general");
+        final PolicyId specificRootPolicyId = PolicyId.of("org.example", "tenant-root-devices");
+        final PolicyId childPolicyId = PolicyId.of("org.example.devices.alpha", "child-policy");
+
+        final var generalSubjectId = SubjectId.newInstance(SubjectIssuer.newInstance("general-issuer"), "user");
+        final var specificSubjectId = SubjectId.newInstance(SubjectIssuer.newInstance("specific-issuer"), "user");
+
+        final Policy generalRootPolicy = policyWithEntryAndSubject(generalRootPolicyId, ROOT_IMPLICIT_LABEL,
+                ImportableType.IMPLICIT, generalSubjectId);
+        final Policy specificRootPolicy = policyWithEntryAndSubject(specificRootPolicyId, ROOT_IMPLICIT_LABEL,
+                ImportableType.IMPLICIT, specificSubjectId);
+        final Policy childPolicy = policyWithEntry(childPolicyId, LOCAL_LABEL, ImportableType.IMPLICIT);
+
+        final NamespacePoliciesConfig config = DefaultNamespacePoliciesConfig.of(ConfigFactory.parseString(
+                "ditto.policies.namespace-policies {\n" +
+                "  \"org.example.*\"         = [\"org.example:tenant-root-general\"]\n" +
+                "  \"org.example.devices.*\" = [\"org.example:tenant-root-devices\"]\n" +
+                "}"));
+        final Function<PolicyId, CompletableFuture<Optional<Policy>>> resolver =
+                id -> CompletableFuture.completedFuture(Optional.ofNullable(
+                        generalRootPolicyId.equals(id) ? generalRootPolicy :
+                                specificRootPolicyId.equals(id) ? specificRootPolicy : null));
+
+        final var enforcer = PolicyEnforcer
+                .withResolvedImportsAndNamespacePolicies(childPolicy, resolver::apply, config)
+                .toCompletableFuture()
+                .join();
+
+        final Policy merged = enforcer.getPolicy().orElseThrow();
+        final var entry = merged.getEntryFor(ROOT_IMPLICIT_LABEL).orElseThrow();
+        assertThat(entry.getSubjects().stream()
+                .anyMatch(s -> s.getId().equals(specificSubjectId))).isTrue();
+        assertThat(entry.getSubjects().stream()
+                .anyMatch(s -> s.getId().equals(generalSubjectId))).isFalse();
     }
 
     // ---- helpers ----
