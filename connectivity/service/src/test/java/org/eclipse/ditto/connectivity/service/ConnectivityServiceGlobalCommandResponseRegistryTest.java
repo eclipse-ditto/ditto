@@ -13,6 +13,7 @@
 package org.eclipse.ditto.connectivity.service;
 
 import org.eclipse.ditto.base.api.common.RetrieveConfigResponse;
+import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.CheckPermissionsResponse;
 import org.eclipse.ditto.base.api.common.purge.PurgeEntitiesResponse;
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveLoggerConfigResponse;
 import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistenceResponse;
@@ -38,6 +39,9 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureResp
 import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoRetrieveNamespaceReportResponse;
 import org.eclipse.ditto.thingsearch.model.signals.commands.SearchErrorResponse;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThingsResponse;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.migration.MigrateConnectionEncryptionAbortResponse;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.migration.MigrateConnectionEncryptionResponse;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.migration.MigrateConnectionEncryptionStatusResponse;
 import org.eclipse.ditto.things.model.devops.commands.CreateWotValidationConfigResponse;
 
 public final class ConnectivityServiceGlobalCommandResponseRegistryTest extends GlobalCommandResponseRegistryTestCases {
@@ -69,7 +73,11 @@ public final class ConnectivityServiceGlobalCommandResponseRegistryTest extends 
                 PurgeEntitiesResponse.class,
                 ModifySplitBrainResolverResponse.class,
                 CreateWotValidationConfigResponse.class,
-                Acknowledgement.class
+                Acknowledgement.class,
+                CheckPermissionsResponse.class,
+                MigrateConnectionEncryptionResponse.class,
+                MigrateConnectionEncryptionStatusResponse.class,
+                MigrateConnectionEncryptionAbortResponse.class
         );
     }
 

@@ -28,6 +28,8 @@ import org.eclipse.ditto.messages.model.MessageHeaderDefinition;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.adapter.acknowledgements.DefaultAcknowledgementsAdapterProvider;
+import org.eclipse.ditto.protocol.adapter.common.CheckPermissionsCommandAdapter;
+import org.eclipse.ditto.protocol.adapter.common.CheckPermissionsCommandResponseAdapter;
 import org.eclipse.ditto.protocol.adapter.connectivity.ConnectivityCommandAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.connectivity.DefaultConnectivityCommandAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.policies.DefaultPolicyCommandAdapterProvider;
@@ -49,6 +51,8 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
 
     private final StreamingSubscriptionCommandAdapter streamingSubscriptionCommandAdapter;
     private final StreamingSubscriptionEventAdapter streamingSubscriptionEventAdapter;
+    private final CheckPermissionsCommandAdapter checkPermissionsCommandAdapter;
+    private final CheckPermissionsCommandResponseAdapter checkPermissionsCommandResponseAdapter;
     private final AdapterResolver adapterResolver;
 
     private DittoProtocolAdapter(final ErrorRegistry<DittoRuntimeException> errorRegistry,
@@ -60,8 +64,11 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         this.acknowledgementAdapters = new DefaultAcknowledgementsAdapterProvider(errorRegistry, headerTranslator);
         streamingSubscriptionCommandAdapter = StreamingSubscriptionCommandAdapter.of(headerTranslator);
         streamingSubscriptionEventAdapter = StreamingSubscriptionEventAdapter.of(headerTranslator, errorRegistry);
+        checkPermissionsCommandAdapter = CheckPermissionsCommandAdapter.of(headerTranslator);
+        checkPermissionsCommandResponseAdapter = CheckPermissionsCommandResponseAdapter.of(headerTranslator);
         this.adapterResolver = new DefaultAdapterResolver(thingsAdapters, policiesAdapters, connectivityAdapters,
-                acknowledgementAdapters, streamingSubscriptionCommandAdapter, streamingSubscriptionEventAdapter);
+                acknowledgementAdapters, streamingSubscriptionCommandAdapter, streamingSubscriptionEventAdapter,
+                checkPermissionsCommandAdapter, checkPermissionsCommandResponseAdapter);
     }
 
     private DittoProtocolAdapter(final HeaderTranslator headerTranslator,
@@ -81,6 +88,8 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
                 "streamingSubscriptionCommandAdapter");
         this.streamingSubscriptionEventAdapter = checkNotNull(streamingSubscriptionEventAdapter,
                 "streamingSubscriptionEventAdapter");
+        this.checkPermissionsCommandAdapter = CheckPermissionsCommandAdapter.of(headerTranslator);
+        this.checkPermissionsCommandResponseAdapter = CheckPermissionsCommandResponseAdapter.of(headerTranslator);
         this.adapterResolver = checkNotNull(adapterResolver, "adapterResolver");
     }
 

@@ -13,6 +13,7 @@
 package org.eclipse.ditto.connectivity.service;
 
 import org.eclipse.ditto.base.api.common.Shutdown;
+import org.eclipse.ditto.policies.model.signals.commands.checkpermissions.CheckPermissions;
 import org.eclipse.ditto.base.api.common.purge.PurgeEntities;
 import org.eclipse.ditto.base.api.devops.signals.commands.ExecutePiggybackCommand;
 import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
@@ -23,6 +24,9 @@ import org.eclipse.ditto.connectivity.api.commands.sudo.SudoAddConnectionLogEntr
 import org.eclipse.ditto.connectivity.api.commands.sudo.SudoRetrieveConnectionIdsByTag;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnection;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.migration.MigrateConnectionEncryption;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.migration.MigrateConnectionEncryptionAbort;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.migration.MigrateConnectionEncryptionStatus;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.StagedCommand;
 import org.eclipse.ditto.internal.models.streaming.SudoStreamPids;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
@@ -71,7 +75,11 @@ public class ConnectivityServiceGlobalCommandRegistryTest extends GlobalCommandR
                 PublishSignal.class,
                 SudoAddConnectionLogEntry.class,
                 SubscribeForPersistedEvents.class,
-                CreateWotValidationConfig.class
+                CreateWotValidationConfig.class,
+                CheckPermissions.class,
+                MigrateConnectionEncryption.class,
+                MigrateConnectionEncryptionAbort.class,
+                MigrateConnectionEncryptionStatus.class
         );
     }
 
