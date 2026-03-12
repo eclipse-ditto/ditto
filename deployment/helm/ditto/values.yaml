@@ -924,6 +924,13 @@ policies:
       revokes: []
       # - namespaces: []
       #   authSubjects: []
+    # namespacePolicies configures namespace root policies used during policy enforcer resolution.
+    #  Map namespace -> list of policy IDs to be implicitly imported for that namespace.
+    namespacePolicies: {}
+    #  org.example.devices:
+    #    - org.example:tenant-root
+    #  org.example.sensors:
+    #    - org.example:tenant-root
     # policiesEnforcer contains configuration for Ditto "Policy Enforcers", e.g. regarding caching
     policiesEnforcer:
       # askWithRetry contains configuration regarding "ask with retry" for policy enforcement in policies service
@@ -1292,6 +1299,13 @@ things:
       # - namespaces: []
       #   authSubjects: []
       #   thingDefinitions: []
+    # namespacePolicies configures namespace root policies used during policy enforcer resolution.
+    #  Map namespace -> list of policy IDs to be implicitly imported for that namespace.
+    namespacePolicies: {}
+    #  org.example.devices:
+    #    - org.example:tenant-root
+    #  org.example.sensors:
+    #    - org.example:tenant-root
     # policiesEnforcer contains configuration for Ditto "Policy Enforcers", e.g. regarding caching
     policiesEnforcer:
       # askWithRetry contains configuration regarding "ask with retry" for policy enforcement in things service

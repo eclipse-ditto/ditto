@@ -22,6 +22,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
+import org.eclipse.ditto.policies.enforcement.config.NamespacePoliciesConfig;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 
@@ -37,17 +38,21 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<PolicyI
 
     private final PolicyCacheLoader delegate;
     private final Executor enforcementCacheExecutor;
+    private final NamespacePoliciesConfig namespacePoliciesConfig;
 
     /**
      * Constructor.
      *
      * @param policyCacheLoader used to load the policies which should be transformed to a {@link PolicyEnforcer}.
      * @param actorSystem the actor system to use.
+     * @param namespacePoliciesConfig the namespace root policies configuration.
      */
-    public PolicyEnforcerCacheLoader(final PolicyCacheLoader policyCacheLoader, final ActorSystem actorSystem) {
+    public PolicyEnforcerCacheLoader(final PolicyCacheLoader policyCacheLoader, final ActorSystem actorSystem,
+            final NamespacePoliciesConfig namespacePoliciesConfig) {
 
         delegate = policyCacheLoader;
         enforcementCacheExecutor = actorSystem.dispatchers().lookup(ENFORCEMENT_CACHE_DISPATCHER);
+        this.namespacePoliciesConfig = namespacePoliciesConfig;
     }
 
     @Override
@@ -67,7 +72,8 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<PolicyI
         if (entry.exists()) {
             final var revision = entry.getRevision();
             final var policy = entry.getValueOrThrow();
-            return PolicyEnforcer.withResolvedImports(policy, policyResolver)
+            return PolicyEnforcer.withResolvedImportsAndNamespacePolicies(policy, policyResolver,
+                            namespacePoliciesConfig)
                     .thenApply(enforcer -> Entry.of(revision, enforcer));
         } else {
             return CompletableFuture.completedFuture(Entry.nonexistent());

@@ -22,10 +22,18 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.ditto.internal.utils.cache.config.DefaultCacheConfig;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
+import org.eclipse.ditto.policies.enforcement.config.DefaultNamespacePoliciesConfig;
+import org.eclipse.ditto.policies.enforcement.config.NamespacePoliciesConfig;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
@@ -65,7 +73,8 @@ public final class PolicyEnforcerCacheTest {
         final var underTest = new PolicyEnforcerCache(
                 cacheLoader,
                 executor,
-                DefaultCacheConfig.of(actorSystem.settings().config(), "ditto.policies-enforcer-cache")
+                DefaultCacheConfig.of(actorSystem.settings().config(), "ditto.policies-enforcer-cache"),
+                DefaultNamespacePoliciesConfig.of(actorSystem.settings().config())
         );
 
         new TestKit(actorSystem) {{
@@ -82,7 +91,8 @@ public final class PolicyEnforcerCacheTest {
         final var underTest = new PolicyEnforcerCache(
                 cacheLoader,
                 executor,
-                DefaultCacheConfig.of(actorSystem.settings().config(), "ditto.policies-enforcer-cache")
+                DefaultCacheConfig.of(actorSystem.settings().config(), "ditto.policies-enforcer-cache"),
+                DefaultNamespacePoliciesConfig.of(actorSystem.settings().config())
         );
 
         final var otherPolicyId = PolicyId.generateRandom();
@@ -123,6 +133,108 @@ public final class PolicyEnforcerCacheTest {
             verifyLoadedFromCache(otherPolicy, underTest, cacheLoader);
         }};
 
+    }
+
+    @Test
+    public void policyTagInvalidatesCachedPoliciesInNamespacesOfChangedRootPolicy() throws Exception {
+        final AsyncCacheLoader<PolicyId, Entry<PolicyEnforcer>> cacheLoader = mock(AsyncCacheLoader.class);
+        final ExecutionContextExecutor executor = actorSystem.dispatcher();
+        final PolicyId rootPolicyId = PolicyId.of("org.example", "tenant-root-local");
+
+        final var underTest = new PolicyEnforcerCache(
+                cacheLoader,
+                executor,
+                DefaultCacheConfig.of(actorSystem.settings().config(), "ditto.policies-enforcer-cache"),
+                namespacePoliciesConfigFor(rootPolicyId)
+        );
+
+        final Policy devicesPolicy = Policy.newBuilder(PolicyId.of("org.example.devices", "policy-a")).build();
+        final Policy sensorsPolicy = Policy.newBuilder(PolicyId.of("org.example.sensors", "policy-b")).build();
+        final Policy unrelatedPolicy = Policy.newBuilder(PolicyId.of("org.example.other", "policy-c")).build();
+
+        new TestKit(actorSystem) {{
+            verifyLoadedFromCacheLoader(devicesPolicy, underTest, cacheLoader);
+            verifyLoadedFromCacheLoader(sensorsPolicy, underTest, cacheLoader);
+            verifyLoadedFromCacheLoader(unrelatedPolicy, underTest, cacheLoader);
+            reset(cacheLoader);
+
+            verifyLoadedFromCache(devicesPolicy, underTest, cacheLoader);
+            verifyLoadedFromCache(sensorsPolicy, underTest, cacheLoader);
+            verifyLoadedFromCache(unrelatedPolicy, underTest, cacheLoader);
+            reset(cacheLoader);
+
+            final boolean invalidated = underTest.invalidate(rootPolicyId);
+            assertThat(invalidated).isTrue();
+
+            verifyLoadedFromCacheLoader(devicesPolicy, underTest, cacheLoader);
+            verifyLoadedFromCacheLoader(sensorsPolicy, underTest, cacheLoader);
+            verifyLoadedFromCache(unrelatedPolicy, underTest, cacheLoader);
+        }};
+    }
+
+    @Test
+    public void wildcardNamespacePatternInvalidatesCachedPoliciesInMatchingNamespaces() throws Exception {
+        final AsyncCacheLoader<PolicyId, Entry<PolicyEnforcer>> cacheLoader = mock(AsyncCacheLoader.class);
+        final ExecutionContextExecutor executor = actorSystem.dispatcher();
+        final PolicyId rootPolicyId = PolicyId.of("org.example", "tenant-root-wildcard");
+
+        // configure root policy via wildcard pattern "org.example.*"
+        final var underTest = new PolicyEnforcerCache(
+                cacheLoader,
+                executor,
+                DefaultCacheConfig.of(actorSystem.settings().config(), "ditto.policies-enforcer-cache"),
+                namespacePoliciesConfigForWildcard(rootPolicyId, "org.example.*")
+        );
+
+        final Policy devicesPolicy = Policy.newBuilder(PolicyId.of("org.example.devices", "policy-a")).build();
+        final Policy sensorsPolicy = Policy.newBuilder(PolicyId.of("org.example.sensors", "policy-b")).build();
+        // "org.examples" must NOT match "org.example.*" (no dot separator)
+        final Policy unrelatedPolicy = Policy.newBuilder(PolicyId.of("org.examples", "policy-c")).build();
+
+        new TestKit(actorSystem) {{
+            verifyLoadedFromCacheLoader(devicesPolicy, underTest, cacheLoader);
+            verifyLoadedFromCacheLoader(sensorsPolicy, underTest, cacheLoader);
+            verifyLoadedFromCacheLoader(unrelatedPolicy, underTest, cacheLoader);
+            reset(cacheLoader);
+
+            verifyLoadedFromCache(devicesPolicy, underTest, cacheLoader);
+            verifyLoadedFromCache(sensorsPolicy, underTest, cacheLoader);
+            verifyLoadedFromCache(unrelatedPolicy, underTest, cacheLoader);
+            reset(cacheLoader);
+
+            final boolean invalidated = underTest.invalidate(rootPolicyId);
+            assertThat(invalidated).isTrue();
+
+            // matching namespace policies must be reloaded
+            verifyLoadedFromCacheLoader(devicesPolicy, underTest, cacheLoader);
+            verifyLoadedFromCacheLoader(sensorsPolicy, underTest, cacheLoader);
+            // non-matching policy must still be served from cache
+            verifyLoadedFromCache(unrelatedPolicy, underTest, cacheLoader);
+        }};
+    }
+
+    private NamespacePoliciesConfig namespacePoliciesConfigForWildcard(final PolicyId rootPolicyId,
+            final String pattern) {
+        final NamespacePoliciesConfig config = mock(NamespacePoliciesConfig.class);
+        when(config.getAllNamespaceRootPolicyIds()).thenReturn(Collections.singleton(rootPolicyId));
+        when(config.getNamespacesForRootPolicy(rootPolicyId)).thenReturn(Collections.singleton(pattern));
+        return config;
+    }
+
+    private NamespacePoliciesConfig namespacePoliciesConfigFor(final PolicyId rootPolicyId) {
+        final NamespacePoliciesConfig config = mock(NamespacePoliciesConfig.class);
+        final Map<String, List<PolicyId>> namespacePolicies = new HashMap<>();
+        namespacePolicies.put("org.example.devices", Collections.singletonList(rootPolicyId));
+        namespacePolicies.put("org.example.sensors", Collections.singletonList(rootPolicyId));
+
+        final Set<String> coveredNamespaces = new HashSet<>();
+        coveredNamespaces.add("org.example.devices");
+        coveredNamespaces.add("org.example.sensors");
+
+        when(config.getNamespacePolicies()).thenReturn(namespacePolicies);
+        when(config.getAllNamespaceRootPolicyIds()).thenReturn(Collections.singleton(rootPolicyId));
+        when(config.getNamespacesForRootPolicy(rootPolicyId)).thenReturn(coveredNamespaces);
+        return config;
     }
 
     private void verifyLoadedFromCacheLoader(final Policy policy,
