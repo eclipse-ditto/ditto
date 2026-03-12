@@ -12,15 +12,19 @@
  */
 package org.eclipse.ditto.policies.enforcement;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
@@ -49,7 +53,7 @@ public final class PolicyEnforcer {
             final Function<PolicyId, CompletionStage<Optional<Policy>>> policyResolver) {
         return policy.withResolvedImports(policyResolver)
                 .thenApply(resolvedPolicy -> {
-                    final var enforcer = PolicyEnforcers.defaultEvaluator(resolvedPolicy);
+                    final Enforcer enforcer = PolicyEnforcers.defaultEvaluator(resolvedPolicy);
                     return new PolicyEnforcer(resolvedPolicy, enforcer);
                 });
     }
@@ -108,6 +112,30 @@ public final class PolicyEnforcer {
      */
     public Enforcer getEnforcer() {
         return enforcer;
+    }
+
+    /**
+     * Returns a new {@code PolicyEnforcer} whose enforcer only considers policy entries applicable to the given
+     * thing namespace. If no entries have namespace restrictions, returns {@code this} unchanged (optimization).
+     *
+     * @param thingNamespace the namespace of the thing being enforced.
+     * @return a {@code PolicyEnforcer} filtered for the given namespace.
+     * @since 3.9.0
+     */
+    public PolicyEnforcer forNamespace(final String thingNamespace) {
+        if (policy == null) {
+            return this;
+        }
+        final boolean anyEntryHasNamespaces = StreamSupport.stream(policy.spliterator(), false)
+                .anyMatch(entry -> !entry.getNamespaces().isEmpty());
+        if (!anyEntryHasNamespaces) {
+            return this;
+        }
+        final List<PolicyEntry> filteredEntries = StreamSupport.stream(policy.spliterator(), false)
+                .filter(entry -> entry.appliesToNamespace(thingNamespace))
+                .collect(Collectors.toList());
+        final Enforcer filteredEnforcer = PolicyEnforcers.defaultEvaluator(filteredEntries);
+        return new PolicyEnforcer(policy, filteredEnforcer);
     }
 
 }

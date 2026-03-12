@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -551,6 +552,28 @@ public final class PoliciesModelFactory {
             final Set<AllowedImportAddition> allowedImportAdditions) {
         return ImmutablePolicyEntry.of(Label.of(label), newSubjects(subjects), newResources(resources), importable,
                 allowedImportAdditions);
+    }
+
+    /**
+     * Returns a new immutable {@link PolicyEntry} with the given authorization subjects, permissions, import settings,
+     * and namespace patterns.
+     *
+     * @param label the Label of the PolicyEntry to create.
+     * @param subjects the Subjects contained in the PolicyEntry to create.
+     * @param resources the Resources of the PolicyEntry to create.
+     * @param importable whether and how the entry is importable by others.
+     * @param allowedImportAdditions which types of additions are allowed when importing this entry.
+     * @param namespaces the namespace patterns restricting which thing namespaces this entry applies to.
+     * @return the new Policy entry.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code label} is empty.
+     * @since 3.9.0
+     */
+    public static PolicyEntry newPolicyEntry(final CharSequence label, final Iterable<Subject> subjects,
+            final Iterable<Resource> resources, final ImportableType importable,
+            final Set<AllowedImportAddition> allowedImportAdditions, final List<String> namespaces) {
+        return ImmutablePolicyEntry.of(Label.of(label), newSubjects(subjects), newResources(resources), importable,
+                allowedImportAdditions, namespaces);
     }
 
     /**

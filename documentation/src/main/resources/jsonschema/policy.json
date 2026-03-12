@@ -155,6 +155,13 @@
               "description": "Controls the import behavior of this policy entry i.e. whether this policy entry is implicitly, explicitly or never imported when referenced from another policy. (`implicit` (default): the policy entry is imported without being listed in the importing policy individually, `explicit`: the policy entry is only imported if it is listed in the importing policy, `never`: the policy entry is not imported, regardless of being listed in the importing policy. If the field is not specified, default value is `implicit`.",
               "enum": ["implicit", "explicit", "never"],
               "default": "implicit"
+            },
+            "namespaces": {
+              "type": "array",
+              "description": "Restricts this policy entry to things whose namespace matches at least one pattern. If omitted or empty, the entry applies to all namespaces. Use `com.acme` for an exact namespace match and `com.acme.*` for namespaces below `com.acme`.",
+              "items": {
+                "type": "string"
+              }
             }
           },
           "required": [

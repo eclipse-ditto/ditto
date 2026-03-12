@@ -23,7 +23,11 @@
         ],
         "revoke": []
       }
-    }
+    },
+    "namespaces": [
+      "com.acme",
+      "com.acme.*"
+    ]
   }
 }
 ```

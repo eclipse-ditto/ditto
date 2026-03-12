@@ -102,7 +102,8 @@ public final class PolicyImporter {
                 mergedSubjects,
                 mergedResources,
                 entry.getImportableType(),
-                entry.getAllowedImportAdditions()
+                entry.getAllowedImportAdditions(),
+                entry.getNamespaces()
         );
     }
 

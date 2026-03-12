@@ -14,9 +14,11 @@ package org.eclipse.ditto.policies.model;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -25,6 +27,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.entity.id.RegexPatterns;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonArray;
@@ -47,15 +50,18 @@ final class ImmutablePolicyEntry implements PolicyEntry {
     private final Resources resources;
     private final ImportableType importableType;
     private final Set<AllowedImportAddition> allowedImportAdditions;
+    private final List<String> namespaces;
 
     private ImmutablePolicyEntry(final Label theLabel, final Subjects theSubjects, final Resources theResources,
-            final ImportableType importableType, final Set<AllowedImportAddition> allowedImportAdditions) {
+            final ImportableType importableType, final Set<AllowedImportAddition> allowedImportAdditions,
+            final List<String> namespaces) {
         label = checkNotNull(theLabel, "label");
         subjects = theSubjects;
         resources = theResources;
         this.importableType = importableType;
         this.allowedImportAdditions = Collections.unmodifiableSet(
                 new LinkedHashSet<>(allowedImportAdditions));
+        this.namespaces = Collections.unmodifiableList(new ArrayList<>(namespaces));
     }
 
     /**
@@ -71,7 +77,7 @@ final class ImmutablePolicyEntry implements PolicyEntry {
         checkNotNull(subjects, "subjects");
         checkNotNull(resources, "resources");
         return new ImmutablePolicyEntry(label, subjects, resources, ImportableType.IMPLICIT,
-                Collections.emptySet());
+                Collections.emptySet(), Collections.emptyList());
     }
 
     /**
@@ -90,7 +96,8 @@ final class ImmutablePolicyEntry implements PolicyEntry {
         checkNotNull(subjects, "subjects");
         checkNotNull(resources, "resources");
         checkNotNull(importableType, "importableType");
-        return new ImmutablePolicyEntry(label, subjects, resources, importableType, Collections.emptySet());
+        return new ImmutablePolicyEntry(label, subjects, resources, importableType, Collections.emptySet(),
+                Collections.emptyList());
     }
 
     /**
@@ -111,7 +118,35 @@ final class ImmutablePolicyEntry implements PolicyEntry {
         checkNotNull(resources, "resources");
         checkNotNull(importableType, "importableType");
         checkNotNull(allowedImportAdditions, "allowedImportAdditions");
-        return new ImmutablePolicyEntry(label, subjects, resources, importableType, allowedImportAdditions);
+        return new ImmutablePolicyEntry(label, subjects, resources, importableType, allowedImportAdditions,
+                Collections.emptyList());
+    }
+
+    /**
+     * Returns a new {@code PolicyEntry} object with the given Subjects, Resources, import settings, and namespace
+     * patterns.
+     *
+     * @param label the Label of the PolicyEntry to create.
+     * @param subjects the Subjects contained in the PolicyEntry to create.
+     * @param resources the Resources of the PolicyEntry to create.
+     * @param importableType specifies whether and how this entry is allowed to be imported by others.
+     * @param allowedImportAdditions which types of additions are allowed when importing this entry.
+     * @param namespaces the namespace patterns restricting which thing namespaces this entry applies to.
+     * @return a new {@code PolicyEntry} object.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 3.9.0
+     */
+    public static PolicyEntry of(final Label label, final Subjects subjects, final Resources resources,
+            final ImportableType importableType, final Set<AllowedImportAddition> allowedImportAdditions,
+            final List<String> namespaces) {
+        checkNotNull(subjects, "subjects");
+        checkNotNull(resources, "resources");
+        checkNotNull(importableType, "importableType");
+        checkNotNull(allowedImportAdditions, "allowedImportAdditions");
+        checkNotNull(namespaces, "namespaces");
+        validateNamespaces(namespaces);
+        return new ImmutablePolicyEntry(label, subjects, resources, importableType, allowedImportAdditions,
+                namespaces);
     }
 
     /**
@@ -140,7 +175,9 @@ final class ImmutablePolicyEntry implements PolicyEntry {
             final Resources resourcesFromJson = PoliciesModelFactory.newResources(resourcesJsonObject);
             final ImportableType importType = readImportableType(jsonObject).orElse(ImportableType.IMPLICIT);
             final Set<AllowedImportAddition> additions = readAllowedImportAdditions(jsonObject);
-            return new ImmutablePolicyEntry(lbl, subjectsFromJson, resourcesFromJson, importType, additions);
+            final List<String> namespacesFromJson = readNamespaces(jsonObject);
+            return new ImmutablePolicyEntry(lbl, subjectsFromJson, resourcesFromJson, importType, additions,
+                    namespacesFromJson);
         } catch (final JsonMissingFieldException e) {
             throw new DittoJsonException(e);
         }
@@ -176,6 +213,44 @@ final class ImmutablePolicyEntry implements PolicyEntry {
                 .orElse(Collections.emptySet());
     }
 
+    private static List<String> readNamespaces(final JsonObject json) {
+        final List<String> namespaces = json.getValue(JsonFields.NAMESPACES)
+                .map(array -> array.stream()
+                        .filter(JsonValue::isString)
+                        .map(JsonValue::asString)
+                        .collect(Collectors.toList()))
+                .orElse(Collections.emptyList());
+        validateNamespaces(namespaces);
+        return namespaces;
+    }
+
+    private static void validateNamespaces(final List<String> namespaces) {
+        namespaces.forEach(ImmutablePolicyEntry::validateNamespacePattern);
+    }
+
+    private static void validateNamespacePattern(final String value) {
+        checkNotNull(value, "namespace pattern");
+        if (!isValidNamespacePattern(value)) {
+            throw PolicyEntryInvalidException.newBuilder()
+                    .description("The value '" + value + "' in field '" +
+                            JsonFields.NAMESPACES.getPointer() +
+                            "' is not a valid namespace pattern. Valid patterns are namespaces" +
+                            " like 'com.acme' or wildcard patterns like 'com.acme.*'.")
+                    .build();
+        }
+    }
+
+    private static boolean isValidNamespacePattern(final String value) {
+        if (value.isEmpty()) {
+            return false;
+        }
+        if (value.endsWith(".*")) {
+            final String namespacePrefix = value.substring(0, value.length() - 2);
+            return !namespacePrefix.isEmpty() && RegexPatterns.NAMESPACE_PATTERN.matcher(namespacePrefix).matches();
+        }
+        return RegexPatterns.NAMESPACE_PATTERN.matcher(value).matches();
+    }
+
     @Override
     public Label getLabel() {
         return label;
@@ -202,11 +277,17 @@ final class ImmutablePolicyEntry implements PolicyEntry {
     }
 
     @Override
+    public List<String> getNamespaces() {
+        return namespaces;
+    }
+
+    @Override
     public boolean isSemanticallySameAs(final PolicyEntry otherPolicyEntry) {
         return subjects.isSemanticallySameAs(otherPolicyEntry.getSubjects()) &&
                 resources.equals(otherPolicyEntry.getResources()) &&
                 importableType.equals(otherPolicyEntry.getImportableType()) &&
-                allowedImportAdditions.equals(otherPolicyEntry.getAllowedImportAdditions());
+                allowedImportAdditions.equals(otherPolicyEntry.getAllowedImportAdditions()) &&
+                namespaces.equals(otherPolicyEntry.getNamespaces());
     }
 
     @Override
@@ -222,6 +303,13 @@ final class ImmutablePolicyEntry implements PolicyEntry {
                 arrayBuilder.add(JsonValue.of(addition.getName()));
             }
             builder.set(JsonFields.ALLOWED_IMPORT_ADDITIONS, arrayBuilder.build(), predicate);
+        }
+        if (!namespaces.isEmpty()) {
+            final JsonArrayBuilder namespacesBuilder = JsonFactory.newArrayBuilder();
+            for (final String namespace : namespaces) {
+                namespacesBuilder.add(JsonValue.of(namespace));
+            }
+            builder.set(JsonFields.NAMESPACES, namespacesBuilder.build(), predicate);
         }
         return builder.build();
     }
@@ -239,12 +327,13 @@ final class ImmutablePolicyEntry implements PolicyEntry {
                 Objects.equals(subjects, that.subjects) &&
                 Objects.equals(resources, that.resources) &&
                 Objects.equals(importableType, that.importableType) &&
-                Objects.equals(allowedImportAdditions, that.allowedImportAdditions);
+                Objects.equals(allowedImportAdditions, that.allowedImportAdditions) &&
+                Objects.equals(namespaces, that.namespaces);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(label, subjects, resources, importableType, allowedImportAdditions);
+        return Objects.hash(label, subjects, resources, importableType, allowedImportAdditions, namespaces);
     }
 
     @Override
@@ -255,6 +344,7 @@ final class ImmutablePolicyEntry implements PolicyEntry {
                 ", resources=" + resources +
                 ", importableType=" + importableType +
                 ", allowedImportAdditions=" + allowedImportAdditions +
+                ", namespaces=" + namespaces +
                 "]";
     }
 

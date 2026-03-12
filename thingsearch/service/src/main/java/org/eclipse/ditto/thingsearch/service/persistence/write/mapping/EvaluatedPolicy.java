@@ -58,10 +58,13 @@ final class EvaluatedPolicy {
         this.featurePermissions = featurePermissions;
     }
 
-    static EvaluatedPolicy of(final Policy policy, final JsonObject thing) {
+    static EvaluatedPolicy of(final Policy policy, final JsonObject thing, final String thingNamespace) {
         final Map<JsonPointer, Pair<Set<String>, Set<String>>> thingPermissions = new HashMap<>();
         final Map<String, Map<JsonPointer, Pair<Set<String>, Set<String>>>> featurePermissions = new HashMap<>();
         for (final var entry : policy) {
+            if (!entry.appliesToNamespace(thingNamespace)) {
+                continue;
+            }
             final Set<String> subjects = getSubjects(entry);
             final Map<JsonPointer, Boolean> paths = getPaths(entry.getResources());
             paths.forEach((path, isGrant) -> {
