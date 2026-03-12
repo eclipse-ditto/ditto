@@ -12,7 +12,9 @@
  */
 package org.eclipse.ditto.policies.enforcement;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -30,8 +32,9 @@ import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
 
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Policy together with its enforcer.
@@ -39,7 +42,7 @@ import org.slf4j.LoggerFactory;
 @Immutable
 public final class PolicyEnforcer {
 
-    private static final Logger LOG = LoggerFactory.getLogger(PolicyEnforcer.class);
+    private static final Logger LOG = DittoLoggerFactory.getThreadSafeLogger(PolicyEnforcer.class);
 
     @Nullable private final Policy policy;
     private final Enforcer enforcer;
@@ -101,6 +104,10 @@ public final class PolicyEnforcer {
      * Local/imported entries always win: if a label already exists in {@code resolvedPolicy}, the corresponding
      * namespace root entry is skipped. Missing or deleted namespace root policies are logged as errors and silently
      * skipped — the policy continues to function without them.
+     * <p>
+     * Root policies are resolved in parallel for performance, then merged in precedence order
+     * (exact match first, then more specific prefix wildcards, then broader, then catch-all).
+     * </p>
      */
     private static CompletionStage<Policy> mergeNamespacePolicies(
             final Policy resolvedPolicy,
@@ -114,20 +121,34 @@ public final class PolicyEnforcer {
             return CompletableFuture.completedFuture(resolvedPolicy);
         }
 
-        CompletionStage<Policy> resultStage = CompletableFuture.completedFuture(resolvedPolicy);
+        final Map<PolicyId, CompletableFuture<Optional<Policy>>> resolutionFutures = new LinkedHashMap<>();
         for (final PolicyId rootPolicyId : rootPolicies) {
-            resultStage = resultStage.thenCompose(currentPolicy ->
-                    policyResolver.apply(rootPolicyId).thenCompose(rootPolicyOpt -> {
-                        if (rootPolicyOpt.isEmpty()) {
-                            LOG.error("Namespace root policy <{}> for namespace <{}> does not exist or was deleted" +
-                                    " - skipping its entries.", rootPolicyId, namespace);
-                            return CompletableFuture.completedFuture(currentPolicy);
-                        }
-                        return rootPolicyOpt.get().withResolvedImports(policyResolver)
-                                .thenApply(rootPolicy -> mergeImplicitEntries(rootPolicy, currentPolicy));
-                    }));
+            resolutionFutures.put(rootPolicyId,
+                    policyResolver.apply(rootPolicyId)
+                            .thenCompose(rootPolicyOpt -> {
+                                if (rootPolicyOpt.isEmpty()) {
+                                    LOG.error("Namespace root policy <{}> for namespace <{}> does not exist" +
+                                            " or was deleted - skipping its entries.", rootPolicyId, namespace);
+                                    return CompletableFuture.completedFuture(Optional.<Policy>empty());
+                                }
+                                return rootPolicyOpt.get().withResolvedImports(policyResolver)
+                                        .thenApply(Optional::of);
+                            })
+                            .toCompletableFuture());
         }
-        return resultStage;
+
+        final CompletableFuture<?>[] allFutures = resolutionFutures.values().toArray(CompletableFuture[]::new);
+        return CompletableFuture.allOf(allFutures)
+                .thenApply(ignored -> {
+                    Policy result = resolvedPolicy;
+                    for (final PolicyId rootPolicyId : rootPolicies) {
+                        final Optional<Policy> rootPolicyOpt = resolutionFutures.get(rootPolicyId).join();
+                        if (rootPolicyOpt.isPresent()) {
+                            result = mergeImplicitEntries(rootPolicyOpt.get(), result);
+                        }
+                    }
+                    return result;
+                });
     }
 
     private static Policy mergeImplicitEntries(final Policy rootPolicy, final Policy currentPolicy) {

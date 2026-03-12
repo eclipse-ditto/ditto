@@ -55,6 +55,8 @@ import com.typesafe.config.ConfigValueType;
  * <p>
  * See {@link NamespacePoliciesConfig#namespaceMatchesPattern} for the supported pattern syntax.
  * </p>
+ *
+ *  @since 3.9.0
  */
 @Immutable
 public final class DefaultNamespacePoliciesConfig implements NamespacePoliciesConfig {
@@ -126,6 +128,7 @@ public final class DefaultNamespacePoliciesConfig implements NamespacePoliciesCo
         return sortedPatterns.stream()
                 .filter(p -> NamespacePoliciesConfig.namespaceMatchesPattern(namespace, p))
                 .flatMap(p -> forwardMap.get(p).stream())
+                .distinct()
                 .toList();
     }
 

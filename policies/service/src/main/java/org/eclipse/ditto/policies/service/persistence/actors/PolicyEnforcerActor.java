@@ -26,6 +26,7 @@ import org.eclipse.ditto.policies.enforcement.PolicyCacheLoader;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.policies.enforcement.config.DefaultNamespacePoliciesConfig;
+import org.eclipse.ditto.policies.enforcement.config.NamespacePoliciesConfig;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
@@ -40,6 +41,8 @@ import org.eclipse.ditto.policies.service.enforcement.PolicyCommandEnforcement;
 public final class PolicyEnforcerActor extends
         AbstractPolicyLoadingEnforcerActor<PolicyId, Signal<?>, PolicyCommandResponse<?>, PolicyCommandEnforcement> {
 
+    private final NamespacePoliciesConfig namespacePoliciesConfig;
+
     @SuppressWarnings("unused")
     private PolicyEnforcerActor(final PolicyId policyId,
             final PolicyCommandEnforcement policyCommandEnforcement,
@@ -47,6 +50,7 @@ public final class PolicyEnforcerActor extends
             final LocalAskTimeoutConfig localAskTimeoutConfig
     ) {
         super(policyId, policyCommandEnforcement, policyEnforcerProvider, localAskTimeoutConfig);
+        this.namespacePoliciesConfig = DefaultNamespacePoliciesConfig.of(getContext().system().settings().config());
     }
 
     /**
@@ -79,7 +83,7 @@ public final class PolicyEnforcerActor extends
                             .thenApply(Entry::get);
             return PolicyEnforcer.withResolvedImportsAndNamespacePolicies(createPolicy.getPolicy(),
                             importedPolicyResolver,
-                            DefaultNamespacePoliciesConfig.of(getContext().system().settings().config()))
+                            namespacePoliciesConfig)
                     .thenApply(Optional::of);
         }
         return super.loadPolicyEnforcer(signal);
