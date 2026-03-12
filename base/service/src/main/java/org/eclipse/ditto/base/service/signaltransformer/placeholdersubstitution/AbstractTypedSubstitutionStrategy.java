@@ -74,7 +74,7 @@ public abstract class AbstractTypedSubstitutionStrategy<T extends Signal<?>> imp
         } else {
             resultEntry = PoliciesModelFactory.newPolicyEntry(existingPolicyEntry.getLabel(), substitutedSubjects,
                     existingPolicyEntry.getResources(), existingPolicyEntry.getImportableType(),
-                    existingPolicyEntry.getAllowedImportAdditions());
+                    existingPolicyEntry.getAllowedImportAdditions(), existingPolicyEntry.getNamespaces());
         }
 
         return resultEntry;

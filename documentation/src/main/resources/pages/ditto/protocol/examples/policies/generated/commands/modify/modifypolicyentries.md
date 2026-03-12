@@ -25,7 +25,10 @@
           ],
           "revoke": []
         }
-      }
+      },
+      "namespaces": [
+        "com.acme"
+      ]
     },
     "the_label": {
       "__schemaVersion": 2,
@@ -44,7 +47,11 @@
           ],
           "revoke": []
         }
-      }
+      },
+      "namespaces": [
+        "com.acme",
+        "com.acme.*"
+      ]
     }
   }
 }

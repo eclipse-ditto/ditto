@@ -100,7 +100,8 @@ public final class PolicyImporterTest {
                 entry.getSubjects(),
                 entry.getResources(),
                 entry.getImportableType(),
-                entry.getAllowedImportAdditions());
+                entry.getAllowedImportAdditions(),
+                entry.getNamespaces());
     }
 
     @Test
@@ -701,6 +702,40 @@ public final class PolicyImporterTest {
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("Expected explicit imported entry not found"));
         assertThat(explicitEntry.getAllowedImportAdditions()).isEqualTo(ALLOWED_BOTH);
+    }
+
+    @Test
+    public void withResolvedImportsPreservesNamespaces() {
+        final List<String> namespaces = Arrays.asList("com.acme", "com.acme.*");
+        final Label implicitLabel = Label.of(ImportableType.IMPLICIT.getName() + "SupportGroup");
+        final PolicyEntry scopedImplicitEntry = ImmutablePolicyEntry.of(implicitLabel,
+                Subjects.newInstance(Subject.newInstance(SubjectIssuer.GOOGLE, "scopedGroup")),
+                Resources.newInstance(
+                        Resource.newInstance(TestConstants.Policy.RESOURCE_TYPE, JsonPointer.of("attributes"),
+                                EffectedPermissions.newInstance(
+                                        Permissions.newInstance(TestConstants.Policy.PERMISSION_READ,
+                                                TestConstants.Policy.PERMISSION_WRITE), Permissions.none()))),
+                ImportableType.IMPLICIT,
+                Collections.emptySet(),
+                namespaces);
+        final Policy importedPolicy = ImmutablePolicy.of(
+                IMPORTED_POLICY_ID, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null,
+                null, emptyPolicyImports(), Collections.singletonList(scopedImplicitEntry));
+        final Function<PolicyId, CompletionStage<Optional<Policy>>> loader = policyId ->
+                IMPORTED_POLICY_ID.equals(policyId)
+                        ? CompletableFuture.completedFuture(Optional.of(importedPolicy))
+                        : CompletableFuture.completedFuture(Optional.empty());
+
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(createPolicy())
+                .setPolicyImport(PoliciesModelFactory.newPolicyImport(IMPORTED_POLICY_ID, (EffectedImports) null))
+                .build();
+
+        final Policy resolvedPolicy = policy.withResolvedImports(loader).toCompletableFuture().join();
+
+        final Label importedLabel = PoliciesModelFactory.newImportedLabel(IMPORTED_POLICY_ID, implicitLabel);
+        final PolicyEntry importedEntry = resolvedPolicy.getEntryFor(importedLabel)
+                .orElseThrow(() -> new AssertionError("Expected imported entry not found"));
+        assertThat(importedEntry.getNamespaces()).isEqualTo(namespaces);
     }
 
     private static Policy createImportedPolicy(final PolicyId importedPolicyId) {

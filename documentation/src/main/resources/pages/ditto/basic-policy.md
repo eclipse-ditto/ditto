@@ -328,6 +328,20 @@ policies are permitted to merge into this entry via `entriesAdditions`. Valid va
 policies that were created before this feature cannot be extended with additional subjects or resources through
 `entriesAdditions` unless the policy author explicitly opts in by setting `allowedImportAdditions`.
 
+Each entry can also specify `namespaces` to restrict the entry to Things whose namespace matches at least one
+configured pattern. If the field is omitted or empty, the entry applies to all Thing namespaces. This keeps existing
+policies backward compatible.
+
+Supported namespace patterns are:
+1. `com.acme` - matches only the exact namespace `com.acme`
+2. `com.acme.*` - matches namespaces below `com.acme`, for example `com.acme.vehicles`, but not `com.acme` itself
+
+If an entry should apply to both the base namespace and all nested namespaces, both patterns must be specified:
+`["com.acme", "com.acme.*"]`.
+
+This is useful for multi-tenant setups where one policy should protect Things from several tenants, but a specific
+entry should only grant access for one tenant subtree.
+
 Example of a policy specifying different types of `importable` entries and allowed additions:
 ```json
 {
@@ -340,7 +354,8 @@ Example of a policy specifying different types of `importable` entries and allow
       "subjects": { ... },
       "resources": { ... },
       "importable": "implicit",
-      "allowedImportAdditions": [ "subjects" ]
+      "allowedImportAdditions": [ "subjects" ],
+      "namespaces": [ "com.acme", "com.acme.*" ]
     },
     "EXPLICIT": {
       "subjects": { ... },
@@ -356,6 +371,28 @@ Example of a policy specifying different types of `importable` entries and allow
   }
 }
 ``` 
+
+Example of a tenant-scoped reader entry:
+```json
+{
+  "entries": {
+    "TENANT_READER": {
+      "subjects": {
+        "test:bob": {
+          "type": "pre-authenticated"
+        }
+      },
+      "resources": {
+        "thing:/": {
+          "grant": [ "READ" ],
+          "revoke": []
+        }
+      },
+      "namespaces": [ "com.acme", "com.acme.*" ]
+    }
+  }
+}
+```
 
 Secondly, the importing policy may define a set of entries (identified by their label) it wants to import in addition to those entries that are implicitly imported.
 

@@ -176,6 +176,12 @@ public final class ThingEnforcerActor
     }
 
     @Override
+    protected CompletionStage<Optional<PolicyEnforcer>> providePolicyEnforcer(@Nullable final PolicyId policyId) {
+        return super.providePolicyEnforcer(policyId)
+                .thenApply(opt -> opt.map(pe -> pe.forNamespace(entityId.getNamespace())));
+    }
+
+    @Override
     protected CompletionStage<Optional<PolicyEnforcer>> loadPolicyEnforcer(final Signal<?> signal) {
         if (signal instanceof CreateThing createThing && !Signal.isChannelLive(createThing)) {
             return loadPolicyEnforcerForCreateThing(createThing);

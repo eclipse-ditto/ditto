@@ -124,7 +124,7 @@ public final class EnforcedThingMapper {
         final var policyRevision =
                 metadata.getThingPolicyTag().map(AbstractEntityIdWithRevision::getRevision).orElse(0L);
         final var thingBson = DittoBsonJson.getInstance().parse(enforced);
-        final var evaluatedPolicy = EvaluatedPolicy.of(policy, thing);
+        final var evaluatedPolicy = EvaluatedPolicy.of(policy, thing, thingId.getNamespace());
         final var featureArray = getFeatureArray(thing, evaluatedPolicy);
         final BsonArray referencedPolicies = getReferencedPolicies(metadata.getAllReferencedPolicyTags());
 
