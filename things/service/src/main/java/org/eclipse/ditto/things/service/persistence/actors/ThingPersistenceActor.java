@@ -60,6 +60,9 @@ import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.pekko.config.DynamicConfigPoller;
+import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
 import org.eclipse.ditto.things.service.common.config.ThingConfig;
 import org.eclipse.ditto.things.service.persistence.actors.enrichment.EnrichSignalWithPreDefinedExtraFields;
 import org.eclipse.ditto.things.service.persistence.actors.enrichment.EnrichSignalWithPreDefinedExtraFieldsResponse;
@@ -91,8 +94,7 @@ public final class ThingPersistenceActor
     private static final AckExtractor<ThingEvent<?>> ACK_EXTRACTOR =
             AckExtractor.of(ThingEvent::getEntityId, ThingEvent::getDittoHeaders);
 
-    private final ThingConfig thingConfig;
-    private final NamespaceActivityCheckConfigProvider activityCheckConfigProvider;
+    private final DynamicConfigPoller<ThingConfigBundle> configPoller;
     private final DistributedPub<ThingEvent<?>> distributedPub;
     @Nullable private final ActorRef searchShardRegionProxy;
     private final ThingEventEnricher thingEventEnricher;
@@ -106,17 +108,21 @@ public final class ThingPersistenceActor
             final PolicyEnforcerProvider policyEnforcerProvider) {
 
         super(thingId, mongoReadJournal);
-        this.thingConfig = thingConfig;
-        this.activityCheckConfigProvider = NamespaceActivityCheckConfigProvider.of(
-                thingConfig.getNamespaceActivityCheckConfigs(),
-                thingConfig.getActivityCheckConfig()
-        );
         this.distributedPub = distributedPub;
         this.searchShardRegionProxy = searchShardRegionProxy;
         this.thingEventEnricher = new ThingEventEnricher(
                 policyEnforcerProvider,
                 thingConfig.getEventConfig().isPartialAccessEventsEnabled()
         );
+        configPoller = DynamicConfigPoller.of(getContext().getSystem(), "ThingConfigBundle",
+                dittoConfig -> {
+                    final var scoped = DefaultScopedConfig.dittoScoped(dittoConfig);
+                    final var cfg = DittoThingsConfig.of(scoped).getThingConfig();
+                    return new ThingConfigBundle(cfg, NamespaceActivityCheckConfigProvider.of(
+                            cfg.getNamespaceActivityCheckConfigs(), cfg.getActivityCheckConfig()));
+                },
+                new ThingConfigBundle(thingConfig, NamespaceActivityCheckConfigProvider.of(
+                        thingConfig.getNamespaceActivityCheckConfigs(), thingConfig.getActivityCheckConfig())));
     }
 
     /**
@@ -224,13 +230,8 @@ public final class ThingPersistenceActor
     }
 
     @Override
-    protected ActivityCheckConfig getActivityCheckConfig() {
-        return activityCheckConfigProvider.getConfigForNamespace(entityId.getNamespace());
-    }
-
-    @Override
     protected SnapshotConfig getSnapshotConfig() {
-        return thingConfig.getSnapshotConfig();
+        return configPoller.get().thingConfig.getSnapshotConfig();
     }
 
     @Override
@@ -245,6 +246,14 @@ public final class ThingPersistenceActor
                 .build()
                 .orElse(super.matchAnyAfterInitialization());
     }
+
+    @Override
+    protected ActivityCheckConfig getActivityCheckConfig() {
+        return configPoller.get().activityCheckProvider.getConfigForNamespace(entityId.getNamespace());
+    }
+
+    private record ThingConfigBundle(ThingConfig thingConfig,
+                                     NamespaceActivityCheckConfigProvider activityCheckProvider) {}
 
     @Override
     protected Receive matchAnyWhenDeleted() {
@@ -281,7 +290,7 @@ public final class ThingPersistenceActor
     @Override
     protected void publishEvent(@Nullable final Thing previousEntity, final ThingEvent<?> event) {
         final CompletionStage<ThingEvent<?>> stage = thingEventEnricher.enrichWithPredefinedExtraFields(
-                thingConfig.getEventConfig().getPredefinedExtraFieldsConfigs(),
+                configPoller.get().thingConfig.getEventConfig().getPredefinedExtraFieldsConfigs(),
                 entityId,
                 entity,
                 Optional.ofNullable(entity).flatMap(Thing::getPolicyId)
@@ -341,7 +350,7 @@ public final class ThingPersistenceActor
         switch (signal) {
             case MessageCommand<?, ?> messageCommand ->
                 stage = thingEventEnricher.enrichWithPredefinedExtraFields(
-                        thingConfig.getEventConfig().getPredefinedExtraFieldsConfigs(),
+                        configPoller.get().thingConfig.getEventConfig().getPredefinedExtraFieldsConfigs(),
                         entityId,
                         entity,
                         Optional.ofNullable(entity).flatMap(Thing::getPolicyId).orElse(null),
@@ -349,7 +358,7 @@ public final class ThingPersistenceActor
                 );
             case ThingEvent<?> thingEvent ->
                 stage = thingEventEnricher.enrichWithPredefinedExtraFields(
-                        thingConfig.getEventConfig().getPredefinedExtraFieldsConfigs(),
+                        configPoller.get().thingConfig.getEventConfig().getPredefinedExtraFieldsConfigs(),
                         entityId,
                         entity,
                         Optional.ofNullable(entity).flatMap(Thing::getPolicyId).orElse(null),

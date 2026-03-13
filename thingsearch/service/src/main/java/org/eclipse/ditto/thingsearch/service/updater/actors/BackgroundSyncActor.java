@@ -156,6 +156,11 @@ public final class BackgroundSyncActor
     }
 
     @Override
+    protected Optional<String> getDittoConfigPath() {
+        return Optional.of("ditto.things-search.updater.background-sync");
+    }
+
+    @Override
     protected BackgroundSyncConfig parseConfig(final Config config) {
         return DefaultBackgroundSyncConfig.parse(config);
     }

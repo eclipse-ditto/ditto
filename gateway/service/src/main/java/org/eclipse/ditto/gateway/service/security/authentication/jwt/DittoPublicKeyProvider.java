@@ -93,10 +93,10 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
             "P-521", "secp521r1"
     );
 
-    private final JwtSubjectIssuersConfig jwtSubjectIssuersConfig;
+    private volatile JwtSubjectIssuersConfig jwtSubjectIssuersConfig;
     private final HttpClientFacade httpClient;
     private final Materializer materializer;
-    private final OAuthConfig oAuthConfig;
+    private volatile OAuthConfig oAuthConfig;
     private final Cache<PublicKeyIdWithIssuer, PublicKeyWithParser> publicKeyCache;
 
     private DittoPublicKeyProvider(final JwtSubjectIssuersConfig jwtSubjectIssuersConfig,
@@ -146,7 +146,7 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
      * @return the PublicKeyProvider.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static PublicKeyProvider of(final JwtSubjectIssuersConfig jwtSubjectIssuersConfig,
+    public static DittoPublicKeyProvider of(final JwtSubjectIssuersConfig jwtSubjectIssuersConfig,
             final HttpClientFacade httpClient,
             final CacheConfig publicKeysCacheConfig,
             final String cacheName,
@@ -154,6 +154,31 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
 
         return new DittoPublicKeyProvider(jwtSubjectIssuersConfig, httpClient, publicKeysCacheConfig, cacheName,
                 oAuthConfig);
+    }
+
+    /**
+     * Updates the OAuth and subject issuer configuration. Called when dynamic config changes are detected.
+     * New/removed issuers take effect immediately for subsequent JWT validations. Cached public keys with
+     * potentially stale clock skew settings will expire naturally based on their TTL.
+     *
+     * @param newIssuersConfig the new subject issuers config.
+     * @param newOAuthConfig the new OAuth config.
+     */
+    void updateConfig(final JwtSubjectIssuersConfig newIssuersConfig, final OAuthConfig newOAuthConfig) {
+        final JwtSubjectIssuersConfig previousConfig = this.jwtSubjectIssuersConfig;
+        this.jwtSubjectIssuersConfig = newIssuersConfig;
+        this.oAuthConfig = newOAuthConfig;
+
+        // Invalidate cached public keys for issuers that were removed
+        publicKeyCache.asMap().keySet().removeIf(cacheKey -> {
+            if (newIssuersConfig.getConfigItem(cacheKey.getIssuer()).isEmpty()) {
+                LOGGER.info("Invalidating cached public key for removed issuer <{}>.", cacheKey.getIssuer());
+                return true;
+            }
+            return false;
+        });
+
+        LOGGER.info("Updated OAuth config. Known issuers: {}", newIssuersConfig);
     }
 
     @Override

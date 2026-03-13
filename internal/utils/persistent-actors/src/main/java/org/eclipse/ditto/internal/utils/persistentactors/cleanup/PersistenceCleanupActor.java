@@ -44,6 +44,7 @@ import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.pekko.actors.ModifyConfigBehavior;
 import org.eclipse.ditto.internal.utils.pekko.actors.RetrieveConfigBehavior;
+import org.eclipse.ditto.internal.utils.pekko.config.DynamicConfigChanged;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
@@ -84,6 +85,7 @@ public final class PersistenceCleanupActor extends AbstractFSM<PersistenceCleanu
     private final Counter deleteSnapsCounter = DittoMetrics.counter("cleanup_delete_snapshots");
     private final MongoReadJournal mongoReadJournal;
     private final Supplier<Pair<Integer, Integer>> responsibilitySupplier;
+    @Nullable private final String dittoConfigCleanupPath;
 
     private CleanupConfig config;
     private Cleanup cleanup;
@@ -99,18 +101,24 @@ public final class PersistenceCleanupActor extends AbstractFSM<PersistenceCleanu
         this.credits = credits;
         this.mongoReadJournal = mongoReadJournal;
         this.responsibilitySupplier = responsibilitySupplier;
+        this.dittoConfigCleanupPath = null;
     }
 
     @SuppressWarnings("unused") // called by reflection
     private PersistenceCleanupActor(final CleanupConfig config,
             final MongoReadJournal mongoReadJournal,
-            final String myRole) {
+            final String myRole,
+            @Nullable final String dittoConfigCleanupPath) {
         final var cluster = Cluster.get(getContext().getSystem());
         this.mongoReadJournal = mongoReadJournal;
         responsibilitySupplier = ClusterResponsibilitySupplier.of(cluster, myRole);
         this.config = config;
+        this.dittoConfigCleanupPath = dittoConfigCleanupPath;
         cleanup = Cleanup.of(config, mongoReadJournal, logger, materializer, responsibilitySupplier);
         credits = Credits.of(config);
+        if (dittoConfigCleanupPath != null) {
+            getContext().getSystem().eventStream().subscribe(getSelf(), DynamicConfigChanged.class);
+        }
     }
 
     /**
@@ -124,7 +132,24 @@ public final class PersistenceCleanupActor extends AbstractFSM<PersistenceCleanu
     public static Props props(final CleanupConfig config, final MongoReadJournal mongoReadJournal,
             final String myRole) {
 
-        return Props.create(PersistenceCleanupActor.class, config, mongoReadJournal, myRole);
+        return Props.create(PersistenceCleanupActor.class, config, mongoReadJournal, myRole, null);
+    }
+
+    /**
+     * Create the Props object for this actor with dynamic config reload support.
+     *
+     * @param config the background cleanup config.
+     * @param mongoReadJournal the Mongo read journal for database operations.
+     * @param myRole the cluster role of this node among which the background cleanup responsibility is divided.
+     * @param dittoConfigCleanupPath the full ditto config path to the cleanup section
+     *        (e.g., {@code "ditto.things.thing.cleanup"}). When set, the actor subscribes to
+     *        {@link DynamicConfigChanged} events and refreshes its config automatically.
+     * @return the Props object.
+     */
+    public static Props props(final CleanupConfig config, final MongoReadJournal mongoReadJournal,
+            final String myRole, final String dittoConfigCleanupPath) {
+
+        return Props.create(PersistenceCleanupActor.class, config, mongoReadJournal, myRole, dittoConfigCleanupPath);
     }
 
     @Override
@@ -165,6 +190,21 @@ public final class PersistenceCleanupActor extends AbstractFSM<PersistenceCleanu
 
     private FSMStateFunctionBuilder<State, String> inAnyState() {
         return matchEvent(RetrieveHealth.class, this::retrieveHealth)
+                .event(DynamicConfigChanged.class, (configChanged, lastPid) -> {
+                    try {
+                        if (dittoConfigCleanupPath != null &&
+                                configChanged.dittoConfig().hasPath(dittoConfigCleanupPath)) {
+                            logger.info("Received DynamicConfigChanged (version <{}>), refreshing CleanupConfig.",
+                                    configChanged.version());
+                            setConfig(configChanged.dittoConfig().getConfig(dittoConfigCleanupPath));
+                        }
+                    } catch (final Exception e) {
+                        logger.warning("Failed to apply DynamicConfigChanged (version <{}>), " +
+                                        "keeping previous config: {}",
+                                configChanged.version(), e.getMessage());
+                    }
+                    return stay();
+                })
                 .event(RetrieveConfig.class, (retrieveConfig, lastPid) -> {
                     retrieveConfigBehavior().onMessage().apply(retrieveConfig);
 

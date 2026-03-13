@@ -1,0 +1,32 @@
+# Copyright (c) 2026 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+{{- $releaseName := .Release.Name -}}
+{{- $name := include "ditto.name" . -}}
+{{- $labels := include "ditto.labels" . -}}
+{{- $namespace := .Release.Namespace -}}
+{{- range $serviceName, $serviceValues := dict "policies" .Values.policies "things" .Values.things "thingsSearch" .Values.thingsSearch "connectivity" .Values.connectivity "gateway" .Values.gateway }}
+{{- if $serviceValues.dynamicConfig.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $releaseName }}-{{ $serviceName | kebabcase }}-dynamic-config
+  namespace: {{ $namespace }}
+  labels:
+    app.kubernetes.io/name: {{ $name }}-{{ $serviceName | kebabcase }}-dynamic-config
+{{ $labels | indent 4 }}
+data:
+  dynamic.conf: |-
+{{- if $serviceValues.dynamicConfig.content }}
+{{ $serviceValues.dynamicConfig.content | indent 4 }}
+{{- end }}
+{{- end }}
+{{- end }}

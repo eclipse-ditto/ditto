@@ -28,6 +28,7 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.pekko.config.DynamicConfigPoller;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.NamespaceActivityCheckConfigProvider;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
@@ -72,8 +73,7 @@ public final class PolicyPersistenceActor
     static final String SNAPSHOT_PLUGIN_ID = "pekko-contrib-mongodb-persistence-policies-snapshots";
 
     private final ActorRef pubSubMediator;
-    private final PolicyConfig policyConfig;
-    private final NamespaceActivityCheckConfigProvider activityCheckConfigProvider;
+    private final DynamicConfigPoller<PolicyConfigBundle> configPoller;
     private final ActorRef announcementManager;
     private final ActorRef supervisor;
 
@@ -87,12 +87,16 @@ public final class PolicyPersistenceActor
         super(policyId, mongoReadJournal);
         this.pubSubMediator = pubSubMediator;
         this.announcementManager = announcementManager;
-        this.policyConfig = policyConfig;
-        this.activityCheckConfigProvider = NamespaceActivityCheckConfigProvider.of(
-                policyConfig.getNamespaceActivityCheckConfigs(),
-                policyConfig.getActivityCheckConfig()
-        );
         this.supervisor = getContext().getParent();
+        this.configPoller = DynamicConfigPoller.of(getContext().getSystem(), "PolicyConfigBundle",
+                dittoConfig -> {
+                    final var scoped = DefaultScopedConfig.dittoScoped(dittoConfig);
+                    final var cfg = DittoPoliciesConfig.of(scoped).getPolicyConfig();
+                    return new PolicyConfigBundle(cfg, NamespaceActivityCheckConfigProvider.of(
+                            cfg.getNamespaceActivityCheckConfigs(), cfg.getActivityCheckConfig()));
+                },
+                new PolicyConfigBundle(policyConfig, NamespaceActivityCheckConfigProvider.of(
+                        policyConfig.getNamespaceActivityCheckConfigs(), policyConfig.getActivityCheckConfig())));
     }
 
     private PolicyPersistenceActor(final PolicyId policyId,
@@ -109,11 +113,16 @@ public final class PolicyPersistenceActor
         final DittoPoliciesConfig policiesConfig = DittoPoliciesConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         );
-        this.policyConfig = policiesConfig.getPolicyConfig();
-        this.activityCheckConfigProvider = NamespaceActivityCheckConfigProvider.of(
-                policyConfig.getNamespaceActivityCheckConfigs(),
-                policyConfig.getActivityCheckConfig()
-        );
+        final PolicyConfig policyConfig = policiesConfig.getPolicyConfig();
+        this.configPoller = DynamicConfigPoller.of(getContext().getSystem(), "PolicyConfigBundle",
+                dittoConfig -> {
+                    final var scoped = DefaultScopedConfig.dittoScoped(dittoConfig);
+                    final var cfg = DittoPoliciesConfig.of(scoped).getPolicyConfig();
+                    return new PolicyConfigBundle(cfg, NamespaceActivityCheckConfigProvider.of(
+                            cfg.getNamespaceActivityCheckConfigs(), cfg.getActivityCheckConfig()));
+                },
+                new PolicyConfigBundle(policyConfig, NamespaceActivityCheckConfigProvider.of(
+                        policyConfig.getNamespaceActivityCheckConfigs(), policyConfig.getActivityCheckConfig())));
     }
 
     /**
@@ -174,12 +183,12 @@ public final class PolicyPersistenceActor
 
     @Override
     protected PolicyCommandStrategies getCreatedStrategy() {
-        return PolicyCommandStrategies.getInstance(policyConfig, getContext().getSystem());
+        return PolicyCommandStrategies.getInstance(configPoller.get().policyConfig, getContext().getSystem());
     }
 
     @Override
     protected CommandStrategy<? extends Command<?>, Policy, PolicyId, PolicyEvent<?>> getDeletedStrategy() {
-        return PolicyCommandStrategies.getCreatePolicyStrategy(policyConfig);
+        return PolicyCommandStrategies.getCreatePolicyStrategy(configPoller.get().policyConfig);
     }
 
     @Override
@@ -188,13 +197,8 @@ public final class PolicyPersistenceActor
     }
 
     @Override
-    protected ActivityCheckConfig getActivityCheckConfig() {
-        return activityCheckConfigProvider.getConfigForNamespace(entityId.getNamespace());
-    }
-
-    @Override
     protected SnapshotConfig getSnapshotConfig() {
-        return policyConfig.getSnapshotConfig();
+        return configPoller.get().policyConfig.getSnapshotConfig();
     }
 
     @Override
@@ -216,6 +220,14 @@ public final class PolicyPersistenceActor
     protected DittoRuntimeExceptionBuilder<?> newHistoryNotAccessibleExceptionBuilder(final Instant timestamp) {
         return PolicyHistoryNotAccessibleException.newBuilder(entityId, timestamp);
     }
+
+    @Override
+    protected ActivityCheckConfig getActivityCheckConfig() {
+        return configPoller.get().activityCheckProvider.getConfigForNamespace(entityId.getNamespace());
+    }
+
+    private record PolicyConfigBundle(PolicyConfig policyConfig,
+                                      NamespaceActivityCheckConfigProvider activityCheckProvider) {}
 
     @Override
     protected void publishEvent(@Nullable final Policy previousEntity, final PolicyEvent<?> event) {

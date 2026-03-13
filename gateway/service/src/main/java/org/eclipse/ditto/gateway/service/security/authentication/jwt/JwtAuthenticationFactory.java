@@ -30,14 +30,14 @@ public final class JwtAuthenticationFactory {
 
     private static final String PUBLIC_KEY_CACHE_NAME = "ditto_authorization_jwt_publicKeys_cache";
 
-    private final OAuthConfig oAuthConfig;
+    private volatile OAuthConfig oAuthConfig;
     private final CacheConfig publicKeyCacheConfig;
     private final HttpClientFacade httpClientFacade;
     private final ActorSystem actorSystem;
 
     @Nullable private JwtValidator jwtValidator;
     @Nullable private JwtSubjectIssuersConfig jwtSubjectIssuersConfig;
-    @Nullable private PublicKeyProvider publicKeyProvider;
+    @Nullable private DittoPublicKeyProvider dittoPublicKeyProvider;
 
     private JwtAuthenticationFactory(final OAuthConfig oAuthConfig,
             final CacheConfig publicKeyCacheConfig,
@@ -75,9 +75,9 @@ public final class JwtAuthenticationFactory {
         return jwtValidator;
     }
 
-    private PublicKeyProvider getPublicKeyProvider() {
-        if (null == publicKeyProvider) {
-            publicKeyProvider = DittoPublicKeyProvider.of(
+    private DittoPublicKeyProvider getPublicKeyProvider() {
+        if (null == dittoPublicKeyProvider) {
+            dittoPublicKeyProvider = DittoPublicKeyProvider.of(
                     getJwtSubjectIssuersConfig(),
                     httpClientFacade,
                     publicKeyCacheConfig,
@@ -85,7 +85,7 @@ public final class JwtAuthenticationFactory {
                     oAuthConfig);
         }
 
-        return publicKeyProvider;
+        return dittoPublicKeyProvider;
     }
 
     private JwtSubjectIssuersConfig getJwtSubjectIssuersConfig() {
@@ -99,6 +99,22 @@ public final class JwtAuthenticationFactory {
             @Nullable final String role) {
 
         return JwtAuthenticationResultProvider.get(actorSystem, extensionConfig, role);
+    }
+
+    /**
+     * Updates the OAuth configuration. Called when dynamic config changes are detected.
+     * Rebuilds the subject issuers config and updates the public key provider so that
+     * new/removed JWT issuers take effect without restart.
+     *
+     * @param newOAuthConfig the new OAuth config.
+     */
+    public void updateOAuthConfig(final OAuthConfig newOAuthConfig) {
+        this.oAuthConfig = newOAuthConfig;
+        final JwtSubjectIssuersConfig newIssuersConfig = JwtSubjectIssuersConfig.fromOAuthConfig(newOAuthConfig);
+        this.jwtSubjectIssuersConfig = newIssuersConfig;
+        if (dittoPublicKeyProvider != null) {
+            dittoPublicKeyProvider.updateConfig(newIssuersConfig, newOAuthConfig);
+        }
     }
 
 }

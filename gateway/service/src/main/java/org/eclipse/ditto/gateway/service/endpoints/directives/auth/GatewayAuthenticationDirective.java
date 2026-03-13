@@ -43,7 +43,7 @@ public final class GatewayAuthenticationDirective {
 
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(GatewayAuthenticationDirective.class);
 
-    private final AuthenticationChain authenticationChain;
+    private volatile AuthenticationChain authenticationChain;
     private final Function<DittoHeaders, DittoRuntimeException> defaultUnauthorizedExceptionFactory;
 
     /**
@@ -72,6 +72,15 @@ public final class GatewayAuthenticationDirective {
         this.authenticationChain = checkNotNull(authenticationChain, "authenticationChain");
         this.defaultUnauthorizedExceptionFactory =
                 checkNotNull(defaultUnauthorizedExceptionFactory, "defaultUnauthorizedExceptionFactory");
+    }
+
+    /**
+     * Updates the authentication chain used by this directive. Called when dynamic config changes are detected.
+     *
+     * @param authenticationChain the new authentication chain.
+     */
+    void updateAuthenticationChain(final AuthenticationChain authenticationChain) {
+        this.authenticationChain = checkNotNull(authenticationChain, "authenticationChain");
     }
 
     /**

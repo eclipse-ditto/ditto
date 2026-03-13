@@ -179,6 +179,9 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
                 liveSignalPub, getContext(), thingPersistenceActorSelection, system);
         smartChannelDispatching = new SupervisorSmartChannelDispatching(log, thingPersistenceActorSelection,
                 liveChannelDispatching);
+
+        // ThingsConfig is read at actor creation; updated config is picked up on entity re-activation
+        // after passivation by cluster sharding.
     }
 
     /**

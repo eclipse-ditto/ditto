@@ -44,11 +44,13 @@ public final class DittoGatewayAuthenticationDirectiveFactory implements Gateway
     private static final Logger LOGGER = LoggerFactory.getLogger(DittoGatewayAuthenticationDirectiveFactory.class);
     private static final String AUTHENTICATION_DISPATCHER_NAME = "authentication-dispatcher";
 
-    private final AuthenticationConfig authConfig;
+    private volatile AuthenticationConfig authConfig;
     private final Executor authenticationDispatcher;
     private final Config dittoExtensionConfig;
     @Nullable private GatewayAuthenticationDirective gatewayHttpAuthenticationDirective;
     @Nullable private GatewayAuthenticationDirective gatewayWsAuthenticationDirective;
+    @Nullable private JwtAuthenticationProvider httpJwtProvider;
+    @Nullable private JwtAuthenticationProvider wsJwtProvider;
 
     public DittoGatewayAuthenticationDirectiveFactory(final ActorSystem actorSystem, final Config config) {
         authConfig = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()))
@@ -62,15 +64,14 @@ public final class DittoGatewayAuthenticationDirectiveFactory implements Gateway
             final JwtAuthenticationFactory jwtAuthenticationFactory) {
 
         if (null == gatewayHttpAuthenticationDirective) {
-            final JwtAuthenticationProvider jwtHttpAuthenticationProvider =
-                    JwtAuthenticationProvider.newInstance(
-                            jwtAuthenticationFactory.newJwtAuthenticationResultProvider(
-                                    dittoExtensionConfig, null
-                            ),
-                            jwtAuthenticationFactory.getJwtValidator()
-                    );
+            httpJwtProvider = JwtAuthenticationProvider.newInstance(
+                    jwtAuthenticationFactory.newJwtAuthenticationResultProvider(
+                            dittoExtensionConfig, null
+                    ),
+                    jwtAuthenticationFactory.getJwtValidator()
+            );
             gatewayHttpAuthenticationDirective =
-                    generateGatewayAuthenticationDirective(authConfig, jwtHttpAuthenticationProvider,
+                    generateGatewayAuthenticationDirective(authConfig, httpJwtProvider,
                             authenticationDispatcher);
         }
         return gatewayHttpAuthenticationDirective;
@@ -81,21 +82,45 @@ public final class DittoGatewayAuthenticationDirectiveFactory implements Gateway
             final JwtAuthenticationFactory jwtAuthenticationFactory) {
 
         if (null == gatewayWsAuthenticationDirective) {
-            final JwtAuthenticationProvider jwtWsAuthenticationProvider =
-                    JwtAuthenticationProvider.newWsInstance(
-                            jwtAuthenticationFactory.newJwtAuthenticationResultProvider(
-                                    dittoExtensionConfig, null
-                            ),
-                            jwtAuthenticationFactory.getJwtValidator()
-                    );
+            wsJwtProvider = JwtAuthenticationProvider.newWsInstance(
+                    jwtAuthenticationFactory.newJwtAuthenticationResultProvider(
+                            dittoExtensionConfig, null
+                    ),
+                    jwtAuthenticationFactory.getJwtValidator()
+            );
             gatewayWsAuthenticationDirective =
-                    generateGatewayAuthenticationDirective(authConfig, jwtWsAuthenticationProvider,
+                    generateGatewayAuthenticationDirective(authConfig, wsJwtProvider,
                             authenticationDispatcher);
         }
         return gatewayWsAuthenticationDirective;
     }
 
-    private static GatewayAuthenticationDirective generateGatewayAuthenticationDirective(
+    /**
+     * Updates the authentication configuration. Called when dynamic config changes are detected.
+     * Rebuilds the authentication chains for both HTTP and WebSocket directives if they have been built.
+     *
+     * @param authenticationConfig the new authentication config.
+     */
+    public void updateAuthConfig(final AuthenticationConfig authenticationConfig) {
+        final boolean preAuthChanged = this.authConfig.isPreAuthenticationEnabled() !=
+                authenticationConfig.isPreAuthenticationEnabled();
+        this.authConfig = authenticationConfig;
+
+        if (preAuthChanged) {
+            LOGGER.info("Pre-authentication enabled changed to <{}>. Rebuilding authentication chains.",
+                    authenticationConfig.isPreAuthenticationEnabled());
+            if (gatewayHttpAuthenticationDirective != null && httpJwtProvider != null) {
+                gatewayHttpAuthenticationDirective.updateAuthenticationChain(
+                        buildAuthenticationChain(authenticationConfig, httpJwtProvider, authenticationDispatcher));
+            }
+            if (gatewayWsAuthenticationDirective != null && wsJwtProvider != null) {
+                gatewayWsAuthenticationDirective.updateAuthenticationChain(
+                        buildAuthenticationChain(authenticationConfig, wsJwtProvider, authenticationDispatcher));
+            }
+        }
+    }
+
+    private static AuthenticationChain buildAuthenticationChain(
             final AuthenticationConfig authConfig,
             final AuthenticationProvider<AuthenticationResult> jwtAuthenticationProvider,
             final Executor authenticationDispatcher) {
@@ -111,11 +136,17 @@ public final class DittoGatewayAuthenticationDirectiveFactory implements Gateway
         final AuthenticationFailureAggregator authenticationFailureAggregator =
                 AuthenticationFailureAggregators.getDefault();
 
-        final AuthenticationChain authenticationChain =
-                AuthenticationChain.getInstance(authenticationProviders, authenticationFailureAggregator,
-                        authenticationDispatcher);
+        return AuthenticationChain.getInstance(authenticationProviders, authenticationFailureAggregator,
+                authenticationDispatcher);
+    }
 
-        return new GatewayAuthenticationDirective(authenticationChain);
+    private static GatewayAuthenticationDirective generateGatewayAuthenticationDirective(
+            final AuthenticationConfig authConfig,
+            final AuthenticationProvider<AuthenticationResult> jwtAuthenticationProvider,
+            final Executor authenticationDispatcher) {
+
+        return new GatewayAuthenticationDirective(
+                buildAuthenticationChain(authConfig, jwtAuthenticationProvider, authenticationDispatcher));
     }
 
 }
