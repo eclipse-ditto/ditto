@@ -129,7 +129,8 @@ public final class ConnectivityRootActor extends DittoRootActor {
 
 
         final var cleanupConfig = connectivityConfig.getConnectionConfig().getCleanupConfig();
-        final var cleanupActorProps = PersistenceCleanupActor.props(cleanupConfig, mongoReadJournal, CLUSTER_ROLE);
+        final var cleanupActorProps = PersistenceCleanupActor.props(cleanupConfig, mongoReadJournal, CLUSTER_ROLE,
+                "ditto.connectivity.connection.cleanup");
         startChildActor(PersistenceCleanupActor.ACTOR_NAME, cleanupActorProps);
 
         final ActorRef healthCheckingActor = getHealthCheckingActor(connectivityConfig);

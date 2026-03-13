@@ -73,6 +73,9 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
         } else {
             announcementManager = getContext().getSystem().deadLetters();
         }
+
+        // PoliciesConfig is read at actor creation; updated config is picked up on entity re-activation
+        // after passivation by cluster sharding.
     }
 
     /**
@@ -135,6 +138,7 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
 
         return PolicyUnavailableException.newBuilder(policyId);
     }
+
 
     @Nullable
     private Props getAnnouncementManagerProps(final DistributedPub<PolicyAnnouncement<?>> pub,

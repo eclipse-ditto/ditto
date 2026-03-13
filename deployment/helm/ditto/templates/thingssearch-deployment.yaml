@@ -286,6 +286,14 @@ spec:
               value: "{{ .Values.thingsSearch.config.updater.backgroundSync.throttle.throughput }}"
             - name: BACKGROUND_SYCN_THROTTLE_PERIOD
               value: "{{ .Values.thingsSearch.config.updater.backgroundSync.throttle.period }}"
+            {{- if .Values.thingsSearch.dynamicConfig.enabled }}
+            - name: DITTO_DYNAMIC_CONFIG_ENABLED
+              value: "true"
+            - name: DITTO_DYNAMIC_CONFIG_FILE_PATH
+              value: "{{ .Values.thingsSearch.dynamicConfig.filePath }}"
+            - name: DITTO_DYNAMIC_CONFIG_POLL_INTERVAL
+              value: "{{ .Values.thingsSearch.dynamicConfig.pollInterval }}"
+            {{- end }}
             {{- if .Values.thingsSearch.extraEnv }}
               {{- toYaml .Values.thingsSearch.extraEnv | nindent 12 }}
             {{- end }}
@@ -359,6 +367,11 @@ spec:
             {{- end }}
             - name: ditto-heap-dumps
               mountPath: /opt/ditto/dumps
+            {{- if .Values.thingsSearch.dynamicConfig.enabled }}
+            - name: ditto-dynamic-config
+              mountPath: {{ dir .Values.thingsSearch.dynamicConfig.filePath }}
+              readOnly: true
+            {{- end }}
           resources:
             requests:
               cpu: {{ mulf .Values.thingsSearch.resources.cpu 1000 }}m
@@ -415,4 +428,9 @@ spec:
         {{- end }}
         - name: ditto-heap-dumps
           emptyDir: {}
+        {{- if .Values.thingsSearch.dynamicConfig.enabled }}
+        - name: ditto-dynamic-config
+          configMap:
+            name: {{ .Release.Name }}-things-search-dynamic-config
+        {{- end }}
 {{- end }}

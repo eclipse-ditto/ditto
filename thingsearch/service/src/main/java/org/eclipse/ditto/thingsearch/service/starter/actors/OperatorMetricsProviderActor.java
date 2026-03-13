@@ -31,11 +31,14 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.KamonGauge;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.pekko.config.DynamicConfigChanged;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.CountThingsResponse;
 import org.eclipse.ditto.thingsearch.service.common.config.CustomMetricConfig;
+import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.OperatorMetricsConfig;
 
 /**
@@ -57,20 +60,24 @@ public final class OperatorMetricsProviderActor extends AbstractActorWithTimers 
 
     private final ActorRef searchActor;
     private final Map<String, Gauge> metricsGauges;
+    private OperatorMetricsConfig operatorMetricsConfig;
 
     @SuppressWarnings("unused")
     private OperatorMetricsProviderActor(final OperatorMetricsConfig operatorMetricsConfig,
             final ActorRef searchActor) {
 
         this.searchActor = searchActor;
+        this.operatorMetricsConfig = operatorMetricsConfig;
         metricsGauges = new HashMap<>();
         operatorMetricsConfig.getCustomMetricConfigurations().forEach((metricName, config) -> {
             if (config.isEnabled()) {
-                initializeCustomMetric(operatorMetricsConfig, metricName, config);
+                initializeCustomMetric(operatorMetricsConfig.getScrapeInterval(), metricName, config);
             } else {
                 log.info("Initializing custom metric Gauge for metric <{}> is DISABLED", metricName);
             }
         });
+
+        getContext().getSystem().eventStream().subscribe(getSelf(), DynamicConfigChanged.class);
     }
 
     /**
@@ -87,7 +94,9 @@ public final class OperatorMetricsProviderActor extends AbstractActorWithTimers 
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
+                .match(DynamicConfigChanged.class, this::handleDynamicConfigChanged)
                 .match(GatherMetrics.class, this::handleGatheringMetrics)
+                .match(MetricCountResult.class, this::handleMetricCountResult)
                 .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure: {}", f))
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
@@ -96,14 +105,52 @@ public final class OperatorMetricsProviderActor extends AbstractActorWithTimers 
                 .build();
     }
 
-    private void initializeCustomMetric(final OperatorMetricsConfig operatorMetricsConfig, final String metricName,
+    private void handleDynamicConfigChanged(final DynamicConfigChanged configChanged) {
+        try {
+            log.info("Received DynamicConfigChanged (version <{}>), reconciling custom metrics.",
+                    configChanged.version());
+            final var dittoScopedConfig = DefaultScopedConfig.dittoScoped(configChanged.dittoConfig());
+            final var searchConfig = DittoSearchConfig.of(dittoScopedConfig);
+            final var newMetricsConfig = searchConfig.getOperatorMetricsConfig();
+            final var newConfigs = newMetricsConfig.getCustomMetricConfigurations();
+            final var oldConfigs = operatorMetricsConfig.getCustomMetricConfigurations();
+
+            // Cancel timers for removed metrics and remove their gauges
+            for (final String metricName : oldConfigs.keySet()) {
+                if (!newConfigs.containsKey(metricName) || !newConfigs.get(metricName).isEnabled()) {
+                    log.info("Removing custom metric <{}> (removed or disabled in dynamic config).", metricName);
+                    getTimers().cancel(metricName);
+                    metricsGauges.remove(metricName);
+                }
+            }
+
+            // Add or update metrics
+            newConfigs.forEach((metricName, config) -> {
+                if (config.isEnabled()) {
+                    final CustomMetricConfig oldConfig = oldConfigs.get(metricName);
+                    if (oldConfig == null || !oldConfig.equals(config) || !oldConfig.isEnabled()) {
+                        log.info("Initializing/updating custom metric <{}> from dynamic config.", metricName);
+                        getTimers().cancel(metricName);
+                        initializeCustomMetric(newMetricsConfig.getScrapeInterval(), metricName, config);
+                    }
+                }
+            });
+
+            this.operatorMetricsConfig = newMetricsConfig;
+        } catch (final Exception e) {
+            log.warning("Failed to apply DynamicConfigChanged (version <{}>), keeping previous config: {}",
+                    configChanged.version(), e.getMessage());
+        }
+    }
+
+    private void initializeCustomMetric(final Duration defaultScrapeInterval, final String metricName,
             final CustomMetricConfig config) {
         // start each custom metric provider with a random initialDelay
         final Duration initialDelay = Duration.ofSeconds(
                 ThreadLocalRandom.current().nextInt(MIN_INITIAL_DELAY_SECONDS, MAX_INITIAL_DELAY_SECONDS)
         );
         final Duration scrapeInterval = config.getScrapeInterval()
-                .orElse(operatorMetricsConfig.getScrapeInterval());
+                .orElse(defaultScrapeInterval);
         getTimers().startTimerAtFixedRate(
                 metricName, createGatherCustomMetric(metricName, config), initialDelay, scrapeInterval);
 
@@ -137,29 +184,44 @@ public final class OperatorMetricsProviderActor extends AbstractActorWithTimers 
         log.withCorrelationId(dittoHeaders)
                 .debug("Asking for count of custom metric <{}>..", metricName);
 
-        Patterns.ask(searchActor, sudoCountThings, Duration.ofSeconds(DEFAULT_COUNT_TIMEOUT_SECONDS))
-                .whenComplete((response, throwable) -> {
+        final var askResult = Patterns.ask(searchActor, sudoCountThings,
+                        Duration.ofSeconds(DEFAULT_COUNT_TIMEOUT_SECONDS))
+                .thenApply(response -> {
+                    final long durationMs = Duration.ofNanos(System.nanoTime() - startTs).toMillis();
                     if (response instanceof CountThingsResponse countThingsResponse) {
-                        log.withCorrelationId(countThingsResponse)
-                                .info("Received sudo CountThingsResponse for custom metric count <{}>: {} - " +
-                                                "duration: <{}ms>",
-                                        metricName, countThingsResponse.getCount(),
-                                        Duration.ofNanos(System.nanoTime() - startTs).toMillis()
-                                );
-                        metricsGauges.get(metricName).set(countThingsResponse.getCount());
+                        return new MetricCountResult(metricName, countThingsResponse.getCount(), durationMs,
+                                countThingsResponse.getDittoHeaders());
                     } else if (response instanceof DittoRuntimeException dre) {
                         log.withCorrelationId(dittoHeaders).warning(
                                 "Received DittoRuntimeException when gathering count for " +
                                         "custom metric <{}>: {}", metricName, dre.getMessage(), dre
                         );
+                        return new MetricCountResult(metricName, -1, durationMs, dittoHeaders);
                     } else {
-                        log.withCorrelationId(dittoHeaders).warning(throwable,
-                                "Received unexpected result or throwable when gathering count for " +
+                        log.withCorrelationId(dittoHeaders).warning(
+                                "Received unexpected result when gathering count for " +
                                         "custom metric <{}>: {}", metricName, response
                         );
+                        return new MetricCountResult(metricName, -1, durationMs, dittoHeaders);
                     }
                 });
+        Patterns.pipe(askResult, getContext().getDispatcher()).to(getSelf());
+    }
+
+    private void handleMetricCountResult(final MetricCountResult result) {
+        if (result.count() >= 0) {
+            log.withCorrelationId(result.dittoHeaders())
+                    .info("Received sudo CountThingsResponse for custom metric count <{}>: {} - " +
+                                    "duration: <{}ms>",
+                            result.metricName(), result.count(), result.durationMs());
+            final Gauge gauge = metricsGauges.get(result.metricName());
+            if (gauge != null) {
+                gauge.set(result.count());
+            }
+        }
     }
 
     private record GatherMetrics(String metricName, CustomMetricConfig config) {}
+
+    private record MetricCountResult(String metricName, long count, long durationMs, DittoHeaders dittoHeaders) {}
 }

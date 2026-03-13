@@ -314,6 +314,14 @@ spec:
               value: "{{ .Values.policies.config.policiesEnforcer.cache.expireAfterWrite }}"
             - name: DITTO_POLICIES_ENFORCER_CACHE_EXPIRE_AFTER_ACCESS
               value: "{{ .Values.policies.config.policiesEnforcer.cache.expireAfterAccess }}"
+            {{- if .Values.policies.dynamicConfig.enabled }}
+            - name: DITTO_DYNAMIC_CONFIG_ENABLED
+              value: "true"
+            - name: DITTO_DYNAMIC_CONFIG_FILE_PATH
+              value: "{{ .Values.policies.dynamicConfig.filePath }}"
+            - name: DITTO_DYNAMIC_CONFIG_POLL_INTERVAL
+              value: "{{ .Values.policies.dynamicConfig.pollInterval }}"
+            {{- end }}
             {{- if .Values.policies.extraEnv }}
               {{- toYaml .Values.policies.extraEnv | nindent 12 }}
             {{- end }}
@@ -390,6 +398,11 @@ spec:
             {{- end }}
             - name: ditto-heap-dumps
               mountPath: /opt/ditto/dumps
+            {{- if .Values.policies.dynamicConfig.enabled }}
+            - name: ditto-dynamic-config
+              mountPath: {{ dir .Values.policies.dynamicConfig.filePath }}
+              readOnly: true
+            {{- end }}
           resources:
             requests:
               cpu: {{ mulf .Values.policies.resources.cpu 1000 }}m
@@ -446,4 +459,9 @@ spec:
         {{- end }}
         - name: ditto-heap-dumps
           emptyDir: {}
+        {{- if .Values.policies.dynamicConfig.enabled }}
+        - name: ditto-dynamic-config
+          configMap:
+            name: {{ .Release.Name }}-policies-dynamic-config
+        {{- end }}
 {{- end }}
