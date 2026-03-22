@@ -12,8 +12,8 @@
   -->
 <div>
     <div>
-        <div class="row resizable_pane" style="height: 40vh;">
-            <div class="col-md-7 resizable_flex_column">
+        <div class="split-h resizable_pane" style="height: 40vh;" data-split="horizontal" data-split-sizes="[58,42]" data-split-key="things-main">
+            <div class="split-panel resizable_flex_column">
                 <form class="input-group input-group-sm mb-1 mt-1" autocomplete="off">
                     <div class="btn-group dropend">
                         <button id="searchFavorite" class="btn btn-outline-secondary btn-sm" data-bs-toggle="tooltip"
@@ -51,7 +51,7 @@
                     </table>
                 </div>
             </div>
-            <div class="col-md-5 resizable_flex_column" style="height: auto" id="details">
+            <div class="split-panel resizable_flex_column" style="height: auto" id="details">
                 <ul id="tabItemsThing" class="nav nav-tabs nav-fill">
                     <li class="nav-item">
                         <a class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabThingDetails">Details</a>
@@ -93,13 +93,13 @@
         id="badgeAttributeCount"></span></h5>
 <hr />
 <div class="collapse" id="collapseAttributes">
-    <div class="row resizable_pane" style="height: 20vh;">
-        <div class="col-md-7 resizable_flex_column" style="overflow-y:scroll;">
+    <div class="split-h resizable_pane" style="height: 20vh;" data-split="horizontal" data-split-sizes="[58,42]" data-split-key="things-attributes">
+        <div class="split-panel resizable_flex_column" style="overflow-y:scroll;">
             <table class="table table-striped table-hover table-sm">
                 <tbody id="tbodyAttributes"></tbody>
             </table>
         </div>
-        <div class="col-md-5 resizable_flex_column" style="height: auto">
+        <div class="split-panel resizable_flex_column" style="height: auto">
             <ul class="nav nav-tabs nav-fill" id="tabItemsAttribute">
                 <li class="nav-item">
                     <a class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabCrudAttribute">Manage</a>

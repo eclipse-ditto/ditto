@@ -33,6 +33,7 @@
     "dompurify": "^3.3.2",
     "event-source-polyfill": "^1.0.31",
     "jsonpath-plus": "^10.3.0",
-    "oidc-client-ts": "^3.3.0"
+    "oidc-client-ts": "^3.3.0",
+    "split.js": "^1.6.5"
   }
 }

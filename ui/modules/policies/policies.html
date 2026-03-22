@@ -1,8 +1,8 @@
 <div>
     <h5>Policies</h5>
     <hr />
-    <div class="row">
-        <div class="col-md-4">
+    <div class="split-h" data-split="horizontal" data-split-sizes="[33,67]" data-split-key="policies-main">
+        <div class="split-panel">
             <h6>Load a policy</h6>
             <form class="input-group input-group-sm mb-1 mt-1 has-validation" role="group" autocomplete="off">
                 <label class="input-group-text">Policy Id</label>
@@ -27,7 +27,7 @@
                 </table>
             </div>
         </div>
-        <div class="col-md-8">
+        <div class="split-panel">
             <div class="resizable_flex_column">
                 <ul class="nav nav-tabs nav-fill">
                     <li class="nav-item">
@@ -44,8 +44,8 @@
                     <div class="tab-pane container active no-margin" id="tabPolicyEntries">
                         <h5>Policy Entries</h5>
                         <hr />
-                        <div class="row resizable_pane" style="height: 22vh;">
-                            <div class="col-md-6 resizable_flex_column">
+                        <div class="split-h resizable_pane" style="height: 22vh;" data-split="horizontal" data-split-sizes="[50,50]" data-split-key="policies-entries">
+                            <div class="split-panel resizable_flex_column">
                                 <div class="input-group has-validation">
                                     <input class="form-control" id="tableValidationEntries" hidden="true"></input>
                                     <div class="invalid-feedback"></div>
@@ -56,7 +56,7 @@
                                     </table>
                                 </div>
                             </div>
-                            <div class="col-md-6 resizable_flex_column">
+                            <div class="split-panel resizable_flex_column">
                                 <crud-toolbar label="Entry" id="crudEntry">
                                     <div class="input-group input-group-sm mb-1">
                                         <label class="input-group-text">Importable</label>
@@ -70,8 +70,8 @@
                             </div>
                         </div>                
                         <h6>Subjects</h6>
-                        <div class="row resizable_pane" style="height: 22vh;">
-                            <div class="col-md-6 resizable_flex_column">
+                        <div class="split-h resizable_pane" style="height: 22vh;" data-split="horizontal" data-split-sizes="[50,50]" data-split-key="policies-subjects">
+                            <div class="split-panel resizable_flex_column">
                                 <div class="input-group has-validation">
                                     <input class="form-control" id="tableValidationSubjects" hidden="true"></input>
                                     <div class="invalid-feedback"></div>
@@ -82,7 +82,7 @@
                                     </table>
                                 </div>
                             </div>
-                            <div class="col-md-6 resizable_flex_column">
+                            <div class="split-panel resizable_flex_column">
                                 <crud-toolbar label="Subject" id="crudSubject" style="flex-grow: 1;">
                                     <div class="ace_container" style="flex-grow: 1;">
                                         <div class="script_editor" id="subjectEditor"></div>
@@ -93,8 +93,8 @@
                             </div> -->
                         </div>
                         <h6>Resources</h6>
-                        <div class="row resizable_pane" style="height: 22vh;">
-                            <div class="col-md-6 resizable_flex_column">
+                        <div class="split-h resizable_pane" style="height: 22vh;" data-split="horizontal" data-split-sizes="[50,50]" data-split-key="policies-resources">
+                            <div class="split-panel resizable_flex_column">
                                 <div class="input-group has-validation">
                                     <input class="form-control" id="tableValidationResources" hidden="true"></input>
                                     <div class="invalid-feedback"></div>
@@ -105,7 +105,7 @@
                                     </table>
                                 </div>
                             </div>
-                            <div class="col-md-6 resizable_flex_column">
+                            <div class="split-panel resizable_flex_column">
                                 <crud-toolbar label="Resource" id="crudResource" style="flex-grow: 1;">
                                     <div class="input-group input-group-sm mb-1">
                                         <label class="input-group-text">Template</label>
@@ -123,15 +123,15 @@
                     <div class="tab-pane container no-margin" id="tabPolicyImports">
                         <h5>Policy Imports</h5>
                         <hr />
-                        <div class="row resizable_pane" style="height: 75vh;">
-                            <div class="col-md-6 resizable_flex_column">
+                        <div class="split-h resizable_pane" style="height: 75vh;" data-split="horizontal" data-split-sizes="[50,50]" data-split-key="policies-imports">
+                            <div class="split-panel resizable_flex_column">
                                 <div class="table-wrap">
                                     <table class="table table-striped table-hover table-sm">
                                         <tbody id="tbodyPolicyImports"></tbody>
                                     </table>
                                 </div>
                             </div>
-                            <div class="col-md-6 resizable_flex_column">
+                            <div class="split-panel resizable_flex_column">
                                 <crud-toolbar label="Imported Policy Id" id="crudImport" style="flex-grow: 1;">
                                     <div class="table-wrap">
                                         <table class="table table-striped table-hover table-sm">
