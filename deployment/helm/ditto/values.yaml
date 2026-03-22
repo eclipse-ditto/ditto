@@ -763,6 +763,24 @@ policies:
     enabled: false
     # interval: 30s
     # scrapeTimeout: 15s
+  # dynamicConfig enables hot-reloading of HOCON configuration from a ConfigMap without pod restart.
+  #  When enabled, a ConfigMap is mounted at the specified file path and polled at the given interval.
+  #  Changes to the ConfigMap are detected and propagated to actors via Pekko EventStream.
+  #  content: |
+  #    ditto {
+  #      policies {
+  #        policy {
+  #          activity-check {
+  #            inactive-interval = 2h
+  #          }
+  #        }
+  #      }
+  #    }
+  dynamicConfig:
+    enabled: false
+    pollInterval: 30s
+    filePath: "/opt/ditto/dynamic-config/dynamic.conf"
+    content: ""
   # config holds policies specific configuration
   config:
     # cluster contains policies specific clustering config
@@ -1102,6 +1120,22 @@ things:
     enabled: false
     # interval: 30s
     # scrapeTimeout: 15s
+  # dynamicConfig enables hot-reloading of HOCON configuration from a ConfigMap without pod restart.
+  #  content: |
+  #    ditto {
+  #      things {
+  #        thing {
+  #          activity-check {
+  #            inactive-interval = 2h
+  #          }
+  #        }
+  #      }
+  #    }
+  dynamicConfig:
+    enabled: false
+    pollInterval: 30s
+    filePath: "/opt/ditto/dynamic-config/dynamic.conf"
+    content: ""
   # config holds things specific configuration
   config:
     # cluster contains things specific clustering config
@@ -1601,6 +1635,22 @@ thingsSearch:
     enabled: false
     # interval: 30s
     # scrapeTimeout: 15s
+  # dynamicConfig enables hot-reloading of HOCON configuration from a ConfigMap without pod restart.
+  #  content: |
+  #    ditto {
+  #      search {
+  #        operator-metrics {
+  #          custom-metrics {
+  #            my_metric { ... }
+  #          }
+  #        }
+  #      }
+  #    }
+  dynamicConfig:
+    enabled: false
+    pollInterval: 30s
+    filePath: "/opt/ditto/dynamic-config/dynamic.conf"
+    content: ""
   # config holds things-search specific configuration
   config:
     # cluster contains things-search specific clustering config
@@ -1941,6 +1991,20 @@ connectivity:
     enabled: false
     # interval: 30s
     # scrapeTimeout: 15s
+  # dynamicConfig enables hot-reloading of HOCON configuration from a ConfigMap without pod restart.
+  #  content: |
+  #    ditto {
+  #      connectivity {
+  #        connection {
+  #          ...
+  #        }
+  #      }
+  #    }
+  dynamicConfig:
+    enabled: false
+    pollInterval: 30s
+    filePath: "/opt/ditto/dynamic-config/dynamic.conf"
+    content: ""
   # config holds connectivity specific configuration
   config:
     # cluster contains connectivity specific clustering config
@@ -2368,6 +2432,20 @@ gateway:
     enabled: false
     # interval: 30s
     # scrapeTimeout: 15s
+  # dynamicConfig enables hot-reloading of HOCON configuration from a ConfigMap without pod restart.
+  #  content: |
+  #    ditto {
+  #      gateway {
+  #        streaming {
+  #          ...
+  #        }
+  #      }
+  #    }
+  dynamicConfig:
+    enabled: false
+    pollInterval: 30s
+    filePath: "/opt/ditto/dynamic-config/dynamic.conf"
+    content: ""
   # config holds gateway specific configuration
   config:
     # cluster contains gateway specific clustering config

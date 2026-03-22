@@ -81,7 +81,7 @@ public final class DefaultWotThingModelValidator implements WotThingModelValidat
     private final Executor executor;
     @Nullable private final Cache<JsonSchemaCacheKey, JsonSchema> jsonSchemaCache;
 
-    private TmValidationConfig dynamicConfig;
+    private volatile TmValidationConfig dynamicConfig;
 
     private DefaultWotThingModelValidator(final WotThingModelResolver thingModelResolver,
             final Executor executor,

@@ -386,6 +386,14 @@ spec:
               value: "{{ index .Values.things.config.wot.tmValidation.feature.forbid "non-modeled-desired-properties" }}"
             - name: THINGS_WOT_TM_MODEL_VALIDATION_FEATURE_FORBID_NON_MODELED_OUTBOX_MESSAGES
               value: "{{ index .Values.things.config.wot.tmValidation.feature.forbid "non-modeled-outbox-messages" }}"
+            {{- if .Values.things.dynamicConfig.enabled }}
+            - name: DITTO_DYNAMIC_CONFIG_ENABLED
+              value: "true"
+            - name: DITTO_DYNAMIC_CONFIG_FILE_PATH
+              value: "{{ .Values.things.dynamicConfig.filePath }}"
+            - name: DITTO_DYNAMIC_CONFIG_POLL_INTERVAL
+              value: "{{ .Values.things.dynamicConfig.pollInterval }}"
+            {{- end }}
             {{- if .Values.things.extraEnv }}
               {{- toYaml .Values.things.extraEnv | nindent 12 }}
             {{- end }}
@@ -459,6 +467,11 @@ spec:
             {{- end }}
             - name: ditto-heap-dumps
               mountPath: /opt/ditto/dumps
+            {{- if .Values.things.dynamicConfig.enabled }}
+            - name: ditto-dynamic-config
+              mountPath: {{ dir .Values.things.dynamicConfig.filePath }}
+              readOnly: true
+            {{- end }}
           resources:
             requests:
               cpu: {{ mulf .Values.things.resources.cpu 1000 }}m
@@ -515,4 +528,9 @@ spec:
         {{- end }}
         - name: ditto-heap-dumps
           emptyDir: {}
+        {{- if .Values.things.dynamicConfig.enabled }}
+        - name: ditto-dynamic-config
+          configMap:
+            name: {{ .Release.Name }}-things-dynamic-config
+        {{- end }}
 {{- end }}

@@ -34,6 +34,7 @@ import org.eclipse.ditto.edge.service.dispatching.EdgeCommandForwarderActor;
 import org.eclipse.ditto.edge.service.dispatching.ShardRegions;
 import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirectiveFactory;
+import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DittoGatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.GatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.NamespaceAccessEnforcementDirective;
 import org.eclipse.ditto.gateway.service.security.authorization.NamespaceAccessValidatorFactory;
@@ -63,6 +64,7 @@ import org.eclipse.ditto.gateway.service.proxy.actors.GatewayProxyActor;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationFactory;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationResultProvider;
 import org.eclipse.ditto.gateway.service.streaming.actors.StreamingActor;
+import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
 import org.eclipse.ditto.gateway.service.util.config.GatewayConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.gateway.service.util.config.health.HealthCheckConfig;
@@ -78,7 +80,8 @@ import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory
 import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.internal.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.internal.utils.http.DefaultHttpClientFacade;
-import org.eclipse.ditto.internal.utils.http.HttpClientFacade;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.pekko.config.DynamicConfigChanged;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.internal.utils.pubsubthings.DittoProtocolSub;
@@ -98,6 +101,11 @@ public final class GatewayRootActor extends DittoRootActor {
     private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final CompletionStage<ServerBinding> httpBinding;
+    private final JwtAuthenticationFactory jwtAuthenticationFactory;
+    private final JwtAuthenticationFactory devopsJwtAuthenticationFactory;
+    private final DevopsAuthenticationDirectiveFactory devopsAuthenticationDirectiveFactory;
+    @Nullable private final DittoGatewayAuthenticationDirectiveFactory dittoGatewayAuthDirectiveFactory;
+    private final NamespaceAccessValidatorFactory namespaceAccessValidatorFactory;
 
     @SuppressWarnings("unused")
     private GatewayRootActor(final GatewayConfig gatewayConfig, final ActorRef pubSubMediator) {
@@ -125,29 +133,32 @@ public final class GatewayRootActor extends DittoRootActor {
                 DefaultHttpClientFacade.getInstance(actorSystem, authenticationConfig.getHttpProxyConfig());
         final OAuthConfig oAuthConfig = authenticationConfig.getOAuthConfig();
 
-        final JwtAuthenticationFactory jwtAuthenticationFactory =
+        final JwtAuthenticationFactory mainJwtAuthFactory =
                 JwtAuthenticationFactory.newInstance(oAuthConfig, publicKeysConfig, httpClient, actorSystem);
+        this.jwtAuthenticationFactory = mainJwtAuthFactory;
 
         final JwtAuthenticationResultProvider jwtAuthenticationResultProvider =
-                jwtAuthenticationFactory.newJwtAuthenticationResultProvider(dittoExtensionConfig, null);
+                mainJwtAuthFactory.newJwtAuthenticationResultProvider(dittoExtensionConfig, null);
 
         final DevOpsConfig devOpsConfig = authenticationConfig.getDevOpsConfig();
-        final DevopsAuthenticationDirectiveFactory devopsAuthenticationDirectiveFactory =
-                getDevopsAuthenticationDirectiveFactory(httpClient, publicKeysConfig, devOpsConfig, actorSystem,
-                        dittoExtensionConfig);
+        final JwtAuthenticationFactory devopsJwtAuthFactory =
+                JwtAuthenticationFactory.newInstance(devOpsConfig.getOAuthConfig(), publicKeysConfig, httpClient,
+                        actorSystem);
+        this.devopsJwtAuthenticationFactory = devopsJwtAuthFactory;
+        devopsAuthenticationDirectiveFactory = DevopsAuthenticationDirectiveFactory.newInstance(
+                devopsJwtAuthFactory, devOpsConfig, dittoExtensionConfig);
 
         final ProtocolAdapterProvider protocolAdapterProvider =
                 ProtocolAdapterProvider.load(gatewayConfig.getProtocolConfig(), actorSystem);
         final HeaderTranslator headerTranslator = protocolAdapterProvider.getHttpHeaderTranslator();
 
         final var namespaceAccessConfigs = authenticationConfig.getNamespaceAccessConfigs();
-        final var namespaceAccessValidatorFactory = namespaceAccessConfigs.isEmpty() ? null :
-                new NamespaceAccessValidatorFactory(namespaceAccessConfigs);
+        namespaceAccessValidatorFactory = new NamespaceAccessValidatorFactory(namespaceAccessConfigs);
 
         final ActorRef streamingActor = startChildActor(StreamingActor.ACTOR_NAME,
                 StreamingActor.props(dittoProtocolSub,
                         proxyActor,
-                        jwtAuthenticationFactory.getJwtValidator(),
+                        mainJwtAuthFactory.getJwtValidator(),
                         jwtAuthenticationResultProvider,
                         gatewayConfig.getStreamingConfig(),
                         headerTranslator,
@@ -160,10 +171,17 @@ public final class GatewayRootActor extends DittoRootActor {
         final ActorRef healthCheckActor = createHealthCheckActor(healthCheckConfig);
         final var hostname = getHostname(httpConfig);
 
+        final var gatewayAuthDirectiveFactory =
+                GatewayAuthenticationDirectiveFactory.get(actorSystem, dittoExtensionConfig);
+        dittoGatewayAuthDirectiveFactory = gatewayAuthDirectiveFactory
+                instanceof DittoGatewayAuthenticationDirectiveFactory dittoFactory ? dittoFactory : null;
+
         final Route rootRoute = createRoute(actorSystem, gatewayConfig, proxyActor, streamingActor,
-                healthCheckActor, pubSubMediator, healthCheckConfig, jwtAuthenticationFactory,
-                devopsAuthenticationDirectiveFactory, protocolAdapterProvider, headerTranslator,
-                namespaceAccessValidatorFactory);
+                healthCheckActor, pubSubMediator, healthCheckConfig, mainJwtAuthFactory,
+                devopsAuthenticationDirectiveFactory, gatewayAuthDirectiveFactory, protocolAdapterProvider,
+                headerTranslator, namespaceAccessValidatorFactory);
+
+        actorSystem.eventStream().subscribe(getSelf(), DynamicConfigChanged.class);
 
         httpBinding = Http.get(actorSystem)
                 .newServerAt(hostname, httpConfig.getPort())
@@ -202,8 +220,39 @@ public final class GatewayRootActor extends DittoRootActor {
                             binding -> sender.tell(GatewayHttpReadinessCheck.READINESS_ASK_MESSAGE_RESPONSE,
                                     ActorRef.noSender()));
                 })
+                .match(DynamicConfigChanged.class, this::handleDynamicConfigChanged)
                 .build()
                 .orElse(super.createReceive());
+    }
+
+    private void handleDynamicConfigChanged(final DynamicConfigChanged configChanged) {
+        try {
+            log.info("Received DynamicConfigChanged (version <{}>), refreshing gateway authentication config.",
+                    configChanged.version());
+            final var dittoScopedConfig = DefaultScopedConfig.dittoScoped(configChanged.dittoConfig());
+            final var gatewayConfig = DittoGatewayConfig.of(dittoScopedConfig);
+            final var authenticationConfig = gatewayConfig.getAuthenticationConfig();
+
+            // Update DevOps authentication config
+            devopsAuthenticationDirectiveFactory.updateDevOpsConfig(authenticationConfig.getDevOpsConfig());
+
+            // Update gateway authentication directive factory (pre-auth toggle)
+            if (dittoGatewayAuthDirectiveFactory != null) {
+                dittoGatewayAuthDirectiveFactory.updateAuthConfig(authenticationConfig);
+            }
+
+            // Update namespace access configs
+            namespaceAccessValidatorFactory.updateNamespaceAccessConfigs(
+                    authenticationConfig.getNamespaceAccessConfigs());
+
+            // Update JWT authentication factories (OAuth issuer config)
+            jwtAuthenticationFactory.updateOAuthConfig(authenticationConfig.getOAuthConfig());
+            devopsJwtAuthenticationFactory.updateOAuthConfig(
+                    authenticationConfig.getDevOpsConfig().getOAuthConfig());
+        } catch (final Exception e) {
+            log.warning("Failed to apply DynamicConfigChanged (version <{}>), keeping previous config: {}",
+                    configChanged.version(), e.getMessage());
+        }
     }
 
     private static Route createRoute(final ActorSystem actorSystem,
@@ -215,6 +264,7 @@ public final class GatewayRootActor extends DittoRootActor {
             final HealthCheckConfig healthCheckConfig,
             final JwtAuthenticationFactory jwtAuthenticationFactory,
             final DevopsAuthenticationDirectiveFactory devopsAuthenticationDirectiveFactory,
+            final GatewayAuthenticationDirectiveFactory authenticationDirectiveFactory,
             final ProtocolAdapterProvider protocolAdapterProvider,
             final HeaderTranslator headerTranslator,
             @Nullable final NamespaceAccessValidatorFactory namespaceAccessValidatorFactory) {
@@ -222,9 +272,6 @@ public final class GatewayRootActor extends DittoRootActor {
         final var dittoExtensionConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
         final var authConfig = gatewayConfig.getAuthenticationConfig();
         final var materializer = SystemMaterializer.get(actorSystem).materializer();
-
-        final var authenticationDirectiveFactory =
-                GatewayAuthenticationDirectiveFactory.get(actorSystem, dittoExtensionConfig);
 
         final var devopsAuthenticationDirective =
                 devopsAuthenticationDirectiveFactory.devops();
@@ -318,20 +365,6 @@ public final class GatewayRootActor extends DittoRootActor {
 
         return startChildActor(GatewayProxyActor.ACTOR_NAME,
                 GatewayProxyActor.props(pubSubMediator, devOpsCommandsActor, edgeCommandForwarder, httpConfig));
-    }
-
-    private static DevopsAuthenticationDirectiveFactory getDevopsAuthenticationDirectiveFactory(
-            final HttpClientFacade httpClient,
-            final CacheConfig publicKeysConfig,
-            final DevOpsConfig devOpsConfig,
-            final ActorSystem actorSystem,
-            final Config dittoExtensionConfig) {
-        final var devopsOauthConfig = devOpsConfig.getOAuthConfig();
-        final var devopsJwtAuthenticationFactory =
-                JwtAuthenticationFactory.newInstance(devopsOauthConfig, publicKeysConfig, httpClient, actorSystem);
-
-        return DevopsAuthenticationDirectiveFactory.newInstance(devopsJwtAuthenticationFactory, devOpsConfig,
-                dittoExtensionConfig);
     }
 
     private String getHostname(final HttpConfig httpConfig) {

@@ -33,12 +33,14 @@ import org.apache.pekko.actor.Props;
 import org.apache.pekko.actor.Status;
 import org.apache.pekko.japi.pf.ReceiveBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.KamonGauge;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.KamonTagSetConverter;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
+import org.eclipse.ditto.internal.utils.pekko.config.DynamicConfigChanged;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
@@ -48,6 +50,7 @@ import org.eclipse.ditto.thingsearch.model.signals.commands.query.AggregateThing
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.AggregateThingsMetricsResponse;
 import org.eclipse.ditto.thingsearch.service.common.config.CustomAggregationMetricConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.OperatorMetricsConfig;
+import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsAggregationPersistence;
 import org.eclipse.ditto.thingsearch.service.placeholders.GroupByPlaceholderResolver;
@@ -71,21 +74,26 @@ public final class OperatorAggregateMetricsProviderActor extends AbstractActorWi
 
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     private final ActorRef aggregateThingsMetricsActorSingletonProxy;
-    private final Map<String, CustomAggregationMetricConfig> customSearchMetricConfigMap;
     private final Map<GageIdentifier, TimestampedGauge> metricsGauges;
     private final Gauge customSearchMetricsGauge;
+
+    private Map<String, CustomAggregationMetricConfig> customSearchMetricConfigMap;
+    private OperatorMetricsConfig operatorMetricsConfig;
 
     @SuppressWarnings("unused")
     private OperatorAggregateMetricsProviderActor(final SearchConfig searchConfig) {
         this.aggregateThingsMetricsActorSingletonProxy = initializeAggregationThingsMetricsActor(searchConfig);
-        this.customSearchMetricConfigMap = searchConfig.getOperatorMetricsConfig().getCustomAggregationMetricConfigs();
+        this.operatorMetricsConfig = searchConfig.getOperatorMetricsConfig();
+        this.customSearchMetricConfigMap = operatorMetricsConfig.getCustomAggregationMetricConfigs();
         this.metricsGauges = new HashMap<>();
         this.customSearchMetricsGauge = KamonGauge.newGauge("custom-aggregation-metrics-count-of-instruments");
         this.customSearchMetricConfigMap.forEach(
                 (metricName, customSearchMetricConfig) -> initializeCustomMetricTimer(metricName,
                         customSearchMetricConfig,
-                        searchConfig.getOperatorMetricsConfig().getScrapeInterval()));
-        initializeCustomMetricsCleanupTimer(searchConfig.getOperatorMetricsConfig());
+                        operatorMetricsConfig.getScrapeInterval()));
+        initializeCustomMetricsCleanupTimer(operatorMetricsConfig);
+
+        getContext().getSystem().eventStream().subscribe(getSelf(), DynamicConfigChanged.class);
     }
 
     /**
@@ -101,6 +109,7 @@ public final class OperatorAggregateMetricsProviderActor extends AbstractActorWi
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
+                .match(DynamicConfigChanged.class, this::handleDynamicConfigChanged)
                 .match(GatherMetricsCommand.class, this::handleGatheringMetrics)
                 .match(AggregateThingsMetricsResponse.class, this::handleAggregateThingsResponse)
                 .match(CleanupUnusedMetricsCommand.class, this::handleCleanupUnusedMetrics)
@@ -125,6 +134,50 @@ public final class OperatorAggregateMetricsProviderActor extends AbstractActorWi
         return aggregationThingsMetricsActorProxy;
     }
 
+    private void handleDynamicConfigChanged(final DynamicConfigChanged configChanged) {
+        try {
+            log.info("Received DynamicConfigChanged (version <{}>), reconciling custom aggregation metrics.",
+                    configChanged.version());
+            final var dittoScopedConfig = DefaultScopedConfig.dittoScoped(configChanged.dittoConfig());
+            final var searchConfig = DittoSearchConfig.of(dittoScopedConfig);
+            final var newMetricsConfig = searchConfig.getOperatorMetricsConfig();
+            final var newConfigs = newMetricsConfig.getCustomAggregationMetricConfigs();
+            final var oldConfigs = this.customSearchMetricConfigMap;
+
+            // Cancel timers for removed or disabled metrics
+            for (final String metricName : oldConfigs.keySet()) {
+                if (!newConfigs.containsKey(metricName) || !newConfigs.get(metricName).isEnabled()) {
+                    log.info("Removing custom aggregation metric <{}> (removed or disabled in dynamic config).",
+                            metricName);
+                    getTimers().cancel(metricName);
+                }
+            }
+
+            // Add or update metrics
+            newConfigs.forEach((metricName, config) -> {
+                if (config.isEnabled()) {
+                    final CustomAggregationMetricConfig oldConfig = oldConfigs.get(metricName);
+                    if (oldConfig == null || !oldConfig.equals(config) || !oldConfig.isEnabled()) {
+                        log.info("Initializing/updating custom aggregation metric <{}> from dynamic config.",
+                                metricName);
+                        getTimers().cancel(metricName);
+                        initializeCustomMetricTimer(metricName, config,
+                                newMetricsConfig.getScrapeInterval());
+                    }
+                }
+            });
+
+            this.operatorMetricsConfig = newMetricsConfig;
+            this.customSearchMetricConfigMap = newConfigs;
+
+            // Re-initialize cleanup timer with potentially new interval
+            initializeCustomMetricsCleanupTimer(newMetricsConfig);
+        } catch (final Exception e) {
+            log.warning("Failed to apply DynamicConfigChanged (version <{}>), keeping previous config: {}",
+                    configChanged.version(), e.getMessage());
+        }
+    }
+
     private void handleGatheringMetrics(final GatherMetricsCommand gatherMetricsCommand) {
         final CustomAggregationMetricConfig config = gatherMetricsCommand.config();
         final String metricName = config.getMetricName();
@@ -146,6 +199,11 @@ public final class OperatorAggregateMetricsProviderActor extends AbstractActorWi
         result.ifPresentOrElse(value -> {
             final CustomAggregationMetricConfig customAggregationMetricConfig =
                     customSearchMetricConfigMap.get(metricName);
+            if (customAggregationMetricConfig == null) {
+                log.withCorrelationId(response)
+                        .debug("Ignoring response for metric <{}> which was removed from config.", metricName);
+                return;
+            }
             final TagSet tagSet = resolveTags(customAggregationMetricConfig, response);
             log.withCorrelationId(response)
                     .debug("Received aggregate things response for metric name <{} : {}>: {}, " +

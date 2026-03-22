@@ -191,7 +191,8 @@ public final class ThingsRootActor extends DittoRootActor {
                 ThingsPersistenceStreamingActorCreator.startPersistenceStreamingActor(this::startChildActor);
 
         final var cleanupConfig = thingsConfig.getThingConfig().getCleanupConfig();
-        final Props cleanupActorProps = PersistenceCleanupActor.props(cleanupConfig, mongoReadJournal, CLUSTER_ROLE);
+        final Props cleanupActorProps = PersistenceCleanupActor.props(cleanupConfig, mongoReadJournal, CLUSTER_ROLE,
+                "ditto.things.thing.cleanup");
         startChildActor(PersistenceCleanupActor.ACTOR_NAME, cleanupActorProps);
 
         pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());

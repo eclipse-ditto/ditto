@@ -41,6 +41,7 @@ import org.eclipse.ditto.base.service.config.ServiceSpecificConfig;
 import org.eclipse.ditto.base.service.config.json.JsonConfig;
 import org.eclipse.ditto.base.service.devops.DevOpsCommandsActor;
 import org.eclipse.ditto.base.service.devops.LogbackLoggingFacade;
+import org.eclipse.ditto.internal.utils.pekko.config.DynamicConfigWatcherExtension;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
@@ -271,6 +272,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
     private void initializeActorSystem(final ActorSystem actorSystem) {
         startPekkoManagement(actorSystem);
         startClusterBootstrap(actorSystem);
+        DynamicConfigWatcherExtension.get(actorSystem);
 
         startStatusSupplierActor(actorSystem);
         startDevOpsCommandsActor(actorSystem);

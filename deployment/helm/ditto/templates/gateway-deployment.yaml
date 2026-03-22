@@ -279,6 +279,14 @@ spec:
               value: "{{ .Values.gateway.config.wotDirectory.basePrefix }}"
             - name: GATEWAY_WOT_DIRECTORY_AUTHENTICATION_REQUIRED
               value: "{{ .Values.gateway.config.wotDirectory.authenticationRequired }}"
+            {{- if .Values.gateway.dynamicConfig.enabled }}
+            - name: DITTO_DYNAMIC_CONFIG_ENABLED
+              value: "true"
+            - name: DITTO_DYNAMIC_CONFIG_FILE_PATH
+              value: "{{ .Values.gateway.dynamicConfig.filePath }}"
+            - name: DITTO_DYNAMIC_CONFIG_POLL_INTERVAL
+              value: "{{ .Values.gateway.dynamicConfig.pollInterval }}"
+            {{- end }}
             {{- if .Values.gateway.extraEnv }}
               {{- toYaml .Values.gateway.extraEnv | nindent 12 }}
             {{- end }}
@@ -341,6 +349,11 @@ spec:
             {{- end }}
             - name: ditto-heap-dumps
               mountPath: /opt/ditto/dumps
+            {{- if .Values.gateway.dynamicConfig.enabled }}
+            - name: ditto-dynamic-config
+              mountPath: {{ dir .Values.gateway.dynamicConfig.filePath }}
+              readOnly: true
+            {{- end }}
           resources:
             requests:
               cpu: {{ mulf .Values.gateway.resources.cpu 1000 }}m
@@ -397,4 +410,9 @@ spec:
         {{- end }}
         - name: ditto-heap-dumps
           emptyDir: {}
+        {{- if .Values.gateway.dynamicConfig.enabled }}
+        - name: ditto-dynamic-config
+          configMap:
+            name: {{ .Release.Name }}-gateway-dynamic-config
+        {{- end }}
 {{- end }}

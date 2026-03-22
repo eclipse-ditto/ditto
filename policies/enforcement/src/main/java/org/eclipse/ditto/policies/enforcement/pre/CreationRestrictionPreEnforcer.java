@@ -18,8 +18,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.regex.Pattern;
 
-import javax.annotation.concurrent.Immutable;
-
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
@@ -27,6 +25,7 @@ import org.eclipse.ditto.base.model.exceptions.EntityNotCreatableException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.internal.utils.pekko.config.DynamicConfigPoller;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.policies.enforcement.config.CreationRestrictionConfig;
@@ -37,14 +36,14 @@ import com.typesafe.config.Config;
 
 /**
  * Pre-Enforcer for evaluating if creation of new entities should be restricted.
+ * Supports dynamic configuration reload via {@link DynamicConfigPoller}.
  */
-@Immutable
 public class CreationRestrictionPreEnforcer<C extends CreationRestrictionPreEnforcer.Context> implements PreEnforcer {
 
     protected static final ThreadSafeDittoLogger LOG =
             DittoLoggerFactory.getThreadSafeLogger(CreationRestrictionPreEnforcer.class);
 
-    private final EntityCreationConfig config;
+    private final DynamicConfigPoller<EntityCreationConfig> configPoller;
 
     /**
      * Constructs a new instance of CreationRestrictionPreEnforcer extension.
@@ -56,12 +55,19 @@ public class CreationRestrictionPreEnforcer<C extends CreationRestrictionPreEnfo
     public CreationRestrictionPreEnforcer(final ActorSystem actorSystem, final Config config) {
         // explicitly use the ActorSystem config instead of the PreEnforcer config - as the config is loaded from
         // file "ditto-entity-creation.conf" and extending with system properties of that file should not be broken
-        this.config = DefaultEntityCreationConfig.of(actorSystem.settings().config());
+        this.configPoller = DynamicConfigPoller.of(actorSystem, "EntityCreationConfig",
+                DefaultEntityCreationConfig::of,
+                DefaultEntityCreationConfig.of(actorSystem.settings().config()));
+    }
+
+    private EntityCreationConfig getConfig() {
+        return configPoller.get();
     }
 
     public boolean canCreate(final C context) {
-        return matchesList(this.config.getGrant(), context)
-                && !matchesList(this.config.getRevoke(), context);
+        final EntityCreationConfig currentConfig = getConfig();
+        return matchesList(currentConfig.getGrant(), context)
+                && !matchesList(currentConfig.getRevoke(), context);
     }
 
     private boolean matchesList(final List<CreationRestrictionConfig> list, final C context) {
@@ -149,7 +155,7 @@ public class CreationRestrictionPreEnforcer<C extends CreationRestrictionPreEnfo
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "config=" + config +
+                "config=" + getConfig() +
                 ']';
     }
 
@@ -179,7 +185,7 @@ public class CreationRestrictionPreEnforcer<C extends CreationRestrictionPreEnfo
         } else {
             LOG.withCorrelationId(context.headers())
                     .info("Create command with context <{}> is not allowed to pass - entity-creation config was: " +
-                            "{}", context, this.config);
+                            "{}", context, getConfig());
             throw EntityNotCreatableException.newBuilder(withEntityId.getEntityId())
                     .description(getEntityNotCreatableDescription(context))
                     .dittoHeaders(signal.getDittoHeaders())

@@ -16,8 +16,6 @@ import java.util.List;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
-
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.service.util.config.security.NamespaceAccessConfig;
@@ -27,14 +25,22 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 /**
  * Factory for creating {@link NamespaceAccessValidator} instances with per-request context.
  */
-@Immutable
 @AllValuesAreNonnullByDefault
 public final class NamespaceAccessValidatorFactory {
 
-    private final List<NamespaceAccessConfig> namespaceAccessConfigs;
+    private volatile List<NamespaceAccessConfig> namespaceAccessConfigs;
 
     public NamespaceAccessValidatorFactory(final List<NamespaceAccessConfig> namespaceAccessConfigs) {
-        this.namespaceAccessConfigs = namespaceAccessConfigs;
+        this.namespaceAccessConfigs = List.copyOf(namespaceAccessConfigs);
+    }
+
+    /**
+     * Updates the namespace access configurations. Called when dynamic config changes are detected.
+     *
+     * @param namespaceAccessConfigs the new namespace access configs.
+     */
+    public void updateNamespaceAccessConfigs(final List<NamespaceAccessConfig> namespaceAccessConfigs) {
+        this.namespaceAccessConfigs = List.copyOf(namespaceAccessConfigs);
     }
 
     /**

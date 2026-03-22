@@ -374,6 +374,14 @@ spec:
               value: "{{ .Values.connectivity.config.connections.encryption.migration.batchSize }}"
             - name: CONNECTIVITY_ENCRYPTION_MIGRATION_MAX_DOCS_PER_MINUTE
               value: "{{ .Values.connectivity.config.connections.encryption.migration.maxDocumentsPerMinute }}"
+            {{- if .Values.connectivity.dynamicConfig.enabled }}
+            - name: DITTO_DYNAMIC_CONFIG_ENABLED
+              value: "true"
+            - name: DITTO_DYNAMIC_CONFIG_FILE_PATH
+              value: "{{ .Values.connectivity.dynamicConfig.filePath }}"
+            - name: DITTO_DYNAMIC_CONFIG_POLL_INTERVAL
+              value: "{{ .Values.connectivity.dynamicConfig.pollInterval }}"
+            {{- end }}
             {{- if .Values.connectivity.extraEnv }}
               {{- toYaml .Values.connectivity.extraEnv | nindent 12 }}
             {{- end }}
@@ -447,6 +455,11 @@ spec:
             {{- end }}
             - name: ditto-heap-dumps
               mountPath: /opt/ditto/dumps
+            {{- if .Values.connectivity.dynamicConfig.enabled }}
+            - name: ditto-dynamic-config
+              mountPath: {{ dir .Values.connectivity.dynamicConfig.filePath }}
+              readOnly: true
+            {{- end }}
           resources:
             requests:
               cpu: {{ mulf .Values.connectivity.resources.cpu 1000 }}m
@@ -503,4 +516,9 @@ spec:
         {{- end }}
         - name: ditto-heap-dumps
           emptyDir: {}
+        {{- if .Values.connectivity.dynamicConfig.enabled }}
+        - name: ditto-dynamic-config
+          configMap:
+            name: {{ .Release.Name }}-connectivity-dynamic-config
+        {{- end }}
 {{- end }}
