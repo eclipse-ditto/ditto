@@ -14,13 +14,17 @@ package org.eclipse.ditto.policies.service.persistence.actors.strategies.command
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Arrays;
+import java.util.List;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.SubjectExpiry;
 import org.eclipse.ditto.policies.model.SubjectExpiryInvalidException;
@@ -40,6 +44,8 @@ import com.typesafe.config.ConfigFactory;
  * Unit test for {@link CreatePolicyStrategy}.
  */
 public final class CreatePolicyStrategyTest extends AbstractPolicyCommandStrategyTest {
+
+    private static final List<String> SCOPED_NAMESPACES = Arrays.asList("com.acme", "com.acme.*");
 
     private CreatePolicyStrategy underTest;
 
@@ -73,6 +79,36 @@ public final class CreatePolicyStrategyTest extends AbstractPolicyCommandStrateg
                             .containsAll(TestConstants.Policy.POLICY.getEntriesSet());
                 }
         );
+    }
+
+    @Test
+    public void createPolicyPreservesNamespaces() {
+        final DittoHeaders dittoHeaders = DittoHeaders.empty();
+        final PolicyEntry existingEntry = TestConstants.Policy.POLICY.getEntryFor(TestConstants.Policy.LABEL)
+                .orElseThrow();
+        final PolicyEntry scopedEntry = PoliciesModelFactory.newPolicyEntry(existingEntry.getLabel(),
+                existingEntry.getSubjects(), existingEntry.getResources(), SCOPED_NAMESPACES,
+                existingEntry.getImportableType(), existingEntry.getAllowedImportAdditions());
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(TestConstants.Policy.POLICY)
+                .set(scopedEntry)
+                .setRevision(NEXT_REVISION)
+                .build();
+        assertThat(policy.getEntryFor(TestConstants.Policy.LABEL).orElseThrow().getNamespaces())
+                .containsExactlyElementsOf(SCOPED_NAMESPACES);
+        final CreatePolicy command = CreatePolicy.of(policy, dittoHeaders);
+
+        assertModificationResult(underTest, policy, command,
+                PolicyCreated.class,
+                event -> assertThat(event.getPolicy().getEntryFor(TestConstants.Policy.LABEL)
+                        .orElseThrow()
+                        .getNamespaces())
+                        .containsExactlyElementsOf(SCOPED_NAMESPACES),
+                CreatePolicyResponse.class,
+                response -> assertThat(response.getPolicyCreated().orElseThrow()
+                        .getEntryFor(TestConstants.Policy.LABEL)
+                        .orElseThrow()
+                        .getNamespaces())
+                        .containsExactlyElementsOf(SCOPED_NAMESPACES));
     }
 
     @Test

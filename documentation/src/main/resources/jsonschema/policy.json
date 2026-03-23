@@ -149,6 +149,13 @@
                 ]
               }
             },
+            "namespaces": {
+              "type": "array",
+              "description": "Restricts this policy entry to things whose namespace matches at least one pattern. If omitted or empty, the entry applies to all namespaces. Use `com.acme` for an exact namespace match and `com.acme.*` for namespaces below `com.acme`.",
+              "items": {
+                "type": "string"
+              }
+            },
             "importable": {
               "title": "Importable type",
               "type": "string",

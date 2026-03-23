@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
@@ -240,6 +241,129 @@ public final class ImmutablePolicyEntryTest {
         final PolicyEntry entry2 = ImmutablePolicyEntry.of(Label.of("foo"),
                 Subjects.newInstance(Subject.newInstance(subjectId, SubjectType.GENERATED)),
                 Resources.newInstance(resource),
+                ImportableType.IMPLICIT,
+                Collections.emptySet()
+        );
+        assertThat(entry1.isSemanticallySameAs(entry2)).isFalse();
+    }
+
+    @Test
+    public void testToAndFromJsonWithNamespaces() {
+        final List<String> namespaces = Arrays.asList("com.acme", "com.acme.*");
+        final PolicyEntry policyEntry = ImmutablePolicyEntry.of(LABEL_END_USER,
+                Subjects.newInstance(TestConstants.Policy.SUBJECT),
+                Resources.newInstance(
+                        Resource.newInstance(TestConstants.Policy.RESOURCE_TYPE, TestConstants.Policy.RESOURCE_PATH,
+                                EffectedPermissions.newInstance(
+                                        Permissions.newInstance(TestConstants.Policy.PERMISSION_READ),
+                                        Permissions.newInstance(TestConstants.Policy.PERMISSION_WRITE)))),
+                namespaces,
+                ImportableType.IMPLICIT,
+                Collections.emptySet());
+
+        final JsonObject policyEntryJson = policyEntry.toJson();
+        assertThat(policyEntryJson.contains("namespaces")).isTrue();
+
+        final PolicyEntry parsed = ImmutablePolicyEntry.fromJson(policyEntry.getLabel(), policyEntryJson);
+        assertThat(parsed).isEqualTo(policyEntry);
+        assertThat(parsed.getNamespaces()).isEqualTo(namespaces);
+    }
+
+    @Test
+    public void testFromJsonWithoutNamespacesDefaultsToEmpty() {
+        final PolicyEntry entry = ImmutablePolicyEntry.fromJson("DEFAULT", JsonObject.of(
+                "{ \"subjects\": {}, \"resources\": {} }"));
+        assertThat(entry.getNamespaces()).isEmpty();
+    }
+
+    @Test
+    public void testToJsonOmitsNamespacesWhenEmpty() {
+        final PolicyEntry policyEntry = ImmutablePolicyEntry.of(LABEL_END_USER,
+                Subjects.newInstance(TestConstants.Policy.SUBJECT),
+                Resources.newInstance(
+                        Resource.newInstance(TestConstants.Policy.RESOURCE_TYPE, TestConstants.Policy.RESOURCE_PATH,
+                                EffectedPermissions.newInstance(
+                                        Permissions.newInstance(TestConstants.Policy.PERMISSION_READ),
+                                        Permissions.newInstance(TestConstants.Policy.PERMISSION_WRITE)))));
+
+        assertThat(policyEntry.toJson().contains("namespaces")).isFalse();
+    }
+
+    @Test(expected = PolicyEntryInvalidException.class)
+    public void testFromJsonWithInvalidNamespacePattern() {
+        ImmutablePolicyEntry.fromJson("DEFAULT", JsonObject.of(
+                "{ \"subjects\": {}, \"resources\": {}, \"namespaces\": [\"*\"] }"));
+    }
+
+    @Test(expected = PolicyEntryInvalidException.class)
+    public void testFromJsonWithEmptyStringNamespacePattern() {
+        ImmutablePolicyEntry.fromJson("DEFAULT", JsonObject.of(
+                "{ \"subjects\": {}, \"resources\": {}, \"namespaces\": [\"\"] }"));
+    }
+
+    @Test(expected = PolicyEntryInvalidException.class)
+    public void testProgrammaticCreationWithInvalidNamespacePattern() {
+        PoliciesModelFactory.newPolicyEntry("DEFAULT",
+                PoliciesModelFactory.emptySubjects(),
+                PoliciesModelFactory.emptyResources(),
+                Collections.singletonList("invalid*pattern"),
+                ImportableType.IMPLICIT,
+                Collections.emptySet());
+    }
+
+    @Test
+    public void testAppliesToNamespaceWithEmptyListMatchesAll() {
+        final PolicyEntry entry = ImmutablePolicyEntry.fromJson("DEFAULT", JsonObject.of(
+                "{ \"subjects\": {}, \"resources\": {} }"));
+        assertThat(entry.appliesToNamespace("com.acme")).isTrue();
+        assertThat(entry.appliesToNamespace("org.example")).isTrue();
+    }
+
+    @Test
+    public void testAppliesToNamespaceExactMatch() {
+        final PolicyEntry entry = ImmutablePolicyEntry.fromJson("DEFAULT", JsonObject.of(
+                "{ \"subjects\": {}, \"resources\": {}, \"namespaces\": [\"com.acme\"] }"));
+        assertThat(entry.appliesToNamespace("com.acme")).isTrue();
+        assertThat(entry.appliesToNamespace("com.acme.vehicles")).isFalse();
+        assertThat(entry.appliesToNamespace("org.example")).isFalse();
+    }
+
+    @Test
+    public void testAppliesToNamespaceWildcardMatch() {
+        final PolicyEntry entry = ImmutablePolicyEntry.fromJson("DEFAULT", JsonObject.of(
+                "{ \"subjects\": {}, \"resources\": {}, \"namespaces\": [\"com.acme.*\"] }"));
+        assertThat(entry.appliesToNamespace("com.acme")).isFalse();
+        assertThat(entry.appliesToNamespace("com.acme.vehicles")).isTrue();
+        assertThat(entry.appliesToNamespace("com.acme.vehicles.trucks")).isTrue();
+        assertThat(entry.appliesToNamespace("org.example")).isFalse();
+    }
+
+    @Test
+    public void testAppliesToNamespaceMultiplePatterns() {
+        final PolicyEntry entry = ImmutablePolicyEntry.fromJson("DEFAULT", JsonObject.of(
+                "{ \"subjects\": {}, \"resources\": {}, \"namespaces\": [\"com.acme\", \"com.acme.*\"] }"));
+        assertThat(entry.appliesToNamespace("com.acme")).isTrue();
+        assertThat(entry.appliesToNamespace("com.acme.vehicles")).isTrue();
+        assertThat(entry.appliesToNamespace("org.example")).isFalse();
+    }
+
+    @Test
+    public void ensureTwoPolicyEntriesAreSemanticallyDifferentIfNamespacesDiffer() {
+        final SubjectId subjectId = SubjectId.newInstance("the:subject");
+        final Resource resource = Resource.newInstance("thing", "/",
+                EffectedPermissions.newInstance(Collections.singleton("READ"), null));
+
+        final PolicyEntry entry1 = ImmutablePolicyEntry.of(Label.of("foo"),
+                Subjects.newInstance(Subject.newInstance(subjectId, SubjectType.GENERATED)),
+                Resources.newInstance(resource),
+                Collections.singletonList("com.acme"),
+                ImportableType.IMPLICIT,
+                Collections.emptySet()
+        );
+        final PolicyEntry entry2 = ImmutablePolicyEntry.of(Label.of("foo"),
+                Subjects.newInstance(Subject.newInstance(subjectId, SubjectType.GENERATED)),
+                Resources.newInstance(resource),
+                Collections.emptyList(),
                 ImportableType.IMPLICIT,
                 Collections.emptySet()
         );

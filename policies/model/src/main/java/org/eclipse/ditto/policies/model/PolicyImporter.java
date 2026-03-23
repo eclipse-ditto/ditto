@@ -12,9 +12,11 @@
  */
 package org.eclipse.ditto.policies.model;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -82,6 +84,7 @@ public final class PolicyImporter {
 
         Subjects mergedSubjects = entry.getSubjects();
         Resources mergedResources = entry.getResources();
+        List<String> mergedNamespaces = entry.getNamespaces();
 
         if (entriesAdditions != null) {
             final Optional<EntryAddition> addition = entriesAdditions.getAddition(entry.getLabel());
@@ -94,6 +97,9 @@ public final class PolicyImporter {
                 if (add.getResources().isPresent() && allowed.contains(AllowedImportAddition.RESOURCES)) {
                     mergedResources = mergeResources(mergedResources, add.getResources().get());
                 }
+                if (add.getNamespaces().isPresent() && allowed.contains(AllowedImportAddition.NAMESPACES)) {
+                    mergedNamespaces = mergeNamespaces(mergedNamespaces, add.getNamespaces().get());
+                }
             }
         }
 
@@ -101,6 +107,7 @@ public final class PolicyImporter {
                 PoliciesModelFactory.newImportedLabel(importedPolicyId, entry.getLabel()),
                 mergedSubjects,
                 mergedResources,
+                mergedNamespaces,
                 entry.getImportableType(),
                 entry.getAllowedImportAdditions()
         );
@@ -150,6 +157,13 @@ public final class PolicyImporter {
                 templateResource.getResourceKey(),
                 PoliciesModelFactory.newEffectedPermissions(mergedGrants, mergedRevokes)
         );
+    }
+
+    private static List<String> mergeNamespaces(final List<String> templateNamespaces,
+            final List<String> additionalNamespaces) {
+        final Set<String> merged = new LinkedHashSet<>(templateNamespaces);
+        merged.addAll(additionalNamespaces);
+        return new ArrayList<>(merged);
     }
 
     private static CompletionStage<Set<PolicyEntry>> combineSets(final CompletionStage<Set<PolicyEntry>> set1Cs,

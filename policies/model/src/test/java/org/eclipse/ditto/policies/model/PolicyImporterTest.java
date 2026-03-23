@@ -99,6 +99,7 @@ public final class PolicyImporterTest {
         return ImmutablePolicyEntry.of(PoliciesModelFactory.newImportedLabel(importedPolicyId, entry.getLabel()),
                 entry.getSubjects(),
                 entry.getResources(),
+                entry.getNamespaces(),
                 entry.getImportableType(),
                 entry.getAllowedImportAdditions());
     }
@@ -701,6 +702,92 @@ public final class PolicyImporterTest {
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("Expected explicit imported entry not found"));
         assertThat(explicitEntry.getAllowedImportAdditions()).isEqualTo(ALLOWED_BOTH);
+    }
+
+    @Test
+    public void withResolvedImportsPreservesNamespaces() {
+        final List<String> namespaces = Arrays.asList("com.acme", "com.acme.*");
+        final Label implicitLabel = Label.of(ImportableType.IMPLICIT.getName() + "SupportGroup");
+        final PolicyEntry scopedImplicitEntry = ImmutablePolicyEntry.of(implicitLabel,
+                Subjects.newInstance(Subject.newInstance(SubjectIssuer.GOOGLE, "scopedGroup")),
+                Resources.newInstance(
+                        Resource.newInstance(TestConstants.Policy.RESOURCE_TYPE, JsonPointer.of("attributes"),
+                                EffectedPermissions.newInstance(
+                                        Permissions.newInstance(TestConstants.Policy.PERMISSION_READ,
+                                                TestConstants.Policy.PERMISSION_WRITE), Permissions.none()))),
+                namespaces,
+                ImportableType.IMPLICIT,
+                Collections.emptySet());
+        final Policy importedPolicy = ImmutablePolicy.of(
+                IMPORTED_POLICY_ID, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null,
+                null, emptyPolicyImports(), Collections.singletonList(scopedImplicitEntry));
+        final Function<PolicyId, CompletionStage<Optional<Policy>>> loader = policyId ->
+                IMPORTED_POLICY_ID.equals(policyId)
+                        ? CompletableFuture.completedFuture(Optional.of(importedPolicy))
+                        : CompletableFuture.completedFuture(Optional.empty());
+
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(createPolicy())
+                .setPolicyImport(PoliciesModelFactory.newPolicyImport(IMPORTED_POLICY_ID, (EffectedImports) null))
+                .build();
+
+        final Policy resolvedPolicy = policy.withResolvedImports(loader).toCompletableFuture().join();
+
+        final Label importedLabel = PoliciesModelFactory.newImportedLabel(IMPORTED_POLICY_ID, implicitLabel);
+        final PolicyEntry importedEntry = resolvedPolicy.getEntryFor(importedLabel)
+                .orElseThrow(() -> new AssertionError("Expected imported entry not found"));
+        assertThat(importedEntry.getNamespaces()).isEqualTo(namespaces);
+    }
+
+    @Test
+    public void entriesAdditionsMergesNamespacesAdditively() {
+        final Label implicitLabel = Label.of(ImportableType.IMPLICIT.getName() + "SupportGroup");
+        final List<String> additionalNamespaces = Arrays.asList("org.example", "org.example.*");
+        final EntriesAdditions additions = PoliciesModelFactory.newEntriesAdditions(
+                Collections.singletonList(
+                        PoliciesModelFactory.newEntryAddition(implicitLabel,
+                                null, null, additionalNamespaces)));
+
+        final EffectedImports effectedImports = PoliciesModelFactory.newEffectedImportedLabels(
+                Collections.emptyList(), additions);
+
+        final Set<AllowedImportAddition> allowedNamespaces =
+                Collections.singleton(AllowedImportAddition.NAMESPACES);
+        // Create an imported policy where the template entry already has namespaces ["com.acme"]
+        final List<String> templateNamespaces = Collections.singletonList("com.acme");
+        final PolicyEntry templateEntry = ImmutablePolicyEntry.of(implicitLabel,
+                Subjects.newInstance(Subject.newInstance(SubjectIssuer.GOOGLE, "implicitGroup")),
+                Resources.newInstance(
+                        Resource.newInstance(TestConstants.Policy.RESOURCE_TYPE, JsonPointer.of("attributes"),
+                                EffectedPermissions.newInstance(
+                                        Permissions.newInstance(TestConstants.Policy.PERMISSION_READ,
+                                                TestConstants.Policy.PERMISSION_WRITE), Permissions.none()))),
+                templateNamespaces,
+                ImportableType.IMPLICIT,
+                allowedNamespaces);
+        final Policy importedPolicy = ImmutablePolicy.of(IMPORTED_POLICY_ID, PolicyLifecycle.ACTIVE,
+                PolicyRevision.newInstance(1), null, null, null, emptyPolicyImports(),
+                Collections.singletonList(templateEntry));
+
+        final Function<PolicyId, CompletionStage<Optional<Policy>>> loader = (id) ->
+                IMPORTED_POLICY_ID.equals(id)
+                        ? CompletableFuture.completedFuture(Optional.of(importedPolicy))
+                        : CompletableFuture.completedFuture(Optional.empty());
+
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(createPolicy())
+                .setPolicyImport(PoliciesModelFactory.newPolicyImport(IMPORTED_POLICY_ID, effectedImports))
+                .build();
+
+        final Set<PolicyEntry> entries =
+                PolicyImporter.mergeImportedPolicyEntries(policy, loader).toCompletableFuture().join();
+
+        final Label importedLabel = PoliciesModelFactory.newImportedLabel(IMPORTED_POLICY_ID, implicitLabel);
+        final PolicyEntry mergedEntry = entries.stream()
+                .filter(e -> e.getLabel().equals(importedLabel))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Expected imported entry not found"));
+
+        // Should contain both template and additional namespaces
+        assertThat(mergedEntry.getNamespaces()).contains("com.acme", "org.example", "org.example.*");
     }
 
     private static Policy createImportedPolicy(final PolicyId importedPolicyId) {

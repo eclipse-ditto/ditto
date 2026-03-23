@@ -99,7 +99,7 @@ public class EvaluatedPolicyTest {
 
     @Test
     public void testForThing() {
-        final EvaluatedPolicy evaluatedPolicy = EvaluatedPolicy.of(POLICY, THING);
+        final EvaluatedPolicy evaluatedPolicy = EvaluatedPolicy.of(POLICY, THING, "ditto");
         final BsonDocument bsonDocument = evaluatedPolicy.forThing();
         final BsonDocument expectedBson = new org.bson.json.JsonObject("""
                 {
@@ -146,7 +146,7 @@ public class EvaluatedPolicyTest {
               }
             }
             """);
-        final EvaluatedPolicy evaluatedPolicy = EvaluatedPolicy.of(policy, thing);
+        final EvaluatedPolicy evaluatedPolicy = EvaluatedPolicy.of(policy, thing, "ditto");
         final BsonDocument bsonDocument = evaluatedPolicy.forThing();
         final BsonDocument expectedBson = new org.bson.json.JsonObject("""
                 {
@@ -161,7 +161,7 @@ public class EvaluatedPolicyTest {
 
     @Test
     public void testForFeature() {
-        final EvaluatedPolicy evaluatedPolicy = EvaluatedPolicy.of(POLICY, THING);
+        final EvaluatedPolicy evaluatedPolicy = EvaluatedPolicy.of(POLICY, THING, "ditto");
         final BsonDocument bsonDocument = evaluatedPolicy.forFeature("featureX");
         final BsonDocument expectedBson = new org.bson.json.JsonObject("""
                 {
@@ -190,13 +190,105 @@ public class EvaluatedPolicyTest {
 
     @Test
     public void testGlobalRead() {
-        final EvaluatedPolicy evaluatedPolicy = EvaluatedPolicy.of(POLICY, THING);
+        final EvaluatedPolicy evaluatedPolicy = EvaluatedPolicy.of(POLICY, THING, "ditto");
         final BsonArray globalRead = evaluatedPolicy.getGlobalRead();
         final List<BsonString> expectedSubjects = Stream.of(ADMIN, USER1, USER2, USER3, USER4, USER5, GRANTED)
                 .map(BsonString::new)
                 .toList();
 
         assertThat(globalRead).containsExactlyInAnyOrderElementsOf(expectedSubjects);
+    }
+
+    @Test
+    public void testNamespaceFilteringExcludesEntryForNonMatchingNamespace() {
+        final Policy policy = PoliciesModelFactory.newPolicy("""
+                {
+                  "policyId": "ditto:policy",
+                  "entries": {
+                    "NS_RESTRICTED": {
+                      "subjects": { "nginx:admin": { "type": "admin" } },
+                      "resources": { "thing:/": { "grant": ["READ", "WRITE"], "revoke": [] } },
+                      "namespaces": ["com.acme", "com.acme.*"]
+                    }
+                  }
+                }
+                """);
+        final JsonObject thing = JsonObject.of("""
+                { "thingId": "other.ns:thing1" }
+                """);
+
+        final EvaluatedPolicy evaluatedPolicy = EvaluatedPolicy.of(policy, thing, "other.ns");
+
+        assertThat(evaluatedPolicy.getGlobalRead()).isEmpty();
+    }
+
+    @Test
+    public void testNamespaceFilteringIncludesEntryForExactMatch() {
+        final Policy policy = PoliciesModelFactory.newPolicy("""
+                {
+                  "policyId": "ditto:policy",
+                  "entries": {
+                    "NS_RESTRICTED": {
+                      "subjects": { "nginx:admin": { "type": "admin" } },
+                      "resources": { "thing:/": { "grant": ["READ", "WRITE"], "revoke": [] } },
+                      "namespaces": ["com.acme"]
+                    }
+                  }
+                }
+                """);
+        final JsonObject thing = JsonObject.of("""
+                { "thingId": "com.acme:device1" }
+                """);
+
+        final EvaluatedPolicy evaluatedPolicy = EvaluatedPolicy.of(policy, thing, "com.acme");
+
+        assertThat(evaluatedPolicy.getGlobalRead()).contains(new BsonString("nginx:admin"));
+    }
+
+    @Test
+    public void testNamespaceFilteringIncludesEntryForWildcardMatch() {
+        final Policy policy = PoliciesModelFactory.newPolicy("""
+                {
+                  "policyId": "ditto:policy",
+                  "entries": {
+                    "NS_WILDCARD": {
+                      "subjects": { "nginx:admin": { "type": "admin" } },
+                      "resources": { "thing:/": { "grant": ["READ", "WRITE"], "revoke": [] } },
+                      "namespaces": ["com.acme.*"]
+                    }
+                  }
+                }
+                """);
+        final JsonObject thing = JsonObject.of("""
+                { "thingId": "com.acme.vehicles:car1" }
+                """);
+
+        final EvaluatedPolicy evaluatedPolicy = EvaluatedPolicy.of(policy, thing, "com.acme.vehicles");
+
+        assertThat(evaluatedPolicy.getGlobalRead()).contains(new BsonString("nginx:admin"));
+    }
+
+    @Test
+    public void testNamespaceWildcardDoesNotMatchBaseNamespace() {
+        final Policy policy = PoliciesModelFactory.newPolicy("""
+                {
+                  "policyId": "ditto:policy",
+                  "entries": {
+                    "NS_WILDCARD": {
+                      "subjects": { "nginx:admin": { "type": "admin" } },
+                      "resources": { "thing:/": { "grant": ["READ", "WRITE"], "revoke": [] } },
+                      "namespaces": ["com.acme.*"]
+                    }
+                  }
+                }
+                """);
+        final JsonObject thing = JsonObject.of("""
+                { "thingId": "com.acme:device1" }
+                """);
+
+        final EvaluatedPolicy evaluatedPolicy = EvaluatedPolicy.of(policy, thing, "com.acme");
+
+        assertThat(evaluatedPolicy.getGlobalRead()).isEmpty();
     }
 
 }

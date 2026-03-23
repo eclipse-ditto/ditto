@@ -12,10 +12,12 @@
  */
 package org.eclipse.ditto.policies.model;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -268,6 +270,28 @@ public final class ImmutablePolicyBuilderTest {
                 .orElseThrow(() -> new AssertionError("Entry not found"));
         DittoPolicyAssertions.assertThat(result.getAllowedImportAdditions()).isEqualTo(allowedAdditions);
         DittoPolicyAssertions.assertThat(result.getImportableType()).isEqualTo(ImportableType.IMPLICIT);
+    }
+
+    @Test
+    public void toBuilderBuildPreservesNamespaces() {
+        final Label label = Label.of("tenantScoped");
+        final List<String> namespaces = Arrays.asList("com.acme", "com.acme.*");
+        final PolicyEntry entry = PoliciesModelFactory.newPolicyEntry(label,
+                Subjects.newInstance(Subject.newInstance(TestConstants.Policy.SUBJECT_ID,
+                        TestConstants.Policy.SUBJECT_TYPE)),
+                Resources.newInstance(Resource.newInstance(TestConstants.Policy.RESOURCE_TYPE, "/",
+                        EffectedPermissions.newInstance(
+                                PoliciesModelFactory.newPermissions(TestConstants.Policy.PERMISSION_READ),
+                                PoliciesModelFactory.noPermissions()))),
+                namespaces,
+                ImportableType.IMPLICIT,
+                Collections.emptySet());
+
+        final Policy rebuilt = ImmutablePolicyBuilder.of(POLICY_ID).set(entry).build().toBuilder().build();
+
+        final PolicyEntry rebuiltEntry = rebuilt.getEntryFor(label)
+                .orElseThrow(() -> new AssertionError("Entry not found after toBuilder().build()"));
+        assertThat(rebuiltEntry.getNamespaces()).isEqualTo(namespaces);
     }
 
 }
