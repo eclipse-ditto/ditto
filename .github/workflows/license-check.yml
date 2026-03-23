@@ -29,7 +29,7 @@ jobs:
       - name: Ensure license year for added files is the file's creation year
         shell: bash
         run: |
-          included_file_endings=".*\.(java|xml|yml|yaml)"
+          included_file_endings=".*\.(java|scala|xml|yml|yaml|ts)"
           current_year=$(date +'%Y')
           missing_counter=0
           for file in ${{ steps.the-files.outputs.added }}; do
