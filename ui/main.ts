@@ -43,6 +43,7 @@ import * as ThingsSSE from './modules/things/thingsSSE.js';
 import { WoTDescription } from './modules/things/wotDescription.js';
 import * as Utils from './modules/utils.js';
 import './modules/utils/crudToolbar.js';
+import { initSplitPanes } from './modules/utils/splitPanes.js';
 import './modules/utils/tableFilter.js';
 
 let resized = false;
@@ -76,17 +77,19 @@ document.addEventListener('DOMContentLoaded', async function() {
   await Piggyback.ready();
   await Templates.ready();
 
+  initSplitPanes();
+
   const thingDescription = WoTDescription({
-    itemsId: 'tabItemsThing',
-    contentId: 'tabContentThing',
-  }, false);
+      itemsId: 'tabItemsThing',
+      contentId: 'tabContentThing',
+    }, false);
   Things.addChangeListener(thingDescription.onReferenceChanged);
   await thingDescription.ready();
 
   const featureDescription = WoTDescription({
-    itemsId: 'tabItemsFeatures',
-    contentId: 'tabContentFeatures',
-  }, true);
+      itemsId: 'tabItemsFeatures',
+      contentId: 'tabContentFeatures',
+    }, true);
   Features.addChangeListener(featureDescription.onReferenceChanged);
   await featureDescription.ready();
 
