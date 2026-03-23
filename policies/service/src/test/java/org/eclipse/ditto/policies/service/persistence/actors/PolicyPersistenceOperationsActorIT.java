@@ -43,6 +43,7 @@ import org.eclipse.ditto.internal.utils.persistence.operations.NamespacePersiste
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
+import org.eclipse.ditto.policies.enforcement.config.DefaultNamespacePoliciesConfig;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyConstants;
@@ -242,7 +243,8 @@ public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceIT
                 DittoPoliciesConfig.of(DefaultScopedConfig.dittoScoped(system.settings().config()));
         final Props props =
                 PolicySupervisorActor.props(pubSubMediator, config, Mockito.mock(DistributedPub.class), null,
-                        Mockito.mock(PolicyEnforcerProvider.class), Mockito.mock(MongoReadJournal.class));
+                        Mockito.mock(PolicyEnforcerProvider.class), Mockito.mock(MongoReadJournal.class),
+                        DefaultNamespacePoliciesConfig.of(system.settings().config()));
         return system.actorOf(props, id.toString());
     }
 

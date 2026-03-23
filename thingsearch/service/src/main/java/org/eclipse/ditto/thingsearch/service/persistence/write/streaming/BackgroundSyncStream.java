@@ -15,11 +15,13 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.stream.Collectors;
 
 import org.apache.pekko.NotUsed;
 import org.apache.pekko.actor.ActorRef;
@@ -33,6 +35,7 @@ import org.eclipse.ditto.internal.models.streaming.LowerBound;
 import org.eclipse.ditto.internal.utils.pekko.controlflow.MergeSortedAsPair;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.policies.api.PolicyTag;
+import org.eclipse.ditto.policies.enforcement.config.NamespacePoliciesConfig;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyRevision;
@@ -62,18 +65,21 @@ public final class BackgroundSyncStream {
     private final Duration toleranceWindow;
     private final int throttleThroughput;
     private final Duration throttlePeriod;
+    private final NamespacePoliciesConfig namespacePoliciesConfig;
 
     private BackgroundSyncStream(
             final ActorRef policiesShardRegion,
             final Duration policiesAskTimeout,
             final Duration toleranceWindow,
             final int throttleThroughput,
-            final Duration throttlePeriod) {
+            final Duration throttlePeriod,
+            final NamespacePoliciesConfig namespacePoliciesConfig) {
         this.policiesShardRegion = policiesShardRegion;
         this.policiesAskTimeout = policiesAskTimeout;
         this.toleranceWindow = toleranceWindow;
         this.throttleThroughput = throttleThroughput;
         this.throttlePeriod = throttlePeriod;
+        this.namespacePoliciesConfig = namespacePoliciesConfig;
     }
 
     /**
@@ -91,10 +97,11 @@ public final class BackgroundSyncStream {
             final Duration policiesAskTimeout,
             final Duration toleranceWindow,
             final int throttleThroughput,
-            final Duration throttlePeriod) {
+            final Duration throttlePeriod,
+            final NamespacePoliciesConfig namespacePoliciesConfig) {
 
         return new BackgroundSyncStream(policiesShardRegion, policiesAskTimeout, toleranceWindow, throttleThroughput,
-                throttlePeriod);
+                throttlePeriod, namespacePoliciesConfig);
     }
 
     /**
@@ -240,36 +247,67 @@ public final class BackgroundSyncStream {
                             return CompletableFuture.completedFuture(false);
                         }
 
-                        final List<PolicyId> importedPolicyIds = optionalPolicy.get().getPolicyImports()
-                                .stream()
-                                .map(PolicyImport::getImportedPolicyId)
-                                .toList();
-
                         final Set<PolicyTag> indexedReferencedPolicyTags = indexed.getAllReferencedPolicyTags();
+                        return getExpectedReferencedPolicyIds(optionalPolicy.get())
+                                .thenCompose(expectedReferencedPolicyIds -> {
+                                    final Set<PolicyId> indexedReferencedPolicyIds = indexedReferencedPolicyTags.stream()
+                                            .map(PolicyTag::getEntityId)
+                                            .filter(indexedPolicyId -> !indexedPolicyId.equals(thingPolicyId))
+                                            .collect(Collectors.toCollection(LinkedHashSet::new));
 
-                        // -1 because we need to ignore the actual thing policy which is also included in referenced policies.
-                        if (importedPolicyIds.size() != (indexedReferencedPolicyTags.size() - 1)) {
-                            // Number of referenced policies changed. Trigger update.
-                            return CompletableFuture.completedFuture(false);
-                        }
-
-                        final List<CompletableFuture<Boolean>> completionStages = importedPolicyIds.stream()
-                                .map(importedPolicyId -> {
-                                    final Optional<PolicyTag> optionalIndexedPolicyTag =
-                                            indexedReferencedPolicyTags.stream()
-                                                    .filter(tag -> tag.getEntityId().equals(importedPolicyId))
-                                                    .findAny();
-                                    if (optionalIndexedPolicyTag.isEmpty()) {
+                                    if (!expectedReferencedPolicyIds.equals(indexedReferencedPolicyIds)) {
                                         return CompletableFuture.completedFuture(false);
                                     }
-                                    final PolicyTag indexedPolicyTag = optionalIndexedPolicyTag.get();
-                                    return isPolicyTagUpToDate(indexedPolicyTag).toCompletableFuture();
-                                })
-                                .toList();
 
-                        return CompletableFuture.allOf(completionStages.toArray(new CompletableFuture[0]))
-                                .thenApply(done -> completionStages.stream().allMatch(CompletableFuture::join));
+                                    final List<CompletableFuture<Boolean>> completionStages =
+                                            indexedReferencedPolicyTags.stream()
+                                                    .filter(indexedPolicyTag ->
+                                                            !indexedPolicyTag.getEntityId().equals(thingPolicyId))
+                                                    .map(indexedPolicyTag ->
+                                                            isPolicyTagUpToDate(indexedPolicyTag).toCompletableFuture())
+                                                    .toList();
+
+                                    return CompletableFuture.allOf(
+                                                    completionStages.toArray(new CompletableFuture[0]))
+                                            .thenApply(done ->
+                                                    completionStages.stream().allMatch(CompletableFuture::join));
+                                });
                     }
+                });
+    }
+
+    private CompletionStage<Set<PolicyId>> getExpectedReferencedPolicyIds(final Policy thingPolicy) {
+        final Set<PolicyId> expectedReferencedPolicyIds = thingPolicy.getPolicyImports().stream()
+                .map(PolicyImport::getImportedPolicyId)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        final Optional<PolicyId> entityId = thingPolicy.getEntityId();
+        final String namespace = thingPolicy.getNamespace().orElse("");
+        final List<PolicyId> namespaceRootPolicyIds = namespacePoliciesConfig.getRootPoliciesForNamespace(namespace)
+                .stream()
+                .filter(rootPolicyId -> !entityId.map(rootPolicyId::equals).orElse(false))
+                .toList();
+
+        if (namespaceRootPolicyIds.isEmpty()) {
+            return CompletableFuture.completedFuture(expectedReferencedPolicyIds);
+        }
+
+        final List<CompletableFuture<Optional<Policy>>> rootPolicyStages = namespaceRootPolicyIds.stream()
+                .map(rootPolicyId -> retrievePolicy(rootPolicyId).toCompletableFuture())
+                .toList();
+
+        return CompletableFuture.allOf(rootPolicyStages.toArray(new CompletableFuture[0]))
+                .thenApply(done -> {
+                    for (int i = 0; i < namespaceRootPolicyIds.size(); i++) {
+                        final Optional<Policy> optionalRootPolicy = rootPolicyStages.get(i).join();
+                        if (optionalRootPolicy.isPresent()) {
+                            expectedReferencedPolicyIds.add(namespaceRootPolicyIds.get(i));
+                            optionalRootPolicy.get().getPolicyImports().stream()
+                                    .map(PolicyImport::getImportedPolicyId)
+                                    .forEach(expectedReferencedPolicyIds::add);
+                        }
+                    }
+                    return expectedReferencedPolicyIds;
                 });
     }
 

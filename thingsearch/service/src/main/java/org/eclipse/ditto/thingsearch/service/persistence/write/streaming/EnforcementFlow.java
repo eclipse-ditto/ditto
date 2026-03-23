@@ -49,6 +49,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.enforcement.PolicyCacheLoader;
+import org.eclipse.ditto.policies.enforcement.config.DefaultNamespacePoliciesConfig;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
@@ -129,7 +130,8 @@ final class EnforcementFlow {
         final CompletableFuture<Cache<PolicyIdResolvingImports, Entry<Pair<Policy, Set<PolicyTag>>>>> cacheFuture =
                 new CompletableFuture<>();
         final ResolvedPolicyCacheLoader resolvedPolicyCacheLoader =
-                new ResolvedPolicyCacheLoader(policyCacheLoader, cacheFuture);
+                new ResolvedPolicyCacheLoader(policyCacheLoader, cacheFuture,
+                        DefaultNamespacePoliciesConfig.of(actorSystem.settings().config()));
         final Cache<PolicyIdResolvingImports, Entry<Pair<Policy, Set<PolicyTag>>>> policyEnforcerCache =
                 CacheFactory.createCache(resolvedPolicyCacheLoader, policyCacheConfig,
                         "things-search_enforcementflow_enforcer_cache_policy", policyCacheDispatcher);
@@ -337,17 +339,27 @@ final class EnforcementFlow {
                                     // invalid entry; invalidate and retry after delay
                                     policyEnforcerCache.invalidate(new PolicyIdResolvingImports(policyId, true));
 
-                                    // only invalidate causing policy tag once, e.g. when a massively imported policy is changed:
+                                    // Invalidate the resolveImports=true entry for every policy referenced by this
+                                    // thing: the child policy, any namespace root policies, and any policies imported
+                                    // by those root policies.  Using unconditional invalidation here is intentional:
+                                    // a change anywhere in the chain (e.g. an imported policy whose own revision is
+                                    // unchanged in the root-policy entry) makes the resolved root-policy stale, and
+                                    // a revision-based comparison cannot detect that transitive staleness.
+                                    metadata.getAllReferencedPolicyTags().forEach(tag ->
+                                            policyEnforcerCache.invalidate(
+                                                    new PolicyIdResolvingImports(tag.getEntityId(), true)));
+
+                                    // Conditionally invalidate the raw (resolveImports=false) entry for the causing
+                                    // policy only, so that changes to a directly-imported policy also refresh the
+                                    // underlying raw-policy entry that the loader uses as input.
                                     metadata.getCausingPolicyTag()
-                                            .ifPresent(causingPolicyTag -> {
-                                                final boolean invalidated = policyEnforcerCache.invalidateConditionally(
-                                                        new PolicyIdResolvingImports(causingPolicyTag.getEntityId(), false),
-                                                        entry -> !entry.exists() ||
-                                                                entry.getRevision() < causingPolicyTag.getRevision()
-                                                );
-                                                log.debug("Causing policy tag was invalidated conditionally: <{}>",
-                                                        invalidated);
-                                            });
+                                            .ifPresent(causingPolicyTag ->
+                                                    policyEnforcerCache.invalidateConditionally(
+                                                            new PolicyIdResolvingImports(
+                                                                    causingPolicyTag.getEntityId(), false),
+                                                            entry -> !entry.exists() ||
+                                                                    entry.getRevision() < causingPolicyTag.getRevision()
+                                                    ));
 
                                     return readCachedEnforcer(metadata, policyId, iteration + 1)
                                             .initialDelay(cacheRetryDelay);

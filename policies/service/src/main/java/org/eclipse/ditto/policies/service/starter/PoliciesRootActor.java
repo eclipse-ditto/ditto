@@ -46,6 +46,8 @@ import org.eclipse.ditto.internal.utils.pubsubpolicies.PolicyAnnouncementPubSubF
 import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProviderExtension;
+import org.eclipse.ditto.policies.enforcement.config.DefaultNamespacePoliciesConfig;
+import org.eclipse.ditto.policies.enforcement.config.NamespacePoliciesConfig;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.policies.service.common.config.PoliciesConfig;
 import org.eclipse.ditto.policies.service.persistence.actors.PoliciesPersistenceStreamingActorCreator;
@@ -92,10 +94,12 @@ public final class PoliciesRootActor extends DittoRootActor {
 
         final PolicyEnforcerProvider policyEnforcerProvider = PolicyEnforcerProviderExtension.get(actorSystem).getPolicyEnforcerProvider();
         final var mongoReadJournal = MongoReadJournal.newInstance(actorSystem);
+        final NamespacePoliciesConfig namespacePoliciesConfig =
+                DefaultNamespacePoliciesConfig.of(actorSystem.settings().config());
 
         final var policySupervisorProps =
                 getPolicySupervisorActorProps(pubSubMediator, policiesConfig, policyAnnouncementPub, blockedNamespaces,
-                        policyEnforcerProvider, mongoReadJournal);
+                        policyEnforcerProvider, mongoReadJournal, namespacePoliciesConfig);
 
         final ActorRef policiesShardRegion =
                 ShardRegionCreator.start(actorSystem, PoliciesMessagingConstants.SHARD_REGION, policySupervisorProps,
@@ -150,10 +154,11 @@ public final class PoliciesRootActor extends DittoRootActor {
             final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
             final BlockedNamespaces blockedNamespaces,
             final PolicyEnforcerProvider policyEnforcerProvider,
-            final MongoReadJournal mongoReadJournal) {
+            final MongoReadJournal mongoReadJournal,
+            final NamespacePoliciesConfig namespacePoliciesConfig) {
 
         return PolicySupervisorActor.props(pubSubMediator, policiesConfig, policyAnnouncementPub, blockedNamespaces,
-                policyEnforcerProvider, mongoReadJournal);
+                policyEnforcerProvider, mongoReadJournal, namespacePoliciesConfig);
     }
 
     /**

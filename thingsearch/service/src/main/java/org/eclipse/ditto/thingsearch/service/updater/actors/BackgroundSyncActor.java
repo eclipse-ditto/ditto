@@ -27,6 +27,7 @@ import org.eclipse.ditto.internal.utils.health.AbstractBackgroundStreamingActorW
 import org.eclipse.ditto.internal.utils.health.StatusDetailMessage;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
+import org.eclipse.ditto.policies.enforcement.config.NamespacePoliciesConfig;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
@@ -119,13 +120,15 @@ public final class BackgroundSyncActor
             final ThingsSearchPersistence thingsSearchPersistence,
             final TimestampPersistence backgroundSyncPersistence,
             final ActorRef policiesShardRegion,
+            final NamespacePoliciesConfig namespacePoliciesConfig,
             final ActorRef thingsUpdater) {
 
         final var thingsMetadataSource =
                 ThingsMetadataSource.of(pubSubMediator, config.getThrottleThroughput(), config.getIdleTimeout());
         final var backgroundSyncStream =
                 BackgroundSyncStream.of(policiesShardRegion, config.getPolicyAskTimeout(),
-                        config.getToleranceWindow(), config.getThrottleThroughput(), config.getThrottlePeriod());
+                        config.getToleranceWindow(), config.getThrottleThroughput(), config.getThrottlePeriod(),
+                        namespacePoliciesConfig);
 
         return Props.create(BackgroundSyncActor.class, config, thingsMetadataSource, thingsSearchPersistence,
                 backgroundSyncPersistence, backgroundSyncStream, thingsUpdater);

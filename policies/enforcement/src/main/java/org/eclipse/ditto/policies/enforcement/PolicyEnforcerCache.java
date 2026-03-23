@@ -27,6 +27,7 @@ import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheFactory;
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
+import org.eclipse.ditto.policies.enforcement.config.NamespacePoliciesConfig;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyImport;
@@ -39,11 +40,14 @@ final class PolicyEnforcerCache implements Cache<PolicyId, Entry<PolicyEnforcer>
 
     private final Cache<PolicyId, Entry<PolicyEnforcer>> delegate;
     private final Map<PolicyId, Set<PolicyId>> policyIdToImportingMap;
+    private final NamespacePoliciesConfig namespacePoliciesConfig;
 
     PolicyEnforcerCache(final AsyncCacheLoader<PolicyId, Entry<PolicyEnforcer>> policyEnforcerCacheLoader,
             final ExecutionContextExecutor cacheDispatcher,
-            final CacheConfig cacheConfig) {
+            final CacheConfig cacheConfig,
+            final NamespacePoliciesConfig namespacePoliciesConfig) {
         policyIdToImportingMap = new ConcurrentHashMap<>();
+        this.namespacePoliciesConfig = namespacePoliciesConfig;
         this.delegate = CacheFactory.createCache(
                 (policyId, executor) -> policyEnforcerCacheLoader.asyncLoad(policyId, executor)
                         .whenCompleteAsync(((policyEnforcerEntry, throwable) -> policyEnforcerEntry.get()
@@ -92,35 +96,81 @@ final class PolicyEnforcerCache implements Cache<PolicyId, Entry<PolicyEnforcer>
 
     @Override
     public boolean invalidate(final PolicyId policyId) {
-        // Invalidate the changed policy
+        // Invalidate the changed policy itself
         final boolean directlyCached = delegate.invalidate(policyId);
 
-        // Invalidate all policies that import the changed policy
-        final boolean indirectlyCachedViaImport = Optional.ofNullable(policyIdToImportingMap.remove(policyId))
-                .stream()
-                .flatMap(Collection::stream)
-                .map(delegate::invalidate)
+        // Invalidate all policies that explicitly import the changed policy, and for each such
+        // importer that is itself a namespace root, also invalidate its namespace dependents.
+        // This covers the transitive case: imported-policy changes → root-policy (importer) is
+        // invalidated → child policies in matching namespaces are also invalidated.
+        final Set<PolicyId> importingPolicies =
+                Optional.ofNullable(policyIdToImportingMap.remove(policyId)).orElseGet(Set::of);
+        final boolean indirectlyCachedViaImport = importingPolicies.stream()
+                .map(importingPolicyId -> {
+                    final boolean importerInvalidated = delegate.invalidate(importingPolicyId);
+                    final boolean namespaceDependentsInvalidated =
+                            invalidateNamespaceDependents(importingPolicyId, delegate::invalidate);
+                    return importerInvalidated || namespaceDependentsInvalidated;
+                })
                 .reduce((previous, next) -> previous || next)
                 .orElse(false);
 
-        return directlyCached || indirectlyCachedViaImport;
+        // Invalidate all cached policies in namespaces that use the changed policy as a namespace root
+        final boolean indirectlyCachedViaNamespaceRoot = invalidateNamespaceDependents(policyId,
+                delegate::invalidate);
+
+        return directlyCached || indirectlyCachedViaImport || indirectlyCachedViaNamespaceRoot;
     }
 
     @Override
     public boolean invalidateConditionally(final PolicyId policyId,
             final Predicate<Entry<PolicyEnforcer>> valueCondition) {
-        // Invalidate the changed policy
+        // Invalidate the changed policy itself
         final boolean directlyCached = delegate.invalidateConditionally(policyId, valueCondition);
 
-        // Invalidate all policies that import the changed policy
-        final boolean indirectlyCachedViaImport = Optional.ofNullable(policyIdToImportingMap.remove(policyId))
-                .stream()
-                .flatMap(Collection::stream)
-                .map(p -> delegate.invalidateConditionally(p, valueCondition))
+        // Invalidate all policies that explicitly import the changed policy, and for each such
+        // importer that is itself a namespace root, also invalidate its namespace dependents.
+        final Set<PolicyId> importingPolicies =
+                Optional.ofNullable(policyIdToImportingMap.remove(policyId)).orElseGet(Set::of);
+        final boolean indirectlyCachedViaImport = importingPolicies.stream()
+                .map(importingPolicyId -> {
+                    final boolean importerInvalidated =
+                            delegate.invalidateConditionally(importingPolicyId, valueCondition);
+                    final boolean namespaceDependentsInvalidated = invalidateNamespaceDependents(
+                            importingPolicyId, p -> delegate.invalidateConditionally(p, valueCondition));
+                    return importerInvalidated || namespaceDependentsInvalidated;
+                })
                 .reduce((previous, next) -> previous || next)
                 .orElse(false);
 
-        return directlyCached || indirectlyCachedViaImport;
+        // Invalidate all cached policies in namespaces that use the changed policy as a namespace root
+        final boolean indirectlyCachedViaNamespaceRoot = invalidateNamespaceDependents(policyId,
+                p -> delegate.invalidateConditionally(p, valueCondition));
+
+        return directlyCached || indirectlyCachedViaImport || indirectlyCachedViaNamespaceRoot;
+    }
+
+    private boolean invalidateNamespaceDependents(final PolicyId policyId,
+            final Function<PolicyId, Boolean> invalidateFunction) {
+        if (!namespacePoliciesConfig.getAllNamespaceRootPolicyIds().contains(policyId)) {
+            return false;
+        }
+
+        final Set<String> affectedNamespaces = namespacePoliciesConfig.getNamespacesForRootPolicy(policyId);
+        if (affectedNamespaces.isEmpty()) {
+            return false;
+        }
+
+        // O(n) scan over the full cache — acceptable for typical deployments where namespace root policies
+        // change infrequently. For very large caches with frequently-changing root policies, consider
+        // tracking namespace membership at cache-load time (reverse map: namespace → cached PolicyIds).
+        return delegate.asMap().keySet().stream()
+                .filter(cachedPolicyId -> affectedNamespaces.stream()
+                        .anyMatch(pattern -> NamespacePoliciesConfig.namespaceMatchesPattern(
+                                cachedPolicyId.getNamespace(), pattern)))
+                .map(invalidateFunction)
+                .reduce((a, b) -> a || b)
+                .orElse(false);
     }
 
     @Override

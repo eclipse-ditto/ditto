@@ -479,6 +479,73 @@ When managing and using policy imports the following limitations apply:
  * The maximum number of policy imports allowed per policy is 10.
  * To avoid conflicts with imported entries, it is not allowed to use the prefix `imported` for the name of a policy entry label. Trying to do so will result in an error.
 
+## Namespace root policies
+
+Since Ditto *3.9.0*, operators can designate one or more **namespace root policies** that are transparently merged
+into every policy in a matching namespace, without modifying the stored policies.
+
+This is an operator-level feature (see [operator configuration](installation-operating.html#namespace-root-policies)).
+End users do not create or manage namespace root policies themselves; they are applied automatically by the
+policy enforcement layer when a policy enforcer is built.
+
+### How it works
+
+1. The operator configures a mapping of namespace patterns to policy IDs in `ditto.namespace-policies`.
+2. When an enforcer is built for a policy in namespace `org.example.devices`, Ditto looks up all root policy IDs
+   whose patterns match that namespace (e.g. `"org.example.*"` or `"org.example.devices"`).
+3. Only entries with `"importable": "implicit"` from the root policy are merged. Entries marked `"explicit"` or
+   `"never"` are skipped.
+4. **Local entries always win on label conflicts**: if the local policy already has an entry with the same label as
+   a root policy entry, the local entry is used unchanged. The root policy cannot override local entries.
+5. The merge happens entirely at enforcer-build time — the stored policy document is never modified.
+
+### Differences from policy imports
+
+| | Policy imports | Namespace root policies |
+|---|---|---|
+| Configured by | Policy author (in the policy document) | Operator (in service config) |
+| Subject permission required | Yes — importer needs READ on imported policy | No — transparent to API users |
+| Stored in the policy document | Yes (`imports` block) | No |
+| Max per policy | 10 | Unlimited (operator configures globally) |
+| Applies automatically | No — each policy must declare its imports | Yes — automatically applied to all policies in matching namespaces |
+
+### Example
+
+Given a root policy `org.eclipse.ditto:tenant-root` with an entry:
+```json
+{
+  "entries": {
+    "TENANT_READER": {
+      "subjects": {
+        "pre:tenant-reader": { "type": "tenant read access" }
+      },
+      "resources": {
+        "thing:/":   { "grant": ["READ"], "revoke": [] },
+        "policy:/":  { "grant": ["READ"], "revoke": [] },
+        "message:/": { "grant": ["READ"], "revoke": [] }
+      },
+      "importable": "implicit"
+    }
+  }
+}
+```
+
+And the operator configuration:
+```hocon
+ditto.namespace-policies {
+  "org.eclipse.ditto.*" = ["org.eclipse.ditto:tenant-root"]
+}
+```
+
+Then every policy in `org.eclipse.ditto.sensors`, `org.eclipse.ditto.devices`, etc. will automatically have
+`pre:tenant-reader` granted READ access, as if `TENANT_READER` had been declared in each of those policies.
+A local policy in `org.eclipse.ditto.sensors` that already has a `TENANT_READER` entry will keep its own entry.
+
+{% include note.html content="The namespace root policy itself is never merged into itself. A root policy
+at <code>org.eclipse.ditto:tenant-root</code> configured for pattern <code>org.eclipse.ditto.*</code> does not match
+namespace <code>org.eclipse.ditto</code> (the pattern requires at least one sub-segment after the dot)."
+%}
+
 ## Tools for editing a Policy
 
 The Policy can be edited with a text editor of your choice.
