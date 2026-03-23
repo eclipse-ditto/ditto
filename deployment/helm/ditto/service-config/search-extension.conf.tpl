@@ -1,5 +1,14 @@
 # Ditto "Things Search" configuration extension file to be placed at /opt/ditto/search-extension.conf
 ditto {
+  namespace-policies {
+  {{- range $namespace, $policyIds := .Values.global.namespacePolicies }}
+    "{{$namespace}}" = [
+    {{- range $index, $policyId := $policyIds }}
+      "{{$policyId}}"
+    {{- end }}
+    ]
+  {{- end }}
+  }
   {{- if .Values.thingsSearch.config.indexedFieldsLimiting.enabled }}
   extensions {
     caching-signal-enrichment-facade-provider = "org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchIndexingSignalEnrichmentFacadeProvider"

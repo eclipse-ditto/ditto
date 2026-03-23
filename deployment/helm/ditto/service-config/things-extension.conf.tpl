@@ -54,6 +54,15 @@ ditto {
     {{- end }}
     ]
   }
+  namespace-policies {
+  {{- range $namespace, $policyIds := .Values.global.namespacePolicies }}
+    "{{$namespace}}" = [
+    {{- range $index, $policyId := $policyIds }}
+      "{{$policyId}}"
+    {{- end }}
+    ]
+  {{- end }}
+  }
   things {
     thing {
       namespace-activity-check = [

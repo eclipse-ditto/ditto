@@ -70,6 +70,13 @@ global:
     #  higher factors can improve CPU usage (as a StringBuilder does not need to be resized as often),
     #  but will use more memory.
     escapingBufferFactor: 1.0
+  # namespacePolicies configures namespace root policies shared by all services participating in enforcement.
+  # Map namespace -> list of policy IDs to be implicitly imported for that namespace.
+  namespacePolicies: {}
+  # org.example.devices:
+  #   - org.example:tenant-root
+  # org.example.sensors:
+  #   - org.example:tenant-root
   # limits contains information about limit configuration, e.g. towards max. entity and payload sizes
   limits:
     # clusterMaxFramesize the maximum serialized message size in the cluster, including header data, default: 256 KiB

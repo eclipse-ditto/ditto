@@ -674,6 +674,82 @@ If a namespace pattern (in `allowed-namespaces` or `blocked-namespaces`) is synt
 at startup with a `DittoConfigError`. This prevents operators from inadvertently deploying a configuration where
 access control rules are silently skipped.
 
+## Namespace root policies
+
+Since Ditto *3.9.0*, operators can configure **namespace root policies** — pre-existing policies whose
+`importable: implicit` entries are automatically merged into every policy in a matching namespace at enforcer-build
+time. This enables cross-cutting access grants (e.g. a tenant-wide read subject) without modifying any stored
+policy.
+
+For the end-user concept, see [basic-policy.html#namespace-root-policies](basic-policy.html#namespace-root-policies).
+
+### Configuration
+
+The mapping is defined under `ditto.namespace-policies` in the `policies.conf`, `things.conf`, and `search.conf`
+service configuration files (or overridden via a `-dev.conf` / extension config for a given deployment):
+
+```hocon
+ditto.namespace-policies {
+  # Exact namespace match — applies only to org.eclipse.ditto.devices
+  "org.eclipse.ditto.devices" = ["org.eclipse.ditto.devices:devices-root"]
+
+  # Prefix wildcard — applies to any sub-namespace of org.eclipse.ditto
+  # Does NOT match org.eclipse.ditto itself (requires at least one sub-segment)
+  "org.eclipse.ditto.*" = ["org.eclipse.ditto:tenant-root"]
+
+  # Catch-all — applies to every namespace
+  # "*" = ["root:global-policy"]
+}
+```
+
+Multiple patterns can match a single namespace. When they do, patterns are applied in deterministic precedence
+order: exact match first, then prefix wildcards from most specific to least specific, then `"*"`.
+
+Multiple root policy IDs can be listed per pattern. They are applied left-to-right.
+
+### Pattern syntax
+
+| Pattern | Matches |
+|---|---|
+| `"org.example.devices"` | Only the exact namespace `org.example.devices` |
+| `"org.example.*"` | Any namespace starting with `org.example.` (requires at least one sub-segment) |
+| `"*"` | Every namespace |
+
+Unsupported patterns (e.g. `"org.*.devices"` or `"foo*"`) are rejected at startup with a `DittoConfigError`.
+
+### Behaviour details
+
+**Label conflict — local wins:** If a local policy already has an entry with the same label as a root policy
+entry, the local entry is preserved unchanged. The root policy entry is silently skipped for that label.
+
+**Self-referential guard:** A root policy is never merged into itself. If `org.eclipse.ditto:tenant-root` is
+configured for `"org.eclipse.ditto.*"`, it is not merged when building the enforcer for `tenant-root` itself.
+
+**Missing root policy:** If a configured root policy does not exist or cannot be loaded, its entries are skipped
+and an ERROR is logged. The child policy's enforcer is still built successfully from its own entries.
+
+**Cache invalidation:** When a root policy is modified, Ditto automatically invalidates all cached enforcers for
+policies in matching namespaces. This is an O(n) scan over the enforcer cache and happens transparently.
+For very large deployments with frequently-changing root policies, consider keeping the root policies stable
+and pushing changes via individual child policies instead.
+
+**Search consistency:** Root policy changes are reflected in the things-search index. The search service tracks
+root policy revisions as part of the resolved-policy cache key, so a root policy update triggers re-indexing
+of all affected things.
+
+### Helm configuration
+
+For Helm deployments, configure namespace root policies in `values.yaml` via the shared `global` section:
+
+```yaml
+global:
+  namespacePolicies:
+    "org.eclipse.ditto.*":
+      - "org.eclipse.ditto:tenant-root"
+```
+
+This shared mapping is rendered into the respective service extension config files under `ditto.namespace-policies`.
+
 ## Configuring pre-defined extra fields
 
 Starting with Ditto 3.7.0, it is possible to configure [enrichment of `extraFields`](basic-enrichment.html) statically 

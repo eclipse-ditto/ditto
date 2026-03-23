@@ -59,6 +59,7 @@ import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
+import org.eclipse.ditto.policies.enforcement.config.NamespacePoliciesConfig;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
@@ -810,7 +811,8 @@ public final class PolicyCommandEnforcementTest {
         @Override
         protected Props getPersistenceEnforcerProps(final PolicyId entityId) {
             return PolicyEnforcerActor.props(entityId, new PolicyCommandEnforcement(), policyEnforcerProvider,
-                    DefaultLocalAskTimeoutConfig.of(ConfigFactory.empty()));
+                    DefaultLocalAskTimeoutConfig.of(ConfigFactory.empty()),
+                    emptyNamespacePoliciesConfig());
         }
 
         @Override
@@ -828,6 +830,16 @@ public final class PolicyCommandEnforcementTest {
             final PolicyId policyId = entityId != null ? entityId : PolicyId.of("UNKNOWN:ID");
             return PolicyUnavailableException.newBuilder(policyId);
         }
+    }
+
+    private static NamespacePoliciesConfig emptyNamespacePoliciesConfig() {
+        final NamespacePoliciesConfig config = Mockito.mock(NamespacePoliciesConfig.class);
+        when(config.isEmpty()).thenReturn(true);
+        when(config.getNamespacePolicies()).thenReturn(Collections.emptyMap());
+        when(config.getRootPoliciesForNamespace(Mockito.anyString())).thenReturn(Collections.emptyList());
+        when(config.getAllNamespaceRootPolicyIds()).thenReturn(Collections.emptySet());
+        when(config.getNamespacesForRootPolicy(Mockito.any())).thenReturn(Collections.emptySet());
+        return config;
     }
 
 }

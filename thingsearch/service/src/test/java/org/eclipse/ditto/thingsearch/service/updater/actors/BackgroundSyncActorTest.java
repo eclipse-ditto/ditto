@@ -64,6 +64,7 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.api.PolicyTag;
+import org.eclipse.ditto.policies.enforcement.config.DefaultNamespacePoliciesConfig;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.rql.query.Query;
 import org.eclipse.ditto.things.model.Thing;
@@ -332,6 +333,7 @@ public final class BackgroundSyncActorTest {
                 searchPersistence,
                 timestampPersistence,
                 policiesShardRegion.getRef(),
+                DefaultNamespacePoliciesConfig.of(ConfigFactory.empty()),
                 thingsUpdater.getRef()
         ));
     }

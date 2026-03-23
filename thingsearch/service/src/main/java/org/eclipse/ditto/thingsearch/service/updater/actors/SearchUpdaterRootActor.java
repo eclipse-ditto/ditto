@@ -30,6 +30,7 @@ import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.pekko.streaming.TimestampPersistence;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
+import org.eclipse.ditto.policies.enforcement.config.DefaultNamespacePoliciesConfig;
 import org.eclipse.ditto.thingsearch.api.ThingsSearchConstants;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.util.RootSupervisorStrategyFactory;
@@ -76,6 +77,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         final int numberOfShards = clusterConfig.getNumberOfShards();
 
         final var actorSystem = getContext().getSystem();
+        final var namespacePoliciesConfig = DefaultNamespacePoliciesConfig.of(actorSystem.settings().config());
 
         dittoMongoClient = MongoClientExtension.get(actorSystem).getUpdaterClient();
 
@@ -124,6 +126,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
                 thingsSearchPersistence,
                 backgroundSyncPersistence,
                 shardRegionFactory.getPoliciesShardRegion(numberOfShards),
+                namespacePoliciesConfig,
                 thingsUpdaterActor
         );
         backgroundSyncActorProxy =

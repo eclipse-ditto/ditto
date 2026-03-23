@@ -29,6 +29,7 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJou
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
+import org.eclipse.ditto.policies.enforcement.config.NamespacePoliciesConfig;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
@@ -52,6 +53,7 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
     private final ActorRef announcementManager;
     private final PoliciesConfig policiesConfig;
     private final PolicyEnforcerProvider policyEnforcerProvider;
+    private final NamespacePoliciesConfig namespacePoliciesConfig;
 
     @SuppressWarnings("unused")
     private PolicySupervisorActor(final ActorRef pubSubMediator,
@@ -59,12 +61,14 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
             final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
             @Nullable final BlockedNamespaces blockedNamespaces,
             final PolicyEnforcerProvider policyEnforcerProvider,
-            final MongoReadJournal mongoReadJournal) {
+            final MongoReadJournal mongoReadJournal,
+            final NamespacePoliciesConfig namespacePoliciesConfig) {
 
         super(blockedNamespaces, mongoReadJournal, policiesConfig.getPolicyConfig().getSupervisorConfig());
         this.policyEnforcerProvider = policyEnforcerProvider;
         this.pubSubMediator = pubSubMediator;
         this.policiesConfig = policiesConfig;
+        this.namespacePoliciesConfig = namespacePoliciesConfig;
 
         final var props = getAnnouncementManagerProps(policyAnnouncementPub,
                 policiesConfig.getPolicyConfig().getPolicyAnnouncementConfig());
@@ -88,6 +92,7 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
      * @param blockedNamespaces the blocked namespaces functionality to retrieve/subscribe for blocked namespaces.
      * @param policyEnforcerProvider used to load the policy enforcer to authorize commands.
      * @param mongoReadJournal the ReadJournal used for gaining access to historical values of the policy.
+     * @param namespacePoliciesConfig the pre-parsed namespace policies configuration shared for the actor system.
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final ActorRef pubSubMediator,
@@ -95,10 +100,12 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
             final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
             @Nullable final BlockedNamespaces blockedNamespaces,
             final PolicyEnforcerProvider policyEnforcerProvider,
-            final MongoReadJournal mongoReadJournal) {
+            final MongoReadJournal mongoReadJournal,
+            final NamespacePoliciesConfig namespacePoliciesConfig) {
 
         return Props.create(PolicySupervisorActor.class, pubSubMediator, policiesConfig,
-                policyAnnouncementPub, blockedNamespaces, policyEnforcerProvider, mongoReadJournal);
+                policyAnnouncementPub, blockedNamespaces, policyEnforcerProvider, mongoReadJournal,
+                namespacePoliciesConfig);
     }
 
     @Override
@@ -115,7 +122,8 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
     @Override
     protected Props getPersistenceEnforcerProps(final PolicyId entityId) {
         return PolicyEnforcerActor.props(entityId, new PolicyCommandEnforcement(), policyEnforcerProvider,
-                policiesConfig.getPolicyConfig().getSupervisorConfig().getLocalAskTimeoutConfig()
+                policiesConfig.getPolicyConfig().getSupervisorConfig().getLocalAskTimeoutConfig(),
+                namespacePoliciesConfig
         );
     }
 

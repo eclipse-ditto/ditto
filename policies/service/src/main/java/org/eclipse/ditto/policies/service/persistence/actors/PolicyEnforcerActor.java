@@ -25,6 +25,7 @@ import org.eclipse.ditto.policies.enforcement.AbstractPolicyLoadingEnforcerActor
 import org.eclipse.ditto.policies.enforcement.PolicyCacheLoader;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
+import org.eclipse.ditto.policies.enforcement.config.NamespacePoliciesConfig;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
@@ -39,13 +40,17 @@ import org.eclipse.ditto.policies.service.enforcement.PolicyCommandEnforcement;
 public final class PolicyEnforcerActor extends
         AbstractPolicyLoadingEnforcerActor<PolicyId, Signal<?>, PolicyCommandResponse<?>, PolicyCommandEnforcement> {
 
+    private final NamespacePoliciesConfig namespacePoliciesConfig;
+
     @SuppressWarnings("unused")
     private PolicyEnforcerActor(final PolicyId policyId,
             final PolicyCommandEnforcement policyCommandEnforcement,
             final PolicyEnforcerProvider policyEnforcerProvider,
-            final LocalAskTimeoutConfig localAskTimeoutConfig
+            final LocalAskTimeoutConfig localAskTimeoutConfig,
+            final NamespacePoliciesConfig namespacePoliciesConfig
     ) {
         super(policyId, policyCommandEnforcement, policyEnforcerProvider, localAskTimeoutConfig);
+        this.namespacePoliciesConfig = namespacePoliciesConfig;
     }
 
     /**
@@ -55,12 +60,14 @@ public final class PolicyEnforcerActor extends
      * @param policyCommandEnforcement the policy command enforcement logic to apply in the enforcer.
      * @param policyEnforcerProvider the policy enforcer provider.
      * @param localAskTimeoutConfig the configuration for determining local "ask" timeouts.
+     * @param namespacePoliciesConfig the pre-parsed namespace policies configuration (should be parsed once and shared).
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final PolicyId policyId, final PolicyCommandEnforcement policyCommandEnforcement,
-            final PolicyEnforcerProvider policyEnforcerProvider, final LocalAskTimeoutConfig localAskTimeoutConfig) {
+            final PolicyEnforcerProvider policyEnforcerProvider, final LocalAskTimeoutConfig localAskTimeoutConfig,
+            final NamespacePoliciesConfig namespacePoliciesConfig) {
         return Props.create(PolicyEnforcerActor.class, policyId, policyCommandEnforcement, policyEnforcerProvider,
-                        localAskTimeoutConfig
+                        localAskTimeoutConfig, namespacePoliciesConfig
                 ).withDispatcher(ENFORCEMENT_DISPATCHER);
     }
 
@@ -76,7 +83,9 @@ public final class PolicyEnforcerActor extends
             final Function<PolicyId, CompletionStage<Optional<Policy>>> importedPolicyResolver =
                     importedPolicyId -> policyCacheLoader.asyncLoad(importedPolicyId, getContext().dispatcher())
                             .thenApply(Entry::get);
-            return PolicyEnforcer.withResolvedImports(createPolicy.getPolicy(), importedPolicyResolver)
+            return PolicyEnforcer.withResolvedImportsAndNamespacePolicies(createPolicy.getPolicy(),
+                            importedPolicyResolver,
+                            namespacePoliciesConfig)
                     .thenApply(Optional::of);
         }
         return super.loadPolicyEnforcer(signal);
