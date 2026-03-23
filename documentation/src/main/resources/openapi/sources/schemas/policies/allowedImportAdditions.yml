@@ -12,13 +12,15 @@ type: array
 description: |-
   Defines which types of additions are allowed when this entry is imported by other policies
   via `entriesAdditions`. If omitted or empty, no additions are allowed. This default ensures
-  that existing policies cannot be extended with additional subjects or resources unless the
-  policy author explicitly opts in.
+  that existing policies cannot be extended with additional subjects, resources, or namespaces
+  unless the policy author explicitly opts in.
   * `subjects` — allows importing policies to add additional subjects to this entry
   * `resources` — allows importing policies to add additional resources to this entry
+  * `namespaces` — allows importing policies to add additional namespace patterns to this entry
 items:
   type: string
   enum:
     - subjects
     - resources
+    - namespaces
 example: [ "subjects" ]

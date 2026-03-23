@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.policies.model;
 
+import java.util.List;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
@@ -95,6 +96,15 @@ public interface PolicyEntry extends Jsonifiable.WithFieldSelectorAndPredicate<J
     Resources getResources();
 
     /**
+     * Returns the namespace patterns restricting which thing namespaces this entry applies to.
+     * An empty list means the entry applies to things in all namespaces (backward compatible).
+     *
+     * @return the list of namespace patterns (possibly empty).
+     * @since 3.9.0
+     */
+    List<String> getNamespaces();
+
+    /**
      * Returns whether/how this Policy Entry is allowed to be imported by others.
      *
      * @return whether/how this entry is importable.
@@ -110,6 +120,39 @@ public interface PolicyEntry extends Jsonifiable.WithFieldSelectorAndPredicate<J
      * @since 3.9.0
      */
     Set<AllowedImportAddition> getAllowedImportAdditions();
+
+    /**
+     * Returns whether this entry applies to the given thing namespace.
+     * <p>
+     * An entry with an empty {@code namespaces} list applies to all namespaces.
+     * Pattern matching rules:
+     * <ul>
+     *   <li>{@code com.acme} — exact match only</li>
+     *   <li>{@code com.acme.*} — matches everything below {@code com.acme} (e.g. {@code com.acme.vehicles})
+     *       but <em>not</em> {@code com.acme} itself</li>
+     * </ul>
+     *
+     * @param namespace the thing's namespace to check against.
+     * @return {@code true} if this entry applies to the given namespace.
+     * @since 3.9.0
+     */
+    default boolean appliesToNamespace(final String namespace) {
+        final List<String> patterns = getNamespaces();
+        if (patterns.isEmpty()) {
+            return true;
+        }
+        for (final String pattern : patterns) {
+            if (pattern.endsWith(".*")) {
+                final String prefix = pattern.substring(0, pattern.length() - 2);
+                if (namespace.startsWith(prefix + ".")) {
+                    return true;
+                }
+            } else if (namespace.equals(pattern)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     /**
      * Checks if the passed {@code otherPolicyEntry} is semantically the same as this entry.
@@ -153,6 +196,13 @@ public interface PolicyEntry extends Jsonifiable.WithFieldSelectorAndPredicate<J
          */
         public static final JsonFieldDefinition<JsonObject> RESOURCES =
                 JsonFactory.newJsonObjectFieldDefinition("resources", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the namespace patterns that restrict which thing namespaces this entry applies to.
+         * @since 3.9.0
+         */
+        public static final JsonFieldDefinition<JsonArray> NAMESPACES = JsonFactory
+                .newJsonArrayFieldDefinition("namespaces", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the PolicyEntry's importable type.

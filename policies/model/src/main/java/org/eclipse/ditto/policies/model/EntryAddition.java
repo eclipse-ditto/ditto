@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.policies.model;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.eclipse.ditto.base.model.json.FieldType;
@@ -49,6 +50,14 @@ public interface EntryAddition extends Jsonifiable.WithFieldSelectorAndPredicate
      * @return the additional resources, or empty if none.
      */
     Optional<Resources> getResources();
+
+    /**
+     * Returns the optional additional namespace patterns to merge into the imported entry.
+     *
+     * @return the additional namespaces, or empty if none.
+     * @since 3.9.0
+     */
+    Optional<List<String>> getNamespaces();
 
     /**
      * EntryAddition is only available in JsonSchemaVersion V_2.

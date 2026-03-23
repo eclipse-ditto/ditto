@@ -10574,6 +10574,18 @@ components:
           $ref: '#/components/schemas/Subjects'
         resources:
           $ref: '#/components/schemas/Resources'
+        namespaces:
+          type: array
+          description: |-
+            Restricts this policy entry to things whose namespace matches at least one pattern.
+            If omitted or empty, the entry applies to all namespaces.
+            * `com.acme` matches only that exact namespace
+            * `com.acme.*` matches namespaces below `com.acme`, but not `com.acme` itself
+          items:
+            type: string
+          example:
+            - com.acme
+            - com.acme.*
         importable:
           $ref: '#/components/schemas/Importable'
         allowedImportAdditions:
@@ -10662,15 +10674,17 @@ components:
       description: |-
         Defines which types of additions are allowed when this entry is imported by other policies
         via `entriesAdditions`. If omitted or empty, no additions are allowed. This default ensures
-        that existing policies cannot be extended with additional subjects or resources unless the
-        policy author explicitly opts in.
+        that existing policies cannot be extended with additional subjects, resources, or namespaces
+        unless the policy author explicitly opts in.
         * `subjects` — allows importing policies to add additional subjects to this entry
         * `resources` — allows importing policies to add additional resources to this entry
+        * `namespaces` — allows importing policies to add additional namespace patterns to this entry
       items:
         type: string
         enum:
           - subjects
           - resources
+          - namespaces
       example:
         - subjects
     EntriesAdditions:
@@ -10699,14 +10713,16 @@ components:
     EntryAddition:
       type: object
       description: |-
-        Defines additional subjects and/or resources to be merged into a single imported policy entry.
-        The imported policy entry must explicitly allow these additions via its "allowedImportAdditions"
-        field, otherwise the additions are rejected.
+        Defines additional subjects, resources, and/or namespaces to be merged into a single imported
+        policy entry. The imported policy entry must explicitly allow these additions via its
+        "allowedImportAdditions" field, otherwise the additions are rejected.
       properties:
         subjects:
           $ref: '#/components/schemas/Subjects'
         resources:
           $ref: '#/components/schemas/Resources'
+        namespaces:
+          $ref: '#/components/schemas/PolicyEntry/properties/namespaces'
       example:
         subjects:
           'integration:my-connection':

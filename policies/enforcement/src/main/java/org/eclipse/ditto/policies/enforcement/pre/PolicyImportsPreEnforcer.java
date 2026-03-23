@@ -218,6 +218,16 @@ public class PolicyImportsPreEnforcer implements PreEnforcer {
                         .dittoHeaders(dittoHeaders)
                         .build();
             }
+            if (addition.getNamespaces().isPresent() &&
+                    !allowed.contains(AllowedImportAddition.NAMESPACES)) {
+                throw PolicyImportInvalidException.newBuilder()
+                        .message("The policy import for '" + policyImport.getImportedPolicyId() +
+                                "' contains disallowed namespace additions for entry '" + label + "'.")
+                        .description("The imported policy entry '" + label +
+                                "' does not allow namespace additions. Its 'allowedImportAdditions' is: " + allowed)
+                        .dittoHeaders(dittoHeaders)
+                        .build();
+            }
         }
     }
 

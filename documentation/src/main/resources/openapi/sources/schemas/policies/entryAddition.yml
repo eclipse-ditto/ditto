@@ -10,14 +10,16 @@
 # SPDX-License-Identifier: EPL-2.0
 type: object
 description: |-
-  Defines additional subjects and/or resources to be merged into a single imported policy entry.
-  The imported policy entry must explicitly allow these additions via its "allowedImportAdditions"
-  field, otherwise the additions are rejected.
+  Defines additional subjects, resources, and/or namespaces to be merged into a single imported
+  policy entry. The imported policy entry must explicitly allow these additions via its
+  "allowedImportAdditions" field, otherwise the additions are rejected.
 properties:
   subjects:
     $ref: 'subjects.yml'
   resources:
     $ref: 'resources.yml'
+  namespaces:
+    $ref: 'namespaces.yml'
 example:
   subjects:
     "integration:my-connection":

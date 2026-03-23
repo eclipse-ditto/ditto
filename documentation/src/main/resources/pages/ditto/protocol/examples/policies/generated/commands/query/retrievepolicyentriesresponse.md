@@ -22,7 +22,10 @@
           ],
           "revoke": []
         }
-      }
+      },
+      "namespaces": [
+        "com.acme"
+      ]
     },
     "the_label": {
       "subjects": {
@@ -38,7 +41,11 @@
           ],
           "revoke": []
         }
-      }
+      },
+      "namespaces": [
+        "com.acme",
+        "com.acme.*"
+      ]
     }
   },
   "status": 200

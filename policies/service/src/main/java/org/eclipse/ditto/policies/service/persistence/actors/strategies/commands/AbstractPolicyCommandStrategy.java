@@ -164,8 +164,8 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
     protected PolicyEntry potentiallyAdjustPolicyEntry(final PolicyEntry policyEntry) {
         final var adjustedSubjects = potentiallyAdjustSubjects(policyEntry.getSubjects());
         return PoliciesModelFactory.newPolicyEntry(policyEntry.getLabel(), adjustedSubjects,
-                policyEntry.getResources(), policyEntry.getImportableType(),
-                policyEntry.getAllowedImportAdditions());
+                policyEntry.getResources(), policyEntry.getNamespaces(),
+                policyEntry.getImportableType(), policyEntry.getAllowedImportAdditions());
     }
 
     /**

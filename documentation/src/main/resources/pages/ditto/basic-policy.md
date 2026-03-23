@@ -309,6 +309,23 @@ The [Things example at the end of the page](basic-policy.html#example) also defi
 | revoke | WRITE      | All subjects named in the section are _prohibited to write_ on the resources specified in the path, and all nested paths, except they are granted again such permission at a deeper level, or another policy entry (label). |
 | revoke | EXECUTE    | All subjects named in the section are _prohibited to execute_ on the resources specified in the path, and all nested paths, except they are granted again such permission at a deeper level, or another policy entry (label). |
 
+## Namespaces
+
+Since Ditto version **3.9.0**, each entry can also specify `namespaces` to restrict the entry to Things/Policies whose 
+namespace matches at least one configured pattern. 
+If the field is omitted or empty, the entry applies to all Thing/Policy namespaces. This keeps existing policies 
+(created before Ditto 3.9.0) backward compatible.
+
+Supported namespace patterns are:
+1. `com.acme` - matches only the exact namespace `com.acme`
+2. `com.acme.*` - matches namespaces below `com.acme`, for example `com.acme.vehicles`, but not `com.acme` itself
+
+If an entry should apply to both the base namespace and all nested namespaces, both patterns must be specified:
+`["com.acme", "com.acme.*"]`.
+
+This is useful for multi-tenant setups where one policy should protect Things from several tenants, but a specific
+entry should only grant access for one tenant subtree.
+
 ## Policy imports
 
 With policy imports it is possible to import entries from other referenced policies. 
@@ -323,8 +340,8 @@ The field can have one of the following three values:
 If the field is not specified, the default value is `implicit`.
 
 Additionally, each entry can specify `allowedImportAdditions` to control what kinds of additions importing
-policies are permitted to merge into this entry via `entriesAdditions`. Valid values are `"subjects"` and
-`"resources"`. If the field is omitted or empty, no additions are allowed. This default is intentional: existing
+policies are permitted to merge into this entry via `entriesAdditions`. Valid values are `"subjects"`,
+`"resources"`, and `"namespaces"`. If the field is omitted or empty, no additions are allowed. This default is intentional: existing
 policies that were created before this feature cannot be extended with additional subjects or resources through
 `entriesAdditions` unless the policy author explicitly opts in by setting `allowedImportAdditions`.
 
@@ -339,6 +356,7 @@ Example of a policy specifying different types of `importable` entries and allow
     "IMPLICIT": {
       "subjects": { ... },
       "resources": { ... },
+      "namespaces": [ "com.acme", "com.acme.*" ],
       "importable": "implicit",
       "allowedImportAdditions": [ "subjects" ]
     },
@@ -346,7 +364,7 @@ Example of a policy specifying different types of `importable` entries and allow
       "subjects": { ... },
       "resources": { ... },
       "importable": "explicit",
-      "allowedImportAdditions": [ "subjects", "resources" ]
+      "allowedImportAdditions": [ "subjects", "resources", "namespaces" ]
     },
     "NEVER": {
       "subjects": { ... },
@@ -356,6 +374,28 @@ Example of a policy specifying different types of `importable` entries and allow
   }
 }
 ``` 
+
+Example of a tenant-scoped reader entry:
+```json
+{
+  "entries": {
+    "TENANT_READER": {
+      "subjects": {
+        "test:bob": {
+          "type": "pre-authenticated"
+        }
+      },
+      "resources": {
+        "thing:/": {
+          "grant": [ "READ" ],
+          "revoke": []
+        }
+      },
+      "namespaces": [ "com.acme", "com.acme.*" ]
+    }
+  }
+}
+```
 
 Secondly, the importing policy may define a set of entries (identified by their label) it wants to import in addition to those entries that are implicitly imported.
 
@@ -377,8 +417,9 @@ Example of a policy importing two other policies:
 ### Entries additions
 
 Optionally, the importing policy can define `entriesAdditions` to additively merge additional subjects and/or
-resources into imported policy entries. This enables template-based policy reuse: the imported (template) policy
-defines resources (the "what"), and the importing policy adds subjects (the "who") and optionally extends resources.
+resources and/or namespaces into imported policy entries. This enables template-based policy reuse: the imported (template) policy
+defines resources (the "what"), and the importing policy adds subjects (the "who") and namespaces (the "where"),
+optionally extending existing resources.
 
 Each key in `entriesAdditions` is the label of an imported entry. The value is an object with optional `subjects`
 and/or `resources` fields:
@@ -386,10 +427,12 @@ and/or `resources` fields:
   are added.
 * **Resources** at new paths are added directly. For overlapping resource paths, permissions are merged as a union
   of grants and revokes. Template revokes are always preserved and cannot be removed by additions.
+* **Namespaces** are merged additively — all namespaces from the template are preserved, and the additional namespaces are added.
 
 The imported policy entry must explicitly allow these additions via its `allowedImportAdditions` field.
 If the entry does not allow subject additions, any `subjects` in `entriesAdditions` for that entry will be rejected.
-Likewise for `resources`. This gives the template policy author full control over what importing policies can extend.
+Likewise for `resources` and `namespaces`.  
+This gives the template policy author full control over what importing policies can extend.
 
 #### Example: role-based access template for a power plant
 
