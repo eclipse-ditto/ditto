@@ -10,8 +10,8 @@
   ~
   ~ SPDX-License-Identifier: EPL-2.0
   -->
-<div class="row resizable_pane" style="height: 80vh">
-    <div class="col-md-4 resizable_flex_column">
+<div class="split-h resizable_pane" style="height: 80vh" data-split="horizontal" data-split-sizes="[33,67]" data-split-key="environments-main">
+    <div class="split-panel resizable_flex_column">
         <div class="input-group has-validation">
             <input class="form-control" id="tableValidationEnvironments" hidden="true"></input>
             <div class="invalid-feedback"></div>
@@ -22,7 +22,7 @@
             </table>
         </div>
     </div>
-    <div class="col-md-8 resizable_flex_column">
+    <div class="split-panel resizable_flex_column">
         <ul class="nav nav-tabs nav-fill">
             <li class="nav-item">
                 <a class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabEnvDetails">Manage</a>

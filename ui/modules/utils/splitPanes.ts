@@ -18,11 +18,16 @@ import Split from "split.js";
  * containers. Their direct children with class "split-panel"
  * are the resizable panels.
  */
-document.addEventListener("mouseup", () => {
-  document.body.classList.remove("split-dragging-h", "split-dragging-v");
-});
+let splitPanesInitialized = false;
 
 export function initSplitPanes(): void {
+  if (!splitPanesInitialized) {
+    document.addEventListener("mouseup", () => {
+      document.body.classList.remove("split-dragging-h", "split-dragging-v");
+    });
+    splitPanesInitialized = true;
+  }
+
   document.querySelectorAll<HTMLElement>("[data-split]").forEach((container) => {
     const direction = container.dataset.split as "horizontal" | "vertical";
     const sizesAttr = container.dataset.splitSizes;
@@ -57,9 +62,18 @@ export function initSplitPanes(): void {
       sizes = panels.map(() => 100 / panels.length);
     }
 
+    let minSize = 50;
+    if (minAttr) {
+      try {
+        minSize = JSON.parse(minAttr);
+      } catch {
+        /* ignore */
+      }
+    }
+
     Split(panels, {
       sizes,
-      minSize: minAttr ? JSON.parse(minAttr) : 50,
+      minSize,
       gutterSize: 6,
       direction,
       snapOffset: 0,
@@ -78,9 +92,18 @@ export function initSplitPanes(): void {
           localStorage.setItem(`split-sizes-${storageKey}`, JSON.stringify(newSizes));
         }
       },
-      onDrag: () => {
-        window.dispatchEvent(new Event("resize"));
-      },
+      onDrag: (() => {
+        let rafPending = false;
+        return () => {
+          if (!rafPending) {
+            rafPending = true;
+            requestAnimationFrame(() => {
+              window.dispatchEvent(new Event("resize"));
+              rafPending = false;
+            });
+          }
+        };
+      })(),
     });
   });
 }
