@@ -14,9 +14,10 @@ package org.eclipse.ditto.policies.model.signals.commands;
 
 import java.time.Instant;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
@@ -25,8 +26,6 @@ import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.model.AllowedImportAddition;
@@ -176,12 +175,36 @@ public final class TestConstants {
         public static final PolicyEntry POLICY_ENTRY = PoliciesModelFactory.newPolicyEntry(LABEL, SUBJECTS, RESOURCES, ImportableType.NEVER);
 
         /**
+         * Known namespace patterns for a {@code PolicyEntry}.
+         */
+        public static final List<String> NAMESPACES = Arrays.asList("com.acme", "com.acme.*");
+
+        /**
+         * A known {@code PolicyEntry} with namespace restrictions for a {@code Policy}.
+         */
+        public static final PolicyEntry POLICY_ENTRY_WITH_NAMESPACES =
+                PoliciesModelFactory.newPolicyEntry(LABEL, SUBJECTS, RESOURCES, NAMESPACES,
+                        ImportableType.NEVER, Collections.emptySet());
+
+        /**
          * known {@code PolicyEntry}s for a {@code Policy}.
          */
         public static final Iterable<PolicyEntry> POLICY_ENTRIES =
                 new HashSet<>(Arrays.asList(PoliciesModelFactory.newPolicyEntry(LABEL, SUBJECTS, RESOURCES, ImportableType.NEVER),
                         PoliciesModelFactory.newPolicyEntry(Label.of("foo"), SUBJECTS, RESOURCES, ImportableType.NEVER),
                         PoliciesModelFactory.newPolicyEntry(Label.of("bar"), SUBJECTS, RESOURCES, ImportableType.NEVER)));
+
+        /**
+         * Known {@code PolicyEntry}s with namespace restrictions for a {@code Policy}.
+         */
+        public static final Iterable<PolicyEntry> POLICY_ENTRIES_WITH_NAMESPACES =
+                new HashSet<>(Arrays.asList(
+                        PoliciesModelFactory.newPolicyEntry(LABEL, SUBJECTS, RESOURCES, NAMESPACES,
+                                ImportableType.NEVER, Collections.emptySet()),
+                        PoliciesModelFactory.newPolicyEntry(Label.of("foo"), SUBJECTS, RESOURCES, NAMESPACES,
+                                ImportableType.NEVER, Collections.emptySet()),
+                        PoliciesModelFactory.newPolicyEntry(Label.of("bar"), SUBJECTS, RESOURCES, NAMESPACES,
+                                ImportableType.NEVER, Collections.emptySet())));
 
         /**
          * A known identifier for a {@code Policy}.

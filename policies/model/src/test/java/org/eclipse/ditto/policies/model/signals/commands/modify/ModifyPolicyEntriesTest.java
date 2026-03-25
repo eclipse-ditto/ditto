@@ -42,6 +42,18 @@ public class ModifyPolicyEntriesTest {
                             .collect(JsonCollectors.objectsToObject()))
             .build();
 
+    private static final JsonObject KNOWN_JSON_WITH_NAMESPACES = JsonFactory.newObjectBuilder()
+            .set(PolicyCommand.JsonFields.TYPE, ModifyPolicyEntries.TYPE)
+            .set(PolicyCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
+            .set(ModifyPolicyEntries.JSON_POLICY_ENTRIES,
+                    StreamSupport.stream(
+                                    TestConstants.Policy.POLICY_ENTRIES_WITH_NAMESPACES.spliterator(), false)
+                            .map(entry -> JsonFactory.newObjectBuilder()
+                                    .set(entry.getLabel().toString(), entry.toJson(FieldType.regularOrSpecial()))
+                                    .build())
+                            .collect(JsonCollectors.objectsToObject()))
+            .build();
+
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ModifyPolicyEntries.class)
@@ -82,6 +94,28 @@ public class ModifyPolicyEntriesTest {
 
         assertThat(underTest).isNotNull();
         assertThat(underTest.getPolicyEntries()).isEqualTo(TestConstants.Policy.POLICY_ENTRIES);
+    }
+
+
+    @Test
+    public void toJsonWithNamespacesReturnsExpected() {
+        final ModifyPolicyEntries underTest = ModifyPolicyEntries.of(
+                TestConstants.Policy.POLICY_ID, TestConstants.Policy.POLICY_ENTRIES_WITH_NAMESPACES,
+                TestConstants.EMPTY_DITTO_HEADERS);
+        final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
+
+        assertThat(actualJson.toString()).isEqualTo(KNOWN_JSON_WITH_NAMESPACES.toString());
+    }
+
+
+    @Test
+    public void createInstanceFromValidJsonWithNamespaces() {
+        final ModifyPolicyEntries underTest =
+                ModifyPolicyEntries.fromJson(KNOWN_JSON_WITH_NAMESPACES.toString(),
+                        TestConstants.EMPTY_DITTO_HEADERS);
+
+        assertThat(underTest).isNotNull();
+        assertThat(underTest.getPolicyEntries()).isEqualTo(TestConstants.Policy.POLICY_ENTRIES_WITH_NAMESPACES);
     }
 
 }
