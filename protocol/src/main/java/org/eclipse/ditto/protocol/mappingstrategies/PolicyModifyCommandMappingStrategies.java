@@ -26,6 +26,7 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntries;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntry;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryAllowedImportAdditions;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryNamespaces;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryImportable;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImport;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportEntries;
@@ -135,6 +136,13 @@ final class PolicyModifyCommandMappingStrategies extends AbstractPolicyMappingSt
                         policyIdFromTopicPath(adaptable.getTopicPath()),
                         labelFrom(adaptable),
                         allowedImportAdditionsFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
+
+        mappingStrategies.put(ModifyPolicyEntryNamespaces.TYPE,
+                adaptable -> ModifyPolicyEntryNamespaces.of(
+                        policyIdFromTopicPath(adaptable.getTopicPath()),
+                        labelFrom(adaptable),
+                        namespacesListFrom(adaptable),
                         dittoHeadersFrom(adaptable)));
 
         mappingStrategies.put(ModifyPolicyEntryImportable.TYPE,

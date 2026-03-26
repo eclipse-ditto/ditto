@@ -27,10 +27,8 @@ import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.model.entity.id.RegexPatterns;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonArrayBuilder;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -144,7 +142,7 @@ final class ImmutablePolicyEntry implements PolicyEntry {
         checkNotNull(namespaces, "namespaces");
         checkNotNull(importableType, "importableType");
         checkNotNull(allowedImportAdditions, "allowedImportAdditions");
-        validateNamespaces(namespaces);
+        PolicyEntryNamespaces.validate(namespaces);
         return new ImmutablePolicyEntry(label, subjects, resources, namespaces, importableType,
                 allowedImportAdditions);
     }
@@ -214,41 +212,9 @@ final class ImmutablePolicyEntry implements PolicyEntry {
     }
 
     private static List<String> readNamespaces(final JsonObject json) {
-        final List<String> namespaces = json.getValue(JsonFields.NAMESPACES)
-                .map(array -> array.stream()
-                        .filter(JsonValue::isString)
-                        .map(JsonValue::asString)
-                        .collect(Collectors.toList()))
+        return json.getValue(JsonFields.NAMESPACES)
+                .map(PolicyEntryNamespaces::fromJsonArray)
                 .orElse(Collections.emptyList());
-        validateNamespaces(namespaces);
-        return namespaces;
-    }
-
-    private static void validateNamespaces(final List<String> namespaces) {
-        namespaces.forEach(ImmutablePolicyEntry::validateNamespacePattern);
-    }
-
-    private static void validateNamespacePattern(final String value) {
-        checkNotNull(value, "namespace pattern");
-        if (!isValidNamespacePattern(value)) {
-            throw PolicyEntryInvalidException.newBuilder()
-                    .description("The value '" + value + "' in field '" +
-                            JsonFields.NAMESPACES.getPointer() +
-                            "' is not a valid namespace pattern. Valid patterns are namespaces" +
-                            " like 'com.acme' or wildcard patterns like 'com.acme.*'.")
-                    .build();
-        }
-    }
-
-    private static boolean isValidNamespacePattern(final String value) {
-        if (value.isEmpty()) {
-            return false;
-        }
-        if (value.endsWith(".*")) {
-            final String namespacePrefix = value.substring(0, value.length() - 2);
-            return !namespacePrefix.isEmpty() && RegexPatterns.NAMESPACE_PATTERN.matcher(namespacePrefix).matches();
-        }
-        return RegexPatterns.NAMESPACE_PATTERN.matcher(value).matches();
     }
 
     @Override

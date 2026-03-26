@@ -16,6 +16,7 @@ import static org.eclipse.ditto.base.model.exceptions.DittoJsonException.wrapJso
 
 import java.util.Arrays;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -50,6 +51,7 @@ import org.eclipse.ditto.policies.model.Subjects;
 import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.policies.model.signals.commands.actions.DeactivateTokenIntegration;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyActionFailedException;
+import org.eclipse.ditto.policies.model.PolicyEntryNamespaces;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntry;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteResource;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubject;
@@ -57,6 +59,7 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntr
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntry;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryAllowedImportAdditions;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryImportable;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryNamespaces;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResource;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResources;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubject;
@@ -65,6 +68,7 @@ import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEnt
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntry;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryAllowedImportAdditions;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryImportable;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryNamespaces;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResource;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResources;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubject;
@@ -82,6 +86,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
     private static final String PATH_SUFFIX_SUBJECTS = "subjects";
     private static final String PATH_SUFFIX_RESOURCES = "resources";
     private static final String PATH_SUFFIX_ALLOWED_IMPORT_ADDITIONS = "allowedImportAdditions";
+    private static final String PATH_SUFFIX_NAMESPACES = "namespaces";
     private static final String PATH_SUFFIX_IMPORTABLE = "importable";
 
     private static final String PATH_ACTIONS = "actions";
@@ -120,6 +125,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
                 policyEntryResources(ctx, dittoHeaders, policyId),
                 policyEntryResourcesEntry(ctx, dittoHeaders, policyId),
                 policyEntryAllowedImportAdditions(ctx, dittoHeaders, policyId),
+                policyEntryNamespaces(ctx, dittoHeaders, policyId),
                 policyEntryImportable(ctx, dittoHeaders, policyId),
                 policyEntryActions(ctx, dittoHeaders, policyId, authResult)
         );
@@ -406,6 +412,44 @@ final class PolicyEntriesRoute extends AbstractRoute {
                                         Arrays.toString(AllowedImportAddition.values()))
                                 .build()))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    /*
+     * Describes {@code /entries/<label>/namespaces} route.
+     */
+    private Route policyEntryNamespaces(final RequestContext ctx, final DittoHeaders dittoHeaders,
+            final PolicyId policyId) {
+
+        return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), label ->
+                rawPathPrefix(PathMatchers.slash().concat(PATH_SUFFIX_NAMESPACES), () ->
+                        pathEndOrSingleSlash(() ->
+                                concat(
+                                        get(() -> // GET /entries/<label>/namespaces
+                                                handlePerRequest(ctx, RetrievePolicyEntryNamespaces.of(
+                                                        policyId, Label.of(label), dittoHeaders))
+                                        ),
+                                        put(() -> // PUT /entries/<label>/namespaces
+                                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx,
+                                                        dittoHeaders,
+                                                        payloadSource ->
+                                                                handlePerRequest(ctx, dittoHeaders,
+                                                                        payloadSource,
+                                                                        namespacesJson ->
+                                                                                ModifyPolicyEntryNamespaces.of(
+                                                                                        policyId,
+                                                                                        Label.of(label),
+                                                                                        parseNamespaces(namespacesJson),
+                                                                                        dittoHeaders)))
+                                        )
+                                )
+                        )
+                )
+        );
+    }
+
+    private static List<String> parseNamespaces(final String jsonString) {
+        final JsonArray jsonArray = wrapJsonRuntimeException(() -> JsonFactory.newArray(jsonString));
+        return PolicyEntryNamespaces.fromJsonArray(jsonArray);
     }
 
     /*

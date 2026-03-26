@@ -323,6 +323,8 @@ public final class TestConstants {
         public static final EntriesAdditions ENTRIES_ADDITIONS =
                 PoliciesModelFactory.newEntriesAdditions(singletonList(ENTRY_ADDITION));
 
+        public static final List<String> NAMESPACES = Arrays.asList("com.acme", "com.acme.*");
+
         public static class TopicPaths {
 
             public static final TopicPath CREATE =

@@ -20,6 +20,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntriesResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryAllowedImportAdditionsResponse;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryNamespacesResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryImportableResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImportEntriesResponse;
@@ -59,6 +60,7 @@ final class PolicyQueryCommandResponseMappingStrategies
         addPolicyEntrySubjectResponses(mappingStrategies);
         addPolicyImportResponses(mappingStrategies);
         addPolicyEntryAllowedImportAdditionsResponses(mappingStrategies);
+        addPolicyEntryNamespacesResponses(mappingStrategies);
         addPolicyEntryImportableResponses(mappingStrategies);
         addPolicyImportEntriesResponses(mappingStrategies);
         addPolicyImportEntriesAdditionsResponses(mappingStrategies);
@@ -128,6 +130,20 @@ final class PolicyQueryCommandResponseMappingStrategies
 
         mappingStrategies.put(RetrievePolicyEntryAllowedImportAdditionsResponse.TYPE,
                 adaptable -> RetrievePolicyEntryAllowedImportAdditionsResponse.of(
+                        policyIdFromTopicPath(adaptable.getTopicPath()),
+                        labelFrom(adaptable),
+                        adaptable.getPayload().getValue()
+                                .filter(JsonValue::isArray)
+                                .map(JsonValue::asArray)
+                                .orElse(JsonArray.empty()),
+                        dittoHeadersFrom(adaptable)));
+    }
+
+    private static void addPolicyEntryNamespacesResponses(
+            final Map<String, JsonifiableMapper<PolicyQueryCommandResponse<?>>> mappingStrategies) {
+
+        mappingStrategies.put(RetrievePolicyEntryNamespacesResponse.TYPE,
+                adaptable -> RetrievePolicyEntryNamespacesResponse.of(
                         policyIdFromTopicPath(adaptable.getTopicPath()),
                         labelFrom(adaptable),
                         adaptable.getPayload().getValue()

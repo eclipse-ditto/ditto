@@ -137,21 +137,7 @@ public interface PolicyEntry extends Jsonifiable.WithFieldSelectorAndPredicate<J
      * @since 3.9.0
      */
     default boolean appliesToNamespace(final String namespace) {
-        final List<String> patterns = getNamespaces();
-        if (patterns.isEmpty()) {
-            return true;
-        }
-        for (final String pattern : patterns) {
-            if (pattern.endsWith(".*")) {
-                final String prefix = pattern.substring(0, pattern.length() - 2);
-                if (namespace.startsWith(prefix + ".")) {
-                    return true;
-                }
-            } else if (namespace.equals(pattern)) {
-                return true;
-            }
-        }
-        return false;
+        return PolicyEntryNamespaces.matches(getNamespaces(), namespace);
     }
 
     /**

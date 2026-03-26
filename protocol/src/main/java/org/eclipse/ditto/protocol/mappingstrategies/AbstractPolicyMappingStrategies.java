@@ -16,6 +16,7 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Collection;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -48,6 +49,7 @@ import org.eclipse.ditto.policies.model.Resources;
 import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.Subjects;
+import org.eclipse.ditto.policies.model.PolicyEntryNamespaces;
 import org.eclipse.ditto.policies.model.signals.events.SubjectsDeletedPartially;
 import org.eclipse.ditto.policies.model.signals.events.SubjectsModifiedPartially;
 import org.eclipse.ditto.protocol.Adaptable;
@@ -310,6 +312,19 @@ abstract class AbstractPolicyMappingStrategies<T extends Jsonifiable.WithPredica
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    /**
+     * Extracts a list of namespace strings from the payload value.
+     *
+     * @param adaptable the adaptable to extract from.
+     * @return the list of namespace strings.
+     */
+    protected static List<String> namespacesListFrom(final Adaptable adaptable) {
+        final JsonValue value = adaptable.getPayload().getValue()
+                .orElseThrow(() -> new NullPointerException("Payload value must not be null."));
+        final JsonArray jsonArray = value.isArray() ? value.asArray() : JsonArray.empty();
+        return PolicyEntryNamespaces.fromJsonArray(jsonArray);
     }
 
     /**

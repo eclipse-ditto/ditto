@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -484,6 +485,28 @@ final class ImmutablePolicy implements Policy {
             modifiedEntry = newPolicyEntry(label, policyEntry.getSubjects(),
                     policyEntry.getResources(), policyEntry.getNamespaces(),
                     policyEntry.getImportableType(), allowedImportAdditions);
+        }
+
+        entriesCopy.put(lbl, modifiedEntry);
+        return new ImmutablePolicy(policyId, imports, entriesCopy, lifecycle, revision, modified, created, metadata);
+    }
+
+    @Override
+    public Policy setNamespacesFor(final CharSequence label, final List<String> namespaces) {
+
+        final Label lbl = Label.of(label);
+
+        final Map<Label, PolicyEntry> entriesCopy = copyEntries();
+        final PolicyEntry modifiedEntry;
+
+        if (!entriesCopy.containsKey(lbl)) {
+            modifiedEntry = newPolicyEntry(label, PoliciesModelFactory.emptySubjects(), emptyResources(),
+                    namespaces, ImportableType.IMPLICIT, Collections.emptySet());
+        } else {
+            final PolicyEntry policyEntry = entriesCopy.get(lbl);
+            modifiedEntry = newPolicyEntry(label, policyEntry.getSubjects(),
+                    policyEntry.getResources(), namespaces,
+                    policyEntry.getImportableType(), policyEntry.getAllowedImportAdditions());
         }
 
         entriesCopy.put(lbl, modifiedEntry);

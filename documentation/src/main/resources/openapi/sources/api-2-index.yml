@@ -131,6 +131,8 @@ paths:
     $ref: "./paths/policies/resource.yml"
   '/api/2/policies/{policyId}/entries/{label}/allowedImportAdditions':
     $ref: "./paths/policies/allowedImportAdditions.yml"
+  '/api/2/policies/{policyId}/entries/{label}/namespaces':
+    $ref: "./paths/policies/namespacesEntry.yml"
   '/api/2/policies/{policyId}/entries/{label}/importable':
     $ref: "./paths/policies/importable.yml"
   '/api/2/policies/{policyId}/imports':

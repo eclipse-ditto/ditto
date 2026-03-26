@@ -210,6 +210,27 @@ Create or modify the resource identified by the `path` field of the Policy entry
 
 **Example:** [Modify a single resource](protocol-examples-policies-modifyresource.html)
 
+## Modify Policy entry namespaces
+
+Modify the namespace patterns of the Policy entry identified by the `<namespace>/<policyName>` pair in the `topic` field and by the `<label>` in the `path` field.
+
+### Command
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<policyName>/policies/commands/modify`     |
+| **path**  | `/entries/<label>/namespaces`     |
+| **value** | The namespace patterns as JSON array, e.g. `["com.acme", "com.acme.*"]`. An empty array means the entry applies to all namespaces. |
+
+### Response
+
+| Field      |        | Value                    |
+|------------|--------|--------------------------|
+| **topic**  |        | `<namespace>/<policyName>/policies/commands/modify` |
+| **path**   |        | `/entries/<label>/namespaces`                      |
+| **status** | _code_ |
+|            | `204`  | Success - The Policy entry namespaces were successfully updated. |
+
 ## Modify all policy imports
 
 Modify all imports of the Policy identified by the `<namespace>/<policyName>` pair in the `topic` field.

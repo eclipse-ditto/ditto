@@ -322,6 +322,13 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
         return this;
     }
 
+    @Override
+    public ImmutablePolicyBuilder setNamespacesFor(final CharSequence label, final List<String> namespacePatterns) {
+        checkNotNull(namespacePatterns, "namespaces");
+        namespaces.put(Label.of(label), namespacePatterns);
+        return this;
+    }
+
     private Map<ResourceKey, Permissions> retrieveGrantedPermissions(final CharSequence label) {
         return getPermissions(label, grantedPermissions);
     }

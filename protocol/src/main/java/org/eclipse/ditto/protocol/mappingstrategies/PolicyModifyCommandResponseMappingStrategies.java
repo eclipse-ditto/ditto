@@ -35,6 +35,7 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteResourceRe
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubjectResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntriesResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryAllowedImportAdditionsResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryNamespacesResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryImportableResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportEntriesResponse;
@@ -79,6 +80,8 @@ final class PolicyModifyCommandResponseMappingStrategies implements MappingStrat
         addPolicyImportResponses(streamBuilder);
 
         addPolicyEntryAllowedImportAdditionsResponses(streamBuilder);
+
+        addPolicyEntryNamespacesResponses(streamBuilder);
 
         addPolicyEntryImportableResponses(streamBuilder);
 
@@ -215,6 +218,17 @@ final class PolicyModifyCommandResponseMappingStrategies implements MappingStrat
 
         streamBuilder.accept(AdaptableToSignalMapper.of(ModifyPolicyEntryAllowedImportAdditionsResponse.TYPE,
                 mappingContext -> ModifyPolicyEntryAllowedImportAdditionsResponse.newInstance(
+                        mappingContext.getPolicyIdFromTopicPath(),
+                        mappingContext.getLabelOrThrow(),
+                        mappingContext.getHttpStatusOrThrow(),
+                        mappingContext.getDittoHeaders())));
+    }
+
+    private static void addPolicyEntryNamespacesResponses(
+            final Consumer<AdaptableToSignalMapper<? extends PolicyModifyCommandResponse<?>>> streamBuilder) {
+
+        streamBuilder.accept(AdaptableToSignalMapper.of(ModifyPolicyEntryNamespacesResponse.TYPE,
+                mappingContext -> ModifyPolicyEntryNamespacesResponse.newInstance(
                         mappingContext.getPolicyIdFromTopicPath(),
                         mappingContext.getLabelOrThrow(),
                         mappingContext.getHttpStatusOrThrow(),
