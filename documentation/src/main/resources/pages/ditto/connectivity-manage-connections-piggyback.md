@@ -1,17 +1,16 @@
 ---
 title: Manage connections via Piggyback commands
-keywords:
+keywords: connectivity, connections, piggyback, manage
 tags: [connectivity]
 permalink: connectivity-manage-connections-piggyback.html
 ---
 
-The recommended way of connection management (CRUD) is by using the [HTTP API to manage connections](connectivity-manage-connections.html).
-Although not the recommended way, it's still possible to manage connections in Ditto 
-via DevOps [Piggyback commands](installation-operating.html#piggyback-commands) as well. 
+You manage connections primarily through the [HTTP API](connectivity-manage-connections.html).
+Although not recommended, you can also manage connections via DevOps [Piggyback commands](installation-operating.html#piggyback-commands).
 
 All connection related piggyback commands use the following HTTP endpoint:
 
-```
+```text
 POST /devops/piggyback/connectivity
 ```
 

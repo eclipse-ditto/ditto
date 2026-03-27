@@ -5,30 +5,32 @@ tags: [protocol]
 permalink: protocol-examples.html
 ---
 
-The structure of the examples in this section is as follows:
+This page explains the structure of Ditto Protocol examples and provides reference samples for commands, responses, events, and acknowledgements.
+
+{% include callout.html content="**TL;DR**: Every protocol interaction follows the pattern: send a **command**, receive a **response** (success or error), and optionally observe an **event**. Use `correlation-id` to link related messages." type="primary" %}
+
+## Overview
+
+Each example in this section follows the same structure: a command that initiates an operation, a response indicating the outcome, and (for modifying commands) an event that subscribers receive.
 
 ## Command
 
-Each example always starts with a command message that initiates an operation at Ditto 
-(e.g. create a thing, retrieve a thing).
+Every interaction starts with a command message that tells Ditto what to do (e.g., create a Thing, modify an attribute). Commands include a `correlation-id` header to link the command with its response.
 
 ```json
 {
   "topic": "org.eclipse.ditto/fancy-thing/things/twin/commands/modify",
   "headers": {
     "correlation-id": "a780b7b5-fdd2-4864-91fc-80df6bb0a636",
-    "requested-acks": [ "twin-persisted","custom-ack" ]
+    "requested-acks": [ "twin-persisted", "custom-ack" ]
   },
   "path": "/"
-  ...
 }
 ```
 
 ## Response
 
-A command always has a response which either reports the success or the failure. 
-The example contains the success response.
-See Thing Error responses for examples of messages that will be returned in case of an error.
+Every command produces a response indicating success or failure. The response carries the same `correlation-id` as the command. See [Things error responses](protocol-examples-errorresponses.html) for error examples.
 
 ```json
 {
@@ -36,17 +38,14 @@ See Thing Error responses for examples of messages that will be returned in case
     "correlation-id": "a780b7b5-fdd2-4864-91fc-80df6bb0a636"
   },
   "path": "/",
-  "value": {
-    ...
-  },
+  "value": {},
   "status": 204
 }
 ```
 
 ## Event
 
-If Ditto triggers an event (e.g. Thing created, Attribute modified) as a result of the executed command, 
-an example of such an event is also demonstrated.
+When a command modifies state (e.g., Thing created, attribute modified), Ditto emits an event. Subscribers who registered for change notifications receive these events.
 
 ```json
 {
@@ -56,19 +55,16 @@ an example of such an event is also demonstrated.
     "requested-acks": [ "custom-ack" ]
   },
   "path": "/",
-  "value": {
-    ...
-  },
+  "value": {},
   "revision": 1
 }
 ```
 
 ## Acknowledgements (ACKs)
 
-A command issuer can require a response and specify the acknowledgements (ACKs) which have to be successfully fulfilled
-to regard the command as successfully executed.
+When you specify `requested-acks` in your command headers, Ditto collects acknowledgements from the processing chain. Subscribers that handle requested labels send acknowledgements back with matching `correlation-id` headers.
 
-Below an example is given for a successfully fulfilled ACK (status 202):
+**Successful ACK** (status `202`):
 
 ```json
 {
@@ -81,7 +77,7 @@ Below an example is given for a successfully fulfilled ACK (status 202):
 }
 ```
 
-And here is an example for a failed ACK (aka NACK, status 400):
+**Failed ACK / NACK** (status `400`):
 
 ```json
 {
@@ -95,7 +91,7 @@ And here is an example for a failed ACK (aka NACK, status 400):
 }
 ```
 
-An ACK representing a timeout would look like this:
+**Timeout ACK** (status `408`):
 
 ```json
 {
@@ -113,3 +109,10 @@ An ACK representing a timeout would look like this:
   "status": 408
 }
 ```
+
+## Further reading
+
+- [Things specification](protocol-specification-things.html) -- all Thing commands with example links
+- [Policies specification](protocol-specification-policies.html) -- all Policy commands with example links
+- [Acknowledgements](basic-acknowledgements.html) -- ack concepts and configuration
+- [Protocol specification](protocol-specification.html) -- the full message format reference

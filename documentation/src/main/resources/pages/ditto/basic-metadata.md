@@ -1,200 +1,114 @@
 ---
-title: Thing Metadata
+title: Metadata
 keywords: metadata, things, model, semantic
 tags: [model]
 permalink: basic-metadata.html
 ---
 
-A Thing in Ditto is also able to store metadata information, e.g. about single 
-[feature properties](basic-feature.html#feature-properties), complete features and also [attributes](basic-thing.html#attributes)
-or other data stored in a digital twin ([thing](basic-thing.html)).
+Metadata lets you attach contextual information to any part of a Thing -- for example, recording
+when a value was last updated, who changed it, or what unit of measurement it uses.
 
-This metadata can contain additional information which shall not be treated as part of the twin's value, however may
-be useful to provide some context of the twin's data.
+{% include callout.html content="**TL;DR**: Metadata is extra information attached to Thing attributes and feature
+properties. You set it via the `put-metadata` header, read it via field selectors or the `get-metadata`
+header, and delete it via the `delete-metadata` header." type="primary" %}
 
-Metadata has not its own API but can only be modified, retrieved or deleted while modifying the state of a twin as a side effect.<br/>
-By default, metadata is not returned on API requests, but must be [asked for explicitly](#reading-metadata-information).
+## What is metadata for?
 
-An example is the timestamp when the current value of e.g. a feature property was updated for the last time.
-Or the metadata information of a feature property may contain information about its type or its semantics (e.g. a unit 
-of measurement).
+Metadata provides context about your twin's data without becoming part of the data itself. Common
+use cases include:
 
+* **Timestamps** -- when a property was last updated
+* **Audit trails** -- who changed a value
+* **Semantic annotations** -- units of measurement, data type descriptions
+* **Change tracking** -- recording the source system that provided a value
 
-## Modifying metadata
+Metadata is **not** returned by default. You must request it explicitly.
 
-Modifying arbitrary `metadata` is possible by using the `put-metadata` header 
-(e.g. for HTTP requests, set it as HTTP header, for Ditto Protocol requests, put it in the `"headers"` section of the 
-protocol message), see [here for an overview of the available headers](protocol-specification.html#headers).
+## How it works
 
-The value of the `put-metadata` is a JSON array containing JSON objects with `"key"` and `"value"` parts:
-* `"key"`: describes the hierarchical position in the Thing where the metadata should be placed
-* `"value"`: is an arbitrary JSON value to set as metadata (could also be a nested JSON object)
+Metadata mirrors the structure of the Thing it describes. If your Thing has a property at
+`features/lamp/properties/color/r`, the metadata for that property lives at the same path
+inside the `_metadata` object.
 
-The `put-metadata` header can be specified at all API levels and will then modify the metadata object at the same level,
-relative to the request. For example a `PUT` on a feature property `color` with a `put-metadata` header `"key"`
-`/r/changeLog` will only set the metadata for this sub property.
+Metadata has no dedicated API endpoint. Instead, you modify, read, and delete it using HTTP headers
+as a side effect of regular Thing operations.
 
-### Example for setting metadata
+## Setting metadata
 
-Assuming you modify your twin's lamp color with a call: 
-```json
-{
-  "thingId": "org.eclipse.ditto:my-lamp-1",
-  "features": {
-    "lamp": {
-      "properties": {
-        "color": {
-          "r": 100,
-          "g": 0,
-          "b": 255
-        },
-        "status": {
-          "on": "true"
-        }
-      } 
-    } 
-  }
-}
-```
-
-In case you want to set metadata on all properties of a feature (`"r"`, `"g"` and `"b"`) plus some 
-extra metadata to only set for the `"color"` property.<br/>
-The content of the `put-metadata` in order to do that would look like this:
+Use the `put-metadata` header on any modifying request (`PUT`, `PATCH`, or via the Ditto Protocol
+`"headers"` section). The value is a JSON array of objects, each with a `"key"` and `"value"`:
 
 ```json
 [
-  {
-    "key": "*/changeLog",
-    "value": {
-      "changedAt": "2022-08-02T04:30:07",
-      "changedBy": {
-        "name":"ditto",
-        "mail":"ditto@mail.com"
-      }
-    }
-  },
   {
     "key": "/features/lamp/properties/color/description",
     "value": "Color represented with RGB values"
+  },
+  {
+    "key": "/features/lamp/properties/status/description",
+    "value": "Status of the lamp"
   }
 ]
 ```
 
-The resulting Thing JSON including its `_metadata` would look like this:
+### Example: setting metadata on a Thing update
+
+When you update your twin's lamp color:
+
 ```json
 {
-    "thingId": "org.eclipse.ditto:my-lamp-1",
-    "features": {
-      "lamp": {
-        "properties": {
-          "color": {
-            "r": 100,
-            "g": 0,
-            "b": 255
-          },
-          "status": {
-            "on": "true"
-          }
-        }
-      }
-    },
-    "_metadata": {
-      "features": {
-        "lamp": {
-          "properties": {
-            "color": {
-              "r": {
-                "changeLog": {
-                  "changedAt": "2022-08-02T04:30:07",
-                  "changedBy": {
-                    "name": "ditto",
-                    "mail": "ditto@mail.com"
-                  }
-                }
-              },
-              "g": {
-                "changeLog": {
-                  "changedAt": "2022-08-02T04:30:07",
-                  "changedBy": {
-                    "name": "ditto",
-                    "mail": "ditto@mail.com"
-                  }
-                }
-              },
-              "b": {
-                "changeLog": {
-                  "changedAt": "2022-08-02T04:30:07",
-                  "changedBy": {
-                    "name": "ditto",
-                    "mail": "ditto@mail.com"
-                  }
-                }
-              },
-              "description": "Color represented with RGB values"
-            }
-          }
-        }
+  "thingId": "org.eclipse.ditto:my-lamp-1",
+  "features": {
+    "lamp": {
+      "properties": {
+        "color": { "r": 100, "g": 0, "b": 255 },
+        "status": { "on": "true" }
       }
     }
+  }
 }
 ```
 
-Another example for the `put-metadata` header can look like this where we want to add a "description" to both feature properties.
+Send the `put-metadata` header with a description for each property group:
 
 ```json
 [
-  { 
-    "key": "features/lamp/properties/color/description", 
+  {
+    "key": "features/lamp/properties/color/description",
     "value": "Color represented with RGB values"
   },
-  { 
-    "key": "features/lamp/properties/status/description", 
+  {
+    "key": "features/lamp/properties/status/description",
     "value": "Status of the lamp"
-  } 
+  }
 ]
 ```
 
-The resulting Thing JSON with the previously added metadata would look like this:
+The resulting `_metadata` on the Thing:
+
 ```json
 {
-    "thingId": "org.eclipse.ditto:my-lamp-1",
+  "_metadata": {
     "features": {
       "lamp": {
         "properties": {
           "color": {
-            "r": 100,
-            "g": 0,
-            "b": 255
+            "description": "Color represented with RGB values"
           },
           "status": {
-            "on": "true"
-          }
-        }
-      }
-    },
-    "_metadata": {
-      "features": {
-        "lamp": {
-          "properties": {
-            "color": {
-              "description": "Color represented with RGB values"
-            },
-            "status": {
-              "description": "Status of the lamp"
-            }
+            "description": "Status of the lamp"
           }
         }
       }
     }
+  }
 }
 ```
 
-### Modifying metadata on all JSON leaves
+### Setting metadata on all JSON leaves
 
-A special syntax for the key is `*/{key}` which means that all JSON leaves of the modify operation will
-get the metadata key `{key}` with the given value. So if, for example, only the affected JSON leaves should 
-get the timestamp where the changed values were recorded, one would set the `put-metadata` header as shown in the 
-following example: 
+Use the special key syntax `*/{key}` to set the same metadata on every leaf value affected by your
+update. For example, to record a change log on all modified properties:
 
 ```json
 [
@@ -202,262 +116,85 @@ following example:
     "key": "*/changeLog",
     "value": {
       "changedAt": "2022-08-02T04:30:07",
-      "changedBy": {
-        "name":"ditto",
-        "mail":"ditto@mail.com"
-      }
+      "changedBy": { "name": "ditto", "mail": "ditto@mail.com" }
     }
   }
 ]
 ```
 
-The resulting Thing JSON including its `_metadata` would look like this:
-```json
-{
-  "thingId": "org.eclipse.ditto:my-lamp-1",
-  "features": {
-    "lamp": {
-      "properties": {
-        "color": {
-          "r": 100,
-          "g": 0,
-          "b": 255
-        },
-        "status": {
-          "on": "true"
-        }
-      }
-    }
-  },
-  "_metadata": {
-    "features": {
-      "lamp": {
-        "properties": {
-          "color": {
-            "r": {
-              "changeLog": {
-                "changedAt": "2022-08-02T04:30:07",
-                "changedBy": {
-                  "name": "ditto",
-                  "mail": "ditto@mail.com"
-                }
-              }
-            },
-            "g": {
-              "changeLog": {
-                "changedAt": "2022-08-02T04:30:07",
-                "changedBy": {
-                  "name": "ditto",
-                  "mail": "ditto@mail.com"
-                }
-              }
-            },
-            "b": {
-              "changeLog": {
-                "changedAt": "2022-08-02T04:30:07",
-                "changedBy": {
-                  "name": "ditto",
-                  "mail": "ditto@mail.com"
-                }
-              }
-            },
-            "status": {
-              "on": {
-                "changeLog": {
-                  "changedAt": "2022-08-02T04:30:07", 
-                  "changedBy": {
-                    "name": "ditto", 
-                    "mail": "ditto@mail.com"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}
+This adds a `changeLog` entry to each individual leaf property (`r`, `g`, `b`, `on`) rather than
+to the parent objects.
+
+## Reading metadata
+
+You have two ways to retrieve metadata.
+
+### Using field selectors
+
+Add `_metadata` to the `fields` query parameter:
+
+```bash
+GET /api/2/things/org.eclipse.ditto:my-lamp-1?fields=thingId,features,_metadata
 ```
 
-## Reading metadata information
+This returns the Thing along with its full `_metadata` object.
 
-Metadata of a Thing can be retrieved by querying a full thing, e.g. via the [HTTP API](http-api-doc.html), and 
-specifying an (additional) [field selector](httpapi-concepts.html#with-field-selector) `_metadata`, 
-e.g.: `?fields=thingId,attributes,_metadata`.
+### Using the get-metadata header
 
-Metadata can also be queried by using the `get-metadata` header
-(e.g. for HTTP requests, set it as HTTP header, for Ditto Protocol requests, put it in the `"headers"` section of the
-protocol message), see [here for an overview of the available headers](protocol-specification.html#headers).
-The `get-metadata` header expects a comma separated list of metadata `{key}`. This will return the relative metadata 
-in the `ditto-metadata` header.
+Set the `get-metadata` HTTP header to a comma-separated list of metadata paths. Ditto returns
+the matching metadata in the `ditto-metadata` response header.
 
-### Example for reading metadata with field selector
+For example, to get metadata for a specific property:
 
-For example a `GET` request to 
-`https://{ditto-instance}/api/2/things/{namespace}:{name}?fields=thingId,policyId,features,_created,_modified,_revision,_metadata`
-will yield the metadata stored for the given Thing, in the following format:
-
-```json
-{
-  "thingId": "org.eclipse.ditto:my-lamp-1",
-  "policyId": "...",
-  "features": {
-    "lamp": {
-      "properties": {
-        "color": {
-          "r": 0,
-          "g": 255,          
-          "b": 255
-        },
-        "status": {
-          "on": "true"
-        }
-      }
-    }
-  },
-  "_created": "2022-06-01T10:00:00Z",
-  "_modified": "2022-06-09T14:30:00Z",
-  "_revision": 42,
-  "_metadata": {
-    "features": {
-      "lamp": {
-        "properties": {
-          "color": {
-            "r": {
-              "changeLog": {
-                "changedAt": "2022-08-02T04:30:07", 
-                "changedBy": {
-                  "name": "ditto", 
-                  "mail": "ditto@mail.com"
-                }
-              }
-            },
-            "g": {
-              "changeLog": {
-                "changedAt": "2022-08-02T04:30:07",
-                "changedBy": {
-                  "name": "ditto",
-                  "mail": "ditto@mail.com"
-                }
-              }
-            },
-            "b": {
-              "changeLog": {
-                "changedAt": "2022-08-02T04:30:07", 
-                "changedBy": {
-                  "name": "ditto", 
-                  "mail": "ditto@mail.com"
-                }
-              }
-            },
-            "description": "Color represented with RGB values"
-          },
-          "status": {
-            "on": {
-              "changeLog": {
-                "changedAt": "2022-08-02T04:30:07",
-                "changedBy": {
-                  "name": "ditto",
-                  "mail": "ditto@mail.com"
-                }
-              }
-            },
-            "description": "Status of the Lamp"
-          }
-        }
-      }
-    }
-  }
-}
+```
+get-metadata: features/lamp/properties/color/r
 ```
 
-### Example for reading metadata with header
+You can use wildcards to expand one level. For example,
+`features/lamp/properties/*/description` returns the `description` metadata for all properties
+of the `lamp` feature.
 
-For example a `GET` request to `https://{ditto-instance}/api/2/things/{namespace}:{name}` with HTTP header `get-metadata`
-and value `features/lamp/properties/color/r` will return the following content in the `ditto-metadata` header:
+## Deleting metadata
 
-```json
-{
-  "features": {
-    "lamp": {
-      "properties": {
-        "color": {
-          "r": {
-            "changeLog": {
-              "changedAt": "2022-08-02T04:30:07",
-              "changedBy": {
-                "name": "ditto",
-                "mail": "ditto@mail.com"
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}
+Use the `delete-metadata` header on a modifying request (`PUT` or `PATCH`). Provide a
+comma-separated list of metadata paths to remove.
+
+For example, to remove all color metadata:
+
+```
+delete-metadata: features/lamp/properties/color
 ```
 
-Metadata can also be queried using a wildcard which expands the level where it is specified, e.g. a `GET` request
-to `https://{ditto-instance}/api/2/things/{namespace}:{name}` with HTTP header `get-metadata` and value
-`features/lamp/properties/*/description` will return:
-
-```json
-{
-  "features": {
-    "lamp": {
-      "properties": {
-        "color": {
-          "description": "Color represented with RGB values"
-        },
-        "status": {
-          "description": "Status of the lamp"
-        }
-      }
-    }
-  }
-}
-```
-
-## Deleting metadata information
-
-Metadata can be deleted by using the `delete-metadata` header with modifying requests (`PUT` or `PATCH`).
-For HTTP requests, set it as HTTP header, for Ditto Protocol requests, put it in the `"headers"` section of the
-protocol message, see [here for an overview of the available headers](protocol-specification.html#headers).
-The `delete-metadata` header expects a comma separated list of metadata `{key}`.
-
-For example a `PATCH` request to `https://{ditto-instance}/api/2/things/{namespace}:{name}` with HTTP header `delete-metadata`
-and value `features/lamp/properties/color` will remove the complete `color` property from the thing metadata.
-
-<b>Note:</b> When deleting things or parts of a thing, like feature properties or attributes, their relative metadata 
+When you delete a Thing or part of a Thing (like a feature or attribute), the associated metadata
 is also deleted.
 
-## Wildcard usage for metadata requests
- 
-When working with metadata there are some wildcards which can be used to modify, retrieve or delete metadata.
-The following table gives an overview which Wildcards can be used on top-level for what requests.
+## Wildcard reference
 
-| Wildcard                                | PUT/PATCH                                                              | GET                                                                          | DELETE                                                                     |
-|-----------------------------------------|------------------------------------------------------------------------|------------------------------------------------------------------------------|----------------------------------------------------------------------------|
-| `*`                                     | x                                                                      | retrieve all metadata relative to the path                                   | delete all metadata relative to the path                                   |
-| `*/key`                                 | add metadata for the given `key` to all JSON leaves                    | retrieve all metadata with `key`                                             | delete all metadata with `key`                                             |
-| `attributes/*/key`                      | add metadata for the given `key` to all attributes                     | retrieve metadata for given `key` from all attributes                        | delete metadata for given `key` from all attributes                        |
-| `features/*/properties/*/key`           | add metadata for the given `key` to all feature properties             | retrieve metadata for given `key` from all feature properties                | delete metadata for given `key` from all feature properties                |
-| `features/*/properties/{property}/key`  | add metadata for the given `key` to all features with a given property | retrieve metadata for given `key` from all features with a specific property | delete metadata for given `key` from all features with a specific property |
-| `features/{feature}/properties/*/key`   | add metadata for the given `key` to all properties of a feature        | retrieve metadata for given `key` from all properties of a feature           | delete metadata for  given `key` from all properties of a feature          |
+| Wildcard | PUT/PATCH | GET | DELETE |
+|----------|-----------|-----|--------|
+| `*` | -- | Retrieve all metadata relative to the path | Delete all metadata relative to the path |
+| `*/key` | Add `key` metadata to all JSON leaves | Retrieve all metadata with `key` | Delete all metadata with `key` |
+| `attributes/*/key` | Add `key` to all attributes | Retrieve `key` from all attributes | Delete `key` from all attributes |
+| `features/*/properties/*/key` | Add `key` to all feature properties | Retrieve `key` from all feature properties | Delete `key` from all feature properties |
+| `features/*/properties/{prop}/key` | Add `key` to `{prop}` in all features | Retrieve `key` from `{prop}` in all features | Delete `key` from `{prop}` in all features |
+| `features/{feat}/properties/*/key` | Add `key` to all properties of `{feat}` | Retrieve `key` from all properties of `{feat}` | Delete `key` from all properties of `{feat}` |
 
-Wildcards can also be used on the /features resource:
+The same wildcards work at the `/features` resource level, using relative paths
+(`*/properties/*/key`, `{feature}/properties/*/key`, etc.).
 
-| Wildcard                      | PUT/PATCH                                                              | GET                                                                          | DELETE                                                                     |
-|-------------------------------|------------------------------------------------------------------------|------------------------------------------------------------------------------|----------------------------------------------------------------------------|
-| `*/properties/*/key`          | add metadata for the given `key` to all feature properties             | retrieve metadata for given `key` from all feature properties                | delete metadata for given `key` from all feature properties                |
-| `*/properties/{property}/key` | add metadata for the given `key` to all features with a given property | retrieve metadata for given `key` from all features with a specific property | delete metadata for given `key` from all features with a specific property |
-| `{feature}/properties/*/key`  | add metadata for the given `key` to all properties of a feature        | retrieve metadata for given `key` from all properties of a feature           | delete metadata for  given `key` from all properties of a feature          |
+The `*` wildcard skips exactly one level in the path. It cannot be used in other positions.
 
-<b>Note:</b> With the `*` wildcard it is only possible to skip one level in the resource path. You can not use the wildcard `*` other than in the examples above.
+## Constraints
 
-## Multiple metadata header
-It is not possible to use multiple metadata headers in one request. For GET requests it is only possible to use the `get-metadata`header.
-For PUT/PATCH requests it is only possible to use either the `put-metadata` or `delete-metadata` header.
-In case multiple headers are used in a request an exception will be the result.
+You can use only one metadata header per request:
+* For GET requests: `get-metadata` only
+* For PUT/PATCH requests: either `put-metadata` or `delete-metadata`, but not both
+
+Using multiple metadata headers in one request results in an error.
+
+## Further reading
+
+* [Protocol headers reference](protocol-specification.html#headers) -- all available Ditto headers
+* [Things](basic-thing.html) -- the entity that metadata attaches to
+* [HTTP API concepts](httpapi-concepts.html#with-field-selector) -- field selectors for partial
+  retrieval

@@ -1,41 +1,68 @@
 ---
-title: Digital twins
+title: Digital Twins Explained
 keywords: digital twin, digitaltwin, twin, administrationshell, asset
 tags: [getting_started]
 permalink: intro-digitaltwins.html
 ---
 
-{% include callout.html content="**TL;DR**<br/>Digital twins are a pattern for simplifying IoT solution development." type="primary" %}
+A digital twin is a virtual representation of a physical device or asset that stays synchronized
+with the real world.
 
-The problem with the term **digital twin** is that there are many different understandings of what it means. 
-Furthermore, the term was previously mostly used and coined by marketing. The term was/is missing a 
-technical foundation of what to expect from a framework for digital twins.
+{% include callout.html content="**TL;DR**: A digital twin mirrors a physical device as a JSON data structure in the
+cloud, giving your applications a single, always-available source of truth about that device." type="primary" %}
 
-Eclipse Ditto provides such a framework for digital twins and this page describes how Ditto defines/sees digital twins
-from a technical perspective. 
+## What is a digital twin?
 
-## Digital twin from a technical perspective
+Imagine you have a temperature sensor in a warehouse. The sensor connects to the internet and
+reports its reading every 30 seconds. A digital twin for that sensor is a JSON object stored in
+Ditto that always reflects the sensor's latest state:
 
-For Eclipse Ditto the **digital twin** is a concept for abstracting a real world asset/device with 
-all capabilities and aspects including its digital representation.
+```json
+{
+  "thingId": "com.example:warehouse-sensor-1",
+  "attributes": {
+    "location": "Warehouse B, Shelf 3"
+  },
+  "features": {
+    "temperature": {
+      "properties": {
+        "value": 22.5,
+        "unit": "Celsius"
+      }
+    }
+  }
+}
+```
 
-A digital twin
-* mirrors physical assets/devices
-* acts as a "single source of truth" for a physical asset
-* provides various aspects+services around devices
-* keeps real and digital worlds in sync
-* can be applied in both industrial and consumer-centric IoT scenarios
+When the sensor sends a new reading, Ditto updates the twin. When your dashboard queries the twin,
+it gets the latest value -- even if the sensor is temporarily offline.
 
-A digital twin framework
-* provides capabilities (APIs) to interact with digital twins
-* ensures that access to twins can only be done by authorized parties
-* allows to not only interact with single twins but also with populations of many of them
-* integrates into other back-end infrastructure (like messaging systems, brokers)
+## How Ditto defines digital twins
+
+From a technical perspective, a digital twin in Ditto:
+
+* **Mirrors a physical asset** -- stores the device's current and desired state as structured JSON
+* **Acts as a single source of truth** -- applications read from and write to the twin instead of
+  talking directly to the device
+* **Stays synchronized** -- updates flow from device to twin and from twin to device
+* **Enforces access control** -- a [Policy](basic-policy.html) determines who can read or modify
+  each part of the twin
+
+Ditto as a digital twin framework:
+
+* Provides APIs (HTTP, WebSocket, and other messaging protocols) to interact with twins
+* Ensures that only authorized parties can access twin data
+* Supports working with individual twins or querying across large populations of twins
+* Integrates with messaging systems and brokers for device connectivity
 
 ## Industrial context
 
-In the <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.iiot}}">IIoT</a> the **digital twin** 
-metaphor is becoming a popular concept for tracking a produced product/good in its complete lifecycle. 
+In the <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.iiot}}">IIoT</a>,
+digital twins track manufactured products and assets throughout their lifecycle. The concept is
+closely related to the "Asset Administration Shell" used in Industry 4.0 scenarios.
 
-Another term often used in the IIoT in combination with digital twin is the "Asset Administration Shell" 
-("Verwaltungsschale" in german).
+## Further reading
+
+* [Hello World Tutorial](intro-hello-world.html) -- create your first digital twin
+* [Data Model Overview](basic-overview.html) -- understand how Things, Features, and Policies fit
+  together

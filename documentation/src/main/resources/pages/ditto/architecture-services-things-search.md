@@ -5,40 +5,45 @@ tags: [architecture, search]
 permalink: architecture-services-things-search.html
 ---
 
-The "things-search" service takes care of:
+The Things-Search service maintains an optimized search index of all Things and executes search queries against it.
 
-* updating an optimized search index of `Things` based on the [events](basic-signals-event.html) emitted by the 
-  [things](architecture-services-things.html) and [policies](architecture-services-policies.html) services when entities
-  are changed there
-* executing search queries against the search index in order to find out which `Things` (which `thingId`s) match a 
-  given search
+{% include callout.html content="**TL;DR**: The Things-Search service listens for Thing and Policy change events, updates a search-optimized MongoDB collection, and processes RQL search queries to find matching Things." type="primary" %}
 
-## Model
+## Overview
 
-The things-search service has no model (entity) by its own, but uses the model of [things](architecture-services-things.html) 
-and [policies](architecture-services-policies.html) services.
+The Things-Search service has two main responsibilities:
 
-It however contains a model which can transform an <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.rql}}">RQL</a> 
-search query into a Java domain model which is defined here:
+1. **Index maintenance**: Track changes to Things, Features, and Policies by consuming [events](basic-signals-event.html) from the [Things](architecture-services-things.html) and [Policies](architecture-services-policies.html) services, and keep a search-optimized index up to date.
+2. **Query execution**: Accept search queries and return matching Thing IDs from the index.
 
-* [rql parser ast](https://github.com/eclipse-ditto/ditto/tree/master/rql/model/src/main/java/org/eclipse/ditto/rql/model/predicates/ast)
+## How it works
 
-## Signals
+### Model
 
-Other services can communicate with the things-search service via:
+The Things-Search service does not define its own entity model. It uses the models from the [Things](architecture-services-things.html) and [Policies](architecture-services-policies.html) services.
 
+It does include a parser that transforms [RQL](basic-rql.html) search queries into a Java domain model:
 
-* [commands](https://github.com/eclipse-ditto/ditto/tree/master/thingsearch/model/src/main/java/org/eclipse/ditto/thingsearch/model/signals/commands):
-  containing commands and command responses which are processed by this service
+* [RQL parser AST](https://github.com/eclipse-ditto/ditto/tree/master/rql/model/src/main/java/org/eclipse/ditto/rql/model/predicates/ast)
 
-## Persistence
+### Signals
 
-The Things-Search service maintains its own persistence in which it stores `Things` in an optimized way in order to 
-provide a full search on arbitrary `Thing` data. 
+Other services communicate with the Things-Search service via:
 
-Things-Search creates the following MongoDB collections:
+* [Commands](https://github.com/eclipse-ditto/ditto/tree/master/thingsearch/model/src/main/java/org/eclipse/ditto/thingsearch/model/signals/commands): Search commands and their responses
 
-* `search`: The search index.
-* `searchSync`: A single-document capped collection containing the instant until which `Thing` events are
-indexed for sure.
+### Persistence
 
+The Things-Search service maintains its own MongoDB collections optimized for full-text and attribute-based search:
+
+| Collection | Purpose |
+|------------|---------|
+| `search` | The search index containing Thing data in a search-optimized format |
+| `searchSync` | A single-document capped collection that records the instant until which Thing events are indexed |
+
+## Further reading
+
+* [Search concept](basic-search.html)
+* [Architecture Overview](architecture-overview.html)
+* [Things Service](architecture-services-things.html)
+* [Policies Service](architecture-services-policies.html)

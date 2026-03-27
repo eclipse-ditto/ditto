@@ -1,42 +1,58 @@
 ---
-title: WoT Validation Config API
+title: WoT Validation Configuration
 keywords: WoT, validation, config, API, DData, distribution, recovery, example
 tags: [wot]
 permalink: basic-wot-validation-config.html
 ---
 
-# WoT Validation Config API
+You manage WoT Thing Model validation rules at runtime through the Ditto devops API, enabling dynamic control over which validation checks apply to specific users, models, or deployment stages.
 
-This page documents the management of WoT (Web of Things) validation configuration in Eclipse Ditto, including API endpoints, dynamic configuration, distributed state, recovery, and practical examples.
+{% include callout.html content="**TL;DR**: Use `PUT /devops/wot/config` to set global validation rules, and `PUT /devops/wot/config/dynamicConfigs/{scopeId}` to override rules for specific users or models. This is especially useful during model migrations." type="primary" %}
 
-## Introduction
+## Overview
 
-Eclipse Ditto allows you to configure WoT Thing Model validation both statically (via config files or environment variables) and dynamically at runtime via HTTP API endpoints. This enables flexible, fine-grained control over validation behavior in distributed deployments.
+Eclipse Ditto supports both static WoT validation (via config files or environment variables) and dynamic runtime configuration via HTTP API endpoints. Dynamic configuration lets you:
 
-## Use case: Migrating to a new WoT model version
+* Temporarily relax validation during model migrations
+* Apply different validation rules per user, connection, or model
+* Adjust validation without restarting Ditto
 
-When you update your WoT Thing Model to a new version, some existing Things or updates may not immediately comply with the new, stricter validation rules. Ditto's dynamic validation config endpoint allows you to temporarily relax validation for specific Things. This means you can:
+## How it works
 
-- Allow updates that would otherwise be rejected as invalid under the new model, enabling a smooth transition period.
-- Gradually adapt your data or processes to the new model requirements without downtime or disruption.
-- Once migration is complete and all data is compliant, you can restore strict validation to enforce the new model for all future updates.
+### Use case: model migration
 
-This approach helps ensure a seamless migration to new WoT model versions, minimizing interruptions and validation errors during the transition.
+When you upgrade a WoT Thing Model to a new version, existing Things may not immediately comply with stricter validation rules. The dynamic validation API lets you:
 
-## API Endpoints
+1. Temporarily relax validation for affected Things
+2. Migrate data and processes to the new model
+3. Restore strict validation once migration is complete
 
-| Endpoint | Method | Purpose                                                           |
-|----------|--------|-------------------------------------------------------------------|
-| `/devops/wot/config` | GET | Get the current global WoT validation config                      |
-| `/devops/wot/config` | PUT | Upsert (create or update) the global WoT validation config        |
-| `/devops/wot/config` | DELETE | Delete the global WoT validation config (revert to static config) |
-| `/devops/wot/config/merged` | GET | Get the merged (static + dynamic) config                          |
-| `/devops/wot/config/dynamicConfigs` | GET | List all dynamic config sections                                  |
-| `/devops/wot/config/dynamicConfigs/{scopeId}` | GET | Get a specific dynamic config section                             |
-| `/devops/wot/config/dynamicConfigs/{scopeId}` | PUT | Upsert (create or update) a dynamic config section                |
-| `/devops/wot/config/dynamicConfigs/{scopeId}` | DELETE | Delete a dynamic config section                                   |
+### Configuration layers
 
-## Example: Enable WoT Validation Globally
+Ditto evaluates validation rules in layers:
+
+1. **Static config** -- defined in `things.conf` or environment variables
+2. **Global dynamic config** -- set via the `/devops/wot/config` API
+3. **Scoped dynamic overrides** -- set via `/devops/wot/config/dynamicConfigs/{scopeId}` for specific contexts
+
+The **merged config** (viewable at `/devops/wot/config/merged`) is what Ditto actually uses for validation.
+
+## API endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/devops/wot/config` | GET | Get the current global WoT validation config |
+| `/devops/wot/config` | PUT | Create or update the global config |
+| `/devops/wot/config` | DELETE | Delete the global config (revert to static config) |
+| `/devops/wot/config/merged` | GET | Get the effective merged config |
+| `/devops/wot/config/dynamicConfigs` | GET | List all dynamic config sections |
+| `/devops/wot/config/dynamicConfigs/{scopeId}` | GET | Get a specific dynamic config section |
+| `/devops/wot/config/dynamicConfigs/{scopeId}` | PUT | Create or update a dynamic config section |
+| `/devops/wot/config/dynamicConfigs/{scopeId}` | DELETE | Delete a dynamic config section |
+
+## Examples
+
+### Enable global validation
 
 ```http
 PUT /devops/wot/config
@@ -70,7 +86,9 @@ Content-Type: application/json
 }
 ```
 
-## Example: Add a Dynamic Override for a Specific User
+### Add a dynamic override for a specific user
+
+This example disables validation and switches to warning-only mode for an admin user:
 
 ```http
 PUT /devops/wot/config/dynamicConfigs/my-scope
@@ -92,33 +110,30 @@ Content-Type: application/json
 }
 ```
 
-## How Dynamic Config Works
+### How dynamic overrides match
 
-- **Dynamic config sections** allow you to override the global validation config for specific API calls, based on:
-  - Ditto headers (e.g., user or connection)
-  - Thing or Feature model URLs
-- The **merged config** is what Ditto actually uses for validation, combining static, global, and dynamic settings.
+Dynamic config sections match API calls based on three criteria (all must match for an override to apply):
 
-## API Schema
-
-For details on the request/response structure, see the [Ditto HTTP API reference](/http-api-doc.html) or the Ditto API documentation.
+| Criteria | Description |
+|----------|-------------|
+| `ditto-headers-patterns` | Match Ditto headers (e.g., `ditto-originator` for user or connection identity). Multiple header blocks are OR-combined; fields within a block are AND-combined. |
+| `thing-definition-patterns` | Match the Thing's WoT Thing Model URL (OR-combined) |
+| `feature-definition-patterns` | Match the Feature's WoT Thing Model URL (OR-combined) |
 
 ## Technical details
 
-### Distributed State and Recovery
+### Distributed state and recovery
 
-In a clustered Ditto deployment, the WoT validation configuration is managed as distributed state using [Pekko Distributed Data (DData)](https://pekko.apache.org/docs/pekko/current/typed/distributed-data.html). This ensures that configuration changes are automatically replicated across all nodes in the cluster, providing consistency, high availability, and resilience.
+In a clustered Ditto deployment, the WoT validation configuration uses [Pekko Distributed Data (DData)](https://pekko.apache.org/docs/pekko/current/typed/distributed-data.html) for replication:
 
-#### DData-based Distribution
+* **Replication** -- configuration changes propagate to all nodes with the `wot-validation-config-aware` cluster role
+* **Consistency** -- DData uses CRDTs (Conflict-free Replicated Data Types) for eventual consistency
+* **Persistence** -- configuration is also stored in MongoDB via event sourcing and snapshots
+* **Recovery** -- on startup, each node recovers the latest configuration from the database and publishes it to DData
+* **Resilience** -- rolling restarts and failover do not result in configuration loss
 
-- **Replication:** Whenever the WoT validation config is created, updated, or deleted (including dynamic config sections), the change is published to the DData replicator. All Ditto nodes with the `wot-validation-config-aware` cluster role receive and apply the update.
-- **Consistency:** DData uses CRDTs (Conflict-free Replicated Data Types) to ensure eventual consistency across the cluster, even in the presence of network partitions or node failures.
-- **Immediate Effect:** API changes to the config (via the endpoints described above) are visible to all nodes almost immediately, ensuring that validation behavior is consistent regardless of which node handles a request.
+## Further reading
 
-#### Recovery and Database Synchronization
-
-- **Persistence:** The WoT validation config is also persisted in the database (MongoDB) using event sourcing and snapshots. This ensures that the config survives full cluster restarts or catastrophic failures.
-- **Startup Recovery:** On startup, each node recovers the latest WoT validation config from the database. Once recovery is complete, the config is published to DData, ensuring that all nodes are synchronized with the most recent state.
-- **Rolling Restarts and Failover:** Because the config is both persisted and distributed, rolling restarts or failover scenarios do not result in loss of configuration. Any node joining the cluster will receive the current config from DData or recover it from the database if needed.
-
-This architecture ensures that the WoT validation configuration is always up-to-date, consistent, and highly available, even in the face of failures, restarts, or network issues. 
+* [WoT Overview](basic-wot-integration.html) -- WoT integration concepts and static configuration
+* [WoT Integration Example](basic-wot-integration-example.html) -- hands-on walkthrough
+* [Ditto HTTP API reference](http-api-doc.html) -- full API schema details

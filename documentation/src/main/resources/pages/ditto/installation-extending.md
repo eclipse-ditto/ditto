@@ -5,28 +5,35 @@ keywords: running, start, run, docker, docker-compose, extension, custom, config
 permalink: installation-extending.html
 ---
 
-## Create Extensions for Ditto
-Ditto offers the possibility to execute custom behaviour by utilizing Pekko extensions. The places which can be 
-extended by such custom behaviour are marked by extending the `DittoExtensionPoint` interface. Add a new 
-implementation of an interface extending `DittoExtensionPoint` for changing its behaviour.
+You extend Ditto by implementing custom `DittoExtensionPoint` interfaces and loading them into the service via Pekko's classloader.
 
-The implementation needs a public constructor accepting an ActorSystem and Config, for the Pekko Classloader to load 
-the extension via reflection.
+{% include callout.html content="**TL;DR**: Create a Java class implementing a `DittoExtensionPoint` interface, configure it in a `<service>-extension.conf` file, and add the JAR to `/opt/ditto/extensions` in the Docker container." type="primary" %}
+
+## Overview
+
+Ditto provides extension points throughout its codebase, marked by interfaces that extend `DittoExtensionPoint`. You can replace the default behavior at these points by providing your own implementation.
+
+## How it works
+
+### Creating an extension
+
+Your implementation needs a public constructor that accepts an `ActorSystem` and `Config` parameter, which Pekko's classloader uses for reflection-based instantiation:
+
 ```java
 public CustomExtension(final ActorSystem actorSystem, final Config config) {}
 ```
 
-## Configure Extensions
-In order for the Pekko Classloader to load the correct implementation of a `DittoExtensionPoint`, the 
-implementation has to be configured. This can be done by adding the `CONFIG_KEY` of the extension either to the 
-`<service-name>-extension.conf` if the extension should only be loaded in specific services, or to the `reference.conf`
-for a global scope.
+### Configuring an extension
 
-The configuration for an extension consists of two parts:
-* `extension-class`: specify the implementation that should be used by the canonical name.
-* `extension-config`: specify custom configurations for the extension.
+Tell Pekko's classloader which implementation to use by adding the extension's `CONFIG_KEY` to:
+* A `<service-name>-extension.conf` file for service-specific extensions
+* The `reference.conf` for a global scope
 
-```
+Each extension configuration has two parts:
+* `extension-class`: The fully qualified class name of your implementation
+* `extension-config`: Custom configuration for the extension (optional)
+
+```hocon
 ditto.extensions.signal-enrichment-provider {
   extension-class = org.eclipse.ditto.gateway.service.endpoints.utils.DefaultGatewaySignalEnrichmentProvider
   extension-config = {
@@ -39,56 +46,30 @@ ditto.extensions.signal-enrichment-provider {
 }
 ```
 
-If no custom configuration is needed, the `extension-config` can be omitted, thus directly specifying the 
-implementation.
+If your extension needs no custom configuration, use the shorthand form:
 
-```
+```hocon
 ditto.extensions.signal-enrichment-provider = org.eclipse.ditto.gateway.service.endpoints.utils.DefaultGatewaySignalEnrichmentProvider
 ```
 
-## Extend Ditto Docker images
+## Configuration
 
-### Adjusting configuration of Ditto
-Adjusting configuration is also possible using [system properties](installation-operating.html#ditto-configuration).  
-If however lots of configuration changes should be done, a more feasible approach is to provide a 
-[HOCON](https://github.com/lightbend/config/blob/main/HOCON.md) formatted configuration file named 
-`<ditto-service-name>-extension.conf` in the working directory of Ditto's Docker container:
- 
-* for extending Ditto's Policies service: `/opt/ditto/policies-extension.conf`
-* for extending Ditto's Things service: `/opt/ditto/things-extension.conf`
-* for extending Ditto's Search service: `/opt/ditto/search-extension.conf`
-* for extending Ditto's Connectivity service: `/opt/ditto/connectivity-extension.conf`
-* for extending Ditto's Gateway service: `/opt/ditto/gateway-extension.conf`
+### Adjusting service configuration
 
-Those configuration files can contain any [Ditto configuration](installation-operating.html#ditto-configuration) done in
-the service config files.
+For simple configuration changes, use [system properties](operating-configuration.html). For extensive changes, create a [HOCON](https://github.com/lightbend/config/blob/main/HOCON.md) file named `<ditto-service-name>-extension.conf` and place it in the Docker container's working directory:
 
-For example, the [gateway.conf](https://github.com/eclipse-ditto/ditto/blob/master/gateway/service/src/main/resources/gateway.conf)
-contains the following configuration snippet:
-```hocon
-ditto {
-  gateway {
-    health-check {
-      cluster-roles = {
-        enabled = true
-        enabled = ${?HEALTH_CHECK_ROLES_ENABLED} # may be overridden with this environment variable
+| Service | Extension config path |
+|---------|----------------------|
+| Policies | `/opt/ditto/policies-extension.conf` |
+| Things | `/opt/ditto/things-extension.conf` |
+| Search | `/opt/ditto/search-extension.conf` |
+| Connectivity | `/opt/ditto/connectivity-extension.conf` |
+| Gateway | `/opt/ditto/gateway-extension.conf` |
 
-        expected = [
-          "policies",
-          "things",
-          "search",
-          "gateway",
-          "connectivity"
-        ]
-      }
-    }
-  }
-}
-```
+These files can contain any configuration from the [service config files](operating-configuration.html).
 
-If this needs to be adjusted, e.g. because the "connectivity" role should not be checked in the health-check 
-(which could be the case if `ditto-connectivity` should not be started at all in a Ditto installation), this would be 
-possible by creating a `gateway-extension.conf` and adding the following content:
+For example, to remove the "connectivity" role from the Gateway health check, create a `gateway-extension.conf` with:
+
 ```hocon
 ditto.gateway.health-check.cluster-roles = {
   expected = [
@@ -100,48 +81,51 @@ ditto.gateway.health-check.cluster-roles = {
 }
 ```
 
-And then by putting this `gateway-extension.conf`, e.g. as a Docker volume mount, to the path `/opt/ditto/gateway-extension.conf`.
+Then mount the file into the container at `/opt/ditto/gateway-extension.conf`.
 
-### Providing additional functionality by adding `.jars` to the classpath
-The new extensions and their corresponding configuration have to be in the Java classpath of the Ditto service which 
-loads them. To achieve this, the Ditto Docker images automatically add all jars, that are in the home directory of 
-the docker container into the classpath:
+### Adding JARs to the classpath
+
+Ditto Docker images automatically add all JARs from these directories to the classpath:
+
 * `/opt/ditto`
 * `/opt/ditto/extensions`
 
-The easiest way to achieve this, is thus building an 
-extension jar (including the extension classes and extension config files) and adding it to the home `extensions` 
-directory of the Docker container.
+Build your extension as a JAR (including extension classes and config files) and place it in the `extensions` directory.
 
-## Example
-* Create a new implementation of the `CustomApiRoutesProvider`, overriding the `unauthorized(*)` and 
-  `authorized(*)` functions, returning custom HTTP API routes.
-* Build the project to a new `gateway-extension.jar`
-* Add the `gateway-extension.jar` to the `/opt/ditto/extensions` directory of the Docker images, by i.e. copying the jar 
-  into the container.
-    ```
-    docker cp gateway-extension.jar container_id:/opt/ditto/extensions/
-    ```
-* Configure the new `CustomApiRoutesProvider` via a file `gateway-extension.conf`
-    ```
-    ditto.extensions.custom-api-routes-provider = org.company.project.gateway.service.endpoints.utils.MyCustomApiRoutesProvider
-    ```
-* Add the `gateway-extension.conf` to the `/opt/ditto` directory of the Docker images
-    ```
-    docker cp gateway-extension.conf container_id:/opt/ditto/
-    ```
-  
-Alternatively, you can of course also mount the extension `.jar` and `.conf` file into the Docker containers, e.g.
-via docker-compose:
+## Examples
+
+### Custom API routes
+
+1. Create a new implementation of `CustomApiRoutesProvider`, overriding the `unauthorized(*)` and `authorized(*)` functions to return custom HTTP API routes.
+2. Build the project into a `gateway-extension.jar`.
+3. Add the JAR to the container:
+   ```bash
+   docker cp gateway-extension.jar container_id:/opt/ditto/extensions/
+   ```
+4. Create a `gateway-extension.conf`:
+   ```hocon
+   ditto.extensions.custom-api-routes-provider = org.company.project.gateway.service.endpoints.utils.MyCustomApiRoutesProvider
+   ```
+5. Add the config to the container:
+   ```bash
+   docker cp gateway-extension.conf container_id:/opt/ditto/
+   ```
+
+Alternatively, mount both files via docker-compose:
+
 ```yaml
-  connectivity:
-    image: docker.io/eclipse/ditto-gateway:${DITTO_VERSION:-latest}
-    ...
-    environment:
-      - TZ=Europe/Berlin
-      - JAVA_TOOL_OPTIONS=-Dlogback.configurationFile=/opt/ditto/logback.xml
-    volumes:
-      - ./gateway-extension.conf:/opt/ditto/gateway-extension.conf
-      - ./logback.xml:/opt/ditto/logback.xml
-      - ./gateway-extension.jar:/opt/ditto/extensions/gateway-extension.jar
+connectivity:
+  image: docker.io/eclipse/ditto-gateway:${DITTO_VERSION:-latest}
+  environment:
+    - TZ=Europe/Berlin
+    - JAVA_TOOL_OPTIONS=-Dlogback.configurationFile=/opt/ditto/logback.xml
+  volumes:
+    - ./gateway-extension.conf:/opt/ditto/gateway-extension.conf
+    - ./logback.xml:/opt/ditto/logback.xml
+    - ./gateway-extension.jar:/opt/ditto/extensions/gateway-extension.jar
 ```
+
+## Further reading
+
+* [Operating - Configuration](operating-configuration.html)
+* [Architecture Overview](architecture-overview.html)

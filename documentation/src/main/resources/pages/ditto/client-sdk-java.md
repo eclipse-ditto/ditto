@@ -1,30 +1,30 @@
 ---
-title: Client SDK Java
-keywords: 
+title: Java SDK
+keywords:
 tags: [client_sdk]
 permalink: client-sdk-java.html
 ---
 
-A client SDK for Java in order to interact with digital twins provided by an Eclipse Ditto backend.
+The Ditto Java client SDK lets you manage digital twins, receive change notifications, exchange messages, and search for Things -- all from Java applications.
 
-## Features
+{% include callout.html content="**TL;DR**: Add the `ditto-client` Maven dependency, create a `DittoClient` instance with WebSocket messaging, and use `client.twin()`, `client.live()`, and `client.policies()` to interact with your Ditto backend." type="primary" %}
 
-* Digital twin management: CRUD (create, read, update, delete) of Ditto [things](https://www.eclipse.dev/ditto/basic-thing.html)
-* [Change notifications](https://www.eclipse.dev/ditto/basic-changenotifications.html): 
-  consume notifications whenever a "watched" digital twin is modified 
-* Send/receive [messages](https://www.eclipse.dev/ditto/basic-messages.html) to/from devices connected via a digital twin
-* Use the [live channel](https://www.eclipse.dev/ditto/protocol-twinlive.html#live) in order to react on commands directed
-  to devices targeting their "live" state
+## Overview
 
-## Communication channel
+The Java SDK communicates with Ditto over [WebSocket](httpapi-protocol-bindings-websocket.html) using the [Ditto Protocol](protocol-overview.html). It provides a type-safe, asynchronous API for:
 
-The Ditto Java client interacts with an Eclipse Ditto backend via Ditto's 
-[WebSocket](https://www.eclipse.dev/ditto/httpapi-protocol-bindings-websocket.html) sending and receiving messages
-in [Ditto Protocol](https://www.eclipse.dev/ditto/protocol-overview.html).
+* **Twin management** -- create, read, update, and delete [Things](basic-thing.html)
+* **Change notifications** -- receive events when digital twins are modified
+* **Messages** -- send and receive [messages](basic-messages.html) to/from devices
+* **Live channel** -- interact with devices via the [live channel](protocol-twinlive.html)
+* **Policy management** -- manage [Policies](basic-policy.html)
+* **Search** -- find Things using [RQL](basic-rql.html) expressions
 
-## Usage
+## Getting started
 
-Maven coordinates:
+### Installation
+
+Add the Maven dependency:
 
 ```xml
 <dependency>
@@ -34,14 +34,36 @@ Maven coordinates:
 </dependency>
 ```
 
-### Instantiate & configure a new Ditto client
+### Create a client instance
 
-To configure your Ditto client instance, use the `org.eclipse.ditto.client.configuration` package in order to 
-* create instances of `AuthenticationProvider` and `MessagingProvider`
-* create a `DisconnectedDittoClient` instance
-* obtain a `DittoClient` instance asynchronously by calling `.connect()`
+Configure authentication and messaging, then connect:
 
-For example:
+```java
+AuthenticationProvider authenticationProvider =
+    AuthenticationProviders.clientCredentials(
+        ClientCredentialsAuthenticationConfiguration.newBuilder()
+            .clientId("my-oauth-client-id")
+            .clientSecret("my-oauth-client-secret")
+            .scopes("offline_access email")
+            .tokenEndpoint("https://my-oauth-provider/oauth/token")
+            .build());
+
+MessagingProvider messagingProvider =
+    MessagingProviders.webSocket(
+        WebSocketMessagingConfiguration.newBuilder()
+            .endpoint("wss://ditto.eclipseprojects.io")
+            .build(),
+        authenticationProvider);
+
+DisconnectedDittoClient disconnectedDittoClient =
+    DittoClients.newInstance(messagingProvider);
+
+disconnectedDittoClient.connect()
+    .thenAccept(this::startUsingDittoClient)
+    .exceptionally(error -> disconnectedDittoClient.destroy());
+```
+
+You can optionally configure a proxy and TLS trust store:
 
 ```java
 ProxyConfiguration proxyConfiguration =
@@ -50,225 +72,219 @@ ProxyConfiguration proxyConfiguration =
         .proxyPort(3128)
         .build();
 
-AuthenticationProvider authenticationProvider =
-    AuthenticationProviders.clientCredentials(ClientCredentialsAuthenticationConfiguration.newBuilder()
-        .clientId("my-oauth-client-id")
-        .clientSecret("my-oauth-client-secret")
-        .scopes("offline_access email")
-        .tokenEndpoint("https://my-oauth-provider/oauth/token")
-        // optionally configure a proxy server
-        .proxyConfiguration(proxyConfiguration)
-        .build());
+// Add to authentication configuration:
+// .proxyConfiguration(proxyConfiguration)
 
-MessagingProvider messagingProvider =
-    MessagingProviders.webSocket(WebSocketMessagingConfiguration.newBuilder()
-        .endpoint("wss://ditto.eclipseprojects.io")
-        // optionally configure a proxy server or a truststore containing the trusted CAs for SSL connection establishment
-        .proxyConfiguration(proxyConfiguration)
-        .trustStoreConfiguration(TrustStoreConfiguration.newBuilder()
-            .location(TRUSTSTORE_LOCATION)
-            .password(TRUSTSTORE_PASSWORD)
-            .build())
-        .build(), authenticationProvider);
-
-DisconnectedDittoClient disconnectedDittoClient = DittoClients.newInstance(messagingProvider);
-
-disconnectedDittoClient.connect()
-    .thenAccept(this::startUsingDittoClient)
-    .exceptionally(error -> disconnectedDittoClient.destroy());
-
+// Add to messaging configuration:
+// .proxyConfiguration(proxyConfiguration)
+// .trustStoreConfiguration(TrustStoreConfiguration.newBuilder()
+//     .location(TRUSTSTORE_LOCATION)
+//     .password(TRUSTSTORE_PASSWORD)
+//     .build())
 ```
 
-### Use the Ditto client
+## Examples
 
-#### Manage twins
+### Manage twins
+
+Create a Thing and set an attribute:
 
 ```java
-client.twin().create("org.eclipse.ditto:new-thing").handle((createdThing, throwable) -> {
-    if (createdThing != null) {
-        System.out.println("Created new thing: " + createdThing);
-    } else {
-        System.out.println("Thing could not be created due to: " + throwable.getMessage());
-    }
-    return client.twin().forId(thingId).putAttribute("first-updated-at", OffsetDateTime.now().toString());
-}).toCompletableFuture().get(); // this will block the thread! work asynchronously whenever possible!
+client.twin().create("org.eclipse.ditto:new-thing")
+    .handle((createdThing, throwable) -> {
+        if (createdThing != null) {
+            System.out.println("Created: " + createdThing);
+        } else {
+            System.out.println("Error: " + throwable.getMessage());
+        }
+        return client.twin().forId(thingId)
+            .putAttribute("first-updated-at",
+                OffsetDateTime.now().toString());
+    })
+    .toCompletableFuture()
+    .get(); // blocks -- work asynchronously when possible
 ```
 
-#### Subscribe for change notifications
+### Subscribe for change notifications
 
-In order to subscribe for [events](basic-signals-event.html) emitted by Ditto after a twin was modified, start the 
-consumption on the `twin` channel:
+Listen for Thing modifications:
 
 ```java
-client.twin().startConsumption().toCompletableFuture().get(); // this will block the thread! work asynchronously whenever possible!
-System.out.println("Subscribed for Twin events");
-client.twin().registerForThingChanges("my-changes", change -> {
-   if (change.getAction() == ChangeAction.CREATED) {
-       System.out.println("An existing Thing was modified: " + change.getThing());
-       // perform custom actions ..
-   }
-});
+client.twin().startConsumption()
+    .toCompletableFuture().get();
+
+client.twin().registerForThingChanges("my-changes",
+    change -> {
+        if (change.getAction() == ChangeAction.CREATED) {
+            System.out.println("Thing modified: "
+                + change.getThing());
+        }
+    });
 ```
 
-There is also the possibility here to apply *server side filtering* of which events will get delivered to the client:
+Apply server-side filtering to receive only relevant events:
 
 ```java
 client.twin().startConsumption(
-   Options.Consumption.filter("gt(features/temperature/properties/value,23.0)")
-).toCompletableFuture().get(); // this will block the thread! work asynchronously whenever possible!
-System.out.println("Subscribed for Twin events");
-client.twin().registerForFeaturePropertyChanges("my-feature-changes", "temperature", "value", change -> {
-   // perform custom actions ..
-});
+    Options.Consumption.filter(
+        "gt(features/temperature/properties/value,23.0)")
+).toCompletableFuture().get();
+
+client.twin().registerForFeaturePropertyChanges(
+    "my-feature-changes", "temperature", "value",
+    change -> { /* handle change */ });
 ```
 
-##### Subscribe to enriched change notifications
+#### Enriched change notifications
 
-In order to use [enrichment](basic-enrichment.html) in the Ditto Java client, the `startConsumption()` call can be
-enhanced with the additional extra fields:
+Request [extra fields](basic-enrichment.html) with each notification:
 
 ```java
 client.twin().startConsumption(
-   Options.Consumption.extraFields(JsonFieldSelector.newInstance("attributes/location"))
-).toCompletableFuture().get(); // this will block the thread! work asynchronously whenever possible!
-client.twin().registerForThingChanges("my-enriched-changes", change -> {
-   Optional<JsonObject> extra = change.getExtra();
-   // perform custom actions, making use of the 'extra' data ..
-});
+    Options.Consumption.extraFields(
+        JsonFieldSelector.newInstance("attributes/location"))
+).toCompletableFuture().get();
+
+client.twin().registerForThingChanges("my-enriched-changes",
+    change -> {
+        Optional<JsonObject> extra = change.getExtra();
+        // use extra data
+    });
 ```
 
-In combination with a `filter`, the extra fields may also be used as part of such a filter:
+### Send and receive messages
+
+Register a handler for messages with subject `hello.world`:
 
 ```java
-client.twin().startConsumption(
-   Options.Consumption.extraFields(JsonFieldSelector.newInstance("attributes/location")),
-   Options.Consumption.filter("eq(attributes/location,\"kitchen\")")
-).toCompletableFuture().get(); // this will block the thread! work asynchronously whenever possible!
-// register the callbacks...
+client.live().startConsumption()
+    .toCompletableFuture().get();
+
+client.live().registerForMessage(
+    "globalMessageHandler", "hello.world",
+    message -> {
+        System.out.println("Received: " + message.getSubject());
+        message.reply()
+            .statusCode(HttpStatusCode.IM_A_TEAPOT)
+            .payload("Hello, I'm just a Teapot!")
+            .send();
+    });
 ```
 
-
-#### Send/receive messages
-
-Register for receiving messages with the subject `hello.world` on any thing:
-
-```java
-client.live().startConsumption().toCompletableFuture().get(); // this will block the thread! work asynchronously whenever possible!
-System.out.println("Subscribed for live messages/commands/events");
-client.live().registerForMessage("globalMessageHandler", "hello.world", message -> {
-   System.out.println("Received Message with subject " +  message.getSubject());
-   message.reply()
-      .statusCode(HttpStatusCode.IM_A_TEAPOT)
-      .payload("Hello, I'm just a Teapot!")
-      .send();
-});
-```
-
-Send a message with the subject `hello.world` to the thing with ID `org.eclipse.ditto:new-thing`:
+Send a message to a specific Thing:
 
 ```java
 client.live().forId("org.eclipse.ditto:new-thing")
-   .message()
-   .from()
-   .subject("hello.world")
-   .payload("I am a Teapot")
-   .send(String.class, (response, throwable) ->
-      System.out.println("Got response: " + response.getPayload().orElse(null))
-   );
+    .message()
+    .from()
+    .subject("hello.world")
+    .payload("I am a Teapot")
+    .send(String.class, (response, throwable) ->
+        System.out.println("Response: "
+            + response.getPayload().orElse(null)));
 ```
 
-#### Manage policies
+### Manage policies
 
-Read a policy:
-```java
-Policy retrievedPolicy = client.policies().retrieve(PolicyId.of("org.eclipse.ditto:new-policy"))
-   .toCompletableFuture().get(); // this will block the thread! work asynchronously whenever possible!
-```
+Read and create Policies:
 
-Create a policy:
 ```java
-Policy newPolicy = Policy.newBuilder(PolicyId.of("org.eclipse.ditto:new-policy"))
-   .forLabel("DEFAULT")
-   .setSubject(Subject.newInstance(SubjectIssuer.newInstance("nginx"), "ditto"))
-   .setGrantedPermissions(PoliciesResourceType.policyResource("/"), "READ", "WRITE")
-   .setGrantedPermissions(PoliciesResourceType.thingResource("/"), "READ", "WRITE")
-   .build();
+// Read
+Policy policy = client.policies()
+    .retrieve(PolicyId.of("org.eclipse.ditto:new-policy"))
+    .toCompletableFuture().get();
+
+// Create
+Policy newPolicy = Policy.newBuilder(
+        PolicyId.of("org.eclipse.ditto:new-policy"))
+    .forLabel("DEFAULT")
+    .setSubject(Subject.newInstance(
+        SubjectIssuer.newInstance("nginx"), "ditto"))
+    .setGrantedPermissions(
+        PoliciesResourceType.policyResource("/"),
+        "READ", "WRITE")
+    .setGrantedPermissions(
+        PoliciesResourceType.thingResource("/"),
+        "READ", "WRITE")
+    .build();
 
 client.policies().create(newPolicy)
-   .toCompletableFuture().get(); // this will block the thread! work asynchronously whenever possible!
+    .toCompletableFuture().get();
 ```
 
-Updating and deleting policies is also possible via the Java client API, please follow the API and the JavaDoc.
+### Search for Things
 
-#### Search for things
+Use the Java Stream API:
 
-Search for things using the Java 8 `java.util.Stream` API:
 ```java
 client.twin().search()
-   .stream(queryBuilder -> queryBuilder.namespace("org.eclipse.ditto")
-      .filter("eq(attributes/location,'kitchen')") // apply RQL expression here
-      .options(builder -> builder.sort(s -> s.desc("thingId")).size(1))
-   )
-   .forEach(foundThing -> System.out.println("Found thing: " + foundThing));
+    .stream(queryBuilder -> queryBuilder
+        .namespace("org.eclipse.ditto")
+        .filter("eq(attributes/location,'kitchen')")
+        .options(builder -> builder
+            .sort(s -> s.desc("thingId"))
+            .size(1)))
+    .forEach(thing ->
+        System.out.println("Found: " + thing));
 ```
 
-Use an [RQL](basic-rql.html) query in order to filter for the searched things.
+Or use the reactive streams Publisher API:
 
-Search for things using the reactive streams `org.reactivestreams.Publisher` API:
 ```java
 Publisher<List<Thing>> publisher = client.twin().search()
-   .publisher(queryBuilder -> queryBuilder.namespace("org.eclipse.ditto")
-      .filter("eq(attributes/location,'kitchen')") // apply RQL expression here
-      .options(builder -> builder.sort(s -> s.desc("thingId")).size(1))
-   );
-// integrate the publisher in the reactive streams library of your choice, e.g. Pekko streams:
-org.apache.pekko.stream.javadsl.Source<Thing, NotUsed> things = org.apache.pekko.stream.javadsl.Source.fromPublisher(publisher)
-   .flatMapConcat(Source::from);
-// .. proceed working with the Pekko Source ..
+    .publisher(queryBuilder -> queryBuilder
+        .namespace("org.eclipse.ditto")
+        .filter("eq(attributes/location,'kitchen')")
+        .options(builder -> builder
+            .sort(s -> s.desc("thingId"))
+            .size(1)));
 ```
 
+### Request and issue acknowledgements
 
-#### Request and issue acknowledgements
-
-[Requesting acknowledgements](basic-acknowledgements.html#requesting-acks) is possible in the Ditto Java 
-client in the following way:
+Request [acknowledgements](basic-acknowledgements.html) for a command:
 
 ```java
 DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-   .acknowledgementRequest(
-      AcknowledgementRequest.of(DittoAcknowledgementLabel.PERSISTED),
-      AcknowledgementRequest.of(AcknowledgementLabel.of("my-custom-ack"))
-   )
-   .timeout("5s")
-   .build();
+    .acknowledgementRequest(
+        AcknowledgementRequest.of(
+            DittoAcknowledgementLabel.PERSISTED),
+        AcknowledgementRequest.of(
+            AcknowledgementLabel.of("my-custom-ack")))
+    .timeout("5s")
+    .build();
 
-client.twin().forId(ThingId.of("org.eclipse.ditto:my-thing"))
-   .putAttribute("counter", 42, Options.dittoHeaders(dittoHeaders))
-   .whenComplete((aVoid, throwable) -> {
-      if (throwable instanceof AcknowledgementsFailedException) {
-         Acknowledgements acknowledgements = ((AcknowledgementsFailedException) throwable).getAcknowledgements();
-         System.out.println("Acknowledgements could not be fulfilled: " + acknowledgements);
-      }   
-   });
+client.twin()
+    .forId(ThingId.of("org.eclipse.ditto:my-thing"))
+    .putAttribute("counter", 42,
+        Options.dittoHeaders(dittoHeaders))
+    .whenComplete((aVoid, throwable) -> {
+        if (throwable instanceof AcknowledgementsFailedException) {
+            Acknowledgements acks =
+                ((AcknowledgementsFailedException) throwable)
+                    .getAcknowledgements();
+            System.out.println("Acks failed: " + acks);
+        }
+    });
 ```
 
-[Issuing requested acknowledgements](basic-acknowledgements.html#issuing-acknowledgements) can be done like this 
-whenever a `Change` callback is invoked with a change notification:
+Issue a custom acknowledgement when handling a change:
 
 ```java
 client.twin().registerForThingChanges("REG1", change -> {
-   change.handleAcknowledgementRequest(AcknowledgementLabel.of("my-custom-ack"), ackHandle ->
-      ackHandle.acknowledge(HttpStatusCode.NOT_FOUND, JsonObject.newBuilder()
-         .set("error-detail", "Could not be found")
-         .build()
-      )
-   );
+    change.handleAcknowledgementRequest(
+        AcknowledgementLabel.of("my-custom-ack"),
+        ackHandle -> ackHandle.acknowledge(
+            HttpStatusCode.NOT_FOUND,
+            JsonObject.newBuilder()
+                .set("error-detail", "Could not be found")
+                .build()));
 });
 ```
 
+## Further reading
 
-## Further examples
-
-For further examples on how to use the Ditto client, please have a look at the class 
-[DittoClientUsageExamples](https://github.com/eclipse-ditto/ditto-clients/blob/master/java/src/test/java/org/eclipse/ditto/client/DittoClientUsageExamples.java)
- which is configured to connect to the [Ditto sandbox](https://ditto.eclipseprojects.io).
+* [DittoClientUsageExamples](https://github.com/eclipse-ditto/ditto-clients/blob/master/java/src/test/java/org/eclipse/ditto/client/DittoClientUsageExamples.java) -- complete example code
+* [Ditto sandbox](https://ditto.eclipseprojects.io) -- test environment for the examples
+* [WebSocket binding](httpapi-protocol-bindings-websocket.html) -- underlying transport
+* [Ditto Protocol](protocol-overview.html) -- message format reference

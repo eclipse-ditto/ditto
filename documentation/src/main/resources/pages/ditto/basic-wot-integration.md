@@ -13,8 +13,7 @@ Using this integration, Ditto managed digital twins can be linked to WoT "Thing 
 WoT "Thing Descriptions" containing the API descriptions of the twins.
 
 The WoT integration is considered stable and therefore active by default starting with Ditto version `3.0.0`.  
-If it should be disabled, it can be deactivated via a "feature toggle":  
-In order to deactivate the WoT integration, configure the following environment variable for all Ditto services:
+To disable the WoT integration, configure the following environment variable for all Ditto services:
 
 ```bash
 DITTO_DEVOPS_FEATURE_WOT_INTEGRATION_ENABLED=false
@@ -49,12 +48,12 @@ But also other protocol bindings may be defined in a `form`, e.g. MQTT or CoAP.
 
 The "WoT Thing Description" specification version 1.0 was already published as 
 ["W3C Recommendation" in April 2020](https://www.w3.org/TR/wot-thing-description/), the next version 1.1 adds the 
-concept of "Thing Models" (TM) which can be seen as a template for generating "Thing Descriptions" but without some of
+concept of "Thing Models" (TM) which serves as a template for generating "Thing Descriptions" but without some of
 its mandatory fields, e.g. `forms` including the protocol bindings.
 
 With the addition of the "Thing Model" concept, WoT becomes a perfect fit for describing the capabilities of 
 [Digital Twins](intro-digitaltwins.html) managed in Ditto.
-It is completely optional and even possible as "retrofit" model addition for already connected devices / already existing twins.
+You can optionally add it as a "retrofit" model addition for already connected devices / already existing twins.
 
 The benefits of adding such a "Thing Model" reference to digital twins managed in Ditto are:
 * possibility to define model for data (Ditto Thing `attributes` + Ditto Feature `properties`), e.g. containing:
@@ -103,7 +102,7 @@ This description contains not only the interaction capabilities (`properties` th
 
 ### WoT Thing Model
 
-A [Thing Model](https://www.w3.org/TR/wot-thing-description11/#introduction-tm) can be seen as the model 
+A [Thing Model](https://www.w3.org/TR/wot-thing-description11/#introduction-tm) serves as the model 
 (or interface in OOP terminology) for a potentially huge population of instances (Thing Descriptions) all "implementing"
 this contract.  
 It does not need to contain the instance specific parts which a TD must include (e.g. `security` definitions or `forms`).
@@ -684,7 +683,7 @@ To use the Ditto WoT extension in your Thing Models or Thing Descriptions, add i
 }
 ```
 
-### Ditto WoT Extension: category
+### The `category` term
 
 The [category](https://ditto.eclipseprojects.io/wot/ditto-extension#category) is a term which can be added in scope of
 WoT TM/TD [Property Affordances](https://www.w3.org/TR/wot-thing-description11/#propertyaffordance).  
@@ -750,7 +749,7 @@ Based on the example above, a generated feature JSON would for example look like
 }
 ```
 
-### Ditto WoT Extension: deprecationNotice
+### The `deprecationNotice` term
 
 The [deprecationNotice](https://ditto.eclipseprojects.io/wot/ditto-extension#deprecationNotice) is a term which can be
 added at the WoT TM/TD (Thing) level, or in scope of
@@ -1055,3 +1054,10 @@ wot-directory {
 
 The example can be found on a [dedicated page](basic-wot-integration-example.html) as the JSONs included in the
 example are quite long.
+
+## Further reading
+
+* [WoT Integration Example](basic-wot-integration-example.html) -- step-by-step walkthrough
+* [WoT Validation Configuration](basic-wot-validation-config.html) -- runtime validation API
+* [W3C WoT Thing Description 1.1](https://www.w3.org/TR/wot-thing-description11/) -- the specification
+* [Web of Things in a Nutshell](https://www.w3.org/WoT/documentation/) -- W3C introduction

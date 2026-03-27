@@ -1,58 +1,51 @@
 ---
-title: Eclipse Ditto™ documentation overview
+title: What is Eclipse Ditto?
 keywords: purpose, about, motivation, digital twin, digitaltwin, twin
 tags: [getting_started]
 permalink: intro-overview.html
 ---
 
+Eclipse Ditto is an open-source framework for building [digital twins](intro-digitaltwins.html) in the
+<a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.iot}}">IoT</a>.
+It lets you represent physical devices -- sensors, machines, vehicles, and more -- as JSON-based
+"Things" that your applications interact with through standard web APIs.
+
+{% include callout.html content="**TL;DR**: Ditto provides a ready-to-use backend for managing digital twins, so you can
+interact with devices through HTTP, WebSocket, and messaging APIs without building a custom IoT backend." type="primary" %}
 
 ## What is it?
 
-Eclipse Ditto™ is a technology in the <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.iot}}">IoT</a> 
-implementing a software pattern called “**[digital twins](intro-digitaltwins.html)**”.<br/>
-A digital twin is a virtual, cloud based, representation of his real world counterpart 
-(real world “Things”, e.g. devices like sensors, smart heating, connected cars, smart grids, EV charging stations, …).
+Ditto mirrors real-world devices as virtual "Things" in the cloud. Each Thing holds the device's
+last-known state, its metadata, and a policy that controls who can read or write its data.
 
-The technology mirrors potentially millions and billions of digital twins residing in the digital world 
-with physical “**Things**”. This simplifies developing IoT solutions for software developers as they do not need 
-to know how or where exactly the physical “Things” are connected.
-
-With Ditto a thing can just be used as any other web service via its digital twin.
-
+Your applications never need to know *how* a device connects or *which protocol* it speaks.
+You work with a Thing the same way you work with any web resource: through REST-style APIs.
 
 ## What is it not?
 
-Ditto is not another fully-fledged IoT platform. It does not provide software running on IoT gateways, and it does not
-define or implement an IoT protocol in order to communicate with devices.
+Ditto is **not** an end-to-end IoT platform. It does not:
 
-Its focus lies on back end scenarios by providing web APIs in order to simplify working with already connected (e.g. 
-via [Eclipse Hono](https://www.eclipse.org/hono/)) devices and “Things” from customer apps or other back end software.
+* Run software on gateways or edge devices
+* Define or implement a device communication protocol
+* Prescribe the data structure a device must use
 
-It also does not specify which data or which structure a “Thing” in the IoT has to provide. 
-
+Ditto focuses on the **backend layer**. It assumes your devices are already connected to the internet
+(for example via [Eclipse Hono](https://www.eclipse.org/hono/)) and provides web APIs so your
+applications can work with those devices as digital twins.
 
 ## When to use it?
 
-  {% include callout.html content="**TL;DR**<br/>Use it in order to get a fully-fledged, authorization aware API 
-  (HTTP, WebSocket and other messaging protocols) for interacting with your digital twins and all aspects around them." type="primary" %}
+Consider a typical IoT solution. You have hardware (sensors, actuators) and software (mobile apps,
+dashboards, backend services). The backend is responsible for:
 
-Imagine you are building an IoT solution. And let's assume that you use both hardware (e.g. sensors or actuators) and
-software (e.g. a mobile or web app) in order to solve your customer's problem.
+* **Providing an API** that abstracts away hardware details
+* **Routing requests** between devices and applications
+* **Enforcing authorization** so that each user or service accesses only the data it should
+* **Caching device state** so applications can read data even when a device is offline
+* **Notifying interested parties** when device state changes
 
-In such a scenario you have several places where to implement software:
-* on or near the hardware, e.g. on an Arduino using `C/C++` or on an Raspberry PI using `Python`,
-* optionally on a gateway establishing the Internet connectivity (e.g. based on [Eclipse Kura](https://www.eclipse.org/kura/)),
-* in the mobile or web app using `Java`, `Javascript`, `Swift` etc.,
-* in the “back end” fulfilling several responsibilities like
-    * providing an API abstracting from the hardware,
-    * routing requests between hardware and customer apps,
-    * ensuring only authorized access,
-    * persisting last reported state of hardware as cache and for providing the data when hardware is currently not connected,
-    * notifying interested parties (e.g. other back end services) about changes,
-    * …
+Ditto handles all of these responsibilities out of the box.
 
-Ditto focuses on solving the responsibilities a typical “back end” has in such scenarios.
-
-  {% include callout.html content="Its goal is to free IoT solutions from the need of implementing and operating a 
-  custom back end. Instead by using Eclipse Ditto they can focus on business requirements, on connecting devices to
-  the cloud/back end and on implementing business applications." type="info" %} 
+{% include callout.html content="Ditto's goal is to eliminate the need to build and operate a custom IoT backend.
+You focus on connecting your devices and building your business applications -- Ditto handles
+everything in between." type="info" %}

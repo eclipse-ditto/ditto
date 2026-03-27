@@ -9,16 +9,16 @@ permalink: installation-operating.html
 
 Once you have successfully started Ditto, proceed with setting it up for continuous operation.
 
-This page shows the basics for operating Ditto.
+This page covers the basics for operating Ditto.
 
 ## Configuration
 
-Ditto has many config parameters which can be set in the config files or via environment variables.
-This section will cover some of Ditto's config parameters.
+You configure Ditto through config files or environment variables.
+This section covers key configuration parameters.
 
 ### MongoDB configuration
-If you choose not to use the MongoDB container and instead use a dedicated MongoDB you can use
-the following environment variables in order to configure the connection to the MongoDB.
+If you use a dedicated MongoDB instead of the bundled container, configure the connection with
+these environment variables:
 
 * `MONGO_DB_URI`: Connection string to MongoDB
 * `MONGO_DB_SSL_ENABLED`: Enabled SSL connection to MongoDB
@@ -31,7 +31,7 @@ the following environment variables in order to configure the connection to the 
 
 #### Passwordless authentication at MongoDB via AWS IAM
 
-Starting with Ditto `3.6.0`, it is possible to [set up authentication with AWS IAM](https://www.mongodb.com/docs/atlas/security/aws-iam-authentication/).
+Since Ditto `3.6.0`, you can [set up authentication with AWS IAM](https://www.mongodb.com/docs/atlas/security/aws-iam-authentication/).
 
 To enable this:
 1. configure your Kubernetes serviceaccount with the role ARN via annotation `eks.amazonaws.com/role-arn`
@@ -92,25 +92,23 @@ things:
 
 ### Ditto configuration
 
-Each of Ditto's microservice has many options for configuration, e.g. timeouts, cache sizes, etc.
+Each Ditto microservice has many configuration options (timeouts, cache sizes, etc.).
 
-In order to have a look at all possible configuration options and what default values they have, here are the 
-configuration files of Ditto's microservices:
+To review all available options and their defaults, see the configuration files:
 * Policies: [policies.conf](https://github.com/eclipse-ditto/ditto/blob/master/policies/service/src/main/resources/policies.conf)
 * Things: [things.conf](https://github.com/eclipse-ditto/ditto/blob/master/things/service/src/main/resources/things.conf)
 * Things-Search: [things-search.conf](https://github.com/eclipse-ditto/ditto/blob/master/thingsearch/service/src/main/resources/search.conf)
 * Connectivity: [connectivity.conf](https://github.com/eclipse-ditto/ditto/blob/master/connectivity/service/src/main/resources/connectivity.conf)
 * Gateway: [gateway.conf](https://github.com/eclipse-ditto/ditto/blob/master/gateway/service/src/main/resources/gateway.conf)
 
-Whenever you find the syntax `${?UPPER_CASE_ENV_NAME}` in the configuration files, you may overwrite the default value
-by specifying that environment variable when running the container.
+When you see `${?UPPER_CASE_ENV_NAME}` in the configuration files, you can override the default value
+by setting that environment variable when running the container.
 
-When no environment variable is defined in the config, you may change the default value anyway by specifying a
-"System property" you pass to the Java process.
+If no environment variable is defined in the config, you can still change the default by passing a
+"System property" to the Java process.
 
-The following example configures the devops password of the gateway-service started via docker-compose. In order
-to supply additional configuration one has to add the variable in the corresponding `command` section of the
-`docker-compose.yml` file.
+The following example configures the devops password of the gateway-service started via docker-compose. Add the variable in the corresponding `command` section of the
+`docker-compose.yml` file:
 
 ```yml
 ...
@@ -124,13 +122,13 @@ the `-jar` option.
 
 ### Pre-authentication
 
-HTTP API calls to Ditto may be authenticated with a reverse proxy (e.g. a nginx) which:
+You can authenticate HTTP API calls to Ditto with a reverse proxy (e.g. nginx) that:
 * authenticates a user/subject
 * passes the authenticated username as HTTP header
 * ensures that this HTTP header can never be written by the end-user
 
 By default, `pre-authentication` is **disabled** in the Ditto [gateway](architecture-services-gateway.html) services.
-It can however be enabled by configuring the environment variable `ENABLE_PRE_AUTHENTICATION` to the value `true`.
+Enable it by setting the environment variable `ENABLE_PRE_AUTHENTICATION` to `true`.
 
 When it is enabled, the reverse proxy has to set the HTTP header `x-ditto-pre-authenticated`.<br/>
 The format of the "pre-authenticated" string is: `<issuer>:<subject>`. The issuer defines which system authenticated 
@@ -139,7 +137,7 @@ the user and the subject contains e.g. the user-id or -name.
 This string must then be used in [policies](basic-policy.html#subjects) as "Subject ID".
 
 Example for a nginx "proxy" configuration:
-```
+```text
 auth_basic                    "Authentication required";
 auth_basic_user_file          nginx.htpasswd;
 ...
@@ -149,7 +147,7 @@ proxy_set_header              x-ditto-pre-authenticated "nginx:${remote_user}";
 
 ### OpenID Connect
 
-The authentication provider must be added to the ditto-gateway configuration with unique configuration key 
+Add the authentication provider to the ditto-gateway configuration with a unique key
 (e.g. `myprovier` in the example below).
 
 Either `issuer` as single supported JWT `"iss"` claim or `issuers` (as a list of supported JWT `"iss"` claims) has to be 
@@ -173,7 +171,7 @@ Using `inject-claims-into-headers`, it e.g. is possible to add the email address
 header to a command so that e.g. in logging it can be determined which user caused a change.
 
 
-```
+```hocon
 ditto.gateway.authentication {
     oauth {
       openid-connect-issuers = {
@@ -240,7 +238,7 @@ it to Ditto as `Authorization` header.
 **If the chosen OIDC provider uses a self-signed certificate**, the certificate has to be retrieved and configured for 
 the pekko-http ssl configuration.
 
-```
+```hocon
 ssl-config {
   trustManager = {
     stores = [
@@ -286,7 +284,7 @@ above ([EncryptorAesGcm.generateAESKeyAsString()](https://github.com/eclipse-dit
 #### Fields config
 The fields to be encrypted are configurable as json pointers and the default ones are:
 
-```
+```text
         /uri
         /credentials/key
         /sshTunnel/credentials/password
@@ -514,7 +512,7 @@ be customized, and the ability to create new entities can be restricted.
 In the `ditto-entity-creation.conf`, you can re-configure the `entity-creation` section to suit your needs.  
 The basic schema is:
 
-```
+```hocon
 # restrict entity creation
 ditto.entity-creation {
    # this default entry allows every authenticated "auth-subject" to create any "resource-type" in any "namespace":
@@ -562,7 +560,7 @@ An entry matches, when all the following conditions are met:
 This means, an existing entry, with all empty lists, will match. So the default configuration, allowing all access,
 can be as simple as:
 
-```
+```hocon
 ditto.entity-creation {
   grant = [{}]
 }

@@ -5,34 +5,35 @@ tags: [http]
 permalink: httpapi-messages.html
 ---
 
-The HTTP API allows sending Messages **to** and **from** Things and its Features.
-To dive into the basic concepts of the Messages functionality, please have a look 
-at the [Messages page](basic-messages.html). 
+You send messages to and from Things and Features through the HTTP API, enabling command-and-control communication with devices.
+
+{% include callout.html content="**TL;DR**: Send a `POST` to a Thing's or Feature's `inbox` to send it a message, or to its `outbox` to send a message from it. Use the `timeout` parameter to control how long Ditto waits for a response." type="primary" %}
 
 {% include tip.html content="Check out the [WebSocket Messages API](protocol-specification-things-messages.html)
 if you also need to *receive* or *reply* to Messages." %}
 
-This page gives you a quick hands-on introduction to the HTTP Messages API. To learn
-about the parameters, constraints, possible responses, etc. move over to the
-[HTTP API Documentation](http-api-doc.html#/Messages).
+## Overview
 
-## Using the HTTP Messages API
+The HTTP Messages API lets you send messages **to** and **from** Things and their Features. For the underlying concepts, see the [Messages](basic-messages.html) page. For full parameter details and response codes, see the [HTTP API Documentation](http-api-doc.html#/Messages).
 
-The following parts contain examples on how to send to and from Things and Features.
-For the examples we will use some kind of smart coffee machine with the id *smartcoffee*.
+## How it works
+
+Messages flow through two paths:
+
+* **Inbox** -- send a message **to** a Thing or Feature (the device receives it)
+* **Outbox** -- send a message **from** a Thing or Feature (simulating device-originated messages)
+
+When you send a message to a Thing's inbox, Ditto routes it to the device. If the device responds, you receive the response as the HTTP response body. If the device does not respond in time, you get a `408 Request Timeout`.
+
+## Examples
 
 {% include note.html content="Don't forget to replace the Authorization header
 and the host when trying out the examples. Also make sure the Thing, you are sending
 Messages to, is existing." %}
 
-The examples use `cURL` for the HTTP requests. You can of course choose 
-whatever tool you prefer to work with.
+### Send a message to a Thing
 
-### Sending a Message to a Thing
-
-A message is always sent **to** the **inbox** of the receiving entity.
-Let us view a simple Message that asks our Thing *smartcoffee* how it is feeling
-today:
+Send a message with subject `ask` to the Thing `org.eclipse.ditto:smartcoffee`:
 
 ```bash
 curl --request POST \
@@ -42,46 +43,27 @@ curl --request POST \
   --data 'Hey, how are you?'
 ```
 
-Notice we are sending the Message to the *inbox* of our Thing *org.eclipse.ditto:smartcoffee*.
-The subject of the Message is *'ask'* and contains plain text as content.
-Short after, we would receive a response from smartcoffee:
+If the device responds, you receive its reply as the HTTP response body.
 
-```text
-I do not know, since i am only a coffee machine.
-```
+### Control the timeout
 
-But what would happen if smartcoffee was offline or for some other reason 
-could not respond to our Message? This would cause the HTTP-Request to end 
-in a timeout. This is especially annoying when sending a Message for which
-we don't expect a response.
-
-This is why Ditto introduced the `timeout` query parameter to the requests.
-With it, you can specify how long Ditto should wait for a response
-before closing the HTTP request with a timeout:
+If you do not need a response (fire-and-forget), set `timeout=0` to get an immediate `202 Accepted`:
 
 ```bash
 curl --request POST \
-  --url http://localhost:8080/api/2/things/org.eclipse.ditto:smartcoffee/inbox/messages/ask.question?timeout=0 \
+  --url http://localhost:8080/api/2/things/org.eclipse.ditto:smartcoffee/inbox/messages/ask?timeout=0 \
   --header 'content-type: text/plain' \
   --header 'Authorization: Basic ZGl0dG86ZGl0dG8=' \
   --data 'Hey, how are you?'
 ```
 
-You will instantly receive a `202 Accepted` from Ditto instead of the 
-`408 Request Timeout` response.
-
-With the `timeout` query parameter you can also choose a different timeout than the
-default one provided by Ditto.
-
 {% include tip.html content="Use the `timeout` query parameter to specify what timeout
 you expect for your Messages. A timeout of *zero* will instantly return a response, whilst
 other positive values change how long Ditto will wait for an answer before responding to you." %}
 
-### Sending a Message to a Feature
+### Send a message to a Feature
 
-Sending a Message to a Feature works just about the same way as sending it to a Thing.
-The only difference is the URL to which you will need to send the Message. See
-how we can ask the *water-tank* Feature of our Thing *smartcoffee* to heat up:
+Target a specific Feature by including its ID in the URL path:
 
 ```bash
 curl --request POST \
@@ -91,11 +73,9 @@ curl --request POST \
  --data 'heatUp'
 ```
 
-### Sending a Message from a Thing or Feature
+### Send a message from a Thing
 
-Sending a Message **from** a Thing or Feature works just as you would expect.
-Simply replace the *inbox* path of the URI with *outbox*. Think again of our
-Thing smartcoffee, which needs to inform about something:
+Replace `inbox` with `outbox` to send a message **from** the Thing:
 
 ```bash
 curl --request POST \
@@ -106,3 +86,8 @@ curl --request POST \
   --data 'No one used me for half an hour now. I am going to shutdown soon.'
 ```
 
+## Further reading
+
+* [Messages concepts](basic-messages.html) -- message model and routing
+* [WebSocket Messages API](protocol-specification-things-messages.html) -- receive and reply to messages via WebSocket
+* [HTTP API Documentation](http-api-doc.html#/Messages) -- full API reference for messages

@@ -5,115 +5,102 @@ tags: [protocol]
 permalink: protocol-specification.html
 ---
 
-In order to comply with the Ditto Protocol, a protocol message must consist of
+Every Ditto Protocol message consists of a JSON envelope and a JSON payload that together describe what action to perform on which entity.
 
-* a Ditto Protocol envelope (JSON) and
-* a Ditto Protocol payload (JSON).
+{% include callout.html content="**TL;DR**: A Ditto Protocol message is a JSON object with `topic`, `headers`, `path`, and `value` fields. The topic identifies the entity and action; headers carry metadata; path and value specify what to change." type="primary" %}
 
+## Overview
 
-## Ditto Protocol
+To comply with the Ditto Protocol, a message must contain:
 
-The communication protocol envelope is implicitly defined by the underlying messaging system 
-(e.g. [WebSocket](httpapi-protocol-bindings-websocket.html)) used to transport/serialize the messages over the wire.
-Please refer to the respective [communication protocol binding](protocol-bindings.html) for information how to encode
-the data in a protocol specific way.
+* A **Ditto Protocol envelope** (JSON) -- metadata describing the message
+* A **Ditto Protocol payload** (JSON) -- the application data
 
-### Content-type
+The transport layer (e.g., [WebSocket](httpapi-protocol-bindings-websocket.html)) handles serialization. See the relevant [protocol binding](protocol-bindings.html) for transport-specific details.
 
-Ditto Protocol messages are identified by the 
-[IANA registered](https://www.iana.org/assignments/media-types/application/vnd.eclipse.ditto+json) "Content-Type":
+## Content type
 
-```
+Ditto Protocol messages use the [IANA-registered](https://www.iana.org/assignments/media-types/application/vnd.eclipse.ditto+json) content type:
+
+```text
 application/vnd.eclipse.ditto+json
 ```
 
-### Ditto Protocol envelope {#dittoProtocolEnvelope}
+## Ditto Protocol envelope {#dittoProtocolEnvelope}
 
-The Ditto Protocol envelope describes the content of the message (the affected thing entity, a message type, protocol
-version etc.) and allows the message to be routed by intermediary nodes to its final destination, without parsing the
-actual payload.
+The envelope describes the message content (the affected entity, message type, protocol version, etc.) and allows intermediary nodes to route the message without parsing the payload.
 
-The Protocol envelope is formatted as JSON object (`content-type=application/json`) and must correspond to the 
-following JSON schema:
+The envelope is a JSON object (`content-type=application/json`) conforming to this schema:
 
 {% include docson.html schema="jsonschema/protocol-envelope.json" %}
 
+## Ditto Protocol payload (JSON) {#dittoProtocolPayload}
 
-### Ditto Protocol payload (JSON) {#dittoProtocolPayload}
+The payload contains application data -- for example, an updated sensor value or a complete Thing in JSON form.
 
-The Ditto model payload contains the application data, e.g. an updated sensor value or a Thing in JSON representation.
- 
-* See [specification for Things](protocol-specification-things.html)
-* See [specification for Policies](protocol-specification-policies.html) 
-* See [specification for Connections](protocol-specification-connections.html) 
+* [Things specification](protocol-specification-things.html)
+* [Policies specification](protocol-specification-policies.html)
+* [Connections specification](protocol-specification-connections.html)
 
+## Ditto Protocol response {#dittoProtocolResponse}
 
-### Ditto Protocol response {#dittoProtocolResponse}
+When you send a **command**, you can request a **response** that indicates success or failure.
 
-When sending a **command**, a **response** can be requested.
-A response can indicate either the success or the failure of the command. 
-The Ditto response for a successful command has the following format:
+A successful response has this format:
 
 {% include docson.html schema="jsonschema/protocol-response.json" %}
 
-In case the execution failed, an error response with information about the error is sent:
+A failed response includes error details:
 
 {% include docson.html schema="jsonschema/protocol-error_response.json" %}
 
-The following sections specify in detail, which fields of the protocol envelope, payload, and response use to contain
-which information.
-
-
 ## Topic
 
-Protocol messages contain a [topic](protocol-specification-topic.html), which is used for
-* addressing an entity,
-* defining the `channel` (*twin* vs. *live*) and
-* specifying what the intention of the Protocol message is.
+Every protocol message contains a [topic](protocol-specification-topic.html) that:
+
+* Addresses a specific entity
+* Defines the `channel` (*twin* vs. *live*)
+* Specifies the intent of the message (create, retrieve, modify, delete, etc.)
 
 ## Headers
 
-Protocol messages contain headers as JSON object with arbitrary content.
-The keys of the JSON object are the header names; the values are the header values.
+Protocol messages carry headers as a JSON object. The keys are header names and the values are header values.
 
-The header names are *case-insensitive* and *case-preserving* in the following sense:
-- **Case-insensitive**: Capitalization of header names does not affect evaluation of the headers by Ditto;
-setting `correlation-id` or `CORRELATION-ID` has the same effect. If 2 headers differing only in capitalization
-are set, Ditto's behavior is **not defined**.
-- **Case-preserving**: Capitalization of headers by the sender of a Ditto protocol message is visible to the receiver.
-An exception to case-preservation are the headers of HTTP requests and responses,
-since they are themselves not case-sensitive.
+Header names are **case-insensitive** and **case-preserving**:
 
-There are some pre-defined headers, which have a special meaning for Ditto:
+- **Case-insensitive**: Setting `correlation-id` or `CORRELATION-ID` has the same effect. If you set two headers that differ only in capitalization, behavior is undefined.
+- **Case-preserving**: The sender's capitalization is visible to the receiver, except for HTTP request/response headers which are inherently case-insensitive.
 
-| Header Key                      | Description                                                                                                                                  | Possible values                                                                                                           |
-|---------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------|
-| `content-type`                  | The content-type which describes the [value](#value) of Ditto Protocol messages.                                                             | `String`                                                                                                                  |
-| `correlation-id`                | Used for correlating protocol messages (e.g. a **command** would have the same correlation-id as the sent back **response** message).        | `String`                                                                                                                  |
-| `ditto-originator`              | Contains the first authorization subject of the command that caused the sending of this message. Set by Ditto.                               | `String`                                                                                                                  |
-| `if-match`                      | Has the same semantics as defined for the [HTTP API](httpapi-concepts.html#conditional-requests).                                            | `String`                                                                                                                  |
-| `if-none-match`                 | Has the same semantics as defined for the [HTTP API](httpapi-concepts.html#conditional-requests).                                            | `String`                                                                                                                  |
-| `if-equal`                      | Has the same semantics as defined for the [HTTP API](httpapi-concepts.html#conditional-requests).                                            | `String` - currently possible: \['update','skip','skip-minimizing-merge'\] - default: `'update'`                          |
-| `response-required`             | Configures for a **command** whether or not a **response** should be sent back.                                                              | `Boolean` - default: `true`                                                                                               |
-| `requested-acks`                | Defines which [acknowledgements](basic-acknowledgements.html) are requested for a command processed by Ditto.                                | `JsonArray` of `String` - default: `["twin-persisted"]`                                                                   |
-| `ditto-weak-ack`                | Marks [weak acknowledgements](basic-acknowledgements.html) issued by Ditto.                                                                  | `Boolean` - default: `false`                                                                                              |
-| `timeout`                       | Defines how long the Ditto server should wait, e.g. applied when waiting for requested acknowledgements.                                     | `String` - e.g.: `42s` or `250ms` or `1m` - default: `60s`                                                                |
-| `version`                       | Determines in which schema version the `payload` should be interpreted.                                                                      | `Number` - currently possible: \[2\] - default: `2`                                                                       |
-| `put-metadata`                  | Determines which Metadata information is stored in the thing.                                                                                | `JsonArray` of `JsonObject`s containing [metadata](basic-metadata.html) to apply.                                         |
-| `condition`                     | The condition to evaluate before applying the request.                                                                                       | `String` containing [condition](basic-conditional-requests.html) to apply.                                                |
-| `live-channel-condition`        | The condition to evaluate before retrieving thing data from the device.                                                                      | `String` containing [live channel condition](basic-conditional-requests.html#live-channel-condition) to apply.            |
-| `live-channel-timeout-strategy` | The strategy to apply when a [live](protocol-twinlive.html#live) command was not answered by the actual device within the defined `timeout`. | `fail`: let the request fail with a 408 timeout error - `use-twin`: fall back to the twin, retrieving the persisted data. |
-| `at-historical-revision`        | The historical revision to retrieve an entity at, using the [history capabilities](basic-history.html).                                      | `Number` - a long value of the revision to retrieve.                                                                      |
-| `at-historical-timestamp`       | The historical timestamp in ISO-8601 format to retrieve an entity at, using the [history capabilities](basic-history.html).                  | `String` containing an ISO-8601 formatted timestamp.                                                                      |
-| `historical-headers`            | Contains the historical header when using `at-historical-*` headers to retrieve an entity at a certain history point.                        | `JsonObject` of the headers which were configured to be persisted as historical headers.                                  |
+### Pre-defined headers
 
-Custom headers of messages through the [live channel](protocol-twinlive.html#live) are delivered verbatim. When naming 
-custom headers, it is best to attach a prefix specific to your application, that does not conflict with Ditto or
-HTTP protocol, for example the prefix `ditto-*`.
-* [Permanent HTTP headers](https://www.iana.org/assignments/message-headers/message-headers.xml) are to be avoided.
-* Ditto uses the following headers internally. If these headers are set in a Protocol message, they will be ignored 
-  and will not be delivered.
-  ```
+| Header Key | Description | Possible values |
+|---|---|---|
+| `content-type` | Describes the [value](#value) content type. | `String` |
+| `correlation-id` | Correlates commands with their responses. | `String` |
+| `ditto-originator` | The first authorization subject of the causing command. Set by Ditto. | `String` |
+| `if-match` | Same semantics as [HTTP API conditional requests](httpapi-concepts.html#conditional-requests). | `String` |
+| `if-none-match` | Same semantics as [HTTP API conditional requests](httpapi-concepts.html#conditional-requests). | `String` |
+| `if-equal` | Same semantics as [HTTP API conditional requests](httpapi-concepts.html#conditional-requests). | `String` - currently: \['update','skip','skip-minimizing-merge'\] - default: `'update'` |
+| `response-required` | Whether Ditto should send a response to this command. | `Boolean` - default: `true` |
+| `requested-acks` | Which [acknowledgements](basic-acknowledgements.html) to request. | `JsonArray` of `String` - default: `["twin-persisted"]` |
+| `ditto-weak-ack` | Marks [weak acknowledgements](basic-acknowledgements.html). | `Boolean` - default: `false` |
+| `timeout` | How long Ditto waits (e.g., for acknowledgements). | `String` - e.g.: `42s`, `250ms`, `1m` - default: `60s` |
+| `version` | Schema version for interpreting the payload. | `Number` - currently: \[2\] - default: `2` |
+| `put-metadata` | Metadata to store with the thing. | `JsonArray` of `JsonObject`s containing [metadata](basic-metadata.html). |
+| `condition` | RQL condition to evaluate before applying the request. | `String` containing a [condition](basic-conditional-requests.html). |
+| `live-channel-condition` | RQL condition to evaluate before retrieving from the device. | `String` containing a [live channel condition](basic-conditional-requests.html#live-channel-condition). |
+| `live-channel-timeout-strategy` | What to do when a [live](protocol-twinlive.html#live) command times out. | `fail`: return 408 timeout. `use-twin`: fall back to persisted data. |
+| `at-historical-revision` | Retrieve an entity at a historical revision using [history](basic-history.html). | `Number` - a long revision value. |
+| `at-historical-timestamp` | Retrieve an entity at a historical timestamp using [history](basic-history.html). | `String` - ISO-8601 formatted timestamp. |
+| `historical-headers` | Contains persisted historical headers from the `at-historical-*` request. | `JsonObject` of persisted historical headers. |
+
+### Custom headers
+
+Custom headers on [live channel](protocol-twinlive.html#live) messages pass through verbatim. When naming custom headers, use a prefix specific to your application that does not conflict with Ditto or HTTP headers (e.g., `myapp-*`).
+
+* Avoid [permanent HTTP headers](https://www.iana.org/assignments/message-headers/message-headers.xml).
+* Ditto uses these headers internally -- if you set them, they are ignored and not delivered:
+  ```text
   channel
   ditto-*
   raw-request-url
@@ -122,15 +109,11 @@ HTTP protocol, for example the prefix `ditto-*`.
   timeout-access
   ```
 
-The interaction between the headers `response-required`, `requested-acks` and `timeout` is documented
-[here](basic-acknowledgements.html#interaction-between-headers).
-
+The interaction between `response-required`, `requested-acks`, and `timeout` is documented in [Acknowledgements](basic-acknowledgements.html#interaction-between-headers).
 
 ## Path
 
-Contains a JSON pointer of where to apply the [value](#value) of the protocol message.
-May also be `/` when the value contains a replacement for the complete addressed entity (e.g. a complete
-[Thing](basic-thing.html) JSON).
+A JSON Pointer specifying where to apply the [value](#value) in the target entity. Use `/` when the value replaces the entire entity (e.g., a complete [Thing](basic-thing.html) JSON).
 
 ## Value
 
@@ -138,9 +121,15 @@ The JSON value to apply at the specified path.
 
 ## Status
 
-Some protocol messages (for example **responses**) contain an HTTP status code which is stored in this field.
+Responses include an HTTP status code in this field.
 
 ## Extra
 
-When using [signal enrichment](basic-enrichment.html), in order to ask for `extraFields` to be included, the
-Ditto Protocol message contains a field `extra` containing a JSON object with the selected extra fields.
+When you use [signal enrichment](basic-enrichment.html) to request `extraFields`, the protocol message includes an `extra` field containing a JSON object with the selected extra fields.
+
+## Further reading
+
+- [Protocol topic structure](protocol-specification-topic.html) -- topic path breakdown
+- [Protocol errors](protocol-specification-errors.html) -- error response format
+- [Things specification](protocol-specification-things.html) -- Thing-specific commands
+- [Policies specification](protocol-specification-policies.html) -- Policy-specific commands

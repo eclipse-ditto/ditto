@@ -1,124 +1,88 @@
 ---
-title: HTTP API search
+title: HTTP API Search
 keywords: http, api, search, query, rql
 tags: [http, search, rql]
 permalink: httpapi-search.html
 ---
 
-The [search aspect](basic-search.html) of Ditto can be accessed via an HTTP API.
+You search for Things using [RQL expressions](basic-rql.html) against the HTTP search endpoint, with support for filtering, sorting, paging, and field selection.
 
-{% include note.html content="Find the HTTP API reference at the 
+{% include callout.html content="**TL;DR**: Send `GET` or `POST` requests to `/api/2/search/things` with `filter`, `option`, `fields`, and `namespaces` parameters to find and retrieve Things matching your criteria." type="primary" %}
+
+{% include note.html content="Find the HTTP API reference at the
     [Search resources](http-api-doc.html?urls.primaryName=api2#/Search)." %}
 
-The concepts of the [RQL expression](basic-rql.html#rql-filter), [RQL sorting](basic-rql.html#rql-sorting) and 
-[RQL paging](basic-search.html#rql-paging-deprecated) are mapped to HTTP as
+## Overview
 
-* query parameters which are added to `GET` requests to the search endpoint;
-* a x-www-form-urlencoded body which is added to `POST` requests to the search endpoint.
+The search endpoint is:
 
 ```
 http://localhost:8080/api/2/search/things
 ```
 
-If the `filter` parameter is omitted, the result contains all `Things` the authenticated user is 
-[allowed to read](basic-auth.html).
+If you omit the `filter` parameter, the result contains all `Things` the authenticated user is [allowed to read](basic-auth.html). For details on the underlying search concepts, see [Basic Search](basic-search.html).
 
-Optionally a `namespaces` parameter can be added to search only in the given namespaces.  
+## How it works
 
-## GET
-### Query parameters
+You pass search criteria as query parameters (for `GET`) or as a `x-www-form-urlencoded` body (for `POST`):
 
-In order to define for which `Things` to search, the `filter` query parameter has to be added.  
-In order to change the sorting and limit the result (also to do paging), the `option` parameter has to be added.
-Default values of each option is documented [here](basic-search.html#sorting-and-paging-options).
+| Parameter | Purpose |
+|-----------|---------|
+| `filter` | [RQL filter expression](basic-rql.html#rql-filter) to select Things |
+| `option` | [RQL sorting and paging](basic-search.html#sorting-and-paging-options) options |
+| `fields` | [Field selector](httpapi-concepts.html#partial-requests) for response projection |
+| `namespaces` | Comma-separated list of namespaces to search within |
 
-Complex example:
+## Examples
+
+### Search with GET
+
+Find Things in the living room, sorted by ID, limited to 5 results:
+
 ```
-GET .../search/things?filter=eq(attributes/location,"living-room")&option=sort(+thingId),limit(0,5)&namespaces=org
-.eclipse.ditto,foo.bar
+GET .../search/things?filter=eq(attributes/location,"living-room")&option=sort(+thingId),limit(0,5)
 ```
 
-Another Complex example with the `namespaces` parameter:
+Restrict search to specific namespaces:
+
 ```
 GET .../search/things?filter=eq(attributes/location,"living-room")&namespaces=org.eclipse.ditto,foo.bar
 ```
 
-The HTTP search API can also profit from the [partial request](httpapi-concepts.html#partial-requests) concept 
-of the API:  
-Additionally to a `filter` and `options`, a `fields` parameter may be specified in order to select which data 
-of the result set to retrieve.
+Return only the `thingId` and `manufacturer` attribute:
 
-Example which only returns `thingId` and the `manufacturer` attribute of the found Things:
 ```
 GET .../search/things?filter=eq(attributes/location,"living-room")&fields=thingId,attributes/manufacturer
 ```
 
-With the `namespaces` parameter, the result can be limited to the given namespaces.
+### Search with POST
 
-Example which only returns Things with the given namespaces prefix:
-```
-GET .../search/things?namespaces=org.eclipse.ditto,foo.bar
-```
-
-### Search count
-Search counts can be made against this endpoint:
+`POST` requests accept the same parameters as `x-www-form-urlencoded` body content:
 
 ```
-http://localhost:8080/api/2/search/things/count
+POST .../search/things
+body: filter=eq(attributes/location,"living-room")&option=sort(+thingId),limit(0,5)
 ```
 
-Complex example:
+Use `POST` when your query string would be too long for a URL.
+
+### Count Things
+
+Get the number of Things matching a filter:
+
 ```
 GET .../search/things/count?filter=eq(attributes/location,"living-room")
 ```
 
-## POST
-### x-www-form-urlencoded
+Or with `POST`:
 
-In order to define for which `Things` to search, the key `filter` has to be used.  
-In order to change the sorting and limit the result (also to do paging), the key `option` has to be used.
-Default values of each option is documented [here](basic-search.html#sorting-and-paging-options).
-
-Complex example:
-```
-POST .../search/things
-body: filter=eq(attributes/location,"living-room")&namespaces=org.eclipse.ditto,foo.bar&option=sort(+thingId),limit(0,5)
-```
-
-Another Complex example with the `namespaces` parameter:
-```
-POST .../search/things
-body: filter=eq(attributes/location,"living-room")&namespaces=org.eclipse.ditto,foo.bar
-```
-
-The HTTP search API can also profit from the [partial request](httpapi-concepts.html#partial-requests) concept
-of the API:  
-Additionally to a `filter` and `options`, the key `fields` may be specified in order to select which data
-of the result set to retrieve.
-
-Example which only returns `thingId` and the `manufacturer` attribute of the found Things:
-```
-POST .../search/things
-body: filter=eq(attributes/location,"living-room")&fields=thingId,attributes/manufacturer
-```
-
-With the `namespaces` parameter, the result can be limited to the given namespaces.
-
-Example which only returns Things with the given namespaces prefix:
-```
-POST .../search/things
-body: namespaces=org.eclipse.ditto,foo.bar
-```
-
-### Search count
-Search counts can be made against this endpoint:
-
-```
-http://localhost:8080/api/2/search/things/count
-```
-
-Complex example:
 ```
 POST .../search/things/count
 body: filter=eq(attributes/location,"living-room")
 ```
+
+## Further reading
+
+* [Basic Search](basic-search.html) -- search concepts and indexing
+* [RQL expressions](basic-rql.html) -- filter and sort syntax
+* [HTTP API concepts: partial requests](httpapi-concepts.html#partial-requests) -- field selectors
