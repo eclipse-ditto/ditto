@@ -48,7 +48,8 @@ public final class AbstractTypedSubstitutionStrategyTest {
         final PolicyEntry substitutedPolicyEntry = AbstractTypedSubstitutionStrategy.substitutePolicyEntry(
                 existingPolicyEntry, substitutionAlgorithm, DittoHeaders.empty());
 
-        assertThat(substitutedPolicyEntry.getNamespaces()).containsExactly("com.acme", "com.acme.*");
+        assertThat(substitutedPolicyEntry.getNamespaces()).isPresent();
+        assertThat(substitutedPolicyEntry.getNamespaces().get()).containsExactly("com.acme", "com.acme.*");
         assertThat(substitutedPolicyEntry.getSubjects().stream()
                 .map(subject -> subject.getId().toString()))
                 .containsExactly("test:bob");

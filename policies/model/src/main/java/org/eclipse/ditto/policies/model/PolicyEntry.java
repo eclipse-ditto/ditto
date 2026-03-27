@@ -12,7 +12,9 @@
  */
 package org.eclipse.ditto.policies.model;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
@@ -97,12 +99,13 @@ public interface PolicyEntry extends Jsonifiable.WithFieldSelectorAndPredicate<J
 
     /**
      * Returns the namespace patterns restricting which thing namespaces this entry applies to.
-     * An empty list means the entry applies to things in all namespaces (backward compatible).
+     * An empty {@link Optional} means the field was never configured (entry applies to all namespaces).
+     * A present {@link Optional} with an empty list means the field was explicitly set to {@code []}.
      *
-     * @return the list of namespace patterns (possibly empty).
+     * @return an Optional containing the namespace patterns, or empty if never configured.
      * @since 3.9.0
      */
-    List<String> getNamespaces();
+    Optional<List<String>> getNamespaces();
 
     /**
      * Returns whether/how this Policy Entry is allowed to be imported by others.
@@ -114,12 +117,13 @@ public interface PolicyEntry extends Jsonifiable.WithFieldSelectorAndPredicate<J
 
     /**
      * Returns which types of additions are allowed when this entry is imported by other policies via
-     * {@code entriesAdditions}. An empty set means no additions are allowed.
+     * {@code entriesAdditions}. An empty {@link Optional} means the field was never configured (no additions allowed).
+     * A present {@link Optional} with an empty set means the field was explicitly set to {@code []}.
      *
-     * @return the set of allowed import addition types.
+     * @return an Optional containing the set of allowed import addition types, or empty if never configured.
      * @since 3.9.0
      */
-    Set<AllowedImportAddition> getAllowedImportAdditions();
+    Optional<Set<AllowedImportAddition>> getAllowedImportAdditions();
 
     /**
      * Returns whether this entry applies to the given thing namespace.
@@ -137,7 +141,7 @@ public interface PolicyEntry extends Jsonifiable.WithFieldSelectorAndPredicate<J
      * @since 3.9.0
      */
     default boolean appliesToNamespace(final String namespace) {
-        return PolicyEntryNamespaces.matches(getNamespaces(), namespace);
+        return PolicyEntryNamespaces.matches(getNamespaces().orElse(Collections.emptyList()), namespace);
     }
 
     /**

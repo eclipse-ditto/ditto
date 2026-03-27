@@ -84,13 +84,14 @@ public final class PolicyImporter {
 
         Subjects mergedSubjects = entry.getSubjects();
         Resources mergedResources = entry.getResources();
-        List<String> mergedNamespaces = entry.getNamespaces();
+        List<String> mergedNamespaces = entry.getNamespaces().orElse(null);
 
         if (entriesAdditions != null) {
             final Optional<EntryAddition> addition = entriesAdditions.getAddition(entry.getLabel());
             if (addition.isPresent()) {
                 final EntryAddition add = addition.get();
-                final Set<AllowedImportAddition> allowed = entry.getAllowedImportAdditions();
+                final Set<AllowedImportAddition> allowed = entry.getAllowedImportAdditions()
+                        .orElse(Collections.emptySet());
                 if (add.getSubjects().isPresent() && allowed.contains(AllowedImportAddition.SUBJECTS)) {
                     mergedSubjects = mergeSubjects(mergedSubjects, add.getSubjects().get());
                 }
@@ -109,7 +110,7 @@ public final class PolicyImporter {
                 mergedResources,
                 mergedNamespaces,
                 entry.getImportableType(),
-                entry.getAllowedImportAdditions()
+                entry.getAllowedImportAdditions().orElse(null)
         );
     }
 
@@ -159,9 +160,11 @@ public final class PolicyImporter {
         );
     }
 
-    private static List<String> mergeNamespaces(final List<String> templateNamespaces,
+    private static List<String> mergeNamespaces(@Nullable final List<String> templateNamespaces,
             final List<String> additionalNamespaces) {
-        final Set<String> merged = new LinkedHashSet<>(templateNamespaces);
+        final Set<String> merged = templateNamespaces != null
+                ? new LinkedHashSet<>(templateNamespaces)
+                : new LinkedHashSet<>();
         merged.addAll(additionalNamespaces);
         return new ArrayList<>(merged);
     }

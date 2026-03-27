@@ -99,9 +99,9 @@ public final class PolicyImporterTest {
         return ImmutablePolicyEntry.of(PoliciesModelFactory.newImportedLabel(importedPolicyId, entry.getLabel()),
                 entry.getSubjects(),
                 entry.getResources(),
-                entry.getNamespaces(),
+                entry.getNamespaces().orElse(null),
                 entry.getImportableType(),
-                entry.getAllowedImportAdditions());
+                entry.getAllowedImportAdditions().orElse(null));
     }
 
     @Test
@@ -693,7 +693,7 @@ public final class PolicyImporterTest {
                 .filter(e -> e.getLabel().equals(importedImplicitLabel))
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("Expected implicit imported entry not found"));
-        assertThat(implicitEntry.getAllowedImportAdditions()).isEqualTo(ALLOWED_BOTH);
+        assertThat(implicitEntry.getAllowedImportAdditions()).contains(ALLOWED_BOTH);
 
         final Label explicitLabel = Label.of(ImportableType.EXPLICIT.getName() + "SupportGroup");
         final Label importedExplicitLabel = PoliciesModelFactory.newImportedLabel(IMPORTED_POLICY_ID, explicitLabel);
@@ -701,7 +701,7 @@ public final class PolicyImporterTest {
                 .filter(e -> e.getLabel().equals(importedExplicitLabel))
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("Expected explicit imported entry not found"));
-        assertThat(explicitEntry.getAllowedImportAdditions()).isEqualTo(ALLOWED_BOTH);
+        assertThat(explicitEntry.getAllowedImportAdditions()).contains(ALLOWED_BOTH);
     }
 
     @Test
@@ -735,7 +735,7 @@ public final class PolicyImporterTest {
         final Label importedLabel = PoliciesModelFactory.newImportedLabel(IMPORTED_POLICY_ID, implicitLabel);
         final PolicyEntry importedEntry = resolvedPolicy.getEntryFor(importedLabel)
                 .orElseThrow(() -> new AssertionError("Expected imported entry not found"));
-        assertThat(importedEntry.getNamespaces()).isEqualTo(namespaces);
+        assertThat(importedEntry.getNamespaces()).contains(namespaces);
     }
 
     @Test
@@ -787,7 +787,8 @@ public final class PolicyImporterTest {
                 .orElseThrow(() -> new AssertionError("Expected imported entry not found"));
 
         // Should contain both template and additional namespaces
-        assertThat(mergedEntry.getNamespaces()).contains("com.acme", "org.example", "org.example.*");
+        assertThat(mergedEntry.getNamespaces()).isPresent()
+                .hasValueSatisfying(ns -> assertThat(ns).contains("com.acme", "org.example", "org.example.*"));
     }
 
     private static Policy createImportedPolicy(final PolicyId importedPolicyId) {

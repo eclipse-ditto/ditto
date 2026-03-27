@@ -197,7 +197,8 @@ public class PolicyImportsPreEnforcer implements PreEnforcer {
                 // entry doesn't exist in imported policy — will be silently ignored at merge time
                 continue;
             }
-            final Set<AllowedImportAddition> allowed = entryOpt.get().getAllowedImportAdditions();
+            final Set<AllowedImportAddition> allowed = entryOpt.get().getAllowedImportAdditions()
+                    .orElse(java.util.Collections.emptySet());
             if (addition.getSubjects().isPresent() &&
                     !allowed.contains(AllowedImportAddition.SUBJECTS)) {
                 throw PolicyImportInvalidException.newBuilder()

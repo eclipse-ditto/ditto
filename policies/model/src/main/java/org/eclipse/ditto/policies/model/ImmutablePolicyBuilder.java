@@ -207,9 +207,9 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
         revokedPermissions.put(label, new LinkedHashMap<>());
 
         setResourcesFor(entry.getLabel(), entry.getResources());
-        namespaces.put(label, entry.getNamespaces());
+        namespaces.put(label, entry.getNamespaces().orElse(null));
         setImportableFor(label, entry.getImportableType());
-        allowedImportAdditions.put(label, entry.getAllowedImportAdditions());
+        allowedImportAdditions.put(label, entry.getAllowedImportAdditions().orElse(null));
     }
 
     private void putAllSubjects(final PolicyEntry policyEntry) {
@@ -404,13 +404,11 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
 
         final Collection<PolicyEntry> policyEntries = allLabels.stream()
                 .map(lbl -> {
-                    final List<String> entryNamespaces = getNamespaces(lbl);
                     final ImportableType importableType =
                             getImportableType(lbl).orElse(ImportableType.IMPLICIT);
-                    final Set<AllowedImportAddition> additions =
-                            getAllowedImportAdditions(lbl);
                     return PoliciesModelFactory.newPolicyEntry(lbl, getSubjectsForLabel(lbl),
-                            getResourcesForLabel(lbl), entryNamespaces, importableType, additions);
+                            getResourcesForLabel(lbl), getNamespaces(lbl).orElse(null),
+                            importableType, getAllowedImportAdditions(lbl).orElse(null));
                 })
                 .collect(Collectors.toList());
 
@@ -432,12 +430,12 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
         return Optional.ofNullable(importableTypes.get(Label.of(label)));
     }
 
-    private Set<AllowedImportAddition> getAllowedImportAdditions(final CharSequence label) {
-        return allowedImportAdditions.getOrDefault(Label.of(label), Collections.emptySet());
+    private Optional<Set<AllowedImportAddition>> getAllowedImportAdditions(final CharSequence label) {
+        return Optional.ofNullable(allowedImportAdditions.get(Label.of(label)));
     }
 
-    private List<String> getNamespaces(final CharSequence label) {
-        return namespaces.getOrDefault(Label.of(label), Collections.emptyList());
+    private Optional<List<String>> getNamespaces(final CharSequence label) {
+        return Optional.ofNullable(namespaces.get(Label.of(label)));
     }
 
     private Resources getResourcesForLabel(final CharSequence label) {

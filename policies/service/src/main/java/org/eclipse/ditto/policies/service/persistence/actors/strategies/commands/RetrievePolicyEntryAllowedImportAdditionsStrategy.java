@@ -55,9 +55,13 @@ final class RetrievePolicyEntryAllowedImportAdditionsStrategy
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         if (optionalEntry.isPresent()) {
             final PolicyEntry entry = optionalEntry.get();
+            if (entry.getAllowedImportAdditions().isEmpty()) {
+                return ResultFactory.newErrorResult(
+                        policyEntryNotFound(policyId, command.getLabel(), dittoHeaders), command);
+            }
             final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                     RetrievePolicyEntryAllowedImportAdditionsResponse.of(policyId, command.getLabel(),
-                            entry.getAllowedImportAdditions(),
+                            entry.getAllowedImportAdditions().get(),
                             createCommandResponseDittoHeaders(dittoHeaders, nextRevision - 1)),
                     nonNullPolicy);
             return ResultFactory.newQueryResult(command, response);

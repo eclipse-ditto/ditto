@@ -88,13 +88,14 @@ public final class CreatePolicyStrategyTest extends AbstractPolicyCommandStrateg
                 .orElseThrow();
         final PolicyEntry scopedEntry = PoliciesModelFactory.newPolicyEntry(existingEntry.getLabel(),
                 existingEntry.getSubjects(), existingEntry.getResources(), SCOPED_NAMESPACES,
-                existingEntry.getImportableType(), existingEntry.getAllowedImportAdditions());
+                existingEntry.getImportableType(), existingEntry.getAllowedImportAdditions().orElse(null));
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(TestConstants.Policy.POLICY)
                 .set(scopedEntry)
                 .setRevision(NEXT_REVISION)
                 .build();
         assertThat(policy.getEntryFor(TestConstants.Policy.LABEL).orElseThrow().getNamespaces())
-                .containsExactlyElementsOf(SCOPED_NAMESPACES);
+                .isPresent()
+                .hasValueSatisfying(ns -> assertThat(ns).containsExactlyElementsOf(SCOPED_NAMESPACES));
         final CreatePolicy command = CreatePolicy.of(policy, dittoHeaders);
 
         assertModificationResult(underTest, policy, command,
@@ -102,13 +103,15 @@ public final class CreatePolicyStrategyTest extends AbstractPolicyCommandStrateg
                 event -> assertThat(event.getPolicy().getEntryFor(TestConstants.Policy.LABEL)
                         .orElseThrow()
                         .getNamespaces())
-                        .containsExactlyElementsOf(SCOPED_NAMESPACES),
+                        .isPresent()
+                        .hasValueSatisfying(ns -> assertThat(ns).containsExactlyElementsOf(SCOPED_NAMESPACES)),
                 CreatePolicyResponse.class,
                 response -> assertThat(response.getPolicyCreated().orElseThrow()
                         .getEntryFor(TestConstants.Policy.LABEL)
                         .orElseThrow()
                         .getNamespaces())
-                        .containsExactlyElementsOf(SCOPED_NAMESPACES));
+                        .isPresent()
+                        .hasValueSatisfying(ns -> assertThat(ns).containsExactlyElementsOf(SCOPED_NAMESPACES)));
     }
 
     @Test

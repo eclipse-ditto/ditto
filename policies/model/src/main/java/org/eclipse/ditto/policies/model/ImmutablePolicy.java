@@ -325,8 +325,8 @@ final class ImmutablePolicy implements Policy {
         } else {
             final PolicyEntry policyEntry = entriesCopy.get(lbl);
             modifiedEntry = newPolicyEntry(lbl, subjects, policyEntry.getResources(),
-                    policyEntry.getNamespaces(), policyEntry.getImportableType(),
-                    policyEntry.getAllowedImportAdditions());
+                    policyEntry.getNamespaces().orElse(null), policyEntry.getImportableType(),
+                    policyEntry.getAllowedImportAdditions().orElse(null));
         }
 
         entriesCopy.put(lbl, modifiedEntry);
@@ -346,8 +346,8 @@ final class ImmutablePolicy implements Policy {
             if (!Objects.equals(existingSubjects, newSubjects)) {
                 final Map<Label, PolicyEntry> entriesCopy = copyEntries();
                 entriesCopy.put(lbl, newPolicyEntry(lbl, newSubjects, existingPolicyEntry.getResources(),
-                        existingPolicyEntry.getNamespaces(), existingPolicyEntry.getImportableType(),
-                        existingPolicyEntry.getAllowedImportAdditions()));
+                        existingPolicyEntry.getNamespaces().orElse(null), existingPolicyEntry.getImportableType(),
+                        existingPolicyEntry.getAllowedImportAdditions().orElse(null)));
                 result = new ImmutablePolicy(policyId, imports, entriesCopy, lifecycle, revision, modified, created,
                         metadata);
             } else {
@@ -372,8 +372,8 @@ final class ImmutablePolicy implements Policy {
             if (!Objects.equals(existingSubjects, newSubjects)) {
                 final Map<Label, PolicyEntry> entriesCopy = copyEntries();
                 entriesCopy.put(lbl, newPolicyEntry(lbl, newSubjects, existingPolicyEntry.getResources(),
-                        existingPolicyEntry.getNamespaces(), existingPolicyEntry.getImportableType(),
-                        existingPolicyEntry.getAllowedImportAdditions()));
+                        existingPolicyEntry.getNamespaces().orElse(null), existingPolicyEntry.getImportableType(),
+                        existingPolicyEntry.getAllowedImportAdditions().orElse(null)));
                 result = new ImmutablePolicy(policyId, imports, entriesCopy, lifecycle, revision, modified, created,
                         metadata);
             }
@@ -394,8 +394,8 @@ final class ImmutablePolicy implements Policy {
             modifiedEntry = newPolicyEntry(lbl, PoliciesModelFactory.emptySubjects(), resources);
         } else {
             modifiedEntry = newPolicyEntry(lbl, policyEntry.getSubjects(), resources,
-                    policyEntry.getNamespaces(), policyEntry.getImportableType(),
-                    policyEntry.getAllowedImportAdditions());
+                    policyEntry.getNamespaces().orElse(null), policyEntry.getImportableType(),
+                    policyEntry.getAllowedImportAdditions().orElse(null));
         }
         entriesCopy.put(lbl, modifiedEntry);
 
@@ -416,8 +416,8 @@ final class ImmutablePolicy implements Policy {
             final PolicyEntry policyEntry = entriesCopy.get(lbl);
             final Resources modifiedResources = policyEntry.getResources().setResource(resource);
             modifiedEntry = newPolicyEntry(label, policyEntry.getSubjects(), modifiedResources,
-                    policyEntry.getNamespaces(), policyEntry.getImportableType(),
-                    policyEntry.getAllowedImportAdditions());
+                    policyEntry.getNamespaces().orElse(null), policyEntry.getImportableType(),
+                    policyEntry.getAllowedImportAdditions().orElse(null));
         }
 
         entriesCopy.put(lbl, modifiedEntry);
@@ -437,8 +437,8 @@ final class ImmutablePolicy implements Policy {
             if (!Objects.equals(existingResources, newResources)) {
                 final Map<Label, PolicyEntry> entriesCopy = copyEntries();
                 entriesCopy.put(lbl, newPolicyEntry(lbl, existingEntry.getSubjects(), newResources,
-                        existingEntry.getNamespaces(), existingEntry.getImportableType(),
-                        existingEntry.getAllowedImportAdditions()));
+                        existingEntry.getNamespaces().orElse(null), existingEntry.getImportableType(),
+                        existingEntry.getAllowedImportAdditions().orElse(null)));
                 result = new ImmutablePolicy(policyId, imports, entriesCopy, lifecycle, revision, modified, created,
                         metadata);
             }
@@ -460,8 +460,8 @@ final class ImmutablePolicy implements Policy {
         } else {
             final PolicyEntry policyEntry = entriesCopy.get(lbl);
             modifiedEntry = newPolicyEntry(label, policyEntry.getSubjects(),
-                    policyEntry.getResources(), policyEntry.getNamespaces(), importableType,
-                    policyEntry.getAllowedImportAdditions());
+                    policyEntry.getResources(), policyEntry.getNamespaces().orElse(null), importableType,
+                    policyEntry.getAllowedImportAdditions().orElse(null));
         }
 
         entriesCopy.put(lbl, modifiedEntry);
@@ -483,7 +483,7 @@ final class ImmutablePolicy implements Policy {
         } else {
             final PolicyEntry policyEntry = entriesCopy.get(lbl);
             modifiedEntry = newPolicyEntry(label, policyEntry.getSubjects(),
-                    policyEntry.getResources(), policyEntry.getNamespaces(),
+                    policyEntry.getResources(), policyEntry.getNamespaces().orElse(null),
                     policyEntry.getImportableType(), allowedImportAdditions);
         }
 
@@ -506,7 +506,7 @@ final class ImmutablePolicy implements Policy {
             final PolicyEntry policyEntry = entriesCopy.get(lbl);
             modifiedEntry = newPolicyEntry(label, policyEntry.getSubjects(),
                     policyEntry.getResources(), namespaces,
-                    policyEntry.getImportableType(), policyEntry.getAllowedImportAdditions());
+                    policyEntry.getImportableType(), policyEntry.getAllowedImportAdditions().orElse(null));
         }
 
         entriesCopy.put(lbl, modifiedEntry);

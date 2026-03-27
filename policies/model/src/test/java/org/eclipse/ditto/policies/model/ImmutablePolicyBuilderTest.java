@@ -244,7 +244,7 @@ public final class ImmutablePolicyBuilderTest {
         final PolicyEntry rebuiltEntry = rebuilt.getEntryFor(endUserLabel)
                 .orElseThrow(() -> new AssertionError("Entry not found after toBuilder().build()"));
         DittoPolicyAssertions.assertThat(rebuiltEntry.getImportableType()).isEqualTo(ImportableType.EXPLICIT);
-        DittoPolicyAssertions.assertThat(rebuiltEntry.getAllowedImportAdditions()).isEqualTo(allowedAdditions);
+        assertThat(rebuiltEntry.getAllowedImportAdditions()).contains(allowedAdditions);
     }
 
     @Test
@@ -268,7 +268,7 @@ public final class ImmutablePolicyBuilderTest {
 
         final PolicyEntry result = policy.getEntryFor(label)
                 .orElseThrow(() -> new AssertionError("Entry not found"));
-        DittoPolicyAssertions.assertThat(result.getAllowedImportAdditions()).isEqualTo(allowedAdditions);
+        assertThat(result.getAllowedImportAdditions()).contains(allowedAdditions);
         DittoPolicyAssertions.assertThat(result.getImportableType()).isEqualTo(ImportableType.IMPLICIT);
     }
 
@@ -291,7 +291,7 @@ public final class ImmutablePolicyBuilderTest {
 
         final PolicyEntry rebuiltEntry = rebuilt.getEntryFor(label)
                 .orElseThrow(() -> new AssertionError("Entry not found after toBuilder().build()"));
-        assertThat(rebuiltEntry.getNamespaces()).isEqualTo(namespaces);
+        assertThat(rebuiltEntry.getNamespaces()).contains(namespaces);
     }
 
 }

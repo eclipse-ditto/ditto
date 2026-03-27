@@ -561,17 +561,20 @@ public final class PoliciesModelFactory {
      * @param label the Label of the PolicyEntry to create.
      * @param subjects the Subjects contained in the PolicyEntry to create.
      * @param resources the Resources of the PolicyEntry to create.
-     * @param namespaces the namespace patterns restricting which thing namespaces this entry applies to.
+     * @param namespaces the namespace patterns restricting which thing namespaces this entry applies to, or
+     * {@code null} if the field is absent (never configured).
      * @param importable whether and how the entry is importable by others.
-     * @param allowedImportAdditions which types of additions are allowed when importing this entry.
+     * @param allowedImportAdditions which types of additions are allowed when importing this entry, or {@code null}
+     * if the field is absent (never configured).
      * @return the new Policy entry.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if {@code label}, {@code subjects}, {@code resources} or {@code importable} is
+     * {@code null}.
      * @throws IllegalArgumentException if {@code label} is empty.
      * @since 3.9.0
      */
     public static PolicyEntry newPolicyEntry(final CharSequence label, final Iterable<Subject> subjects,
-            final Iterable<Resource> resources, final List<String> namespaces, final ImportableType importable,
-            final Set<AllowedImportAddition> allowedImportAdditions) {
+            final Iterable<Resource> resources, @Nullable final List<String> namespaces,
+            final ImportableType importable, @Nullable final Set<AllowedImportAddition> allowedImportAdditions) {
         return ImmutablePolicyEntry.of(Label.of(label), newSubjects(subjects), newResources(resources), namespaces,
                 importable, allowedImportAdditions);
     }

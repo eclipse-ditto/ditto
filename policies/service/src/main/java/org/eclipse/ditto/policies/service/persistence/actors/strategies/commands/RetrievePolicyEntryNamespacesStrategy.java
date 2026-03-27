@@ -55,9 +55,13 @@ final class RetrievePolicyEntryNamespacesStrategy
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         if (optionalEntry.isPresent()) {
             final PolicyEntry entry = optionalEntry.get();
+            if (entry.getNamespaces().isEmpty()) {
+                return ResultFactory.newErrorResult(
+                        policyEntryNotFound(policyId, command.getLabel(), dittoHeaders), command);
+            }
             final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                     RetrievePolicyEntryNamespacesResponse.of(policyId, command.getLabel(),
-                            entry.getNamespaces(),
+                            entry.getNamespaces().get(),
                             createCommandResponseDittoHeaders(dittoHeaders, nextRevision - 1)),
                     nonNullPolicy);
             return ResultFactory.newQueryResult(command, response);

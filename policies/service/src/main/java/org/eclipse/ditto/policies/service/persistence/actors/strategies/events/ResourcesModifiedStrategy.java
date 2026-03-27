@@ -26,9 +26,11 @@ final class ResourcesModifiedStrategy extends AbstractPolicyEventStrategy<Resour
     protected PolicyBuilder applyEvent(final ResourcesModified rm, final Policy policy,
             final PolicyBuilder policyBuilder) {
         return policy.getEntryFor(rm.getLabel())
-                .map(policyEntry -> PoliciesModelFactory.newPolicyEntry(rm.getLabel(), policyEntry.getSubjects(),
-                        rm.getResources(), policyEntry.getNamespaces(),
-                        policyEntry.getImportableType(), policyEntry.getAllowedImportAdditions()))
+                .map(policyEntry -> PoliciesModelFactory.newPolicyEntry(rm.getLabel(),
+                        policyEntry.getSubjects(), rm.getResources(),
+                        policyEntry.getNamespaces().orElse(null),
+                        policyEntry.getImportableType(),
+                        policyEntry.getAllowedImportAdditions().orElse(null)))
                 .map(policyBuilder::set)
                 .orElse(policyBuilder.setResourcesFor(rm.getLabel(), rm.getResources()));
     }

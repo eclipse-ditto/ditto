@@ -76,7 +76,8 @@ public class SubjectsModifiedStrategyUpdateTest extends AbstractPolicyEventStrat
     public void testHandlePreservesNamespaces() {
         final Policy policy = newScopedSupportPolicy();
         assertThat(policy.getEntryFor(SUPPORT_LABEL).orElseThrow().getNamespaces())
-                .containsExactlyElementsOf(SCOPED_NAMESPACES);
+                .isPresent()
+                .hasValueSatisfying(ns -> assertThat(ns).containsExactlyElementsOf(SCOPED_NAMESPACES));
         final SubjectsModified event = getPolicyEvent(getInstant(), policy);
 
         final Policy policyWithEventApplied = getStrategyUnderTest().handle(event, policy, 10L);
@@ -84,7 +85,8 @@ public class SubjectsModifiedStrategyUpdateTest extends AbstractPolicyEventStrat
         assertThat(policyWithEventApplied.getEntryFor(SUPPORT_LABEL)
                 .orElseThrow()
                 .getNamespaces())
-                        .containsExactlyElementsOf(SCOPED_NAMESPACES);
+                        .isPresent()
+                        .hasValueSatisfying(ns -> assertThat(ns).containsExactlyElementsOf(SCOPED_NAMESPACES));
     }
 
     private static Policy newScopedSupportPolicy() {
@@ -92,7 +94,7 @@ public class SubjectsModifiedStrategyUpdateTest extends AbstractPolicyEventStrat
         final PolicyEntry supportEntry = policy.getEntryFor(SUPPORT_LABEL).orElseThrow();
         final PolicyEntry scopedSupportEntry = PoliciesModelFactory.newPolicyEntry(supportEntry.getLabel(),
                 supportEntry.getSubjects(), supportEntry.getResources(), SCOPED_NAMESPACES,
-                supportEntry.getImportableType(), supportEntry.getAllowedImportAdditions());
+                supportEntry.getImportableType(), supportEntry.getAllowedImportAdditions().orElse(null));
         return PoliciesModelFactory.newPolicyBuilder(policy)
                 .set(scopedSupportEntry)
                 .build();

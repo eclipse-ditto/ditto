@@ -196,14 +196,14 @@ public final class ImmutablePolicyEntryTest {
         final PolicyEntry parsed = ImmutablePolicyEntry.fromJson(policyEntry.getLabel(), policyEntryJson);
 
         assertThat(parsed).isEqualTo(policyEntry);
-        assertThat(parsed.getAllowedImportAdditions()).isEqualTo(allowedAdditions);
+        assertThat(parsed.getAllowedImportAdditions()).contains(allowedAdditions);
     }
 
     @Test
     public void testFromJsonWithoutAllowedImportAdditionsDefaultsToEmpty() {
         final PolicyEntry entry = ImmutablePolicyEntry.fromJson("DEFAULT", JsonObject.of(
                 "{ \"subjects\": {}, \"resources\": {} }"));
-        assertThat(entry.getAllowedImportAdditions()).isEmpty();
+        assertThat(entry.getAllowedImportAdditions()).isNotPresent();
     }
 
     @Test(expected = PolicyEntryInvalidException.class)
@@ -266,14 +266,14 @@ public final class ImmutablePolicyEntryTest {
 
         final PolicyEntry parsed = ImmutablePolicyEntry.fromJson(policyEntry.getLabel(), policyEntryJson);
         assertThat(parsed).isEqualTo(policyEntry);
-        assertThat(parsed.getNamespaces()).isEqualTo(namespaces);
+        assertThat(parsed.getNamespaces()).contains(namespaces);
     }
 
     @Test
     public void testFromJsonWithoutNamespacesDefaultsToEmpty() {
         final PolicyEntry entry = ImmutablePolicyEntry.fromJson("DEFAULT", JsonObject.of(
                 "{ \"subjects\": {}, \"resources\": {} }"));
-        assertThat(entry.getNamespaces()).isEmpty();
+        assertThat(entry.getNamespaces()).isNotPresent();
     }
 
     @Test
