@@ -297,43 +297,68 @@ p.post-meta {font-size: 80%; color: #777;}
 
 .entry-date{font-size:14px; line-height:1.71429; margin-bottom:0; text-transform:uppercase;}
 
-/* search area */
-#search-demo-container ul#results-container {
-    list-style: none;
-    font-size: 12px;
-    background-color: white;
-    position: absolute;
-    top: 40px; /* if you change anything about the nav, you'll prob. need to reset the top and left values here.*/
-    left: 20px;
-    z-index: -1;
-    width:223px;
-    border-left: 1px solid #dedede;
+/* pagefind search overrides */
+.pagefind-search-container {
+    position: relative;
+    margin-top: 7px;
+    margin-left: 10px;
 }
 
-
-ul#results-container a {
-    background-color: transparent;
+.pagefind-search-container .pagefind-ui {
+    --pagefind-ui-scale: 0.6;
+    --pagefind-ui-primary: #3a8c9a;
 }
 
-ul#results-container a:hover {
-    color: black;
+.pagefind-search-container .pagefind-ui__form {
+    padding: 0;
+    margin: 0;
 }
 
-
-#search-demo-container a:hover {
-    color: black;
-}
-#search-input {
-    padding: .5em;
-    margin-left:15px;
-    width:15em;
-    font-size: 0.8em;
-    -webkit-box-sizing: border-box;
-    -moz-box-sizing: border-box;
+.pagefind-search-container .pagefind-ui__search-input {
+    padding: 2px 8px;
+    width: 12em;
+    font-size: 13px;
+    font-family: 'Open Sans', sans-serif;
     box-sizing: border-box;
-    margin-top:10px;
+    height: 24px;
+    border-radius: 3px;
 }
-/* end search */
+
+.pagefind-search-container .pagefind-ui__search-clear {
+    top: auto;
+    height: 24px;
+    padding: 0 4px;
+}
+
+.pagefind-search-container .pagefind-ui__drawer {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    z-index: 10000;
+    background: white;
+    width: 400px;
+    max-height: 70vh;
+    overflow-y: auto;
+    border: 1px solid #dedede;
+    border-radius: 0 0 4px 4px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.pagefind-search-container .pagefind-ui__result-link {
+    color: #3a8c9a;
+}
+
+.pagefind-search-container .pagefind-ui__result-link:hover {
+    color: #248ec2;
+}
+
+@media (max-width: 768px) {
+    .pagefind-search-container .pagefind-ui__drawer {
+        width: 90vw;
+        right: -50px;
+    }
+}
+/* end pagefind search */
 
 .filter-options {
     margin-bottom: 20px;

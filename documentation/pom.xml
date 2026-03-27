@@ -269,6 +269,29 @@
                     </plugin>
 
                     <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>pagefind-index</id>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <phase>process-resources</phase>
+                                <configuration>
+                                    <executable>npx</executable>
+                                    <arguments>
+                                        <argument>-y</argument>
+                                        <argument>pagefind</argument>
+                                        <argument>--site</argument>
+                                        <argument>${project.build.outputDirectory}</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
                         <artifactId>maven-assembly-plugin</artifactId>
                         <configuration>
                             <descriptors>src/main/resources/assembly.xml</descriptors>
@@ -498,6 +521,22 @@
                                     </arguments>
                                 </configuration>
                                 <phase>none</phase>
+                            </execution>
+                            <execution>
+                                <id>pagefind-index</id>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <phase>process-resources</phase>
+                                <configuration>
+                                    <executable>npx</executable>
+                                    <arguments>
+                                        <argument>-y</argument>
+                                        <argument>pagefind</argument>
+                                        <argument>--site</argument>
+                                        <argument>${project.build.outputDirectory}</argument>
+                                    </arguments>
+                                </configuration>
                             </execution>
                         </executions>
                     </plugin>
