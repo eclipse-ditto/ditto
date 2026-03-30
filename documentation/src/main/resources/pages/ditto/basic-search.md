@@ -17,7 +17,7 @@ You can access the search functionality through three APIs:
 |---|---|---|
 | [HTTP](httpapi-search.html) | HTTP request-response | Stateless |
 | [Ditto protocol](protocol-specification-things-search.html) | [WebSocket](httpapi-protocol-bindings-websocket.html) and [connections](basic-connections.html) | [Reactive-streams](https://reactive-streams.org) compatible |
-| [Server-sent events](httpapi-sse.html#sse-api-searchthings) | [HTML5 server-sent events](https://html.spec.whatwg.org/multipage/server-sent-events.html) | Streaming with resumption |
+| [Server-sent events](httpapi-sse.html#sse-for-search-results) | [HTML5 server-sent events](https://html.spec.whatwg.org/multipage/server-sent-events.html) | Streaming with resumption |
 
 ## How it works
 

@@ -243,7 +243,7 @@ Apply a JSON Merge Patch to the entire Thing. Creates the Thing if it does not e
 |---|---|
 | **topic** | `<namespace>/<thingName>/things/<channel>/commands/merge` |
 | **path** | `/policyId` |
-| **value** | A valid [Policy ID](basic-thing.html#access-control). |
+| **value** | A valid [Policy ID](basic-thing.html#policy-reference). |
 
 **Response**: `204`.
 

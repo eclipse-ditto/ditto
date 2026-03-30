@@ -156,7 +156,7 @@ http://localhost:8080/api/2/things/<thingId>/inbox/messages
 http://localhost:8080/api/2/things/<thingId>/outbox/messages
 ```
 
-Filter by [message subject](basic-messages.html#elements):
+Filter by [message subject](basic-messages.html#message-elements):
 
 ```
 http://localhost:8080/api/2/things/<thingId>/outbox/messages/smoke-alarm

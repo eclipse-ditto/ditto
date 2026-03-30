@@ -30,7 +30,7 @@ Other services communicate with the Policies service through two signal types:
 
 ### Persistence
 
-The Policies service uses [Pekko persistence](https://pekko.apache.org/docs/pekko/current/persistence.html?language=java) with [event sourcing](basic-signals.html#architectural-style) to persist changes and restore [policies](basic-policy.html).
+The Policies service uses [Pekko persistence](https://pekko.apache.org/docs/pekko/current/persistence.html?language=java) with [event sourcing](basic-signals.html#overview) to persist changes and restore [policies](basic-policy.html).
 
 ### Enforcement
 

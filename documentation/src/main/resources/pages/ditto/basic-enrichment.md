@@ -30,11 +30,11 @@ You can enrich:
 
 ## How to specify extraFields
 
-The `extraFields` parameter uses the same syntax as [field selectors](httpapi-concepts.html#with-field-selector)
+The `extraFields` parameter uses the same syntax as [field selectors](httpapi-concepts.html#field-selectors)
 for partial Thing retrieval. How you pass it depends on the API:
 
 * [WebSocket enrichment](httpapi-protocol-bindings-websocket.html#enrichment)
-* [SSE field enrichment](httpapi-sse.html#field-enrichment)
+* [SSE field enrichment](httpapi-sse.html#by-field-enrichment)
 * [Connection target enrichment](basic-connections.html#target-topics-and-enrichment)
 
 The enriched data appears in the [extra field](protocol-specification.html#extra) of the Ditto
@@ -144,7 +144,7 @@ extraFields=attributes/location&filter=eq(attributes/location,"Kitchen")
 ## Further reading
 
 * [Change Notifications](basic-changenotifications.html) -- subscribe to events
-* [HTTP API concepts: field selectors](httpapi-concepts.html#with-field-selector) -- syntax for
+* [HTTP API concepts: field selectors](httpapi-concepts.html#field-selectors) -- syntax for
   selecting fields
 * [Ditto Protocol extra field](protocol-specification.html#extra) -- where enriched data appears
   in the protocol message

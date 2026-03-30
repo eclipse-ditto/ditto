@@ -142,7 +142,7 @@ Simplify Ditto pubsub update operations to make sure that subscriptions are acti
 
 #### [Ability to search in JSON arrays and also in feature definitions](https://github.com/eclipse-ditto/ditto/pull/1396)
 
-[Searching in arrays](basic-search.html#search-queries-in-json-arrays) is now officially supported and enabled by default.
+[Searching in arrays](basic-search.html#querying-json-arrays) is now officially supported and enabled by default.
 
 This also enables [support to search by feature definition](https://github.com/eclipse-ditto/ditto/pull/1417).
 
@@ -267,7 +267,7 @@ This has been fixed.
 #### [Fix that adding custom Java MessageMappers to Ditto via classpath is no longer possible](https://github.com/eclipse-ditto/ditto/issues/1463)
 
 Writing own, Java based, `MessageMappers` and adding them to the classpath 
-[as documented](connectivity-mapping.html#custom-java-based-implementation) did no longer work.  
+[as documented](connectivity-mapping.html#custom-java-mapper) did no longer work.  
 This has been fixed and the documentation for doing exactly that has been updated.
 
 In addition, an example of how to provide a custom Protobuf payload mapper has been provided via 

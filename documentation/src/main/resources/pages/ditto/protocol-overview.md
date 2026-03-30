@@ -21,7 +21,7 @@ The protocol defines several **command** types that both the digital twin and th
 
 The typical communication pattern when you interact with a digital twin or a device uses correlated protocol messages. Each message contains a `correlation-id` header that links related messages together.
 
-The [Signals](basic-signals.html#communication-pattern) chapter describes the basic communication pattern of **commands**, **responses**, **events**, and **announcements**.
+The [Signals](basic-signals.html#communication-pattern-summary) chapter describes the basic communication pattern of **commands**, **responses**, **events**, and **announcements**.
 
 Here is the typical flow:
 

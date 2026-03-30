@@ -69,7 +69,7 @@ Other message types are dropped.
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `fields` | all | Comma-separated list of [field selectors](httpapi-concepts.html#with-field-selector) |
+| `fields` | all | Comma-separated list of [field selectors](httpapi-concepts.html#field-selectors) |
 | `includeDeletedFields` | `false` | Track partial deletions in `_deletedFields` |
 
 Example input:
@@ -180,7 +180,7 @@ The `thing` template can include:
 ### UpdateTwinWithLiveResponse mapper
 
 Creates a [merge Thing command](protocol-specification-things-merge.html) from a
-[live retrieve response](protocol-twinlive.html#live), patching the live data into the twin.
+[live retrieve response](protocol-twinlive.html#live-channel), patching the live data into the twin.
 
 **Options:**
 
@@ -465,8 +465,8 @@ Key methods to implement:
 To deploy:
 
 1. Add the mapper JAR to the connectivity service classpath
-   ([extending Ditto](installation-extending.html#providing-additional-functionality-by-adding-jars-to-the-classpath))
-2. Register the alias in [connectivity configuration](installation-extending.html#adjusting-configuration-of-ditto)
+   ([extending Ditto](installation-extending.html#adding-jars-to-the-classpath))
+2. Register the alias in [connectivity configuration](installation-extending.html#adjusting-service-configuration)
 3. Reference the alias in your connection's `mappingDefinitions`
 
 {% include tip.html content="If your mapper does not require any options (`isConfigurationMandatory() = true`), you can

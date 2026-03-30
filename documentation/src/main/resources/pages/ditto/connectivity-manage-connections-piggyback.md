@@ -269,7 +269,7 @@ successfully established. The only parameter necessary for retrieving the connec
 ### Retrieve connection metrics
 
 For details about the response of this command, please refer to
-[Retrieve connection logs using HTTP API](connectivity-manage-connections.html#retrieve-connection-metrics).
+[Retrieve connection logs using HTTP API](connectivity-manage-connections.html#connection-metrics).
 
 ```json
 {
@@ -309,7 +309,7 @@ retrieving the connection metrics is the `connectionId`.
 ### Enable connection logs
 
 For details about the this command, please refer to
-[Retrieve connection logs using HTTP API](connectivity-manage-connections.html#enable-connection-logs).
+[Retrieve connection logs using HTTP API](connectivity-manage-connections.html#connection-logs).
 
 ```json
 {
@@ -329,7 +329,7 @@ For details about the this command, please refer to
 ### Retrieve connection logs
 
 For details about the response of this command, please refer to 
-[Retrieve connection logs using HTTP API](connectivity-manage-connections.html#retrieve-connection-logs).
+[Retrieve connection logs using HTTP API](connectivity-manage-connections.html#connection-logs).
 
 ```json
 {
@@ -565,7 +565,7 @@ and progress will be saved to allow resuming later.
 
 ## Publishing connection logs
 
-Please refer to [Payload mapping configuration](connectivity-manage-connections.html#publishing-connection-logs) in
+Please refer to [Payload mapping configuration](connectivity-manage-connections.html#publishing-connection-logs-to-fluentd) in
 HTTP API section about managing connections.
 
 ## Payload mapping configuration

@@ -62,7 +62,7 @@ bugfixes were added.
 
 #### [HTTP API for "live" commands](https://github.com/eclipse-ditto/ditto/issues/106)
 
-Ditto's ["live" channel](protocol-twinlive.html#live) is now also available for commands invoked via HTTP API.  
+Ditto's ["live" channel](protocol-twinlive.html#live-channel) is now also available for commands invoked via HTTP API.  
 See also the [blogpost covering that topic](2021-12-20-http-live-channel.html).
 
 To qualify a command (e.g. "modify thing" or "retrieve feature property") as a "live" command, the header or 
@@ -89,7 +89,7 @@ may create new entities (things / policies) in which namespaces.
 
 #### [Allow using `*` as a placeholder for the feature id in selected fields](https://github.com/eclipse-ditto/ditto/pull/1277)
 
-When selecting for certain [`fields` of a thing](httpapi-concepts.html#field-selector-with-wildcard) or when using 
+When selecting for certain [`fields` of a thing](httpapi-concepts.html#wildcard-field-selectors) or when using 
 [signal enrichment (extraFields)](basic-enrichment.html) in order to add more (unchanged) data from a twin to e.g. events 
 the wildcard `*` can now be used in order to select all features of a thing without the need to know their feature names.
 

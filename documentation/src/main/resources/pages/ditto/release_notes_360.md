@@ -111,7 +111,7 @@ The Ditto UI learns a new trick in Ditto version `3.6.0` as well, the ability to
 Previously, the `Bearer` token of an OAuth2 endpoint had to be copied manually to the "Authorize" modal view in order to login.  
 
 Now, the Ditto UI supports configuration of arbitrary OpenID connect providers via its 
-[environment](user-interface.html#configuration-options-via-environments) approach.  
+[environment](user-interface.html#configuration) approach.  
 There, you can configure all possible options (delegating the configuration to the used 
 [oidc-client-ts](https://authts.github.io/oidc-client-ts/) library) in order to integrate your OIDC provider.
 
@@ -177,11 +177,11 @@ or additions were done.
 ### Ditto UI Environment migration
 
 As the Ditto UI was [enhanced by additional login-options](#sso-single-sign-on-support-in-the-ditto-ui-via-openid-connect-provider-configuration), the
-format of the UI's configured [environments](user-interface.html#configuration-options-via-environments) changed.
+format of the UI's configured [environments](user-interface.html#configuration) changed.
 
-Starting with this release, the available options are also [documented](user-interface.html#available-environment-configuration).
+Starting with this release, the available options are also [documented](user-interface.html#environment-configuration-reference).
 
-If you hosted your own environments (see [how to provide a hosted environment file as a template](user-interface.html#control-environments-by-url-parameters)),
+If you hosted your own environments (see [how to provide a hosted environment file as a template](user-interface.html#control-environments-via-url-parameters)),
 you will have to adjust the template to the new format.
 
 As user of the Ditto-UI it will be required to clear the local storage of your browser or to manually migrate your local

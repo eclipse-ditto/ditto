@@ -108,7 +108,7 @@ client.twin().forFeature(ThingId.of("org.eclipse.ditto:fancy-thing"), "temperatu
 
 ## Live channel condition
 
-Ditto supports automatic switching between [twin](protocol-twinlive.html#twin) and [live](protocol-twinlive.html#live) channels based on a condition.
+Ditto supports automatic switching between [twin](protocol-twinlive.html#twin-channel) and [live](protocol-twinlive.html#live-channel) channels based on a condition.
 
 Define the condition with RQL. If it matches, Ditto retrieves data from the device itself:
 

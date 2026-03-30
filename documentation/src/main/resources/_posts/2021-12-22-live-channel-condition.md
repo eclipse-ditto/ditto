@@ -10,11 +10,11 @@ sidebar: false
 toc: true
 ---
 
-After the added option to target the [live channel](protocol-twinlive.html#live) by adding the `channel=live` to HTTP
+After the added option to target the [live channel](protocol-twinlive.html#live-channel) by adding the `channel=live` to HTTP
 requests (see also [blog post about "HTTP live channel"](2021-12-20-http-live-channel.html)), Eclipse Ditto 
 **version 2.3.0** will in addition support to define a 
 [live channel condition](basic-conditional-requests.html#live-channel-condition), which, when evaluating to `true`, 
-will retrieve data from a device via the live channel, or fall back to the persisted [twin](protocol-twinlive.html#twin) 
+will retrieve data from a device via the live channel, or fall back to the persisted [twin](protocol-twinlive.html#twin-channel) 
 otherwise.
 
 {% include note.html content="In order to use the live channel, the device receiving live commands must be able to understand
@@ -72,7 +72,7 @@ GET /api/2/things/my.namespace:my-polling-device-1/features/temperature/properti
 ```
 
 The specified `live-channel-condition` will evaluate to `true`, meaning that the retrieve is transformed to a 
-[live command](protocol-twinlive.html#live) and sent to the device, e.g. connected via a 
+[live command](protocol-twinlive.html#live-channel) and sent to the device, e.g. connected via a 
 [managed connection](basic-connections.html).  
 Upon receiving the "live retrieve" at the device, the device can create a command response correlated with the same
 `correlation-id` and send it back to Ditto with the current value.  
@@ -80,7 +80,7 @@ This value is then returned as result of the `GET`, the HTTP response header `ch
 sent by the device by having the value `live`.
 
 If the device does not answer with a correctly correlated response within the given `timeout`, the request will fall back
-to the [twin](protocol-twinlive.html#twin) channel, retrieving the data from the last known persisted temperature value 
+to the [twin](protocol-twinlive.html#twin-channel) channel, retrieving the data from the last known persisted temperature value 
 in the twin managed by Ditto.  
 The HTTP response header `channel` will indicate that the data was received by the persisted twin by having the value 
 `twin`.

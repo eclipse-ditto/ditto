@@ -71,7 +71,7 @@ successfully received without directly responding to it.
 #### [Addition of `_created` date to things](https://github.com/eclipse-ditto/ditto/issues/749)
 
 Whenever a [thing](basic-thing.html) is now created, a JSON field `"_created"` is now added containing the creation 
-date. This field can be selected via [fields selection](httpapi-concepts.html#with-field-selector), as the already 
+date. This field can be selected via [fields selection](httpapi-concepts.html#field-selectors), as the already 
 existing `"_modified"` field can also be. The created date can also be used as part of 
 [search RQL queries](basic-rql.html).
 

@@ -18,7 +18,7 @@ The time has come to support consuming as well.
 A Kafka connection behaves slightly different from other consuming Connections in Ditto.  
 The following aspects are special:
 * [Backpressure by using acknowledgements](connectivity-protocol-bindings-kafka2.html#quality-of-service)
-* [Preserve order of messages on redelivery due to failed acknowledgements](connectivity-protocol-bindings-kafka2.html#backpressure-by-using-acknowledgements)
+* [Preserve order of messages on redelivery due to failed acknowledgements](connectivity-protocol-bindings-kafka2.html#backpressure-via-acknowledgements)
 * [Expiry of messages](connectivity-protocol-bindings-kafka2.html#message-expiry)
 
 ### Scalability

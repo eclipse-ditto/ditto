@@ -30,7 +30,7 @@ Other services communicate with the Things service through two signal types:
 
 ### Persistence
 
-The Things service uses [Pekko persistence](https://pekko.apache.org/docs/pekko/current/persistence.html?language=java) with [event sourcing](basic-signals.html#architectural-style) to persist changes and restore [things](basic-thing.html).
+The Things service uses [Pekko persistence](https://pekko.apache.org/docs/pekko/current/persistence.html?language=java) with [event sourcing](basic-signals.html#overview) to persist changes and restore [things](basic-thing.html).
 
 ### Enforcement
 

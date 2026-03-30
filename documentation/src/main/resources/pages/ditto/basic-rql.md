@@ -38,7 +38,7 @@ The RQL filter specifies "what" to filter.
 <property> = url-encoded-string
 ```
 
-A query property specifies a field in the JSON representation of a [Thing](basic-thing.html#api-version-2). For example, `thingId` selects the Thing ID, and `attributes/location` selects the `location` attribute.
+A query property specifies a field in the JSON representation of a [Thing](basic-thing.html#model-specification). For example, `thingId` selects the Thing ID, and `attributes/location` selects the `location` attribute.
 
 Ditto uses JSON Pointer notation ([RFC-6901](https://tools.ietf.org/html/rfc6901)) for nested properties. You can include or omit the leading slash -- these are equivalent:
 
@@ -53,7 +53,7 @@ eq(attributes/location,"kitchen")
 
 #### Placeholders as query properties
 
-When you use RQL to filter [change notifications](basic-changenotifications.html#by-rql-expression), you can use [placeholders](basic-placeholders.html#scope-rql-expressions-when-filtering-for-ditto-protocol-messages) instead of Thing JSON fields:
+When you use RQL to filter [change notifications](basic-changenotifications.html#filter-by-rql-expression), you can use [placeholders](basic-placeholders.html#scope-rql-expressions-when-filtering-for-ditto-protocol-messages) instead of Thing JSON fields:
 
 * `topic:<placeholder-name>`
 * `resource:<placeholder-name>`

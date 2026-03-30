@@ -196,5 +196,5 @@ Using multiple metadata headers in one request results in an error.
 
 * [Protocol headers reference](protocol-specification.html#headers) -- all available Ditto headers
 * [Things](basic-thing.html) -- the entity that metadata attaches to
-* [HTTP API concepts](httpapi-concepts.html#with-field-selector) -- field selectors for partial
+* [HTTP API concepts](httpapi-concepts.html#field-selectors) -- field selectors for partial
   retrieval

@@ -82,7 +82,7 @@ The response shares the same `topic` and `correlation-id` as the original messag
 To receive Messages using the WebSocket binding, you need to:
 
 1. Have an open WebSocket connection to Ditto
-2. Send the [WebSocket binding message](httpapi-protocol-bindings-websocket.html#request-events) `START-SEND-MESSAGES`
+2. Send the [WebSocket binding message](httpapi-protocol-bindings-websocket.html#subscription-control-messages) `START-SEND-MESSAGES`
 3. Be [authorized](basic-auth.html) to receive Messages for the Thing
 
 {% include note.html content="We encourage you to play around with the examples. You can use

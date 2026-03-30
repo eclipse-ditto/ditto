@@ -27,7 +27,7 @@ This was fixed in PR [#1932](https://github.com/eclipse-ditto/ditto/pull/1932).
 #### Fix that removing fields in a merge update with a regex does not work in several cases
 
 Issue [#1939](https://github.com/eclipse-ditto/ditto/issues/1939) revealed a bug in the functionality of
-[removing fields in a merge update based on a regex](httpapi-concepts.html#removing-fields-in-a-merge-update-with-a-regex), so that
+[removing fields in a merge update based on a regex](httpapi-concepts.html#removing-fields-with-a-regex), so that
 only very special fields could be removed and only when not being used via the HTTP API.  
 PR [#1941](https://github.com/eclipse-ditto/ditto/pull/1941) fixed that.
 

@@ -193,7 +193,7 @@ The request is now open to receive a command for 60 seconds before it is termina
 
 ### Send a Ditto message
 
-Now we can use the [Ditto Messages API](protocol-specification-things-messages.html#using-the-messages-api) to send a 
+Now we can use the [Ditto Messages API](protocol-specification-things-messages.html#examples) to send a 
 message to the device waiting for a command: 
 ```bash
 curl -i -X POST 'https://ditto.eclipseprojects.io/api/2/things/org.eclipse.ditto:teapot/inbox/messages/brew?timeout=60' \

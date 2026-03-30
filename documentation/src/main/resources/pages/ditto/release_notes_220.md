@@ -66,7 +66,7 @@ and(in(topic:action,'created','deleted'),eq(resource:path,'/'))
 
 #### [Possibility to forward connection logs](https://github.com/eclipse-ditto/ditto/pull/1230)
 
-Configure [log publishing](connectivity-manage-connections.html#publishing-connection-logs)for your Ditto managed
+Configure [log publishing](connectivity-manage-connections.html#publishing-connection-logs-to-fluentd)for your Ditto managed
 connections in order to get connection logs wherever you need them to analyze.
 
 #### [Add OAuth2 client credentials flow as an authentication mechanism for Ditto managed HTTP connections](https://github.com/eclipse-ditto/ditto/pull/1233)

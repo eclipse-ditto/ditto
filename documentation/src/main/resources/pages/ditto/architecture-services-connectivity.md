@@ -32,7 +32,7 @@ Other services communicate with the Connectivity service through two signal type
 
 ### Persistence
 
-The Connectivity service uses [Pekko persistence](https://pekko.apache.org/docs/pekko/current/persistence.html?language=java) with [event sourcing](basic-signals.html#architectural-style) to persist and restore [connections](basic-connections.html).
+The Connectivity service uses [Pekko persistence](https://pekko.apache.org/docs/pekko/current/persistence.html?language=java) with [event sourcing](basic-signals.html#overview) to persist and restore [connections](basic-connections.html).
 
 ### Enforcement
 

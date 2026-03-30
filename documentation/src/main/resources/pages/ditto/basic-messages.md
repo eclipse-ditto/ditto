@@ -76,7 +76,7 @@ Sending requires `WRITE` permission on the Thing (see [Permissions](#permissions
 You can receive messages through:
 
 * The [WebSocket API](httpapi-protocol-bindings-websocket.html) -- as Ditto Protocol messages
-* [Server Sent Events (SSE)](httpapi-sse.html#subscribe-for-messages-for-a-specific-thing)
+* [Server Sent Events (SSE)](httpapi-sse.html#thing-messages)
 * [Connection targets](basic-connections.html#target-topics-and-filtering) -- subscribing for "Thing messages"
 
 Receiving requires `READ` permission on the Thing. Every connected client with the correct

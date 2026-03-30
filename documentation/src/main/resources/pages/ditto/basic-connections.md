@@ -223,8 +223,8 @@ A target contains:
 ### Target topics and filtering
 
 You define which message types to publish via the `topics` array. You can filter by
-[namespaces](basic-changenotifications.html#by-namespaces) and
-[RQL expressions](basic-changenotifications.html#by-rql-expression):
+[namespaces](basic-changenotifications.html#filter-by-namespace) and
+[RQL expressions](basic-changenotifications.html#filter-by-rql-expression):
 
 | Topic | Namespace filter | RQL filter |
 |-------|:---:|:---:|

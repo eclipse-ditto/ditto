@@ -253,8 +253,8 @@ This table shows an overview of how those elements map to Ditto concepts for the
 |---------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------|
 | [Thing](https://www.w3.org/TR/wot-thing-description11/#thing)                                           | [Ditto Thing](basic-thing.html)                                                                                    |
 | [Properties](https://www.w3.org/TR/wot-thing-description11/#propertyaffordance)                         | Thing [attributes](basic-thing.html#attributes)                                                                    |
-| [Actions](https://www.w3.org/TR/wot-thing-description11/#actionaffordance)                              | Thing [messages](basic-messages.html#elements) with **Direction** *to* (messages in the "inbox") of a Thing ID.    |
-| [Events](https://www.w3.org/TR/wot-thing-description11/#eventaffordance)                                | Thing [messages](basic-messages.html#elements) with **Direction** *from* (messages in the "outbox") of a Thing ID. |
+| [Actions](https://www.w3.org/TR/wot-thing-description11/#actionaffordance)                              | Thing [messages](basic-messages.html#message-elements) with **Direction** *to* (messages in the "inbox") of a Thing ID.    |
+| [Events](https://www.w3.org/TR/wot-thing-description11/#eventaffordance)                                | Thing [messages](basic-messages.html#message-elements) with **Direction** *from* (messages in the "outbox") of a Thing ID. |
 | [Composition via `tm:submodel`](https://www.w3.org/TR/wot-thing-description11/#thing-model-composition) | Thing [features](basic-thing.html#features) representing different aspects of a Ditto Thing.                       |
 
 
@@ -266,8 +266,8 @@ This table shows an overview of how those elements map to Ditto concepts for the
 |---------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | [Thing](https://www.w3.org/TR/wot-thing-description11/#thing)                   | Feature.<br/>In Ditto, a Feature is an aspect of a [Ditto Thing](basic-thing.html). As the Feature is defined by its properties and messages it supports, it maps to a WoT Thing. |
 | [Properties](https://www.w3.org/TR/wot-thing-description11/#propertyaffordance) | Feature [properties](basic-feature.html#feature-properties)                                                                                                                       |
-| [Actions](https://www.w3.org/TR/wot-thing-description11/#actionaffordance)      | Feature [messages](basic-messages.html#elements) with **Direction** *to* (messages in the "inbox") of a Thing ID + Feature ID combination.                                        |
-| [Events](https://www.w3.org/TR/wot-thing-description11/#eventaffordance)        | Feature [messages](basic-messages.html#elements) with **Direction** *from* (messages in the "outbox") of a Thing ID + Feature ID combination.                                     |
+| [Actions](https://www.w3.org/TR/wot-thing-description11/#actionaffordance)      | Feature [messages](basic-messages.html#message-elements) with **Direction** *to* (messages in the "inbox") of a Thing ID + Feature ID combination.                                        |
+| [Events](https://www.w3.org/TR/wot-thing-description11/#eventaffordance)        | Feature [messages](basic-messages.html#message-elements) with **Direction** *from* (messages in the "outbox") of a Thing ID + Feature ID combination.                                     |
 
 
 ## Integration in Ditto
@@ -443,7 +443,7 @@ The implementation supports validation or enforcing the following Ditto concepts
       follow the contract defined by the TM `properties`
     * by default, non-modeled `attributes` are forbidden to be created/updated
     * `attributes` which are not marked as optional (via `"tm:optional"`) are ensured not to be deleted
-  * Thing [messages](basic-messages.html#sending-messages): 
+  * Thing [messages](basic-messages.html#sending-and-receiving-messages): 
     * based on the linked TM of a Thing's [definition](basic-thing.html#definition), the Thing `messages` 
       * sent to its `inbox` have to follow the contract defined by the TM `actions`
         * both, the defined `input` payload and the `output` payload is validated
@@ -460,7 +460,7 @@ The implementation supports validation or enforcing the following Ditto concepts
   * Feature [properties](basic-feature.html#feature-properties): 
     * based on the linked TM of a Feature's [definition](basic-feature.html#feature-definition), the Feature `properties` 
       have to follow the contract defined by the TM `properties`
-  * Feature [messages](basic-messages.html#sending-messages):
+  * Feature [messages](basic-messages.html#sending-and-receiving-messages):
     * based on the linked TM of a Feature's [definition](basic-feature.html#feature-definition), the Feature `messages`
       * sent to its `inbox` have to follow the contract defined by the TM `actions`
           * both, the defined `input` payload and the `output` payload is validated

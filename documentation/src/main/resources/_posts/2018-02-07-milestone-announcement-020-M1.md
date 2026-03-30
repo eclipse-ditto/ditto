@@ -16,7 +16,7 @@ The Ditto team is proud to announce the next milestone release.
 Have a look at the Milestone [0.2.0-M1 release notes](release_notes_020-M1.html). 
 
 The main changes are
-* being able to [search in namespaces](httpapi-search.html#query-parameters) which can speed up search queries when applied
+* being able to [search in namespaces](httpapi-search.html#examples) which can speed up search queries when applied
   to a large population of digital twins
 * the enhancement of our [Feature entity](basic-feature.html) by [Definitions](basic-feature.html#feature-definition)
   which lays the foundation for using Features in a typesafe way (later by enforcing the schema with the help of an

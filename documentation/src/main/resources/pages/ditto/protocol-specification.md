@@ -89,14 +89,14 @@ Header names are **case-insensitive** and **case-preserving**:
 | `put-metadata` | Metadata to store with the thing. | `JsonArray` of `JsonObject`s containing [metadata](basic-metadata.html). |
 | `condition` | RQL condition to evaluate before applying the request. | `String` containing a [condition](basic-conditional-requests.html). |
 | `live-channel-condition` | RQL condition to evaluate before retrieving from the device. | `String` containing a [live channel condition](basic-conditional-requests.html#live-channel-condition). |
-| `live-channel-timeout-strategy` | What to do when a [live](protocol-twinlive.html#live) command times out. | `fail`: return 408 timeout. `use-twin`: fall back to persisted data. |
+| `live-channel-timeout-strategy` | What to do when a [live](protocol-twinlive.html#live-channel) command times out. | `fail`: return 408 timeout. `use-twin`: fall back to persisted data. |
 | `at-historical-revision` | Retrieve an entity at a historical revision using [history](basic-history.html). | `Number` - a long revision value. |
 | `at-historical-timestamp` | Retrieve an entity at a historical timestamp using [history](basic-history.html). | `String` - ISO-8601 formatted timestamp. |
 | `historical-headers` | Contains persisted historical headers from the `at-historical-*` request. | `JsonObject` of persisted historical headers. |
 
 ### Custom headers
 
-Custom headers on [live channel](protocol-twinlive.html#live) messages pass through verbatim. When naming custom headers, use a prefix specific to your application that does not conflict with Ditto or HTTP headers (e.g., `myapp-*`).
+Custom headers on [live channel](protocol-twinlive.html#live-channel) messages pass through verbatim. When naming custom headers, use a prefix specific to your application that does not conflict with Ditto or HTTP headers (e.g., `myapp-*`).
 
 * Avoid [permanent HTTP headers](https://www.iana.org/assignments/message-headers/message-headers.xml).
 * Ditto uses these headers internally -- if you set them, they are ignored and not delivered:

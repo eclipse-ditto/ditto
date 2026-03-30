@@ -130,7 +130,7 @@ PUT /api/2/things/org.eclipse.ditto:thing-1?requested-acks=twin-persisted,my-cus
 
 ### Requesting ACKs via WebSocket
 
-Include `"requested-acks"` (JSON array of strings) and `"timeout"` in the [Ditto Protocol headers](protocol-specification.html#headers). The response is an [aggregated acknowledgements](protocol-specification-acks.html#acknowledgements-aggregating) message.
+Include `"requested-acks"` (JSON array of strings) and `"timeout"` in the [Ditto Protocol headers](protocol-specification.html#headers). The response is an [aggregated acknowledgements](protocol-specification-acks.html#acknowledgements-aggregated) message.
 
 ### Requesting ACKs via connections
 
