@@ -21,19 +21,27 @@ import static org.eclipse.ditto.policies.service.persistence.TestConstants.Polic
 import static org.eclipse.ditto.policies.service.persistence.TestConstants.Policy.SUPPORT_SUBJECT_ID;
 
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.List;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.Resources;
 import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.Subjects;
 import org.eclipse.ditto.policies.model.signals.events.ResourcesModified;
+import org.eclipse.ditto.policies.service.persistence.TestConstants;
+import org.junit.Test;
 
 /**
  * Tests {@link org.eclipse.ditto.policies.service.persistence.actors.strategies.events.ResourcesModifiedStrategy} with modified Label.
  */
 public class ResourcesModifiedStrategyUpdateTest extends AbstractPolicyEventStrategyTest<ResourcesModified> {
+
+    private static final List<String> SCOPED_NAMESPACES = Arrays.asList("com.acme", "com.acme.*");
 
     @Override
     ResourcesModifiedStrategy getStrategyUnderTest() {
@@ -62,5 +70,33 @@ public class ResourcesModifiedStrategyUpdateTest extends AbstractPolicyEventStra
         assertThat(policyWithEventApplied.getEntryFor(SUPPORT_LABEL)
                 .map(pe -> pe.getSubjects()))
                 .contains(Subjects.newInstance(Subject.newInstance(SUPPORT_SUBJECT_ID)));
+    }
+
+    @Test
+    public void testHandlePreservesNamespaces() {
+        final Policy policy = newScopedSupportPolicy();
+        assertThat(policy.getEntryFor(SUPPORT_LABEL).orElseThrow().getNamespaces())
+                .isPresent()
+                .hasValueSatisfying(ns -> assertThat(ns).containsExactlyElementsOf(SCOPED_NAMESPACES));
+        final ResourcesModified event = getPolicyEvent(getInstant(), policy);
+
+        final Policy policyWithEventApplied = getStrategyUnderTest().handle(event, policy, 10L);
+
+        assertThat(policyWithEventApplied.getEntryFor(SUPPORT_LABEL)
+                .orElseThrow()
+                .getNamespaces())
+                        .isPresent()
+                        .hasValueSatisfying(ns -> assertThat(ns).containsExactlyElementsOf(SCOPED_NAMESPACES));
+    }
+
+    private static Policy newScopedSupportPolicy() {
+        final Policy policy = TestConstants.Policy.policyWithRandomName();
+        final PolicyEntry supportEntry = policy.getEntryFor(SUPPORT_LABEL).orElseThrow();
+        final PolicyEntry scopedSupportEntry = PoliciesModelFactory.newPolicyEntry(supportEntry.getLabel(),
+                supportEntry.getSubjects(), supportEntry.getResources(), SCOPED_NAMESPACES,
+                supportEntry.getImportableType(), supportEntry.getAllowedImportAdditions().orElse(null));
+        return PoliciesModelFactory.newPolicyBuilder(policy)
+                .set(scopedSupportEntry)
+                .build();
     }
 }

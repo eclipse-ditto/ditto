@@ -19,6 +19,7 @@ import static org.eclipse.ditto.things.service.enforcement.TestSetup.THING_ID;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -48,6 +49,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
+import org.eclipse.ditto.policies.model.EffectedPermissions;
+import org.eclipse.ditto.policies.model.ImportableType;
 import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PoliciesResourceType;
@@ -134,6 +137,37 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
             supervisor.tell(getModifyCommand(), getRef());
 
             expectMsgClass(FeatureNotModifiableException.class);
+        }};
+    }
+
+    @Test
+    public void rejectQueryWhenPolicyEntryDoesNotApplyToThingNamespace() {
+        final PolicyId policyId = PolicyId.of("scoped:policy");
+        final JsonObject thingWithPolicy = TestSetup.newThingWithPolicyId(policyId);
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
+                .setRevision(1L)
+                .set(PoliciesModelFactory.newPolicyEntry("scoped-reader",
+                        Collections.singletonList(
+                                Subject.newInstance(SubjectId.newInstance("google:" + TestSetup.SUBJECT_ID))),
+                        Collections.singletonList(PoliciesModelFactory.newResource("thing", "/",
+                                EffectedPermissions.newInstance(
+                                        Permissions.newInstance(Permission.READ),
+                                        Permissions.none()))),
+                        Arrays.asList("other.namespace", "other.namespace.*"),
+                        ImportableType.IMPLICIT,
+                        Collections.emptySet()))
+                .build();
+        final SudoRetrieveThingResponse sudoRetrieveThingResponse =
+                SudoRetrieveThingResponse.of(thingWithPolicy, DittoHeaders.empty());
+        when(policyEnforcerProvider.getPolicyEnforcer(policyId))
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
+
+        new TestKit(system) {{
+            supervisor.tell(getReadCommand(), getRef());
+
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+
+            TestSetup.fishForMsgClass(this, ThingNotAccessibleException.class);
         }};
     }
 

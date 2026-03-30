@@ -197,7 +197,8 @@ public class PolicyImportsPreEnforcer implements PreEnforcer {
                 // entry doesn't exist in imported policy — will be silently ignored at merge time
                 continue;
             }
-            final Set<AllowedImportAddition> allowed = entryOpt.get().getAllowedImportAdditions();
+            final Set<AllowedImportAddition> allowed = entryOpt.get().getAllowedImportAdditions()
+                    .orElse(java.util.Collections.emptySet());
             if (addition.getSubjects().isPresent() &&
                     !allowed.contains(AllowedImportAddition.SUBJECTS)) {
                 throw PolicyImportInvalidException.newBuilder()
@@ -215,6 +216,16 @@ public class PolicyImportsPreEnforcer implements PreEnforcer {
                                 "' contains disallowed resource additions for entry '" + label + "'.")
                         .description("The imported policy entry '" + label +
                                 "' does not allow resource additions. Its 'allowedImportAdditions' is: " + allowed)
+                        .dittoHeaders(dittoHeaders)
+                        .build();
+            }
+            if (addition.getNamespaces().isPresent() &&
+                    !allowed.contains(AllowedImportAddition.NAMESPACES)) {
+                throw PolicyImportInvalidException.newBuilder()
+                        .message("The policy import for '" + policyImport.getImportedPolicyId() +
+                                "' contains disallowed namespace additions for entry '" + label + "'.")
+                        .description("The imported policy entry '" + label +
+                                "' does not allow namespace additions. Its 'allowedImportAdditions' is: " + allowed)
                         .dittoHeaders(dittoHeaders)
                         .build();
             }

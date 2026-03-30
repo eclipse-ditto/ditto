@@ -14,6 +14,9 @@ package org.eclipse.ditto.policies.model;
 
 import static org.eclipse.ditto.policies.model.assertions.DittoPolicyAssertions.assertThat;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.junit.Test;
@@ -85,6 +88,43 @@ public final class ImmutableEntryAdditionTest {
         assertThat(addition).isEqualTo(fromJson);
         assertThat(fromJson.getSubjects()).isEmpty();
         assertThat(fromJson.getResources()).isEmpty();
+    }
+
+    @Test
+    public void testToAndFromJsonWithNamespaces() {
+        final List<String> namespaces = Arrays.asList("com.acme", "com.acme.*");
+        final EntryAddition addition = ImmutableEntryAddition.of(LABEL, TEST_SUBJECTS, TEST_RESOURCES, namespaces);
+
+        final JsonObject json = addition.toJson();
+        final EntryAddition fromJson = ImmutableEntryAddition.fromJson(LABEL, json);
+
+        assertThat(addition).isEqualTo(fromJson);
+        assertThat(fromJson.getNamespaces()).isPresent();
+        assertThat(fromJson.getNamespaces().get()).containsExactly("com.acme", "com.acme.*");
+    }
+
+    @Test
+    public void testToAndFromJsonWithNamespacesOnly() {
+        final List<String> namespaces = Arrays.asList("org.example");
+        final EntryAddition addition = ImmutableEntryAddition.of(LABEL, null, null, namespaces);
+
+        final JsonObject json = addition.toJson();
+        final EntryAddition fromJson = ImmutableEntryAddition.fromJson(LABEL, json);
+
+        assertThat(addition).isEqualTo(fromJson);
+        assertThat(fromJson.getSubjects()).isEmpty();
+        assertThat(fromJson.getResources()).isEmpty();
+        assertThat(fromJson.getNamespaces()).isPresent();
+    }
+
+    @Test
+    public void testFromJsonWithoutNamespacesDefaultsToEmpty() {
+        final EntryAddition addition = ImmutableEntryAddition.of(LABEL, TEST_SUBJECTS, TEST_RESOURCES);
+
+        final JsonObject json = addition.toJson();
+        final EntryAddition fromJson = ImmutableEntryAddition.fromJson(LABEL, json);
+
+        assertThat(fromJson.getNamespaces()).isEmpty();
     }
 
     @Test(expected = NullPointerException.class)

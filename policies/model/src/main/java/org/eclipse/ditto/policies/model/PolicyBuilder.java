@@ -15,6 +15,7 @@ package org.eclipse.ditto.policies.model;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -947,6 +948,18 @@ public interface PolicyBuilder {
      * @since 3.9.0
      */
     PolicyBuilder setAllowedImportAdditionsFor(CharSequence label, Set<AllowedImportAddition> allowedImportAdditions);
+
+    /**
+     * Sets the namespace patterns for the entry specified by {@code label} to this builder.
+     *
+     * @param label the label identifying the PolicyEntry to modify.
+     * @param namespaces the namespace patterns restricting which thing namespaces this entry applies to.
+     * @return this builder to allow method chaining.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code label} is empty.
+     * @since 3.9.0
+     */
+    PolicyBuilder setNamespacesFor(CharSequence label, List<String> namespaces);
 
     /**
      * Returns a new immutable {@link Policy} which contains all the entries which were set to this builder beforehand.

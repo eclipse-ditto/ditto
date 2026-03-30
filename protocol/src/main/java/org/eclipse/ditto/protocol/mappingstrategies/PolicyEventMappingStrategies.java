@@ -24,6 +24,7 @@ import org.eclipse.ditto.policies.model.signals.events.PolicyCreated;
 import org.eclipse.ditto.policies.model.signals.events.PolicyDeleted;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEntriesModified;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEntryAllowedImportAdditionsModified;
+import org.eclipse.ditto.policies.model.signals.events.PolicyEntryNamespacesModified;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEntryImportableModified;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEntryCreated;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEntryDeleted;
@@ -74,6 +75,7 @@ final class PolicyEventMappingStrategies extends AbstractPolicyMappingStrategies
         addSubjectsEvents(mappingStrategies);
         addSubjectEvents(mappingStrategies);
         addAllowedImportAdditionsEvents(mappingStrategies);
+        addNamespacesEvents(mappingStrategies);
         addImportableEvents(mappingStrategies);
         addImportEntriesEvents(mappingStrategies);
         addImportEntriesAdditionsEvents(mappingStrategies);
@@ -238,6 +240,18 @@ final class PolicyEventMappingStrategies extends AbstractPolicyMappingStrategies
                 adaptable -> PolicyEntryAllowedImportAdditionsModified.of(policyIdFrom(adaptable),
                         labelFrom(adaptable),
                         allowedImportAdditionsFrom(adaptable),
+                        revisionFrom(adaptable),
+                        timestampFrom(adaptable),
+                        dittoHeadersFrom(adaptable),
+                        metadataFrom(adaptable)));
+    }
+
+    private static void addNamespacesEvents(
+            final Map<String, JsonifiableMapper<PolicyEvent<?>>> mappingStrategies) {
+        mappingStrategies.put(PolicyEntryNamespacesModified.TYPE,
+                adaptable -> PolicyEntryNamespacesModified.of(policyIdFrom(adaptable),
+                        labelFrom(adaptable),
+                        namespacesListFrom(adaptable),
                         revisionFrom(adaptable),
                         timestampFrom(adaptable),
                         dittoHeadersFrom(adaptable),

@@ -33,7 +33,13 @@ public enum AllowedImportAddition {
     /**
      * Allows importing policies to add additional resources to this entry.
      */
-    RESOURCES("resources");
+    RESOURCES("resources"),
+
+    /**
+     * Allows importing policies to add additional namespace patterns to this entry.
+     * @since 3.9.0
+     */
+    NAMESPACES("namespaces");
 
     private final String name;
 

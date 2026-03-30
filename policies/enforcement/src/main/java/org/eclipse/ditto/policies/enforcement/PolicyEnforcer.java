@@ -12,6 +12,9 @@
  */
 package org.eclipse.ditto.policies.enforcement;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -62,7 +65,7 @@ public final class PolicyEnforcer {
             final Function<PolicyId, CompletionStage<Optional<Policy>>> policyResolver) {
         return policy.withResolvedImports(policyResolver)
                 .thenApply(resolvedPolicy -> {
-                    final var enforcer = PolicyEnforcers.defaultEvaluator(resolvedPolicy);
+                    final Enforcer enforcer = PolicyEnforcers.defaultEvaluator(resolvedPolicy);
                     return new PolicyEnforcer(resolvedPolicy, enforcer);
                 });
     }
@@ -218,6 +221,39 @@ public final class PolicyEnforcer {
      */
     public Enforcer getEnforcer() {
         return enforcer;
+    }
+
+    /**
+     * Returns a new {@code PolicyEnforcer} whose enforcer only considers policy entries applicable to the given
+     * thing namespace. If no entries have namespace restrictions, returns {@code this} unchanged (optimization).
+     * <p>
+     * <strong>Note:</strong> The returned enforcer's {@link #getPolicy()} still returns the full unfiltered policy
+     * (including entries that do not match the given namespace). Only {@link #getEnforcer()} is filtered. Callers
+     * that need to inspect policy entries directly should use the enforcer for permission checks, not the policy.
+     *
+     * @param thingNamespace the namespace of the thing being enforced.
+     * @return a {@code PolicyEnforcer} filtered for the given namespace.
+     * @since 3.9.0
+     */
+    public PolicyEnforcer forNamespace(final String thingNamespace) {
+        checkNotNull(thingNamespace, "thingNamespace");
+        if (policy == null) {
+            return this;
+        }
+        boolean anyFiltered = false;
+        final List<PolicyEntry> filteredEntries = new ArrayList<>();
+        for (final PolicyEntry entry : policy) {
+            if (entry.appliesToNamespace(thingNamespace)) {
+                filteredEntries.add(entry);
+            } else {
+                anyFiltered = true;
+            }
+        }
+        if (!anyFiltered) {
+            return this;
+        }
+        final Enforcer filteredEnforcer = PolicyEnforcers.defaultEvaluator(filteredEntries);
+        return new PolicyEnforcer(policy, filteredEnforcer);
     }
 
 }

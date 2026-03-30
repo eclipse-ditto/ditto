@@ -14,6 +14,7 @@ package org.eclipse.ditto.policies.model;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -374,6 +375,18 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
      * @since 3.9.0
      */
     Policy setAllowedImportAdditionsFor(CharSequence label, Set<AllowedImportAddition> allowedImportAdditions);
+
+    /**
+     * Sets the namespace patterns for the specified label.
+     *
+     * @param label the label identifying the PolicyEntry to modify.
+     * @param namespaces the namespace patterns restricting which thing namespaces this entry applies to.
+     * @return a copy of this Policy with the changed state.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code label} is empty.
+     * @since 3.9.0
+     */
+    Policy setNamespacesFor(CharSequence label, List<String> namespaces);
 
     /**
      * Indicates whether this Policy is empty.

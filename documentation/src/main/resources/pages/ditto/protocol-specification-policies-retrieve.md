@@ -175,6 +175,28 @@ Retrieve a resource identified by the `<namespace>/<policyName>` pair in the `to
 
 **Example:** [Retrieve a single resource](protocol-examples-policies-retrieveresource.html)
 
+## Retrieve Policy entry namespaces
+
+Retrieve the namespace patterns of a policy entry identified by the `<namespace>/<policyName>` pair in the `topic`
+field and the `<label>` in the `path` field.
+
+### Command
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<policyName>/policies/commands/retrieve`     |
+| **path**  | `/entries/<label>/namespaces`     |
+
+### Response
+
+| Field      |        | Value                    |
+|------------|--------|--------------------------|
+| **topic**  |        | `<namespace>/<policyName>/policies/commands/retrieve` |
+| **path**   |        | `/entries/<label>/namespaces`                      |
+| **value**  |        | The namespace patterns of the Policy entry as JSON array, e.g. `["com.acme", "com.acme.*"]`. An empty array means the entry applies to all namespaces. |
+| **status** | _code_ |
+|            | `200`  | Success. |
+
 ## Retrieve Policy imports
 
 Retrieve all policy imports of the policy identified by the `<namespace>/<policyName>` pair in the `topic` field.

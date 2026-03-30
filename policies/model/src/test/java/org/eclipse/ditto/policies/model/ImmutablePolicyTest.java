@@ -56,6 +56,7 @@ public final class ImmutablePolicyTest {
 
     private static final PolicyImports POLICY_IMPORTS = PoliciesModelFactory.newPolicyImports(
             PoliciesModelFactory.newPolicyImport(PolicyId.of("com.example:importedPolicy")));
+    private static final List<String> END_USER_NAMESPACES = Arrays.asList("com.example", "com.example.*");
 
     private static Policy createPolicy() {
         final List<PolicyEntry> policyEntries = Arrays.asList(createPolicyEntry1(), createPolicyEntry2());
@@ -80,7 +81,9 @@ public final class ImmutablePolicyTest {
                 Subjects.newInstance(Subject.newInstance(END_USER_SUBJECT_ID_1, END_USER_SUBJECT_TYPE_1)),
                 Resources.newInstance(Resource.newInstance(TestConstants.Policy.RESOURCE_TYPE, END_USER_RESOURCE_1,
                         END_USER_EFFECTED_PERMISSIONS_1)),
-                ImportableType.NEVER);
+                END_USER_NAMESPACES,
+                ImportableType.NEVER,
+                Collections.emptySet());
     }
 
     @Test
@@ -561,7 +564,7 @@ public final class ImmutablePolicyTest {
         final PolicyEntry entry = modified.getEntryFor(END_USER_LABEL)
                 .orElseThrow(() -> new AssertionError("Entry not found"));
         assertThat(entry.getImportableType()).isEqualTo(ImportableType.EXPLICIT);
-        assertThat(entry.getAllowedImportAdditions()).isEqualTo(ALLOWED_SUBJECTS);
+        assertThat(entry.getAllowedImportAdditions()).contains(ALLOWED_SUBJECTS);
     }
 
     @Test
@@ -573,7 +576,7 @@ public final class ImmutablePolicyTest {
         final PolicyEntry entry = modified.getEntryFor(END_USER_LABEL)
                 .orElseThrow(() -> new AssertionError("Entry not found"));
         assertThat(entry.getImportableType()).isEqualTo(ImportableType.EXPLICIT);
-        assertThat(entry.getAllowedImportAdditions()).isEqualTo(ALLOWED_SUBJECTS);
+        assertThat(entry.getAllowedImportAdditions()).contains(ALLOWED_SUBJECTS);
     }
 
     @Test
@@ -584,7 +587,7 @@ public final class ImmutablePolicyTest {
         final PolicyEntry entry = modified.getEntryFor(END_USER_LABEL)
                 .orElseThrow(() -> new AssertionError("Entry not found"));
         assertThat(entry.getImportableType()).isEqualTo(ImportableType.EXPLICIT);
-        assertThat(entry.getAllowedImportAdditions()).isEqualTo(ALLOWED_SUBJECTS);
+        assertThat(entry.getAllowedImportAdditions()).contains(ALLOWED_SUBJECTS);
     }
 
     @Test
@@ -598,7 +601,7 @@ public final class ImmutablePolicyTest {
         final PolicyEntry entry = modified.getEntryFor(END_USER_LABEL)
                 .orElseThrow(() -> new AssertionError("Entry not found"));
         assertThat(entry.getImportableType()).isEqualTo(ImportableType.EXPLICIT);
-        assertThat(entry.getAllowedImportAdditions()).isEqualTo(ALLOWED_SUBJECTS);
+        assertThat(entry.getAllowedImportAdditions()).contains(ALLOWED_SUBJECTS);
     }
 
     @Test
@@ -611,7 +614,7 @@ public final class ImmutablePolicyTest {
         final PolicyEntry entry = modified.getEntryFor(END_USER_LABEL)
                 .orElseThrow(() -> new AssertionError("Entry not found"));
         assertThat(entry.getImportableType()).isEqualTo(ImportableType.EXPLICIT);
-        assertThat(entry.getAllowedImportAdditions()).isEqualTo(ALLOWED_SUBJECTS);
+        assertThat(entry.getAllowedImportAdditions()).contains(ALLOWED_SUBJECTS);
     }
 
     @Test
@@ -623,7 +626,7 @@ public final class ImmutablePolicyTest {
         final PolicyEntry entry = modified.getEntryFor(END_USER_LABEL)
                 .orElseThrow(() -> new AssertionError("Entry not found"));
         assertThat(entry.getImportableType()).isEqualTo(ImportableType.EXPLICIT);
-        assertThat(entry.getAllowedImportAdditions()).isEqualTo(ALLOWED_SUBJECTS);
+        assertThat(entry.getAllowedImportAdditions()).contains(ALLOWED_SUBJECTS);
     }
 
     @Test
@@ -634,6 +637,19 @@ public final class ImmutablePolicyTest {
         final PolicyEntry entry = modified.getEntryFor(END_USER_LABEL)
                 .orElseThrow(() -> new AssertionError("Entry not found"));
         assertThat(entry.getImportableType()).isEqualTo(ImportableType.IMPLICIT);
-        assertThat(entry.getAllowedImportAdditions()).isEqualTo(ALLOWED_SUBJECTS);
+        assertThat(entry.getAllowedImportAdditions()).contains(ALLOWED_SUBJECTS);
+    }
+
+    @Test
+    public void setSubjectsForPreservesNamespaces() {
+        final Policy policy = createPolicy();
+        final Subjects newSubjects = Subjects.newInstance(
+                Subject.newInstance(SubjectIssuer.GOOGLE, "newSubject"));
+
+        final Policy modified = policy.setSubjectsFor(END_USER_LABEL, newSubjects);
+
+        final PolicyEntry entry = modified.getEntryFor(END_USER_LABEL)
+                .orElseThrow(() -> new AssertionError("Entry not found"));
+        assertThat(entry.getNamespaces()).contains(END_USER_NAMESPACES);
     }
 }

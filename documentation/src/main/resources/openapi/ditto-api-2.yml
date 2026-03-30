@@ -6409,6 +6409,143 @@ paths:
               - resources
         description: JSON array of allowed import addition types.
         required: true
+  '/api/2/policies/{policyId}/entries/{label}/namespaces':
+    get:
+      summary: Retrieve the namespace patterns for a specific policy entry
+      description: |-
+        Returns the namespace patterns of the policy entry identified by the
+        `policyId` path parameter and the `label` path parameter.
+
+        Namespace patterns restrict which thing namespaces this entry applies to.
+        An empty list (or absent field) means the entry applies to all namespaces.
+        * `com.acme` matches only that exact namespace
+        * `com.acme.*` matches namespaces below `com.acme`, but not `com.acme` itself
+      tags:
+        - Policies
+      parameters:
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/components/parameters/LabelPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+      responses:
+        '200':
+          description: The request successfully returned. The namespace patterns are returned.
+          headers:
+            ETag:
+              description: |-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyEntry/properties/namespaces'
+        '304':
+          $ref: '#/components/responses/NotModified'
+        '400':
+          description: |-
+            The request could not be completed. Possible reasons:
+
+               * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '404':
+          description: |-
+            The request could not be completed. The policy with the given ID or
+            the policy entry was not found in the context of the authenticated
+            user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+    put:
+      summary: Modify the namespace patterns for a specific policy entry
+      description: |-
+        Modify the namespace patterns of the policy entry identified by the
+        `policyId` path parameter and the `label` path parameter.
+
+        Namespace patterns restrict which thing namespaces this entry applies to.
+        Setting an empty array makes the entry apply to all namespaces (backward compatible default).
+      tags:
+        - Policies
+      parameters:
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/components/parameters/LabelPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
+      responses:
+        '204':
+          description: The namespace patterns were successfully updated.
+          headers:
+            ETag:
+              description: |-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+              schema:
+                type: string
+        '400':
+          description: |-
+            The request could not be completed. Possible reasons:
+
+               * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
+             * the JSON body of the namespace patterns is invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '403':
+          description: |-
+            The request could not be completed. Possible reasons:
+            * the caller has insufficient permissions.
+              You need `WRITE` permission on the `policy:/entries/{label}/namespaces` resource,
+              without any revoke in a deeper path of the policy resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '404':
+          description: |-
+            The request could not be completed. The policy with the given ID was
+            not found in the context of the authenticated user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '413':
+          $ref: '#/components/responses/EntityTooLarge'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyEntry/properties/namespaces'
+            example:
+              - com.acme
+              - com.acme.*
+        description: JSON array of namespace patterns.
+        required: true
   '/api/2/policies/{policyId}/entries/{label}/importable':
     get:
       summary: Retrieve the importable type for a specific policy entry
@@ -10574,6 +10711,18 @@ components:
           $ref: '#/components/schemas/Subjects'
         resources:
           $ref: '#/components/schemas/Resources'
+        namespaces:
+          type: array
+          description: |-
+            Restricts this policy entry to things whose namespace matches at least one pattern.
+            If omitted or empty, the entry applies to all namespaces.
+            * `com.acme` matches only that exact namespace
+            * `com.acme.*` matches namespaces below `com.acme`, but not `com.acme` itself
+          items:
+            type: string
+          example:
+            - com.acme
+            - com.acme.*
         importable:
           $ref: '#/components/schemas/Importable'
         allowedImportAdditions:
@@ -10662,15 +10811,17 @@ components:
       description: |-
         Defines which types of additions are allowed when this entry is imported by other policies
         via `entriesAdditions`. If omitted or empty, no additions are allowed. This default ensures
-        that existing policies cannot be extended with additional subjects or resources unless the
-        policy author explicitly opts in.
+        that existing policies cannot be extended with additional subjects, resources, or namespaces
+        unless the policy author explicitly opts in.
         * `subjects` — allows importing policies to add additional subjects to this entry
         * `resources` — allows importing policies to add additional resources to this entry
+        * `namespaces` — allows importing policies to add additional namespace patterns to this entry
       items:
         type: string
         enum:
           - subjects
           - resources
+          - namespaces
       example:
         - subjects
     EntriesAdditions:
@@ -10699,14 +10850,16 @@ components:
     EntryAddition:
       type: object
       description: |-
-        Defines additional subjects and/or resources to be merged into a single imported policy entry.
-        The imported policy entry must explicitly allow these additions via its "allowedImportAdditions"
-        field, otherwise the additions are rejected.
+        Defines additional subjects, resources, and/or namespaces to be merged into a single imported
+        policy entry. The imported policy entry must explicitly allow these additions via its
+        "allowedImportAdditions" field, otherwise the additions are rejected.
       properties:
         subjects:
           $ref: '#/components/schemas/Subjects'
         resources:
           $ref: '#/components/schemas/Resources'
+        namespaces:
+          $ref: '#/components/schemas/PolicyEntry/properties/namespaces'
       example:
         subjects:
           'integration:my-connection':

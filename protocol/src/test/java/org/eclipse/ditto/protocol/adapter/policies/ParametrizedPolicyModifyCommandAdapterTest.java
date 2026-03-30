@@ -39,6 +39,7 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntr
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntry;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryAllowedImportAdditions;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryImportable;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryNamespaces;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportEntries;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportEntriesAdditions;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportEntryAddition;
@@ -73,6 +74,7 @@ public final class ParametrizedPolicyModifyCommandAdapterTest
                 deleteSubject(),
                 modifySubjects(),
                 modifyPolicyEntryAllowedImportAdditions(),
+                modifyPolicyEntryNamespaces(),
                 modifyPolicyEntryImportable(),
                 modifyPolicyImportEntries(),
                 modifyPolicyImportEntriesAdditions(),
@@ -217,6 +219,18 @@ public final class ParametrizedPolicyModifyCommandAdapterTest
                         .map(a -> JsonValue.of(a.getName()))
                         .collect(JsonCollectors.valuesToArray()));
         return TestParameter.of("modifyPolicyEntryAllowedImportAdditions", adaptable, command);
+    }
+
+    private static TestParameter<PolicyModifyCommand<?>> modifyPolicyEntryNamespaces() {
+        final ModifyPolicyEntryNamespaces command =
+                ModifyPolicyEntryNamespaces.of(Policies.POLICY_ID, Policies.POLICY_ENTRY_LABEL,
+                        Policies.NAMESPACES, Policies.HEADERS);
+        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY,
+                JsonPointer.of("/entries/" + Policies.POLICY_ENTRY_LABEL + "/namespaces"),
+                Policies.NAMESPACES.stream()
+                        .map(JsonValue::of)
+                        .collect(JsonCollectors.valuesToArray()));
+        return TestParameter.of("modifyPolicyEntryNamespaces", adaptable, command);
     }
 
     private static TestParameter<PolicyModifyCommand<?>> modifyPolicyEntryImportable() {

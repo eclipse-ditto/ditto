@@ -31,6 +31,7 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntr
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntry;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryAllowedImportAdditions;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryImportable;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryNamespaces;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResource;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResources;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubject;
@@ -39,6 +40,7 @@ import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEnt
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntry;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryAllowedImportAdditions;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryImportable;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryNamespaces;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResource;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResources;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubject;
@@ -282,6 +284,32 @@ public final class PolicyEntriesRouteTest extends EndpointTestBase {
         result.assertStatusCode(StatusCodes.OK);
         assertThat(JsonObject.of(result.entityString()))
                 .contains(JsonKey.of("type"), ModifyPolicyEntryAllowedImportAdditions.TYPE);
+    }
+
+    @Test
+    public void getPolicyEntryNamespaces() {
+        final var result = underTest.run(HttpRequest.GET("/the_label/namespaces"));
+        result.assertStatusCode(StatusCodes.OK);
+        assertThat(JsonObject.of(result.entityString()))
+                .contains(JsonKey.of("type"), RetrievePolicyEntryNamespaces.TYPE);
+    }
+
+    @Test
+    public void putPolicyEntryNamespaces() {
+        final var result = underTest.run(
+                HttpRequest.PUT("/the_label/namespaces")
+                        .withEntity(ContentTypes.APPLICATION_JSON, "[\"com.acme\",\"com.acme.*\"]"));
+        result.assertStatusCode(StatusCodes.OK);
+        assertThat(JsonObject.of(result.entityString()))
+                .contains(JsonKey.of("type"), ModifyPolicyEntryNamespaces.TYPE);
+    }
+
+    @Test
+    public void putPolicyEntryNamespacesWithInvalidValue() {
+        final var result = underTest.run(
+                HttpRequest.PUT("/the_label/namespaces")
+                        .withEntity(ContentTypes.APPLICATION_JSON, "[\"*\"]"));
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
     }
 
     @Test

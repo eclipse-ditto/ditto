@@ -29,6 +29,7 @@ import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEnt
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntry;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryAllowedImportAdditions;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryImportable;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryNamespaces;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImportEntries;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImportEntriesAdditions;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImportEntryAddition;
@@ -57,6 +58,7 @@ public final class ParametrizedPolicyQueryCommandAdapterTest
                 retrieveSubject(),
                 retrieveSubjects(),
                 retrievePolicyEntryAllowedImportAdditions(),
+                retrievePolicyEntryNamespaces(),
                 retrievePolicyEntryImportable(),
                 retrievePolicyImportEntries(),
                 retrievePolicyImportEntriesAdditions(),
@@ -142,6 +144,15 @@ public final class ParametrizedPolicyQueryCommandAdapterTest
         final Adaptable adaptable = TestConstants.adaptable(TopicPaths.RETRIEVE,
                 JsonPointer.of("/entries/" + Policies.POLICY_ENTRY_LABEL + "/allowedImportAdditions"));
         return TestParameter.of("retrievePolicyEntryAllowedImportAdditions", adaptable, command);
+    }
+
+    private static TestParameter<PolicyQueryCommand<?>> retrievePolicyEntryNamespaces() {
+        final RetrievePolicyEntryNamespaces command =
+                RetrievePolicyEntryNamespaces.of(Policies.POLICY_ID, Policies.POLICY_ENTRY_LABEL,
+                        Policies.HEADERS);
+        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.RETRIEVE,
+                JsonPointer.of("/entries/" + Policies.POLICY_ENTRY_LABEL + "/namespaces"));
+        return TestParameter.of("retrievePolicyEntryNamespaces", adaptable, command);
     }
 
     private static TestParameter<PolicyQueryCommand<?>> retrievePolicyEntryImportable() {

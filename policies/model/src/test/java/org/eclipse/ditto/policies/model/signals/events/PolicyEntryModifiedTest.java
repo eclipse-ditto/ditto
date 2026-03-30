@@ -39,6 +39,18 @@ public final class PolicyEntryModifiedTest {
                     TestConstants.Policy.POLICY_ENTRY.toJson(FieldType.regularOrSpecial()))
             .build();
 
+    private static final JsonObject KNOWN_JSON_WITH_NAMESPACES = JsonFactory.newObjectBuilder()
+            .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
+            .set(Event.JsonFields.TYPE, PolicyEntryModified.TYPE)
+            .set(EventsourcedEvent.JsonFields.REVISION, TestConstants.Policy.REVISION_NUMBER)
+            .set(Event.JsonFields.METADATA, TestConstants.METADATA.toJson())
+            .set(PolicyEvent.JsonFields.POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
+            .set(PolicyEntryModified.JSON_LABEL,
+                    TestConstants.Policy.POLICY_ENTRY_WITH_NAMESPACES.getLabel().toString())
+            .set(PolicyEntryModified.JSON_POLICY_ENTRY,
+                    TestConstants.Policy.POLICY_ENTRY_WITH_NAMESPACES.toJson(FieldType.regularOrSpecial()))
+            .build();
+
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(PolicyEntryModified.class)
@@ -76,6 +88,29 @@ public final class PolicyEntryModifiedTest {
         assertThat(underTest).isNotNull();
         assertThat((CharSequence) underTest.getPolicyEntityId()).isEqualTo(TestConstants.Policy.POLICY_ID);
         assertThat(underTest.getPolicyEntry()).isEqualTo(TestConstants.Policy.POLICY_ENTRY);
+    }
+
+
+    @Test
+    public void toJsonWithNamespacesReturnsExpected() {
+        final PolicyEntryModified underTest = PolicyEntryModified.of(TestConstants.Policy.POLICY_ID,
+                TestConstants.Policy.POLICY_ENTRY_WITH_NAMESPACES, TestConstants.Policy.REVISION_NUMBER,
+                TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA);
+        final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
+
+        assertThat(actualJson).isEqualTo(KNOWN_JSON_WITH_NAMESPACES);
+    }
+
+
+    @Test
+    public void createInstanceFromValidJsonWithNamespaces() {
+        final PolicyEntryModified underTest =
+                PolicyEntryModified.fromJson(KNOWN_JSON_WITH_NAMESPACES.toString(),
+                        TestConstants.EMPTY_DITTO_HEADERS);
+
+        assertThat(underTest).isNotNull();
+        assertThat((CharSequence) underTest.getPolicyEntityId()).isEqualTo(TestConstants.Policy.POLICY_ID);
+        assertThat(underTest.getPolicyEntry()).isEqualTo(TestConstants.Policy.POLICY_ENTRY_WITH_NAMESPACES);
     }
 
 }

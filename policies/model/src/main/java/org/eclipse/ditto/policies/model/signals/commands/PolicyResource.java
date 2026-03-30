@@ -43,7 +43,8 @@ public enum PolicyResource {
     POLICY_ENTRY_SUBJECTS,
     POLICY_ENTRY_SUBJECT,
     POLICY_ENTRY_IMPORTABLE,
-    POLICY_ENTRY_ALLOWED_IMPORT_ADDITIONS;
+    POLICY_ENTRY_ALLOWED_IMPORT_ADDITIONS,
+    POLICY_ENTRY_NAMESPACES;
 
     private static final ResourceMap<PolicyResource> resources;
 
@@ -66,6 +67,8 @@ public enum PolicyResource {
                                 .add(PolicyEntry.JsonFields.IMPORTABLE_TYPE, POLICY_ENTRY_IMPORTABLE)
                                 .add(PolicyEntry.JsonFields.ALLOWED_IMPORT_ADDITIONS,
                                         POLICY_ENTRY_ALLOWED_IMPORT_ADDITIONS)
+                                .add(PolicyEntry.JsonFields.NAMESPACES,
+                                        POLICY_ENTRY_NAMESPACES)
                                 .end())
                 ).end();
     }
