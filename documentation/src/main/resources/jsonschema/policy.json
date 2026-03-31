@@ -27,6 +27,36 @@
                 "description": "Label of a policy entry to import from the referenced policy."
               },
               "maxItems": 10
+            },
+            "entriesAdditions": {
+              "title": "Entries additions",
+              "type": "object",
+              "description": "Additional subjects and/or resources to additively merge into imported policy entries. Each key is a label of an imported policy entry. The value is an object with optional \"subjects\" and/or \"resources\" and/or \"namespaces\" fields that will be merged into the corresponding imported entry. The imported policy entry must explicitly allow these additions via its \"allowedImportAdditions\" field, otherwise the additions are rejected.",
+              "additionalProperties": {
+                "title": "EntryAddition",
+                "type": "object",
+                "description": "Defines additional subjects and/or resources to be merged into a single imported policy entry.",
+                "properties": {
+                  "subjects": {
+                    "title": "Subjects",
+                    "type": "object",
+                    "description": "Additional subjects to merge into the imported entry."
+                  },
+                  "resources": {
+                    "title": "Resources",
+                    "type": "object",
+                    "description": "Additional resources to merge into the imported entry."
+                  },
+                  "namespaces": {
+                    "title": "Namespaces",
+                    "type": "array",
+                    "description": "Additional namespaces to merge into the imported entry",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
             }
           }
         }
@@ -162,6 +192,16 @@
               "description": "Controls the import behavior of this policy entry i.e. whether this policy entry is implicitly, explicitly or never imported when referenced from another policy. (`implicit` (default): the policy entry is imported without being listed in the importing policy individually, `explicit`: the policy entry is only imported if it is listed in the importing policy, `never`: the policy entry is not imported, regardless of being listed in the importing policy. If the field is not specified, default value is `implicit`.",
               "enum": ["implicit", "explicit", "never"],
               "default": "implicit"
+            },
+            "allowedImportAdditions": {
+              "title": "Allowed import additions",
+              "type": "array",
+              "description": "Defines which types of additions are allowed when this entry is imported by other policies via `entriesAdditions`. If omitted or empty, no additions are allowed. This default ensures that existing policies cannot be extended with additional subjects or resources unless the policy author explicitly opts in.",
+              "items": {
+                "type": "string",
+                "enum": ["subjects", "resources", "namespaces"]
+              },
+              "example": ["subjects"]
             }
           },
           "required": [
