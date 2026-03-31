@@ -27,7 +27,7 @@ RUN set -x \
     && chown -R ditto:ditto $DITTO_LOGS \
     && rm -rf /var/lib/apt/lists/*
 
-ARG MAVEN_REPO=https://repo.eclipse.org/service/local/artifact/maven/content
+ARG MAVEN_REPO=https://repo.eclipse.org/repository/ditto-maven2-releases/org/eclipse/ditto
 ARG SERVICE_STARTER
 ARG SERVICE_VERSION
 ARG JVM_CMD_ARGS=""
@@ -41,7 +41,7 @@ ENV HTTP_PORT=8080 \
 
 RUN set -x \
     && cd $DITTO_HOME \
-    && curl -o ${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar "${MAVEN_REPO}?r=ditto&g=org.eclipse.ditto&a=${SERVICE_STARTER}&v=${SERVICE_VERSION}&c=allinone" \
+    && curl -o ${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar "${MAVEN_REPO}/${SERVICE_STARTER}/${SERVICE_VERSION}/${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar" \
     && chown -R ditto:ditto $DITTO_HOME
 
 USER ditto
