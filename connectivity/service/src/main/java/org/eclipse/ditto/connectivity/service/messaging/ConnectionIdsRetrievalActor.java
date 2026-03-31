@@ -22,6 +22,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.function.Supplier;
 
 import org.apache.pekko.NotUsed;
@@ -184,35 +185,31 @@ public final class ConnectionIdsRetrievalActor extends AbstractActor {
                         logger.debug("idsFromSnapshots element: <{}>", result);
                         return result;
                     }));
-            final Source<String, NotUsed> idsFromJournal = persistenceIdsFromJournalSourceSupplier.get()
-                    .via(Flow.fromFunction(result -> {
-                        logger.debug("idsFromJournalSource element: <{}>", result);
-                        return result;
-                    }))
-                    .filter(ConnectionIdsRetrievalActor::isNotDeleted)
-                    .map(document -> document.getString(MongoReadJournal.J_EVENT_PID))
-                    .via(Flow.fromFunction(result -> {
-                        logger.debug("idsFromJournal element: <{}>", result);
-                        return result;
-                    }));
 
-            final CompletionStage<List<String>> deletedPidsStage = persistenceIdsFromJournalSourceSupplier.get()
-                    .filter(ConnectionIdsRetrievalActor::isDeleted)
-                    .map(document -> document.getString(MongoReadJournal.J_EVENT_PID))
-                    .runWith(Sink.seq(), materializer);
+            // scan journal only ONCE and partition into deleted/non-deleted in memory
+            final CompletionStage<List<Document>> allJournalDocsStage =
+                    persistenceIdsFromJournalSourceSupplier.get()
+                            .runWith(Sink.seq(), materializer);
 
-            final CompletionStage<CommandResponse> retrieveAllConnectionIdsResponse = deletedPidsStage
-                    .thenApply(deletedIdsFromJournal -> {
-                        logger.debug("deletedIdsFromJournal element: <{}>", deletedIdsFromJournal);
-                        return deletedIdsFromJournal;
+            final CompletionStage<CommandResponse> retrieveAllConnectionIdsResponse = allJournalDocsStage
+                    .thenCompose(allJournalDocs -> {
+                        final Set<String> deletedIdsFromJournal = allJournalDocs.stream()
+                                .filter(ConnectionIdsRetrievalActor::isDeleted)
+                                .map(document -> document.getString(MongoReadJournal.J_EVENT_PID))
+                                .collect(Collectors.toSet());
+                        logger.debug("deletedIdsFromJournal: <{}>", deletedIdsFromJournal);
+
+                        final Source<String, NotUsed> idsFromJournal = Source.from(allJournalDocs)
+                                .filter(ConnectionIdsRetrievalActor::isNotDeleted)
+                                .map(document -> document.getString(MongoReadJournal.J_EVENT_PID));
+
+                        return idsFromSnapshots.concat(idsFromJournal)
+                                .filter(pid -> !deletedIdsFromJournal.contains(pid))
+                                .filter(pid -> pid.startsWith(ConnectionPersistenceActor.PERSISTENCE_ID_PREFIX))
+                                .map(pid -> pid.substring(
+                                        ConnectionPersistenceActor.PERSISTENCE_ID_PREFIX.length()))
+                                .runWith(Sink.seq(), materializer);
                     })
-                    .thenCompose(deletedIdsFromJournal -> idsFromSnapshots.concat(idsFromJournal)
-                            .filter(pid -> !deletedIdsFromJournal.contains(pid))
-                            .filter(pid -> pid.startsWith(ConnectionPersistenceActor.PERSISTENCE_ID_PREFIX))
-                            .map(pid -> pid.substring(
-                                    ConnectionPersistenceActor.PERSISTENCE_ID_PREFIX.length()))
-                            .runWith(Sink.seq(), materializer)
-                    )
                     .thenApply(idList -> idList.stream().sorted().toList())
                     .thenApply(LinkedHashSet::new)
                     .thenApply(ids -> buildResponse(cmd, ids))

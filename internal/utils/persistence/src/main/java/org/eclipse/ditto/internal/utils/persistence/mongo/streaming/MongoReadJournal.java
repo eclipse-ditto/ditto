@@ -436,12 +436,8 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
 
     private Source<String, NotUsed> filterPidsThatDoesntContainTagInNewestEntry(final MongoCollection<Document> journal,
             final List<String> pids, final String tag) {
-        final List<Bson> filterPipeline = new ArrayList<>(6);
+        final List<Bson> filterPipeline = new ArrayList<>(5);
         filterPipeline.add(Aggregates.match(Filters.in(J_PROCESSOR_ID, pids)));
-        // project stage -- reduce document size before $sort to save memory
-        filterPipeline.add(Aggregates.project(Projections.include(
-                J_PROCESSOR_ID, J_TO,
-                J_EVENT + "." + J_PROCESSOR_ID, J_EVENT + "." + J_TAGS)));
         filterPipeline.add(Aggregates.sort(Sorts.descending(J_TO)));
         filterPipeline.add(Aggregates.group(
                 "$" + J_PROCESSOR_ID,
@@ -912,7 +908,7 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
             final int maxRestarts,
             final String... fieldNames) {
 
-        final List<Bson> pipeline = new ArrayList<>(7);
+        final List<Bson> pipeline = new ArrayList<>(6);
         // optional match stages: consecutive match stages are optimized together ($match + $match coalescence)
         if (!tag.isEmpty()) {
             pipeline.add(Aggregates.match(Filters.eq(J_TAGS, tag)));
@@ -921,22 +917,13 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
             pipeline.add(Aggregates.match(Filters.gt(J_PROCESSOR_ID, startPid)));
         }
 
-        final Set<String> fieldNamesWithOptionalTags = Arrays.stream(fieldNames).collect(Collectors.toSet());
-
-        // project stage -- reduce document size before $sort to save memory
-        final List<String> journalProjectFields = new ArrayList<>();
-        journalProjectFields.add(J_PROCESSOR_ID);
-        journalProjectFields.add(J_TO);
-        for (final String fieldName : fieldNamesWithOptionalTags) {
-            journalProjectFields.add(J_EVENT + "." + fieldName);
-        }
-        pipeline.add(Aggregates.project(Projections.include(journalProjectFields)));
-
         // sort stage
         pipeline.add(Aggregates.sort(Sorts.orderBy(Sorts.ascending(J_PROCESSOR_ID), Sorts.descending(J_TO))));
 
         // limit stage. It should come before group stage or MongoDB would scan the entire journal collection.
         pipeline.add(Aggregates.limit(batchSize));
+
+        final Set<String> fieldNamesWithOptionalTags = Arrays.stream(fieldNames).collect(Collectors.toSet());
         // group stage
         pipeline.add(Aggregates.group("$" + J_PROCESSOR_ID, toFirstJournalEntryFields(fieldNamesWithOptionalTags)));
 
@@ -998,16 +985,6 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
         // match stage
         final Bson matchFilter = snapshotFilter.toMongoFilter();
         pipeline.add(Aggregates.match(matchFilter));
-
-        // project stage -- reduce document size before $sort to save memory
-        final List<String> snapshotProjectFields = new ArrayList<>();
-        snapshotProjectFields.add(S_PROCESSOR_ID);
-        snapshotProjectFields.add(S_SN);
-        snapshotProjectFields.add(S_SERIALIZED_SNAPSHOT + "." + LIFECYCLE);
-        for (final String snapshotField : snapshotFields) {
-            snapshotProjectFields.add(S_SERIALIZED_SNAPSHOT + "." + snapshotField);
-        }
-        pipeline.add(Aggregates.project(Projections.include(snapshotProjectFields)));
 
         // sort stage
         pipeline.add(Aggregates.sort(Sorts.orderBy(Sorts.ascending(S_PROCESSOR_ID), Sorts.descending(S_SN))));
