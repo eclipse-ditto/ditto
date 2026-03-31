@@ -30,8 +30,8 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
@@ -67,7 +67,7 @@ import org.eclipse.ditto.things.service.utils.ReadGrantIndexer;
  */
 public final class ThingEventEnricher {
 
-    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(ThingEventEnricher.class);
+    private static final ThreadSafeDittoLogger LOGGER = DittoLoggerFactory.getThreadSafeLogger(ThingEventEnricher.class);
 
     private static final TimePlaceholder TIME_PLACEHOLDER = TimePlaceholder.getInstance();
     private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
