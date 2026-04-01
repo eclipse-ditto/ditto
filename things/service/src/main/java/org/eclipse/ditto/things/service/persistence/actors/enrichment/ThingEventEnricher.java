@@ -54,11 +54,9 @@ import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.common.config.PreDefinedExtraFieldsConfig;
-import org.eclipse.ditto.things.service.utils.IndexedReadGrant;
 import org.eclipse.ditto.things.service.utils.PartialAccessPathCalculator;
 import org.eclipse.ditto.things.service.utils.ReadGrant;
 import org.eclipse.ditto.things.service.utils.ReadGrantCollector;
-import org.eclipse.ditto.things.service.utils.ReadGrantIndexer;
 
 /**
  * Encapsulates functionality in order to enrich ThingEvents with pre-defined {@code extraFields} via DittoHeaders
@@ -142,7 +140,7 @@ public final class ThingEventEnricher {
                     final DittoHeaders dittoHeaders = enrichedWithPartialAccessPaths.getDittoHeaders();
                     return buildPredefinedExtraFieldsHeaderReadGrantObject(
                             policyId, combinedPredefinedExtraFields, thingJson, dittoHeaders)
-                            .thenApply(indexedGrants -> {
+                            .thenApply(readGrant -> {
                                 final String extraFieldsKey = DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS.getKey();
                                 final String readGrantKey = DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT.getKey();
                                 final String extraFieldsObjectKey = DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_OBJECT.getKey();
@@ -150,7 +148,7 @@ public final class ThingEventEnricher {
                                 final DittoHeadersBuilder<?, ?> headersBuilder = dittoHeaders.toBuilder()
                                         .putHeader(extraFieldsKey,
                                                 buildPredefinedExtraFieldsHeaderList(combinedPredefinedExtraFields))
-                                        .putHeader(readGrantKey, indexedGrants.pathsToJson().toString())
+                                        .putHeader(readGrantKey, readGrant.toJson().toString())
                                         .putHeader(extraFieldsObjectKey,
                                                 buildPredefinedExtraFieldsHeaderObject(thingJson,
                                                         combinedPredefinedExtraFields).toString());
@@ -253,9 +251,11 @@ public final class ThingEventEnricher {
 
     /**
      * Builds the read grant object using the new helper classes.
-     * Returns indexed format to reduce header size.
+     * Returns the ReadGrant with string subject IDs (not indexed integers), because
+     * DittoCachingSignalEnrichmentFacade.filterAskedForFieldSelectorToGrantedFields() matches
+     * authorization subject IDs directly against the array values in this header.
      */
-    private CompletionStage<IndexedReadGrant> buildPredefinedExtraFieldsHeaderReadGrantObject(
+    private CompletionStage<ReadGrant> buildPredefinedExtraFieldsHeaderReadGrantObject(
             @Nullable final PolicyId policyId,
             final JsonFieldSelector preDefinedExtraFields,
             final JsonObject thingJson,
@@ -265,18 +265,16 @@ public final class ThingEventEnricher {
             if (policyEnforcerOpt.isEmpty()) {
                 LOGGER.withCorrelationId(dittoHeaders)
                         .warn("No policy enforcer found for policyId: {}, returning empty read grant object", policyId);
-                return IndexedReadGrant.empty();
+                return ReadGrant.empty();
             }
 
             final PolicyEnforcer policyEnforcer = policyEnforcerOpt.get();
 
-            final ReadGrant readGrant = ReadGrantCollector.collect(
+            return ReadGrantCollector.collect(
                     preDefinedExtraFields,
                     thingJson,
                     policyEnforcer
             );
-
-            return ReadGrantIndexer.index(readGrant);
         });
     }
 

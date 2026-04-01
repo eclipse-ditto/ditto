@@ -132,7 +132,7 @@ public final class ThingEventEnricherTest {
                 predefinedExtraFields -> predefinedExtraFields.add("/definition"),
                 preDefinedExtraFieldsReadGrantObject -> preDefinedExtraFieldsReadGrantObject
                         .set(JsonKey.of("/definition"), JsonArray.newBuilder()
-                                .add(0)
+                                .add(KNOWN_ISSUER_FULL_SUBJECT)
                                 .build()
                         ),
                 preDefinedFieldsObject -> preDefinedFieldsObject.set("definition", KNOWN_DEFINITION)
@@ -157,17 +157,17 @@ public final class ThingEventEnricherTest {
                         .add("/attributes/public1")
                         .add("/attributes/private"),
                 preDefinedExtraFieldsReadGrantObject -> preDefinedExtraFieldsReadGrantObject
-                        .set(JsonKey.of("/attributes/public1"), JsonArray.newBuilder()
-                                .add(0)
-                                .add(1)
+                        .set(JsonKey.of("/definition"), JsonArray.newBuilder()
+                                .add(KNOWN_ISSUER_FULL_SUBJECT)
                                 .build()
                         )
-                        .set(JsonKey.of("/definition"), JsonArray.newBuilder()
-                                .add(0)
+                        .set(JsonKey.of("/attributes/public1"), JsonArray.newBuilder()
+                                .add(KNOWN_ISSUER_FULL_SUBJECT)
+                                .add(KNOWN_ISSUER_RESTRICTED_SUBJECT)
                                 .build()
                         )
                         .set(JsonKey.of("/attributes/private"), JsonArray.newBuilder()
-                                .add(0)
+                                .add(KNOWN_ISSUER_FULL_SUBJECT)
                                 .build()
                         ),
                 preDefinedFieldsObject -> preDefinedFieldsObject
@@ -269,17 +269,17 @@ public final class ThingEventEnricherTest {
                         .add("/attributes/folder"),
                 preDefinedExtraFieldsReadGrantObject -> preDefinedExtraFieldsReadGrantObject
                         .set(JsonKey.of("/attributes/public1"), JsonArray.newBuilder()
-                                .add(0)
-                                .add(1)
+                                .add(KNOWN_ISSUER_FULL_SUBJECT)
+                                .add(KNOWN_ISSUER_RESTRICTED_SUBJECT)
                                 .build()
                         )
                         .set(JsonKey.of("/attributes/folder"), JsonArray.newBuilder()
-                                .add(0)
+                                .add(KNOWN_ISSUER_FULL_SUBJECT)
                                 .build()
                         )
                         .set(JsonKey.of("/attributes/folder/public"), JsonArray.newBuilder()
-                                .add(2)
-                                .add(1)
+                                .add(KNOWN_ISSUER_ANOTHER_SUBJECT)
+                                .add(KNOWN_ISSUER_RESTRICTED_SUBJECT)
                                 .build()
                         ),
                 preDefinedFieldsObject -> preDefinedFieldsObject
@@ -287,6 +287,47 @@ public final class ThingEventEnricherTest {
                         .set(JsonPointer.of("attributes/folder/public"), true)
                         .set(JsonPointer.of("attributes/folder/private"), false)
         );
+    }
+
+    /**
+     * Reproduces the production scenario: connection with {@code thing:/ READ} requesting
+     * {@code attributes} as extraFields. Verifies that the read grant header contains string
+     * subject IDs that {@code DittoCachingSignalEnrichmentFacade} can match against.
+     */
+    @Test
+    public void readGrantHeaderContainsStringSubjectIdsForRootReadPolicy() {
+        // GIVEN: a policy with only thing:/ READ (like lora-downlink-processor in production)
+        final PolicyEnforcerProvider fullAccessProvider = mock(PolicyEnforcerProvider.class);
+        when(fullAccessProvider.getPolicyEnforcer(KNOWN_POLICY_ID))
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(FULL_ACCESS_POLICY))));
+        final ThingEventEnricher sut = new ThingEventEnricher(fullAccessProvider, true);
+        final var configs = getPreDefinedExtraFieldsConfigs(
+                "namespaces = [\"org.eclipse.ditto.some\"]\n" +
+                "extra-fields = [\"attributes\"]"
+        );
+
+        // WHEN: enriched headers are calculated
+        final CompletionStage<DittoHeaders> resultHeadersStage = calculateEnrichedSignalHeaders(sut, configs);
+        final DittoHeaders headers = resultHeadersStage.toCompletableFuture().join();
+
+        // THEN: the read grant header must contain string subject IDs, not integer indices
+        final String readGrantHeader = headers.get(
+                DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT.getKey());
+        assertThat(readGrantHeader)
+                .as("read grant header should be present")
+                .isNotNull();
+        final JsonObject readGrant = JsonFactory.readFrom(readGrantHeader).asObject();
+        // Verify it contains string subject IDs (e.g. "foo-issuer:full-subject"), not integers
+        readGrant.forEach(field -> {
+            final JsonArray subjects = field.getValue().asArray();
+            subjects.forEach(value ->
+                    assertThat(value.isString())
+                            .as("read grant array values must be strings, not integers: %s", value)
+                            .isTrue()
+            );
+        });
+        // Verify the specific subject is present for /attributes
+        assertThat(readGrantHeader).contains(KNOWN_ISSUER_FULL_SUBJECT);
     }
 
     private List<PreDefinedExtraFieldsConfig> getPreDefinedExtraFieldsConfigs(final String... configurations) {
