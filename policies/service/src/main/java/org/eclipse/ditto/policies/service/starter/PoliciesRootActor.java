@@ -128,7 +128,8 @@ public final class PoliciesRootActor extends DittoRootActor {
         }
 
         final var cleanupConfig = policiesConfig.getPolicyConfig().getCleanupConfig();
-        final var cleanupActorProps = PersistenceCleanupActor.props(cleanupConfig, mongoReadJournal, CLUSTER_ROLE);
+        final var cleanupActorProps = PersistenceCleanupActor.props(cleanupConfig, mongoReadJournal, CLUSTER_ROLE,
+                "ditto.policies.policy.cleanup");
         startChildActor(PersistenceCleanupActor.ACTOR_NAME, cleanupActorProps);
 
         final var healthCheckConfig = policiesConfig.getHealthCheckConfig();

@@ -26,8 +26,10 @@ import org.eclipse.ditto.gateway.service.security.authorization.NamespaceAccessV
 import org.eclipse.ditto.gateway.service.streaming.signals.Connect;
 import org.eclipse.ditto.gateway.service.util.config.streaming.DefaultStreamingConfig;
 import org.eclipse.ditto.gateway.service.util.config.streaming.StreamingConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.pekko.actors.ModifyConfigBehavior;
 import org.eclipse.ditto.internal.utils.pekko.actors.RetrieveConfigBehavior;
+import org.eclipse.ditto.internal.utils.pekko.config.DynamicConfigChanged;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
@@ -64,8 +66,11 @@ public final class StreamingActor extends AbstractActorWithTimers implements Ret
     private final Gauge streamingSessionsCounter;
     private final JwtValidator jwtValidator;
     private final JwtAuthenticationResultProvider jwtAuthenticationResultProvider;
-    private final Props subscriptionManagerProps;
-    private final Props streamingSubscriptionManagerProps;
+    private final ActorRef pubSubMediator;
+    private final ActorSelection commandForwarderSelection;
+    private final Materializer materializer;
+    private Props subscriptionManagerProps;
+    private Props streamingSubscriptionManagerProps;
     private final DittoDiagnosticLoggingAdapter logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     private final HeaderTranslator headerTranslator;
     @Nullable
@@ -102,15 +107,13 @@ public final class StreamingActor extends AbstractActorWithTimers implements Ret
         this.headerTranslator = headerTranslator;
         this.namespaceAccessValidatorFactory = namespaceAccessValidatorFactory;
         streamingSessionsCounter = DittoMetrics.gauge("streaming_sessions_count");
-        final ActorSelection commandForwarderSelection = ActorSelection.apply(commandForwarder, "");
-        final Materializer materializer = Materializer.createMaterializer(getContext());
-        subscriptionManagerProps =
-                SubscriptionManager.props(streamingConfig.getSearchIdleTimeout(), pubSubMediator,
-                        commandForwarderSelection, materializer);
-        streamingSubscriptionManagerProps =
-                StreamingSubscriptionManager.props(streamingConfig.getSearchIdleTimeout(),
-                        commandForwarderSelection, materializer);
+        this.pubSubMediator = pubSubMediator;
+        this.commandForwarderSelection = ActorSelection.apply(commandForwarder, "");
+        this.materializer = Materializer.createMaterializer(getContext());
+        regenerateSubscriptionManagerProps();
         scheduleScrapeStreamSessionsCounter();
+
+        getContext().getSystem().eventStream().subscribe(getSelf(), DynamicConfigChanged.class);
     }
 
     /**
@@ -149,12 +152,29 @@ public final class StreamingActor extends AbstractActorWithTimers implements Ret
 
     @Override
     public Receive createReceive() {
-        return retrieveConfigBehavior()
+        return ReceiveBuilder.create()
+                .match(DynamicConfigChanged.class, this::handleDynamicConfigChanged)
+                .build()
+                .orElse(retrieveConfigBehavior())
                 .orElse(modifyConfigBehavior())
                 .orElse(createConnectAndMetricsBehavior())
                 .orElse(ReceiveBuilder.create()
                         .matchAny(any -> logger.warning("Got unknown message: '{}'", any))
                         .build());
+    }
+
+    private void handleDynamicConfigChanged(final DynamicConfigChanged configChanged) {
+        try {
+            final String gatewayStreamingPath = "ditto.gateway." + StreamingConfig.CONFIG_PATH;
+            if (configChanged.dittoConfig().hasPath(gatewayStreamingPath)) {
+                logger.info("Received DynamicConfigChanged (version <{}>), refreshing StreamingConfig.",
+                        configChanged.version());
+                setConfig(configChanged.dittoConfig().getConfig(gatewayStreamingPath));
+            }
+        } catch (final Exception e) {
+            logger.warning("Failed to apply DynamicConfigChanged (version <{}>), keeping previous config: {}",
+                    configChanged.version(), e.getMessage());
+        }
     }
 
     private Receive createConnectAndMetricsBehavior() {
@@ -183,9 +203,19 @@ public final class StreamingActor extends AbstractActorWithTimers implements Ret
     public Config setConfig(final Config config) {
         streamingConfig = DefaultStreamingConfig.of(
                 config.atKey(StreamingConfig.CONFIG_PATH).withFallback(streamingConfig.render()));
+        regenerateSubscriptionManagerProps();
         // reschedule scrapes: interval may have changed.
         scheduleScrapeStreamSessionsCounter();
         return streamingConfig.render();
+    }
+
+    private void regenerateSubscriptionManagerProps() {
+        subscriptionManagerProps =
+                SubscriptionManager.props(streamingConfig.getSearchIdleTimeout(), pubSubMediator,
+                        commandForwarderSelection, materializer);
+        streamingSubscriptionManagerProps =
+                StreamingSubscriptionManager.props(streamingConfig.getSearchIdleTimeout(),
+                        commandForwarderSelection, materializer);
     }
 
     private String getUniqueChildActorName(final String suffix) {

@@ -21,7 +21,7 @@ import com.typesafe.config.Config;
 public final class DevopsAuthenticationDirectiveFactory {
 
     private final JwtAuthenticationProvider jwtAuthenticationProvider;
-    private final DevOpsConfig devOpsConfig;
+    private volatile DevOpsConfig devOpsConfig;
 
     private DevopsAuthenticationDirectiveFactory(final JwtAuthenticationProvider jwtAuthenticationProvider,
             final DevOpsConfig devOpsConfig) {
@@ -43,24 +43,54 @@ public final class DevopsAuthenticationDirectiveFactory {
         return new DevopsAuthenticationDirectiveFactory(jwtAuthenticationProvider, devOpsConfig);
     }
 
-    public DevopsAuthenticationDirective status() {
-        if (!devOpsConfig.isSecured() || !devOpsConfig.isStatusSecured()) {
-            return DevOpsInsecureAuthenticationDirective.getInstance();
-        }
-        return switch (devOpsConfig.getStatusAuthenticationMethod()) {
-            case BASIC -> DevOpsBasicAuthenticationDirective.status(devOpsConfig);
-            case OAUTH2 -> DevOpsOAuth2AuthenticationDirective.status(devOpsConfig, jwtAuthenticationProvider);
-        };
-
+    /**
+     * Updates the DevOps configuration. Called when dynamic config changes are detected.
+     *
+     * @param devOpsConfig the new DevOps config.
+     */
+    public void updateDevOpsConfig(final DevOpsConfig devOpsConfig) {
+        this.devOpsConfig = devOpsConfig;
     }
 
+    /**
+     * Returns a lazy devops authentication directive that re-evaluates the current config on each request.
+     *
+     * @return the devops authentication directive.
+     */
+    public DevopsAuthenticationDirective status() {
+        return (realm, dittoHeaders, inner) -> createStatusDirective()
+                .authenticateDevOps(realm, dittoHeaders, inner);
+    }
+
+    /**
+     * Returns a lazy devops authentication directive that re-evaluates the current config on each request.
+     *
+     * @return the devops authentication directive.
+     */
     public DevopsAuthenticationDirective devops() {
-        if (!devOpsConfig.isSecured()) {
+        return (realm, dittoHeaders, inner) -> createDevopsDirective()
+                .authenticateDevOps(realm, dittoHeaders, inner);
+    }
+
+    private DevopsAuthenticationDirective createStatusDirective() {
+        final DevOpsConfig currentConfig = devOpsConfig;
+        if (!currentConfig.isSecured() || !currentConfig.isStatusSecured()) {
             return DevOpsInsecureAuthenticationDirective.getInstance();
         }
-        return switch (devOpsConfig.getDevopsAuthenticationMethod()) {
-            case BASIC -> DevOpsBasicAuthenticationDirective.devops(devOpsConfig);
-            case OAUTH2 -> DevOpsOAuth2AuthenticationDirective.devops(devOpsConfig, jwtAuthenticationProvider);
+        return switch (currentConfig.getStatusAuthenticationMethod()) {
+            case BASIC -> DevOpsBasicAuthenticationDirective.status(currentConfig);
+            case OAUTH2 -> DevOpsOAuth2AuthenticationDirective.status(currentConfig, jwtAuthenticationProvider);
+        };
+    }
+
+    private DevopsAuthenticationDirective createDevopsDirective() {
+        final DevOpsConfig currentConfig = devOpsConfig;
+        if (!currentConfig.isSecured()) {
+            return DevOpsInsecureAuthenticationDirective.getInstance();
+        }
+        return switch (currentConfig.getDevopsAuthenticationMethod()) {
+            case BASIC -> DevOpsBasicAuthenticationDirective.devops(currentConfig);
+            case OAUTH2 -> DevOpsOAuth2AuthenticationDirective.devops(currentConfig, jwtAuthenticationProvider);
         };
     }
 }

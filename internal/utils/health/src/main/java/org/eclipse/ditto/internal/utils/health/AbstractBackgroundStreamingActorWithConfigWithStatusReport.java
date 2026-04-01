@@ -17,6 +17,7 @@ import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Stream;
 
@@ -24,6 +25,7 @@ import org.eclipse.ditto.base.api.common.Shutdown;
 import org.eclipse.ditto.base.api.common.ShutdownResponse;
 import org.eclipse.ditto.internal.utils.pekko.actors.ModifyConfigBehavior;
 import org.eclipse.ditto.internal.utils.pekko.actors.RetrieveConfigBehavior;
+import org.eclipse.ditto.internal.utils.pekko.config.DynamicConfigChanged;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
@@ -92,6 +94,22 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
         if (config.isEnabled()) {
             scheduleWakeUp();
         }
+
+        if (getDittoConfigPath().isPresent()) {
+            getContext().getSystem().eventStream().subscribe(getSelf(), DynamicConfigChanged.class);
+        }
+    }
+
+    /**
+     * Returns the full ditto config path for this actor's config section
+     * (e.g., {@code "ditto.things-search.updater.background-sync"}).
+     * When present, the actor subscribes to {@link DynamicConfigChanged} events
+     * and refreshes its config automatically.
+     *
+     * @return the ditto config path, or empty to disable dynamic config reload.
+     */
+    protected Optional<String> getDittoConfigPath() {
+        return Optional.empty();
     }
 
     /**
@@ -182,6 +200,7 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
 
     private Receive sleeping() {
         final var sleepingReceiveBuilder = ReceiveBuilder.create();
+        sleepingReceiveBuilder.match(DynamicConfigChanged.class, this::handleDynamicConfigChanged);
         preEnhanceSleepingBehavior(sleepingReceiveBuilder);
 
         return sleepingReceiveBuilder.match(WokeUp.class, this::wokeUp)
@@ -196,6 +215,7 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
 
     private Receive streaming() {
         final var streamingReceiveBuilder = ReceiveBuilder.create();
+        streamingReceiveBuilder.match(DynamicConfigChanged.class, this::handleDynamicConfigChanged);
         preEnhanceStreamingBehavior(streamingReceiveBuilder);
 
         return streamingReceiveBuilder
@@ -207,6 +227,21 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
                 .build()
                 .orElse(retrieveConfigBehavior())
                 .orElse(modifyConfigBehavior());
+    }
+
+    private void handleDynamicConfigChanged(final DynamicConfigChanged configChanged) {
+        try {
+            getDittoConfigPath().ifPresent(dittoConfigPath -> {
+                if (configChanged.dittoConfig().hasPath(dittoConfigPath)) {
+                    log.info("Received DynamicConfigChanged (version <{}>), refreshing config.",
+                            configChanged.version());
+                    setConfig(configChanged.dittoConfig().getConfig(dittoConfigPath));
+                }
+            });
+        } catch (final Exception e) {
+            log.warning("Failed to apply DynamicConfigChanged (version <{}>), keeping previous config: {}",
+                    configChanged.version(), e.getMessage());
+        }
     }
 
     private void wokeUp(final WokeUp wokeUp) {

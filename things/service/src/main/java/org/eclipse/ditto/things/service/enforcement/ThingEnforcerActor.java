@@ -146,6 +146,9 @@ public final class ThingEnforcerActor
         final DittoWotIntegration wotIntegration = DittoWotIntegration.get(system);
         thingModelValidator = wotIntegration.getWotThingModelValidator();
         wotValidationExecutor = getContext().getSystem().dispatchers().lookup(DittoWotIntegration.WOT_DISPATCHER);
+
+        // ThingsConfig is read at actor creation; updated config is picked up on entity re-activation
+        // after passivation by cluster sharding.
     }
 
     /**
@@ -174,6 +177,7 @@ public final class ThingEnforcerActor
                 localAskTimeoutConfig, policiesShardRegion, thingsShardRegion, policyEnforcerProvider
                 ).withDispatcher(ENFORCEMENT_DISPATCHER);
     }
+
 
     @Override
     protected CompletionStage<Optional<PolicyEnforcer>> providePolicyEnforcer(@Nullable final PolicyId policyId) {
