@@ -27,8 +27,8 @@ import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.gateway.api.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationChain;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationResult;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.TraceUtils;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
@@ -41,7 +41,7 @@ import scala.util.Try;
  */
 public final class GatewayAuthenticationDirective {
 
-    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(GatewayAuthenticationDirective.class);
+    private static final ThreadSafeDittoLogger LOGGER = DittoLoggerFactory.getThreadSafeLogger(GatewayAuthenticationDirective.class);
 
     private final AuthenticationChain authenticationChain;
     private final Function<DittoHeaders, DittoRuntimeException> defaultUnauthorizedExceptionFactory;
