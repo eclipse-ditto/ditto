@@ -16,6 +16,8 @@ import org.eclipse.ditto.connectivity.model.ConnectionId;
 
 import com.typesafe.config.Config;
 
+import org.eclipse.ditto.policies.enforcement.AbstractEnforcerActor;
+
 import org.apache.pekko.actor.AbstractActor;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
@@ -42,6 +44,9 @@ public final class NoOpEnforcerActorPropsFactory implements ConnectionEnforcerAc
         @Override
         public Receive createReceive() {
             return receiveBuilder()
+                    .matchEquals(AbstractEnforcerActor.Control.PA_RECOVERED, msg -> {
+                        // PA_RECOVERED is a control signal from the supervisor — consume it, don't echo back.
+                    })
                     .matchAny(any -> sender().tell(any, ActorRef.noSender()))
                     .build();
         }

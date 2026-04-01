@@ -40,6 +40,7 @@ import javax.annotation.concurrent.Immutable;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.ReceiveTimeout;
 import org.apache.pekko.actor.Status;
 import org.apache.pekko.actor.SupervisorStrategy;
 import org.apache.pekko.cluster.Cluster;
@@ -135,6 +136,7 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckCo
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceActor;
+import org.eclipse.ditto.policies.enforcement.AbstractEnforcerActor;
 import org.eclipse.ditto.internal.utils.persistentactors.EmptyEvent;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.DefaultContext;
@@ -706,6 +708,13 @@ public final class ConnectionPersistenceActor
                 .matchEquals(Control.TRIGGER_UPDATE_PRIORITY, this::triggerUpdatePriority)
                 .match(UpdatePriority.class, this::updatePriority)
                 .match(ConnectionSupervisorActor.RestartByConnectionType.class, this::initiateRestartByConnectionType)
+                // ReceiveTimeout may arrive here during startup due to the supervisor's
+                // stash-unstash-forward mechanism — ignore gracefully:
+                .match(ReceiveTimeout.class, receiveTimeout ->
+                        log.debug("Ignoring ReceiveTimeout forwarded from supervisor during startup."))
+                // PA_RECOVERED may be echoed back by NoOpEnforcerActor — ignore gracefully:
+                .matchEquals(AbstractEnforcerActor.Control.PA_RECOVERED, paRecovered ->
+                        log.debug("Ignoring PA_RECOVERED echoed back by enforcer."))
                 .build()
                 .orElse(super.matchAnyAfterInitialization());
     }
