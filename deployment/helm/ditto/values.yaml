@@ -140,6 +140,16 @@ global:
     -Xlog:gc*,gc+heap=debug:stdout:time,uptime,level,tags
   # timezone defines the timezone to configure the JVM with
   timezone: Europe/Berlin
+  # extraVolumes adds additional volumes to all Ditto service deployments (policies, things, thingsSearch, connectivity, gateway)
+  extraVolumes: []
+  #  - name: shared-config
+  #    configMap:
+  #      name: my-shared-config
+  # extraVolumeMounts adds additional volume mounts to all Ditto service containers
+  extraVolumeMounts: []
+  #  - name: shared-config
+  #    mountPath: /opt/ditto/shared-config
+  #    subPath: shared-config
   # additionalAnnotations contains additional annotations to apply to the deployment template of Ditto services
   additionalAnnotations: {}
   # imagePullSecrets will be added to every deployment
