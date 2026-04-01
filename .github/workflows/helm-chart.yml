@@ -63,9 +63,9 @@ jobs:
         # which a folder exists at
         # https://github.com/yannh/kubernetes-json-schema/
         k8s:
-          - v1.28.13
-          - v1.29.8
-          - v1.30.4
+          - v1.33.7
+          - v1.34.3
+          - v1.35.1
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -92,9 +92,9 @@ jobs:
         # available for the docker.io/kindest/node image
         # https://hub.docker.com/r/kindest/node/tags
         k8s:
-          - v1.28.13
-          - v1.29.8
-          - v1.30.4
+          - v1.33.7
+          - v1.34.3
+          - v1.35.1
     steps:
       - name: Checkout
         uses: actions/checkout@v6
