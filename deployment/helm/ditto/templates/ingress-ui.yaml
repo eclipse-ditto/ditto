@@ -8,56 +8,47 @@
 # http://www.eclipse.org/legal/epl-2.0
 #
 # SPDX-License-Identifier: EPL-2.0
-{{- if .Values.ingress.enabled -}}
+{{- if and .Values.ingress.enabled .Values.ingress.ui.enabled }}
 {{- $fullName := include "ditto.fullname" . -}}
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ $fullName }}-ws
+  name: {{ $fullName }}-ui
   namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: {{ include "ditto.name" . }}-nginx
-{{ include "ditto.labels" . | indent 4 }}
+    {{- include "ditto.labels" . | nindent 4 }}
+  {{- with .Values.ingress.ui.annotations }}
   annotations:
-  {{- with .Values.ingress.annotations }}
     {{- toYaml . | nindent 4 }}
   {{- end }}
-  {{- with .Values.ingress.ws.annotations }}
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
-  {{ tpl .Values.ingress.api.kubernetesAuthAnnotations . | nindent 4}}
 spec:
+  {{- if .Values.ingress.className }}
   ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  {{- if .Values.ingress.ui.defaultBackend }}
   defaultBackend:
     service:
-      name: {{ $fullName }}-{{ .Values.ingress.defaultBackendSuffix }}
+      name: {{ $fullName }}-{{ .Values.ingress.ui.defaultBackend.service.name }}
       port:
         name: http
-{{- if .Values.ingress.tls }}
-  tls:
-    {{- range .Values.ingress.tls }}
-    - hosts:
-        {{- range .hosts }}
-        - {{ . | quote }}
-      {{- end }}
-      secretName: {{ .secretName }}
   {{- end }}
-{{- end }}
+  {{- if .Values.ingress.tls }}
+  tls:
+    {{- toYaml .Values.ingress.tls | nindent 4 }}
+  {{- end }}
   rules:
-    - host: {{ .Values.ingress.host | quote }}
+    - {{- if .Values.ingress.host }}
+      host: {{ .Values.ingress.host | quote }}
+      {{- end }}
       http:
         paths:
-          {{- range .Values.ingress.ws.paths }}
+          {{- range .Values.ingress.ui.paths }}
           - path: {{ .path }}
-            {{- if .pathType }}
             pathType: {{ .pathType }}
-            {{- else }}
-            pathType: Prefix
-            {{- end }}
             backend:
               service:
-                name: {{ $fullName }}-{{ .backendSuffix }}
+                name: {{ $fullName }}-{{ .service.name }}
                 port:
                   name: http
           {{- end }}
