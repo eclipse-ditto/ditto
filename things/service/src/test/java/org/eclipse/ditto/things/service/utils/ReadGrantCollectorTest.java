@@ -14,11 +14,16 @@ package org.eclipse.ditto.things.service.utils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
@@ -221,6 +226,47 @@ public final class ReadGrantCollectorTest {
                 .setGrantedPermissionsFor("partial-attributes",
                         ResourceKey.newInstance("thing", "/attributes/folder/public"), "READ")
                 .build();
+    }
+
+
+    @Test
+    public void readGrantToJsonProducesStringSubjectIds() {
+        final Map<JsonPointer, Set<String>> grants = new LinkedHashMap<>();
+        grants.put(JsonPointer.of("/attributes"), Set.of("connection:lora-downlink-processor"));
+        grants.put(JsonPointer.of("/definition"), Set.of("connection:lora-downlink-processor", "connection:other"));
+        final ReadGrant readGrant = new ReadGrant(grants);
+
+        final JsonObject json = readGrant.toJson();
+
+        // Values must be arrays of STRING subject IDs, not integer indices
+        final JsonArray attributesGrant = json.getField(JsonFactory.newKey("/attributes"))
+                .orElseThrow().getValue().asArray();
+        assertThat(attributesGrant).hasSize(1);
+        assertThat(attributesGrant.get(0)).contains(JsonValue.of("connection:lora-downlink-processor"));
+
+        final JsonArray definitionGrant = json.getField(JsonFactory.newKey("/definition"))
+                .orElseThrow().getValue().asArray();
+        assertThat(definitionGrant).hasSize(2);
+        assertThat(definitionGrant.stream().map(JsonValue::asString).toList())
+                .containsExactly("connection:lora-downlink-processor", "connection:other");
+    }
+
+
+    @Test
+    public void collectAndToJsonProducesCorrectFormatForRootReadGrant() {
+        final Thing thing = createThingWithAttributesAndFeatures();
+        final Policy policy = createPolicyWithFullAccess();
+        final PolicyEnforcer enforcer = PolicyEnforcer.of(policy);
+        final JsonFieldSelector fields = JsonFactory.newFieldSelector("/attributes");
+
+        final ReadGrant result = ReadGrantCollector.collect(fields, thing, enforcer);
+        final JsonObject json = result.toJson();
+
+        // The header must contain: {"/attributes": ["test:full-access"]}
+        final JsonArray grant = json.getField(JsonFactory.newKey("/attributes"))
+                .orElseThrow().getValue().asArray();
+        assertThat(grant).hasSize(1);
+        assertThat(grant.get(0)).contains(JsonValue.of(SUBJECT_FULL_ACCESS));
     }
 
     private static Policy createPolicyWithNoAccess() {
