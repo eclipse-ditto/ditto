@@ -183,16 +183,30 @@ public final class Mqtt3ValidatorTest extends AbstractMqttValidatorTest {
     }
 
     @Test
-    public void testInvalidEnforcementOrigin() {
-        final Source mqttSourceWithInvalidFilter =
+    public void testHeaderEnforcementInputIsInvalidForMqtt3() {
+        // header-based enforcement input is only supported for MQTT 5, not for MQTT 3.1.1
+        final Source mqttSourceWithHeaderEnforcement =
                 ConnectivityModelFactory.newSourceBuilder()
                         .authorizationContext(AUTHORIZATION_CONTEXT)
-                        .enforcement(newEnforcement("{{ header:device_id }}", "things/{{ thing:id }}/+"))
+                        .enforcement(newEnforcement("{{ header:device_id }}", "{{ thing:id }}"))
                         .address("#")
                         .qos(1)
                         .build();
 
-        testInvalidSourceEnforcementFilters(mqttSourceWithInvalidFilter);
+        testInvalidSourceEnforcementFilters(mqttSourceWithHeaderEnforcement);
+    }
+
+    @Test
+    public void testInvalidEnforcementInputWithThingPlaceholder() {
+        final Source mqttSourceWithInvalidInput =
+                ConnectivityModelFactory.newSourceBuilder()
+                        .authorizationContext(AUTHORIZATION_CONTEXT)
+                        .enforcement(newEnforcement("{{ thing:id }}", "{{ thing:id }}"))
+                        .address("#")
+                        .qos(1)
+                        .build();
+
+        testInvalidSourceEnforcementFilters(mqttSourceWithInvalidInput);
     }
 
     @Test

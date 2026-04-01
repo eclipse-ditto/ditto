@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.mqtt;
 
+import static org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders.newSourceAddressPlaceholder;
+
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -19,6 +21,8 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.MqttConfig;
+import org.eclipse.ditto.placeholders.Placeholder;
+import org.eclipse.ditto.placeholders.PlaceholderFactory;
 
 import org.apache.pekko.actor.ActorSystem;
 
@@ -45,6 +49,11 @@ public final class Mqtt5Validator extends AbstractMqttValidator {
     @Override
     public ConnectionType type() {
         return ConnectionType.MQTT_5;
+    }
+
+    @Override
+    protected Placeholder<?>[] getSourceEnforcementInputPlaceholders() {
+        return new Placeholder<?>[]{newSourceAddressPlaceholder(), PlaceholderFactory.newHeadersPlaceholder()};
     }
 
     @Override
