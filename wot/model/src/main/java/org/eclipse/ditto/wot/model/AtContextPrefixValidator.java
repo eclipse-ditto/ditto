@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.wot.model;
 
+import java.net.URL;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -66,10 +67,12 @@ public final class AtContextPrefixValidator {
      * prefixes defined in the {@code @context}.
      *
      * @param thingSkeleton the ThingModel or ThingDescription to validate.
+     * @param modelUrl the URL of the validated model.
      * @throws WotValidationException if undefined prefixes are found.
-     * @throws NullPointerException if {@code thingSkeleton} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      */
-    public static void validatePrefixes(final ThingSkeleton<?> thingSkeleton) throws WotValidationException {
+    public static void validatePrefixes(final ThingSkeleton<?> thingSkeleton,
+            final URL modelUrl) throws WotValidationException {
         final JsonObject jsonObject = thingSkeleton.toJson();
         final AtContext atContext = thingSkeleton.getAtContext();
 
@@ -82,7 +85,7 @@ public final class AtContextPrefixValidator {
                 .collect(Collectors.toSet());
 
         if (!undefinedPrefixes.isEmpty()) {
-            throw WotValidationException.newBuilderForUndefinedPrefixes(undefinedPrefixes).build();
+            throw WotValidationException.newBuilderForUndefinedPrefixes(undefinedPrefixes, modelUrl).build();
         }
     }
 
