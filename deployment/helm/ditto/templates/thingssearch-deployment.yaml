@@ -354,6 +354,9 @@ spec:
             - name: ditto-log-files-directory
               mountPath: /var/log/ditto
             {{- end }}
+            {{- if .Values.global.extraVolumeMounts }}
+              {{- toYaml .Values.global.extraVolumeMounts | nindent 12 }}
+            {{- end }}
             {{- if .Values.thingsSearch.extraVolumeMounts }}
               {{- toYaml .Values.thingsSearch.extraVolumeMounts | nindent 12 }}
             {{- end }}
@@ -409,6 +412,9 @@ spec:
           hostPath:
             path: /var/log/ditto
             type: DirectoryOrCreate
+        {{- end }}
+        {{- if .Values.global.extraVolumes }}
+          {{- toYaml .Values.global.extraVolumes | nindent 8 }}
         {{- end }}
         {{- if .Values.thingsSearch.extraVolumes }}
           {{- toYaml .Values.thingsSearch.extraVolumes | nindent 8 }}
