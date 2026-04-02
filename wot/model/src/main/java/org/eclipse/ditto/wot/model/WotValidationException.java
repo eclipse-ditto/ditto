@@ -117,10 +117,12 @@ public final class WotValidationException extends DittoRuntimeException implemen
      * @throws NullPointerException if {@code undefinedPrefixes} is {@code null}.
      * @since 3.9.0
      */
-    public static Builder newBuilderForUndefinedPrefixes(final Set<String> undefinedPrefixes) {
+    public static Builder newBuilderForUndefinedPrefixes(final Set<String> undefinedPrefixes,
+            final URL modelUrl) {
         checkNotNull(undefinedPrefixes, "undefinedPrefixes");
-        final String message = "The following context prefixes are used but not defined in @context: " +
-                undefinedPrefixes;
+        checkNotNull(modelUrl, "modelUrl");
+        final String message = "The WoT model at <" + modelUrl + "> uses the following context prefixes which are " +
+                "not defined in @context: " + undefinedPrefixes;
         final String description = "Please ensure that all prefixes used in the WoT ThingModel or ThingDescription " +
                 "(e.g., 'ditto:category', 'ace:custom') have their prefix defined in the @context. " +
                 "For example, add {\"ditto\": \"https://ditto.eclipseprojects.io/wot/ditto-extension#\"} " +

@@ -107,7 +107,7 @@ final class DefaultWotThingModelFetcher implements WotThingModelFetcher {
                 .thenApplyAsync(ThingModel::fromJson, executor)
                 .thenApplyAsync(thingModel -> {
                     if (validationConfig.isEnforceContextPrefixes()) {
-                        thingModel.validateContextPrefixes();
+                        thingModel.validateContextPrefixes(url);
                     }
                     return thingModel;
                 }, executor)

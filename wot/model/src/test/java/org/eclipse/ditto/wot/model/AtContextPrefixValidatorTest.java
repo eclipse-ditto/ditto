@@ -16,6 +16,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.Set;
 
@@ -27,6 +29,16 @@ import org.junit.Test;
  * Unit tests for {@link AtContextPrefixValidator}.
  */
 public final class AtContextPrefixValidatorTest {
+
+    private static final URL TEST_MODEL_URL;
+
+    static {
+        try {
+            TEST_MODEL_URL = new URL("https://example.com/models/test-model-1.0.0.tm.jsonld");
+        } catch (final MalformedURLException e) {
+            throw new AssertionError(e);
+        }
+    }
 
     @Test
     public void validThingModelWithDefinedPrefixesShouldPass() {
@@ -48,7 +60,7 @@ public final class AtContextPrefixValidatorTest {
 
         final ThingModel thingModel = ThingModel.fromJson(json);
 
-        assertThatCode(thingModel::validateContextPrefixes).doesNotThrowAnyException();
+        assertThatCode(() -> thingModel.validateContextPrefixes(TEST_MODEL_URL)).doesNotThrowAnyException();
     }
 
     @Test
@@ -67,7 +79,7 @@ public final class AtContextPrefixValidatorTest {
         final ThingModel thingModel = ThingModel.fromJson(json);
 
         // "tm" is a standard WoT prefix, should pass
-        assertThatCode(thingModel::validateContextPrefixes).doesNotThrowAnyException();
+        assertThatCode(() -> thingModel.validateContextPrefixes(TEST_MODEL_URL)).doesNotThrowAnyException();
     }
 
     @Test
@@ -86,8 +98,11 @@ public final class AtContextPrefixValidatorTest {
         final ThingModel thingModel = ThingModel.fromJson(json);
 
         assertThatExceptionOfType(WotValidationException.class)
-                .isThrownBy(thingModel::validateContextPrefixes)
-                .withMessageContaining("ditto");
+                .isThrownBy(() -> thingModel.validateContextPrefixes(TEST_MODEL_URL))
+                .satisfies(e -> {
+                    assertThat(e.getMessage()).contains("ditto");
+                    assertThat(e.getMessage()).contains(TEST_MODEL_URL.toString());
+                });
     }
 
     @Test
@@ -106,7 +121,7 @@ public final class AtContextPrefixValidatorTest {
         final ThingModel thingModel = ThingModel.fromJson(json);
 
         assertThatExceptionOfType(WotValidationException.class)
-                .isThrownBy(thingModel::validateContextPrefixes)
+                .isThrownBy(() -> thingModel.validateContextPrefixes(TEST_MODEL_URL))
                 .withMessageContaining("ace");
     }
 
@@ -127,7 +142,7 @@ public final class AtContextPrefixValidatorTest {
         final ThingModel thingModel = ThingModel.fromJson(json);
 
         assertThatExceptionOfType(WotValidationException.class)
-                .isThrownBy(thingModel::validateContextPrefixes)
+                .isThrownBy(() -> thingModel.validateContextPrefixes(TEST_MODEL_URL))
                 .satisfies(e -> {
                     assertThat(e.getMessage()).contains("ditto");
                     assertThat(e.getMessage()).contains("custom");
@@ -151,7 +166,7 @@ public final class AtContextPrefixValidatorTest {
 
         final ThingModel thingModel = ThingModel.fromJson(json);
 
-        assertThatCode(thingModel::validateContextPrefixes).doesNotThrowAnyException();
+        assertThatCode(() -> thingModel.validateContextPrefixes(TEST_MODEL_URL)).doesNotThrowAnyException();
     }
 
     @Test
@@ -270,7 +285,7 @@ public final class AtContextPrefixValidatorTest {
 
         final ThingDescription thingDescription = ThingDescription.fromJson(json);
 
-        assertThatCode(thingDescription::validateContextPrefixes).doesNotThrowAnyException();
+        assertThatCode(() -> thingDescription.validateContextPrefixes(TEST_MODEL_URL)).doesNotThrowAnyException();
     }
 
     @Test
@@ -322,7 +337,7 @@ public final class AtContextPrefixValidatorTest {
 
         final ThingModel thingModel = ThingModel.fromJson(json);
 
-        assertThatCode(thingModel::validateContextPrefixes).doesNotThrowAnyException();
+        assertThatCode(() -> thingModel.validateContextPrefixes(TEST_MODEL_URL)).doesNotThrowAnyException();
     }
 
     @Test
@@ -346,7 +361,7 @@ public final class AtContextPrefixValidatorTest {
 
         // Should fail because "ditto" prefix is not defined in the context
         assertThatExceptionOfType(WotValidationException.class)
-                .isThrownBy(thingModel::validateContextPrefixes)
+                .isThrownBy(() -> thingModel.validateContextPrefixes(TEST_MODEL_URL))
                 .withMessageContaining("ditto");
     }
 
@@ -373,7 +388,7 @@ public final class AtContextPrefixValidatorTest {
 
         final ThingModel thingModel = ThingModel.fromJson(json);
 
-        assertThatCode(thingModel::validateContextPrefixes).doesNotThrowAnyException();
+        assertThatCode(() -> thingModel.validateContextPrefixes(TEST_MODEL_URL)).doesNotThrowAnyException();
     }
 
     @Test
@@ -400,7 +415,7 @@ public final class AtContextPrefixValidatorTest {
 
         final ThingModel thingModel = ThingModel.fromJson(json);
 
-        assertThatCode(thingModel::validateContextPrefixes).doesNotThrowAnyException();
+        assertThatCode(() -> thingModel.validateContextPrefixes(TEST_MODEL_URL)).doesNotThrowAnyException();
     }
 
     @Test
@@ -427,6 +442,6 @@ public final class AtContextPrefixValidatorTest {
 
         final ThingModel thingModel = ThingModel.fromJson(json);
 
-        assertThatCode(thingModel::validateContextPrefixes).doesNotThrowAnyException();
+        assertThatCode(() -> thingModel.validateContextPrefixes(TEST_MODEL_URL)).doesNotThrowAnyException();
     }
 }

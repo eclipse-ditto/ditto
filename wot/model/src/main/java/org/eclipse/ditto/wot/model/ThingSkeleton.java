@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.wot.model;
 
+import java.net.URL;
 import java.time.Instant;
 import java.util.Optional;
 
@@ -232,11 +233,14 @@ public interface ThingSkeleton<T extends ThingSkeleton<T>> extends TypedJsonObje
      * are allowed without explicit definition.
      * </p>
      *
+     * @param modelUrl the URL of the validated model. Included in the validation error message to help
+     *                 identify the source of validation failures.
      * @throws WotValidationException if undefined prefixes are detected.
+     * @throws NullPointerException if {@code modelUrl} is {@code null}.
      * @since 3.9.0
      */
-    default void validateContextPrefixes() throws WotValidationException {
-        AtContextPrefixValidator.validatePrefixes(this);
+    default void validateContextPrefixes(final URL modelUrl) throws WotValidationException {
+        AtContextPrefixValidator.validatePrefixes(this, modelUrl);
     }
 
     /**
