@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheFactory;
@@ -113,9 +114,11 @@ final class DefaultWotThingModelFetcher implements WotThingModelFetcher {
                 .exceptionally(t -> {
                     LOGGER.warn("Failed to extract ThingModel from response because of <{}: {}>",
                             t.getClass().getSimpleName(), t.getMessage());
-                    throw WotThingModelInvalidException.newBuilder(url)
-                            .cause(t)
-                            .build();
+                    throw DittoRuntimeException.asDittoRuntimeException(t, cause ->
+                            WotThingModelInvalidException.newBuilder(url)
+                                    .cause(cause)
+                                    .build()
+                    );
                 });
         return thingModelFuture.toCompletableFuture();
     }
