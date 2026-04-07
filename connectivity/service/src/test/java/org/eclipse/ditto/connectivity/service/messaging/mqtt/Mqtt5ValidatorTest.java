@@ -161,19 +161,62 @@ public final class Mqtt5ValidatorTest extends AbstractMqttValidatorTest {
     }
 
     @Test
-    public void testInvalidEnforcementOrigin() {
-
-        final Source mqttSourceWithInvalidFilter =
+    public void testValidHeaderEnforcementInput() {
+        final Source mqttSourceWithHeaderEnforcement =
                 ConnectivityModelFactory.newSourceBuilder()
                         .authorizationContext(AUTHORIZATION_CONTEXT)
-                        .enforcement(newEnforcement("{{ header:device_id }}", "things/{{ thing:id }}/+"))
+                        .enforcement(newEnforcement("{{ header:device_id }}", "{{ thing:id }}"))
                         .address("#")
                         .qos(1)
                         .build();
 
-        testInvalidSourceEnforcementFilters(mqttSourceWithInvalidFilter);
+        final Connection connection = connectionWithSource(mqttSourceWithHeaderEnforcement);
+        Mqtt5Validator.newInstance(mqttConfig).validate(connection, DittoHeaders.empty(), actorSystem,
+                connectivityConfig);
     }
 
+    @Test
+    public void testValidHeaderEnforcementInputWithArbitraryHeaderName() {
+        final Source mqttSourceWithHeaderEnforcement =
+                ConnectivityModelFactory.newSourceBuilder()
+                        .authorizationContext(AUTHORIZATION_CONTEXT)
+                        .enforcement(newEnforcement("{{ header:device }}", "{{ thing:id }}"))
+                        .address("#")
+                        .qos(1)
+                        .build();
+
+        final Connection connection = connectionWithSource(mqttSourceWithHeaderEnforcement);
+        Mqtt5Validator.newInstance(mqttConfig).validate(connection, DittoHeaders.empty(), actorSystem,
+                connectivityConfig);
+    }
+
+    @Test
+    public void testValidSourceAddressEnforcementInput() {
+        final Source mqttSourceWithSourceAddressEnforcement =
+                ConnectivityModelFactory.newSourceBuilder()
+                        .authorizationContext(AUTHORIZATION_CONTEXT)
+                        .enforcement(newSourceAddressEnforcement("things/{{ thing:id }}"))
+                        .address("#")
+                        .qos(1)
+                        .build();
+
+        final Connection connection = connectionWithSource(mqttSourceWithSourceAddressEnforcement);
+        Mqtt5Validator.newInstance(mqttConfig).validate(connection, DittoHeaders.empty(), actorSystem,
+                connectivityConfig);
+    }
+
+    @Test
+    public void testInvalidEnforcementInputWithThingPlaceholder() {
+        final Source mqttSourceWithInvalidInput =
+                ConnectivityModelFactory.newSourceBuilder()
+                        .authorizationContext(AUTHORIZATION_CONTEXT)
+                        .enforcement(newEnforcement("{{ thing:id }}", "{{ thing:id }}"))
+                        .address("#")
+                        .qos(1)
+                        .build();
+
+        testInvalidSourceEnforcementFilters(mqttSourceWithInvalidInput);
+    }
 
     @Test
     public void testValidLastWill() {
