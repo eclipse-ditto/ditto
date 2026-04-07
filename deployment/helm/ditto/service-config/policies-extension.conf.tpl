@@ -1,5 +1,25 @@
 # Ditto "Policies" configuration extension file to be placed at /opt/ditto/policies-extension.conf
 ditto {
+  headers {
+    redacted-in-log = [
+    {{- range $index, $header := .Values.policies.config.headersRedactedInLog }}
+      "{{$header}}"
+    {{- end }}
+    ]
+  }
+
+  {{- if .Values.policies.config.namespacePolicies }}
+  namespace-policies {
+  {{- range $pattern, $policyIds := .Values.policies.config.namespacePolicies }}
+    "{{$pattern}}" = [
+    {{- range $idx, $policyId := $policyIds }}
+      "{{$policyId}}"
+    {{- end }}
+    ]
+  {{- end }}
+  }
+  {{- end }}
+
   entity-creation {
     grant = [
     {{- range $grantIdx, $grant := .Values.policies.config.entityCreation.grants }}
@@ -36,26 +56,19 @@ ditto {
     {{- end }}
     ]
   }
-  namespace-policies {
-  {{- range $namespace, $policyIds := .Values.global.namespacePolicies }}
-    "{{$namespace}}" = [
-    {{- range $index, $policyId := $policyIds }}
-      "{{$policyId}}"
-    {{- end }}
-    ]
-  {{- end }}
-  }
   policies {
     policy {
+      {{- if .Values.policies.config.namespaceActivityCheck }}
       namespace-activity-check = [
-      {{- range $index, $nsActivityCheck := .Values.policies.config.persistence.namespaceActivityCheckOverrides }}
+      {{- range $index, $entry := .Values.policies.config.namespaceActivityCheck }}
         {
-          namespace-pattern = "{{$nsActivityCheck.namespacePattern}}"
-          inactive-interval = "{{$nsActivityCheck.inactiveInterval}}"
-          deleted-interval = "{{$nsActivityCheck.deletedInterval}}"
+          namespace-pattern = "{{$entry.namespacePattern}}"
+          inactive-interval = "{{$entry.inactiveInterval}}"
+          deleted-interval = "{{$entry.deletedInterval}}"
         }
       {{- end }}
       ]
+      {{- end }}
       event {
         historical-headers-to-persist = [
         {{- range $index, $header := .Values.policies.config.persistence.events.historicalHeadersToPersist }}

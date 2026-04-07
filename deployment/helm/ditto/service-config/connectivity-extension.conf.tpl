@@ -1,5 +1,13 @@
 # Ditto "Connectivity" configuration extension file to be placed at /opt/ditto/connectivity-extension.conf
 ditto {
+  headers {
+    redacted-in-log = [
+    {{- range $index, $header := .Values.connectivity.config.headersRedactedInLog }}
+      "{{$header}}"
+    {{- end }}
+    ]
+  }
+
   connectivity {
     connection {
       event {
