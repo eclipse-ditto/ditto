@@ -26,6 +26,7 @@ on:
       - 'deployment/**'
       - 'documentation/**'
       - 'ui/**'
+      - 'benchmark-tool/**'
 
 jobs:
   build:
