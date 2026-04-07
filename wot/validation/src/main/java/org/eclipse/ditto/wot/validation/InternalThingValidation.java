@@ -26,13 +26,13 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.wot.model.ThingModel;
 
-import com.networknt.schema.JsonSchema;
+import com.networknt.schema.Schema;
 
 final class InternalThingValidation {
 
     private final InternalValidation internalValidation;
 
-    InternalThingValidation(@Nullable final Cache<JsonSchemaCacheKey, JsonSchema> jsonSchemaCache) {
+    InternalThingValidation(@Nullable final Cache<JsonSchemaCacheKey, Schema> jsonSchemaCache) {
         internalValidation = new InternalValidation(jsonSchemaCache);
     }
 

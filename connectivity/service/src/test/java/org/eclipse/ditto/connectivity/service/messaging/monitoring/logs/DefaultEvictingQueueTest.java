@@ -15,9 +15,13 @@ package org.eclipse.ditto.connectivity.service.messaging.monitoring.logs;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.ArrayDeque;
 import java.util.List;
+import java.util.Queue;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.UnaryOperator;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -76,8 +80,16 @@ public final class DefaultEvictingQueueTest {
 
     @Test
     public void testEqualsAndHashcode() {
+        final Queue<Object> redQueue = new ArrayDeque<>(List.of("a"));
+        final Queue<Object> blueQueue = new ArrayDeque<>(List.of("b"));
         EqualsVerifier.forClass(
                 DefaultEvictingQueue.class)
+                .usingGetClass()
+                .withPrefabValues(Queue.class, redQueue, blueQueue)
+                .withPrefabValues(ConcurrentLinkedQueue.class,
+                        new ConcurrentLinkedQueue<>(List.of("a")),
+                        new ConcurrentLinkedQueue<>(List.of("b")))
+                .withPrefabValues(AtomicInteger.class, new AtomicInteger(1), new AtomicInteger(2))
                 .verify();
     }
 

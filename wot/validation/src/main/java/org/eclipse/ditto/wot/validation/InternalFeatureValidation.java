@@ -41,13 +41,13 @@ import org.eclipse.ditto.wot.model.Properties;
 import org.eclipse.ditto.wot.model.Property;
 import org.eclipse.ditto.wot.model.ThingModel;
 
-import com.networknt.schema.JsonSchema;
+import com.networknt.schema.Schema;
 
 final class InternalFeatureValidation {
 
     private final InternalValidation internalValidation;
 
-    InternalFeatureValidation(@Nullable final Cache<JsonSchemaCacheKey, JsonSchema> jsonSchemaCache) {
+    InternalFeatureValidation(@Nullable final Cache<JsonSchemaCacheKey, Schema> jsonSchemaCache) {
         internalValidation = new InternalValidation(jsonSchemaCache);
     }
 

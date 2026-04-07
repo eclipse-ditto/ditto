@@ -42,17 +42,17 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.util.ByteBufferBackedInputStream;
 import com.fasterxml.jackson.dataformat.cbor.databind.CBORMapper;
-import com.networknt.schema.JsonMetaSchema;
-import com.networknt.schema.JsonNodePath;
-import com.networknt.schema.JsonSchema;
-import com.networknt.schema.JsonSchemaFactory;
-import com.networknt.schema.NonValidationKeyword;
 import com.networknt.schema.OutputFormat;
-import com.networknt.schema.PathType;
-import com.networknt.schema.SchemaId;
-import com.networknt.schema.SchemaValidatorsConfig;
-import com.networknt.schema.SpecVersion;
+import com.networknt.schema.Schema;
+import com.networknt.schema.SchemaRegistry;
+import com.networknt.schema.SchemaRegistryConfig;
+import com.networknt.schema.SpecificationVersion;
+import com.networknt.schema.dialect.Dialect;
+import com.networknt.schema.dialect.Draft7;
+import com.networknt.schema.keyword.NonValidationKeyword;
 import com.networknt.schema.output.OutputUnit;
+import com.networknt.schema.path.NodePath;
+import com.networknt.schema.path.PathType;
 
 /**
  * Contains tools around the used JsonSchema library and validating Ditto JSON, including mapping to Jackson.
@@ -64,21 +64,21 @@ final class JsonSchemaTools {
 
     private final CborFactory cborFactory;
     private final ObjectMapper jacksonCborMapper;
-    private final SchemaValidatorsConfig schemaValidatorsConfig;
+    private final SchemaRegistryConfig schemaRegistryConfig;
     @Nullable
-    private final Cache<JsonSchemaCacheKey, JsonSchema> jsonSchemaCache;
+    private final Cache<JsonSchemaCacheKey, Schema> jsonSchemaCache;
 
-    JsonSchemaTools(@Nullable final Cache<JsonSchemaCacheKey, JsonSchema> jsonSchemaCache) {
+    JsonSchemaTools(@Nullable final Cache<JsonSchemaCacheKey, Schema> jsonSchemaCache) {
         final var cborFactoryLoader = CborFactoryLoader.getInstance();
         cborFactory = cborFactoryLoader.getCborFactoryOrThrow();
         jacksonCborMapper = new CBORMapper();
-        schemaValidatorsConfig = SchemaValidatorsConfig.builder()
+        schemaRegistryConfig = SchemaRegistryConfig.builder()
                 .pathType(PathType.JSON_POINTER)
                 .build();
         this.jsonSchemaCache = jsonSchemaCache;
     }
 
-    JsonSchema extractFromSingleDataSchema(final SingleDataSchema dataSchema,
+    Schema extractFromSingleDataSchema(final SingleDataSchema dataSchema,
             final boolean validateRequiredObjectFields,
             final DittoHeaders dittoHeaders
     ) {
@@ -105,15 +105,16 @@ final class JsonSchemaTools {
                     .dittoHeaders(dittoHeaders)
                     .build();
         }
-        final JsonMetaSchema.Builder metaSchemaBuilder = JsonMetaSchema.builder(SchemaId.V7, JsonMetaSchema.getV7());
-        metaSchemaBuilder.keyword(new NonValidationKeyword("@type"));
-        metaSchemaBuilder.keyword(new NonValidationKeyword("unit"));
-        metaSchemaBuilder.keyword(new NonValidationKeyword("ditto:category"));
-        metaSchemaBuilder.keyword(new NonValidationKeyword("ditto:deprecationNotice"));
-        return JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7, builder ->
-                        builder.metaSchema(metaSchemaBuilder.build())
+        final Dialect dialect = Dialect.builder(Draft7.getInstance())
+                .keyword(new NonValidationKeyword("@type"))
+                .keyword(new NonValidationKeyword("unit"))
+                .keyword(new NonValidationKeyword("ditto:category"))
+                .keyword(new NonValidationKeyword("ditto:deprecationNotice"))
+                .build();
+        return SchemaRegistry.withDialect(dialect, builder ->
+                        builder.schemaRegistryConfig(schemaRegistryConfig)
                 )
-                .getSchema(jsonNode, schemaValidatorsConfig);
+                .getSchema(jsonNode);
     }
 
     private static JsonObject adjustDataSchemaRemovingRequiredObjectFields(final JsonObject dataSchemaJson) {
@@ -162,10 +163,10 @@ final class JsonSchemaTools {
             final DittoHeaders dittoHeaders
     ) {
         final JsonSchemaCacheKey schemaCacheKey = new JsonSchemaCacheKey(dataSchema, validateRequiredObjectFields);
-        final JsonSchema jsonSchema = Optional.ofNullable(jsonSchemaCache)
+        final Schema jsonSchema = Optional.ofNullable(jsonSchemaCache)
                 .flatMap(c -> c.getBlocking(schemaCacheKey))
                 .orElseGet(() -> {
-                    final JsonSchema extractedSchema =
+                    final Schema extractedSchema =
                             extractFromSingleDataSchema(dataSchema, validateRequiredObjectFields, dittoHeaders);
                     if (jsonSchemaCache != null) {
                         jsonSchemaCache.put(schemaCacheKey, extractedSchema);
@@ -174,12 +175,12 @@ final class JsonSchemaTools {
                 });
 
         JsonPointer relativePropertyPath = JsonPointer.empty();
-        JsonSchema effectiveSchema = jsonSchema;
+        Schema effectiveSchema = jsonSchema;
         JsonValue valueToValidate = jsonValue;
         if (pointerPath.getLevelCount() > 1) {
             final JsonPointer subPointer = pointerPath.getSubPointer(1).orElseThrow();
             relativePropertyPath = subPointer;
-            JsonNodePath jsonNodePath = new JsonNodePath(PathType.JSON_POINTER);
+            NodePath nodePath = new NodePath(PathType.JSON_POINTER);
             for (int i = 0; i < subPointer.getLevelCount(); i++) {
                 // Descend into schema only if it is of type "object" and has the requested property.
                 // This is in line with Ditto's JSON pointer usage, which does not support direct array element access.
@@ -194,8 +195,8 @@ final class JsonSchemaTools {
                 if (isObjectSchema &&
                         currentSchemaNode.has(PROPERTIES) &&
                         currentSchemaNode.get(PROPERTIES).has(jsonKey)) {
-                    jsonNodePath = jsonNodePath.append(PROPERTIES).append(jsonKey);
-                    effectiveSchema = effectiveSchema.getSubSchema(jsonNodePath);
+                    nodePath = nodePath.append(PROPERTIES).append(jsonKey);
+                    effectiveSchema = effectiveSchema.getSubSchema(nodePath);
                     relativePropertyPath = relativePropertyPath.getSubPointer(1).orElseThrow();
                     valueToValidate = Optional.ofNullable(valueToValidate)
                             .filter(JsonValue::isObject)
@@ -208,7 +209,7 @@ final class JsonSchemaTools {
         return validateDittoJson(effectiveSchema, relativePropertyPath, valueToValidate, dittoHeaders);
     }
 
-    OutputUnit validateDittoJson(final JsonSchema jsonSchema,
+    OutputUnit validateDittoJson(final Schema jsonSchema,
             final JsonPointer relativePropertyPath,
             @Nullable final JsonValue jsonValue,
             final DittoHeaders dittoHeaders
