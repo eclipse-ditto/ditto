@@ -41,6 +41,18 @@ public final class FieldNamesPredicateVisitorTest {
                 .containsExactlyInAnyOrder("_metadata/attributes/manufacturer", "_metadata");
     }
 
+    @Test
+    public void verifyCorrectFilteringWithEmpty() {
+        softly.assertThat(extractFieldsFromRql("empty(attributes/tags)"))
+                .containsExactlyInAnyOrder("attributes/tags");
+        softly.assertThat(extractFieldsFromRql("not(empty(attributes/tags))"))
+                .containsExactlyInAnyOrder("attributes/tags");
+        softly.assertThat(extractFieldsFromRql("and(empty(attributes/foo),eq(attributes/bar,1))"))
+                .containsExactlyInAnyOrder("attributes/foo", "attributes/bar");
+        softly.assertThat(extractFieldsFromRql("or(empty(features/sensor/properties/value),exists(attributes/tags))"))
+                .containsExactlyInAnyOrder("features/sensor/properties/value", "attributes/tags");
+    }
+
     private static Set<String> extractFieldsFromRql(final String filter) {
         final FieldNamesPredicateVisitor fieldNameVisitor = FieldNamesPredicateVisitor.getNewInstance();
         fieldNameVisitor.visit(RqlPredicateParser.parse(filter));

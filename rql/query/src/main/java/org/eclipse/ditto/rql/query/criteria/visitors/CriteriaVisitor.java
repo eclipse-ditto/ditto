@@ -50,6 +50,19 @@ public interface CriteriaVisitor<T> {
     T visitExists(ExistsFieldExpression fieldExpression);
 
     /**
+     * Visits the passed {@code fieldExpression} applying "empty" semantics.
+     * A field is considered "empty" when it is absent, {@code null}, an empty array, an empty object or an empty
+     * string.
+     *
+     * @param fieldExpression the expression to check emptiness for.
+     * @return the created thingy.
+     * @since 3.9.0
+     */
+    default T visitEmpty(final ExistsFieldExpression fieldExpression) {
+        throw new UnsupportedOperationException("visitEmpty is not supported by " + getClass().getName());
+    }
+
+    /**
      * Visits the passed {@code fieldExpression} and {@code predicate} applying "filtering" semantics.
      *
      * @param fieldExpression the expression to check.

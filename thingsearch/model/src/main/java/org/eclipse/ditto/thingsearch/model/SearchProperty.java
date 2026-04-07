@@ -35,6 +35,16 @@ public interface SearchProperty {
     PropertySearchFilter exists();
 
     /**
+     * Returns a new search filter for checking if this property is empty.
+     * A field is considered "empty" when it is absent, {@code null}, an empty array, an empty object or an empty
+     * string.
+     *
+     * @return the new search filter.
+     * @since 3.9.0
+     */
+    PropertySearchFilter empty();
+
+    /**
      * Returns a new search filter for checking if the value of this property is equal to the given value.
      *
      * @param value the value to compare the value of this property with.

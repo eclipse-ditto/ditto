@@ -29,6 +29,7 @@ import org.eclipse.ditto.rql.query.criteria.visitors.CriteriaVisitor;
 import org.eclipse.ditto.rql.query.expression.ExistsFieldExpression;
 import org.eclipse.ditto.rql.query.expression.FilterFieldExpression;
 import org.eclipse.ditto.thingsearch.service.persistence.read.expression.visitors.AbstractFieldBsonCreator;
+import org.eclipse.ditto.thingsearch.service.persistence.read.expression.visitors.GetEmptyBsonVisitor;
 import org.eclipse.ditto.thingsearch.service.persistence.read.expression.visitors.GetExistsBsonVisitor;
 import org.eclipse.ditto.thingsearch.service.persistence.read.expression.visitors.GetFilterBsonVisitor;
 
@@ -81,6 +82,11 @@ public class CreateBsonVisitor implements CriteriaVisitor<Bson> {
     @Override
     public Bson visitExists(final ExistsFieldExpression fieldExpression) {
         return GetExistsBsonVisitor.apply(fieldExpression, authorizationSubjectIds);
+    }
+
+    @Override
+    public Bson visitEmpty(final ExistsFieldExpression fieldExpression) {
+        return GetEmptyBsonVisitor.apply(fieldExpression, authorizationSubjectIds);
     }
 
     @Override

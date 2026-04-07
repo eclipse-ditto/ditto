@@ -83,6 +83,11 @@ public final class ThingPredicateVisitor implements CriteriaVisitor<Predicate<Th
     }
 
     @Override
+    public Predicate<Thing> visitEmpty(final ExistsFieldExpression fieldExpression) {
+        return EmptyThingPredicateVisitor.apply(fieldExpression, additionalPlaceholderResolvers);
+    }
+
+    @Override
     public Predicate<Thing> visitField(final FilterFieldExpression fieldExpression,
             final org.eclipse.ditto.rql.query.criteria.Predicate predicate) {
         return FilterThingPredicateVisitor.apply(fieldExpression,

@@ -26,7 +26,7 @@ import scala.util.{Failure, Success}
   * RQL Parser. Parses predicates in the RQL "standard" according to https://github.com/persvr/rql with the following
   * EBNF:
   * <pre>
-  * Query                      = SingleComparisonOp | MultiComparisonOp | MultiLogicalOp | SingleLogicalOp | ExistsOp
+  * Query                      = SingleComparisonOp | MultiComparisonOp | MultiLogicalOp | SingleLogicalOp | ExistsOp | EmptyOp
   * SingleComparisonOp         = SingleComparisonName, '(', ComparisonProperty, ',', ComparisonValue, ')'
   * SingleComparisonName       = "eq" | "ne" | "gt" | "ge" | "lt" | "le" | "like" | "ilike"
   * MultiComparisonOp          = MultiComparisonName, '(', ComparisonProperty, ',', ComparisonValue, { ',', ComparisonValue }, ')'
@@ -36,6 +36,7 @@ import scala.util.{Failure, Success}
   * SingleLogicalOp            = SingleLogicalName, '(', Query, ')'
   * SingleLogicalName          = "not"
   * ExistsOp                   = "exists" '(', ComparisonProperty, ')'
+  * EmptyOp                    = "empty" '(', ComparisonProperty, ')'
   *
   * ComparisonProperty         = PropertyLiteral
   * ComparisonValue            = Literal
@@ -51,10 +52,10 @@ private class RqlPredicateParser(override val input: ParserInput) extends RqlPar
   }
 
   /**
-    * Query                      = SingleComparisonOp | MultiComparisonOp | MultiLogicalOp | SingleLogicalOp | ExistsOp
+    * Query                      = SingleComparisonOp | MultiComparisonOp | MultiLogicalOp | SingleLogicalOp | ExistsOp | EmptyOp
     */
   private def Query: Rule1[Node] = rule {
-    SingleComparisonOp | MultiComparisonOp | MultiLogicalOp | SingleLogicalOp | ExistsOp
+    SingleComparisonOp | MultiComparisonOp | MultiLogicalOp | SingleLogicalOp | ExistsOp | EmptyOp
   }
 
   /**
@@ -185,6 +186,13 @@ private class RqlPredicateParser(override val input: ParserInput) extends RqlPar
     */
   private def ExistsOp: Rule1[Node] = rule {
     "exists" ~ '(' ~ ComparisonProperty ~ ')' ~> (property => new ExistsNode(property))
+  }
+
+  /**
+    * EmptyOp                    = "empty" '(', ComparisonProperty, ')'
+    */
+  private def EmptyOp: Rule1[Node] = rule {
+    "empty" ~ '(' ~ ComparisonProperty ~ ')' ~> (property => new EmptyNode(property))
   }
 
 
