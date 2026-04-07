@@ -652,4 +652,18 @@ public final class ImmutablePolicyTest {
                 .orElseThrow(() -> new AssertionError("Entry not found"));
         assertThat(entry.getNamespaces()).contains(END_USER_NAMESPACES);
     }
+
+    @Test
+    public void setNamespacesForNewEntryDoesNotIntroduceEmptyAllowedImportAdditions() {
+        final Policy policy = createPolicy();
+        final Label newLabel = Label.of("NewEntry");
+        final List<String> namespaces = List.of("com.new");
+
+        final Policy modified = policy.setNamespacesFor(newLabel, namespaces);
+
+        final PolicyEntry entry = modified.getEntryFor(newLabel)
+                .orElseThrow(() -> new AssertionError("Entry not found"));
+        assertThat(entry.getNamespaces()).contains(namespaces);
+        assertThat(entry.getAllowedImportAdditions()).isEmpty();
+    }
 }

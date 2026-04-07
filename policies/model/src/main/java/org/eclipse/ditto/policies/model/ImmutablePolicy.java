@@ -501,7 +501,7 @@ final class ImmutablePolicy implements Policy {
 
         if (!entriesCopy.containsKey(lbl)) {
             modifiedEntry = newPolicyEntry(label, PoliciesModelFactory.emptySubjects(), emptyResources(),
-                    namespaces, ImportableType.IMPLICIT, Collections.emptySet());
+                    namespaces, ImportableType.IMPLICIT, null);
         } else {
             final PolicyEntry policyEntry = entriesCopy.get(lbl);
             modifiedEntry = newPolicyEntry(label, policyEntry.getSubjects(),
