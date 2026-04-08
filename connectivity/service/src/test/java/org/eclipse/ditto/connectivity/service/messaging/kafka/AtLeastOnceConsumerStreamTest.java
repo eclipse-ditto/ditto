@@ -129,10 +129,10 @@ public final class AtLeastOnceConsumerStreamTest {
             }
 
             /*
-             * Further messages are queued but not forwarded to the mapping sink. I can't fully explain why it is 2.
-             * This depends on the test setup of the SourceQueue.
+             * Further messages are queued but not forwarded to the mapping sink. I can't fully explain why it is 3.
+             * This depends on the test setup of the SourceQueue and the number of stream stages.
              */
-            final int bufferSize = 2;
+            final int bufferSize = 3;
             for (int i = 0; i < bufferSize; i++) {
                 assertThat(sourceQueue.get().offer(committableMessage)).isEqualTo(QueueOfferResult.enqueued());
                 // This is done to verify that no matter that inboundSinkProbe is requesting new Elements. The mapAsync stage is blocking further elements to be processed.

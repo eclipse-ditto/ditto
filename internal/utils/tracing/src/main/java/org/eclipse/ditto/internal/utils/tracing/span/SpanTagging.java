@@ -32,7 +32,7 @@ public interface SpanTagging<T extends TaggableMetricsInstrument<T>> extends Tag
      */
     default T correlationId(@Nullable final CharSequence correlationId) {
         final T result;
-        if (null == correlationId) {
+        if (null == correlationId || correlationId.toString().isBlank()) {
             result = self();
         } else {
             result = tag(SpanTagKey.CORRELATION_ID.getTagForValue(correlationId.toString()));
@@ -48,7 +48,7 @@ public interface SpanTagging<T extends TaggableMetricsInstrument<T>> extends Tag
      */
     default T connectionId(@Nullable final CharSequence connectionId) {
         final T result;
-        if (null == connectionId) {
+        if (null == connectionId || connectionId.toString().isBlank()) {
             result = self();
         } else {
             result = tag(SpanTagKey.CONNECTION_ID.getTagForValue(connectionId));
@@ -64,7 +64,7 @@ public interface SpanTagging<T extends TaggableMetricsInstrument<T>> extends Tag
      */
     default T entityId(@Nullable final CharSequence entityId) {
         final T result;
-        if (null == entityId) {
+        if (null == entityId || entityId.toString().isBlank()) {
             result = self();
         } else {
             result = tag(SpanTagKey.ENTITY_ID.getTagForValue(entityId));
