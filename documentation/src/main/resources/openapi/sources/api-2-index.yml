@@ -145,6 +145,10 @@ paths:
     $ref: "./paths/policies/entriesAdditions.yml"
   '/api/2/policies/{policyId}/imports/{importedPolicyId}/entriesAdditions/{label}':
     $ref: "./paths/policies/entryAddition.yml"
+  '/api/2/policies/{policyId}/subjectAliases':
+    $ref: "./paths/policies/subjectAliases.yml"
+  '/api/2/policies/{policyId}/subjectAliases/{label}':
+    $ref: "./paths/policies/subjectAlias.yml"
 
   ###
   ### Who Am I
@@ -442,6 +446,12 @@ components:
       $ref: "./schemas/policies/entriesAdditions.yml"
     EntryAddition:
       $ref: "./schemas/policies/entryAddition.yml"
+    SubjectAliases:
+      $ref: "./schemas/policies/subjectAliases.yml"
+    SubjectAlias:
+      $ref: "./schemas/policies/subjectAlias.yml"
+    SubjectAliasTarget:
+      $ref: "./schemas/policies/subjectAliasTarget.yml"
     SubjectAnnouncement:
       $ref: "./schemas/policies/subjectAnnouncement.yml"
     Features:

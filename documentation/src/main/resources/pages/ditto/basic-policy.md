@@ -505,6 +505,74 @@ reactor, turbine, and cooling features, while the safety inspector (`frank.grime
 reactor, cooling, and safety logs — all defined centrally. If the organization later adds a new resource to the
 `operator` role in the template, every power plant that imports it automatically inherits the change.
 
+### Subject aliases
+
+When migrating to template-based policies via `entriesAdditions`, a template may split a single entry into
+multiple entries for finer namespace scoping. For example, the `operator` role above might be split into
+`operator-reactor` and `operator-turbine` entries, each restricted to a different namespace.
+
+This creates a challenge: existing API consumers that manage subjects via
+`PUT /api/2/policies/{id}/entries/operator/subjects` would break because the local `operator` entry no longer
+exists — the subjects now live in `entriesAdditions` spread across multiple imported entries.
+
+**Subject aliases** solve this by mapping a label to one or more `entriesAdditions` targets. Subject operations
+on the alias label are transparently fanned out to all referenced targets:
+
+```json
+{
+  "policyId": "energy-corp:plant-springfield",
+  "imports": {
+    "energy-corp:power-plant-roles": {
+      "entriesAdditions": {
+        "operator-reactor": {
+          "subjects": {
+            "oauth2:homer.simpson@energy-corp.com": { "type": "employee" }
+          }
+        },
+        "operator-turbine": {
+          "subjects": {
+            "oauth2:homer.simpson@energy-corp.com": { "type": "employee" }
+          }
+        }
+      }
+    }
+  },
+  "subjectAliases": {
+    "operator": {
+      "targets": [
+        { "import": "energy-corp:power-plant-roles", "entry": "operator-reactor" },
+        { "import": "energy-corp:power-plant-roles", "entry": "operator-turbine" }
+      ]
+    }
+  },
+  "entries": {
+    "admin": {
+      "subjects": { "oauth2:plant-admin@energy-corp.com": { "type": "employee" } },
+      "resources": { "policy:/": { "grant": ["READ", "WRITE"], "revoke": [] } }
+    }
+  }
+}
+```
+
+With this setup, `PUT /entries/operator/subjects` continues to work: it transparently writes the subjects to
+both `operator-reactor` and `operator-turbine` entries additions. `GET /entries/operator/subjects` returns the
+subjects from the first target's entries additions.
+
+**Key rules:**
+* A label **must not** exist as both a subject alias and a local policy entry. Creating one when the other
+  exists results in a `409 Conflict` error.
+* Only **subject operations** are allowed through an alias (`GET`/`PUT`/`DELETE` on `subjects`). Other operations
+  (resources, namespaces, the full entry) on an alias label are rejected with `400 Bad Request`.
+* Targets may span **multiple imports**.
+* Deleting an import that is referenced by a subject alias is **rejected**. Remove the alias first.
+
+Subject aliases are managed via dedicated API endpoints:
+* `GET/PUT/DELETE /api/2/policies/{id}/subjectAliases` — retrieve, replace, or delete all aliases
+* `GET/PUT/DELETE /api/2/policies/{id}/subjectAliases/{label}` — manage a single alias
+
+Policy imports can also be deleted in bulk via `DELETE /api/2/policies/{id}/imports`. This is rejected if any
+subject alias still references an import.
+
 A subject creating or modifying a policy with policy imports must have the following permissions:
  * permission on the _importing policy_ to `WRITE` the modified policy import or policy imports
  * permission on the _imported policy_ to `READ` entries that are implicitly or explicitly referenced in the policy imports

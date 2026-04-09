@@ -24,9 +24,14 @@ import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyImport;
+import org.eclipse.ditto.policies.model.SubjectAlias;
+import org.eclipse.ditto.policies.model.SubjectAliasTarget;
+import org.eclipse.ditto.policies.model.Subjects;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubjects;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubjectsResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
@@ -59,9 +64,33 @@ final class RetrieveSubjectsStrategy extends AbstractPolicyQueryCommandStrategy<
                     nonNullPolicy);
             return ResultFactory.newQueryResult(command, response);
         } else {
+            // Check if label is a subject alias
+            final Optional<SubjectAlias> aliasOpt = nonNullPolicy.getSubjectAliases().getAlias(command.getLabel());
+            if (aliasOpt.isPresent()) {
+                final SubjectAlias alias = aliasOpt.get();
+                final Subjects subjects = resolveFirstTargetSubjects(nonNullPolicy, alias);
+                final WithDittoHeaders aliasResponse = appendETagHeaderIfProvided(command,
+                        RetrieveSubjectsResponse.of(policyId, command.getLabel(), subjects,
+                                createCommandResponseDittoHeaders(dittoHeaders, nextRevision - 1)),
+                        nonNullPolicy);
+                return ResultFactory.newQueryResult(command, aliasResponse);
+            }
             return ResultFactory.newErrorResult(
                     policyEntryNotFound(policyId, command.getLabel(), dittoHeaders), command);
         }
+    }
+
+    private static Subjects resolveFirstTargetSubjects(final Policy policy, final SubjectAlias alias) {
+        if (alias.getTargets().isEmpty()) {
+            return PoliciesModelFactory.emptySubjects();
+        }
+        final SubjectAliasTarget firstTarget = alias.getTargets().get(0);
+        return policy.getPolicyImports()
+                .getPolicyImport(firstTarget.getImportedPolicyId())
+                .flatMap(PolicyImport::getEntriesAdditions)
+                .flatMap(additions -> additions.getAddition(firstTarget.getEntryLabel()))
+                .flatMap(addition -> addition.getSubjects())
+                .orElse(PoliciesModelFactory.emptySubjects());
     }
 
     @Override

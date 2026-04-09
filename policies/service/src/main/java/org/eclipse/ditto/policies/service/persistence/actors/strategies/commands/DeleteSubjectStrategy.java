@@ -14,6 +14,7 @@ package org.eclipse.ditto.policies.service.persistence.actors.strategies.command
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.List;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
@@ -25,14 +26,22 @@ import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.policies.api.PoliciesValidator;
+import org.eclipse.ditto.policies.model.EntriesAdditions;
 import org.eclipse.ditto.policies.model.Label;
+import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyImport;
+import org.eclipse.ditto.policies.model.PolicyImports;
+import org.eclipse.ditto.policies.model.SubjectAlias;
+import org.eclipse.ditto.policies.model.SubjectAliasTarget;
 import org.eclipse.ditto.policies.model.SubjectId;
+import org.eclipse.ditto.policies.model.Subjects;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubject;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubjectResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
+import org.eclipse.ditto.policies.model.signals.events.SubjectAliasSubjectDeleted;
 import org.eclipse.ditto.policies.model.signals.events.SubjectDeleted;
 import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 
@@ -82,8 +91,68 @@ final class DeleteSubjectStrategy extends AbstractPolicyCommandStrategy<DeleteSu
                 return ResultFactory.newErrorResult(subjectNotFound(policyId, label, subjectId, headers), command);
             }
         } else {
+            // Check if label is a subject alias
+            final Optional<SubjectAlias> aliasOpt = nonNullPolicy.getSubjectAliases().getAlias(label);
+            if (aliasOpt.isPresent()) {
+                return handleAliasDeleteSubject(nonNullPolicy, policyId, label, subjectId, headers, command,
+                        aliasOpt.get(), nextRevision, metadata);
+            }
             return ResultFactory.newErrorResult(policyEntryNotFound(policyId, label, headers), command);
         }
+    }
+
+    private Result<PolicyEvent<?>> handleAliasDeleteSubject(final Policy policy, final PolicyId policyId,
+            final Label aliasLabel, final SubjectId subjectId, final DittoHeaders headers,
+            final DeleteSubject command, final SubjectAlias alias, final long nextRevision,
+            @Nullable final Metadata metadata) {
+
+        final List<SubjectAliasTarget> targets = alias.getTargets();
+
+        // Fan out delete to all alias targets' entriesAdditions
+        Policy updatedPolicy = policy;
+        for (final SubjectAliasTarget target : targets) {
+            updatedPolicy = removeSubjectFromTarget(updatedPolicy, target, subjectId);
+        }
+
+        final SubjectAliasSubjectDeleted event = SubjectAliasSubjectDeleted.of(policyId, aliasLabel, subjectId,
+                targets, nextRevision, getEventTimestamp(), headers, metadata);
+        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+                DeleteSubjectResponse.of(policyId, aliasLabel, subjectId,
+                        createCommandResponseDittoHeaders(headers, nextRevision)),
+                policy);
+        return ResultFactory.newMutationResult(command, event, response);
+    }
+
+    private static Policy removeSubjectFromTarget(final Policy policy, final SubjectAliasTarget target,
+            final SubjectId subjectId) {
+
+        final PolicyImports imports = policy.getPolicyImports();
+        return imports.getPolicyImport(target.getImportedPolicyId())
+                .map(existingImport -> {
+                    final EntriesAdditions existingAdditions = existingImport.getEntriesAdditions()
+                            .orElse(PoliciesModelFactory.emptyEntriesAdditions());
+                    final var existingAddition = existingAdditions.getAddition(target.getEntryLabel()).orElse(null);
+                    if (existingAddition == null) {
+                        return policy;
+                    }
+                    final Subjects existingSubjects = existingAddition.getSubjects()
+                            .orElse(PoliciesModelFactory.emptySubjects());
+                    final Subjects newSubjects = existingSubjects.removeSubject(subjectId);
+                    final var newAddition = PoliciesModelFactory.newEntryAddition(
+                            target.getEntryLabel(), newSubjects,
+                            existingAddition.getResources().orElse(null),
+                            existingAddition.getNamespaces().orElse(null));
+                    final EntriesAdditions newAdditions = existingAdditions.setAddition(newAddition);
+                    final var labels = existingImport.getEffectedImports()
+                            .map(ei -> ei.getImportedLabels())
+                            .orElse(PoliciesModelFactory.noImportedEntries());
+                    final var newImport = PoliciesModelFactory.newPolicyImport(
+                            existingImport.getImportedPolicyId(),
+                            PoliciesModelFactory.newEffectedImportedLabels(labels, newAdditions));
+                    final PolicyImports newImports = imports.setPolicyImport(newImport);
+                    return policy.toBuilder().setPolicyImports(newImports).build();
+                })
+                .orElse(policy);
     }
 
     @Override

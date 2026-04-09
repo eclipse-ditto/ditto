@@ -36,6 +36,8 @@ import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImp
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResource;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResources;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubject;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubjectAlias;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubjectAliases;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubjects;
 import org.junit.Before;
 import org.junit.runner.RunWith;
@@ -62,7 +64,9 @@ public final class ParametrizedPolicyQueryCommandAdapterTest
                 retrievePolicyEntryImportable(),
                 retrievePolicyImportEntries(),
                 retrievePolicyImportEntriesAdditions(),
-                retrievePolicyImportEntryAddition());
+                retrievePolicyImportEntryAddition(),
+                retrieveSubjectAliases(),
+                retrieveSubjectAlias());
     }
 
     private PolicyQueryCommandAdapter underTest;
@@ -190,6 +194,22 @@ public final class ParametrizedPolicyQueryCommandAdapterTest
                 JsonPointer.of("/imports/" + Policies.IMPORTED_POLICY_ID + "/entriesAdditions/" +
                         Policies.POLICY_ENTRY_LABEL));
         return TestParameter.of("retrievePolicyImportEntryAddition", adaptable, command);
+    }
+
+    private static TestParameter<PolicyQueryCommand<?>> retrieveSubjectAliases() {
+        final RetrieveSubjectAliases command =
+                RetrieveSubjectAliases.of(Policies.POLICY_ID, Policies.HEADERS);
+        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.RETRIEVE,
+                JsonPointer.of("/subjectAliases"));
+        return TestParameter.of("retrieveSubjectAliases", adaptable, command);
+    }
+
+    private static TestParameter<PolicyQueryCommand<?>> retrieveSubjectAlias() {
+        final RetrieveSubjectAlias command =
+                RetrieveSubjectAlias.of(Policies.POLICY_ID, Policies.SUBJECT_ALIAS_LABEL, Policies.HEADERS);
+        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.RETRIEVE,
+                JsonPointer.of("/subjectAliases/" + Policies.SUBJECT_ALIAS_LABEL));
+        return TestParameter.of("retrieveSubjectAlias", adaptable, command);
     }
 
 }

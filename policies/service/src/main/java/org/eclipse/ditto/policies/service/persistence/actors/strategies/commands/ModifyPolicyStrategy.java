@@ -20,6 +20,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
@@ -63,6 +64,7 @@ final class ModifyPolicyStrategy extends AbstractPolicyCommandStrategy<ModifyPol
         final Policy adjustedPolicy =
                 PoliciesModelFactory.newPolicyBuilder(commandPolicy.getEntityId().orElseThrow(), adjustedEntries)
                         .setPolicyImports(commandPolicy.getPolicyImports())
+                        .setSubjectAliases(commandPolicy.getSubjectAliases())
                         .build();
 
         final ModifyPolicy adjustedCommand = ModifyPolicy.of(command.getEntityId(), adjustedPolicy, commandHeaders);
@@ -81,6 +83,13 @@ final class ModifyPolicyStrategy extends AbstractPolicyCommandStrategy<ModifyPol
                 checkForAlreadyExpiredSubject(modifiedPolicyWithImplicits, commandHeaders, command);
         if (alreadyExpiredSubject.isPresent()) {
             return alreadyExpiredSubject.get();
+        }
+
+        // Validate subject alias targets reference existing imports
+        final Optional<DittoRuntimeException> aliasValidationError =
+                validateSubjectAliasTargets(modifiedPolicyWithImplicits, commandHeaders);
+        if (aliasValidationError.isPresent()) {
+            return ResultFactory.newErrorResult(aliasValidationError.get(), command);
         }
 
         final PoliciesValidator validator = PoliciesValidator.newInstance(modifiedPolicyWithImplicits);

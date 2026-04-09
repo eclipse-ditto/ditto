@@ -30,6 +30,7 @@ import org.eclipse.ditto.policies.model.PolicyImport;
 import org.eclipse.ditto.policies.model.PolicyImports;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImport;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImportEntryAddition;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImports;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImport;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportEntries;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportEntriesAdditions;
@@ -102,6 +103,10 @@ final class PolicyImportsRoute extends AbstractRoute {
                                                                         createPolicyImportsForPut(policyImportsJson),
                                                                         dittoHeaders))
                                 )
+                        ),
+                        delete(() -> // DELETE /imports
+                                handlePerRequest(ctx,
+                                        DeletePolicyImports.of(policyId, dittoHeaders))
                         )
                 )
         );

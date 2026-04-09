@@ -26,6 +26,7 @@ import org.eclipse.ditto.policies.model.signals.events.PolicyEntryModified;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 import org.eclipse.ditto.policies.model.signals.events.PolicyImportCreated;
 import org.eclipse.ditto.policies.model.signals.events.PolicyImportDeleted;
+import org.eclipse.ditto.policies.model.signals.events.PolicyImportsDeleted;
 import org.eclipse.ditto.policies.model.signals.events.PolicyImportModified;
 import org.eclipse.ditto.policies.model.signals.events.PolicyImportEntriesAdditionsModified;
 import org.eclipse.ditto.policies.model.signals.events.PolicyImportEntriesModified;
@@ -43,6 +44,15 @@ import org.eclipse.ditto.policies.model.signals.events.SubjectDeleted;
 import org.eclipse.ditto.policies.model.signals.events.SubjectModified;
 import org.eclipse.ditto.policies.model.signals.events.SubjectsDeletedPartially;
 import org.eclipse.ditto.policies.model.signals.events.SubjectsModified;
+import org.eclipse.ditto.policies.model.signals.events.SubjectAliasCreated;
+import org.eclipse.ditto.policies.model.signals.events.SubjectAliasDeleted;
+import org.eclipse.ditto.policies.model.signals.events.SubjectAliasModified;
+import org.eclipse.ditto.policies.model.signals.events.SubjectAliasSubjectCreated;
+import org.eclipse.ditto.policies.model.signals.events.SubjectAliasSubjectDeleted;
+import org.eclipse.ditto.policies.model.signals.events.SubjectAliasSubjectModified;
+import org.eclipse.ditto.policies.model.signals.events.SubjectAliasSubjectsModified;
+import org.eclipse.ditto.policies.model.signals.events.SubjectAliasesDeleted;
+import org.eclipse.ditto.policies.model.signals.events.SubjectAliasesModified;
 import org.eclipse.ditto.policies.model.signals.events.SubjectsModifiedPartially;
 
 /**
@@ -82,6 +92,16 @@ public final class PolicyEventStrategies extends AbstractEventStrategies<PolicyE
         addStrategy(PolicyImportEntryAdditionCreated.class, new PolicyImportEntryAdditionCreatedStrategy());
         addStrategy(PolicyImportEntryAdditionModified.class, new PolicyImportEntryAdditionModifiedStrategy());
         addStrategy(PolicyImportEntryAdditionDeleted.class, new PolicyImportEntryAdditionDeletedStrategy());
+        addStrategy(PolicyImportsDeleted.class, new PolicyImportsDeletedStrategy());
+        addStrategy(SubjectAliasesModified.class, new SubjectAliasesModifiedStrategy());
+        addStrategy(SubjectAliasesDeleted.class, new SubjectAliasesDeletedStrategy());
+        addStrategy(SubjectAliasCreated.class, new SubjectAliasCreatedStrategy());
+        addStrategy(SubjectAliasModified.class, new SubjectAliasModifiedStrategy());
+        addStrategy(SubjectAliasDeleted.class, new SubjectAliasDeletedStrategy());
+        addStrategy(SubjectAliasSubjectsModified.class, new SubjectAliasSubjectsModifiedStrategy());
+        addStrategy(SubjectAliasSubjectCreated.class, new SubjectAliasSubjectCreatedStrategy());
+        addStrategy(SubjectAliasSubjectModified.class, new SubjectAliasSubjectModifiedStrategy());
+        addStrategy(SubjectAliasSubjectDeleted.class, new SubjectAliasSubjectDeletedStrategy());
     }
 
     /**

@@ -20,8 +20,8 @@ import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntries;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntry;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryAllowedImportAdditions;
-import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryNamespaces;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryImportable;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryNamespaces;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImport;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImportEntries;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImportEntriesAdditions;
@@ -30,6 +30,8 @@ import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImp
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResource;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResources;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubject;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubjectAlias;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubjectAliases;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubjects;
 import org.eclipse.ditto.protocol.JsonifiableMapper;
 
@@ -123,8 +125,25 @@ final class PolicyQueryCommandMappingStrategies extends AbstractPolicyMappingStr
                         entryAdditionLabelFromImportPath(adaptable.getPayload().getPath()),
                         dittoHeadersFrom(adaptable)));
 
+        addSubjectAliasesQueries(mappingStrategies);
+
         return mappingStrategies;
 
+    }
+
+    private static void addSubjectAliasesQueries(
+            final Map<String, JsonifiableMapper<PolicyQueryCommand<?>>> mappingStrategies) {
+
+        mappingStrategies.put(RetrieveSubjectAliases.TYPE,
+                adaptable -> RetrieveSubjectAliases.of(
+                        policyIdFromTopicPath(adaptable.getTopicPath()),
+                        dittoHeadersFrom(adaptable)));
+
+        mappingStrategies.put(RetrieveSubjectAlias.TYPE,
+                adaptable -> RetrieveSubjectAlias.of(
+                        policyIdFromTopicPath(adaptable.getTopicPath()),
+                        subjectAliasLabelFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
     }
 
 }

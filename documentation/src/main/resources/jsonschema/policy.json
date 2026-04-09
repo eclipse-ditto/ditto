@@ -62,6 +62,40 @@
         }
       }
     },
+    "subjectAliases": {
+      "title": "SubjectAliases",
+      "type": "object",
+      "description": "Subject aliases mapping a label to one or more entries additions targets. Subject operations on the alias label via /entries/{label}/subjects are transparently fanned out to all referenced targets. A label must not exist as both a subject alias and a local policy entry.",
+      "additionalProperties": {
+        "title": "SubjectAlias",
+        "type": "object",
+        "description": "A single subject alias defining the targets to fan out subject operations to.",
+        "properties": {
+          "targets": {
+            "title": "Targets",
+            "type": "array",
+            "description": "List of entries additions targets this alias fans out to.",
+            "items": {
+              "title": "SubjectAliasTarget",
+              "type": "object",
+              "description": "A target reference pointing to a specific entry addition in a policy import.",
+              "properties": {
+                "import": {
+                  "type": "string",
+                  "description": "The policy ID of the import this target refers to."
+                },
+                "entry": {
+                  "type": "string",
+                  "description": "The label of the entry within the import's entriesAdditions."
+                }
+              },
+              "required": ["import", "entry"]
+            }
+          }
+        },
+        "required": ["targets"]
+      }
+    },
     "entries": {
       "title": "PolicyEntries",
       "type": "object",

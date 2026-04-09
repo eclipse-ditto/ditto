@@ -64,6 +64,7 @@ public final class PolicyCommandStrategies
         addStrategy(new RetrievePolicyImportsStrategy(policyConfig));
         addStrategy(new RetrievePolicyImportStrategy(policyConfig));
         addStrategy(new DeletePolicyImportStrategy(policyConfig));
+        addStrategy(new DeletePolicyImportsStrategy(policyConfig));
 
         // Policy Entry Allowed Import Additions
         addStrategy(new RetrievePolicyEntryAllowedImportAdditionsStrategy(policyConfig));
@@ -87,6 +88,14 @@ public final class PolicyCommandStrategies
         addStrategy(new RetrievePolicyImportEntryAdditionStrategy(policyConfig));
         addStrategy(new ModifyPolicyImportEntryAdditionStrategy(policyConfig));
         addStrategy(new DeletePolicyImportEntryAdditionStrategy(policyConfig));
+
+        // Subject Aliases
+        addStrategy(new RetrieveSubjectAliasesStrategy(policyConfig));
+        addStrategy(new ModifySubjectAliasesStrategy(policyConfig));
+        addStrategy(new DeleteSubjectAliasesStrategy(policyConfig));
+        addStrategy(new RetrieveSubjectAliasStrategy(policyConfig));
+        addStrategy(new ModifySubjectAliasStrategy(policyConfig));
+        addStrategy(new DeleteSubjectAliasStrategy(policyConfig));
 
         // Subjects
         addStrategy(new ModifySubjectsStrategy(policyConfig));

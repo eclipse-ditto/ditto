@@ -835,6 +835,91 @@ public final class PoliciesModelFactory {
     }
 
     /**
+     * Returns a new {@link SubjectAliasTarget} with the given parameters.
+     *
+     * @param importedPolicyId the ID of the imported policy.
+     * @param entryLabel the label of the entry within the import's entries additions.
+     * @return the new {@code SubjectAliasTarget}.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 3.9.0
+     */
+    public static SubjectAliasTarget newSubjectAliasTarget(final PolicyId importedPolicyId, final Label entryLabel) {
+        return ImmutableSubjectAliasTarget.of(importedPolicyId, entryLabel);
+    }
+
+    /**
+     * Returns a new {@link SubjectAliasTarget} parsed from the given JSON object.
+     *
+     * @param jsonObject the JSON object representation of the target.
+     * @return the new {@code SubjectAliasTarget}.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @since 3.9.0
+     */
+    public static SubjectAliasTarget newSubjectAliasTarget(final JsonObject jsonObject) {
+        return ImmutableSubjectAliasTarget.fromJson(jsonObject);
+    }
+
+    /**
+     * Returns a new {@link SubjectAlias} with the given parameters.
+     *
+     * @param label the alias label.
+     * @param targets the list of targets.
+     * @return the new {@code SubjectAlias}.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 3.9.0
+     */
+    public static SubjectAlias newSubjectAlias(final Label label, final List<SubjectAliasTarget> targets) {
+        return ImmutableSubjectAlias.of(label, targets);
+    }
+
+    /**
+     * Returns a new {@link SubjectAlias} parsed from the given label and JSON object.
+     *
+     * @param label the alias label.
+     * @param jsonObject the JSON object representation of the alias.
+     * @return the new {@code SubjectAlias}.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 3.9.0
+     */
+    public static SubjectAlias newSubjectAlias(final Label label, final JsonObject jsonObject) {
+        return ImmutableSubjectAlias.fromJson(label, jsonObject);
+    }
+
+    /**
+     * Returns a new {@link SubjectAliases} containing the given aliases.
+     *
+     * @param aliases the subject aliases.
+     * @return the new {@code SubjectAliases}.
+     * @throws NullPointerException if {@code aliases} is {@code null}.
+     * @since 3.9.0
+     */
+    public static SubjectAliases newSubjectAliases(final Iterable<SubjectAlias> aliases) {
+        return ImmutableSubjectAliases.of(aliases);
+    }
+
+    /**
+     * Returns a new {@link SubjectAliases} parsed from the given JSON object.
+     *
+     * @param jsonObject the JSON object representation of the subject aliases.
+     * @return the new {@code SubjectAliases}.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @since 3.9.0
+     */
+    public static SubjectAliases newSubjectAliases(final JsonObject jsonObject) {
+        return ImmutableSubjectAliases.fromJson(jsonObject);
+    }
+
+    /**
+     * Returns a new empty {@link SubjectAliases}.
+     *
+     * @return the empty {@code SubjectAliases}.
+     * @since 3.9.0
+     */
+    public static SubjectAliases emptySubjectAliases() {
+        return ImmutableSubjectAliases.empty();
+    }
+
+    /**
      * Returns a new {@link EffectedImports} containing the optionally passed policy entry labels.
      *
      * @param importedLabels the labels of the policy entries which should be imported.

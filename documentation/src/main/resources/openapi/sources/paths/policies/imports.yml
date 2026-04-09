@@ -157,3 +157,61 @@ put:
     description: |-
       JSON representation of the policy imports.
     required: true
+delete:
+  summary: Delete all imports of a specific policy
+  description: |-
+    Removes all imports from the policy identified by the `policyId` path parameter.
+    If any subject alias references an import, the deletion is rejected.
+  tags:
+    - Policies
+  parameters:
+    - $ref: '../../parameters/policyIdPathParam.yml'
+    - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
+    - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+    - $ref: '../../parameters/responseRequiredParam.yml'
+  responses:
+    '204':
+      description: The policy imports were successfully deleted.
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+
+          * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '403':
+      description: |-
+        The request could not be completed. Possible reasons:
+        * the caller has insufficient permissions.
+          You need `WRITE` permission on the `policy:/imports` resource.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. The policy with the given ID was not found in the
+        context of the authenticated user.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '409':
+      description: |-
+        The request could not be completed. A subject alias still references one of the imports.
+        Remove the subject alias first before deleting imports.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'

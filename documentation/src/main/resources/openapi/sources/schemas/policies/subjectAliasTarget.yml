@@ -1,0 +1,31 @@
+# Copyright (c) 2026 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+type: object
+description: |-
+  A target reference within a subject alias, pointing to a specific entry addition in a policy
+  import. Subject operations on the alias label are transparently fanned out to this target's
+  entries additions.
+properties:
+  import:
+    type: string
+    description: |-
+      The policy ID of the import this target refers to. Must match a key in the policy's
+      "imports" object.
+  entry:
+    type: string
+    description: |-
+      The label of the entry within the import's "entriesAdditions" that this target refers to.
+required:
+  - import
+  - entry
+example:
+  import: "energy-corp:power-plant-roles"
+  entry: "operator"
