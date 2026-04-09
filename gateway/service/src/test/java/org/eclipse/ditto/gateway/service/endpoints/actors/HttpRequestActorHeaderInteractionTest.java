@@ -110,12 +110,20 @@ public final class HttpRequestActorHeaderInteractionTest extends AbstractHttpReq
         final HttpStatus successCode = HttpStatus.NO_CONTENT;
         final HttpStatus errorCode = HttpStatus.NOT_FOUND;
         if (timeout.isZero()) {
-            status = isAwaiting ? HttpStatus.BAD_REQUEST : HttpStatus.ACCEPTED;
+            if (isAwaiting) {
+                status = HttpStatus.BAD_REQUEST;
+            } else if (isSuccess) {
+                status = HttpStatus.ACCEPTED;
+            } else {
+                // Fire-and-forget: enforcement/validation errors are now surfaced instead of returning 202
+                status = errorCode;
+            }
         } else {
             if (isSuccess) {
                 status = responseRequired ? successCode : HttpStatus.ACCEPTED;
             } else {
-                status = isAwaiting ? errorCode : HttpStatus.ACCEPTED;
+                // Enforcement/validation errors are always surfaced, even for fire-and-forget commands
+                status = errorCode;
             }
         }
         return status;

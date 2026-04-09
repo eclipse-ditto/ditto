@@ -54,8 +54,10 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.messages.model.Message;
 import org.eclipse.ditto.messages.model.MessageDirection;
 import org.eclipse.ditto.messages.model.MessageHeaders;
+import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessageResponse;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttribute;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttributeResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
@@ -225,18 +227,23 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
 
     @Test
     public void handlesThingModifyCommandLiveNoResponseRequired() throws ExecutionException, InterruptedException {
+        final var thingId = ThingId.generateRandom();
         final var attributeName = "foo";
+        final var attributePointer = JsonPointer.of(attributeName);
 
         final var dittoHeaders = DittoHeaders.newBuilder(createAuthorizedHeaders())
                 .responseRequired(false)
                 .channel("live")
                 .build();
 
-        testThingModifyCommand(ThingId.generateRandom(),
-                JsonPointer.of(attributeName),
+        final var expectedHeaders =
+                DittoHeaders.newBuilder(dittoHeaders).acknowledgementRequests(Collections.emptyList()).build();
+
+        testThingModifyCommand(thingId,
+                attributePointer,
                 dittoHeaders,
-                DittoHeaders.newBuilder(dittoHeaders).acknowledgementRequests(Collections.emptyList()).build(),
-                null,
+                expectedHeaders,
+                ModifyAttributeResponse.modified(thingId, attributePointer, expectedHeaders),
                 StatusCodes.ACCEPTED,
                 null);
     }
@@ -389,16 +396,157 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
     public void handlesMessageCommandNoResponseRequiredAndLiveResponseAckRequest()
             throws ExecutionException, InterruptedException {
 
+        final var thingId = ThingId.generateRandom();
+        final var messageSubject = "sayPing";
+
         final var dittoHeaders = DittoHeaders.newBuilder(createAuthorizedHeaders())
                 .channel("live")
                 .responseRequired(false)
                 .build();
 
-        testMessageCommand(ThingId.generateRandom(),
-                "sayPing",
+        final var expectedHeaders =
+                DittoHeaders.newBuilder(dittoHeaders).acknowledgementRequests(Collections.emptyList()).build();
+
+        final var probeResponse = buildSendThingMessageResponse(thingId, messageSubject, expectedHeaders,
+                "application/json", JsonValue.of("pong"));
+
+        testMessageCommand(thingId,
+                messageSubject,
                 dittoHeaders,
-                DittoHeaders.newBuilder(dittoHeaders).acknowledgementRequests(Collections.emptyList()).build(),
+                expectedHeaders,
+                probeResponse,
+                StatusCodes.ACCEPTED,
                 null,
+                null);
+    }
+
+    @Test
+    public void noResponseRequiredCommandSurfacesEnforcementError() throws ExecutionException, InterruptedException {
+        final var thingId = ThingId.generateRandom();
+        final var attributePointer = JsonPointer.of("foo");
+
+        final var dittoHeaders = DittoHeaders.newBuilder(createAuthorizedHeaders())
+                .responseRequired(false)
+                .channel("live")
+                .build();
+        final var expectedHeaders = DittoHeaders.newBuilder(dittoHeaders)
+                .acknowledgementRequests(Collections.emptyList())
+                .build();
+
+        testThingModifyCommand(thingId,
+                attributePointer,
+                dittoHeaders,
+                expectedHeaders,
+                ThingNotAccessibleException.newBuilder(thingId).dittoHeaders(expectedHeaders).build(),
+                StatusCodes.NOT_FOUND,
+                null);
+    }
+
+    @Test
+    public void fireAndForgetCommandSurfacesEnforcementError() throws ExecutionException, InterruptedException {
+        final var thingId = ThingId.generateRandom();
+        final var attributePointer = JsonPointer.of("foo");
+
+        final var dittoHeaders = DittoHeaders.newBuilder(createAuthorizedHeaders())
+                .timeout(Duration.ZERO)
+                .responseRequired(false)
+                .build();
+        final var expectedHeaders = DittoHeaders.newBuilder(dittoHeaders)
+                .acknowledgementRequests(Collections.emptyList())
+                .build();
+
+        testThingModifyCommand(thingId,
+                attributePointer,
+                dittoHeaders,
+                expectedHeaders,
+                ThingNotAccessibleException.newBuilder(thingId).dittoHeaders(expectedHeaders).build(),
+                StatusCodes.NOT_FOUND,
+                null);
+    }
+
+    @Test
+    public void fireAndForgetCommandReturnsAcceptedOnSuccess() throws ExecutionException, InterruptedException {
+        final var thingId = ThingId.generateRandom();
+        final var attributePointer = JsonPointer.of("foo");
+
+        final var dittoHeaders = DittoHeaders.newBuilder(createAuthorizedHeaders())
+                .timeout(Duration.ZERO)
+                .responseRequired(false)
+                .build();
+        final var expectedHeaders = DittoHeaders.newBuilder(dittoHeaders)
+                .acknowledgementRequests(Collections.emptyList())
+                .build();
+
+        testThingModifyCommand(thingId,
+                attributePointer,
+                dittoHeaders,
+                expectedHeaders,
+                ModifyAttributeResponse.modified(thingId, attributePointer, expectedHeaders),
+                StatusCodes.ACCEPTED,
+                null);
+    }
+
+    @Test
+    public void fireAndForgetMessageCommandSurfacesEnforcementError()
+            throws ExecutionException, InterruptedException {
+
+        final var thingId = ThingId.generateRandom();
+        final var messageSubject = "doSomething";
+
+        final var dittoHeaders = DittoHeaders.newBuilder(createAuthorizedHeaders())
+                .timeout(Duration.ZERO)
+                .responseRequired(false)
+                .channel("live")
+                .build();
+
+        final var proxyActorProbe = ACTOR_SYSTEM_RESOURCE.newTestProbe();
+        final var messageHeaders = MessageHeaders.newBuilder(MessageDirection.TO, thingId, messageSubject)
+                .contentType("application/json")
+                .build();
+        final Message<?> message = Message.newBuilder(messageHeaders)
+                .payload(JsonValue.of("ping"))
+                .build();
+        final var sendThingMessage = SendThingMessage.of(thingId, message, dittoHeaders);
+
+        final var httpRequest = HttpRequest.PUT("/api/2/things/" + thingId + "/inbox/messages/" + messageSubject);
+        final var responseFuture = new CompletableFuture<HttpResponse>();
+
+        final var underTest = createHttpRequestActor(proxyActorProbe.ref(), httpRequest, responseFuture);
+        underTest.tell(sendThingMessage, ActorRef.noSender());
+
+        proxyActorProbe.expectMsgClass(SendThingMessage.class);
+        proxyActorProbe.reply(ThingNotAccessibleException.newBuilder(thingId)
+                .dittoHeaders(dittoHeaders)
+                .build());
+
+        final var httpResponse = responseFuture.get();
+        assertThat(httpResponse.status()).isEqualTo(StatusCodes.NOT_FOUND);
+    }
+
+    @Test
+    public void fireAndForgetMessageCommandReturnsAcceptedOnSuccess()
+            throws ExecutionException, InterruptedException {
+
+        final var thingId = ThingId.generateRandom();
+        final var messageSubject = "doSomething";
+
+        final var dittoHeaders = DittoHeaders.newBuilder(createAuthorizedHeaders())
+                .timeout(Duration.ZERO)
+                .responseRequired(false)
+                .channel("live")
+                .build();
+
+        final var expectedHeaders =
+                DittoHeaders.newBuilder(dittoHeaders).acknowledgementRequests(Collections.emptyList()).build();
+
+        final var probeResponse = buildSendThingMessageResponse(thingId, messageSubject, expectedHeaders,
+                "application/json", JsonValue.of("pong"));
+
+        testMessageCommand(thingId,
+                messageSubject,
+                dittoHeaders,
+                expectedHeaders,
+                probeResponse,
                 StatusCodes.ACCEPTED,
                 null,
                 null);
