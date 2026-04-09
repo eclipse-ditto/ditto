@@ -153,6 +153,12 @@ public final class ConnectionSupervisorActor
                     log.debug("Successfully registered for connectivity config changes.");
                     isRegisteredForConnectivityConfigChanges = true;
                 })
+                .match(ReceiveTimeout.class, receiveTimeout -> {
+                    // ReceiveTimeout may still be in the stash from the initial 2s timeout set in preStart().
+                    // Cancel and ignore it — it served its purpose during startup.
+                    log.debug("Received lingering ReceiveTimeout in active state, cancelling.");
+                    getContext().cancelReceiveTimeout();
+                })
                 .build()
                 .orElse(connectivityConfigModifiedBehavior(getSelf(), () -> persistenceActorChild))
                 .orElse(super.activeBehaviour(matchProcessNextTwinMessageBehavior, matchAnyBehavior));
