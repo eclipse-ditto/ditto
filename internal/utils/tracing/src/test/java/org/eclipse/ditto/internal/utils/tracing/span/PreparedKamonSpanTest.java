@@ -101,6 +101,15 @@ public final class PreparedKamonSpanTest {
     }
 
     @Test
+    public void blankSpanTagsAreIgnored() {
+        underTest.correlationId("");
+        underTest.connectionId("  ");
+        underTest.entityId("");
+
+        assertThat(underTest.getTagSet()).isEmpty();
+    }
+
+    @Test
     public void tagsWithNullMapThrowsNullPointerException() {
         assertThatNullPointerException()
                 .isThrownBy(() -> underTest.tags(null))
