@@ -400,6 +400,40 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
     }
 
     @Test
+    public void filterJsonByPartialAccessPathsReturnsFullPayloadWhenSubscriberHasBothPartialAndFullSubjects() throws Exception {
+        final Thing thing = Thing.newBuilder()
+                .setId(ThingId.of("test:thing"))
+                .setAttributes(Attributes.newBuilder().set("foo", "bar").build())
+                .setFeatures(Features.newBuilder()
+                        .set(Feature.newBuilder()
+                                .properties(FeatureProperties.newBuilder()
+                                        .set("baz", 42)
+                                        .build())
+                                .withId("fluxCompensator")
+                                .build())
+                        .build())
+                .build();
+        final AuthorizationSubject fullReader = AuthorizationSubject.newInstance("test:full-reader");
+        final AuthorizationSubject partialReader = AuthorizationSubject.newInstance("test:partial-reader");
+
+        final DittoHeaders headers = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey(),
+                        "{\"subjects\":[\"test:partial-reader\"],\"paths\":{\"attributes\":[0],\"attributes/foo\":[0]}}")
+                .readGrantedSubjects(List.of(fullReader, partialReader))
+                .build();
+
+        final ThingModifiedEvent<?> event = ThingModified.of(thing, 1L, null, headers, null);
+
+        // Subscriber has BOTH partial and full-access subjects — unrestricted must take precedence
+        final AuthorizationContext subscriberAuthContext = AuthorizationContext.newInstance(
+                DittoAuthorizationContextType.UNSPECIFIED, partialReader, fullReader);
+
+        final JsonObject filtered = filterJsonByPartialAccessPaths(thing, event, subscriberAuthContext);
+
+        assertThat(filtered).isEqualTo(thing.toJson());
+    }
+
+    @Test
     public void filterJsonByPartialAccessPathsReturnsEmptyForNoAccessReader() throws Exception {
         final Thing thing = Thing.newBuilder().setId(ThingId.of("test:thing")).build();
         final AuthorizationSubject partialReader = AuthorizationSubject.newInstance("test:partial-reader");

@@ -160,27 +160,28 @@ public final class PartialAccessPathResolver {
         readGrantedSubjects.forEach(subject -> readGrantedSubjectIds.add(subject.getId()));
 
         final Set<String> subscriberSubjectIds = new LinkedHashSet<>();
-        final Set<String> allSubscriberSubjectIds = new LinkedHashSet<>();
-        subscriberAuthContext.getAuthorizationSubjects().forEach(subject -> {
+        boolean hasUnrestrictedAccess = false;
+        for (final AuthorizationSubject subject : subscriberAuthContext.getAuthorizationSubjects()) {
             final String subjectId = subject.getId();
-            allSubscriberSubjectIds.add(subjectId);
-            if (partialAccessPaths.containsKey(subjectId) && readGrantedSubjectIds.contains(subjectId)) {
-                subscriberSubjectIds.add(subjectId);
+            if (readGrantedSubjectIds.contains(subjectId)) {
+                if (partialAccessPaths.containsKey(subjectId)) {
+                    subscriberSubjectIds.add(subjectId);
+                } else {
+                    // Subject has read grant but is NOT in partial access paths → unrestricted
+                    hasUnrestrictedAccess = true;
+                }
             }
-        });
+        }
+
+        // If ANY subscriber subject has unrestricted access, return full payload immediately.
+        // This must be checked before partial access filtering to avoid incorrectly restricting
+        // subscribers that have both partial-access and unrestricted subjects.
+        if (hasUnrestrictedAccess) {
+            return AccessiblePathsResult.unrestricted();
+        }
 
         if (subscriberSubjectIds.isEmpty()) {
-            final boolean hasUnrestrictedAccess = allSubscriberSubjectIds.stream()
-                    .anyMatch(subjectId ->
-                            readGrantedSubjectIds.contains(subjectId) &&
-                                    !partialAccessPaths.containsKey(subjectId)
-                    );
-
-            if (hasUnrestrictedAccess) {
-                return AccessiblePathsResult.unrestricted();
-            } else {
-                return AccessiblePathsResult.noAccess();
-            }
+            return AccessiblePathsResult.noAccess();
         }
 
         final Set<JsonPointer> accessiblePaths = new HashSet<>();
