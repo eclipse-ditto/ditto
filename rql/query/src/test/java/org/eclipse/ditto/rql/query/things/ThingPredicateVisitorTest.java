@@ -618,6 +618,189 @@ public final class ThingPredicateVisitorTest {
                 .isTrue();
     }
 
+    // --- empty() tests ---
+
+    @Test
+    public void testEmptyAttributeAbsent() {
+        // attributes/missing does not exist on MATCHING_THING -> empty
+        final Predicate<Thing> thingPredicate = createPredicate("empty(attributes/missing)");
+        assertThat(thingPredicate.test(MATCHING_THING))
+                .as("Filtering 'empty(attributes/missing)' should be true (absent)")
+                .isTrue();
+    }
+
+    @Test
+    public void testEmptyAttributePresent() {
+        // attributes/aString exists and is "ccc_string" -> NOT empty
+        final Predicate<Thing> thingPredicate = createPredicate("empty(attributes/aString)");
+        assertThat(thingPredicate.test(MATCHING_THING))
+                .as("Filtering 'empty(attributes/aString)' should be false (has content)")
+                .isFalse();
+    }
+
+    @Test
+    public void testNotEmptyAttribute() {
+        final Predicate<Thing> thingPredicate = createPredicate("not(empty(attributes/aString))");
+        assertThat(thingPredicate.test(MATCHING_THING))
+                .as("Filtering 'not(empty(attributes/aString))' should be true")
+                .isTrue();
+    }
+
+    @Test
+    public void testEmptyAttributeWithEmptyString() {
+        final Thing thingWithEmptyString = Thing.newBuilder()
+                .setId(ThingId.of("org.eclipse.ditto", "empty-str"))
+                .setAttribute(JsonPointer.of("tag"), JsonValue.of(""))
+                .build();
+
+        final Predicate<Thing> thingPredicate = createPredicate("empty(attributes/tag)");
+        assertThat(thingPredicate.test(thingWithEmptyString))
+                .as("Filtering 'empty(attributes/tag)' should be true for empty string")
+                .isTrue();
+    }
+
+    @Test
+    public void testEmptyAttributeWithEmptyArray() {
+        final Thing thingWithEmptyArray = Thing.newBuilder()
+                .setId(ThingId.of("org.eclipse.ditto", "empty-arr"))
+                .setAttribute(JsonPointer.of("tags"), JsonArray.empty())
+                .build();
+
+        final Predicate<Thing> thingPredicate = createPredicate("empty(attributes/tags)");
+        assertThat(thingPredicate.test(thingWithEmptyArray))
+                .as("Filtering 'empty(attributes/tags)' should be true for empty array")
+                .isTrue();
+    }
+
+    @Test
+    public void testEmptyAttributeWithEmptyObject() {
+        final Thing thingWithEmptyObject = Thing.newBuilder()
+                .setId(ThingId.of("org.eclipse.ditto", "empty-obj"))
+                .setAttribute(JsonPointer.of("info"), JsonObject.empty())
+                .build();
+
+        final Predicate<Thing> thingPredicate = createPredicate("empty(attributes/info)");
+        assertThat(thingPredicate.test(thingWithEmptyObject))
+                .as("Filtering 'empty(attributes/info)' should be true for empty object")
+                .isTrue();
+    }
+
+    @Test
+    public void testEmptyAttributeWithNull() {
+        final Thing thingWithNull = Thing.newBuilder()
+                .setId(ThingId.of("org.eclipse.ditto", "null-val"))
+                .setAttribute(JsonPointer.of("tag"), JsonValue.nullLiteral())
+                .build();
+
+        final Predicate<Thing> thingPredicate = createPredicate("empty(attributes/tag)");
+        assertThat(thingPredicate.test(thingWithNull))
+                .as("Filtering 'empty(attributes/tag)' should be true for null")
+                .isTrue();
+    }
+
+    @Test
+    public void testEmptyAttributeWithNumber() {
+        // Number 0 is NOT empty
+        final Thing thingWithZero = Thing.newBuilder()
+                .setId(ThingId.of("org.eclipse.ditto", "zero-val"))
+                .setAttribute(JsonPointer.of("count"), JsonValue.of(0))
+                .build();
+
+        final Predicate<Thing> thingPredicate = createPredicate("empty(attributes/count)");
+        assertThat(thingPredicate.test(thingWithZero))
+                .as("Filtering 'empty(attributes/count)' should be false (0 is not empty)")
+                .isFalse();
+    }
+
+    @Test
+    public void testEmptyAttributeWithBoolean() {
+        // Boolean false is NOT empty
+        final Thing thingWithFalse = Thing.newBuilder()
+                .setId(ThingId.of("org.eclipse.ditto", "false-val"))
+                .setAttribute(JsonPointer.of("flag"), JsonValue.of(false))
+                .build();
+
+        final Predicate<Thing> thingPredicate = createPredicate("empty(attributes/flag)");
+        assertThat(thingPredicate.test(thingWithFalse))
+                .as("Filtering 'empty(attributes/flag)' should be false (false is not empty)")
+                .isFalse();
+    }
+
+    @Test
+    public void testEmptyFeatureAbsent() {
+        final Predicate<Thing> thingPredicate = createPredicate("empty(features/bar)");
+        assertThat(thingPredicate.test(MATCHING_THING))
+                .as("Filtering 'empty(features/bar)' should be true (absent)")
+                .isTrue();
+    }
+
+    @Test
+    public void testEmptyFeaturePresent() {
+        final Predicate<Thing> thingPredicate = createPredicate("empty(features/foo)");
+        assertThat(thingPredicate.test(MATCHING_THING))
+                .as("Filtering 'empty(features/foo)' should be false (has properties)")
+                .isFalse();
+    }
+
+    @Test
+    public void testEmptyFeaturePropertyAbsent() {
+        final Predicate<Thing> thingPredicate = createPredicate("empty(features/foo/properties/missing)");
+        assertThat(thingPredicate.test(MATCHING_THING))
+                .as("Filtering 'empty(features/foo/properties/missing)' should be true (absent)")
+                .isTrue();
+    }
+
+    @Test
+    public void testEmptyFeaturePropertyPresent() {
+        final Predicate<Thing> thingPredicate = createPredicate("empty(features/foo/properties/aString)");
+        assertThat(thingPredicate.test(MATCHING_THING))
+                .as("Filtering 'empty(features/foo/properties/aString)' should be false (has content)")
+                .isFalse();
+    }
+
+    @Test
+    public void testEmptyMetadataPresent() {
+        final Predicate<Thing> thingPredicate = createPredicate("empty(_metadata/attributes/sensorType)");
+        assertThat(thingPredicate.test(MATCHING_THING))
+                .as("Filtering 'empty(_metadata/attributes/sensorType)' should be false (has content)")
+                .isFalse();
+    }
+
+    @Test
+    public void testEmptyMetadataAbsent() {
+        final Predicate<Thing> thingPredicate = createPredicate("empty(_metadata/missing)");
+        assertThat(thingPredicate.test(MATCHING_THING))
+                .as("Filtering 'empty(_metadata/missing)' should be true (absent)")
+                .isTrue();
+    }
+
+    @Test
+    public void testEmptyThingIdIsNeverEmpty() {
+        final Predicate<Thing> thingPredicate = createPredicate("not(empty(thingId))");
+        assertThat(thingPredicate.test(MATCHING_THING))
+                .as("Filtering 'not(empty(thingId))' should be true")
+                .isTrue();
+    }
+
+    @Test
+    public void testEmptyCombinedWithExists() {
+        // exists AND empty = present but vacuous (only possible with null/[]/{}/"")
+        final String filter = "and(exists(attributes/aString),not(empty(attributes/aString)))";
+        final Predicate<Thing> thingPredicate = createPredicate(filter);
+        assertThat(thingPredicate.test(MATCHING_THING))
+                .as("Filtering '" + filter + "' should be true")
+                .isTrue();
+    }
+
+    @Test
+    public void testEmptyCombinedWithOr() {
+        final String filter = "or(empty(attributes/missing),eq(attributes/anInteger,999))";
+        final Predicate<Thing> thingPredicate = createPredicate(filter);
+        assertThat(thingPredicate.test(MATCHING_THING))
+                .as("Filtering '" + filter + "' should be true (first clause matches)")
+                .isTrue();
+    }
+
     @Test
     public void testKnownPlaceholderExists() {
         final Predicate<Thing> thingPredicate = createPredicateWithPlaceholderResolver("exists(test:lower)");

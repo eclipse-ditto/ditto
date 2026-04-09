@@ -29,7 +29,7 @@ Eclipse Ditto.
 
 {% include note.html content="Please note that only the \"normalized\" RQL form, e.g. 
     `eq(foo,3)`, is supported by Eclipse Ditto and that Ditto added more non-specified operators, e.g. 
-    `like` and `exists`." %}
+    `like`, `exists` and `empty`." %}
 
 
 ## RQL filter
@@ -270,6 +270,41 @@ exists(features/feature_1)
 **Example - filter lamps which are located in the "living-room"**
 ```
 and(exists(features/lamp),eq(attributes/location,"living-room"))
+```
+
+#### empty
+
+Filter property values which are absent or void of content.
+
+```
+empty(<property>)
+```
+
+{% include note.html content="The `empty` operator is not defined in the linked RQL grammar, it is a Ditto
+    specific operator." %}
+
+A field is considered "empty" when:
+* The field does not exist
+* The field is `null`
+* The field is an empty array `[]`
+* The field is an empty object `{}`
+* The field is an empty string `""`
+
+Numeric values (including `0`) and boolean values (including `false`) are **not** considered empty.
+
+**Example - filter things where tags are absent or empty**
+```
+empty(attributes/tags)
+```
+
+**Example - filter things where tags exist and have content**
+```
+not(empty(attributes/tags))
+```
+
+**Example - filter things where tags are either empty or contain "default"**
+```
+or(empty(attributes/tags),eq(attributes/tags,"default"))
 ```
 
 

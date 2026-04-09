@@ -76,6 +76,11 @@ final class ImmutableSearchProperty implements SearchProperty {
     }
 
     @Override
+    public PropertySearchFilter empty() {
+        return ImmutablePropertyFilter.of(SearchFilter.Type.EMPTY, propertyPath, Collections.emptySet());
+    }
+
+    @Override
     public PropertySearchFilter eq(final boolean value) {
         return ImmutablePropertyFilter.of(SearchFilter.Type.EQ, propertyPath, JsonFactory.newValue(value));
     }

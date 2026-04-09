@@ -18,6 +18,7 @@ import java.util.Set;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.rql.model.predicates.ast.EmptyNode;
 import org.eclipse.ditto.rql.model.predicates.ast.ExistsNode;
 import org.eclipse.ditto.rql.model.predicates.ast.LogicalNode;
 import org.eclipse.ditto.rql.model.predicates.ast.MultiComparisonNode;
@@ -75,6 +76,11 @@ public final class FieldNamesPredicateVisitor implements PredicateVisitor {
 
     @Override
     public void visit(final ExistsNode node) {
+        fieldNames.add(node.getProperty());
+    }
+
+    @Override
+    public void visit(final EmptyNode node) {
         fieldNames.add(node.getProperty());
     }
 

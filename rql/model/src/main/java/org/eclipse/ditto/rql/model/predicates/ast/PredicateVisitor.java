@@ -54,6 +54,16 @@ public interface PredicateVisitor {
     void visit(ExistsNode node);
 
     /**
+     * Is called by a {@link EmptyNode} in its {@link EmptyNode#accept(PredicateVisitor)} method.
+     *
+     * @param node an instance of the {@link EmptyNode}
+     * @since 3.9.0
+     */
+    default void visit(final EmptyNode node) {
+        throw new UnsupportedOperationException("visit(EmptyNode) is not supported by " + getClass().getName());
+    }
+
+    /**
      * Is called by a {@link Node} in its {@link Node#accept(PredicateVisitor)} method.
      *
      * @param node an instance of the {@link Node}

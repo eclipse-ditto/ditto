@@ -17,6 +17,7 @@ import static org.eclipse.ditto.base.model.assertions.DittoBaseAssertions.assert
 import org.eclipse.ditto.rql.model.ParsedPlaceholder;
 import org.eclipse.ditto.rql.model.ParserException;
 import org.eclipse.ditto.rql.model.predicates.PredicateParser;
+import org.eclipse.ditto.rql.model.predicates.ast.EmptyNode;
 import org.eclipse.ditto.rql.model.predicates.ast.ExistsNode;
 import org.eclipse.ditto.rql.model.predicates.ast.LogicalNode;
 import org.eclipse.ditto.rql.model.predicates.ast.MultiComparisonNode;
@@ -592,6 +593,43 @@ public class RqlPredicateParserTest {
     @Test(expected = ParserException.class)
     public void testFieldExistsInvalidWithMoreParams() throws ParserException {
         parser.parse("exists(features/scanner,\"test\")");
+    }
+
+    @Test
+    public void testFieldEmpty() throws ParserException {
+        final RootNode root = parser.parse("empty(attributes/tags)");
+
+        assertThat(root).isNotNull();
+        assertThat(root.getChildren().size()).isEqualTo(1);
+
+        final EmptyNode emptyNode = (EmptyNode) root.getChildren().get(0);
+        assertThat(emptyNode.getProperty().getClass()).isEqualTo(String.class);
+        assertThat(emptyNode.getProperty()).isEqualTo("attributes/tags");
+    }
+
+    @Test
+    public void testFieldEmptyNegated() throws ParserException {
+        final RootNode root = parser.parse("not(empty(attributes/tags))");
+
+        assertThat(root).isNotNull();
+        assertThat(root.getChildren().size()).isEqualTo(1);
+
+        final LogicalNode logicalNode = (LogicalNode) root.getChildren().get(0);
+        assertThat(logicalNode.getType()).isEqualTo(LogicalNode.Type.NOT);
+        assertThat(logicalNode.getChildren().size()).isEqualTo(1);
+
+        final EmptyNode emptyNode = (EmptyNode) logicalNode.getChildren().get(0);
+        assertThat(emptyNode.getProperty()).isEqualTo("attributes/tags");
+    }
+
+    @Test(expected = ParserException.class)
+    public void testFieldEmptyInvalidWithQuotes() throws ParserException {
+        parser.parse("empty(\"attributes/tags\")");
+    }
+
+    @Test(expected = ParserException.class)
+    public void testFieldEmptyInvalidWithMoreParams() throws ParserException {
+        parser.parse("empty(attributes/tags,\"test\")");
     }
 
     @Test

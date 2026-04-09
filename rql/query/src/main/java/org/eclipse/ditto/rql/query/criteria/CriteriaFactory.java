@@ -97,6 +97,17 @@ public interface CriteriaFactory {
     Criteria existsCriteria(ExistsFieldExpression fieldExpression);
 
     /**
+     * Creates a criteria to filter based on the emptiness of the given field.
+     * A field is considered "empty" when it is absent, {@code null}, an empty array, an empty object or an empty
+     * string.
+     *
+     * @param fieldExpression the field to check for emptiness.
+     * @return the criteria.
+     * @since 3.9.0
+     */
+    Criteria emptyCriteria(ExistsFieldExpression fieldExpression);
+
+    /**
      * Creates a predicate which checks for equality.
      *
      * @param value the value, may be {@code null}.

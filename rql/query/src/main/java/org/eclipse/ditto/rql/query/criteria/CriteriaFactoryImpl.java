@@ -72,6 +72,11 @@ final class CriteriaFactoryImpl implements CriteriaFactory {
     }
 
     @Override
+    public Criteria emptyCriteria(final ExistsFieldExpression fieldExpression) {
+        return new EmptyCriteriaImpl(requireNonNull(fieldExpression));
+    }
+
+    @Override
     public Predicate eq(@Nullable final Object value) {
         return new EqPredicateImpl(value);
     }

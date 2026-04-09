@@ -18,6 +18,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.assertj.core.api.Assertions;
+import org.eclipse.ditto.rql.model.predicates.ast.EmptyNode;
+import org.eclipse.ditto.rql.model.predicates.ast.ExistsNode;
 import org.eclipse.ditto.rql.model.predicates.ast.LogicalNode;
 import org.eclipse.ditto.rql.model.predicates.ast.RootNode;
 import org.eclipse.ditto.rql.model.predicates.ast.SingleComparisonNode;
@@ -128,6 +130,24 @@ public final class ParameterPredicateVisitorTest {
         visitorUnderTest.visit(logicalNode);
 
         Assertions.assertThat(visitorUnderTest.getCriteria()).containsExactly(cf.nor(Collections.emptyList()));
+    }
+
+    @Test
+    public void existsNode() {
+        final ExistsNode existsNode = new ExistsNode(KNOWN_FIELD_NAME);
+        visitorUnderTest.visit(existsNode);
+
+        final Criteria expectedCrit = cf.existsCriteria(ef.existsBy(KNOWN_FIELD_NAME));
+        Assertions.assertThat(visitorUnderTest.getCriteria()).containsExactly(expectedCrit);
+    }
+
+    @Test
+    public void emptyNode() {
+        final EmptyNode emptyNode = new EmptyNode(KNOWN_FIELD_NAME);
+        visitorUnderTest.visit(emptyNode);
+
+        final Criteria expectedCrit = cf.emptyCriteria(ef.existsBy(KNOWN_FIELD_NAME));
+        Assertions.assertThat(visitorUnderTest.getCriteria()).containsExactly(expectedCrit);
     }
 
     @Test
