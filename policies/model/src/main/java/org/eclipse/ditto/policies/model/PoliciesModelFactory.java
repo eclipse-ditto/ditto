@@ -835,88 +835,88 @@ public final class PoliciesModelFactory {
     }
 
     /**
-     * Returns a new {@link SubjectAliasTarget} with the given parameters.
+     * Returns a new {@link ImportsAliasTarget} with the given parameters.
      *
      * @param importedPolicyId the ID of the imported policy.
      * @param entryLabel the label of the entry within the import's entries additions.
-     * @return the new {@code SubjectAliasTarget}.
+     * @return the new {@code ImportsAliasTarget}.
      * @throws NullPointerException if any argument is {@code null}.
      * @since 3.9.0
      */
-    public static SubjectAliasTarget newSubjectAliasTarget(final PolicyId importedPolicyId, final Label entryLabel) {
-        return ImmutableSubjectAliasTarget.of(importedPolicyId, entryLabel);
+    public static ImportsAliasTarget newImportsAliasTarget(final PolicyId importedPolicyId, final Label entryLabel) {
+        return ImmutableImportsAliasTarget.of(importedPolicyId, entryLabel);
     }
 
     /**
-     * Returns a new {@link SubjectAliasTarget} parsed from the given JSON object.
+     * Returns a new {@link ImportsAliasTarget} parsed from the given JSON object.
      *
      * @param jsonObject the JSON object representation of the target.
-     * @return the new {@code SubjectAliasTarget}.
+     * @return the new {@code ImportsAliasTarget}.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @since 3.9.0
      */
-    public static SubjectAliasTarget newSubjectAliasTarget(final JsonObject jsonObject) {
-        return ImmutableSubjectAliasTarget.fromJson(jsonObject);
+    public static ImportsAliasTarget newImportsAliasTarget(final JsonObject jsonObject) {
+        return ImmutableImportsAliasTarget.fromJson(jsonObject);
     }
 
     /**
-     * Returns a new {@link SubjectAlias} with the given parameters.
+     * Returns a new {@link ImportsAlias} with the given parameters.
      *
      * @param label the alias label.
      * @param targets the list of targets.
-     * @return the new {@code SubjectAlias}.
+     * @return the new {@code ImportsAlias}.
      * @throws NullPointerException if any argument is {@code null}.
      * @since 3.9.0
      */
-    public static SubjectAlias newSubjectAlias(final Label label, final List<SubjectAliasTarget> targets) {
-        return ImmutableSubjectAlias.of(label, targets);
+    public static ImportsAlias newImportsAlias(final Label label, final List<ImportsAliasTarget> targets) {
+        return ImmutableImportsAlias.of(label, targets);
     }
 
     /**
-     * Returns a new {@link SubjectAlias} parsed from the given label and JSON object.
+     * Returns a new {@link ImportsAlias} parsed from the given label and JSON object.
      *
      * @param label the alias label.
      * @param jsonObject the JSON object representation of the alias.
-     * @return the new {@code SubjectAlias}.
+     * @return the new {@code ImportsAlias}.
      * @throws NullPointerException if any argument is {@code null}.
      * @since 3.9.0
      */
-    public static SubjectAlias newSubjectAlias(final Label label, final JsonObject jsonObject) {
-        return ImmutableSubjectAlias.fromJson(label, jsonObject);
+    public static ImportsAlias newImportsAlias(final Label label, final JsonObject jsonObject) {
+        return ImmutableImportsAlias.fromJson(label, jsonObject);
     }
 
     /**
-     * Returns a new {@link SubjectAliases} containing the given aliases.
+     * Returns a new {@link ImportsAliases} containing the given aliases.
      *
-     * @param aliases the subject aliases.
-     * @return the new {@code SubjectAliases}.
+     * @param aliases the imports aliases.
+     * @return the new {@code ImportsAliases}.
      * @throws NullPointerException if {@code aliases} is {@code null}.
      * @since 3.9.0
      */
-    public static SubjectAliases newSubjectAliases(final Iterable<SubjectAlias> aliases) {
-        return ImmutableSubjectAliases.of(aliases);
+    public static ImportsAliases newImportsAliases(final Iterable<ImportsAlias> aliases) {
+        return ImmutableImportsAliases.of(aliases);
     }
 
     /**
-     * Returns a new {@link SubjectAliases} parsed from the given JSON object.
+     * Returns a new {@link ImportsAliases} parsed from the given JSON object.
      *
-     * @param jsonObject the JSON object representation of the subject aliases.
-     * @return the new {@code SubjectAliases}.
+     * @param jsonObject the JSON object representation of the imports aliases.
+     * @return the new {@code ImportsAliases}.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @since 3.9.0
      */
-    public static SubjectAliases newSubjectAliases(final JsonObject jsonObject) {
-        return ImmutableSubjectAliases.fromJson(jsonObject);
+    public static ImportsAliases newImportsAliases(final JsonObject jsonObject) {
+        return ImmutableImportsAliases.fromJson(jsonObject);
     }
 
     /**
-     * Returns a new empty {@link SubjectAliases}.
+     * Returns a new empty {@link ImportsAliases}.
      *
-     * @return the empty {@code SubjectAliases}.
+     * @return the empty {@code ImportsAliases}.
      * @since 3.9.0
      */
-    public static SubjectAliases emptySubjectAliases() {
-        return ImmutableSubjectAliases.empty();
+    public static ImportsAliases emptyImportsAliases() {
+        return ImmutableImportsAliases.empty();
     }
 
     /**

@@ -26,7 +26,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.EntryAddition;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
-import org.eclipse.ditto.policies.model.SubjectAlias;
+import org.eclipse.ditto.policies.model.ImportsAlias;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntryResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImportEntryAdditionResponse;
@@ -34,8 +34,8 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImpo
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteResourceResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImportsResponse;
-import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubjectAliasResponse;
-import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubjectAliasesResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteImportsAliasResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteImportsAliasesResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubjectResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntriesResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryAllowedImportAdditionsResponse;
@@ -50,8 +50,8 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImpo
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResourceResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResourcesResponse;
-import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjectAliasResponse;
-import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjectAliasesResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyImportsAliasResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyImportsAliasesResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjectResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjectsResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommandResponse;
@@ -95,7 +95,7 @@ final class PolicyModifyCommandResponseMappingStrategies implements MappingStrat
 
         addPolicyImportEntriesAdditionsResponses(streamBuilder);
 
-        addSubjectAliasesResponses(streamBuilder);
+        addImportsAliasesResponses(streamBuilder);
 
         final Stream<AdaptableToSignalMapper<? extends PolicyModifyCommandResponse<?>>> mappers = streamBuilder.build();
         return mappers.collect(Collectors.toMap(AdaptableToSignalMapper::getSignalType, Function.identity()));
@@ -304,43 +304,43 @@ final class PolicyModifyCommandResponseMappingStrategies implements MappingStrat
                         mappingContext.getDittoHeaders())));
     }
 
-    private static void addSubjectAliasesResponses(
+    private static void addImportsAliasesResponses(
             final Consumer<AdaptableToSignalMapper<? extends PolicyModifyCommandResponse<?>>> streamBuilder) {
 
-        streamBuilder.accept(AdaptableToSignalMapper.of(ModifySubjectAliasesResponse.TYPE,
-                mappingContext -> ModifySubjectAliasesResponse.newInstance(
+        streamBuilder.accept(AdaptableToSignalMapper.of(ModifyImportsAliasesResponse.TYPE,
+                mappingContext -> ModifyImportsAliasesResponse.newInstance(
                         mappingContext.getPolicyIdFromTopicPath(),
                         mappingContext.getHttpStatusOrThrow(),
                         mappingContext.getDittoHeaders())));
 
-        streamBuilder.accept(AdaptableToSignalMapper.of(ModifySubjectAliasResponse.TYPE,
+        streamBuilder.accept(AdaptableToSignalMapper.of(ModifyImportsAliasResponse.TYPE,
                 mappingContext -> {
                     final Label label = Label.of(mappingContext.getAdaptable().getPayload().getPath().get(1)
                             .map(JsonKey::toString).orElse(""));
-                    final SubjectAlias subjectAlias =
+                    final ImportsAlias importsAlias =
                             mappingContext.getAdaptable().getPayload().getValue()
                                     .filter(JsonValue::isObject)
                                     .map(JsonValue::asObject)
-                                    .map(obj -> PoliciesModelFactory.newSubjectAlias(label, obj))
+                                    .map(obj -> PoliciesModelFactory.newImportsAlias(label, obj))
                                     .orElse(null);
-                    return ModifySubjectAliasResponse.newInstance(
+                    return ModifyImportsAliasResponse.newInstance(
                             mappingContext.getPolicyIdFromTopicPath(),
                             label,
-                            subjectAlias,
+                            importsAlias,
                             mappingContext.getHttpStatusOrThrow(),
                             mappingContext.getDittoHeaders());
                 }));
 
-        streamBuilder.accept(AdaptableToSignalMapper.of(DeleteSubjectAliasResponse.TYPE,
-                mappingContext -> DeleteSubjectAliasResponse.newInstance(
+        streamBuilder.accept(AdaptableToSignalMapper.of(DeleteImportsAliasResponse.TYPE,
+                mappingContext -> DeleteImportsAliasResponse.newInstance(
                         mappingContext.getPolicyIdFromTopicPath(),
                         Label.of(mappingContext.getAdaptable().getPayload().getPath().get(1)
                                 .map(JsonKey::toString).orElse("")),
                         mappingContext.getHttpStatusOrThrow(),
                         mappingContext.getDittoHeaders())));
 
-        streamBuilder.accept(AdaptableToSignalMapper.of(DeleteSubjectAliasesResponse.TYPE,
-                mappingContext -> DeleteSubjectAliasesResponse.newInstance(
+        streamBuilder.accept(AdaptableToSignalMapper.of(DeleteImportsAliasesResponse.TYPE,
+                mappingContext -> DeleteImportsAliasesResponse.newInstance(
                         mappingContext.getPolicyIdFromTopicPath(),
                         mappingContext.getHttpStatusOrThrow(),
                         mappingContext.getDittoHeaders())));

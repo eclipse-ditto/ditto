@@ -45,7 +45,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
     private final Map<Label, ImportableType> importableTypes;
     private final Map<Label, Set<AllowedImportAddition>> allowedImportAdditions;
     private PolicyImports policyImports;
-    private SubjectAliases subjectAliases;
+    private ImportsAliases importsAliases;
     @Nullable private PolicyId id;
     @Nullable private PolicyLifecycle lifecycle;
     @Nullable private PolicyRevision revision;
@@ -61,7 +61,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
         importableTypes = new LinkedHashMap<>();
         allowedImportAdditions = new LinkedHashMap<>();
         policyImports = PolicyImports.emptyInstance();
-        subjectAliases = SubjectAliases.emptyInstance();
+        importsAliases = ImportsAliases.emptyInstance();
         id = null;
         lifecycle = null;
         revision = null;
@@ -129,7 +129,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
                 .setRevision(existingPolicy.getRevision().orElse(null))
                 .setModified(existingPolicy.getModified().orElse(null))
                 .setPolicyImports(existingPolicy.getPolicyImports())
-                .setSubjectAliases(existingPolicy.getSubjectAliases());
+                .setImportsAliases(existingPolicy.getImportsAliases());
 
         existingPolicy.getEntityId().ifPresent(result::setId);
         existingPolicy.forEach(result::set);
@@ -185,23 +185,23 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
     }
 
     @Override
-    public ImmutablePolicyBuilder setSubjectAliases(final SubjectAliases subjectAliases) {
-        checkNotNull(subjectAliases, "subjectAliases");
-        this.subjectAliases = subjectAliases;
+    public ImmutablePolicyBuilder setImportsAliases(final ImportsAliases importsAliases) {
+        checkNotNull(importsAliases, "importsAliases");
+        this.importsAliases = importsAliases;
         return this;
     }
 
     @Override
-    public ImmutablePolicyBuilder setSubjectAlias(final SubjectAlias subjectAlias) {
-        checkNotNull(subjectAlias, "subjectAlias");
-        this.subjectAliases = this.subjectAliases.setAlias(subjectAlias);
+    public ImmutablePolicyBuilder setImportsAlias(final ImportsAlias importsAlias) {
+        checkNotNull(importsAlias, "importsAlias");
+        this.importsAliases = this.importsAliases.setAlias(importsAlias);
         return this;
     }
 
     @Override
-    public ImmutablePolicyBuilder removeSubjectAlias(final Label label) {
+    public ImmutablePolicyBuilder removeImportsAlias(final Label label) {
         checkNotNull(label, "label");
-        this.subjectAliases = this.subjectAliases.removeAlias(label);
+        this.importsAliases = this.importsAliases.removeAlias(label);
         return this;
     }
 
@@ -437,7 +437,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
                 .collect(Collectors.toList());
 
         return ImmutablePolicy.of(id, lifecycle, revision, modified, created, metadata, policyImports, policyEntries,
-                subjectAliases);
+                importsAliases);
     }
 
     private Collection<Label> getAllLabels() {

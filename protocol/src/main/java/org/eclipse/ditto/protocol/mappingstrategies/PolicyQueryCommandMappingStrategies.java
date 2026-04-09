@@ -30,8 +30,8 @@ import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImp
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResource;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResources;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubject;
-import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubjectAlias;
-import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubjectAliases;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveImportsAlias;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveImportsAliases;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubjects;
 import org.eclipse.ditto.protocol.JsonifiableMapper;
 
@@ -125,24 +125,24 @@ final class PolicyQueryCommandMappingStrategies extends AbstractPolicyMappingStr
                         entryAdditionLabelFromImportPath(adaptable.getPayload().getPath()),
                         dittoHeadersFrom(adaptable)));
 
-        addSubjectAliasesQueries(mappingStrategies);
+        addImportsAliasesQueries(mappingStrategies);
 
         return mappingStrategies;
 
     }
 
-    private static void addSubjectAliasesQueries(
+    private static void addImportsAliasesQueries(
             final Map<String, JsonifiableMapper<PolicyQueryCommand<?>>> mappingStrategies) {
 
-        mappingStrategies.put(RetrieveSubjectAliases.TYPE,
-                adaptable -> RetrieveSubjectAliases.of(
+        mappingStrategies.put(RetrieveImportsAliases.TYPE,
+                adaptable -> RetrieveImportsAliases.of(
                         policyIdFromTopicPath(adaptable.getTopicPath()),
                         dittoHeadersFrom(adaptable)));
 
-        mappingStrategies.put(RetrieveSubjectAlias.TYPE,
-                adaptable -> RetrieveSubjectAlias.of(
+        mappingStrategies.put(RetrieveImportsAlias.TYPE,
+                adaptable -> RetrieveImportsAlias.of(
                         policyIdFromTopicPath(adaptable.getTopicPath()),
-                        subjectAliasLabelFrom(adaptable),
+                        importsAliasLabelFrom(adaptable),
                         dittoHeadersFrom(adaptable)));
     }
 

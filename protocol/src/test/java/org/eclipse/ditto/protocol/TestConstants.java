@@ -42,9 +42,9 @@ import org.eclipse.ditto.messages.model.MessageHeaderDefinition;
 import org.eclipse.ditto.policies.model.AllowedImportAddition;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.EntriesAdditions;
-import org.eclipse.ditto.policies.model.SubjectAlias;
-import org.eclipse.ditto.policies.model.SubjectAliasTarget;
-import org.eclipse.ditto.policies.model.SubjectAliases;
+import org.eclipse.ditto.policies.model.ImportsAlias;
+import org.eclipse.ditto.policies.model.ImportsAliasTarget;
+import org.eclipse.ditto.policies.model.ImportsAliases;
 import org.eclipse.ditto.policies.model.EntryAddition;
 import org.eclipse.ditto.policies.model.ImportableType;
 import org.eclipse.ditto.policies.model.ImportedLabels;
@@ -328,14 +328,14 @@ public final class TestConstants {
 
         public static final List<String> NAMESPACES = Arrays.asList("com.acme", "com.acme.*");
 
-        public static final Label SUBJECT_ALIAS_LABEL = Label.of("operator");
-        public static final SubjectAliasTarget SUBJECT_ALIAS_TARGET =
-                PoliciesModelFactory.newSubjectAliasTarget(IMPORTED_POLICY_ID, POLICY_ENTRY_LABEL);
-        public static final SubjectAlias SUBJECT_ALIAS =
-                PoliciesModelFactory.newSubjectAlias(SUBJECT_ALIAS_LABEL,
-                        singletonList(SUBJECT_ALIAS_TARGET));
-        public static final SubjectAliases SUBJECT_ALIASES =
-                PoliciesModelFactory.newSubjectAliases(singletonList(SUBJECT_ALIAS));
+        public static final Label IMPORTS_ALIAS_LABEL = Label.of("operator");
+        public static final ImportsAliasTarget IMPORTS_ALIAS_TARGET =
+                PoliciesModelFactory.newImportsAliasTarget(IMPORTED_POLICY_ID, POLICY_ENTRY_LABEL);
+        public static final ImportsAlias IMPORTS_ALIAS =
+                PoliciesModelFactory.newImportsAlias(IMPORTS_ALIAS_LABEL,
+                        singletonList(IMPORTS_ALIAS_TARGET));
+        public static final ImportsAliases IMPORTS_ALIASES =
+                PoliciesModelFactory.newImportsAliases(singletonList(IMPORTS_ALIAS));
 
         public static class TopicPaths {
 

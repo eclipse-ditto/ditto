@@ -34,7 +34,7 @@ import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
-import org.eclipse.ditto.policies.model.signals.commands.exceptions.SubjectAliasConflictException;
+import org.eclipse.ditto.policies.model.signals.commands.exceptions.ImportsAliasConflictException;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntry;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEntryCreated;
@@ -71,9 +71,9 @@ final class ModifyPolicyEntryStrategy extends AbstractPolicyCommandStrategy<Modi
                         command::getDittoHeaders);
 
         // Reject if the label is already used as a subject alias
-        if (nonNullPolicy.getSubjectAliases().getAlias(label).isPresent()) {
+        if (nonNullPolicy.getImportsAliases().getAlias(label).isPresent()) {
             return ResultFactory.newErrorResult(
-                    SubjectAliasConflictException.newBuilder(label).dittoHeaders(commandHeaders).build(),
+                    ImportsAliasConflictException.newBuilder(label).dittoHeaders(commandHeaders).build(),
                     command);
         }
 

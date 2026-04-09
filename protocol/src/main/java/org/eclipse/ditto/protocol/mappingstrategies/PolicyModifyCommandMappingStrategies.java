@@ -23,8 +23,8 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImpo
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteResource;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubject;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImports;
-import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubjectAlias;
-import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubjectAliases;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteImportsAlias;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteImportsAliases;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntries;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntry;
@@ -39,8 +39,8 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImpo
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResource;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResources;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubject;
-import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjectAlias;
-import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjectAliases;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyImportsAlias;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyImportsAliases;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjects;
 import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommand;
 import org.eclipse.ditto.protocol.JsonifiableMapper;
@@ -185,34 +185,34 @@ final class PolicyModifyCommandMappingStrategies extends AbstractPolicyMappingSt
                         entryAdditionLabelFromImportPath(adaptable.getPayload().getPath()),
                         dittoHeadersFrom(adaptable)));
 
-        addSubjectAliasesCommands(mappingStrategies);
+        addImportsAliasesCommands(mappingStrategies);
 
         return mappingStrategies;
     }
 
-    private static void addSubjectAliasesCommands(
+    private static void addImportsAliasesCommands(
             final Map<String, JsonifiableMapper<PolicyModifyCommand<?>>> mappingStrategies) {
 
-        mappingStrategies.put(ModifySubjectAliases.TYPE,
-                adaptable -> ModifySubjectAliases.of(
+        mappingStrategies.put(ModifyImportsAliases.TYPE,
+                adaptable -> ModifyImportsAliases.of(
                         policyIdFromTopicPath(adaptable.getTopicPath()),
-                        subjectAliasesFrom(adaptable),
+                        importsAliasesFrom(adaptable),
                         dittoHeadersFrom(adaptable)));
 
-        mappingStrategies.put(ModifySubjectAlias.TYPE,
-                adaptable -> ModifySubjectAlias.of(
+        mappingStrategies.put(ModifyImportsAlias.TYPE,
+                adaptable -> ModifyImportsAlias.of(
                         policyIdFromTopicPath(adaptable.getTopicPath()),
-                        subjectAliasFrom(adaptable),
+                        importsAliasFrom(adaptable),
                         dittoHeadersFrom(adaptable)));
 
-        mappingStrategies.put(DeleteSubjectAlias.TYPE,
-                adaptable -> DeleteSubjectAlias.of(
+        mappingStrategies.put(DeleteImportsAlias.TYPE,
+                adaptable -> DeleteImportsAlias.of(
                         policyIdFromTopicPath(adaptable.getTopicPath()),
-                        subjectAliasLabelFrom(adaptable),
+                        importsAliasLabelFrom(adaptable),
                         dittoHeadersFrom(adaptable)));
 
-        mappingStrategies.put(DeleteSubjectAliases.TYPE,
-                adaptable -> DeleteSubjectAliases.of(
+        mappingStrategies.put(DeleteImportsAliases.TYPE,
+                adaptable -> DeleteImportsAliases.of(
                         policyIdFromTopicPath(adaptable.getTopicPath()),
                         dittoHeadersFrom(adaptable)));
 

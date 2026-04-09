@@ -66,7 +66,7 @@ final class ModifyPolicyImportsStrategy extends AbstractPolicyCommandStrategy<Mo
         // Validate that alias targets still reference existing imports after replacement
         final Policy policyWithNewImports = nonNullPolicy.toBuilder().setPolicyImports(policyImports).build();
         final Optional<DittoRuntimeException> aliasValidationError =
-                validateSubjectAliasTargets(policyWithNewImports, dittoHeaders);
+                validateImportsAliasTargets(policyWithNewImports, dittoHeaders);
         if (aliasValidationError.isPresent()) {
             return ResultFactory.newErrorResult(aliasValidationError.get(), command);
         }

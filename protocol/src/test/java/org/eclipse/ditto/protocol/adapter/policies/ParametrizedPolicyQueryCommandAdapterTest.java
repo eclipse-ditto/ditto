@@ -36,8 +36,8 @@ import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImp
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResource;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResources;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubject;
-import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubjectAlias;
-import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubjectAliases;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveImportsAlias;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveImportsAliases;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubjects;
 import org.junit.Before;
 import org.junit.runner.RunWith;
@@ -65,8 +65,8 @@ public final class ParametrizedPolicyQueryCommandAdapterTest
                 retrievePolicyImportEntries(),
                 retrievePolicyImportEntriesAdditions(),
                 retrievePolicyImportEntryAddition(),
-                retrieveSubjectAliases(),
-                retrieveSubjectAlias());
+                retrieveImportsAliases(),
+                retrieveImportsAlias());
     }
 
     private PolicyQueryCommandAdapter underTest;
@@ -196,20 +196,20 @@ public final class ParametrizedPolicyQueryCommandAdapterTest
         return TestParameter.of("retrievePolicyImportEntryAddition", adaptable, command);
     }
 
-    private static TestParameter<PolicyQueryCommand<?>> retrieveSubjectAliases() {
-        final RetrieveSubjectAliases command =
-                RetrieveSubjectAliases.of(Policies.POLICY_ID, Policies.HEADERS);
+    private static TestParameter<PolicyQueryCommand<?>> retrieveImportsAliases() {
+        final RetrieveImportsAliases command =
+                RetrieveImportsAliases.of(Policies.POLICY_ID, Policies.HEADERS);
         final Adaptable adaptable = TestConstants.adaptable(TopicPaths.RETRIEVE,
-                JsonPointer.of("/subjectAliases"));
-        return TestParameter.of("retrieveSubjectAliases", adaptable, command);
+                JsonPointer.of("/importsAliases"));
+        return TestParameter.of("retrieveImportsAliases", adaptable, command);
     }
 
-    private static TestParameter<PolicyQueryCommand<?>> retrieveSubjectAlias() {
-        final RetrieveSubjectAlias command =
-                RetrieveSubjectAlias.of(Policies.POLICY_ID, Policies.SUBJECT_ALIAS_LABEL, Policies.HEADERS);
+    private static TestParameter<PolicyQueryCommand<?>> retrieveImportsAlias() {
+        final RetrieveImportsAlias command =
+                RetrieveImportsAlias.of(Policies.POLICY_ID, Policies.IMPORTS_ALIAS_LABEL, Policies.HEADERS);
         final Adaptable adaptable = TestConstants.adaptable(TopicPaths.RETRIEVE,
-                JsonPointer.of("/subjectAliases/" + Policies.SUBJECT_ALIAS_LABEL));
-        return TestParameter.of("retrieveSubjectAlias", adaptable, command);
+                JsonPointer.of("/importsAliases/" + Policies.IMPORTS_ALIAS_LABEL));
+        return TestParameter.of("retrieveImportsAlias", adaptable, command);
     }
 
 }

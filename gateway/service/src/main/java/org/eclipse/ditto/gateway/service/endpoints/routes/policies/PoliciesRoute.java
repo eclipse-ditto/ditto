@@ -68,7 +68,7 @@ public final class PoliciesRoute extends AbstractRoute {
 
     public static final String PATH_POLICIES = "policies";
     private static final String PATH_IMPORTS = "imports";
-    private static final String PATH_SUBJECT_ALIASES = "subjectAliases";
+    private static final String PATH_IMPORTS_ALIASES = "importsAliases";
     private static final String PATH_ENTRIES = "entries";
 
     private static final Label DUMMY_LABEL = Label.of("-");
@@ -78,7 +78,7 @@ public final class PoliciesRoute extends AbstractRoute {
 
     private final PolicyEntriesRoute policyEntriesRoute;
     private final PolicyImportsRoute policyImportsRoute;
-    private final PolicySubjectAliasesRoute policySubjectAliasesRoute;
+    private final PolicyImportsAliasesRoute policyImportsAliasesRoute;
 
     private final TokenIntegrationSubjectIdFactory tokenIntegrationSubjectIdFactory;
     @Nullable
@@ -112,7 +112,7 @@ public final class PoliciesRoute extends AbstractRoute {
         this.namespaceAccessDirective = namespaceAccessDirective;
         policyEntriesRoute = new PolicyEntriesRoute(routeBaseProperties, tokenIntegrationSubjectIdFactory);
         policyImportsRoute = new PolicyImportsRoute(routeBaseProperties);
-        policySubjectAliasesRoute = new PolicySubjectAliasesRoute(routeBaseProperties);
+        policyImportsAliasesRoute = new PolicyImportsAliasesRoute(routeBaseProperties);
         this.tokenIntegrationSubjectIdFactory = tokenIntegrationSubjectIdFactory;
     }
 
@@ -161,7 +161,7 @@ public final class PoliciesRoute extends AbstractRoute {
                 concat(
                         policyId(ctx, dittoHeaders, policyId),
                         policyImports(ctx, dittoHeaders, policyId),
-                        policySubjectAliases(ctx, dittoHeaders, policyId),
+                        policyImportsAliases(ctx, dittoHeaders, policyId),
                         policyEntries(ctx, dittoHeaders, policyId, authenticationResult),
                         policyActions(ctx, dittoHeaders, policyId, authenticationResult)
                 )
@@ -233,11 +233,11 @@ public final class PoliciesRoute extends AbstractRoute {
         );
     }
 
-    private Route policySubjectAliases(final RequestContext ctx, final DittoHeaders dittoHeaders,
+    private Route policyImportsAliases(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final PolicyId policyId) {
-        return rawPathPrefix(PathMatchers.slash().concat(PATH_SUBJECT_ALIASES),
-                () -> // /policies/<policyId>/subjectAliases
-                        policySubjectAliasesRoute.buildSubjectAliasesRoute(ctx, dittoHeaders, policyId)
+        return rawPathPrefix(PathMatchers.slash().concat(PATH_IMPORTS_ALIASES),
+                () -> // /policies/<policyId>/importsAliases
+                        policyImportsAliasesRoute.buildImportsAliasesRoute(ctx, dittoHeaders, policyId)
         );
     }
 

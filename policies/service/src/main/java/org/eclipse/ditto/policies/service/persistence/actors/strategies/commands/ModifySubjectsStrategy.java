@@ -36,14 +36,14 @@ import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyImport;
 import org.eclipse.ditto.policies.model.PolicyImports;
-import org.eclipse.ditto.policies.model.SubjectAlias;
-import org.eclipse.ditto.policies.model.SubjectAliasTarget;
+import org.eclipse.ditto.policies.model.ImportsAlias;
+import org.eclipse.ditto.policies.model.ImportsAliasTarget;
 import org.eclipse.ditto.policies.model.Subjects;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjects;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjectsResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
-import org.eclipse.ditto.policies.model.signals.events.SubjectAliasSubjectsModified;
+import org.eclipse.ditto.policies.model.signals.events.ImportsAliasSubjectsModified;
 import org.eclipse.ditto.policies.model.signals.events.SubjectsModified;
 import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 
@@ -109,7 +109,7 @@ final class ModifySubjectsStrategy extends AbstractPolicyCommandStrategy<ModifyS
             }
         } else {
             // Check if label is a subject alias
-            final Optional<SubjectAlias> aliasOpt = nonNullPolicy.getSubjectAliases().getAlias(label);
+            final Optional<ImportsAlias> aliasOpt = nonNullPolicy.getImportsAliases().getAlias(label);
             if (aliasOpt.isPresent()) {
                 return handleAliasSubjects(nonNullPolicy, policyId, label, subjects, commandHeaders, command,
                         aliasOpt.get(), nextRevision, metadata);
@@ -120,7 +120,7 @@ final class ModifySubjectsStrategy extends AbstractPolicyCommandStrategy<ModifyS
 
     private Result<PolicyEvent<?>> handleAliasSubjects(final Policy policy, final PolicyId policyId,
             final Label aliasLabel, final Subjects subjects, final DittoHeaders commandHeaders,
-            final ModifySubjects command, final SubjectAlias alias, final long nextRevision,
+            final ModifySubjects command, final ImportsAlias alias, final long nextRevision,
             @Nullable final Metadata metadata) {
 
         final Subjects adjustedSubjects = potentiallyAdjustSubjects(subjects);
@@ -132,7 +132,7 @@ final class ModifySubjectsStrategy extends AbstractPolicyCommandStrategy<ModifyS
 
         // Fan out subjects to all alias targets' entriesAdditions
         Policy updatedPolicy = policy;
-        for (final SubjectAliasTarget target : alias.getTargets()) {
+        for (final ImportsAliasTarget target : alias.getTargets()) {
             updatedPolicy = applySubjectsToTarget(updatedPolicy, target, adjustedSubjects);
         }
 
@@ -142,7 +142,7 @@ final class ModifySubjectsStrategy extends AbstractPolicyCommandStrategy<ModifyS
                 .ensureValidSize(updatedPolicyJson::getUpperBoundForStringSize,
                         () -> updatedPolicyJson.toString().length(), () -> commandHeaders);
 
-        final SubjectAliasSubjectsModified event = SubjectAliasSubjectsModified.of(policyId, aliasLabel,
+        final ImportsAliasSubjectsModified event = ImportsAliasSubjectsModified.of(policyId, aliasLabel,
                 adjustedSubjects, alias.getTargets(), nextRevision, getEventTimestamp(), commandHeaders, metadata);
         final ModifySubjects adjustedCommand = ModifySubjects.of(policyId, aliasLabel, adjustedSubjects,
                 commandHeaders);
@@ -153,7 +153,7 @@ final class ModifySubjectsStrategy extends AbstractPolicyCommandStrategy<ModifyS
         return ResultFactory.newMutationResult(adjustedCommand, event, response);
     }
 
-    private static Policy applySubjectsToTarget(final Policy policy, final SubjectAliasTarget target,
+    private static Policy applySubjectsToTarget(final Policy policy, final ImportsAliasTarget target,
             final Subjects subjects) {
 
         final PolicyImports imports = policy.getPolicyImports();

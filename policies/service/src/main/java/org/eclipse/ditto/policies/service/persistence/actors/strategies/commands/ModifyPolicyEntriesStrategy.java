@@ -24,7 +24,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.policies.model.Label;
-import org.eclipse.ditto.policies.model.signals.commands.exceptions.SubjectAliasConflictException;
+import org.eclipse.ditto.policies.model.signals.commands.exceptions.ImportsAliasConflictException;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
@@ -69,9 +69,9 @@ final class ModifyPolicyEntriesStrategy extends AbstractPolicyCommandStrategy<Mo
         // Reject if any new entry label conflicts with an existing subject alias
         for (final PolicyEntry entry : policyEntries) {
             final Label entryLabel = entry.getLabel();
-            if (nonNullPolicy.getSubjectAliases().getAlias(entryLabel).isPresent()) {
+            if (nonNullPolicy.getImportsAliases().getAlias(entryLabel).isPresent()) {
                 return ResultFactory.newErrorResult(
-                        SubjectAliasConflictException.newBuilder(entryLabel)
+                        ImportsAliasConflictException.newBuilder(entryLabel)
                                 .dittoHeaders(headers)
                                 .build(),
                         command);

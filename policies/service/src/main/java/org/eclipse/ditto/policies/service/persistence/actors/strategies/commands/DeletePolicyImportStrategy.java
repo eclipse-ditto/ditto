@@ -27,8 +27,8 @@ import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.model.SubjectAlias;
-import org.eclipse.ditto.policies.model.SubjectAliasTarget;
+import org.eclipse.ditto.policies.model.ImportsAlias;
+import org.eclipse.ditto.policies.model.ImportsAliasTarget;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyImportNotModifiableException;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImport;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImportResponse;
@@ -59,8 +59,8 @@ final class DeletePolicyImportStrategy extends AbstractPolicyCommandStrategy<Del
         final PolicyId policyId = context.getState();
 
         // Check if any subject alias references this import
-        for (final SubjectAlias alias : nonNullPolicy.getSubjectAliases()) {
-            for (final SubjectAliasTarget target : alias.getTargets()) {
+        for (final ImportsAlias alias : nonNullPolicy.getImportsAliases()) {
+            for (final ImportsAliasTarget target : alias.getTargets()) {
                 if (importedPolicyId.equals(target.getImportedPolicyId())) {
                     return ResultFactory.newErrorResult(
                             PolicyImportNotModifiableException.newBuilder(policyId, importedPolicyId)

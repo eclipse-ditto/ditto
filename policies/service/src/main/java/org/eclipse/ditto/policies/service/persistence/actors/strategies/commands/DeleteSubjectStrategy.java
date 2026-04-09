@@ -34,14 +34,14 @@ import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyImport;
 import org.eclipse.ditto.policies.model.PolicyImports;
-import org.eclipse.ditto.policies.model.SubjectAlias;
-import org.eclipse.ditto.policies.model.SubjectAliasTarget;
+import org.eclipse.ditto.policies.model.ImportsAlias;
+import org.eclipse.ditto.policies.model.ImportsAliasTarget;
 import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.Subjects;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubject;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubjectResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
-import org.eclipse.ditto.policies.model.signals.events.SubjectAliasSubjectDeleted;
+import org.eclipse.ditto.policies.model.signals.events.ImportsAliasSubjectDeleted;
 import org.eclipse.ditto.policies.model.signals.events.SubjectDeleted;
 import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 
@@ -92,7 +92,7 @@ final class DeleteSubjectStrategy extends AbstractPolicyCommandStrategy<DeleteSu
             }
         } else {
             // Check if label is a subject alias
-            final Optional<SubjectAlias> aliasOpt = nonNullPolicy.getSubjectAliases().getAlias(label);
+            final Optional<ImportsAlias> aliasOpt = nonNullPolicy.getImportsAliases().getAlias(label);
             if (aliasOpt.isPresent()) {
                 return handleAliasDeleteSubject(nonNullPolicy, policyId, label, subjectId, headers, command,
                         aliasOpt.get(), nextRevision, metadata);
@@ -103,18 +103,18 @@ final class DeleteSubjectStrategy extends AbstractPolicyCommandStrategy<DeleteSu
 
     private Result<PolicyEvent<?>> handleAliasDeleteSubject(final Policy policy, final PolicyId policyId,
             final Label aliasLabel, final SubjectId subjectId, final DittoHeaders headers,
-            final DeleteSubject command, final SubjectAlias alias, final long nextRevision,
+            final DeleteSubject command, final ImportsAlias alias, final long nextRevision,
             @Nullable final Metadata metadata) {
 
-        final List<SubjectAliasTarget> targets = alias.getTargets();
+        final List<ImportsAliasTarget> targets = alias.getTargets();
 
         // Fan out delete to all alias targets' entriesAdditions
         Policy updatedPolicy = policy;
-        for (final SubjectAliasTarget target : targets) {
+        for (final ImportsAliasTarget target : targets) {
             updatedPolicy = removeSubjectFromTarget(updatedPolicy, target, subjectId);
         }
 
-        final SubjectAliasSubjectDeleted event = SubjectAliasSubjectDeleted.of(policyId, aliasLabel, subjectId,
+        final ImportsAliasSubjectDeleted event = ImportsAliasSubjectDeleted.of(policyId, aliasLabel, subjectId,
                 targets, nextRevision, getEventTimestamp(), headers, metadata);
         final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                 DeleteSubjectResponse.of(policyId, aliasLabel, subjectId,
@@ -123,7 +123,7 @@ final class DeleteSubjectStrategy extends AbstractPolicyCommandStrategy<DeleteSu
         return ResultFactory.newMutationResult(command, event, response);
     }
 
-    private static Policy removeSubjectFromTarget(final Policy policy, final SubjectAliasTarget target,
+    private static Policy removeSubjectFromTarget(final Policy policy, final ImportsAliasTarget target,
             final SubjectId subjectId) {
 
         final PolicyImports imports = policy.getPolicyImports();

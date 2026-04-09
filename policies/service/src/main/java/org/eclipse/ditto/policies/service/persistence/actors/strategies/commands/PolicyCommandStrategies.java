@@ -90,12 +90,12 @@ public final class PolicyCommandStrategies
         addStrategy(new DeletePolicyImportEntryAdditionStrategy(policyConfig));
 
         // Subject Aliases
-        addStrategy(new RetrieveSubjectAliasesStrategy(policyConfig));
-        addStrategy(new ModifySubjectAliasesStrategy(policyConfig));
-        addStrategy(new DeleteSubjectAliasesStrategy(policyConfig));
-        addStrategy(new RetrieveSubjectAliasStrategy(policyConfig));
-        addStrategy(new ModifySubjectAliasStrategy(policyConfig));
-        addStrategy(new DeleteSubjectAliasStrategy(policyConfig));
+        addStrategy(new RetrieveImportsAliasesStrategy(policyConfig));
+        addStrategy(new ModifyImportsAliasesStrategy(policyConfig));
+        addStrategy(new DeleteImportsAliasesStrategy(policyConfig));
+        addStrategy(new RetrieveImportsAliasStrategy(policyConfig));
+        addStrategy(new ModifyImportsAliasStrategy(policyConfig));
+        addStrategy(new DeleteImportsAliasStrategy(policyConfig));
 
         // Subjects
         addStrategy(new ModifySubjectsStrategy(policyConfig));

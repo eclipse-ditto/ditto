@@ -34,9 +34,9 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntr
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImportEntryAddition;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteResource;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubject;
-import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubjectAlias;
-import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjectAlias;
-import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjectAliases;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteImportsAlias;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyImportsAlias;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyImportsAliases;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntries;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntry;
@@ -83,9 +83,9 @@ public final class ParametrizedPolicyModifyCommandAdapterTest
                 modifyPolicyImportEntriesAdditions(),
                 modifyPolicyImportEntryAddition(),
                 deletePolicyImportEntryAddition(),
-                modifySubjectAliases(),
-                modifySubjectAlias(),
-                deleteSubjectAlias());
+                modifyImportsAliases(),
+                modifyImportsAlias(),
+                deleteImportsAlias());
     }
 
     private PolicyModifyCommandAdapter underTest;
@@ -290,29 +290,29 @@ public final class ParametrizedPolicyModifyCommandAdapterTest
         return TestParameter.of("deletePolicyImportEntryAddition", adaptable, command);
     }
 
-    private static TestParameter<PolicyModifyCommand<?>> modifySubjectAliases() {
-        final ModifySubjectAliases command =
-                ModifySubjectAliases.of(Policies.POLICY_ID, Policies.SUBJECT_ALIASES, Policies.HEADERS);
+    private static TestParameter<PolicyModifyCommand<?>> modifyImportsAliases() {
+        final ModifyImportsAliases command =
+                ModifyImportsAliases.of(Policies.POLICY_ID, Policies.IMPORTS_ALIASES, Policies.HEADERS);
         final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY,
-                JsonPointer.of("/subjectAliases"),
-                Policies.SUBJECT_ALIASES.toJson(FieldType.regularOrSpecial()));
-        return TestParameter.of("modifySubjectAliases", adaptable, command);
+                JsonPointer.of("/importsAliases"),
+                Policies.IMPORTS_ALIASES.toJson(FieldType.regularOrSpecial()));
+        return TestParameter.of("modifyImportsAliases", adaptable, command);
     }
 
-    private static TestParameter<PolicyModifyCommand<?>> modifySubjectAlias() {
-        final ModifySubjectAlias command =
-                ModifySubjectAlias.of(Policies.POLICY_ID, Policies.SUBJECT_ALIAS, Policies.HEADERS);
+    private static TestParameter<PolicyModifyCommand<?>> modifyImportsAlias() {
+        final ModifyImportsAlias command =
+                ModifyImportsAlias.of(Policies.POLICY_ID, Policies.IMPORTS_ALIAS, Policies.HEADERS);
         final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY,
-                JsonPointer.of("/subjectAliases/" + Policies.SUBJECT_ALIAS_LABEL),
-                Policies.SUBJECT_ALIAS.toJson(FieldType.regularOrSpecial()));
-        return TestParameter.of("modifySubjectAlias", adaptable, command);
+                JsonPointer.of("/importsAliases/" + Policies.IMPORTS_ALIAS_LABEL),
+                Policies.IMPORTS_ALIAS.toJson(FieldType.regularOrSpecial()));
+        return TestParameter.of("modifyImportsAlias", adaptable, command);
     }
 
-    private static TestParameter<PolicyModifyCommand<?>> deleteSubjectAlias() {
-        final DeleteSubjectAlias command =
-                DeleteSubjectAlias.of(Policies.POLICY_ID, Policies.SUBJECT_ALIAS_LABEL, Policies.HEADERS);
+    private static TestParameter<PolicyModifyCommand<?>> deleteImportsAlias() {
+        final DeleteImportsAlias command =
+                DeleteImportsAlias.of(Policies.POLICY_ID, Policies.IMPORTS_ALIAS_LABEL, Policies.HEADERS);
         final Adaptable adaptable = TestConstants.adaptable(TopicPaths.DELETE,
-                JsonPointer.of("/subjectAliases/" + Policies.SUBJECT_ALIAS_LABEL));
-        return TestParameter.of("deleteSubjectAlias", adaptable, command);
+                JsonPointer.of("/importsAliases/" + Policies.IMPORTS_ALIAS_LABEL));
+        return TestParameter.of("deleteImportsAlias", adaptable, command);
     }
 }

@@ -560,34 +560,34 @@ public interface PolicyBuilder {
     PolicyBuilder setPolicyImports(PolicyImports imports);
 
     /**
-     * Sets the given {@link SubjectAliases} to this builder, replacing all existing aliases.
+     * Sets the given {@link ImportsAliases} to this builder, replacing all existing aliases.
      *
-     * @param subjectAliases the subject aliases to set.
+     * @param importsAliases the imports aliases to set.
      * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code subjectAliases} is {@code null}.
+     * @throws NullPointerException if {@code importsAliases} is {@code null}.
      * @since 3.9.0
      */
-    PolicyBuilder setSubjectAliases(SubjectAliases subjectAliases);
+    PolicyBuilder setImportsAliases(ImportsAliases importsAliases);
 
     /**
-     * Sets the given {@link SubjectAlias} to this builder. A previous alias with the same label is replaced.
+     * Sets the given {@link ImportsAlias} to this builder. A previous alias with the same label is replaced.
      *
-     * @param subjectAlias the subject alias to set.
+     * @param importsAlias the imports alias to set.
      * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code subjectAlias} is {@code null}.
+     * @throws NullPointerException if {@code importsAlias} is {@code null}.
      * @since 3.9.0
      */
-    PolicyBuilder setSubjectAlias(SubjectAlias subjectAlias);
+    PolicyBuilder setImportsAlias(ImportsAlias importsAlias);
 
     /**
-     * Removes the subject alias identified by the given label from this builder.
+     * Removes the imports alias identified by the given label from this builder.
      *
      * @param label the label of the alias to remove.
      * @return this builder to allow method chaining.
      * @throws NullPointerException if {@code label} is {@code null}.
      * @since 3.9.0
      */
-    PolicyBuilder removeSubjectAlias(Label label);
+    PolicyBuilder removeImportsAlias(Label label);
 
     /**
      * Sets the given entry to this builder. A previous entry with the same {@link Label} as the one of the

@@ -38,15 +38,15 @@ import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyImport;
 import org.eclipse.ditto.policies.model.PolicyImports;
 import org.eclipse.ditto.policies.model.Subject;
-import org.eclipse.ditto.policies.model.SubjectAlias;
-import org.eclipse.ditto.policies.model.SubjectAliasTarget;
+import org.eclipse.ditto.policies.model.ImportsAlias;
+import org.eclipse.ditto.policies.model.ImportsAliasTarget;
 import org.eclipse.ditto.policies.model.Subjects;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubject;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjectResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
-import org.eclipse.ditto.policies.model.signals.events.SubjectAliasSubjectCreated;
-import org.eclipse.ditto.policies.model.signals.events.SubjectAliasSubjectModified;
+import org.eclipse.ditto.policies.model.signals.events.ImportsAliasSubjectCreated;
+import org.eclipse.ditto.policies.model.signals.events.ImportsAliasSubjectModified;
 import org.eclipse.ditto.policies.model.signals.events.SubjectCreated;
 import org.eclipse.ditto.policies.model.signals.events.SubjectModified;
 import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
@@ -126,7 +126,7 @@ final class ModifySubjectStrategy extends AbstractPolicyCommandStrategy<ModifySu
             }
         } else {
             // Check if label is a subject alias
-            final Optional<SubjectAlias> aliasOpt = nonNullPolicy.getSubjectAliases().getAlias(label);
+            final Optional<ImportsAlias> aliasOpt = nonNullPolicy.getImportsAliases().getAlias(label);
             if (aliasOpt.isPresent()) {
                 return handleAliasSubject(nonNullPolicy, policyId, label, subject, commandHeaders, command,
                         aliasOpt.get(), nextRevision, metadata);
@@ -138,7 +138,7 @@ final class ModifySubjectStrategy extends AbstractPolicyCommandStrategy<ModifySu
 
     private Result<PolicyEvent<?>> handleAliasSubject(final Policy policy, final PolicyId policyId,
             final Label aliasLabel, final Subject subject, final DittoHeaders commandHeaders,
-            final ModifySubject command, final SubjectAlias alias, final long nextRevision,
+            final ModifySubject command, final ImportsAlias alias, final long nextRevision,
             @Nullable final Metadata metadata) {
 
         final Subject adjustedSubject = potentiallyAdjustSubject(subject);
@@ -148,7 +148,7 @@ final class ModifySubjectStrategy extends AbstractPolicyCommandStrategy<ModifySu
             return alreadyExpired.get();
         }
 
-        final List<SubjectAliasTarget> targets = alias.getTargets();
+        final List<ImportsAliasTarget> targets = alias.getTargets();
 
         // Check if subject existed in ANY target to determine Created vs Modified
         final boolean subjectExisted = targets.stream()
@@ -156,7 +156,7 @@ final class ModifySubjectStrategy extends AbstractPolicyCommandStrategy<ModifySu
 
         // Fan out single subject to all alias targets' entriesAdditions
         Policy updatedPolicy = policy;
-        for (final SubjectAliasTarget target : targets) {
+        for (final ImportsAliasTarget target : targets) {
             updatedPolicy = applySubjectToTarget(updatedPolicy, target, adjustedSubject);
         }
 
@@ -171,12 +171,12 @@ final class ModifySubjectStrategy extends AbstractPolicyCommandStrategy<ModifySu
         final ModifySubjectResponse rawResponse;
 
         if (subjectExisted) {
-            event = SubjectAliasSubjectModified.of(policyId, aliasLabel, adjustedSubject, targets, nextRevision,
+            event = ImportsAliasSubjectModified.of(policyId, aliasLabel, adjustedSubject, targets, nextRevision,
                     getEventTimestamp(), commandHeaders, metadata);
             rawResponse = ModifySubjectResponse.modified(policyId, aliasLabel, adjustedSubject.getId(),
                     createCommandResponseDittoHeaders(commandHeaders, nextRevision));
         } else {
-            event = SubjectAliasSubjectCreated.of(policyId, aliasLabel, adjustedSubject, targets, nextRevision,
+            event = ImportsAliasSubjectCreated.of(policyId, aliasLabel, adjustedSubject, targets, nextRevision,
                     getEventTimestamp(), commandHeaders, metadata);
             rawResponse = ModifySubjectResponse.created(policyId, aliasLabel, adjustedSubject,
                     createCommandResponseDittoHeaders(commandHeaders, nextRevision));
@@ -185,7 +185,7 @@ final class ModifySubjectStrategy extends AbstractPolicyCommandStrategy<ModifySu
                 appendETagHeaderIfProvided(adjustedCommand, rawResponse, policy));
     }
 
-    private static boolean subjectExistsInTarget(final Policy policy, final SubjectAliasTarget target,
+    private static boolean subjectExistsInTarget(final Policy policy, final ImportsAliasTarget target,
             final Subject subject) {
 
         return policy.getPolicyImports()
@@ -197,7 +197,7 @@ final class ModifySubjectStrategy extends AbstractPolicyCommandStrategy<ModifySu
                 .isPresent();
     }
 
-    private static Policy applySubjectToTarget(final Policy policy, final SubjectAliasTarget target,
+    private static Policy applySubjectToTarget(final Policy policy, final ImportsAliasTarget target,
             final Subject subject) {
 
         final PolicyImports imports = policy.getPolicyImports();

@@ -6833,7 +6833,7 @@ paths:
       summary: Delete all imports of a specific policy
       description: |-
         Removes all imports from the policy identified by the `policyId` path parameter.
-        If any subject alias references an import, the deletion is rejected.
+        If any imports alias references an import, the deletion is rejected.
       tags:
         - Policies
       parameters:
@@ -6879,8 +6879,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '409':
           description: |-
-            The request could not be completed. A subject alias still references one of the imports.
-            Remove the subject alias first before deleting imports.
+            The request could not be completed. An imports alias still references one of the imports.
+            Remove the imports alias first before deleting imports.
           content:
             application/json:
               schema:
@@ -7627,13 +7627,13 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/PreconditionFailed'
-  '/api/2/policies/{policyId}/subjectAliases':
+  '/api/2/policies/{policyId}/importsAliases':
     get:
-      summary: Retrieve all subject aliases of a policy
+      summary: Retrieve all imports aliases of a policy
       description: |-
-        Returns all subject aliases of the policy identified by the `policyId` path parameter.
+        Returns all imports aliases of the policy identified by the `policyId` path parameter.
 
-        Subject aliases map a label to one or more entries additions targets, enabling transparent
+        Imports aliases map a label to one or more entries additions targets, enabling transparent
         subject fan-out. Subject operations on the alias label via `/entries/{label}/subjects` are
         automatically fanned out to all referenced targets.
       tags:
@@ -7645,7 +7645,7 @@ paths:
         - $ref: '#/components/parameters/TimeoutParam'
       responses:
         '200':
-          description: The request successfully returned. The subject aliases are returned.
+          description: The request successfully returned. The imports aliases are returned.
           headers:
             ETag:
               description: |-
@@ -7656,7 +7656,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SubjectAliases'
+                $ref: '#/components/schemas/ImportsAliases'
         '304':
           $ref: '#/components/responses/NotModified'
         '400':
@@ -7685,12 +7685,12 @@ paths:
         '412':
           $ref: '#/components/responses/PreconditionFailed'
     put:
-      summary: Modify all subject aliases of a policy
+      summary: Modify all imports aliases of a policy
       description: |-
-        Modify all subject aliases of the policy identified by the `policyId` path parameter.
-        All existing subject aliases are replaced.
+        Modify all imports aliases of the policy identified by the `policyId` path parameter.
+        All existing imports aliases are replaced.
 
-        A label must not exist as both a subject alias and a local policy entry simultaneously.
+        A label must not exist as both a imports alias and a local policy entry simultaneously.
         If a conflict is detected, the request is rejected with a 409 Conflict status.
       tags:
         - Policies
@@ -7703,7 +7703,7 @@ paths:
         - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '204':
-          description: The subject aliases were successfully updated.
+          description: The imports aliases were successfully updated.
           headers:
             ETag:
               description: |-
@@ -7716,7 +7716,7 @@ paths:
             The request could not be completed. Possible reasons:
 
               * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
-              * the JSON body of the subject aliases is invalid
+              * the JSON body of the imports aliases is invalid
           content:
             application/json:
               schema:
@@ -7746,7 +7746,7 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '409':
           description: |-
-            The request could not be completed. A subject alias label conflicts with an existing
+            The request could not be completed. A imports alias label conflicts with an existing
             policy entry label.
           content:
             application/json:
@@ -7760,7 +7760,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SubjectAliases'
+              $ref: '#/components/schemas/ImportsAliases'
             example:
               operator:
                 targets:
@@ -7768,11 +7768,11 @@ paths:
                     entry: operator-reactor
                   - import: 'energy-corp:power-plant-roles'
                     entry: operator-turbine
-        description: JSON representation of the subject aliases.
+        description: JSON representation of the imports aliases.
         required: true
     delete:
-      summary: Delete all subject aliases of a policy
-      description: Removes all subject aliases from the policy identified by the `policyId` path parameter.
+      summary: Delete all imports aliases of a policy
+      description: Removes all imports aliases from the policy identified by the `policyId` path parameter.
       tags:
         - Policies
       parameters:
@@ -7783,7 +7783,7 @@ paths:
         - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '204':
-          description: The subject aliases were successfully deleted.
+          description: The imports aliases were successfully deleted.
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -7818,11 +7818,11 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/PreconditionFailed'
-  '/api/2/policies/{policyId}/subjectAliases/{label}':
+  '/api/2/policies/{policyId}/importsAliases/{label}':
     get:
-      summary: Retrieve a specific subject alias
+      summary: Retrieve a specific imports alias
       description: |-
-        Returns the subject alias for the specified label of the policy identified by the
+        Returns the imports alias for the specified label of the policy identified by the
         `policyId` path parameter.
       tags:
         - Policies
@@ -7834,7 +7834,7 @@ paths:
         - $ref: '#/components/parameters/TimeoutParam'
       responses:
         '200':
-          description: The request successfully returned. The subject alias is returned.
+          description: The request successfully returned. The imports alias is returned.
           headers:
             ETag:
               description: |-
@@ -7845,7 +7845,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SubjectAlias'
+                $ref: '#/components/schemas/ImportsAlias'
         '304':
           $ref: '#/components/responses/NotModified'
         '400':
@@ -7866,7 +7866,7 @@ paths:
         '404':
           description: |-
             The request could not be completed. The policy with the given ID or
-            the subject alias was not found in the context of the authenticated user.
+            the imports alias was not found in the context of the authenticated user.
           content:
             application/json:
               schema:
@@ -7874,15 +7874,15 @@ paths:
         '412':
           $ref: '#/components/responses/PreconditionFailed'
     put:
-      summary: Create or modify a specific subject alias
+      summary: Create or modify a specific imports alias
       description: |-
-        Create or modify the subject alias for the specified label of the policy identified by the
+        Create or modify the imports alias for the specified label of the policy identified by the
         `policyId` path parameter.
 
-        * If the subject alias does not yet exist, it will be created.
-        * If the subject alias already exists, it will be updated.
+        * If the imports alias does not yet exist, it will be created.
+        * If the imports alias already exists, it will be updated.
 
-        A label must not exist as both a subject alias and a local policy entry simultaneously.
+        A label must not exist as both a imports alias and a local policy entry simultaneously.
         If a conflict is detected, the request is rejected with a 409 Conflict status.
       tags:
         - Policies
@@ -7896,7 +7896,7 @@ paths:
         - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '201':
-          description: The subject alias was successfully created.
+          description: The imports alias was successfully created.
           headers:
             ETag:
               description: |-
@@ -7905,15 +7905,15 @@ paths:
               schema:
                 type: string
             Location:
-              description: The location of the created subject alias
+              description: The location of the created imports alias
               schema:
                 type: string
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SubjectAlias'
+                $ref: '#/components/schemas/ImportsAlias'
         '204':
-          description: The subject alias was successfully updated.
+          description: The imports alias was successfully updated.
           headers:
             ETag:
               description: |-
@@ -7926,7 +7926,7 @@ paths:
             The request could not be completed. Possible reasons:
 
               * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
-              * the JSON body of the subject alias is invalid
+              * the JSON body of the imports alias is invalid
           content:
             application/json:
               schema:
@@ -7956,7 +7956,7 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '409':
           description: |-
-            The request could not be completed. The subject alias label conflicts with an existing
+            The request could not be completed. The imports alias label conflicts with an existing
             policy entry label.
           content:
             application/json:
@@ -7970,19 +7970,19 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SubjectAlias'
+              $ref: '#/components/schemas/ImportsAlias'
             example:
               targets:
                 - import: 'energy-corp:power-plant-roles'
                   entry: operator-reactor
                 - import: 'energy-corp:power-plant-roles'
                   entry: operator-turbine
-        description: JSON representation of the subject alias.
+        description: JSON representation of the imports alias.
         required: true
     delete:
-      summary: Delete a specific subject alias
+      summary: Delete a specific imports alias
       description: |-
-        Deletes the subject alias for the specified label of the policy identified by the
+        Deletes the imports alias for the specified label of the policy identified by the
         `policyId` path parameter.
       tags:
         - Policies
@@ -7995,7 +7995,7 @@ paths:
         - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '204':
-          description: The subject alias was successfully deleted.
+          description: The imports alias was successfully deleted.
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -8023,7 +8023,7 @@ paths:
         '404':
           description: |-
             The request could not be completed. The policy with the given ID or
-            the subject alias was not found in the context of the authenticated user.
+            the imports alias was not found in the context of the authenticated user.
           content:
             application/json:
               schema:
@@ -11330,16 +11330,16 @@ components:
             grant:
               - READ
             revoke: []
-    SubjectAliases:
+    ImportsAliases:
       type: object
       description: |-
-        A collection of subject aliases keyed by label. Each alias maps a label to one or more
+        A collection of imports aliases keyed by label. Each alias maps a label to one or more
         entries additions targets, enabling transparent subject fan-out through the existing
         entries subjects API.
 
-        A label must not exist as both a subject alias and a local policy entry simultaneously.
+        A label must not exist as both a imports alias and a local policy entry simultaneously.
       additionalProperties:
-        $ref: '#/components/schemas/SubjectAlias'
+        $ref: '#/components/schemas/ImportsAlias'
       example:
         operator:
           targets:
@@ -11347,10 +11347,10 @@ components:
               entry: operator-reactor
             - import: 'energy-corp:power-plant-roles'
               entry: operator-turbine
-    SubjectAlias:
+    ImportsAlias:
       type: object
       description: |-
-        A subject alias maps a label to one or more entries additions targets. Subject operations
+        A imports alias maps a label to one or more entries additions targets. Subject operations
         (GET/PUT/DELETE on subjects) using the alias label are transparently fanned out to all
         referenced targets. This enables backward-compatible API migration when template policies
         split a single entry into multiple namespace-scoped entries.
@@ -11361,7 +11361,7 @@ components:
             The list of entries additions targets this alias fans out to. Each target references
             a specific entry addition within a policy import.
           items:
-            $ref: '#/components/schemas/SubjectAliasTarget'
+            $ref: '#/components/schemas/ImportsAliasTarget'
       required:
         - targets
       example:
@@ -11370,10 +11370,10 @@ components:
             entry: operator-reactor
           - import: 'energy-corp:power-plant-roles'
             entry: operator-turbine
-    SubjectAliasTarget:
+    ImportsAliasTarget:
       type: object
       description: |-
-        A target reference within a subject alias, pointing to a specific entry addition in a policy
+        A target reference within a imports alias, pointing to a specific entry addition in a policy
         import. Subject operations on the alias label are transparently fanned out to this target's
         entries additions.
       properties:

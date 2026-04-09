@@ -411,52 +411,52 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
     PolicyImports getPolicyImports();
 
     /**
-     * Returns the {@link SubjectAliases} of this Policy.
+     * Returns the {@link ImportsAliases} of this Policy.
      *
-     * @return the subject aliases of this Policy.
+     * @return the imports aliases of this Policy.
      * @since 3.9.0
      */
-    SubjectAliases getSubjectAliases();
+    ImportsAliases getImportsAliases();
 
     /**
-     * Returns the {@link SubjectAlias} for the given label, if present.
+     * Returns the {@link ImportsAlias} for the given label, if present.
      *
-     * @param label the label of the subject alias to retrieve.
-     * @return the subject alias, or empty if not present.
+     * @param label the label of the imports alias to retrieve.
+     * @return the imports alias, or empty if not present.
      * @throws NullPointerException if {@code label} is {@code null}.
      * @since 3.9.0
      */
-    Optional<SubjectAlias> getSubjectAlias(Label label);
+    Optional<ImportsAlias> getImportsAlias(Label label);
 
     /**
-     * Sets the given {@link SubjectAlias} to a copy of this Policy. A previous alias with the same label is replaced.
+     * Sets the given {@link ImportsAlias} to a copy of this Policy. A previous alias with the same label is replaced.
      *
-     * @param alias the subject alias to set.
+     * @param alias the imports alias to set.
      * @return a copy of this Policy with the alias set.
      * @throws NullPointerException if {@code alias} is {@code null}.
      * @since 3.9.0
      */
-    Policy setSubjectAlias(SubjectAlias alias);
+    Policy setImportsAlias(ImportsAlias alias);
 
     /**
-     * Removes the subject alias identified by the given label from this Policy.
+     * Removes the imports alias identified by the given label from this Policy.
      *
      * @param label the label of the alias to remove.
      * @return a copy of this Policy without the identified alias.
      * @throws NullPointerException if {@code label} is {@code null}.
      * @since 3.9.0
      */
-    Policy removeSubjectAlias(Label label);
+    Policy removeImportsAlias(Label label);
 
     /**
-     * Sets the given {@link SubjectAliases} to a copy of this Policy, replacing all existing aliases.
+     * Sets the given {@link ImportsAliases} to a copy of this Policy, replacing all existing aliases.
      *
-     * @param subjectAliases the subject aliases to set.
+     * @param importsAliases the imports aliases to set.
      * @return a copy of this Policy with the aliases set.
-     * @throws NullPointerException if {@code subjectAliases} is {@code null}.
+     * @throws NullPointerException if {@code importsAliases} is {@code null}.
      * @since 3.9.0
      */
-    Policy setSubjectAliases(SubjectAliases subjectAliases);
+    Policy setImportsAliases(ImportsAliases importsAliases);
 
     /**
      * Returns the entries of this Policy as set. The returned set is modifiable but disjoint from this Policy; thus
@@ -593,12 +593,12 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
                 JsonFactory.newJsonObjectFieldDefinition("entries", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the Policy's subject aliases.
+         * JSON field containing the Policy's imports aliases.
          *
          * @since 3.9.0
          */
-        public static final JsonFieldDefinition<JsonObject> SUBJECT_ALIASES =
-                JsonFactory.newJsonObjectFieldDefinition("subjectAliases", FieldType.REGULAR, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<JsonObject> IMPORTS_ALIASES =
+                JsonFactory.newJsonObjectFieldDefinition("importsAliases", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Policy's metadata.

@@ -43,8 +43,8 @@ import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyImportInvalidException;
 import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.Subject;
-import org.eclipse.ditto.policies.model.SubjectAlias;
-import org.eclipse.ditto.policies.model.SubjectAliasTarget;
+import org.eclipse.ditto.policies.model.ImportsAlias;
+import org.eclipse.ditto.policies.model.ImportsAliasTarget;
 import org.eclipse.ditto.policies.model.SubjectAnnouncement;
 import org.eclipse.ditto.policies.model.SubjectExpiry;
 import org.eclipse.ditto.policies.model.SubjectExpiryInvalidException;
@@ -328,10 +328,10 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
      * @param dittoHeaders the headers for error responses.
      * @return an Optional containing an error if validation fails, or empty if validation passes.
      */
-    static Optional<DittoRuntimeException> validateSubjectAliasTargets(final Policy policy,
+    static Optional<DittoRuntimeException> validateImportsAliasTargets(final Policy policy,
             final DittoHeaders dittoHeaders) {
-        for (final SubjectAlias alias : policy.getSubjectAliases()) {
-            for (final SubjectAliasTarget target : alias.getTargets()) {
+        for (final ImportsAlias alias : policy.getImportsAliases()) {
+            for (final ImportsAliasTarget target : alias.getTargets()) {
                 if (policy.getPolicyImports().getPolicyImport(target.getImportedPolicyId()).isEmpty()) {
                     return Optional.of(PolicyImportInvalidException.newBuilder()
                             .message("The subject alias '" + alias.getLabel() + "' references import '" +

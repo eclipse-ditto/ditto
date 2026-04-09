@@ -64,7 +64,7 @@ final class ModifyPolicyStrategy extends AbstractPolicyCommandStrategy<ModifyPol
         final Policy adjustedPolicy =
                 PoliciesModelFactory.newPolicyBuilder(commandPolicy.getEntityId().orElseThrow(), adjustedEntries)
                         .setPolicyImports(commandPolicy.getPolicyImports())
-                        .setSubjectAliases(commandPolicy.getSubjectAliases())
+                        .setImportsAliases(commandPolicy.getImportsAliases())
                         .build();
 
         final ModifyPolicy adjustedCommand = ModifyPolicy.of(command.getEntityId(), adjustedPolicy, commandHeaders);
@@ -87,7 +87,7 @@ final class ModifyPolicyStrategy extends AbstractPolicyCommandStrategy<ModifyPol
 
         // Validate subject alias targets reference existing imports
         final Optional<DittoRuntimeException> aliasValidationError =
-                validateSubjectAliasTargets(modifiedPolicyWithImplicits, commandHeaders);
+                validateImportsAliasTargets(modifiedPolicyWithImplicits, commandHeaders);
         if (aliasValidationError.isPresent()) {
             return ResultFactory.newErrorResult(aliasValidationError.get(), command);
         }

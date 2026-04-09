@@ -29,8 +29,8 @@ import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyImport;
-import org.eclipse.ditto.policies.model.SubjectAlias;
-import org.eclipse.ditto.policies.model.SubjectAliasTarget;
+import org.eclipse.ditto.policies.model.ImportsAlias;
+import org.eclipse.ditto.policies.model.ImportsAliasTarget;
 import org.eclipse.ditto.policies.model.Subjects;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubjects;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubjectsResponse;
@@ -65,9 +65,9 @@ final class RetrieveSubjectsStrategy extends AbstractPolicyQueryCommandStrategy<
             return ResultFactory.newQueryResult(command, response);
         } else {
             // Check if label is a subject alias
-            final Optional<SubjectAlias> aliasOpt = nonNullPolicy.getSubjectAliases().getAlias(command.getLabel());
+            final Optional<ImportsAlias> aliasOpt = nonNullPolicy.getImportsAliases().getAlias(command.getLabel());
             if (aliasOpt.isPresent()) {
-                final SubjectAlias alias = aliasOpt.get();
+                final ImportsAlias alias = aliasOpt.get();
                 final Subjects subjects = resolveFirstTargetSubjects(nonNullPolicy, alias);
                 final WithDittoHeaders aliasResponse = appendETagHeaderIfProvided(command,
                         RetrieveSubjectsResponse.of(policyId, command.getLabel(), subjects,
@@ -80,11 +80,11 @@ final class RetrieveSubjectsStrategy extends AbstractPolicyQueryCommandStrategy<
         }
     }
 
-    private static Subjects resolveFirstTargetSubjects(final Policy policy, final SubjectAlias alias) {
+    private static Subjects resolveFirstTargetSubjects(final Policy policy, final ImportsAlias alias) {
         if (alias.getTargets().isEmpty()) {
             return PoliciesModelFactory.emptySubjects();
         }
-        final SubjectAliasTarget firstTarget = alias.getTargets().get(0);
+        final ImportsAliasTarget firstTarget = alias.getTargets().get(0);
         return policy.getPolicyImports()
                 .getPolicyImport(firstTarget.getImportedPolicyId())
                 .flatMap(PolicyImport::getEntriesAdditions)
