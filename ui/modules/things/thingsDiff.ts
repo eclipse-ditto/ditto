@@ -11,6 +11,7 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
+import { Tab } from 'bootstrap';
 import * as ace from 'ace-builds/src-noconflict/ace';
 import AceDiff from 'ace-diff';
 import * as API from '../api.js';
@@ -30,6 +31,16 @@ export function ThingsDiff(targetTab) {
   let currentMinRevision = 1;
   let currentMaxRevision = 1;
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+  let selectedFeatureId: string | null = null;
+  let lastLeftJson: any = null;
+  let lastRightJson: any = null;
+  let syncing = false;
+
+  type SubDiffEntry = {
+    subDiff: any;
+    kind: 'attributes' | 'feature';
+  };
+  const subDiffs: SubDiffEntry[] = [];
 
   const dom = {
     diffLeftRevision: null as HTMLInputElement,
@@ -137,10 +148,22 @@ export function ThingsDiff(targetTab) {
     dom.diffLeftTimeTravel.hidden = !active;
   };
 
+  const addSubDiff = (subDiff, kind: 'attributes' | 'feature') => {
+    subDiffs.push({ subDiff, kind });
+    subDiff.setOnActivated((link) => syncTabs(link));
+  };
+
+  const onFeatureChanged = (featureId: string) => {
+    selectedFeatureId = featureId;
+    updateSubDiffs();
+  };
+
   return {
     ready,
     onThingChanged,
     onHistoryModeChanged,
+    addSubDiff,
+    onFeatureChanged,
   };
 
   function onTabActivated() {
@@ -154,6 +177,7 @@ export function ThingsDiff(targetTab) {
       editors.left.resize();
       editors.right.resize();
     }
+    syncTabs(tabLink);
   }
 
   function setRevision(side: 'left' | 'right', value: number) {
@@ -222,6 +246,35 @@ export function ThingsDiff(targetTab) {
     probeSource.onerror = () => probeSource.close();
   }
 
+  function updateSubDiffs() {
+    if (!lastLeftJson || !lastRightJson) return;
+    for (const { subDiff, kind } of subDiffs) {
+      if (kind === 'attributes') {
+        const left = lastLeftJson.attributes || {};
+        const right = lastRightJson.attributes || {};
+        subDiff.update(Utils.stringifyPretty(left), Utils.stringifyPretty(right));
+      } else if (kind === 'feature' && selectedFeatureId) {
+        const leftFeatures = lastLeftJson.features || {};
+        const rightFeatures = lastRightJson.features || {};
+        const left = leftFeatures[selectedFeatureId] || {};
+        const right = rightFeatures[selectedFeatureId] || {};
+        subDiff.update(Utils.stringifyPretty(left), Utils.stringifyPretty(right));
+      }
+    }
+  }
+
+  function syncTabs(activatedLink) {
+    if (syncing) return;
+    syncing = true;
+    const allLinks = [tabLink, ...subDiffs.map(s => s.subDiff.getTabLink())];
+    for (const link of allLinks) {
+      if (link && link !== activatedLink && !link.classList.contains('active')) {
+        new Tab(link).show();
+      }
+    }
+    syncing = false;
+  }
+
   function debouncedFetchAndDiff() {
     if (debounceTimer) {
       clearTimeout(debounceTimer);
@@ -244,9 +297,12 @@ export function ThingsDiff(targetTab) {
       fetchRevision(currentThingId, leftRev),
       fetchRevision(currentThingId, rightRev),
     ]).then(([leftJson, rightJson]) => {
+      lastLeftJson = leftJson;
+      lastRightJson = rightJson;
       const leftStr = Utils.stringifyPretty(leftJson);
       const rightStr = Utils.stringifyPretty(rightJson);
       createOrUpdateDiff(leftStr, rightStr);
+      updateSubDiffs();
     }).catch((err) => {
       console.error('Failed to fetch revisions for diff', err);
     });

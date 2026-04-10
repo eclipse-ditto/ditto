@@ -42,6 +42,7 @@ import * as Things from './modules/things/things.js';
 import * as ThingsCRUD from './modules/things/thingsCRUD.js';
 import * as ThingsSearch from './modules/things/thingsSearch.js';
 import * as ThingsSSE from './modules/things/thingsSSE.js';
+import { SubDiff } from './modules/things/subDiff.js';
 import { ThingsDiff } from './modules/things/thingsDiff.js';
 import { WoTDescription } from './modules/things/wotDescription.js';
 import * as Utils from './modules/utils.js';
@@ -98,12 +99,27 @@ document.addEventListener('DOMContentLoaded', async function() {
   Things.addHistoryModeChangeListener(thingsDiff.onHistoryModeChanged);
   await thingsDiff.ready();
 
+  const attributesDiff = SubDiff({
+      itemsId: 'tabItemsAttribute',
+      contentId: 'tabContentAttribute',
+    }, 'Compare attributes between two revisions');
+  await attributesDiff.ready();
+  thingsDiff.addSubDiff(attributesDiff, 'attributes');
+
   const featureDescription = WoTDescription({
       itemsId: 'tabItemsFeatures',
       contentId: 'tabContentFeatures',
     }, true);
   Features.addChangeListener(featureDescription.onReferenceChanged);
   await featureDescription.ready();
+
+  const featureDiff = SubDiff({
+      itemsId: 'tabItemsFeatures',
+      contentId: 'tabContentFeatures',
+    }, 'Compare selected feature between two revisions');
+  await featureDiff.ready();
+  thingsDiff.addSubDiff(featureDiff, 'feature');
+  Features.addChangeListener(thingsDiff.onFeatureChanged);
 
   // make dropdowns not cutting off
   new Dropdown(document.querySelector('.dropdown-toggle'), {
