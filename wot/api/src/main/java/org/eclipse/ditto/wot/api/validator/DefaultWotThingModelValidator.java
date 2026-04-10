@@ -64,7 +64,7 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.slf4j.spi.LoggingEventBuilder;
 
-import com.networknt.schema.JsonSchema;
+import com.networknt.schema.Schema;
 
 /**
  * Default Ditto specific implementation of {@link WotThingModelValidator}.
@@ -79,7 +79,7 @@ public final class DefaultWotThingModelValidator implements WotThingModelValidat
 
     private final WotThingModelResolver thingModelResolver;
     private final Executor executor;
-    @Nullable private final Cache<JsonSchemaCacheKey, JsonSchema> jsonSchemaCache;
+    @Nullable private final Cache<JsonSchemaCacheKey, Schema> jsonSchemaCache;
 
     private TmValidationConfig dynamicConfig;
 
