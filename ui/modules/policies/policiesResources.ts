@@ -35,7 +35,7 @@ let dom : DomElements = {
   crudResource: null,
 } ;
 
-let resourceEditor: ace.Editor;
+let resourceEditor;
 
 export function ready() {
   Utils.getAllElementsById(dom);

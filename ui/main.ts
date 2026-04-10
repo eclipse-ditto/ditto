@@ -13,6 +13,7 @@
 import { Dropdown } from 'bootstrap';
 /* eslint-disable new-cap */
 import 'bootstrap/dist/css/bootstrap.min.css';
+import 'ace-diff/styles';
 import './main.scss';
 import * as Connections from './modules/connections/connections.js';
 import * as ConnectionsCRUD from './modules/connections/connectionsCRUD.js';
@@ -41,6 +42,7 @@ import * as Things from './modules/things/things.js';
 import * as ThingsCRUD from './modules/things/thingsCRUD.js';
 import * as ThingsSearch from './modules/things/thingsSearch.js';
 import * as ThingsSSE from './modules/things/thingsSSE.js';
+import { ThingsDiff } from './modules/things/thingsDiff.js';
 import { WoTDescription } from './modules/things/wotDescription.js';
 import * as Utils from './modules/utils.js';
 import './modules/utils/crudToolbar.js';
@@ -87,6 +89,14 @@ document.addEventListener('DOMContentLoaded', async function() {
     }, false);
   Things.addChangeListener(thingDescription.onReferenceChanged);
   await thingDescription.ready();
+
+  const thingsDiff = ThingsDiff({
+      itemsId: 'tabItemsThing',
+      contentId: 'tabContentThing',
+    });
+  Things.addChangeListener(thingsDiff.onThingChanged);
+  Things.addHistoryModeChangeListener(thingsDiff.onHistoryModeChanged);
+  await thingsDiff.ready();
 
   const featureDescription = WoTDescription({
       itemsId: 'tabItemsFeatures',

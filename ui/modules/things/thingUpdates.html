@@ -43,35 +43,35 @@
                 </div>
                 <div id="historicalRevisionRange">
                     <div class="input-group input-group-sm mb-1">
-                        <button class="btn btn-outline-secondary btn-sm" id="buttonFromOldest" data-bs-toggle="tooltip"
-                            title="Set to oldest available revision">Oldest</button>
-                        <label class="input-group-text">From rev.</label>
+                        <button class="btn btn-outline-secondary btn-sm rev-action-btn" id="buttonFromOldest"
+                            data-bs-toggle="tooltip" title="Set to oldest available revision">Oldest</button>
+                        <label class="input-group-text rev-label">From rev.</label>
                         <input type="number" class="form-control form-control-sm" id="historicalFromRevision"
-                            value="1" min="1" style="max-width: 80px;">
+                            value="1" min="1">
                         <input type="range" class="form-range mx-1" id="historicalFromRevisionSlider"
                             min="1" max="1" value="1" style="flex: 1;">
                     </div>
                     <div class="input-group input-group-sm mb-1">
-                        <button class="btn btn-outline-secondary btn-sm" id="buttonToMostRecent" data-bs-toggle="tooltip"
-                            title="Set to most recent revision">Most recent</button>
-                        <label class="input-group-text">To rev.</label>
+                        <button class="btn btn-outline-secondary btn-sm rev-action-btn" id="buttonToMostRecent"
+                            data-bs-toggle="tooltip" title="Set to most recent revision">Newest</button>
+                        <label class="input-group-text rev-label">To rev.</label>
                         <input type="number" class="form-control form-control-sm" id="historicalToRevision"
-                            value="1" min="1" style="max-width: 80px;">
+                            value="1" min="1">
                         <input type="range" class="form-range mx-1" id="historicalToRevisionSlider"
                             min="1" max="1" value="1" style="flex: 1;">
                     </div>
                 </div>
                 <div id="historicalTimestampRange" hidden>
                     <div class="input-group input-group-sm mb-1">
-                        <button class="btn btn-outline-secondary btn-sm" id="buttonFromOldestTimestamp" data-bs-toggle="tooltip"
-                            title="Set to oldest available timestamp">Oldest</button>
-                        <label class="input-group-text">From</label>
+                        <button class="btn btn-outline-secondary btn-sm rev-action-btn" id="buttonFromOldestTimestamp"
+                            data-bs-toggle="tooltip" title="Set to oldest available timestamp">Oldest</button>
+                        <label class="input-group-text rev-label">From</label>
                         <input type="datetime-local" class="form-control form-control-sm" id="historicalFromTimestamp" step="1">
                     </div>
                     <div class="input-group input-group-sm mb-1">
-                        <button class="btn btn-outline-secondary btn-sm" id="buttonToMostRecentTimestamp" data-bs-toggle="tooltip"
-                            title="Set to most recent timestamp">Most recent</button>
-                        <label class="input-group-text">To</label>
+                        <button class="btn btn-outline-secondary btn-sm rev-action-btn" id="buttonToMostRecentTimestamp"
+                            data-bs-toggle="tooltip" title="Set to most recent timestamp">Newest</button>
+                        <label class="input-group-text rev-label">To</label>
                         <input type="datetime-local" class="form-control form-control-sm" id="historicalToTimestamp" step="1">
                     </div>
                 </div>

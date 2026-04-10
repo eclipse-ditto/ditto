@@ -287,6 +287,23 @@ button.busy .spinner-border {
   visibility:visible !important;
 }
 
+/* ace-diff styles are imported via main.ts */
+
+#diffContainer {
+  .acediff {
+    --acediff-diff-bg: rgba(58, 140, 154, 0.12);
+    --acediff-diff-border: rgba(58, 140, 154, 0.4);
+    --acediff-diff-char-bg: rgba(58, 140, 154, 0.25);
+    --acediff-gutter-bg: #f8f9fa;
+    --acediff-gutter-border: #dee2e6;
+  }
+
+  .acediff__connector {
+    fill: rgba(58, 140, 154, 0.2);
+    stroke: rgba(58, 140, 154, 0.5);
+  }
+}
+
 /* History mode styles */
 .history-active #details {
   border-left: 4px solid var(--bs-warning);
@@ -305,6 +322,28 @@ button.busy .spinner-border {
   align-self: center;
 }
 
-input[type="number"].form-control-sm {
-  padding-right: 3px;
+/* Revision picker alignment: force fixed sizes to align stacked rows */
+.input-group input[type="number"] {
+  flex: 0 0 80px !important;
+  width: 80px !important;
+  padding-right: 6px !important;
+  -moz-appearance: textfield !important;
+}
+
+.input-group input[type="number"]::-webkit-outer-spin-button,
+.input-group input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.rev-label {
+  flex: 0 0 75px !important;
+  width: 75px !important;
+  justify-content: center;
+}
+
+.rev-action-btn {
+  flex: 0 0 80px !important;
+  width: 80px !important;
+  justify-content: center;
 }

@@ -30,7 +30,7 @@ let dom: DomElements = {
   selectPolicyJSONTemplate: null,
 };
 
-let policyEditor: ace.Editor;
+let policyEditor;
 
 export function ready() {
   

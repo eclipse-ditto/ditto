@@ -33,7 +33,7 @@ let dom: DomElements = {
   crudSubject: null,
 } ;
 
-let subjectEditor: ace.Editor;
+let subjectEditor;
 
 export function ready() {
   Utils.getAllElementsById(dom);
