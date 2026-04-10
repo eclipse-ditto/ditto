@@ -21,8 +21,10 @@ import thingsHTML from './things.html';
 import * as ThingsSearch from './thingsSearch.js';
 
 export let theThing;
+export let historyModeActive = false;
 
 const observers = [];
+const historyModeObservers = [];
 
 const dom = {
   collapseThings: null,
@@ -77,5 +79,39 @@ export function setTheThing(thingJson) {
 
 function refreshView() {
   ThingsSearch.performLastSearch();
+}
+
+const HISTORY_FIELDS = 'fields=thingId%2CpolicyId%2Cdefinition%2Cattributes%2Cfeatures%2C_created%2C_modified%2C_revision%2C_metadata';
+
+export function refreshThingAtRevision(thingId: string, revision: number) {
+  console.assert(thingId && thingId !== '', 'thingId expected');
+  API.callDittoREST('GET',
+      `/things/${thingId}?${HISTORY_FIELDS}`,
+      null,
+      {'at-historical-revision': String(revision)})
+      .then((thing) => setTheThing(thing))
+      .catch((err) => console.error('Failed to fetch historical thing at revision', revision, err));
+}
+
+export function refreshThingAtTimestamp(thingId: string, timestamp: string) {
+  console.assert(thingId && thingId !== '', 'thingId expected');
+  API.callDittoREST('GET',
+      `/things/${thingId}?${HISTORY_FIELDS}`,
+      null,
+      {'at-historical-timestamp': timestamp})
+      .then((thing) => setTheThing(thing))
+      .catch((err) => console.error('Failed to fetch historical thing at timestamp', timestamp, err));
+}
+
+export function setHistoryMode(active: boolean) {
+  historyModeActive = active;
+  historyModeObservers.forEach((observer) => observer.call(null, active));
+  if (!active && theThing) {
+    refreshThing(theThing.thingId);
+  }
+}
+
+export function addHistoryModeChangeListener(observer) {
+  historyModeObservers.push(observer);
 }
 

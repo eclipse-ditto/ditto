@@ -531,6 +531,20 @@ export function getEventSource(thingIds, urlParams) {
   }
 }
 
+export function getHistoricalEventSource(thingId: string, urlParams: string) {
+  if (authHeaderValue) {
+    return new EventSourcePolyfill(
+      `${Environments.current().api_uri}/api/2/things/${encodeURIComponent(thingId)}?${urlParams}`, {
+        headers: {
+          [authHeaderKey]: authHeaderValue,
+        },
+      },
+    );
+  } else {
+    throw new Error("Authentication missing");
+  }
+}
+
 /**
  * Calls connections api. Uses devops api in case of Ditto and the solutions api in case of Things
  * @param {*} operation connections api operation

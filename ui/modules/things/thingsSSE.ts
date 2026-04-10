@@ -77,6 +77,7 @@ function onEnvironmentChanged(modifiedField) {
 }
 
 function onMessageSelectedThing(event) {
+  if (Things.historyModeActive) return;
   if (event.data && event.data !== '') {
     const completeChangedThing = JSON.parse(event.data);
     Things.setTheThing(completeChangedThing);

@@ -286,3 +286,25 @@ h5>.badge {
 button.busy .spinner-border {
   visibility:visible !important;
 }
+
+/* History mode styles */
+.history-active #details {
+  border-left: 4px solid var(--bs-warning);
+}
+
+.history-banner {
+  font-size: 0.85em;
+}
+
+.history-badge {
+  font-size: 0.6em;
+  vertical-align: top;
+}
+
+#historyRevisionControls .form-range {
+  align-self: center;
+}
+
+input[type="number"].form-control-sm {
+  padding-right: 3px;
+}

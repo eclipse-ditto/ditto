@@ -1,0 +1,124 @@
+<!--
+  ~ Copyright (c) 2026 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+  -->
+<h5 data-bs-toggle="collapse" data-bs-target="#collapseThingUpdates">
+    Thing Updates <span class="badge rounded-pill bg-info" id="badgeThingUpdateCount"></span></h5>
+<hr />
+<div class="collapse" id="collapseThingUpdates">
+    <div class="split-h resizable_pane" style="height: 45vh" data-split="horizontal" data-split-sizes="[58,42]" data-split-key="things-updates">
+        <div class="split-panel resizable_flex_column">
+            <div class="input-group input-group-sm mb-1">
+                <div class="btn-group" role="group">
+                    <input type="radio" class="btn-check" name="thingUpdatesMode" id="thingUpdatesModeLive" checked>
+                    <label class="btn btn-outline-secondary btn-sm" for="thingUpdatesModeLive">
+                        <i class="bi bi-broadcast"></i> Live
+                    </label>
+                    <input type="radio" class="btn-check" name="thingUpdatesMode" id="thingUpdatesModeHistorical">
+                    <label class="btn btn-outline-secondary btn-sm" for="thingUpdatesModeHistorical">
+                        <i class="bi bi-clock-history"></i> Historical
+                    </label>
+                </div>
+                <button class="btn btn-outline-secondary btn-sm ms-2 button_round_both" id="buttonResetThingUpdates"
+                    data-bs-toggle="tooltip" title="Reset the updates table">
+                    <i class="bi bi-x-circle"></i> Reset
+                </button>
+            </div>
+            <div id="historicalUpdateControls" hidden>
+                <div class="input-group input-group-sm mb-1">
+                    <div class="btn-group" role="group">
+                        <input type="radio" class="btn-check" name="historicalRangeMode" id="historicalRangeModeRevision" checked>
+                        <label class="btn btn-outline-secondary btn-sm" for="historicalRangeModeRevision">By Revision</label>
+                        <input type="radio" class="btn-check" name="historicalRangeMode" id="historicalRangeModeTimestamp">
+                        <label class="btn btn-outline-secondary btn-sm" for="historicalRangeModeTimestamp">By Timestamp</label>
+                    </div>
+                </div>
+                <div id="historicalRevisionRange">
+                    <div class="input-group input-group-sm mb-1">
+                        <button class="btn btn-outline-secondary btn-sm" id="buttonFromOldest" data-bs-toggle="tooltip"
+                            title="Set to oldest available revision">Oldest</button>
+                        <label class="input-group-text">From rev.</label>
+                        <input type="number" class="form-control form-control-sm" id="historicalFromRevision"
+                            value="1" min="1" style="max-width: 80px;">
+                        <input type="range" class="form-range mx-1" id="historicalFromRevisionSlider"
+                            min="1" max="1" value="1" style="flex: 1;">
+                    </div>
+                    <div class="input-group input-group-sm mb-1">
+                        <button class="btn btn-outline-secondary btn-sm" id="buttonToMostRecent" data-bs-toggle="tooltip"
+                            title="Set to most recent revision">Most recent</button>
+                        <label class="input-group-text">To rev.</label>
+                        <input type="number" class="form-control form-control-sm" id="historicalToRevision"
+                            value="1" min="1" style="max-width: 80px;">
+                        <input type="range" class="form-range mx-1" id="historicalToRevisionSlider"
+                            min="1" max="1" value="1" style="flex: 1;">
+                    </div>
+                </div>
+                <div id="historicalTimestampRange" hidden>
+                    <div class="input-group input-group-sm mb-1">
+                        <button class="btn btn-outline-secondary btn-sm" id="buttonFromOldestTimestamp" data-bs-toggle="tooltip"
+                            title="Set to oldest available timestamp">Oldest</button>
+                        <label class="input-group-text">From</label>
+                        <input type="datetime-local" class="form-control form-control-sm" id="historicalFromTimestamp" step="1">
+                    </div>
+                    <div class="input-group input-group-sm mb-1">
+                        <button class="btn btn-outline-secondary btn-sm" id="buttonToMostRecentTimestamp" data-bs-toggle="tooltip"
+                            title="Set to most recent timestamp">Most recent</button>
+                        <label class="input-group-text">To</label>
+                        <input type="datetime-local" class="form-control form-control-sm" id="historicalToTimestamp" step="1">
+                    </div>
+                </div>
+                <div class="input-group input-group-sm mb-1">
+                    <label class="input-group-text" data-bs-toggle="tooltip"
+                        title="RQL filter applied server-side to historical events, e.g. exists(features/temperature) or gt(features/temperature/properties/value,50)">
+                        RQL Filter</label>
+                    <input type="text" class="form-control form-control-sm" id="inputHistoricalRqlFilter"
+                        placeholder="e.g. gt(features/temperature/properties/value,50)">
+                    <button class="btn btn-outline-primary btn-sm" id="buttonFetchHistorical">
+                        <i class="bi bi-download"></i> Fetch
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm" id="buttonStopHistorical" hidden>
+                        <i class="bi bi-stop-circle"></i> Stop
+                    </button>
+                </div>
+            </div>
+            <table-filter id="tableFilterThingUpdates"></table-filter>
+            <div class="table-wrap">
+                <table class="table table-striped table-hover table-sm">
+                    <thead>
+                        <tr>
+                            <th>Revision</th>
+                            <th>Action</th>
+                            <th>Path</th>
+                            <th>Field(s)</th>
+                            <th>Modified</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyThingUpdates"></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="split-panel resizable_flex_column">
+            <h6>Thing Update Detail</h6>
+            <div class="input-group input-group-sm mb-1 mt-1">
+                <label class="input-group-text" for="selectThingUpdateContent">Show</label>
+                <select class="form-select form-select-sm" id="selectThingUpdateContent">
+                    <option value="ONLY_CONTEXT" selected>Only context</option>
+                    <option value="ONLY_CONTEXT_WITH_METADATA">Only context with metadata</option>
+                    <option value="FULL_THING">Only full Thing JSON</option>
+                    <option value="FULL_THING_WITH_CONTEXT">Full Thing JSON with context and metadata</option>
+                </select>
+            </div>
+            <div class="ace_container" style="flex-grow: 1">
+                <div class="script_editor" id="thingUpdateDetail"></div>
+            </div>
+        </div>
+    </div>
+</div>
