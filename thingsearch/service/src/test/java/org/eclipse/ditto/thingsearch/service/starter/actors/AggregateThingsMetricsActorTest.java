@@ -26,6 +26,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.apache.pekko.actor.ActorSystem;
@@ -169,22 +171,73 @@ public class AggregateThingsMetricsActorTest {
             );
 
             actor.tell(command, getRef());
-            config.getTags().entrySet().stream().filter(entry -> entry.getKey().startsWith("expectedResult"))
-                    .forEach(entry -> {
-                        String expectedResult = entry.getValue();
-                        final AggregateThingsMetricsResponse response =
-                                expectMsgClass(Duration.ofSeconds(5), AggregateThingsMetricsResponse.class);
-                        LOG.info("Aggregation {}: {}", entry.getKey(), response);
-                        assertThat(response.getMetricName()).isEqualTo(config.getMetricName());
-                        assertThat(response.getResult()).isPresent();
-                        config.getGroupBy().keySet().forEach(key ->
-                                assertThat(response.getGroupedBy()).containsKey(key)
-                        );
-                        if (expectedResult != null) {
-                            assertThat(response.getResult().get()).isEqualTo(Integer.parseInt(expectedResult));
-                        }
 
-                    });
+            final AggregateThingsMetricsBatch batch =
+                    expectMsgClass(Duration.ofSeconds(5), AggregateThingsMetricsBatch.class);
+            assertThat(batch.metricName()).isEqualTo(config.getMetricName());
+
+            final List<Map.Entry<String, String>> expectedResults = config.getTags().entrySet().stream()
+                    .filter(entry -> entry.getKey().startsWith("expectedResult"))
+                    .toList();
+            assertThat(batch.responses()).hasSize(expectedResults.size());
+
+            for (final AggregateThingsMetricsResponse response : batch.responses()) {
+                LOG.info("Aggregation batch element: {}", response);
+                assertThat(response.getMetricName()).isEqualTo(config.getMetricName());
+                assertThat(response.getResult()).isPresent();
+                config.getGroupBy().keySet().forEach(key ->
+                        assertThat(response.getGroupedBy()).containsKey(key)
+                );
+            }
+
+            // verify expected result values are present in the batch
+            final List<Long> actualValues = batch.responses().stream()
+                    .map(AggregateThingsMetricsResponse::getResult)
+                    .filter(Optional::isPresent)
+                    .map(java.util.Optional::get)
+                    .sorted()
+                    .toList();
+            final List<Long> expectedValues = expectedResults.stream()
+                    .map(Map.Entry::getValue)
+                    .filter(Objects::nonNull)
+                    .map(Long::parseLong)
+                    .sorted()
+                    .toList();
+            assertThat(actualValues).isEqualTo(expectedValues);
+
+            expectNoMsg();
+        }};
+    }
+
+    /**
+     * Regression test: when the aggregation filter matches zero documents (all group-by buckets vanished),
+     * the actor must still return an {@link AggregateThingsMetricsBatch} with an empty response list.
+     * This enables the receiving actor to reconcile and zero the vanished gauges.
+     */
+    @Test
+    public void testVanishedBucketsReturnEmptyBatch() {
+        new TestKit(SYSTEM) {{
+
+            final var actor = SYSTEM.actorOf(AggregateThingsMetricsActor.props(persistence));
+
+            // use a filter that matches no documents to simulate all group-by buckets vanishing
+            final AggregateThingsMetrics command = AggregateThingsMetrics.of(
+                    config.getMetricName(),
+                    config.getGroupBy(),
+                    "eq(attributes/nonExistentField,\"impossible-value\")",
+                    config.getNamespaces(),
+                    DittoHeaders.newBuilder()
+                            .correlationId("vanished-buckets-test-" + UUID.randomUUID())
+                            .build()
+            );
+
+            actor.tell(command, getRef());
+
+            final AggregateThingsMetricsBatch batch =
+                    expectMsgClass(Duration.ofSeconds(5), AggregateThingsMetricsBatch.class);
+            assertThat(batch.metricName()).isEqualTo(config.getMetricName());
+            assertThat(batch.responses()).isEmpty();
+
             expectNoMsg();
         }};
     }
