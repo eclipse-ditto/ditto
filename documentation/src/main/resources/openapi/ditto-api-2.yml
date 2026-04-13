@@ -796,25 +796,16 @@ paths:
             type: boolean
             default: false
       requestBody:
-        description: 'JSON payload containing the new definition URL, migration payload, patch conditions, and initialization flag.'
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/requestBodies/MigrateThingDefinitionRequest/content/application~1json/schema'
+        $ref: '#/components/requestBodies/MigrateThingDefinitionRequest'
       responses:
         '200':
-          description: 'The thing definition was successfully updated, and the updated Thing is returned.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/responses/MigrateThingDefinitionResponse/content/application~1json/schema'
+          $ref: '#/components/responses/MigrateThingDefinitionResponse'
         '202':
           description: Dry-run successful. The migration result is returned without applying changes.
           content:
             application/json:
               schema:
-                $ref: '#/components/responses/MigrateThingDefinitionResponse/content/application~1json/schema'
+                $ref: '#/components/schemas/MigrateThingDefinitionResponse'
         '400':
           description: The request could not be processed due to invalid input.
           content:
@@ -8056,19 +8047,10 @@ paths:
       tags:
         - Policies
       requestBody:
-        description: JSON payload containing entities and their permissions to be checked.
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/requestBodies/PermissionCheckRequest'
+        $ref: '#/components/requestBodies/PermissionCheckRequest'
       responses:
         '200':
-          description: Permission check results for each entity.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/responses/PermissionCheckResponse'
+          $ref: '#/components/responses/PermissionCheckResponse'
         '401':
           description: Unauthorized request due to missing authentication.
           content:
@@ -9860,59 +9842,9 @@ components:
       content:
         application/json:
           schema:
-            type: object
-            description: JSON payload to migrate the definition of a Thing.
-            properties:
-              thingDefinitionUrl:
-                type: string
-                format: uri
-                description: The URL of the new Thing definition to be applied.
-                example: 'https://models.example.com/thing-definition-1.0.0.tm.jsonld'
-              migrationPayload:
-                type: object
-                description: |
-                  Optional migration payload with updates to attributes and features.
-                  String values may contain {{ thing-json:<json-pointer> }} placeholders to reference
-                  existing Thing data (e.g. attributes/location, features/sensor/properties/temp).
-                  Resolved values keep their JSON type; missing paths cause the request to fail.
-                properties:
-                  attributes:
-                    type: object
-                    additionalProperties: true
-                    description: Attributes to be updated in the thing.
-                    example:
-                      manufacturer: New Corp
-                      location: 'Berlin, main floor'
-                  features:
-                    type: object
-                    additionalProperties:
-                      type: object
-                      properties:
-                        properties:
-                          type: object
-                          additionalProperties: true
-                    description: Features to be updated in the thing.
-                    example:
-                      thermostat:
-                        properties:
-                          status:
-                            temperature:
-                              value: 23.5
-                              unit: DEGREE_CELSIUS
-              patchConditions:
-                type: object
-                description: Optional conditions to apply the migration only if the existing thing matches the specified values.
-                additionalProperties:
-                  type: string
-                example:
-                  'thing:/features/thermostat': not(exists(/features/thermostat))
-              initializeMissingPropertiesFromDefaults:
-                type: boolean
-                description: Flag indicating whether missing properties should be initialized with default values.
-                example: true
-                default: false
-            required:
-              - thingDefinitionUrl
+            $ref: '#/components/schemas/MigrateThingDefinitionRequest'
+      description: 'JSON payload containing the new definition URL, migration payload, patch conditions, and initialization flag.'
+      required: true
     PermissionCheckRequest:
       content:
         application/json:
@@ -10042,36 +9974,7 @@ components:
       content:
         application/json:
           schema:
-            type: object
-            description: Response payload after applying or simulating a migration to a Thing.
-            properties:
-              thingId:
-                type: string
-                description: Unique identifier representing the migrated Thing.
-              patch:
-                type: object
-                description: The patch containing updates to the Thing.
-                properties:
-                  definition:
-                    $ref: '#/components/schemas/Definition'
-                  attributes:
-                    $ref: '#/components/schemas/Attributes'
-                  features:
-                    $ref: '#/components/schemas/Features'
-              mergeStatus:
-                type: string
-                description: |
-                  Indicates the result of the migration process.
-                  - `APPLIED`: The migration was successfully applied.
-                  - `DRY_RUN`: The migration result was calculated but not applied.
-                enum:
-                  - APPLIED
-                  - DRY_RUN
-                example: APPLIED
-            required:
-              - thingId
-              - patch
-              - mergeStatus
+            $ref: '#/components/schemas/MigrateThingDefinitionResponse'
     PermissionCheckResponse:
       description: Response with permission check results for each entity.
       content:
@@ -11072,6 +10975,91 @@ components:
       required:
         - thingId
         - policyId
+    MigrateThingDefinitionRequest:
+      type: object
+      description: JSON payload to migrate the definition of a Thing.
+      properties:
+        thingDefinitionUrl:
+          type: string
+          format: uri
+          description: The URL of the new Thing definition to be applied.
+          example: 'https://models.example.com/thing-definition-1.0.0.tm.jsonld'
+        migrationPayload:
+          type: object
+          description: |
+            Optional migration payload with updates to attributes and features.
+            String values may contain {{ thing-json:<json-pointer> }} placeholders to reference
+            existing Thing data (e.g. attributes/location, features/sensor/properties/temp).
+            Resolved values keep their JSON type; missing paths cause the request to fail.
+          properties:
+            attributes:
+              type: object
+              additionalProperties: true
+              description: Attributes to be updated in the thing.
+              example:
+                manufacturer: New Corp
+                location: 'Berlin, main floor'
+            features:
+              type: object
+              additionalProperties:
+                type: object
+                properties:
+                  properties:
+                    type: object
+                    additionalProperties: true
+              description: Features to be updated in the thing.
+              example:
+                thermostat:
+                  properties:
+                    status:
+                      temperature:
+                        value: 23.5
+                        unit: DEGREE_CELSIUS
+        patchConditions:
+          type: object
+          description: Optional conditions to apply the migration only if the existing thing matches the specified values.
+          additionalProperties:
+            type: string
+          example:
+            'thing:/features/thermostat': not(exists(/features/thermostat))
+        initializeMissingPropertiesFromDefaults:
+          type: boolean
+          description: Flag indicating whether missing properties should be initialized with default values.
+          example: true
+          default: false
+      required:
+        - thingDefinitionUrl
+    MigrateThingDefinitionResponse:
+      type: object
+      description: Response payload after applying or simulating a migration to a Thing.
+      properties:
+        thingId:
+          type: string
+          description: Unique identifier representing the migrated Thing.
+        patch:
+          type: object
+          description: The patch containing updates to the Thing.
+          properties:
+            definition:
+              $ref: '#/components/schemas/Definition'
+            attributes:
+              $ref: '#/components/schemas/Attributes'
+            features:
+              $ref: '#/components/schemas/Features'
+        mergeStatus:
+          type: string
+          description: |
+            Indicates the result of the migration process.
+            - `APPLIED`: The migration was successfully applied.
+            - `DRY_RUN`: The migration result was calculated but not applied.
+          enum:
+            - APPLIED
+            - DRY_RUN
+          example: APPLIED
+      required:
+        - thingId
+        - patch
+        - mergeStatus
     NewPolicy:
       type: object
       description: Policy consisting of policy entries

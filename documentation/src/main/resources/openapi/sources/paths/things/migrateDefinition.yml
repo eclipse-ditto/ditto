@@ -64,19 +64,10 @@ post:
         type: boolean
         default: false
   requestBody:
-    description: JSON payload containing the new definition URL, migration payload, patch conditions, and initialization flag.
-    required: true
-    content:
-      application/json:
-        schema:
-          $ref: '../../requests/things/migrateThingDefinitionRequest.yml'
+    $ref: '../../requests/things/migrateThingDefinition.yml'
   responses:
     '200':
-      description: The thing definition was successfully updated, and the updated Thing is returned.
-      content:
-        application/json:
-          schema:
-            $ref: '../../responses/things/migrateThingDefinitionResponse.yml'
+      $ref: '../../responses/things/migrateThingDefinition.yml'
     '202':
       description: Dry-run successful. The migration result is returned without applying changes.
       content:

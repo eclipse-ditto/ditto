@@ -252,10 +252,7 @@ components:
     ActivateTokenIntegration:
       $ref: "./requests/policies/actions/activateTokenIntegration.yml"
     MigrateThingDefinitionRequest:
-      content:
-        application/json:
-          schema:
-            $ref: "./requests/things/migrateThingDefinitionRequest.yml"
+      $ref: "./requests/things/migrateThingDefinition.yml"
     PermissionCheckRequest:
       $ref: "./requests/permissionCheckRequest.yml"
     DynamicValidationConfigRequest:
@@ -279,11 +276,7 @@ components:
     SuccessUpdateLogLevelSinglePod:
       $ref: "./responses/successUpdateLogLevelSinglePod.yml"
     MigrateThingDefinitionResponse:
-      description: The thing definition was successfully updated, and the updated Thing is returned.
-      content:
-        application/json:
-          schema:
-            $ref: "./responses/things/migrateThingDefinitionResponse.yml"
+      $ref: "./responses/things/migrateThingDefinition.yml"
     PermissionCheckResponse:
       $ref: "./responses/permissionCheckResponse.yml"
     WotValidationConfigResponse:
@@ -416,6 +409,10 @@ components:
       $ref: "./schemas/things/patchThing.yml"
     Thing:
       $ref: "./schemas/things/thing.yml"
+    MigrateThingDefinitionRequest:
+      $ref: "./requests/things/migrateThingDefinitionRequest.yml"
+    MigrateThingDefinitionResponse:
+      $ref: "./responses/things/migrateThingDefinitionResponse.yml"
     NewPolicy:
       $ref: "./schemas/policies/newPolicy.yml"
     Policy:
