@@ -25,11 +25,13 @@ import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonArrayBuilder;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.model.Permissions;
@@ -137,11 +139,25 @@ public final class PartialAccessPathCalculator {
 
     /**
      * Calculates accessible paths for a set of subjects with restricted access using a batch call.
+     * <p>
+     * The {@link Enforcer#getAccessiblePathsForSubjects} call returns a per-subject set of
+     * <em>leaf</em> JsonPointers obtained by flattening the Thing JSON. For Things with
+     * high-cardinality features (hundreds of child entries, each potentially with several
+     * properties), that leaf set can reach several thousand entries per subject. Serialized
+     * into the {@code ditto-partial-access-paths} header, the resulting JSON easily exceeds
+     * the Pekko Artery remoting frame size, causing {@code BufferOverflowException} in
+     * {@code PublishSignal} serialization and silently dropping every {@code ThingEvent} for
+     * the affected Thing cluster-wide.
+     * <p>
+     * This method therefore post-processes the enforcer output by collapsing any subtree of
+     * the Thing JSON whose leaves are <em>all</em> accessible to the subject into a single
+     * ancestor pointer. This mirrors Ditto's native policy semantics (a READ grant on an
+     * ancestor implies read on every descendant) and the consumer-side filter
      *
      * @param subjectsWithRestrictedAccess subjects to calculate paths for
      * @param thingJson the Thing JSON representation
      * @param enforcer the Enforcer to use
-     * @return map of subject ID to their accessible paths
+     * @return map of subject ID to their accessible paths (ancestor-collapsed)
      */
     private static Map<String, List<JsonPointer>> calculateAccessiblePathsForSubjects(
             final Set<AuthorizationSubject> subjectsWithRestrictedAccess,
@@ -155,9 +171,90 @@ public final class PartialAccessPathCalculator {
 
         final Map<String, List<JsonPointer>> result = new LinkedHashMap<>();
         for (final Map.Entry<AuthorizationSubject, Set<JsonPointer>> entry : batchResult.entrySet()) {
-            result.put(entry.getKey().getId(), new ArrayList<>(entry.getValue()));
+            final Set<JsonPointer> collapsed = collapseLeavesToAncestors(entry.getValue(), thingJson);
+            result.put(entry.getKey().getId(), new ArrayList<>(collapsed));
         }
         return result;
+    }
+
+    /**
+     * Collapses a flat set of leaf pointers into the minimal set of pointers that still covers
+     * the same accessible fields when the consumer filter is applied.
+     * <p>
+     * The algorithm walks the Thing JSON top-down: at each non-empty object node, if every
+     * descendant leaf of that node is in {@code leaves}, the entire subtree is replaced by a
+     * single entry for the node's path; otherwise recursion continues into the children. Leaves
+     * outside {@code leaves} are naturally omitted.
+     * <p>
+     * Empty-object nodes (e.g. {@code "properties": {}}) are treated as leaves themselves to
+     * match how the enforcer emits them.
+     *
+     * @param leaves the leaf-level accessible pointers returned by the enforcer
+     * @param thingJson the Thing JSON representation to walk
+     * @return the ancestor-collapsed accessible pointer set
+     * @since 3.9.0
+     */
+    static Set<JsonPointer> collapseLeavesToAncestors(final Set<JsonPointer> leaves,
+            final JsonObject thingJson) {
+
+        if (leaves.isEmpty()) {
+            return Set.of();
+        }
+        final Set<JsonPointer> result = new LinkedHashSet<>();
+        final boolean allAccessible = collapseRecursive(thingJson, ROOT_RESOURCE_POINTER, leaves, result);
+        if (allAccessible && result.isEmpty()) {
+            // Every leaf in the Thing is accessible to this subject — emit the root pointer so the
+            // consumer filter short-circuits to "unrestricted". The subject should normally have
+            // been excluded upstream (via SubjectClassification), but a policy that grants the
+            // union of all leaves without granting the root would otherwise be flattened here.
+            result.add(ROOT_RESOURCE_POINTER);
+        }
+        return result;
+    }
+
+    /**
+     * Walks the Thing JSON and emits into {@code result} the minimal pointer set that still
+     * covers every leaf of {@code leaves} when the consumer filter is applied. A fully-accessible
+     * subtree collapses to a single ancestor pointer.
+     *
+     * @return {@code true} iff every leaf descendant of {@code node} at {@code currentPath} is
+     * present in {@code leaves} — signalling to the caller that it may collapse further up.
+     */
+    private static boolean collapseRecursive(final JsonValue node, final JsonPointer currentPath,
+            final Set<JsonPointer> leaves, final Set<JsonPointer> result) {
+
+        if (!node.isObject() || node.isNull()) {
+            if (leaves.contains(currentPath)) {
+                result.add(currentPath);
+                return true;
+            }
+            return false;
+        }
+        final JsonObject obj = node.asObject();
+        if (obj.isEmpty()) {
+            if (leaves.contains(currentPath)) {
+                result.add(currentPath);
+                return true;
+            }
+            return false;
+        }
+
+        final Set<JsonPointer> childEmissions = new LinkedHashSet<>();
+        boolean allChildrenAccessible = true;
+        for (final JsonField field : obj) {
+            final JsonPointer childPath = currentPath.addLeaf(field.getKey());
+            final boolean childAll = collapseRecursive(field.getValue(), childPath, leaves, childEmissions);
+            if (!childAll) {
+                allChildrenAccessible = false;
+            }
+        }
+        if (allChildrenAccessible && !currentPath.isEmpty()) {
+            // Collapse: replace all descendant emissions with a single ancestor pointer.
+            result.add(currentPath);
+            return true;
+        }
+        result.addAll(childEmissions);
+        return allChildrenAccessible;
     }
 
     /**
