@@ -185,6 +185,11 @@ final class PolicyModifyCommandMappingStrategies extends AbstractPolicyMappingSt
                         entryAdditionLabelFromImportPath(adaptable.getPayload().getPath()),
                         dittoHeadersFrom(adaptable)));
 
+        mappingStrategies.put(DeletePolicyImports.TYPE,
+                adaptable -> DeletePolicyImports.of(
+                        policyIdFromTopicPath(adaptable.getTopicPath()),
+                        dittoHeadersFrom(adaptable)));
+
         addImportsAliasesCommands(mappingStrategies);
 
         return mappingStrategies;
@@ -213,11 +218,6 @@ final class PolicyModifyCommandMappingStrategies extends AbstractPolicyMappingSt
 
         mappingStrategies.put(DeleteImportsAliases.TYPE,
                 adaptable -> DeleteImportsAliases.of(
-                        policyIdFromTopicPath(adaptable.getTopicPath()),
-                        dittoHeadersFrom(adaptable)));
-
-        mappingStrategies.put(DeletePolicyImports.TYPE,
-                adaptable -> DeletePolicyImports.of(
                         policyIdFromTopicPath(adaptable.getTopicPath()),
                         dittoHeadersFrom(adaptable)));
     }

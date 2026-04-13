@@ -90,6 +90,7 @@ final class PolicyEventMappingStrategies extends AbstractPolicyMappingStrategies
         addImportableEvents(mappingStrategies);
         addImportEntriesEvents(mappingStrategies);
         addImportEntriesAdditionsEvents(mappingStrategies);
+        addPolicyImportsEvents(mappingStrategies);
         addImportsAliasesEvents(mappingStrategies);
         return mappingStrategies;
     }
@@ -330,10 +331,20 @@ final class PolicyEventMappingStrategies extends AbstractPolicyMappingStrategies
                         metadataFrom(adaptable)));
     }
 
+    private static void addPolicyImportsEvents(
+            final Map<String, JsonifiableMapper<PolicyEvent<?>>> mappingStrategies) {
+        mappingStrategies.put(PolicyImportsDeleted.TYPE,
+                adaptable -> PolicyImportsDeleted.of(policyIdFrom(adaptable),
+                        revisionFrom(adaptable),
+                        timestampFrom(adaptable),
+                        dittoHeadersFrom(adaptable),
+                        metadataFrom(adaptable)));
+    }
+
     private static void addImportsAliasesEvents(
             final Map<String, JsonifiableMapper<PolicyEvent<?>>> mappingStrategies) {
 
-        // CRUD events for subject aliases
+        // CRUD events for imports aliases
         mappingStrategies.put(ImportsAliasesModified.TYPE,
                 adaptable -> ImportsAliasesModified.of(policyIdFrom(adaptable),
                         importsAliasesFrom(adaptable),
@@ -366,12 +377,6 @@ final class PolicyEventMappingStrategies extends AbstractPolicyMappingStrategies
                         metadataFrom(adaptable)));
         mappingStrategies.put(ImportsAliasesDeleted.TYPE,
                 adaptable -> ImportsAliasesDeleted.of(policyIdFrom(adaptable),
-                        revisionFrom(adaptable),
-                        timestampFrom(adaptable),
-                        dittoHeadersFrom(adaptable),
-                        metadataFrom(adaptable)));
-        mappingStrategies.put(PolicyImportsDeleted.TYPE,
-                adaptable -> PolicyImportsDeleted.of(policyIdFrom(adaptable),
                         revisionFrom(adaptable),
                         timestampFrom(adaptable),
                         dittoHeadersFrom(adaptable),

@@ -95,6 +95,8 @@ final class PolicyModifyCommandResponseMappingStrategies implements MappingStrat
 
         addPolicyImportEntriesAdditionsResponses(streamBuilder);
 
+        addPolicyImportsResponses(streamBuilder);
+
         addImportsAliasesResponses(streamBuilder);
 
         final Stream<AdaptableToSignalMapper<? extends PolicyModifyCommandResponse<?>>> mappers = streamBuilder.build();
@@ -304,6 +306,16 @@ final class PolicyModifyCommandResponseMappingStrategies implements MappingStrat
                         mappingContext.getDittoHeaders())));
     }
 
+    private static void addPolicyImportsResponses(
+            final Consumer<AdaptableToSignalMapper<? extends PolicyModifyCommandResponse<?>>> streamBuilder) {
+
+        streamBuilder.accept(AdaptableToSignalMapper.of(DeletePolicyImportsResponse.TYPE,
+                mappingContext -> DeletePolicyImportsResponse.newInstance(
+                        mappingContext.getPolicyIdFromTopicPath(),
+                        mappingContext.getHttpStatusOrThrow(),
+                        mappingContext.getDittoHeaders())));
+    }
+
     private static void addImportsAliasesResponses(
             final Consumer<AdaptableToSignalMapper<? extends PolicyModifyCommandResponse<?>>> streamBuilder) {
 
@@ -341,12 +353,6 @@ final class PolicyModifyCommandResponseMappingStrategies implements MappingStrat
 
         streamBuilder.accept(AdaptableToSignalMapper.of(DeleteImportsAliasesResponse.TYPE,
                 mappingContext -> DeleteImportsAliasesResponse.newInstance(
-                        mappingContext.getPolicyIdFromTopicPath(),
-                        mappingContext.getHttpStatusOrThrow(),
-                        mappingContext.getDittoHeaders())));
-
-        streamBuilder.accept(AdaptableToSignalMapper.of(DeletePolicyImportsResponse.TYPE,
-                mappingContext -> DeletePolicyImportsResponse.newInstance(
                         mappingContext.getPolicyIdFromTopicPath(),
                         mappingContext.getHttpStatusOrThrow(),
                         mappingContext.getDittoHeaders())));
