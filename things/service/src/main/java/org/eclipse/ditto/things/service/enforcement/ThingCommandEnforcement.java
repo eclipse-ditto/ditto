@@ -82,6 +82,7 @@ import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeature;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveWotThingDescriptionResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.things.model.devops.commands.WotValidationConfigCommand;
@@ -165,11 +166,17 @@ final class ThingCommandEnforcement
 
         final ThingCommand<?> authorizedCommand;
         if (isWotTdRequestingThingQueryCommand(command)) {
-            // authorization is not necessary for WoT TD requesting thing query command, this is treated as public
-            // information:
             FeatureToggle.checkWotIntegrationFeatureEnabled(command.getType(), command.getDittoHeaders());
-            // for retrieving the WoT TD, assume that full TD gets returned unfiltered:
-            authorizedCommand = prepareThingCommandBeforeSendingToPersistence(command);
+            if (FeatureToggle.isWotTdPermissionFilteringEnabled()) {
+                // user needs at least partial READ permission; TD will be filtered in filterResponse()
+                final var commandWithReadSubjects =
+                        authorizeByPolicyOrThrow(policyEnforcer.getEnforcer(), command, partialAccessEventsEnabled);
+                authorizedCommand = prepareThingCommandBeforeSendingToPersistence(
+                        ensureTwinChannel((ThingQueryCommand<?>) commandWithReadSubjects));
+            } else {
+                // legacy behavior: TD is public information, no authorization check
+                authorizedCommand = prepareThingCommandBeforeSendingToPersistence(command);
+            }
         } else {
             try {
                 final var commandWithReadSubjects =
@@ -227,7 +234,16 @@ final class ThingCommandEnforcement
     public CompletionStage<ThingCommandResponse<?>> filterResponse(final ThingCommandResponse<?> commandResponse,
             final PolicyEnforcer policyEnforcer) {
 
-        if (commandResponse instanceof ThingQueryCommandResponse<?> thingQueryCommandResponse) {
+        if (commandResponse instanceof RetrieveWotThingDescriptionResponse tdResponse
+                && FeatureToggle.isWotTdPermissionFilteringEnabled()) {
+            try {
+                return WotThingDescriptionEnforcement.filterThingDescription(tdResponse,
+                        policyEnforcer.getEnforcer())
+                        .thenApply(ThingCommandResponse.class::cast);
+            } catch (final RuntimeException e) {
+                throw reportError("Error after filtering WoT TD", e, commandResponse.getDittoHeaders());
+            }
+        } else if (commandResponse instanceof ThingQueryCommandResponse<?> thingQueryCommandResponse) {
             try {
                 final ThingQueryCommandResponse<?> filteredResponse =
                         buildJsonViewForThingQueryCommandResponse(thingQueryCommandResponse,

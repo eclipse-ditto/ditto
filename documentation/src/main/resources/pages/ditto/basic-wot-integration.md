@@ -301,15 +301,30 @@ prefix to create into the TDs, depending on your public Ditto endpoint.
 
 #### Security: TD access / authorization
 
-For accessing Thing Descriptions created for Things and Features no special permission in the Thing's 
-[Policy](basic-policy.html) is required.
+Starting with Ditto **3.9.0**, the generated Thing Description is **dynamically scoped** to the requesting user's
+permissions defined in the Thing's [Policy](basic-policy.html).
 
-As the Thing Model must be a publicly available resource and the Thing ID is also known for a user requesting the TD of 
-a Thing, there is no additional information to disclose.
+This means:
+* the user must have at least partial `READ` permission on the Thing (or Feature) to request its TD
+* only WoT **properties** the user is allowed to `READ` (on the corresponding [Thing](basic-policy.html#thing) or
+  [Feature](basic-policy.html#feature) resource) are included in the TD
+* properties the user can `READ` but **not** `WRITE` are marked as `readOnly` in the TD, and their `writeproperty`
+  form elements are removed
+* only WoT **actions** the user is allowed to invoke (`WRITE` on the corresponding
+  [Message](basic-policy.html#message) `inbox` resource) are included
+* only WoT **events** the user is allowed to subscribe to (`READ` on the corresponding
+  [Message](basic-policy.html#message) `outbox` resource) are included
+* sub-model `item` links to Features the user has no `READ` access to are removed from Thing-level TDs
+* root-level `readallproperties`/`writeallproperties` forms are removed when no readable/writable properties remain
 
-Accessing the `properties`, invoking `actions` and subscribing for `events` is of course authorized by the Thing's 
-Policy via its [Thing](basic-policy.html#thing), [Feature](basic-policy.html#feature) and 
-[Message](basic-policy.html#message) resources.
+This feature can be disabled to restore the previous behavior (unfiltered TDs for any authenticated user) by setting:
+
+```bash
+DITTO_DEVOPS_FEATURE_WOT_TD_PERMISSION_FILTERING_ENABLED=false
+```
+
+{% include note.html content="Prior to Ditto 3.9.0, any authenticated user could access the full TD of any Thing
+    without authorization checks. The TD was treated as public information." %}
 
 #### TD generation for Things
 
