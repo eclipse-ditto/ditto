@@ -43,7 +43,7 @@ import org.eclipse.ditto.wot.model.ThingModel;
 import org.eclipse.ditto.wot.model.TmOptionalElement;
 import org.eclipse.ditto.wot.model.WotThingModelInvalidException;
 
-import com.networknt.schema.JsonSchema;
+import com.networknt.schema.Schema;
 import com.networknt.schema.output.OutputUnit;
 
 final class InternalValidation {
@@ -52,7 +52,7 @@ final class InternalValidation {
 
     private final JsonSchemaTools jsonSchemaTools;
 
-    InternalValidation(@Nullable final Cache<JsonSchemaCacheKey, JsonSchema> jsonSchemaCache) {
+    InternalValidation(@Nullable final Cache<JsonSchemaCacheKey, Schema> jsonSchemaCache) {
         jsonSchemaTools = new JsonSchemaTools(jsonSchemaCache);
     }
 

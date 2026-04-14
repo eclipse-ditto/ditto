@@ -1,14 +1,25 @@
 # Ditto "Things Search" configuration extension file to be placed at /opt/ditto/search-extension.conf
 ditto {
+  headers {
+    redacted-in-log = [
+    {{- range $index, $header := .Values.thingsSearch.config.headersRedactedInLog }}
+      "{{$header}}"
+    {{- end }}
+    ]
+  }
+
+  {{- if .Values.thingsSearch.config.namespacePolicies }}
   namespace-policies {
-  {{- range $namespace, $policyIds := .Values.global.namespacePolicies }}
-    "{{$namespace}}" = [
-    {{- range $index, $policyId := $policyIds }}
+  {{- range $pattern, $policyIds := .Values.thingsSearch.config.namespacePolicies }}
+    "{{$pattern}}" = [
+    {{- range $idx, $policyId := $policyIds }}
       "{{$policyId}}"
     {{- end }}
     ]
   {{- end }}
   }
+  {{- end }}
+
   {{- if .Values.thingsSearch.config.indexedFieldsLimiting.enabled }}
   extensions {
     caching-signal-enrichment-facade-provider = "org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchIndexingSignalEnrichmentFacadeProvider"
@@ -29,25 +40,25 @@ ditto {
         {{- end }}
         ]
     {{- end }}
-    {{- if .Values.thingsSearch.config.indexInitialization.customIndexes }}
+    }
+
+    {{- if .Values.thingsSearch.config.customIndexes }}
+    updater {
+      persistence {
         custom-indexes {
-        {{- range $indexName, $indexValue := .Values.thingsSearch.config.indexInitialization.customIndexes }}
-          {{$indexName}} {
+        {{- range $indexName, $fields := .Values.thingsSearch.config.customIndexes }}
+          "{{$indexName}}" {
             fields = [
-            {{- range $fieldIndex, $field := $indexValue.fields }}
-              {
-                name = "{{$field.name}}"
-                {{- if $field.direction }}
-                direction = "{{$field.direction}}"
-                {{- end }}
-              }
+            {{- range $fieldIdx, $field := $fields }}
+              { name = "{{$field.name}}", direction = "{{$field.direction}}" }
             {{- end }}
             ]
           }
         {{- end }}
         }
-    {{- end }}
+      }
     }
+    {{- end }}
 
     {{- if .Values.thingsSearch.config.indexedFieldsLimiting.enabled }}
     namespace-indexed-fields = [

@@ -1,5 +1,13 @@
 # Ditto "Gateway" configuration extension file to be placed at /opt/ditto/gateway-extension.conf
 ditto {
+  headers {
+    redacted-in-log = [
+    {{- range $index, $header := .Values.gateway.config.headersRedactedInLog }}
+      "{{$header}}"
+    {{- end }}
+    ]
+  }
+
   gateway {
     authentication {
       oauth {
@@ -17,11 +25,13 @@ ditto {
               {{$claimKey}} = "{{$claimValue}}"
             {{- end }}
             }
+            {{- if $value.prerequisiteConditions }}
             prerequisite-conditions = [
             {{- range $index, $condition := $value.prerequisiteConditions }}
               "{{$condition}}"
             {{- end }}
             ]
+            {{- end }}
           }
         {{- end }}
         }
@@ -29,28 +39,34 @@ ditto {
 
       {{- if .Values.gateway.config.authentication.namespaceAccess }}
       namespace-access = [
-      {{- range $ruleIndex, $rule := .Values.gateway.config.authentication.namespaceAccess }}
+      {{- range $index, $rule := .Values.gateway.config.authentication.namespaceAccess }}
         {
           conditions = [
-          {{- range $condIndex, $condition := $rule.conditions }}
+          {{- range $condIdx, $condition := $rule.conditions }}
             "{{$condition}}"
           {{- end }}
           ]
+          {{- if $rule.resourceTypes }}
           resource-types = [
-          {{- range $rtIndex, $resourceType := $rule.resourceTypes }}
-            "{{$resourceType}}"
+          {{- range $rtIdx, $rt := $rule.resourceTypes }}
+            "{{$rt}}"
           {{- end }}
           ]
+          {{- end }}
+          {{- if $rule.allowedNamespaces }}
           allowed-namespaces = [
-          {{- range $nsIndex, $namespace := $rule.allowedNamespaces }}
-            "{{$namespace}}"
+          {{- range $nsIdx, $ns := $rule.allowedNamespaces }}
+            "{{$ns}}"
           {{- end }}
           ]
+          {{- end }}
+          {{- if $rule.blockedNamespaces }}
           blocked-namespaces = [
-          {{- range $bnsIndex, $namespace := $rule.blockedNamespaces }}
-            "{{$namespace}}"
+          {{- range $nsIdx, $ns := $rule.blockedNamespaces }}
+            "{{$ns}}"
           {{- end }}
           ]
+          {{- end }}
         }
       {{- end }}
       ]
@@ -72,11 +88,13 @@ ditto {
                 {{$claimKey}} = "{{$claimValue}}"
               {{- end }}
               }
+              {{- if $value.prerequisiteConditions }}
               prerequisite-conditions = [
               {{- range $index, $condition := $value.prerequisiteConditions }}
                 "{{$condition}}"
               {{- end }}
               ]
+              {{- end }}
             }
           {{- end }}
           }
@@ -92,6 +110,11 @@ ditto {
         {{- end }}
         ]
       }
+    }
+
+    wot-directory {
+      base-prefix = "{{ .Values.gateway.config.wotDirectory.basePrefix }}"
+      authentication-required = {{ .Values.gateway.config.wotDirectory.authenticationRequired }}
     }
   }
 }

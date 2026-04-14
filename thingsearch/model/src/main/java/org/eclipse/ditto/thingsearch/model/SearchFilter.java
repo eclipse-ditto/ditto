@@ -65,6 +65,14 @@ public interface SearchFilter {
         EXISTS("exists"),
 
         /**
+         * Filter type for checking if a field is absent or void of content (null, empty array, empty object,
+         * empty string).
+         *
+         * @since 3.9.0
+         */
+        EMPTY("empty"),
+
+        /**
          * Filter type for checking if two entities are equal.
          */
         EQ("eq"),

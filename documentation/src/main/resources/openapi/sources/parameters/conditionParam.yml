@@ -32,6 +32,8 @@ description: >-
 
   * ```?condition=exists(features/temperature/properties/value)```
 
+  * ```?condition=empty(features/temperature/properties/value)```
+
   * ```?condition=and(gt(features/temperature/properties/value,18.5),lt(features/temperature/properties/value,25.2))```
 
   * ```?condition=or(gt(features/temperature/properties/value,18.5),not(exists(features/temperature/properties/value))```

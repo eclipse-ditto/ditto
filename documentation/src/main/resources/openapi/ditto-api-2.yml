@@ -10099,6 +10099,7 @@ components:
         * ```?condition=ge(features/temperature/properties/lastModified,"2021-08-22T19:45:00Z")```
         * ```?condition=gt(_modified,"2021-08-05T12:17:00Z")```
         * ```?condition=exists(features/temperature/properties/value)```
+        * ```?condition=empty(features/temperature/properties/value)```
         * ```?condition=and(gt(features/temperature/properties/value,18.5),lt(features/temperature/properties/value,25.2))```
         * ```?condition=or(gt(features/temperature/properties/value,18.5),not(exists(features/temperature/properties/value))```
       required: false
@@ -10553,6 +10554,8 @@ components:
 
         * ```exists({property})```  (i.e. all things in which the given path exists)
 
+        * ```empty({property})```  (i.e. all things in which the given path is absent, null, an empty array, an empty object or an empty string)
+
 
         Note: When using filter operations, only things with the specified properties are returned.
         For example, the filter `ne(attributes/owner, "SID123")` will only return things that do have
@@ -10578,6 +10581,8 @@ components:
         * ```gt(_created,"2020-08-05T12:17")```
 
         * ```exists(features/featureId)```
+
+        * ```empty(attributes/tags)```
 
         * ```and(eq(attributes/location,"kitchen"),eq(attributes/color,"red"))```
 
@@ -12617,6 +12622,8 @@ components:
 
         * ```exists({property})```  (i.e. all things in which the given path exists)
 
+        * ```empty({property})```  (i.e. all things in which the given path is absent, null, an empty array, an empty object or an empty string)
+
 
         Note: When using filter operations, only things with the specified properties are returned.
         For example, the filter `ne(attributes/owner, "SID123")` will only return things that do have
@@ -12642,6 +12649,8 @@ components:
         * ```gt(_created,"2020-08-05T12:17")```
 
         * ```exists(features/featureId)```
+
+        * ```empty(attributes/tags)```
 
         * ```and(eq(attributes/location,"kitchen"),eq(attributes/color,"red"))```
 

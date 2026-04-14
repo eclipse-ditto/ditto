@@ -41,6 +41,7 @@ import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
+import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 
 /**
  * Transforms incoming messages from Apache Kafka to {@link org.eclipse.ditto.connectivity.api.ExternalMessage}.
@@ -107,14 +108,15 @@ final class KafkaMessageTransformer {
         final String correlationId = messageHeaders
                 .getOrDefault(DittoHeaderDefinition.CORRELATION_ID.getKey(), UUID.randomUUID().toString());
 
-        final var startedSpan = DittoTracing.newPreparedSpan(messageHeaders,
-                        SpanOperationName.of("kafka_consume: " + consumerRecord.topic())
-                ).correlationId(correlationId)
-                .connectionId(connectionId)
-                .start();
-        messageHeaders = startedSpan.propagateContext(messageHeaders);
-
+        @Nullable StartedSpan startedSpan = null;
         try {
+            startedSpan = DittoTracing.newPreparedSpan(messageHeaders,
+                            SpanOperationName.of("kafka_consume: " + consumerRecord.topic())
+                    ).correlationId(correlationId)
+                    .connectionId(connectionId)
+                    .start();
+            messageHeaders = startedSpan.propagateContext(messageHeaders);
+
             final String key = consumerRecord.key();
             final ByteBuffer value = consumerRecord.value();
             final ThreadSafeDittoLogger correlationIdScopedLogger = LOGGER.withCorrelationId(messageHeaders);
@@ -144,16 +146,22 @@ final class KafkaMessageTransformer {
                         "Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(),
                         e.getMessage());
             }
-            startedSpan.tagAsFailed(e);
+            if (startedSpan != null) {
+                startedSpan.tagAsFailed(e);
+            }
             return TransformationResult.failed(e.setDittoHeaders(DittoHeaders.of(messageHeaders)));
         } catch (final Exception e) {
             inboundMonitor.exception(messageHeaders, e);
             LOGGER.withCorrelationId(messageHeaders)
                     .error(String.format("Unexpected {%s}: {%s}", e.getClass().getName(), e.getMessage()), e);
-            startedSpan.tagAsFailed(e);
+            if (startedSpan != null) {
+                startedSpan.tagAsFailed(e);
+            }
             return null; // Drop message
         } finally {
-            startedSpan.finish();
+            if (startedSpan != null) {
+                startedSpan.finish();
+            }
         }
 
     }

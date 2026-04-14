@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -657,7 +656,7 @@ public final class ImmutablePolicyTest {
     public void setNamespacesForNewEntryDoesNotIntroduceEmptyAllowedImportAdditions() {
         final Policy policy = createPolicy();
         final Label newLabel = Label.of("NewEntry");
-        final List<String> namespaces = List.of("com.new");
+        final List<String> namespaces = Collections.singletonList("com.new");
 
         final Policy modified = policy.setNamespacesFor(newLabel, namespaces);
 

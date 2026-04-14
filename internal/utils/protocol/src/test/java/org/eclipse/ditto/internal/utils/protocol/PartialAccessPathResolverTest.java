@@ -132,6 +132,38 @@ public final class PartialAccessPathResolverTest {
         assertThat(result.getAccessiblePaths()).isEmpty();
     }
 
+    @Test
+    public void unrestrictedWhenSubscriberHasBothPartialAndUnrestrictedSubjectsPartialFirst() {
+        // Subscriber has two subjects: partial listed first, full listed second.
+        // The unrestricted subject must take precedence regardless of ordering.
+        final AuthorizationContext context = AuthorizationContext.newInstance(
+                DittoAuthorizationContextType.UNSPECIFIED, SUBJECT_PARTIAL, SUBJECT_FULL);
+
+        final var result = PartialAccessPathResolver.resolveAccessiblePathsFromHeader(
+                PARTIAL_ACCESS_HEADER,
+                context,
+                readGranted(SUBJECT_PARTIAL, SUBJECT_FULL));
+
+        assertThat(result.hasUnrestrictedAccess()).isTrue();
+        assertThat(result.shouldFilter()).isFalse();
+    }
+
+    @Test
+    public void unrestrictedWhenSubscriberHasBothPartialAndUnrestrictedSubjectsFullFirst() {
+        // Subscriber has two subjects: full listed first, partial listed second.
+        // The unrestricted subject must take precedence regardless of ordering.
+        final AuthorizationContext context = AuthorizationContext.newInstance(
+                DittoAuthorizationContextType.UNSPECIFIED, SUBJECT_FULL, SUBJECT_PARTIAL);
+
+        final var result = PartialAccessPathResolver.resolveAccessiblePathsFromHeader(
+                PARTIAL_ACCESS_HEADER,
+                context,
+                readGranted(SUBJECT_PARTIAL, SUBJECT_FULL));
+
+        assertThat(result.hasUnrestrictedAccess()).isTrue();
+        assertThat(result.shouldFilter()).isFalse();
+    }
+
     private static AuthorizationContext authContext(final AuthorizationSubject subject) {
         return AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED, subject);
     }

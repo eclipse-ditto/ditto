@@ -29,7 +29,7 @@ import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.wot.model.ThingModel;
 import org.eclipse.ditto.wot.validation.config.TmValidationConfig;
 
-import com.networknt.schema.JsonSchema;
+import com.networknt.schema.Schema;
 
 /**
  * Provides functionality to validate specific parts of a Ditto {@link Thing} and/or Ditto Thing {@link Features} and
@@ -353,7 +353,7 @@ public interface WotThingModelValidation {
      * @since 3.8.0
      */
     static WotThingModelValidation of(final TmValidationConfig validationConfig, final Executor executor,
-            @Nullable final Cache<JsonSchemaCacheKey, JsonSchema> jsonSchemaCache) {
+            @Nullable final Cache<JsonSchemaCacheKey, Schema> jsonSchemaCache) {
         return new DefaultWotThingModelValidation(validationConfig, executor, jsonSchemaCache);
     }
 }

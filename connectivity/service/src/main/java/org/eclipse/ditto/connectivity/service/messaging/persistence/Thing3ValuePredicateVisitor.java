@@ -29,6 +29,7 @@ import org.eclipse.ditto.rql.query.expression.ExistsFieldExpression;
 import org.eclipse.ditto.rql.query.expression.FieldExpression;
 import org.eclipse.ditto.rql.query.expression.FilterFieldExpression;
 import org.eclipse.ditto.rql.query.expression.visitors.FieldExpressionVisitor;
+import org.eclipse.ditto.rql.query.things.EmptyThingPredicateVisitor;
 import org.eclipse.ditto.rql.query.things.ExistsThingPredicateVisitor;
 import org.eclipse.ditto.rql.query.things.FilterThingPredicateVisitor;
 import org.eclipse.ditto.rql.query.things.ThingPredicatePredicateVisitor;
@@ -101,6 +102,13 @@ final class Thing3ValuePredicateVisitor implements CriteriaVisitor<Function<Thin
         return thing -> isUnknownField(fieldExpression)
                 ? Trilean.UNKNOWN
                 : Trilean.lift(ExistsThingPredicateVisitor.apply(fieldExpression, placeholderResolvers).test(thing));
+    }
+
+    @Override
+    public Function<Thing, Trilean> visitEmpty(final ExistsFieldExpression fieldExpression) {
+        return thing -> isUnknownField(fieldExpression)
+                ? Trilean.UNKNOWN
+                : Trilean.lift(EmptyThingPredicateVisitor.apply(fieldExpression, placeholderResolvers).test(thing));
     }
 
     @Override

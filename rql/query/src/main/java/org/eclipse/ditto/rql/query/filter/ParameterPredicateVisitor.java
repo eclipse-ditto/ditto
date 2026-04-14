@@ -23,6 +23,7 @@ import java.util.function.BiFunction;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.rql.model.predicates.ast.EmptyNode;
 import org.eclipse.ditto.rql.model.predicates.ast.ExistsNode;
 import org.eclipse.ditto.rql.model.predicates.ast.LogicalNode;
 import org.eclipse.ditto.rql.model.predicates.ast.MultiComparisonNode;
@@ -149,6 +150,13 @@ final class ParameterPredicateVisitor implements PredicateVisitor {
         checkNotNull(node, "exists node");
         final ExistsFieldExpression field = fieldExprFactory.existsBy(node.getProperty());
         criteria.add(criteriaFactory.existsCriteria(field));
+    }
+
+    @Override
+    public void visit(final EmptyNode node) {
+        checkNotNull(node, "empty node");
+        final ExistsFieldExpression field = fieldExprFactory.existsBy(node.getProperty());
+        criteria.add(criteriaFactory.emptyCriteria(field));
     }
 
     @Override

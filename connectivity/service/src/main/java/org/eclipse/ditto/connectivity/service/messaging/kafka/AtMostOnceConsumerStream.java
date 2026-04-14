@@ -13,6 +13,7 @@
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
 import java.nio.ByteBuffer;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
@@ -87,6 +88,7 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
         final var source = sourceSupplier.get()
                 .filter(consumerRecord -> isNotDryRun(consumerRecord, dryRun))
                 .map(kafkaMessageTransformer::transform)
+                .filter(Objects::nonNull)
                 .filter(result -> !result.isExpired());
 
         final Source<TransformationResult, Consumer.Control> throttledSource;

@@ -320,7 +320,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
             handleCommandWithResponse(signalWithoutAckregator, getResponseAwaitingBehavior(), timeoutOverride);
             setDefaultTimeoutExceptionSupplier(signalWithoutAckregator);
         } else {
-            handleCommandAndAcceptImmediately(signalWithoutAckregator);
+            handleFireAndForgetCommand(signalWithoutAckregator);
         }
 
         return null;
@@ -332,10 +332,29 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
                 mapAcknowledgementsForHttp(acks)));
     }
 
-    private void handleCommandAndAcceptImmediately(final Signal<?> command) {
-        logger.debug("Received <{}> that doesn't expect a response. Answering with status code 202 ...", command);
+    /**
+     * Handles a fire-and-forget command (timeout=0, no ack requests) by sending it to the proxy
+     * and waiting for the enforcement/validation result before returning the HTTP response.
+     * <p>
+     * If an enforcement or validation error occurs (e.g., policy check fails, WoT validation fails),
+     * the error is returned to the client. If no error arrives within the enforcement timeout,
+     * HTTP 202 Accepted is returned.
+     *
+     * @param command the fire-and-forget command to handle.
+     */
+    private void handleFireAndForgetCommand(final Signal<?> command) {
+        logger.debug("Received fire-and-forget <{}>. Awaiting enforcement/validation result before accepting ...",
+                command.getType());
+        // Update receivedCommand with AckRequestSetter-modified headers (e.g. response-required: false)
+        // so that handleReceiveTimeout correctly identifies this as fire-and-forget via isResponseRequired()
+        if (command instanceof Command<?> cmd) {
+            receivedCommand = cmd;
+        }
         proxyActor.tell(command, getSelf());
-        completeWithResult(createHttpResponse(HttpStatus.ACCEPTED));
+        final Duration enforcementTimeout = gatewayConfig.getCommandConfig().getFireAndForgetEnforcementTimeout();
+        getContext().setReceiveTimeout(enforcementTimeout);
+        // Clear timeoutExceptionSupplier so that handleReceiveTimeout returns 202 instead of a timeout error
+        timeoutExceptionSupplier = null;
     }
 
     private void rememberResponseLocationUri(final CommandResponse<?> commandResponse) {
@@ -540,17 +559,21 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
     private void handleReceiveTimeout() {
         final var actorContext = getContext();
         final var receiveTimeout = actorContext.getReceiveTimeout();
-
-        logger.withCorrelationId(receivedCommand)
-                .info("Got <{}> after <{}> before an appropriate response arrived.",
-                ReceiveTimeout.class.getSimpleName(), receiveTimeout);
+        actorContext.cancelReceiveTimeout();
 
         if (null != timeoutExceptionSupplier) {
-            final var timeoutException = timeoutExceptionSupplier.get();
-            actorContext.cancelReceiveTimeout();
-            handleDittoRuntimeException(timeoutException);
+            logger.withCorrelationId(receivedCommand)
+                    .info("Got <{}> after <{}> before an appropriate response arrived.",
+                            ReceiveTimeout.class.getSimpleName(), receiveTimeout);
+            handleDittoRuntimeException(timeoutExceptionSupplier.get());
+        } else if (!isResponseRequired()) {
+            // Fire-and-forget: no enforcement/validation error arrived within the timeout, accept optimistically
+            logger.withCorrelationId(receivedCommand)
+                    .debug("Got <{}> for fire-and-forget command after <{}>. " +
+                                    "No enforcement/validation error received, responding with HTTP 202.",
+                            ReceiveTimeout.class.getSimpleName(), receiveTimeout);
+            completeWithResult(createHttpResponse(HttpStatus.ACCEPTED));
         } else {
-            actorContext.cancelReceiveTimeout();
             // This case is a programming error that should not happen at all.
             logger.withCorrelationId(receivedCommand)
                     .error("Actor does not have a timeout exception supplier. " +

@@ -34,7 +34,7 @@ import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.wot.model.ThingModel;
 import org.eclipse.ditto.wot.validation.config.TmValidationConfig;
 
-import com.networknt.schema.JsonSchema;
+import com.networknt.schema.Schema;
 
 /**
  * Default implementation for WoT ThingModel based validation/enforcement.
@@ -47,7 +47,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
     private final InternalFeatureValidation internalFeatureValidation;
 
     DefaultWotThingModelValidation(final TmValidationConfig validationConfig, final Executor executor,
-            @Nullable final Cache<JsonSchemaCacheKey, JsonSchema> jsonSchemaCache) {
+            @Nullable final Cache<JsonSchemaCacheKey, Schema> jsonSchemaCache) {
         this.validationConfig = validationConfig;
         this.executor = executor;
         internalThingValidation = new InternalThingValidation(jsonSchemaCache);

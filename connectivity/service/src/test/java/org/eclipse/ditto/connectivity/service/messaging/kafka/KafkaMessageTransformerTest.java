@@ -176,6 +176,28 @@ public final class KafkaMessageTransformerTest {
     }
 
     @Test
+    public void messageWithBlankCorrelationIdHeaderDoesNotCrash() {
+        final String deviceId = "ditto:test-device";
+        final RecordHeaders headers =
+                new RecordHeaders(List.of(
+                        new RecordHeader("device_id", deviceId.getBytes(StandardCharsets.UTF_8)),
+                        new RecordHeader("correlation-id", new byte[0])
+                ));
+        final ConsumerRecord<String, ByteBuffer> consumerRecord = mock(ConsumerRecord.class);
+        when(consumerRecord.headers()).thenReturn(headers);
+        when(consumerRecord.key()).thenReturn("someKey");
+        when(consumerRecord.value()).thenReturn(ByteBufferUtils.fromUtf8String("someValue"));
+        when(consumerRecord.topic()).thenReturn("someTopic");
+        when(consumerRecord.timestamp()).thenReturn(TIMESTAMP);
+
+        // should not throw - previously this caused IllegalArgumentException: The value must not be blank
+        final TransformationResult transformResult = underTest.transform(consumerRecord);
+
+        // enforcement will fail since this test uses enforcement, but the message should not crash
+        assertThat(transformResult).isNotNull();
+    }
+
+    @Test
     public void unexpectedExceptionCausesMessageToBeDropped() {
         final String deviceId = "ditto:test-device";
         final RecordHeaders headers =
