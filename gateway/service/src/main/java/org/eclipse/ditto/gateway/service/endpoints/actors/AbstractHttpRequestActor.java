@@ -351,7 +351,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
             receivedCommand = cmd;
         }
         proxyActor.tell(command, getSelf());
-        final Duration enforcementTimeout = gatewayConfig.getCommandConfig().getDefaultTimeout();
+        final Duration enforcementTimeout = gatewayConfig.getCommandConfig().getFireAndForgetEnforcementTimeout();
         getContext().setReceiveTimeout(enforcementTimeout);
         // Clear timeoutExceptionSupplier so that handleReceiveTimeout returns 202 instead of a timeout error
         timeoutExceptionSupplier = null;
