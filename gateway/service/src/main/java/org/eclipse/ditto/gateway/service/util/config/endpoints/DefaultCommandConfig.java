@@ -35,6 +35,7 @@ public final class DefaultCommandConfig implements CommandConfig {
     private final Duration defaultTimeout;
     private final Duration maxTimeout;
     private final Duration smartChannelBuffer;
+    private final Duration fireAndForgetEnforcementTimeout;
     private final int connectionsRetrieveLimit;
 
     private DefaultCommandConfig(final ScopedConfig scopedConfig) {
@@ -42,6 +43,8 @@ public final class DefaultCommandConfig implements CommandConfig {
         maxTimeout = scopedConfig.getNonNegativeAndNonZeroDurationOrThrow(CommandConfigValue.MAX_TIMEOUT);
         smartChannelBuffer =
                 scopedConfig.getNonNegativeAndNonZeroDurationOrThrow(CommandConfigValue.SMART_CHANNEL_BUFFER);
+        fireAndForgetEnforcementTimeout = scopedConfig.getNonNegativeAndNonZeroDurationOrThrow(
+                CommandConfigValue.FIRE_AND_FORGET_ENFORCEMENT_TIMEOUT);
         connectionsRetrieveLimit = scopedConfig.getNonNegativeIntOrThrow(CommandConfigValue.CONNECTIONS_RETRIEVE_LIMIT);
     }
 
@@ -73,6 +76,11 @@ public final class DefaultCommandConfig implements CommandConfig {
     }
 
     @Override
+    public Duration getFireAndForgetEnforcementTimeout() {
+        return fireAndForgetEnforcementTimeout;
+    }
+
+    @Override
     public int connectionsRetrieveLimit() {
         return connectionsRetrieveLimit;
     }
@@ -89,12 +97,14 @@ public final class DefaultCommandConfig implements CommandConfig {
         return Objects.equals(defaultTimeout, that.defaultTimeout) &&
                 Objects.equals(maxTimeout, that.maxTimeout) &&
                 Objects.equals(smartChannelBuffer, that.smartChannelBuffer) &&
+                Objects.equals(fireAndForgetEnforcementTimeout, that.fireAndForgetEnforcementTimeout) &&
                 Objects.equals(connectionsRetrieveLimit, that.connectionsRetrieveLimit);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(defaultTimeout, maxTimeout, smartChannelBuffer, connectionsRetrieveLimit);
+        return Objects.hash(defaultTimeout, maxTimeout, smartChannelBuffer, fireAndForgetEnforcementTimeout,
+                connectionsRetrieveLimit);
     }
 
     @Override
@@ -103,6 +113,7 @@ public final class DefaultCommandConfig implements CommandConfig {
                 "defaultTimeout=" + defaultTimeout +
                 ", maxTimeout=" + maxTimeout +
                 ", smartChannelBuffer=" + smartChannelBuffer +
+                ", fireAndForgetEnforcementTimeout=" + fireAndForgetEnforcementTimeout +
                 ", connectionsRetrieveLimit=" + connectionsRetrieveLimit +
                 "]";
     }
