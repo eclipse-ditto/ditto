@@ -15,17 +15,17 @@ package org.eclipse.ditto.thingsearch.service.starter.actors;
 import static org.eclipse.ditto.thingsearch.service.starter.actors.AggregateThingsMetricsActor.CLUSTER_ROLE;
 
 import java.time.Duration;
-import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.pekko.actor.AbstractActorWithTimers;
 import org.apache.pekko.actor.ActorRef;
@@ -85,7 +85,7 @@ public final class OperatorAggregateMetricsProviderActor extends AbstractActorWi
                 (metricName, customSearchMetricConfig) -> initializeCustomMetricTimer(metricName,
                         customSearchMetricConfig,
                         searchConfig.getOperatorMetricsConfig().getScrapeInterval()));
-        initializeCustomMetricsCleanupTimer(searchConfig.getOperatorMetricsConfig());
+        initializeCustomMetricsCleanupTimers(searchConfig.getOperatorMetricsConfig());
     }
 
     /**
@@ -102,7 +102,7 @@ public final class OperatorAggregateMetricsProviderActor extends AbstractActorWi
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(GatherMetricsCommand.class, this::handleGatheringMetrics)
-                .match(AggregateThingsMetricsResponse.class, this::handleAggregateThingsResponse)
+                .match(AggregateThingsMetricsBatch.class, this::handleAggregateThingsBatch)
                 .match(CleanupUnusedMetricsCommand.class, this::handleCleanupUnusedMetrics)
                 .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure: {}", f))
                 .matchAny(m -> {
@@ -139,24 +139,50 @@ public final class OperatorAggregateMetricsProviderActor extends AbstractActorWi
     }
 
 
-    private void handleAggregateThingsResponse(final AggregateThingsMetricsResponse response) {
-        final String metricName = response.getMetricName();
-        final Optional<Long> result = response.getResult();
+    private void handleAggregateThingsBatch(final AggregateThingsMetricsBatch batch) {
+        final String metricName = batch.metricName();
+        final Set<GageIdentifier> seenInBatch = new HashSet<>();
 
-        result.ifPresentOrElse(value -> {
-            final CustomAggregationMetricConfig customAggregationMetricConfig =
-                    customSearchMetricConfigMap.get(metricName);
-            final TagSet tagSet = resolveTags(customAggregationMetricConfig, response);
-            log.withCorrelationId(response)
-                    .debug("Received aggregate things response for metric name <{} : {}>: {}, " +
-                                    "extracted result: <{}> - in thread: {}",
-                            metricName, tagSet, response, result, Thread.currentThread().getName());
-            recordMetric(metricName, tagSet, value);
+        for (final AggregateThingsMetricsResponse response : batch.responses()) {
+            final Optional<Long> result = response.getResult();
+            result.ifPresentOrElse(value -> {
+                final CustomAggregationMetricConfig config = customSearchMetricConfigMap.get(metricName);
+                final TagSet tagSet = resolveTags(config, response);
+                log.withCorrelationId(response)
+                        .debug("Received aggregate things response for metric name <{} : {}>: {}, " +
+                                        "extracted result: <{}> - in thread: {}",
+                                metricName, tagSet, response, result, Thread.currentThread().getName());
+                recordMetric(metricName, tagSet, value);
+                seenInBatch.add(new GageIdentifier(metricName, tagSet));
+            }, () -> log.withCorrelationId(response)
+                    .info("No result for metric name <{}> in aggregate things response: {}. " +
+                                    "Should not happen, at least 0 is expected in each result",
+                            metricName, response));
+        }
 
-        }, () -> log.withCorrelationId(response)
-                .info("No result for metric name <{}> in aggregate things response: {}. " +
-                                "Should not happen, at least 0 is expected in each result",
-                        metricName, response));
+        reconcileVanishedBuckets(metricName, seenInBatch);
+    }
+
+    private void reconcileVanishedBuckets(final String metricName, final Set<GageIdentifier> seenInBatch) {
+        final Iterator<Map.Entry<GageIdentifier, TimestampedGauge>> iterator =
+                metricsGauges.entrySet().iterator();
+        while (iterator.hasNext()) {
+            final Map.Entry<GageIdentifier, TimestampedGauge> entry = iterator.next();
+            if (entry.getKey().metricName().equals(metricName) && !seenInBatch.contains(entry.getKey())) {
+                log.debug("Zeroing vanished gauge for metric <{}>: {}", metricName, entry.getKey().tags());
+                entry.getValue().set(0L);
+                if (Kamon.gauge(metricName)
+                        .remove(KamonTagSetConverter.getKamonTagSet(entry.getValue().getTagSet()))) {
+                    log.debug("Removed vanished custom search metric instrument: {} {}",
+                            metricName, entry.getValue().getTagSet());
+                    iterator.remove();
+                    decrementMonitorGauge(metricName);
+                } else {
+                    log.warning("Could not remove vanished custom search metric instrument: {}",
+                            entry.getKey());
+                }
+            }
+        }
     }
 
     private void recordMetric(final String metricName, final TagSet tagSet, final Long value) {
@@ -193,14 +219,16 @@ public final class OperatorAggregateMetricsProviderActor extends AbstractActorWi
     }
 
     private void handleCleanupUnusedMetrics(final CleanupUnusedMetricsCommand cleanupCommand) {
-        // remove metrics who were not used for longer than three times the max configured scrape interval
+        // remove metrics who were not used for longer than two times the metric's own scrape interval
         final long currentTime = System.currentTimeMillis();
+        final long unusedPeriod = cleanupCommand.scrapeInterval().multipliedBy(2).toMillis();
         final Iterator<Map.Entry<GageIdentifier, TimestampedGauge>> iterator = metricsGauges.entrySet().iterator();
         while (iterator.hasNext()) {
             final Map.Entry<GageIdentifier, TimestampedGauge> next = iterator.next();
+            if (!next.getKey().metricName().equals(cleanupCommand.metricName())) {
+                continue;
+            }
             final long lastUpdated = next.getValue().getLastUpdated();
-            final long unusedPeriod =
-                    getMaxConfiguredScrapeInterval(cleanupCommand.config()).multipliedBy(2).toMillis();
             final long expire = lastUpdated + unusedPeriod;
             log.debug("cleanup metrics:  expired: {}, time left: {} lastUpdated: {}  expire: {} currentTime: {}",
                     currentTime > expire, expire - currentTime, lastUpdated, expire, currentTime);
@@ -219,16 +247,6 @@ public final class OperatorAggregateMetricsProviderActor extends AbstractActorWi
                 }
             }
         }
-    }
-
-    private Duration getMaxConfiguredScrapeInterval(final OperatorMetricsConfig operatorMetricsConfig) {
-        return Stream.concat(Stream.of(operatorMetricsConfig.getScrapeInterval()),
-                        operatorMetricsConfig.getCustomAggregationMetricConfigs().values().stream()
-                                .map(CustomAggregationMetricConfig::getScrapeInterval)
-                                .filter(Optional::isPresent)
-                                .map(Optional::get))
-                .max(Comparator.naturalOrder())
-                .orElse(operatorMetricsConfig.getScrapeInterval());
     }
 
     private void initializeCustomMetricTimer(final String metricName, final CustomAggregationMetricConfig config,
@@ -250,12 +268,19 @@ public final class OperatorAggregateMetricsProviderActor extends AbstractActorWi
                 scrapeInterval);
     }
 
-    private void initializeCustomMetricsCleanupTimer(final OperatorMetricsConfig operatorMetricsConfig) {
-        final Duration interval = getMaxConfiguredScrapeInterval(operatorMetricsConfig);
-        log.info("Initializing custom metric cleanup timer Interval <{}>", interval);
-        getTimers().startTimerAtFixedRate("cleanup-unused-metrics",
-                new CleanupUnusedMetricsCommand(operatorMetricsConfig),
-                interval);
+    private void initializeCustomMetricsCleanupTimers(final OperatorMetricsConfig operatorMetricsConfig) {
+        final Duration defaultScrapeInterval = operatorMetricsConfig.getScrapeInterval();
+        operatorMetricsConfig.getCustomAggregationMetricConfigs().forEach((metricName, metricConfig) -> {
+            if (metricConfig.isEnabled()) {
+                final Duration scrapeInterval = metricConfig.getScrapeInterval().orElse(defaultScrapeInterval);
+                final Duration cleanupInterval = scrapeInterval.multipliedBy(2);
+                log.info("Initializing custom metric cleanup timer for metric <{}> with interval <{}>",
+                        metricName, cleanupInterval);
+                getTimers().startTimerAtFixedRate("cleanup-" + metricName,
+                        new CleanupUnusedMetricsCommand(metricName, scrapeInterval),
+                        cleanupInterval);
+            }
+        });
     }
 
     private boolean isPlaceHolder(final String value) {
@@ -318,7 +343,7 @@ public final class OperatorAggregateMetricsProviderActor extends AbstractActorWi
 
     private record GatherMetricsCommand(CustomAggregationMetricConfig config) {}
 
-    private record CleanupUnusedMetricsCommand(OperatorMetricsConfig config) {}
+    private record CleanupUnusedMetricsCommand(String metricName, Duration scrapeInterval) {}
 
     private record GageIdentifier(String metricName, TagSet tags) {}
 }
