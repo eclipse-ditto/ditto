@@ -25,12 +25,15 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.api.PoliciesValidator;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyImportInvalidException;
 import org.eclipse.ditto.policies.model.ImportsAlias;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.ImportsAliasConflictException;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyImportsAlias;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyImportsAliasResponse;
@@ -63,11 +66,17 @@ final class ModifyImportsAliasStrategy
         final Label label = command.getLabel();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
+        final JsonPointer aliasPointer = Policy.JsonFields.IMPORTS_ALIASES.getPointer()
+                .append(JsonPointer.of(label));
+        PolicyCommandSizeValidator.getInstance()
+                .ensureValidSize(nonNullPolicy, JsonField.newInstance(aliasPointer, importsAlias.toJson()),
+                        command::getDittoHeaders);
+
         // Validate: alias must have at least one target
         if (importsAlias.getTargets().isEmpty()) {
             return ResultFactory.newErrorResult(
                     PolicyImportInvalidException.newBuilder()
-                            .message("The subject alias '" + label +
+                            .message("The imports alias '" + label +
                                     "' must have at least one target.")
                             .description("Provide at least one target referencing an import and entry label.")
                             .dittoHeaders(dittoHeaders)

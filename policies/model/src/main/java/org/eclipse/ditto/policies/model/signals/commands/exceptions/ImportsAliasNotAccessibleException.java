@@ -30,7 +30,7 @@ import org.eclipse.ditto.policies.model.PolicyException;
 import org.eclipse.ditto.policies.model.PolicyId;
 
 /**
- * Thrown when a imports alias is not found.
+ * Thrown when an imports alias is not found.
  *
  * @since 3.9.0
  */

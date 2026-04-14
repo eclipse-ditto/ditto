@@ -66,6 +66,8 @@ final class RetrieveImportsAliasesStrategy
     @Override
     public Optional<EntityTag> nextEntityTag(final RetrieveImportsAliases command,
             @Nullable final Policy newEntity) {
-        return Optional.empty();
+        return Optional.ofNullable(newEntity)
+                .map(Policy::getImportsAliases)
+                .flatMap(EntityTag::fromEntity);
     }
 }

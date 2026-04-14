@@ -91,7 +91,7 @@ final class DeleteSubjectStrategy extends AbstractPolicyCommandStrategy<DeleteSu
                 return ResultFactory.newErrorResult(subjectNotFound(policyId, label, subjectId, headers), command);
             }
         } else {
-            // Check if label is a subject alias
+            // Check if label is an imports alias
             final Optional<ImportsAlias> aliasOpt = nonNullPolicy.getImportsAliases().getAlias(label);
             if (aliasOpt.isPresent()) {
                 return handleAliasDeleteSubject(nonNullPolicy, policyId, label, subjectId, headers, command,
@@ -108,6 +108,14 @@ final class DeleteSubjectStrategy extends AbstractPolicyCommandStrategy<DeleteSu
 
         final List<ImportsAliasTarget> targets = alias.getTargets();
 
+        // Check that the subject exists in at least one target before deleting
+        final boolean existsInAnyTarget = targets.stream()
+                .anyMatch(target -> subjectExistsInTarget(policy, target, subjectId));
+        if (!existsInAnyTarget) {
+            return ResultFactory.newErrorResult(
+                    subjectNotFound(policyId, aliasLabel, subjectId, headers), command);
+        }
+
         // Fan out delete to all alias targets' entriesAdditions
         Policy updatedPolicy = policy;
         for (final ImportsAliasTarget target : targets) {
@@ -121,6 +129,18 @@ final class DeleteSubjectStrategy extends AbstractPolicyCommandStrategy<DeleteSu
                         createCommandResponseDittoHeaders(headers, nextRevision)),
                 policy);
         return ResultFactory.newMutationResult(command, event, response);
+    }
+
+    private static boolean subjectExistsInTarget(final Policy policy, final ImportsAliasTarget target,
+            final SubjectId subjectId) {
+
+        return policy.getPolicyImports()
+                .getPolicyImport(target.getImportedPolicyId())
+                .flatMap(PolicyImport::getEntriesAdditions)
+                .flatMap(additions -> additions.getAddition(target.getEntryLabel()))
+                .flatMap(addition -> addition.getSubjects())
+                .flatMap(subjects -> subjects.getSubject(subjectId))
+                .isPresent();
     }
 
     private static Policy removeSubjectFromTarget(final Policy policy, final ImportsAliasTarget target,

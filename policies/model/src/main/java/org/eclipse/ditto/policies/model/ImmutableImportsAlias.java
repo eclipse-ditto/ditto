@@ -31,6 +31,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
 
 /**
@@ -72,11 +73,18 @@ final class ImmutableImportsAlias implements ImportsAlias {
     public static ImportsAlias fromJson(final Label label, final JsonObject jsonObject) {
         checkNotNull(jsonObject, "JSON object");
         final JsonArray targetsArray = jsonObject.getValueOrThrow(ImportsAlias.JsonFields.TARGETS);
-        final List<ImportsAliasTarget> targets = targetsArray.stream()
-                .filter(JsonValue::isObject)
-                .map(JsonValue::asObject)
-                .map(ImmutableImportsAliasTarget::fromJson)
-                .collect(Collectors.toList());
+        final List<ImportsAliasTarget> targets = new ArrayList<>(targetsArray.getSize());
+        int i = 0;
+        for (final JsonValue element : targetsArray) {
+            if (!element.isObject()) {
+                throw JsonParseException.newBuilder()
+                        .message("The element at index " + i + " of the 'targets' array in imports alias '" +
+                                label + "' is not a JSON object.")
+                        .build();
+            }
+            targets.add(ImmutableImportsAliasTarget.fromJson(element.asObject()));
+            i++;
+        }
         return of(label, targets);
     }
 

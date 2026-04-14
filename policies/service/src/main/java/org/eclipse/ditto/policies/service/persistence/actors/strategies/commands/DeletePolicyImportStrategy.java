@@ -58,16 +58,16 @@ final class DeletePolicyImportStrategy extends AbstractPolicyCommandStrategy<Del
         final PolicyId importedPolicyId = command.getImportedPolicyId();
         final PolicyId policyId = context.getState();
 
-        // Check if any subject alias references this import
+        // Check if any imports alias references this import
         for (final ImportsAlias alias : nonNullPolicy.getImportsAliases()) {
             for (final ImportsAliasTarget target : alias.getTargets()) {
                 if (importedPolicyId.equals(target.getImportedPolicyId())) {
                     return ResultFactory.newErrorResult(
                             PolicyImportNotModifiableException.newBuilder(policyId, importedPolicyId)
                                     .message("The import '" + importedPolicyId +
-                                            "' cannot be deleted because it is referenced by subject alias '" +
+                                            "' cannot be deleted because it is referenced by imports alias '" +
                                             alias.getLabel() + "'.")
-                                    .description("Remove the subject alias first before deleting the import.")
+                                    .description("Remove the imports alias first before deleting the import.")
                                     .dittoHeaders(dittoHeaders)
                                     .build(),
                             command);

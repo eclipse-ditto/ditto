@@ -322,7 +322,7 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
     }
 
     /**
-     * Validates that all subject alias targets in the given policy reference existing imports.
+     * Validates that all imports alias targets in the given policy reference existing imports.
      *
      * @param policy the policy to validate.
      * @param dittoHeaders the headers for error responses.
@@ -334,7 +334,7 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
             for (final ImportsAliasTarget target : alias.getTargets()) {
                 if (policy.getPolicyImports().getPolicyImport(target.getImportedPolicyId()).isEmpty()) {
                     return Optional.of(PolicyImportInvalidException.newBuilder()
-                            .message("The subject alias '" + alias.getLabel() + "' references import '" +
+                            .message("The imports alias '" + alias.getLabel() + "' references import '" +
                                     target.getImportedPolicyId() + "' which does not exist in this policy.")
                             .description("Ensure all alias targets reference existing policy imports.")
                             .dittoHeaders(dittoHeaders)

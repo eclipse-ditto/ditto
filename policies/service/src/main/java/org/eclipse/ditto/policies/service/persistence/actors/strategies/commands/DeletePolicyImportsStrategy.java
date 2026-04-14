@@ -27,7 +27,6 @@ import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.model.PolicyImports;
 import org.eclipse.ditto.policies.model.ImportsAlias;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyImportsNotModifiableException;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImports;
@@ -58,25 +57,21 @@ final class DeletePolicyImportsStrategy
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final PolicyId policyId = context.getState();
 
-        // Check if any subject alias references any import
+        // Check if any imports alias references any import
         for (final ImportsAlias alias : nonNullPolicy.getImportsAliases()) {
             if (!alias.getTargets().isEmpty()) {
                 return ResultFactory.newErrorResult(
                         PolicyImportsNotModifiableException.newBuilder(policyId)
                                 .message("The imports of the Policy with ID '" + policyId +
-                                        "' cannot be deleted because they are referenced by subject alias '" +
+                                        "' cannot be deleted because they are referenced by imports alias '" +
                                         alias.getLabel() + "'.")
                                 .description(
-                                        "Remove all subject aliases first before deleting the imports.")
+                                        "Remove all imports aliases first before deleting the imports.")
                                 .dittoHeaders(dittoHeaders)
                                 .build(),
                         command);
             }
         }
-
-        final Policy newPolicy = nonNullPolicy.toBuilder()
-                .setPolicyImports(PolicyImports.emptyInstance())
-                .build();
 
         final PolicyImportsDeleted event =
                 PolicyImportsDeleted.of(policyId, nextRevision, getEventTimestamp(), dittoHeaders, metadata);

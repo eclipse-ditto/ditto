@@ -280,18 +280,16 @@ public final class ImportsAliasStrategiesTest extends AbstractPolicyCommandStrat
     // ---- DeleteSubject (not found) via alias ----
 
     @Test
-    public void deleteNonExistentSubjectViaAliasStillSucceeds() {
-        // Delete of a non-existent subject through alias still fans out (the remove is a no-op per target)
+    public void deleteNonExistentSubjectViaAliasReturnsNotFound() {
+        // Delete of a non-existent subject through alias returns 404, consistent with regular entry behavior
         final SubjectId unknownSubjectId = SubjectId.newInstance(SubjectIssuer.INTEGRATION, "nonexistent-user");
         final DeleteSubject command = DeleteSubject.of(POLICY_ID, ALIAS_LABEL, unknownSubjectId, DITTO_HEADERS);
 
-        assertModificationResult(deleteSubjectStrategy, policyWithAlias, command,
-                ImportsAliasSubjectDeleted.class,
-                event -> {
-                    assertThat(event.getAliasLabel()).isEqualTo(ALIAS_LABEL);
-                    assertThat(event.getSubjectId()).isEqualTo(unknownSubjectId);
-                },
-                response -> {});
+        assertErrorResult(deleteSubjectStrategy, policyWithAlias, command,
+                org.eclipse.ditto.policies.model.signals.commands.exceptions.SubjectNotAccessibleException
+                        .newBuilder(POLICY_ID, ALIAS_LABEL, unknownSubjectId)
+                        .dittoHeaders(DITTO_HEADERS)
+                        .build());
     }
 
     // ---- DeleteImportsAliases (bulk) ----
@@ -323,9 +321,9 @@ public final class ImportsAliasStrategiesTest extends AbstractPolicyCommandStrat
                 org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyImportsNotModifiableException
                         .newBuilder(POLICY_ID)
                         .message("The imports of the Policy with ID '" + POLICY_ID +
-                                "' cannot be deleted because they are referenced by subject alias '" +
+                                "' cannot be deleted because they are referenced by imports alias '" +
                                 ALIAS_LABEL + "'.")
-                        .description("Remove all subject aliases first before deleting the imports.")
+                        .description("Remove all imports aliases first before deleting the imports.")
                         .dittoHeaders(DITTO_HEADERS)
                         .build());
     }

@@ -70,7 +70,7 @@ final class ModifyPolicyEntryStrategy extends AbstractPolicyCommandStrategy<Modi
                 .ensureValidSize(nonNullPolicy, JsonField.newInstance(entryPointer, policyEntryJsonObject),
                         command::getDittoHeaders);
 
-        // Reject if the label is already used as a subject alias
+        // Reject if the label is already used as an imports alias
         if (nonNullPolicy.getImportsAliases().getAlias(label).isPresent()) {
             return ResultFactory.newErrorResult(
                     ImportsAliasConflictException.newBuilder(label).dittoHeaders(commandHeaders).build(),

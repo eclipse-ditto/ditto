@@ -27,7 +27,6 @@ import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.model.ImportsAliases;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteImportsAliases;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteImportsAliasesResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
@@ -55,8 +54,6 @@ final class DeleteImportsAliasesStrategy
         final Policy nonNullPolicy = checkNotNull(policy, "policy");
         final PolicyId policyId = context.getState();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-
-        nonNullPolicy.setImportsAliases(ImportsAliases.emptyInstance());
 
         final ImportsAliasesDeleted event =
                 ImportsAliasesDeleted.of(policyId, nextRevision, getEventTimestamp(), dittoHeaders, metadata);

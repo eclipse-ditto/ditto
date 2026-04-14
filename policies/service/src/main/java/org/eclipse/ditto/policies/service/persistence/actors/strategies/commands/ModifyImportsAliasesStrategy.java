@@ -26,6 +26,7 @@ import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.policies.api.PoliciesValidator;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.Policy;
@@ -33,6 +34,7 @@ import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyImportInvalidException;
 import org.eclipse.ditto.policies.model.ImportsAlias;
 import org.eclipse.ditto.policies.model.ImportsAliases;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.ImportsAliasConflictException;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyImportsAliases;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyImportsAliasesResponse;
@@ -63,6 +65,12 @@ final class ModifyImportsAliasesStrategy
         final ImportsAliases newImportsAliases = command.getImportsAliases();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
+        PolicyCommandSizeValidator.getInstance()
+                .ensureValidSize(nonNullPolicy,
+                        JsonField.newInstance(Policy.JsonFields.IMPORTS_ALIASES.getPointer(),
+                                newImportsAliases.toJson()),
+                        command::getDittoHeaders);
+
         // Validate: check that no alias label conflicts with existing entry labels
         // and that all targets reference existing imports
         for (final ImportsAlias alias : newImportsAliases) {
@@ -71,7 +79,7 @@ final class ModifyImportsAliasesStrategy
             if (alias.getTargets().isEmpty()) {
                 return ResultFactory.newErrorResult(
                         PolicyImportInvalidException.newBuilder()
-                                .message("The subject alias '" + aliasLabel +
+                                .message("The imports alias '" + aliasLabel +
                                         "' must have at least one target.")
                                 .description(
                                         "Provide at least one target referencing an import and entry label.")

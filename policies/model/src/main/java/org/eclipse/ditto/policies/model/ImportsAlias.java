@@ -72,7 +72,7 @@ public interface ImportsAlias extends Jsonifiable.WithFieldSelectorAndPredicate<
     }
 
     /**
-     * Known JSON fields of a ImportsAlias.
+     * Known JSON fields of an ImportsAlias.
      */
     final class JsonFields {
 

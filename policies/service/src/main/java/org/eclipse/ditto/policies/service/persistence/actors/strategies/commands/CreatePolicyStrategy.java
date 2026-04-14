@@ -77,7 +77,7 @@ final class CreatePolicyStrategy extends AbstractPolicyCommandStrategy<CreatePol
             return alreadyExpiredSubject.get();
         }
 
-        // Validate subject alias targets reference existing imports
+        // Validate imports alias targets reference existing imports
         final Optional<DittoRuntimeException> aliasValidationError =
                 validateImportsAliasTargets(newPolicyWithLifecycle, commandHeaders);
         if (aliasValidationError.isPresent()) {

@@ -74,7 +74,7 @@ final class RetrieveSubjectStrategy extends AbstractPolicyQueryCommandStrategy<R
                                 dittoHeaders), command);
             }
         } else {
-            // Check if label is a subject alias
+            // Check if label is an imports alias
             final Optional<ImportsAlias> aliasOpt = nonNullPolicy.getImportsAliases().getAlias(command.getLabel());
             if (aliasOpt.isPresent()) {
                 final ImportsAlias alias = aliasOpt.get();
@@ -114,10 +114,18 @@ final class RetrieveSubjectStrategy extends AbstractPolicyQueryCommandStrategy<R
 
     @Override
     public Optional<EntityTag> nextEntityTag(final RetrieveSubject command, @Nullable final Policy newEntity) {
-        return Optional.ofNullable(newEntity)
-                .flatMap(p -> p.getEntryFor(command.getLabel()))
+        if (newEntity == null) {
+            return Optional.empty();
+        }
+        final Optional<Subject> regularSubject = newEntity.getEntryFor(command.getLabel())
                 .map(PolicyEntry::getSubjects)
-                .flatMap(s -> s.getSubject(command.getSubjectId()))
+                .flatMap(s -> s.getSubject(command.getSubjectId()));
+        if (regularSubject.isPresent()) {
+            return EntityTag.fromEntity(regularSubject.get());
+        }
+        // Fall back to alias-resolved subject
+        return newEntity.getImportsAliases().getAlias(command.getLabel())
+                .flatMap(alias -> resolveFirstTargetSubject(newEntity, alias, command.getSubjectId()))
                 .flatMap(EntityTag::fromEntity);
     }
 }

@@ -125,7 +125,7 @@ final class ModifySubjectStrategy extends AbstractPolicyCommandStrategy<ModifySu
                         command);
             }
         } else {
-            // Check if label is a subject alias
+            // Check if label is an imports alias
             final Optional<ImportsAlias> aliasOpt = nonNullPolicy.getImportsAliases().getAlias(label);
             if (aliasOpt.isPresent()) {
                 return handleAliasSubject(nonNullPolicy, policyId, label, subject, commandHeaders, command,

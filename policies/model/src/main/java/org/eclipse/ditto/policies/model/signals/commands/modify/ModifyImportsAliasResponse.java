@@ -124,7 +124,7 @@ public final class ModifyImportsAliasResponse
     }
 
     /**
-     * Creates a response to a {@code ModifyImportsAlias} command for the case when a ImportsAlias was created.
+     * Creates a response to a {@code ModifyImportsAlias} command for the case when an ImportsAlias was created.
      *
      * @param policyId the Policy ID of the created imports alias.
      * @param importsAliasCreated the ImportsAlias created.

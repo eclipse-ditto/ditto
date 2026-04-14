@@ -66,7 +66,7 @@ final class ModifyPolicyEntriesStrategy extends AbstractPolicyCommandStrategy<Mo
         final Iterable<PolicyEntry> policyEntries = command.getPolicyEntries();
         final DittoHeaders headers = command.getDittoHeaders();
 
-        // Reject if any new entry label conflicts with an existing subject alias
+        // Reject if any new entry label conflicts with an existing imports alias
         for (final PolicyEntry entry : policyEntries) {
             final Label entryLabel = entry.getLabel();
             if (nonNullPolicy.getImportsAliases().getAlias(entryLabel).isPresent()) {

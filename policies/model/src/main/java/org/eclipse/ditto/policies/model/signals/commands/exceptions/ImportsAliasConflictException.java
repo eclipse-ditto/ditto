@@ -29,7 +29,7 @@ import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PolicyException;
 
 /**
- * Thrown when a label is used as both a imports alias and a policy entry, which is not allowed.
+ * Thrown when a label is used as both an imports alias and a policy entry, which is not allowed.
  *
  * @since 3.9.0
  */
@@ -43,10 +43,10 @@ public final class ImportsAliasConflictException extends DittoRuntimeException i
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "importsalias.conflict";
 
     private static final String MESSAGE_TEMPLATE =
-            "The label ''{0}'' cannot be used as both a imports alias and a policy entry.";
+            "The label ''{0}'' cannot be used as both an imports alias and a policy entry.";
 
     private static final String DEFAULT_DESCRIPTION =
-            "A label must be used either as a imports alias or as a policy entry, not both. " +
+            "A label must be used either as an imports alias or as a policy entry, not both. " +
                     "Remove one before creating the other.";
 
     private static final long serialVersionUID = -2684503262817846830L;

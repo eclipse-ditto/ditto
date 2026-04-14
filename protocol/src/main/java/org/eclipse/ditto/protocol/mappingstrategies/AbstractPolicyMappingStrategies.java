@@ -360,7 +360,7 @@ abstract class AbstractPolicyMappingStrategies<T extends Jsonifiable.WithPredica
     }
 
     /**
-     * Extracts the subject alias label from the path.
+     * Extracts the imports alias label from the path.
      * Expected path: {@code importsAliases/<label>}.
      *
      * @param adaptable the adaptable to extract from.
@@ -381,7 +381,7 @@ abstract class AbstractPolicyMappingStrategies<T extends Jsonifiable.WithPredica
      * Extracts {@code ImportsAliases} from the payload value.
      *
      * @param adaptable the adaptable to extract from.
-     * @return the subject aliases.
+     * @return the imports aliases.
      */
     protected static ImportsAliases importsAliasesFrom(final Adaptable adaptable) {
         return PoliciesModelFactory.newImportsAliases(getValueFromPayload(adaptable));
@@ -391,7 +391,7 @@ abstract class AbstractPolicyMappingStrategies<T extends Jsonifiable.WithPredica
      * Extracts a {@code ImportsAlias} from the payload value, using the label from the path.
      *
      * @param adaptable the adaptable to extract from.
-     * @return the subject alias.
+     * @return the imports alias.
      */
     protected static ImportsAlias importsAliasFrom(final Adaptable adaptable) {
         return PoliciesModelFactory.newImportsAlias(importsAliasLabelFrom(adaptable), getValueFromPayload(adaptable));
