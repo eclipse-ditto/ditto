@@ -345,6 +345,11 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
     private void handleFireAndForgetCommand(final Signal<?> command) {
         logger.debug("Received fire-and-forget <{}>. Awaiting enforcement/validation result before accepting ...",
                 command.getType());
+        // Update receivedCommand with AckRequestSetter-modified headers (e.g. response-required: false)
+        // so that handleReceiveTimeout correctly identifies this as fire-and-forget via isResponseRequired()
+        if (command instanceof Command<?> cmd) {
+            receivedCommand = cmd;
+        }
         proxyActor.tell(command, getSelf());
         final Duration enforcementTimeout = gatewayConfig.getCommandConfig().getDefaultTimeout();
         getContext().setReceiveTimeout(enforcementTimeout);
