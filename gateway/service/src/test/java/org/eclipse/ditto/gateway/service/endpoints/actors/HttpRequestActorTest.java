@@ -487,6 +487,31 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
     }
 
     @Test
+    public void fireAndForgetCommandReturnsAcceptedWhenResponseRequiredNotExplicitlySet()
+            throws ExecutionException, InterruptedException {
+
+        final var thingId = ThingId.generateRandom();
+        final var attributePointer = JsonPointer.of("foo");
+
+        // Do NOT set responseRequired(false) — let AckRequestSetter handle it (real HTTP flow)
+        final var dittoHeaders = DittoHeaders.newBuilder(createAuthorizedHeaders())
+                .timeout(Duration.ZERO)
+                .build();
+        final var expectedHeaders = DittoHeaders.newBuilder(dittoHeaders)
+                .responseRequired(false)
+                .acknowledgementRequests(Collections.emptyList())
+                .build();
+
+        testThingModifyCommand(thingId,
+                attributePointer,
+                dittoHeaders,
+                expectedHeaders,
+                ModifyAttributeResponse.modified(thingId, attributePointer, expectedHeaders),
+                StatusCodes.ACCEPTED,
+                null);
+    }
+
+    @Test
     public void fireAndForgetMessageCommandSurfacesEnforcementError()
             throws ExecutionException, InterruptedException {
 
@@ -538,6 +563,39 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
 
         final var expectedHeaders =
                 DittoHeaders.newBuilder(dittoHeaders).acknowledgementRequests(Collections.emptyList()).build();
+
+        final var probeResponse = buildSendThingMessageResponse(thingId, messageSubject, expectedHeaders,
+                "application/json", JsonValue.of("pong"));
+
+        testMessageCommand(thingId,
+                messageSubject,
+                dittoHeaders,
+                expectedHeaders,
+                probeResponse,
+                StatusCodes.ACCEPTED,
+                null,
+                null);
+    }
+
+    @Test
+    public void fireAndForgetMessageCommandReturnsAcceptedWhenResponseRequiredNotExplicitlySet()
+            throws ExecutionException, InterruptedException {
+
+        // Simulates the real HTTP flow where timeout=0 is set but response-required is NOT explicitly
+        // set in the headers. The AckRequestSetter will set response-required=false during processing.
+        // This verifies that the HttpRequestActor correctly uses the AckRequestSetter-modified headers.
+        final var thingId = ThingId.generateRandom();
+        final var messageSubject = "doSomething";
+
+        final var dittoHeaders = DittoHeaders.newBuilder(createAuthorizedHeaders())
+                .timeout(Duration.ZERO)
+                .channel("live")
+                .build();
+
+        final var expectedHeaders = DittoHeaders.newBuilder(dittoHeaders)
+                .responseRequired(false)
+                .acknowledgementRequests(Collections.emptyList())
+                .build();
 
         final var probeResponse = buildSendThingMessageResponse(thingId, messageSubject, expectedHeaders,
                 "application/json", JsonValue.of("pong"));
