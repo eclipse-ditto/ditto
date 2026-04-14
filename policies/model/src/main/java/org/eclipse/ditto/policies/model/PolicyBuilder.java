@@ -560,6 +560,36 @@ public interface PolicyBuilder {
     PolicyBuilder setPolicyImports(PolicyImports imports);
 
     /**
+     * Sets the given {@link ImportsAliases} to this builder, replacing all existing aliases.
+     *
+     * @param importsAliases the imports aliases to set.
+     * @return this builder to allow method chaining.
+     * @throws NullPointerException if {@code importsAliases} is {@code null}.
+     * @since 3.9.0
+     */
+    PolicyBuilder setImportsAliases(ImportsAliases importsAliases);
+
+    /**
+     * Sets the given {@link ImportsAlias} to this builder. A previous alias with the same label is replaced.
+     *
+     * @param importsAlias the imports alias to set.
+     * @return this builder to allow method chaining.
+     * @throws NullPointerException if {@code importsAlias} is {@code null}.
+     * @since 3.9.0
+     */
+    PolicyBuilder setImportsAlias(ImportsAlias importsAlias);
+
+    /**
+     * Removes the imports alias identified by the given label from this builder.
+     *
+     * @param label the label of the alias to remove.
+     * @return this builder to allow method chaining.
+     * @throws NullPointerException if {@code label} is {@code null}.
+     * @since 3.9.0
+     */
+    PolicyBuilder removeImportsAlias(Label label);
+
+    /**
      * Sets the given entry to this builder. A previous entry with the same {@link Label} as the one of the
      * provided {@code entry} is replaced.
      *

@@ -796,25 +796,16 @@ paths:
             type: boolean
             default: false
       requestBody:
-        description: 'JSON payload containing the new definition URL, migration payload, patch conditions, and initialization flag.'
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/requestBodies/MigrateThingDefinitionRequest/content/application~1json/schema'
+        $ref: '#/components/requestBodies/MigrateThingDefinitionRequest'
       responses:
         '200':
-          description: 'The thing definition was successfully updated, and the updated Thing is returned.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/responses/MigrateThingDefinitionResponse/content/application~1json/schema'
+          $ref: '#/components/responses/MigrateThingDefinitionResponse'
         '202':
           description: Dry-run successful. The migration result is returned without applying changes.
           content:
             application/json:
               schema:
-                $ref: '#/components/responses/MigrateThingDefinitionResponse/content/application~1json/schema'
+                $ref: '#/components/schemas/MigrateThingDefinitionResponse'
         '400':
           description: The request could not be processed due to invalid input.
           content:
@@ -6829,6 +6820,64 @@ paths:
               'com.acme:imported2': {}
         description: JSON representation of the policy imports.
         required: true
+    delete:
+      summary: Delete all imports of a specific policy
+      description: |-
+        Removes all imports from the policy identified by the `policyId` path parameter.
+        If any imports alias references an import, the deletion is rejected.
+      tags:
+        - Policies
+      parameters:
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
+      responses:
+        '204':
+          description: The policy imports were successfully deleted.
+        '400':
+          description: |-
+            The request could not be completed. Possible reasons:
+
+              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '403':
+          description: |-
+            The request could not be completed. Possible reasons:
+            * the caller has insufficient permissions.
+              You need `WRITE` permission on the `policy:/imports` resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '404':
+          description: |-
+            The request could not be completed. The policy with the given ID was not found in the
+            context of the authenticated user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '409':
+          description: |-
+            The request could not be completed. An imports alias still references one of the imports.
+            Remove the imports alias first before deleting imports.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
   '/api/2/policies/{policyId}/imports/{importedPolicyId}':
     get:
       summary: Retrieve a specific policy import.
@@ -7569,6 +7618,409 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/PreconditionFailed'
+  '/api/2/policies/{policyId}/importsAliases':
+    get:
+      summary: Retrieve all imports aliases of a policy
+      description: |-
+        Returns all imports aliases of the policy identified by the `policyId` path parameter.
+
+        Imports aliases map a label to one or more entries additions targets, enabling transparent
+        subject fan-out. Subject operations on the alias label via `/entries/{label}/subjects` are
+        automatically fanned out to all referenced targets.
+      tags:
+        - Policies
+      parameters:
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+      responses:
+        '200':
+          description: The request successfully returned. The imports aliases are returned.
+          headers:
+            ETag:
+              description: |-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportsAliases'
+        '304':
+          $ref: '#/components/responses/NotModified'
+        '400':
+          description: |-
+            The request could not be completed. Possible reasons:
+
+              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '404':
+          description: |-
+            The request could not be completed. The policy with the given ID was not found in the
+            context of the authenticated user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+    put:
+      summary: Modify all imports aliases of a policy
+      description: |-
+        Modify all imports aliases of the policy identified by the `policyId` path parameter.
+        All existing imports aliases are replaced.
+
+        A label must not exist as both a imports alias and a local policy entry simultaneously.
+        If a conflict is detected, the request is rejected with a 409 Conflict status.
+      tags:
+        - Policies
+      parameters:
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
+      responses:
+        '204':
+          description: The imports aliases were successfully updated.
+          headers:
+            ETag:
+              description: |-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+              schema:
+                type: string
+        '400':
+          description: |-
+            The request could not be completed. Possible reasons:
+
+              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
+              * the JSON body of the imports aliases is invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '403':
+          description: |-
+            The request could not be completed. Possible reasons:
+            * the caller has insufficient permissions.
+              You need `WRITE` permission on the `policy:/` resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '404':
+          description: |-
+            The request could not be completed. The policy with the given ID was not found in the
+            context of the authenticated user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '409':
+          description: |-
+            The request could not be completed. A imports alias label conflicts with an existing
+            policy entry label.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '413':
+          $ref: '#/components/responses/EntityTooLarge'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportsAliases'
+            example:
+              operator:
+                targets:
+                  - import: 'energy-corp:power-plant-roles'
+                    entry: operator-reactor
+                  - import: 'energy-corp:power-plant-roles'
+                    entry: operator-turbine
+        description: JSON representation of the imports aliases.
+        required: true
+    delete:
+      summary: Delete all imports aliases of a policy
+      description: Removes all imports aliases from the policy identified by the `policyId` path parameter.
+      tags:
+        - Policies
+      parameters:
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
+      responses:
+        '204':
+          description: The imports aliases were successfully deleted.
+        '400':
+          description: |-
+            The request could not be completed. Possible reasons:
+
+              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '403':
+          description: |-
+            The request could not be completed. Possible reasons:
+            * the caller has insufficient permissions.
+              You need `WRITE` permission on the `policy:/` resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '404':
+          description: |-
+            The request could not be completed. The policy with the given ID was not found in the
+            context of the authenticated user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+  '/api/2/policies/{policyId}/importsAliases/{label}':
+    get:
+      summary: Retrieve a specific imports alias
+      description: |-
+        Returns the imports alias for the specified label of the policy identified by the
+        `policyId` path parameter.
+      tags:
+        - Policies
+      parameters:
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/components/parameters/LabelPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+      responses:
+        '200':
+          description: The request successfully returned. The imports alias is returned.
+          headers:
+            ETag:
+              description: |-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportsAlias'
+        '304':
+          $ref: '#/components/responses/NotModified'
+        '400':
+          description: |-
+            The request could not be completed. Possible reasons:
+
+              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '404':
+          description: |-
+            The request could not be completed. The policy with the given ID or
+            the imports alias was not found in the context of the authenticated user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+    put:
+      summary: Create or modify a specific imports alias
+      description: |-
+        Create or modify the imports alias for the specified label of the policy identified by the
+        `policyId` path parameter.
+
+        * If the imports alias does not yet exist, it will be created.
+        * If the imports alias already exists, it will be updated.
+
+        A label must not exist as both a imports alias and a local policy entry simultaneously.
+        If a conflict is detected, the request is rejected with a 409 Conflict status.
+      tags:
+        - Policies
+      parameters:
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/components/parameters/LabelPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
+      responses:
+        '201':
+          description: The imports alias was successfully created.
+          headers:
+            ETag:
+              description: |-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+              schema:
+                type: string
+            Location:
+              description: The location of the created imports alias
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportsAlias'
+        '204':
+          description: The imports alias was successfully updated.
+          headers:
+            ETag:
+              description: |-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+              schema:
+                type: string
+        '400':
+          description: |-
+            The request could not be completed. Possible reasons:
+
+              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
+              * the JSON body of the imports alias is invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '403':
+          description: |-
+            The request could not be completed. Possible reasons:
+            * the caller has insufficient permissions.
+              You need `WRITE` permission on the `policy:/` resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '404':
+          description: |-
+            The request could not be completed. The policy with the given ID was not found in the
+            context of the authenticated user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '409':
+          description: |-
+            The request could not be completed. The imports alias label conflicts with an existing
+            policy entry label.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '413':
+          $ref: '#/components/responses/EntityTooLarge'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportsAlias'
+            example:
+              targets:
+                - import: 'energy-corp:power-plant-roles'
+                  entry: operator-reactor
+                - import: 'energy-corp:power-plant-roles'
+                  entry: operator-turbine
+        description: JSON representation of the imports alias.
+        required: true
+    delete:
+      summary: Delete a specific imports alias
+      description: |-
+        Deletes the imports alias for the specified label of the policy identified by the
+        `policyId` path parameter.
+      tags:
+        - Policies
+      parameters:
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/components/parameters/LabelPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
+      responses:
+        '204':
+          description: The imports alias was successfully deleted.
+        '400':
+          description: |-
+            The request could not be completed. Possible reasons:
+
+              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '403':
+          description: |-
+            The request could not be completed. Possible reasons:
+             * the caller has insufficient permissions.
+               You need `WRITE` permission on the `policy:/` resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '404':
+          description: |-
+            The request could not be completed. The policy with the given ID or
+            the imports alias was not found in the context of the authenticated user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
   /api/2/whoami:
     get:
       summary: Retrieve information about the current caller
@@ -7595,19 +8047,10 @@ paths:
       tags:
         - Policies
       requestBody:
-        description: JSON payload containing entities and their permissions to be checked.
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/requestBodies/PermissionCheckRequest'
+        $ref: '#/components/requestBodies/PermissionCheckRequest'
       responses:
         '200':
-          description: Permission check results for each entity.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/responses/PermissionCheckResponse'
+          $ref: '#/components/responses/PermissionCheckResponse'
         '401':
           description: Unauthorized request due to missing authentication.
           content:
@@ -9399,59 +9842,9 @@ components:
       content:
         application/json:
           schema:
-            type: object
-            description: JSON payload to migrate the definition of a Thing.
-            properties:
-              thingDefinitionUrl:
-                type: string
-                format: uri
-                description: The URL of the new Thing definition to be applied.
-                example: 'https://models.example.com/thing-definition-1.0.0.tm.jsonld'
-              migrationPayload:
-                type: object
-                description: |
-                  Optional migration payload with updates to attributes and features.
-                  String values may contain {{ thing-json:<json-pointer> }} placeholders to reference
-                  existing Thing data (e.g. attributes/location, features/sensor/properties/temp).
-                  Resolved values keep their JSON type; missing paths cause the request to fail.
-                properties:
-                  attributes:
-                    type: object
-                    additionalProperties: true
-                    description: Attributes to be updated in the thing.
-                    example:
-                      manufacturer: New Corp
-                      location: 'Berlin, main floor'
-                  features:
-                    type: object
-                    additionalProperties:
-                      type: object
-                      properties:
-                        properties:
-                          type: object
-                          additionalProperties: true
-                    description: Features to be updated in the thing.
-                    example:
-                      thermostat:
-                        properties:
-                          status:
-                            temperature:
-                              value: 23.5
-                              unit: DEGREE_CELSIUS
-              patchConditions:
-                type: object
-                description: Optional conditions to apply the migration only if the existing thing matches the specified values.
-                additionalProperties:
-                  type: string
-                example:
-                  'thing:/features/thermostat': not(exists(/features/thermostat))
-              initializeMissingPropertiesFromDefaults:
-                type: boolean
-                description: Flag indicating whether missing properties should be initialized with default values.
-                example: true
-                default: false
-            required:
-              - thingDefinitionUrl
+            $ref: '#/components/schemas/MigrateThingDefinitionRequest'
+      description: 'JSON payload containing the new definition URL, migration payload, patch conditions, and initialization flag.'
+      required: true
     PermissionCheckRequest:
       content:
         application/json:
@@ -9581,36 +9974,7 @@ components:
       content:
         application/json:
           schema:
-            type: object
-            description: Response payload after applying or simulating a migration to a Thing.
-            properties:
-              thingId:
-                type: string
-                description: Unique identifier representing the migrated Thing.
-              patch:
-                type: object
-                description: The patch containing updates to the Thing.
-                properties:
-                  definition:
-                    $ref: '#/components/schemas/Definition'
-                  attributes:
-                    $ref: '#/components/schemas/Attributes'
-                  features:
-                    $ref: '#/components/schemas/Features'
-              mergeStatus:
-                type: string
-                description: |
-                  Indicates the result of the migration process.
-                  - `APPLIED`: The migration was successfully applied.
-                  - `DRY_RUN`: The migration result was calculated but not applied.
-                enum:
-                  - APPLIED
-                  - DRY_RUN
-                example: APPLIED
-            required:
-              - thingId
-              - patch
-              - mergeStatus
+            $ref: '#/components/schemas/MigrateThingDefinitionResponse'
     PermissionCheckResponse:
       description: Response with permission check results for each entity.
       content:
@@ -10616,6 +10980,91 @@ components:
       required:
         - thingId
         - policyId
+    MigrateThingDefinitionRequest:
+      type: object
+      description: JSON payload to migrate the definition of a Thing.
+      properties:
+        thingDefinitionUrl:
+          type: string
+          format: uri
+          description: The URL of the new Thing definition to be applied.
+          example: 'https://models.example.com/thing-definition-1.0.0.tm.jsonld'
+        migrationPayload:
+          type: object
+          description: |
+            Optional migration payload with updates to attributes and features.
+            String values may contain {{ thing-json:<json-pointer> }} placeholders to reference
+            existing Thing data (e.g. attributes/location, features/sensor/properties/temp).
+            Resolved values keep their JSON type; missing paths cause the request to fail.
+          properties:
+            attributes:
+              type: object
+              additionalProperties: true
+              description: Attributes to be updated in the thing.
+              example:
+                manufacturer: New Corp
+                location: 'Berlin, main floor'
+            features:
+              type: object
+              additionalProperties:
+                type: object
+                properties:
+                  properties:
+                    type: object
+                    additionalProperties: true
+              description: Features to be updated in the thing.
+              example:
+                thermostat:
+                  properties:
+                    status:
+                      temperature:
+                        value: 23.5
+                        unit: DEGREE_CELSIUS
+        patchConditions:
+          type: object
+          description: Optional conditions to apply the migration only if the existing thing matches the specified values.
+          additionalProperties:
+            type: string
+          example:
+            'thing:/features/thermostat': not(exists(/features/thermostat))
+        initializeMissingPropertiesFromDefaults:
+          type: boolean
+          description: Flag indicating whether missing properties should be initialized with default values.
+          example: true
+          default: false
+      required:
+        - thingDefinitionUrl
+    MigrateThingDefinitionResponse:
+      type: object
+      description: Response payload after applying or simulating a migration to a Thing.
+      properties:
+        thingId:
+          type: string
+          description: Unique identifier representing the migrated Thing.
+        patch:
+          type: object
+          description: The patch containing updates to the Thing.
+          properties:
+            definition:
+              $ref: '#/components/schemas/Definition'
+            attributes:
+              $ref: '#/components/schemas/Attributes'
+            features:
+              $ref: '#/components/schemas/Features'
+        mergeStatus:
+          type: string
+          description: |
+            Indicates the result of the migration process.
+            - `APPLIED`: The migration was successfully applied.
+            - `DRY_RUN`: The migration result was calculated but not applied.
+          enum:
+            - APPLIED
+            - DRY_RUN
+          example: APPLIED
+      required:
+        - thingId
+        - patch
+        - mergeStatus
     NewPolicy:
       type: object
       description: Policy consisting of policy entries
@@ -10874,6 +11323,67 @@ components:
             grant:
               - READ
             revoke: []
+    ImportsAliases:
+      type: object
+      description: |-
+        A collection of imports aliases keyed by label. Each alias maps a label to one or more
+        entries additions targets, enabling transparent subject fan-out through the existing
+        entries subjects API.
+
+        A label must not exist as both a imports alias and a local policy entry simultaneously.
+      additionalProperties:
+        $ref: '#/components/schemas/ImportsAlias'
+      example:
+        operator:
+          targets:
+            - import: 'energy-corp:power-plant-roles'
+              entry: operator-reactor
+            - import: 'energy-corp:power-plant-roles'
+              entry: operator-turbine
+    ImportsAlias:
+      type: object
+      description: |-
+        A imports alias maps a label to one or more entries additions targets. Subject operations
+        (GET/PUT/DELETE on subjects) using the alias label are transparently fanned out to all
+        referenced targets. This enables backward-compatible API migration when template policies
+        split a single entry into multiple namespace-scoped entries.
+      properties:
+        targets:
+          type: array
+          description: |-
+            The list of entries additions targets this alias fans out to. Each target references
+            a specific entry addition within a policy import.
+          items:
+            $ref: '#/components/schemas/ImportsAliasTarget'
+      required:
+        - targets
+      example:
+        targets:
+          - import: 'energy-corp:power-plant-roles'
+            entry: operator-reactor
+          - import: 'energy-corp:power-plant-roles'
+            entry: operator-turbine
+    ImportsAliasTarget:
+      type: object
+      description: |-
+        A target reference within a imports alias, pointing to a specific entry addition in a policy
+        import. Subject operations on the alias label are transparently fanned out to this target's
+        entries additions.
+      properties:
+        import:
+          type: string
+          description: |-
+            The policy ID of the import this target refers to. Must match a key in the policy's
+            "imports" object.
+        entry:
+          type: string
+          description: The label of the entry within the import's "entriesAdditions" that this target refers to.
+      required:
+        - import
+        - entry
+      example:
+        import: 'energy-corp:power-plant-roles'
+        entry: operator
     SubjectAnnouncement:
       type: object
       description: Settings for announcements to be made about the subject.

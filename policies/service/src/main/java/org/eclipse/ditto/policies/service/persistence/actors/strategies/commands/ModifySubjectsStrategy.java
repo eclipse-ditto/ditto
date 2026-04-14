@@ -28,15 +28,22 @@ import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.api.PoliciesValidator;
+import org.eclipse.ditto.policies.model.EntriesAdditions;
 import org.eclipse.ditto.policies.model.Label;
+import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyImport;
+import org.eclipse.ditto.policies.model.PolicyImports;
+import org.eclipse.ditto.policies.model.ImportsAlias;
+import org.eclipse.ditto.policies.model.ImportsAliasTarget;
 import org.eclipse.ditto.policies.model.Subjects;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjects;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjectsResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
+import org.eclipse.ditto.policies.model.signals.events.ImportsAliasSubjectsModified;
 import org.eclipse.ditto.policies.model.signals.events.SubjectsModified;
 import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 
@@ -101,8 +108,75 @@ final class ModifySubjectsStrategy extends AbstractPolicyCommandStrategy<ModifyS
                         command);
             }
         } else {
+            // Check if label is an imports alias
+            final Optional<ImportsAlias> aliasOpt = nonNullPolicy.getImportsAliases().getAlias(label);
+            if (aliasOpt.isPresent()) {
+                return handleAliasSubjects(nonNullPolicy, policyId, label, subjects, commandHeaders, command,
+                        aliasOpt.get(), nextRevision, metadata);
+            }
             return ResultFactory.newErrorResult(policyEntryNotFound(policyId, label, command.getDittoHeaders()), command);
         }
+    }
+
+    private Result<PolicyEvent<?>> handleAliasSubjects(final Policy policy, final PolicyId policyId,
+            final Label aliasLabel, final Subjects subjects, final DittoHeaders commandHeaders,
+            final ModifySubjects command, final ImportsAlias alias, final long nextRevision,
+            @Nullable final Metadata metadata) {
+
+        final Subjects adjustedSubjects = potentiallyAdjustSubjects(subjects);
+        final Optional<Result<PolicyEvent<?>>> alreadyExpired =
+                checkForAlreadyExpiredSubject(adjustedSubjects, commandHeaders, command);
+        if (alreadyExpired.isPresent()) {
+            return alreadyExpired.get();
+        }
+
+        // Fan out subjects to all alias targets' entriesAdditions
+        Policy updatedPolicy = policy;
+        for (final ImportsAliasTarget target : alias.getTargets()) {
+            updatedPolicy = applySubjectsToTarget(updatedPolicy, target, adjustedSubjects);
+        }
+
+        // Size validation after fan-out (subjects are written N times for N targets)
+        final var updatedPolicyJson = updatedPolicy.toJson();
+        PolicyCommandSizeValidator.getInstance()
+                .ensureValidSize(updatedPolicyJson::getUpperBoundForStringSize,
+                        () -> updatedPolicyJson.toString().length(), () -> commandHeaders);
+
+        final ImportsAliasSubjectsModified event = ImportsAliasSubjectsModified.of(policyId, aliasLabel,
+                adjustedSubjects, alias.getTargets(), nextRevision, getEventTimestamp(), commandHeaders, metadata);
+        final ModifySubjects adjustedCommand = ModifySubjects.of(policyId, aliasLabel, adjustedSubjects,
+                commandHeaders);
+        final WithDittoHeaders response = appendETagHeaderIfProvided(adjustedCommand,
+                ModifySubjectsResponse.of(policyId, aliasLabel,
+                        createCommandResponseDittoHeaders(commandHeaders, nextRevision)),
+                policy);
+        return ResultFactory.newMutationResult(adjustedCommand, event, response);
+    }
+
+    private static Policy applySubjectsToTarget(final Policy policy, final ImportsAliasTarget target,
+            final Subjects subjects) {
+
+        final PolicyImports imports = policy.getPolicyImports();
+        return imports.getPolicyImport(target.getImportedPolicyId())
+                .map(existingImport -> {
+                    final EntriesAdditions existingAdditions = existingImport.getEntriesAdditions()
+                            .orElse(PoliciesModelFactory.emptyEntriesAdditions());
+                    final var existingAddition = existingAdditions.getAddition(target.getEntryLabel()).orElse(null);
+                    final var newAddition = PoliciesModelFactory.newEntryAddition(
+                            target.getEntryLabel(), subjects,
+                            existingAddition != null ? existingAddition.getResources().orElse(null) : null,
+                            existingAddition != null ? existingAddition.getNamespaces().orElse(null) : null);
+                    final EntriesAdditions newAdditions = existingAdditions.setAddition(newAddition);
+                    final var labels = existingImport.getEffectedImports()
+                            .map(ei -> ei.getImportedLabels())
+                            .orElse(PoliciesModelFactory.noImportedEntries());
+                    final var newImport = PoliciesModelFactory.newPolicyImport(
+                            existingImport.getImportedPolicyId(),
+                            PoliciesModelFactory.newEffectedImportedLabels(labels, newAdditions));
+                    final PolicyImports newImports = imports.setPolicyImport(newImport);
+                    return policy.toBuilder().setPolicyImports(newImports).build();
+                })
+                .orElse(policy);
     }
 
     @Override

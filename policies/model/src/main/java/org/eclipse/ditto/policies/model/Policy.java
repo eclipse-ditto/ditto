@@ -411,6 +411,54 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
     PolicyImports getPolicyImports();
 
     /**
+     * Returns the {@link ImportsAliases} of this Policy.
+     *
+     * @return the imports aliases of this Policy.
+     * @since 3.9.0
+     */
+    ImportsAliases getImportsAliases();
+
+    /**
+     * Returns the {@link ImportsAlias} for the given label, if present.
+     *
+     * @param label the label of the imports alias to retrieve.
+     * @return the imports alias, or empty if not present.
+     * @throws NullPointerException if {@code label} is {@code null}.
+     * @since 3.9.0
+     */
+    Optional<ImportsAlias> getImportsAlias(Label label);
+
+    /**
+     * Sets the given {@link ImportsAlias} to a copy of this Policy. A previous alias with the same label is replaced.
+     *
+     * @param alias the imports alias to set.
+     * @return a copy of this Policy with the alias set.
+     * @throws NullPointerException if {@code alias} is {@code null}.
+     * @since 3.9.0
+     */
+    Policy setImportsAlias(ImportsAlias alias);
+
+    /**
+     * Removes the imports alias identified by the given label from this Policy.
+     *
+     * @param label the label of the alias to remove.
+     * @return a copy of this Policy without the identified alias.
+     * @throws NullPointerException if {@code label} is {@code null}.
+     * @since 3.9.0
+     */
+    Policy removeImportsAlias(Label label);
+
+    /**
+     * Sets the given {@link ImportsAliases} to a copy of this Policy, replacing all existing aliases.
+     *
+     * @param importsAliases the imports aliases to set.
+     * @return a copy of this Policy with the aliases set.
+     * @throws NullPointerException if {@code importsAliases} is {@code null}.
+     * @since 3.9.0
+     */
+    Policy setImportsAliases(ImportsAliases importsAliases);
+
+    /**
      * Returns the entries of this Policy as set. The returned set is modifiable but disjoint from this Policy; thus
      * modifying the entry set has no impact on this Policy.
      *
@@ -543,6 +591,14 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
          */
         public static final JsonFieldDefinition<JsonObject> ENTRIES =
                 JsonFactory.newJsonObjectFieldDefinition("entries", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the Policy's imports aliases.
+         *
+         * @since 3.9.0
+         */
+        public static final JsonFieldDefinition<JsonObject> IMPORTS_ALIASES =
+                JsonFactory.newJsonObjectFieldDefinition("importsAliases", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Policy's metadata.

@@ -100,6 +100,24 @@ public abstract class AbstractPolicyBuilderLabelScoped implements PolicyBuilder.
     }
 
     @Override
+    public PolicyBuilder setImportsAliases(final ImportsAliases importsAliases) {
+        delegate.setImportsAliases(importsAliases);
+        return this;
+    }
+
+    @Override
+    public PolicyBuilder setImportsAlias(final ImportsAlias importsAlias) {
+        delegate.setImportsAlias(importsAlias);
+        return this;
+    }
+
+    @Override
+    public PolicyBuilder removeImportsAlias(final Label label) {
+        delegate.removeImportsAlias(label);
+        return this;
+    }
+
+    @Override
     public PolicyBuilder setImportableFor(final CharSequence label, final ImportableType importableType) {
         delegate.setImportableFor(label, importableType);
         return this;

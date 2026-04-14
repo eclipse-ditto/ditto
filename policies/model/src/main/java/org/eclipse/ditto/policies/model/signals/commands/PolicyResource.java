@@ -44,7 +44,9 @@ public enum PolicyResource {
     POLICY_ENTRY_SUBJECT,
     POLICY_ENTRY_IMPORTABLE,
     POLICY_ENTRY_ALLOWED_IMPORT_ADDITIONS,
-    POLICY_ENTRY_NAMESPACES;
+    POLICY_ENTRY_NAMESPACES,
+    POLICY_IMPORTS_ALIASES,
+    POLICY_IMPORTS_ALIAS;
 
     private static final ResourceMap<PolicyResource> resources;
 
@@ -58,6 +60,8 @@ public enum PolicyResource {
                                                 .addOne(POLICY_IMPORT_ENTRY_ADDITION))
                                 .end())
                 )
+                .add(Policy.JsonFields.IMPORTS_ALIASES, ResourceMap.newBuilder(POLICY_IMPORTS_ALIASES)
+                        .addOne(POLICY_IMPORTS_ALIAS))
                 .add(Policy.JsonFields.ENTRIES, ResourceMap.newBuilder(POLICY_ENTRIES)
                         .addOne(ResourceMap.newBuilder(POLICY_ENTRY)
                                 .add(PolicyEntry.JsonFields.RESOURCES,

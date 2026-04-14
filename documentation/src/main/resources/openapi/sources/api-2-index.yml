@@ -145,6 +145,10 @@ paths:
     $ref: "./paths/policies/entriesAdditions.yml"
   '/api/2/policies/{policyId}/imports/{importedPolicyId}/entriesAdditions/{label}':
     $ref: "./paths/policies/entryAddition.yml"
+  '/api/2/policies/{policyId}/importsAliases':
+    $ref: "./paths/policies/importsAliases.yml"
+  '/api/2/policies/{policyId}/importsAliases/{label}':
+    $ref: "./paths/policies/importsAlias.yml"
 
   ###
   ### Who Am I
@@ -248,10 +252,7 @@ components:
     ActivateTokenIntegration:
       $ref: "./requests/policies/actions/activateTokenIntegration.yml"
     MigrateThingDefinitionRequest:
-      content:
-        application/json:
-          schema:
-            $ref: "./requests/things/migrateThingDefinitionRequest.yml"
+      $ref: "./requests/things/migrateThingDefinition.yml"
     PermissionCheckRequest:
       $ref: "./requests/permissionCheckRequest.yml"
     DynamicValidationConfigRequest:
@@ -275,11 +276,7 @@ components:
     SuccessUpdateLogLevelSinglePod:
       $ref: "./responses/successUpdateLogLevelSinglePod.yml"
     MigrateThingDefinitionResponse:
-      description: The thing definition was successfully updated, and the updated Thing is returned.
-      content:
-        application/json:
-          schema:
-            $ref: "./responses/things/migrateThingDefinitionResponse.yml"
+      $ref: "./responses/things/migrateThingDefinition.yml"
     PermissionCheckResponse:
       $ref: "./responses/permissionCheckResponse.yml"
     WotValidationConfigResponse:
@@ -412,6 +409,10 @@ components:
       $ref: "./schemas/things/patchThing.yml"
     Thing:
       $ref: "./schemas/things/thing.yml"
+    MigrateThingDefinitionRequest:
+      $ref: "./requests/things/migrateThingDefinitionRequest.yml"
+    MigrateThingDefinitionResponse:
+      $ref: "./responses/things/migrateThingDefinitionResponse.yml"
     NewPolicy:
       $ref: "./schemas/policies/newPolicy.yml"
     Policy:
@@ -442,6 +443,12 @@ components:
       $ref: "./schemas/policies/entriesAdditions.yml"
     EntryAddition:
       $ref: "./schemas/policies/entryAddition.yml"
+    ImportsAliases:
+      $ref: "./schemas/policies/importsAliases.yml"
+    ImportsAlias:
+      $ref: "./schemas/policies/importsAlias.yml"
+    ImportsAliasTarget:
+      $ref: "./schemas/policies/importsAliasTarget.yml"
     SubjectAnnouncement:
       $ref: "./schemas/policies/subjectAnnouncement.yml"
     Features:
