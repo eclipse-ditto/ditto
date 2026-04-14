@@ -106,6 +106,118 @@ public final class PartialAccessPathCalculatorTest {
     }
 
     @Test
+    public void collapsesLeavesToAncestorWhenSubtreeFullyAccessible() {
+        final FeatureProperties childA = FeatureProperties.newBuilder()
+                .set("item1", JsonFactory.newObjectBuilder()
+                        .set("x", 1).set("y", 2).set("z", 3).build())
+                .set("item2", JsonFactory.newObjectBuilder()
+                        .set("x", 4).set("y", 5).set("z", 6).build())
+                .set("item3", JsonFactory.newObjectBuilder()
+                        .set("x", 7).set("y", 8).set("z", 9).build())
+                .build();
+        // Sibling feature so the collapse stops at /features/featureA instead of walking up to /features.
+        final FeatureProperties childB = FeatureProperties.newBuilder()
+                .set("other", "value")
+                .build();
+        final Thing thing = ThingsModelFactory.newThingBuilder()
+                .setId(KNOWN_THING_ID)
+                .setFeature(ThingsModelFactory.newFeature("featureA", null, childA))
+                .setFeature(ThingsModelFactory.newFeature("featureB", null, childB))
+                .build();
+
+        final String partialSubject = "test:partial-featureA";
+        final Policy policy = Policy.newBuilder(KNOWN_POLICY_ID)
+                .setSubjectFor("partial-featureA", Subject.newInstance(
+                        SubjectId.newInstance(partialSubject), SubjectType.GENERATED))
+                .setGrantedPermissionsFor("partial-featureA",
+                        ResourceKey.newInstance("thing", "/features/featureA"), "READ")
+                .build();
+        final PolicyEnforcer enforcer = PolicyEnforcer.of(policy);
+
+        final Map<String, List<JsonPointer>> result =
+                PartialAccessPathCalculator.calculatePartialAccessPaths(thing, enforcer);
+
+        assertThat(result).containsKey(partialSubject);
+        assertThat(result.get(partialSubject))
+                .containsExactly(JsonPointer.of("/features/featureA"));
+    }
+
+    @Test
+    public void collapseLeavesToAncestorsReturnsEmptyForEmptyInput() {
+        final Thing thing = createThingWithAttributesAndFeatures();
+
+        final var result = PartialAccessPathCalculator.collapseLeavesToAncestors(
+                java.util.Set.of(), thing.toJson());
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    public void collapseMixedSubtreeEmitsAncestorForFullBranchAndLeavesForPartialBranch() {
+        final FeatureProperties fullProps = FeatureProperties.newBuilder()
+                .set("a", 1)
+                .set("b", 2)
+                .build();
+        final FeatureProperties partialProps = FeatureProperties.newBuilder()
+                .set("granted", "yes")
+                .set("denied", "no")
+                .build();
+        final Thing thing = ThingsModelFactory.newThingBuilder()
+                .setId(KNOWN_THING_ID)
+                .setFeature(ThingsModelFactory.newFeature("full", null, fullProps))
+                .setFeature(ThingsModelFactory.newFeature("partial", null, partialProps))
+                .build();
+
+        final String subject = "test:mixed-subject";
+        final Policy policy = Policy.newBuilder(KNOWN_POLICY_ID)
+                .setSubjectFor("mixed", Subject.newInstance(
+                        SubjectId.newInstance(subject), SubjectType.GENERATED))
+                .setGrantedPermissionsFor("mixed",
+                        ResourceKey.newInstance("thing", "/features/full"), "READ")
+                .setGrantedPermissionsFor("mixed",
+                        ResourceKey.newInstance("thing", "/features/partial/properties/granted"), "READ")
+                .build();
+        final PolicyEnforcer enforcer = PolicyEnforcer.of(policy);
+
+        final Map<String, List<JsonPointer>> result =
+                PartialAccessPathCalculator.calculatePartialAccessPaths(thing, enforcer);
+
+        assertThat(result).containsKey(subject);
+        assertThat(result.get(subject))
+                .containsExactlyInAnyOrder(
+                        JsonPointer.of("/features/full"),
+                        JsonPointer.of("/features/partial/properties/granted"));
+    }
+
+    @Test
+    public void doesNotCollapseWhenSubtreeOnlyPartiallyAccessible() {
+        final FeatureProperties items = FeatureProperties.newBuilder()
+                .set("item1", JsonFactory.newObjectBuilder().set("x", 1).set("y", 2).build())
+                .set("item2", JsonFactory.newObjectBuilder().set("x", 3).set("y", 4).build())
+                .build();
+        final Thing thing = ThingsModelFactory.newThingBuilder()
+                .setId(KNOWN_THING_ID)
+                .setFeature(ThingsModelFactory.newFeature("featureA", null, items))
+                .build();
+
+        final String partialSubject = "test:partial-limited";
+        final Policy policy = Policy.newBuilder(KNOWN_POLICY_ID)
+                .setSubjectFor("partial-limited", Subject.newInstance(
+                        SubjectId.newInstance(partialSubject), SubjectType.GENERATED))
+                .setGrantedPermissionsFor("partial-limited",
+                        ResourceKey.newInstance("thing", "/features/featureA/properties/item1"), "READ")
+                .build();
+        final PolicyEnforcer enforcer = PolicyEnforcer.of(policy);
+
+        final Map<String, List<JsonPointer>> result =
+                PartialAccessPathCalculator.calculatePartialAccessPaths(thing, enforcer);
+
+        assertThat(result).containsKey(partialSubject);
+        assertThat(result.get(partialSubject))
+                .containsExactly(JsonPointer.of("/features/featureA/properties/item1"));
+    }
+
+    @Test
     public void toIndexedJsonObjectReturnsEmptyStructureForEmptyMap() {
         final JsonObject result = PartialAccessPathCalculator.toIndexedJsonObject(Map.of());
 

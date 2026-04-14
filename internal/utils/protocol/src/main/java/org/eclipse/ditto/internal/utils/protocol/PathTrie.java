@@ -112,8 +112,35 @@ final class PathTrie {
                 return false;
             }
         }
-        
+
         return current.hasDescendants || !current.exactPaths.isEmpty();
+    }
+
+    /**
+     * Checks if any proper ancestor of the given path is an exact match in the trie.
+     * <p>
+     * An ancestor match means the caller has access to the ancestor resource and therefore implicitly
+     * to all descendants (this mirrors Ditto policy semantics: a READ grant on {@code /attributes}
+     * grants read on every field under {@code /attributes}). This is used to let the producer emit
+     * a compact ancestor pointer instead of thousands of leaves when the same grant covers a whole
+     * subtree.
+     *
+     * @param path the path to check
+     * @return true if any proper ancestor of {@code path} is in the accessible set
+     * @since 3.9.0
+     */
+    boolean hasAncestorMatch(final JsonPointer path) {
+        final int levelCount = path.getLevelCount();
+        if (levelCount == 0) {
+            return false;
+        }
+        for (int i = 1; i < levelCount; i++) {
+            final JsonPointer prefix = path.getPrefixPointer(i).orElse(null);
+            if (prefix != null && exactPaths.contains(prefix)) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }

@@ -184,6 +184,16 @@ public final class JsonPartialAccessFilter {
     /**
      * Recursively filters a JSON object based on accessible paths.
      * Uses a PathTrie for efficient prefix matching.
+     * <p>
+     * A field is included when any of the following holds:
+     * <ul>
+     *   <li>The field path is an exact match in the accessible set.</li>
+     *   <li>The field has an accessible descendant (partial match — recurse).</li>
+     *   <li>A proper ancestor of the field path is an exact match — in which case the entire
+     *       subtree rooted at this field is included as-is (no further filtering needed). This
+     *       mirrors Ditto policy semantics: a READ grant on an ancestor grants read on every
+     *       descendant.</li>
+     * </ul>
      *
      * @param jsonObject the JSON object to filter
      * @param currentPath the current path in the JSON structure
@@ -201,10 +211,16 @@ public final class JsonPartialAccessFilter {
                     ? JsonPointer.of("/" + field.getKey())
                     : currentPath.append(JsonPointer.of("/" + field.getKey()));
 
-            final boolean isAccessible = pathTrie.isExactMatch(fieldPath) ||
-                    pathTrie.hasAccessibleDescendant(fieldPath);
+            final boolean hasAncestorMatch = pathTrie.hasAncestorMatch(fieldPath);
+            final boolean isExactMatch = pathTrie.isExactMatch(fieldPath);
 
-            if (isAccessible) {
+            if (hasAncestorMatch || isExactMatch) {
+                // Ancestor or exact match: the entire subtree (or scalar) is accessible.
+                // Include the field as-is; no need to descend further because every descendant
+                // is implicitly granted by the ancestor/exact grant.
+                builder.set(field);
+            } else if (pathTrie.hasAccessibleDescendant(fieldPath)) {
+                // Partial match: some descendants are accessible, recurse to filter them.
                 if (field.getValue().isObject()) {
                     final JsonObject filteredNested = filterJsonRecursive(
                             field.getValue().asObject(), fieldPath, pathTrie);
