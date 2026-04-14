@@ -19,6 +19,7 @@ import org.eclipse.ditto.internal.utils.persistentactors.commands.AbstractComman
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProviderExtension;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
@@ -117,7 +118,8 @@ public final class PolicyCommandStrategies
         addStrategy(new SudoDeleteExpiredSubjectStrategy(policyConfig));
 
         // checkPermissionsStrategy
-        addStrategy(new PolicyCheckPermissionsStrategy(policyConfig));
+        addStrategy(new PolicyCheckPermissionsStrategy(policyConfig,
+                PolicyEnforcerProviderExtension.get(system).getPolicyEnforcerProvider()));
     }
 
     /**
