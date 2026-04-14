@@ -47,6 +47,17 @@ public interface CommandConfig {
     Duration getSmartChannelBuffer();
 
     /**
+     * Returns the timeout used for fire-and-forget commands to wait for enforcement/validation errors before
+     * returning HTTP 202 Accepted. This should be short since enforcement typically completes within milliseconds.
+     * For fire-and-forget commands (timeout=0), the things-service does not send a response on success, so the
+     * gateway waits this duration for potential errors and then optimistically accepts the command.
+     *
+     * @return the fire-and-forget enforcement timeout.
+     * @since 3.9.0
+     */
+    Duration getFireAndForgetEnforcementTimeout();
+
+    /**
      * Return the limit of how many connections can be retrieved.
      * If not limited the response may become few MB in size.
      *
@@ -75,6 +86,11 @@ public interface CommandConfig {
          * thing persistence.
          */
         SMART_CHANNEL_BUFFER("smart-channel-buffer", "10s"),
+
+        /**
+         * The timeout for fire-and-forget enforcement/validation checks.
+         */
+        FIRE_AND_FORGET_ENFORCEMENT_TIMEOUT("fire-and-forget-enforcement-timeout", "3s"),
 
         /**
          * The limit of how many connections can be retrieved.
