@@ -66,7 +66,7 @@ public final class JsonPartialAccessFilterTest {
     }
 
     @Test
-    public void filterJsonByPathsWithExactPaths() {
+    public void filterJsonByPathsAncestorGrantIncludesAllDescendants() {
         final JsonObject thingJson = JsonFactory.newObjectBuilder()
                 .set("attributes", JsonFactory.newObjectBuilder()
                         .set("foo", "bar")
@@ -76,6 +76,24 @@ public final class JsonPartialAccessFilterTest {
 
         final Set<JsonPointer> accessiblePaths = new LinkedHashSet<>();
         accessiblePaths.add(JsonPointer.of("/attributes"));
+
+        final JsonObject filtered = JsonPartialAccessFilter.filterJsonByPaths(thingJson, accessiblePaths);
+
+        assertThat(filtered.getValue("attributes")).isPresent();
+        assertThat(filtered.getValue("attributes").get().asObject().getValue("foo")).isPresent();
+        assertThat(filtered.getValue("attributes").get().asObject().getValue("bar")).isPresent();
+    }
+
+    @Test
+    public void filterJsonByPathsLeafOnlyGrantExcludesSiblings() {
+        final JsonObject thingJson = JsonFactory.newObjectBuilder()
+                .set("attributes", JsonFactory.newObjectBuilder()
+                        .set("foo", "bar")
+                        .set("bar", "baz")
+                        .build())
+                .build();
+
+        final Set<JsonPointer> accessiblePaths = new LinkedHashSet<>();
         accessiblePaths.add(JsonPointer.of("/attributes/foo"));
 
         final JsonObject filtered = JsonPartialAccessFilter.filterJsonByPaths(thingJson, accessiblePaths);
@@ -83,6 +101,67 @@ public final class JsonPartialAccessFilterTest {
         assertThat(filtered.getValue("attributes")).isPresent();
         assertThat(filtered.getValue("attributes").get().asObject().getValue("foo")).isPresent();
         assertThat(filtered.getValue("attributes").get().asObject().getValue("bar")).isEmpty();
+    }
+
+    @Test
+    public void filterJsonByPathsAncestorGrantIncludesArrayValueAsIs() {
+        final JsonObject thingJson = JsonFactory.newObjectBuilder()
+                .set("features", JsonFactory.newObjectBuilder()
+                        .set("featureA", JsonFactory.newObjectBuilder()
+                                .set("items", JsonFactory.newArrayBuilder()
+                                        .add("a").add("b").add("c")
+                                        .build())
+                                .build())
+                        .build())
+                .build();
+
+        final Set<JsonPointer> accessiblePaths = new LinkedHashSet<>();
+        accessiblePaths.add(JsonPointer.of("/features/featureA"));
+
+        final JsonObject filtered = JsonPartialAccessFilter.filterJsonByPaths(thingJson, accessiblePaths);
+
+        assertThat(filtered.getValue(JsonPointer.of("/features/featureA/items")))
+                .hasValueSatisfying(value -> {
+                    assertThat(value.isArray()).isTrue();
+                    assertThat(value.asArray()).hasSize(3);
+                });
+    }
+
+    @Test
+    public void filterJsonByPathsAncestorGrantIncludesScalarDescendantAsIs() {
+        final JsonObject thingJson = JsonFactory.newObjectBuilder()
+                .set("attributes", JsonFactory.newObjectBuilder()
+                        .set("count", 42)
+                        .set("active", true)
+                        .build())
+                .build();
+
+        final Set<JsonPointer> accessiblePaths = new LinkedHashSet<>();
+        accessiblePaths.add(JsonPointer.of("/attributes"));
+
+        final JsonObject filtered = JsonPartialAccessFilter.filterJsonByPaths(thingJson, accessiblePaths);
+
+        assertThat(filtered.getValue(JsonPointer.of("/attributes/count")))
+                .hasValue(JsonFactory.newValue(42));
+        assertThat(filtered.getValue(JsonPointer.of("/attributes/active")))
+                .hasValue(JsonFactory.newValue(true));
+    }
+
+    @Test
+    public void filterJsonByPathsAncestorGrantIncludesNullValueAsIs() {
+        final JsonObject thingJson = JsonFactory.newObjectBuilder()
+                .set("attributes", JsonFactory.newObjectBuilder()
+                        .set("optional", JsonFactory.nullLiteral())
+                        .build())
+                .build();
+
+        final Set<JsonPointer> accessiblePaths = new LinkedHashSet<>();
+        accessiblePaths.add(JsonPointer.of("/attributes"));
+
+        final JsonObject filtered = JsonPartialAccessFilter.filterJsonByPaths(thingJson, accessiblePaths);
+
+        assertThat(filtered.getValue(JsonPointer.of("/attributes/optional")))
+                .hasValueSatisfying(value -> assertThat(value.isNull()).isTrue());
     }
 
     @Test

@@ -33,13 +33,14 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.AllowedImportAddition;
 import org.eclipse.ditto.policies.model.EntriesAdditions;
-import org.eclipse.ditto.policies.model.ImportableType;
 import org.eclipse.ditto.policies.model.EntryAddition;
+import org.eclipse.ditto.policies.model.ImportableType;
 import org.eclipse.ditto.policies.model.ImportedLabels;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
+import org.eclipse.ditto.policies.model.PolicyEntryNamespaces;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyImport;
 import org.eclipse.ditto.policies.model.PolicyImports;
@@ -47,9 +48,11 @@ import org.eclipse.ditto.policies.model.Resource;
 import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.Resources;
 import org.eclipse.ditto.policies.model.Subject;
+import org.eclipse.ditto.policies.model.ImportsAlias;
+import org.eclipse.ditto.policies.model.ImportsAliases;
+import org.eclipse.ditto.policies.model.ImportsAliasTarget;
 import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.Subjects;
-import org.eclipse.ditto.policies.model.PolicyEntryNamespaces;
 import org.eclipse.ditto.policies.model.signals.events.SubjectsDeletedPartially;
 import org.eclipse.ditto.policies.model.signals.events.SubjectsModifiedPartially;
 import org.eclipse.ditto.protocol.Adaptable;
@@ -354,6 +357,58 @@ abstract class AbstractPolicyMappingStrategies<T extends Jsonifiable.WithPredica
                 .orElseThrow(() -> new NullPointerException("Payload value must not be null."));
         final JsonArray jsonArray = value.isArray() ? value.asArray() : JsonArray.empty();
         return PoliciesModelFactory.newImportedEntries(jsonArray);
+    }
+
+    /**
+     * Extracts the imports alias label from the path.
+     * Expected path: {@code importsAliases/<label>}.
+     *
+     * @param adaptable the adaptable to extract from.
+     * @return the label.
+     */
+    protected static Label importsAliasLabelFrom(final Adaptable adaptable) {
+        final MessagePath path = adaptable.getPayload().getPath();
+        return path.getRoot()
+                .filter(root -> Policy.JsonFields.IMPORTS_ALIASES.getPointer().equals(root.asPointer()))
+                .map(root -> path.nextLevel())
+                .flatMap(JsonPointer::getRoot)
+                .map(JsonKey::toString)
+                .map(Label::of)
+                .orElseThrow(() -> JsonParseException.newBuilder().build());
+    }
+
+    /**
+     * Extracts {@code ImportsAliases} from the payload value.
+     *
+     * @param adaptable the adaptable to extract from.
+     * @return the imports aliases.
+     */
+    protected static ImportsAliases importsAliasesFrom(final Adaptable adaptable) {
+        return PoliciesModelFactory.newImportsAliases(getValueFromPayload(adaptable));
+    }
+
+    /**
+     * Extracts a {@code ImportsAlias} from the payload value, using the label from the path.
+     *
+     * @param adaptable the adaptable to extract from.
+     * @return the imports alias.
+     */
+    protected static ImportsAlias importsAliasFrom(final Adaptable adaptable) {
+        return PoliciesModelFactory.newImportsAlias(importsAliasLabelFrom(adaptable), getValueFromPayload(adaptable));
+    }
+
+    /**
+     * Extracts a list of {@code ImportsAliasTarget}s from a JSON array in the payload value.
+     *
+     * @param jsonArray the JSON array containing serialized targets.
+     * @return the list of targets.
+     */
+    protected static List<ImportsAliasTarget> importsAliasTargetsFrom(final JsonArray jsonArray) {
+        return jsonArray.stream()
+                .filter(JsonValue::isObject)
+                .map(JsonValue::asObject)
+                .map(PoliciesModelFactory::newImportsAliasTarget)
+                .collect(Collectors.toList());
     }
 
     /**

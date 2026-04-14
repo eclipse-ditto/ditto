@@ -27,6 +27,9 @@ import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.ImportsAlias;
+import org.eclipse.ditto.policies.model.ImportsAliasTarget;
+import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyImportNotModifiableException;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImport;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImportResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
@@ -54,6 +57,23 @@ final class DeletePolicyImportStrategy extends AbstractPolicyCommandStrategy<Del
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final PolicyId importedPolicyId = command.getImportedPolicyId();
         final PolicyId policyId = context.getState();
+
+        // Check if any imports alias references this import
+        for (final ImportsAlias alias : nonNullPolicy.getImportsAliases()) {
+            for (final ImportsAliasTarget target : alias.getTargets()) {
+                if (importedPolicyId.equals(target.getImportedPolicyId())) {
+                    return ResultFactory.newErrorResult(
+                            PolicyImportNotModifiableException.newBuilder(policyId, importedPolicyId)
+                                    .message("The import '" + importedPolicyId +
+                                            "' cannot be deleted because it is referenced by imports alias '" +
+                                            alias.getLabel() + "'.")
+                                    .description("Remove the imports alias first before deleting the import.")
+                                    .dittoHeaders(dittoHeaders)
+                                    .build(),
+                            command);
+                }
+            }
+        }
 
         if (nonNullPolicy.getPolicyImports().stream().anyMatch(policyImport -> importedPolicyId.equals(policyImport.getImportedPolicyId()))) {
             final PolicyImportDeleted policyImportDeleted =

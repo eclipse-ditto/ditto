@@ -27,7 +27,11 @@ import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyImport;
 import org.eclipse.ditto.policies.model.Subject;
+import org.eclipse.ditto.policies.model.ImportsAlias;
+import org.eclipse.ditto.policies.model.ImportsAliasTarget;
+import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubject;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubjectResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
@@ -70,17 +74,58 @@ final class RetrieveSubjectStrategy extends AbstractPolicyQueryCommandStrategy<R
                                 dittoHeaders), command);
             }
         } else {
+            // Check if label is an imports alias
+            final Optional<ImportsAlias> aliasOpt = nonNullPolicy.getImportsAliases().getAlias(command.getLabel());
+            if (aliasOpt.isPresent()) {
+                final ImportsAlias alias = aliasOpt.get();
+                final Optional<Subject> aliasSubject = resolveFirstTargetSubject(nonNullPolicy, alias,
+                        command.getSubjectId());
+                if (aliasSubject.isPresent()) {
+                    final WithDittoHeaders aliasResponse = appendETagHeaderIfProvided(command,
+                            RetrieveSubjectResponse.of(policyId, command.getLabel(), aliasSubject.get(),
+                                    createCommandResponseDittoHeaders(dittoHeaders, nextRevision - 1)),
+                            nonNullPolicy);
+                    return ResultFactory.newQueryResult(command, aliasResponse);
+                } else {
+                    return ResultFactory.newErrorResult(
+                            subjectNotFound(policyId, command.getLabel(), command.getSubjectId(), dittoHeaders),
+                            command);
+                }
+            }
             return ResultFactory.newErrorResult(
                     policyEntryNotFound(policyId, command.getLabel(), dittoHeaders), command);
         }
     }
 
+    private static Optional<Subject> resolveFirstTargetSubject(final Policy policy, final ImportsAlias alias,
+            final SubjectId subjectId) {
+
+        if (alias.getTargets().isEmpty()) {
+            return Optional.empty();
+        }
+        final ImportsAliasTarget firstTarget = alias.getTargets().get(0);
+        return policy.getPolicyImports()
+                .getPolicyImport(firstTarget.getImportedPolicyId())
+                .flatMap(PolicyImport::getEntriesAdditions)
+                .flatMap(additions -> additions.getAddition(firstTarget.getEntryLabel()))
+                .flatMap(addition -> addition.getSubjects())
+                .flatMap(subjects -> subjects.getSubject(subjectId));
+    }
+
     @Override
     public Optional<EntityTag> nextEntityTag(final RetrieveSubject command, @Nullable final Policy newEntity) {
-        return Optional.ofNullable(newEntity)
-                .flatMap(p -> p.getEntryFor(command.getLabel()))
+        if (newEntity == null) {
+            return Optional.empty();
+        }
+        final Optional<Subject> regularSubject = newEntity.getEntryFor(command.getLabel())
                 .map(PolicyEntry::getSubjects)
-                .flatMap(s -> s.getSubject(command.getSubjectId()))
+                .flatMap(s -> s.getSubject(command.getSubjectId()));
+        if (regularSubject.isPresent()) {
+            return EntityTag.fromEntity(regularSubject.get());
+        }
+        // Fall back to alias-resolved subject
+        return newEntity.getImportsAliases().getAlias(command.getLabel())
+                .flatMap(alias -> resolveFirstTargetSubject(newEntity, alias, command.getSubjectId()))
                 .flatMap(EntityTag::fromEntity);
     }
 }

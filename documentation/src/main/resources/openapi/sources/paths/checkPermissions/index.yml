@@ -15,19 +15,10 @@ post:
   tags:
     - Policies
   requestBody:
-    description: JSON payload containing entities and their permissions to be checked.
-    required: true
-    content:
-      application/json:
-        schema:
-          $ref: '../../requests/permissionCheckRequest.yml'
+    $ref: '../../requests/permissionCheckRequest.yml'
   responses:
     '200':
-      description: Permission check results for each entity.
-      content:
-        application/json:
-          schema:
-            $ref: '../../responses/permissionCheckResponse.yml'
+      $ref: '../../responses/permissionCheckResponse.yml'
     '401':
       description: Unauthorized request due to missing authentication.
       content:

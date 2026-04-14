@@ -254,6 +254,37 @@ public final class AdaptablePartialAccessFilterTest {
     }
 
     @Test
+    public void ancestorGrantAllowsScalarDescendantForNonObjectPayload() {
+        final String partialAccessHeader = JsonFactory.newObjectBuilder()
+                .set("subjects", JsonFactory.newArrayBuilder()
+                        .add(SUBJECT_PARTIAL.getId())
+                        .build())
+                .set("paths", JsonFactory.newObjectBuilder()
+                        .set(JsonFactory.newKey("features/featureA"),
+                                JsonFactory.newArrayBuilder().add(0).build())
+                        .build())
+                .build()
+                .toString();
+
+        final DittoHeaders headers = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey(), partialAccessHeader)
+                .readGrantedSubjects(Set.of(SUBJECT_PARTIAL))
+                .build();
+
+        final Adaptable adaptable = createThingEventAdaptable(
+                JsonPointer.of("features/featureA/properties/x"),
+                JsonValue.of(42),
+                headers);
+
+        final AuthorizationContext context = authContext(SUBJECT_PARTIAL);
+        final Adaptable result = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+                adaptable, context);
+
+        assertThat(result.getPayload().getValue()).isPresent();
+        assertThat(result.getPayload().getValue().orElse(JsonFactory.nullLiteral())).isEqualTo(JsonValue.of(42));
+    }
+
+    @Test
     public void strictMatchingDeniesParentPathWhenChildIsRevoked() {
         // GIVEN: A user has access to /attributes/complex/some but /attributes/complex/secret is revoked
         // This means /attributes/complex should NOT be in accessible paths (parent with revoked child)

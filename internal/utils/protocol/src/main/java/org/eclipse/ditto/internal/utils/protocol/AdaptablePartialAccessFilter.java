@@ -222,6 +222,14 @@ public final class AdaptablePartialAccessFilter {
             return true;
         }
 
+        final int eventLevelCount = eventPath.getLevelCount();
+        for (int i = 1; i < eventLevelCount; i++) {
+            final JsonPointer prefix = eventPath.getPrefixPointer(i).orElse(null);
+            if (prefix != null && accessiblePaths.contains(prefix)) {
+                return true;
+            }
+        }
+
         return false;
     }
 

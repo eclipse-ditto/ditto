@@ -20,6 +20,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
@@ -61,6 +62,14 @@ final class ModifyPolicyImportsStrategy extends AbstractPolicyCommandStrategy<Mo
                 .ensureValidSize(nonNullPolicy,
                         JsonField.newInstance(Policy.JsonFields.IMPORTS.getPointer(), policyImports.toJson()),
                         command::getDittoHeaders);
+
+        // Validate that alias targets still reference existing imports after replacement
+        final Policy policyWithNewImports = nonNullPolicy.toBuilder().setPolicyImports(policyImports).build();
+        final Optional<DittoRuntimeException> aliasValidationError =
+                validateImportsAliasTargets(policyWithNewImports, dittoHeaders);
+        if (aliasValidationError.isPresent()) {
+            return ResultFactory.newErrorResult(aliasValidationError.get(), command);
+        }
 
         final PolicyId policyId = context.getState();
         final PolicyImportsModified policyImportsModified =

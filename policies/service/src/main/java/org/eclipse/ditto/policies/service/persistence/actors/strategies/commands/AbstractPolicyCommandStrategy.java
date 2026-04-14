@@ -40,8 +40,11 @@ import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyImportInvalidException;
 import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.Subject;
+import org.eclipse.ditto.policies.model.ImportsAlias;
+import org.eclipse.ditto.policies.model.ImportsAliasTarget;
 import org.eclipse.ditto.policies.model.SubjectAnnouncement;
 import org.eclipse.ditto.policies.model.SubjectExpiry;
 import org.eclipse.ditto.policies.model.SubjectExpiryInvalidException;
@@ -316,6 +319,30 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
                                     .build(),
                             command);
                 });
+    }
+
+    /**
+     * Validates that all imports alias targets in the given policy reference existing imports.
+     *
+     * @param policy the policy to validate.
+     * @param dittoHeaders the headers for error responses.
+     * @return an Optional containing an error if validation fails, or empty if validation passes.
+     */
+    static Optional<DittoRuntimeException> validateImportsAliasTargets(final Policy policy,
+            final DittoHeaders dittoHeaders) {
+        for (final ImportsAlias alias : policy.getImportsAliases()) {
+            for (final ImportsAliasTarget target : alias.getTargets()) {
+                if (policy.getPolicyImports().getPolicyImport(target.getImportedPolicyId()).isEmpty()) {
+                    return Optional.of(PolicyImportInvalidException.newBuilder()
+                            .message("The imports alias '" + alias.getLabel() + "' references import '" +
+                                    target.getImportedPolicyId() + "' which does not exist in this policy.")
+                            .description("Ensure all alias targets reference existing policy imports.")
+                            .dittoHeaders(dittoHeaders)
+                            .build());
+                }
+            }
+        }
+        return Optional.empty();
     }
 
     static DittoRuntimeException policyEntryNotFound(final PolicyId policyId, final Label label,

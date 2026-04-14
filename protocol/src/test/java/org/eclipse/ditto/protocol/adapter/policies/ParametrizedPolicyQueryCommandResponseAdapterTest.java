@@ -39,6 +39,8 @@ import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImp
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResourceResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResourcesResponse;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveImportsAliasResponse;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveImportsAliasesResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubjectResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubjectsResponse;
 import org.junit.Before;
@@ -65,7 +67,9 @@ public final class ParametrizedPolicyQueryCommandResponseAdapterTest
                 retrievePolicyEntryImportableResponse(),
                 retrievePolicyImportEntriesResponse(),
                 retrievePolicyImportEntriesAdditionsResponse(),
-                retrievePolicyImportEntryAdditionResponse());
+                retrievePolicyImportEntryAdditionResponse(),
+                retrieveImportsAliasesResponse(),
+                retrieveImportsAliasResponse());
     }
 
     private PolicyQueryCommandResponseAdapter underTest;
@@ -205,6 +209,26 @@ public final class ParametrizedPolicyQueryCommandResponseAdapterTest
                         Policies.ENTRY_ADDITION.getLabel()),
                 Policies.ENTRY_ADDITION.toJson(FieldType.notHidden()), HttpStatus.OK);
         return TestParameter.of("retrievePolicyImportEntryAdditionResponse", adaptable, response);
+    }
+
+    private static TestParameter<PolicyQueryCommandResponse<?>> retrieveImportsAliasesResponse() {
+        final RetrieveImportsAliasesResponse response =
+                RetrieveImportsAliasesResponse.of(Policies.POLICY_ID, Policies.IMPORTS_ALIASES,
+                        Policies.HEADERS);
+        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.RETRIEVE,
+                JsonPointer.of("/importsAliases"),
+                Policies.IMPORTS_ALIASES.toJson(FieldType.notHidden()), HttpStatus.OK);
+        return TestParameter.of("retrieveImportsAliasesResponse", adaptable, response);
+    }
+
+    private static TestParameter<PolicyQueryCommandResponse<?>> retrieveImportsAliasResponse() {
+        final RetrieveImportsAliasResponse response =
+                RetrieveImportsAliasResponse.of(Policies.POLICY_ID, Policies.IMPORTS_ALIAS_LABEL,
+                        Policies.IMPORTS_ALIAS.toJson(FieldType.notHidden()), Policies.HEADERS);
+        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.RETRIEVE,
+                JsonPointer.of("/importsAliases/" + Policies.IMPORTS_ALIAS_LABEL),
+                Policies.IMPORTS_ALIAS.toJson(FieldType.notHidden()), HttpStatus.OK);
+        return TestParameter.of("retrieveImportsAliasResponse", adaptable, response);
     }
 
 }

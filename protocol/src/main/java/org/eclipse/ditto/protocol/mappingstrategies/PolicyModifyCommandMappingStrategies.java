@@ -22,12 +22,15 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImpo
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImportEntryAddition;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteResource;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubject;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImports;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteImportsAlias;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteImportsAliases;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntries;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntry;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryAllowedImportAdditions;
-import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryNamespaces;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryImportable;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryNamespaces;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImport;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportEntries;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportEntriesAdditions;
@@ -36,6 +39,8 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImpo
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResource;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResources;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubject;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyImportsAlias;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyImportsAliases;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjects;
 import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommand;
 import org.eclipse.ditto.protocol.JsonifiableMapper;
@@ -180,7 +185,41 @@ final class PolicyModifyCommandMappingStrategies extends AbstractPolicyMappingSt
                         entryAdditionLabelFromImportPath(adaptable.getPayload().getPath()),
                         dittoHeadersFrom(adaptable)));
 
+        mappingStrategies.put(DeletePolicyImports.TYPE,
+                adaptable -> DeletePolicyImports.of(
+                        policyIdFromTopicPath(adaptable.getTopicPath()),
+                        dittoHeadersFrom(adaptable)));
+
+        addImportsAliasesCommands(mappingStrategies);
+
         return mappingStrategies;
+    }
+
+    private static void addImportsAliasesCommands(
+            final Map<String, JsonifiableMapper<PolicyModifyCommand<?>>> mappingStrategies) {
+
+        mappingStrategies.put(ModifyImportsAliases.TYPE,
+                adaptable -> ModifyImportsAliases.of(
+                        policyIdFromTopicPath(adaptable.getTopicPath()),
+                        importsAliasesFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
+
+        mappingStrategies.put(ModifyImportsAlias.TYPE,
+                adaptable -> ModifyImportsAlias.of(
+                        policyIdFromTopicPath(adaptable.getTopicPath()),
+                        importsAliasFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
+
+        mappingStrategies.put(DeleteImportsAlias.TYPE,
+                adaptable -> DeleteImportsAlias.of(
+                        policyIdFromTopicPath(adaptable.getTopicPath()),
+                        importsAliasLabelFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
+
+        mappingStrategies.put(DeleteImportsAliases.TYPE,
+                adaptable -> DeleteImportsAliases.of(
+                        policyIdFromTopicPath(adaptable.getTopicPath()),
+                        dittoHeadersFrom(adaptable)));
     }
 
 }
