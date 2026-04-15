@@ -2,7 +2,7 @@
 ditto {
   headers {
     redacted-in-log = [
-    {{- range $index, $header := .Values.connectivity.config.headersRedactedInLog }}
+    {{- range $index, $header := .Values.global.headersRedactedInLog }}
       "{{$header}}"
     {{- end }}
     ]

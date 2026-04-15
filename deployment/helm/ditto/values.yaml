@@ -70,8 +70,11 @@ global:
     #  higher factors can improve CPU usage (as a StringBuilder does not need to be resized as often),
     #  but will use more memory.
     escapingBufferFactor: 1.0
+  # headersRedactedInLog configures which headers to redact in log output for all services
+  headersRedactedInLog: []
+  # - "authorization"
   # namespacePolicies configures namespace root policies shared by all services participating in enforcement.
-  # Map namespace -> list of policy IDs to be implicitly imported for that namespace.
+  # Map namespace pattern -> list of policy IDs to be implicitly imported for that namespace.
   namespacePolicies: {}
   # org.example.devices:
   #   - org.example:tenant-root
@@ -894,17 +897,17 @@ policies:
         listNewestActiveSnapshotsByBatchPid: null
         # listNewestActiveSnapshotsByBatchPidId contains the hint name to use in the aggregation query where the $match contains only "_id"
         listNewestActiveSnapshotsByBatchId: null
+    # namespaceActivityCheck allows configuring different passivation intervals for policies in specific namespaces
+    #  First match wins - namespace patterns are evaluated in order.
+    #  Supports SQL-LIKE wildcard patterns: '*' matches any number of characters, '?' matches single character.
+    namespaceActivityCheck: []
+    # - namespacePattern: "org.example.low-frequency*"
+    #   inactiveInterval: "5m"
+    #   deletedInterval: "1m"
     # persistence holds configuration regarding (pekko) persistence of policies (event journal and snapshots)
     persistence:
       # activityCheckInterval configures to keep policies for that amount of time in memory when no other use did happen:
       activityCheckInterval: 2d
-      # namespaceActivityCheckOverrides allows configuring different passivation intervals for policies in specific namespaces
-      #  First match wins - namespace patterns are evaluated in order.
-      #  Supports SQL-LIKE wildcard patterns: '*' matches any number of characters, '?' matches single character.
-      namespaceActivityCheckOverrides: []
-      # - namespacePattern: "org.example.low-frequency*"
-      #   inactiveInterval: "5m"
-      #   deletedInterval: "1m"
       # pingRate used to throttle pinging of PolicyPersistenceActors, so that not all PolicyPersistenceActors are recovered at the same time:
       pingRate:
         # frequency the frequency of sent "pings" to PolicyPersistenceActors
@@ -1242,17 +1245,17 @@ things:
         listNewestActiveSnapshotsByBatchPid: null
         # listNewestActiveSnapshotsByBatchPidId contains the hint name to use in the aggregation query where the $match contains only "_id"
         listNewestActiveSnapshotsByBatchId: null
+    # namespaceActivityCheck allows configuring different passivation intervals for things in specific namespaces
+    #  First match wins - namespace patterns are evaluated in order.
+    #  Supports SQL-LIKE wildcard patterns: '*' matches any number of characters, '?' matches single character.
+    namespaceActivityCheck: []
+    # - namespacePattern: "org.example.low-frequency*"
+    #   inactiveInterval: "5m"
+    #   deletedInterval: "1m"
     # persistence holds configuration regarding (pekko) persistence of things (event journal and snapshots)
     persistence:
       # activityCheckInterval configures to keep things for that amount of time in memory when no other use did happen
       activityCheckInterval: 2d
-      # namespaceActivityCheckOverrides allows configuring different passivation intervals for things in specific namespaces
-      #  First match wins - namespace patterns are evaluated in order.
-      #  Supports SQL-LIKE wildcard patterns: '*' matches any number of characters, '?' matches single character.
-      namespaceActivityCheckOverrides: []
-      # - namespacePattern: "org.example.low-frequency*"
-      #   inactiveInterval: "5m"
-      #   deletedInterval: "1m"
       # events contains event journal specific configuration
       events:
         # historicalHeadersToPersist define the DittoHeaders to persist when persisting events to the journal

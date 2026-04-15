@@ -2,15 +2,15 @@
 ditto {
   headers {
     redacted-in-log = [
-    {{- range $index, $header := .Values.thingsSearch.config.headersRedactedInLog }}
+    {{- range $index, $header := .Values.global.headersRedactedInLog }}
       "{{$header}}"
     {{- end }}
     ]
   }
 
-  {{- if .Values.thingsSearch.config.namespacePolicies }}
+  {{- if .Values.global.namespacePolicies }}
   namespace-policies {
-  {{- range $pattern, $policyIds := .Values.thingsSearch.config.namespacePolicies }}
+  {{- range $pattern, $policyIds := .Values.global.namespacePolicies }}
     "{{$pattern}}" = [
     {{- range $idx, $policyId := $policyIds }}
       "{{$policyId}}"
