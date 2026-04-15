@@ -358,244 +358,96 @@ dbconfig:
   # uriSecret: my-uri-secret
 
 ## ----------------------------------------------------------------------------
-## ingress configures the Ingress
+## ingress configures the Ingress resources
+## Users must bring their own ingress controller (e.g. ingress-nginx, traefik, haproxy, etc.)
+## Controller-specific behavior (auth, CORS, timeouts, etc.) should be configured via annotations
 ingress:
-  # enabled whether Ingress should be enabled as alternative to the contained nginx
+  # enabled controls whether Ingress resources are created
   enabled: false
-  # className is the 'ingressClassName' to configure in the Ingress spec
-  className: nginx
-  # host the hostname of the Ingress shared for all: api, ws and ui
-  host: localhost
-  # defaultBackendSuffix the suffix to add to the internal fullname to use as Ingress "defaultBackend"
-  defaultBackendSuffix: nginx
-  # annotations common annotations for all 3 Ingresses of Ditto
-  controller:
-    # enabled whether Ingress controller should be enabled
-    enabled: false
-    # replicaCount configuration for the ingress controller
-    replicaCount: 1
-    # Exposes the ingress controller settings in order to configure its behavior.
-    config:
-      # Sets the number of worker processes that should be started by the ingress controller.
-      # Depending on the load of the ingress controller, this value can be increased or decreased.
-      # When not sure setting it to auto is also fine, but take cares as that will increase RAM usage.
-      workerProcesses: 2
-      # Sets the maximum number of simultaneous connections that can be opened by each worker process.
-      # 0 will use the value of max-worker-open-files. default: 16384
-      workerConnections: 0
-      # Sets the maximum number of files that can be opened by each worker process.
-      # The default of 0 means "max open files (system's limit) - 1024".
-      workerOpenFiles: 0
-    updateStrategy:
-      type: RollingUpdate
-      rollingUpdate:
-        maxSurge: 1
-        maxUnavailable: 1
-    # minReadySeconds configures the minimum number of seconds for which a newly created Pod should be ready without any
-    #  of its containers crashing, for it to be considered available
-    #  ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#min-ready-seconds
-    minReadySeconds: 10
-    # as NGINX Ingress Controller on its pod shutdown tends to interrupt connections, we need to include
-    # some wait time so that existing connections are fully handled before the pod is really shut down.
-    # ref: https://medium.com/codecademy-engineering/kubernetes-nginx-and-zero-downtime-in-production-2c910c6a5ed8
-    preStopWait: 15
-    # specify how many old ReplicaSets for ingress controller deployment will be retained
-    # ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy
-    revisionHistoryLimit: 5
-    # resources configures the resources available/to use for the policies service
-    resources:
-      # cpu defines the "required" CPU of a node so that the service is placed there
-      cpu: 0.75
-      # memoryMi defines the memory in mebibyte (MiB) used as "required" and "limit" in k8s
-      memoryMi: 1024
-      # ephemeralStorageMi defines the storage in mebibyte (MiB) used as "required" and "limit" in k8s
-      ephemeralStorageMi: 2048
-    # namespace for ingress controller, managed by helm, should not be created manually
-    namespace: ingress-nginx
-    # Ingress-NGINX version. Check Supported Versions table from https://github.com/kubernetes/ingress-nginx to match k8s version.
-    nginxIngressVersion: "v1.11.5"
-    # Nginx Version. Check Supported Versions table from https://github.com/kubernetes/ingress-nginx to match k8s version.
-    nginxVersion: "1.25.5"
-    # Pod topology spread constraints for nginx-ingress controller
-    # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
-    topologySpreadConstraints:
-      maxSkew: 1
-      topologyKey: topology.kubernetes.io/zone
-      whenUnsatisfiable: ScheduleAnyway
-  annotations:
-    nginx.ingress.kubernetes.io/service-upstream: "true"
-    nginx.ingress.kubernetes.io/server-snippet: |
-      charset utf-8;
-      default_type application/json;
-      chunked_transfer_encoding off;
-
-      send_timeout 70; # seconds, default: 60
-      client_header_buffer_size 8k; # allow longer URIs + headers (default: 1k)
-      large_client_header_buffers 4 16k;
-
-      proxy_http_version 1.1;
-      proxy_set_header X-Forwarded-Host $http_host;
-      proxy_set_header X-Forwarded-Proto $scheme;
-      proxy_set_header X-Forwarded-For $remote_addr;
-      proxy_set_header Host $host;
-  # api the /api, /stats and /overall Ingress configuration
-  api:
-    # paths configures ingress paths
-    paths:
-      # negative lookahead, so we don't accept /api/2/connections, which is devops responsibility
-      - path: /api/2/(?!connections)
-        pathType: ImplementationSpecific
-        backendSuffix: gateway
-      - path: /stats
-        backendSuffix: gateway
-      - path: /overall
-        backendSuffix: gateway
-    kubernetesAuthAnnotations: |
-      nginx.ingress.kubernetes.io/auth-type: basic
-      nginx.ingress.kubernetes.io/auth-secret: {{ .Release.Name }}-nginx-ingress-htpasswd
-      nginx.ingress.kubernetes.io/auth-realm: 'Authentication required to use HTTP API!'
-    # annotations defines k8s annotations to add to the Ingress
-    annotations:
-      nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
-      nginx.ingress.kubernetes.io/proxy-send-timeout: "70"
-      nginx.ingress.kubernetes.io/proxy-read-timeout: "70"
-      nginx.ingress.kubernetes.io/proxy-next-upstream: "error timeout http_502"
-      nginx.ingress.kubernetes.io/proxy-next-upstream-tries: "4"
-      nginx.ingress.kubernetes.io/proxy-next-upstream-timeout: "50"
-      nginx.ingress.kubernetes.io/proxy-buffer-size: "16k"
-      nginx.ingress.kubernetes.io/configuration-snippet: |
-        set $cors $http_origin;
-
-        # Allow-listed origins for CORS - enforces https for those
-        #if ($http_origin ~ '^https://eclipse-ditto\.github\.io(:\d+)?)$') {
-        #  set $cors $http_origin;
-        #}
-        # Allows http for localhost (on any port)
-        #if ($http_origin ~ '^http://(localhost|127\.0\.0\.1)(:\d+)?') {
-        #  set $cors $http_origin;
-        #}
-
-        if ($cors != "") {
-          add_header 'Access-Control-Allow-Origin' '$cors' always;
-          add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, PATCH, DELETE, OPTIONS' always;
-          add_header 'Access-Control-Allow-Credentials' 'true' always;
-          add_header 'Access-Control-Allow-Headers' '$http_access_control_request_headers' always;
-          add_header 'Access-Control-Expose-Headers' 'correlation-id, response-required, dry-run, channel, etag, ditto-originator, requested-acks, timeout, location, ditto-metadata, traceparent, tracestate, entity-revision' always;
-        }
-
-        if ($request_method = 'OPTIONS') {
-          # Tell client that this pre-flight info is valid for 20 days
-          add_header 'Access-Control-Max-Age' 1728000;
-          add_header 'Access-Control-Allow-Origin' '$cors' always;
-          add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, PATCH, DELETE, OPTIONS' always;
-          add_header 'Access-Control-Allow-Credentials' 'true' always;
-          add_header 'Access-Control-Allow-Headers' '$http_access_control_request_headers' always;
-          add_header 'Access-Control-Expose-Headers' 'correlation-id, response-required, dry-run, channel, etag, ditto-originator, requested-acks, timeout, location, ditto-metadata, traceparent, tracestate, entity-revision' always;
-          add_header 'Content-Type' 'text/plain charset=UTF-8';
-          add_header 'Content-Length' 0;
-          return 204;
-        }
-
-        # security relevant headers:
-        add_header "Content-Security-Policy" "default-src 'none'; frame-ancestors 'none'" always;
-        add_header "Strict-Transport-Security" "max-age=63072000; includeSubdomains;" always;
-        add_header "Cache-Control" "no-cache" always;
-        add_header "X-Content-Type-Options" "nosniff" always;
-        add_header "X-Frame-Options" "SAMEORIGIN" always;
-        add_header "X-XSS-Protection" "1; mode=block" always;
-
-        # set ditto-specific forwarded headers
-        proxy_set_header X-Forwarded-User $remote_user;
-        proxy_set_header x-ditto-pre-authenticated "nginx:$remote_user";
-  # ws the /ws (WebSocket) Ingress configuration
-  ws:
-    # paths configures ingress paths
-    paths:
-      - path: /ws
-        backendSuffix: gateway
-    # annotations defines k8s annotations to add to the Ingress
-    annotations:
-      nginx.ingress.kubernetes.io/proxy-send-timeout: "86400"
-      nginx.ingress.kubernetes.io/proxy-read-timeout: "86400"
-      nginx.ingress.kubernetes.io/proxy-next-upstream: "error timeout http_502"
-      nginx.ingress.kubernetes.io/proxy-next-upstream-tries: "4"
-      nginx.ingress.kubernetes.io/proxy-next-upstream-timeout: "50"
-      nginx.ingress.kubernetes.io/proxy-buffering: "off"
-  # the / Ingress configuration for serving the landing page and static resources
-  root:
-    # paths configures ingress paths
-    paths:
-      - path: /
-        pathType: Exact
-        backendSuffix: nginx
-      - path: /index.html
-        pathType: ImplementationSpecific
-        backendSuffix: nginx
-      - path: /ditto-up.svg
-        pathType: ImplementationSpecific
-        backendSuffix: nginx
-      - path: /ditto-down.svg
-        pathType: ImplementationSpecific
-        backendSuffix: nginx
-    # annotations defines k8s annotations to add to the Ingress
-    annotations:
-      nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
-      nginx.ingress.kubernetes.io/configuration-snippet: |
-        # security relevant headers:
-        add_header "Content-Security-Policy" "default-src 'self'; script-src-elem 'self' 'sha256-Kq9eqc/CtX2tgHPLJUEf8vDO9eNiGaRBrwAYYXTroVc='  https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; worker-src 'self' blob:; object-src 'none';" always;
-        add_header "Strict-Transport-Security" "max-age=63072000; includeSubdomains;" always;
-        add_header "Cache-Control" "no-cache" always;
-        add_header "X-Content-Type-Options" "nosniff" always;
-        add_header "X-Frame-Options" "SAMEORIGIN" always;
-        add_header "X-XSS-Protection" "1; mode=block" always;
-  # ui the /ui and /apidoc Ingress configuration
-  ui:
-    # paths configures ingress paths
-    paths:
-      - path: /
-        pathType: Exact
-        backendSuffix: nginx
-      - path: /apidoc(/|$)(.*)
-        pathType: ImplementationSpecific
-        backendSuffix: swaggerui
-      - path: /ui(/|$)(.*)
-        pathType: ImplementationSpecific
-        backendSuffix: dittoui
-    # annotations defines k8s annotations to add to the Ingress
-    annotations:
-      nginx.ingress.kubernetes.io/use-regex: "true"
-      nginx.ingress.kubernetes.io/rewrite-target: /$2
-      nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
-      nginx.ingress.kubernetes.io/configuration-snippet: |
-        # security relevant headers:
-        add_header "Content-Security-Policy" "default-src 'self'; script-src-elem 'self' 'sha256-Ve/Ec/6YDEeTc+9y+QCJ+e9OhyGWAj3bYxCzNGfOn6U=' 'sha256-Kq9eqc/CtX2tgHPLJUEf8vDO9eNiGaRBrwAYYXTroVc=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: https://raw.githubusercontent.com; font-src 'self' https://cdnjs.cloudflare.com; worker-src 'self' blob:; connect-src 'self' localhost http://localhost:8080; object-src 'none';" always;
-        add_header "Strict-Transport-Security" "max-age=63072000; includeSubdomains;" always;
-        add_header "Cache-Control" "no-cache" always;
-        add_header "X-Content-Type-Options" "nosniff" always;
-        add_header "X-Frame-Options" "SAMEORIGIN" always;
-        add_header "X-XSS-Protection" "1; mode=block" always;
-        rewrite ^(/ui)$ $1/ permanent;
-        rewrite ^(/apidoc)$ $1/ permanent;
-  # devops the /devops, /api/2/connections, /status and /health commands Ingress configuration
-  devops:
-    # paths configures ingress paths
-    paths:
-      - path: /devops
-        backendSuffix: gateway
-      - path: /status
-        backendSuffix: gateway
-      - path: /health
-        backendSuffix: gateway
-      - path: /api/2/connections
-        backendSuffix: gateway
-    # annotations defines k8s annotations to add to the Ingress
-    # if undefined, api ingress annotations are reused
-    annotations:
-  # tls configures the TLS for ingress
+  # className is the IngressClass to use — set to your ingress controller's class name
+  className: ""
+  # host is the optional hostname for all Ingress resources — if empty, no host rule is set (catch-all)
+  host: ""
+  # tls configures TLS for ingress
   tls: []
   #  - secretName: ditto-tls
   #    hosts:
-  #      - localhost
+  #      - ditto.example.com
+
+  # api configures the Ingress for API routes (/api, /stats, /overall)
+  api:
+    enabled: true
+    # annotations for controller-specific configuration (auth, timeouts, CORS, etc.)
+    annotations: {}
+    paths:
+      - path: /api
+        pathType: Prefix
+        service:
+          name: gateway
+      - path: /stats
+        pathType: Prefix
+        service:
+          name: gateway
+      - path: /overall
+        pathType: Prefix
+        service:
+          name: gateway
+
+  # ws configures the Ingress for WebSocket routes (/ws)
+  ws:
+    enabled: true
+    # annotations for controller-specific configuration (long timeouts, buffering, etc.)
+    annotations: {}
+    paths:
+      - path: /ws
+        pathType: Prefix
+        service:
+          name: gateway
+
+  # ui configures the Ingress for the landing page, Ditto UI and Swagger API docs
+  ui:
+    enabled: true
+    # annotations for controller-specific configuration (URL rewriting, etc.)
+    annotations: {}
+    # defaultBackend serves as the catch-all for unmatched paths (e.g. the landing page)
+    defaultBackend:
+      service:
+        name: nginx
+    paths:
+      - path: /
+        pathType: Exact
+        service:
+          name: nginx
+      - path: /apidoc
+        pathType: Prefix
+        service:
+          name: swaggerui
+      - path: /ui
+        pathType: Prefix
+        service:
+          name: dittoui
+
+  # devops configures the Ingress for DevOps routes (/devops, /health, /status, /api/2/connections)
+  devops:
+    enabled: true
+    annotations: {}
+    paths:
+      - path: /devops
+        pathType: Prefix
+        service:
+          name: gateway
+      - path: /health
+        pathType: Prefix
+        service:
+          name: gateway
+      - path: /status
+        pathType: Prefix
+        service:
+          name: gateway
+      - path: /api/2/connections
+        pathType: Prefix
+        service:
+          name: gateway
 
 
 ## ----------------------------------------------------------------------------

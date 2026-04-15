@@ -18,8 +18,6 @@
 ingress:
   enabled: true
   host: ditto.example.com
-  annotations:
-    # kubernetes.io/tls-acme: "true"
   tls:
     - secretName: ditto-tls
       hosts:

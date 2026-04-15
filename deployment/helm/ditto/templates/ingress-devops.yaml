@@ -8,7 +8,7 @@
 # http://www.eclipse.org/legal/epl-2.0
 #
 # SPDX-License-Identifier: EPL-2.0
-{{- if .Values.ingress.enabled -}}
+{{- if and .Values.ingress.enabled .Values.ingress.devops.enabled }}
 {{- $fullName := include "ditto.fullname" . -}}
 ---
 apiVersion: networking.k8s.io/v1
@@ -17,53 +17,31 @@ metadata:
   name: {{ $fullName }}-devops
   namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: {{ include "ditto.name" . }}-nginx
-{{ include "ditto.labels" . | indent 4 }}
-  annotations:
-  {{- with .Values.ingress.annotations }}
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
-  {{- if .Values.ingress.devops.annotations }}
+    {{- include "ditto.labels" . | nindent 4 }}
   {{- with .Values.ingress.devops.annotations }}
+  annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
-  {{- else }}
-  {{- with .Values.ingress.api.annotations }}
-    {{- toYaml . | nindent 4 }}
-  {{- end }}    
-  {{- end }}
-
 spec:
+  {{- if .Values.ingress.className }}
   ingressClassName: {{ .Values.ingress.className }}
-  defaultBackend:
-    service:
-      name: {{ $fullName }}-{{ .Values.ingress.defaultBackendSuffix }}
-      port:
-        name: http
-{{- if .Values.ingress.tls }}
-  tls:
-    {{- range .Values.ingress.tls }}
-    - hosts:
-        {{- range .hosts }}
-        - {{ . | quote }}
-      {{- end }}
-      secretName: {{ .secretName }}
   {{- end }}
-{{- end }}
+  {{- if .Values.ingress.tls }}
+  tls:
+    {{- toYaml .Values.ingress.tls | nindent 4 }}
+  {{- end }}
   rules:
-    - host: {{ .Values.ingress.host | quote }}
+    - {{- if .Values.ingress.host }}
+      host: {{ .Values.ingress.host | quote }}
+      {{- end }}
       http:
         paths:
           {{- range .Values.ingress.devops.paths }}
           - path: {{ .path }}
-            {{- if .pathType }}
             pathType: {{ .pathType }}
-            {{- else }}
-            pathType: Prefix
-            {{- end }}
             backend:
               service:
-                name: {{ $fullName }}-{{ .backendSuffix }}
+                name: {{ $fullName }}-{{ .service.name }}
                 port:
                   name: http
           {{- end }}
