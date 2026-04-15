@@ -19,8 +19,6 @@ import * as Utils from '../utils.js';
 import thingsDiffHTML from './thingsDiff.html';
 import * as Things from './things.js';
 
-const HISTORY_FIELDS = 'fields=thingId%2CpolicyId%2Cdefinition%2Cattributes%2Cfeatures%2C_created%2C_modified%2C_revision%2C_metadata';
-
 const SYSTEM_FIELDS = ['_revision', '_created', '_modified', '_context', '_metadata'];
 
 export function ThingsDiff(targetTab) {
@@ -35,6 +33,9 @@ export function ThingsDiff(targetTab) {
   let lastLeftJson: any = null;
   let lastRightJson: any = null;
   let syncing = false;
+  let fetchToken = 0;
+  let activeProbe: { cancel: () => void } | null = null;
+  let overviewSvg: SVGSVGElement | null = null;
 
   type SubDiffEntry = {
     subDiff: any;
@@ -50,7 +51,6 @@ export function ThingsDiff(targetTab) {
     diffLeftPrev: null as HTMLButtonElement,
     diffLeftNext: null as HTMLButtonElement,
     diffLeftCurrent: null as HTMLButtonElement,
-    diffLeftTimeTravel: null as HTMLButtonElement,
     diffRightRevision: null as HTMLInputElement,
     diffRightSlider: null as HTMLInputElement,
     diffRightMin: null as HTMLSpanElement,
@@ -87,12 +87,6 @@ export function ThingsDiff(targetTab) {
     dom.diffLeftPrev.onclick = () => stepRevision('left', -1);
     dom.diffLeftNext.onclick = () => stepRevision('left', 1);
     dom.diffLeftCurrent.onclick = () => setRevision('left', currentMaxRevision);
-    dom.diffLeftTimeTravel.onclick = () => {
-      const slider = document.getElementById('historyRevisionSlider') as HTMLInputElement;
-      if (slider) {
-        setRevision('left', parseInt(slider.value, 10));
-      }
-    };
 
     // Right revision controls
     dom.diffRightSlider.oninput = () => {
@@ -113,16 +107,13 @@ export function ThingsDiff(targetTab) {
     if (!thing) {
       currentThingId = null;
       currentMaxRevision = 1;
-      if (diffInstance) {
-        diffInstance.getEditors().left.setValue('');
-        diffInstance.getEditors().right.setValue('');
-        diffInstance.diff();
-      }
+      cancelActiveProbe();
+      destroyDiff();
       return;
     }
 
     // When in history mode and it's the same thing, don't reset
-    if (Things.historyModeActive && !isNewThingId) {
+    if (Things.isHistoryModeActive() && !isNewThingId) {
       return;
     }
 
@@ -135,6 +126,7 @@ export function ThingsDiff(targetTab) {
     setRevisionSilent('left', leftRev);
     setRevisionSilent('right', currentMaxRevision);
 
+    cancelActiveProbe();
     probeOldestRevision(thing.thingId);
 
     if (tabLink && tabLink.classList.contains('active')) {
@@ -142,10 +134,6 @@ export function ThingsDiff(targetTab) {
     } else {
       viewDirty = true;
     }
-  };
-
-  const onHistoryModeChanged = (active: boolean) => {
-    dom.diffLeftTimeTravel.hidden = !active;
   };
 
   const addSubDiff = (subDiff, kind: 'attributes' | 'feature') => {
@@ -161,10 +149,17 @@ export function ThingsDiff(targetTab) {
   return {
     ready,
     onThingChanged,
-    onHistoryModeChanged,
     addSubDiff,
     onFeatureChanged,
   };
+
+  function destroyDiff() {
+    if (diffInstance) {
+      diffInstance.destroy();
+      diffInstance = null;
+    }
+    overviewSvg = null;
+  }
 
   function onTabActivated() {
     if (viewDirty) {
@@ -216,34 +211,30 @@ export function ThingsDiff(targetTab) {
     dom.diffRightMax.textContent = max;
   }
 
-  function probeOldestRevision(thingId: string) {
-    const urlParams = 'from-historical-revision=1&fields=_revision';
-    let probeSource;
-    try {
-      probeSource = API.getHistoricalEventSource(thingId, urlParams);
-    } catch (err) {
-      return;
+  function cancelActiveProbe() {
+    if (activeProbe) {
+      activeProbe.cancel();
+      activeProbe = null;
     }
-    probeSource.onmessage = (event) => {
-      probeSource.close();
-      if (event.data && event.data !== '' && thingId === currentThingId) {
-        try {
-          const data = JSON.parse(event.data);
-          if (data._revision) {
-            currentMinRevision = data._revision;
-            updateSliderRanges();
-            // Clamp left slider if below available minimum
-            const leftVal = parseInt(dom.diffLeftRevision.value, 10);
-            if (leftVal < currentMinRevision) {
-              setRevisionSilent('left', currentMinRevision);
-            }
-          }
-        } catch (e) {
-          // ignore
+  }
+
+  function probeOldestRevision(thingId: string) {
+    const probe = Things.probeOldestRevision(thingId);
+    activeProbe = probe;
+
+    probe.promise.then((result) => {
+      activeProbe = null;
+      if (!result || thingId !== currentThingId) return;
+
+      if (result.revision) {
+        currentMinRevision = result.revision;
+        updateSliderRanges();
+        const leftVal = parseInt(dom.diffLeftRevision.value, 10);
+        if (leftVal < currentMinRevision) {
+          setRevisionSilent('left', currentMinRevision);
         }
       }
-    };
-    probeSource.onerror = () => probeSource.close();
+    });
   }
 
   function updateSubDiffs() {
@@ -272,7 +263,8 @@ export function ThingsDiff(targetTab) {
         new Tab(link).show();
       }
     }
-    syncing = false;
+    // Reset after async Bootstrap shown.bs.tab events have fired
+    setTimeout(() => { syncing = false; }, 0);
   }
 
   function debouncedFetchAndDiff() {
@@ -293,29 +285,33 @@ export function ThingsDiff(targetTab) {
 
     if (isNaN(leftRev) || isNaN(rightRev) || leftRev < 1 || rightRev < 1) return;
 
-    Promise.all([
+    const token = ++fetchToken;
+
+    Promise.allSettled([
       fetchRevision(currentThingId, leftRev),
       fetchRevision(currentThingId, rightRev),
-    ]).then(([leftJson, rightJson]) => {
+    ]).then((results) => {
+      if (token !== fetchToken) return; // stale response
+
+      const leftJson = results[0].status === 'fulfilled' ? results[0].value : {};
+      const rightJson = results[1].status === 'fulfilled' ? results[1].value : {};
       lastLeftJson = leftJson;
       lastRightJson = rightJson;
       const leftStr = Utils.stringifyPretty(leftJson);
       const rightStr = Utils.stringifyPretty(rightJson);
       createOrUpdateDiff(leftStr, rightStr);
       updateSubDiffs();
-    }).catch((err) => {
-      console.error('Failed to fetch revisions for diff', err);
     });
   }
 
   function fetchRevision(thingId: string, revision: number): Promise<object> {
     return API.callDittoREST('GET',
-      `/things/${thingId}?${HISTORY_FIELDS}`,
+      `/things/${thingId}?${Things.HISTORY_FIELDS}`,
       null,
       {'at-historical-revision': String(revision)}
     ).then((thing) => {
       if (thing) {
-        const copy = JSON.parse(JSON.stringify(thing));
+        const copy = structuredClone(thing);
         SYSTEM_FIELDS.forEach((f) => delete copy[f]);
         return copy;
       }
@@ -332,7 +328,7 @@ export function ThingsDiff(targetTab) {
       renderChangeOverview(diffInstance.diffs);
     } else {
       diffInstance = new AceDiff({
-        ace: ace as any,
+        ace: ace as unknown as { edit: typeof ace.edit },
         element: dom.diffContainer,
         mode: 'ace/mode/json',
         theme: null,
@@ -369,10 +365,6 @@ export function ThingsDiff(targetTab) {
     const gutterEl = dom.diffContainer.querySelector('.acediff__gutter') as HTMLElement;
     if (!gutterEl) return;
 
-    // Remove previous overview if any
-    const existing = gutterEl.querySelector('.diff-overview');
-    if (existing) existing.remove();
-
     const editors = diffInstance.getEditors();
     const leftLineCount = editors.left.session.getLength();
     const rightLineCount = editors.right.session.getLength();
@@ -381,18 +373,28 @@ export function ThingsDiff(targetTab) {
     const gutterHeight = gutterEl.clientHeight;
     if (gutterHeight === 0) return;
 
-    // Create the overview SVG
     const svgNS = 'http://www.w3.org/2000/svg';
-    const svg = document.createElementNS(svgNS, 'svg');
-    svg.classList.add('diff-overview');
-    svg.setAttribute('width', '100%');
-    svg.setAttribute('height', String(gutterHeight));
-    svg.style.position = 'absolute';
-    svg.style.top = '0';
-    svg.style.left = '0';
-    svg.style.right = '0';
-    svg.style.pointerEvents = 'auto';
-    svg.style.zIndex = '10';
+
+    // Reuse existing SVG or create a new one
+    if (!overviewSvg) {
+      overviewSvg = document.createElementNS(svgNS, 'svg');
+      overviewSvg.classList.add('diff-overview');
+      overviewSvg.setAttribute('width', '100%');
+      overviewSvg.style.position = 'absolute';
+      overviewSvg.style.top = '0';
+      overviewSvg.style.left = '0';
+      overviewSvg.style.right = '0';
+      overviewSvg.style.pointerEvents = 'auto';
+      overviewSvg.style.zIndex = '10';
+      gutterEl.style.position = 'relative';
+      gutterEl.appendChild(overviewSvg);
+    }
+
+    // Clear previous markers and update height
+    while (overviewSvg.firstChild) {
+      overviewSvg.removeChild(overviewSvg.firstChild);
+    }
+    overviewSvg.setAttribute('height', String(gutterHeight));
 
     for (const diff of diffs) {
       const startLine = Math.min(diff.leftStartLine, diff.rightStartLine);
@@ -410,9 +412,13 @@ export function ThingsDiff(targetTab) {
       rect.style.fill = 'rgba(58, 140, 154, 0.6)';
       rect.style.cursor = 'pointer';
 
-      rect.addEventListener('click', () => {
-        editors.left.scrollToLine(diff.leftStartLine, true, true, () => {});
-        editors.right.scrollToLine(diff.rightStartLine, true, true, () => {});
+      rect.addEventListener('click', (e) => {
+        e.stopPropagation();
+        // Scroll both editors without animation. Animation caused a
+        // bounce: each animated frame triggered AceDiff's proportional
+        // scroll sync on the opposite editor, creating oscillation.
+        editors.left.scrollToLine(diff.leftStartLine, true, false, () => {});
+        editors.right.scrollToLine(diff.rightStartLine, true, false, () => {});
       });
       rect.addEventListener('mouseenter', () => {
         rect.style.fill = 'rgba(58, 140, 154, 0.9)';
@@ -421,10 +427,7 @@ export function ThingsDiff(targetTab) {
         rect.style.fill = 'rgba(58, 140, 154, 0.6)';
       });
 
-      svg.appendChild(rect);
+      overviewSvg.appendChild(rect);
     }
-
-    gutterEl.style.position = 'relative';
-    gutterEl.appendChild(svg);
   }
 }

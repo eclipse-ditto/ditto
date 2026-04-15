@@ -11,8 +11,8 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
-import * as API from '../api.js';
 import * as Utils from '../utils.js';
+import * as Environments from '../environments/environments.js';
 import thingsHistoryHTML from './thingsHistory.html';
 import * as Things from './things.js';
 import * as ThingUpdates from './thingUpdates.js';
@@ -60,11 +60,13 @@ let currentThingId: string | null = null;
 let currentMinRevision = 1;
 let currentMaxRevision = 1;
 let oldestTimestamp: string | null = null;
+let activeProbe: { cancel: () => void } | null = null;
 
 document.getElementById('thingsHistoryHTML').innerHTML = thingsHistoryHTML;
 
 export function ready() {
   Things.addChangeListener(onThingChanged);
+  Environments.addChangeListener(onEnvironmentChanged);
 
   Utils.getAllElementsById(dom);
 
@@ -79,16 +81,36 @@ export function ready() {
   dom.historyShowUpdates.onclick = onShowUpdatesFromHere;
 }
 
+function onEnvironmentChanged(modifiedField) {
+  if (!['pinnedThings', 'filterList', 'messageTemplates', 'recentPolicyIds'].includes(modifiedField)) {
+    cancelActiveProbe();
+    if (Things.isHistoryModeActive()) {
+      Things.setHistoryMode(false);
+      dom.historyModeSwitch.checked = false;
+      hideHistoryControls();
+    }
+    currentThingId = null;
+  }
+}
+
+function cancelActiveProbe() {
+  if (activeProbe) {
+    activeProbe.cancel();
+    activeProbe = null;
+  }
+}
+
 function onThingChanged(thing, isNewThingId: boolean) {
   if (!thing) {
     dom.historyModeSwitch.disabled = true;
     dom.historyModeSwitch.checked = false;
     hideHistoryControls();
     currentThingId = null;
+    cancelActiveProbe();
     return;
   }
 
-  if (isNewThingId && Things.historyModeActive) {
+  if (isNewThingId && Things.isHistoryModeActive()) {
     Things.setHistoryMode(false);
     dom.historyModeSwitch.checked = false;
     hideHistoryControls();
@@ -96,7 +118,7 @@ function onThingChanged(thing, isNewThingId: boolean) {
 
   // When history mode is active and it's the same thing, the update is from
   // a historical revision load -- don't reset the slider range.
-  if (Things.historyModeActive && !isNewThingId) {
+  if (Things.isHistoryModeActive() && !isNewThingId) {
     return;
   }
 
@@ -112,11 +134,11 @@ function onThingChanged(thing, isNewThingId: boolean) {
   dom.historyRevisionInput.value = String(currentMaxRevision);
 
   if (thing._created) {
-    dom.historyTimestampInput.min = toDatetimeLocalValue(thing._created);
+    dom.historyTimestampInput.min = Utils.toDatetimeLocalValue(thing._created);
   }
   if (thing._modified) {
-    dom.historyTimestampInput.max = toDatetimeLocalValue(thing._modified);
-    dom.historyTimestampInput.value = toDatetimeLocalValue(thing._modified);
+    dom.historyTimestampInput.max = Utils.toDatetimeLocalValue(thing._modified);
+    dom.historyTimestampInput.value = Utils.toDatetimeLocalValue(thing._modified);
   }
 }
 
@@ -133,56 +155,36 @@ function onHistoryModeToggle() {
   }
 }
 
-/**
- * Probes for the oldest available revision by opening a historical SSE stream
- * starting at revision 1. The first event received contains the oldest available
- * revision (cleaned-up revisions are skipped by the backend). The stream is
- * closed immediately after receiving the first event.
- */
 function probeOldestRevision() {
   if (!currentThingId) return;
 
-  const urlParams = 'from-historical-revision=1&fields=_revision,_modified';
-  let probeSource;
-  try {
-    probeSource = API.getHistoricalEventSource(currentThingId, urlParams);
-  } catch (err) {
-    return;
-  }
+  cancelActiveProbe();
+  const thingId = currentThingId;
+  const probe = Things.probeOldestRevision(thingId);
+  activeProbe = probe;
 
-  probeSource.onmessage = (event) => {
-    probeSource.close();
-    if (event.data && event.data !== '') {
-      try {
-        const data = JSON.parse(event.data);
-        if (data._revision) {
-          currentMinRevision = data._revision;
-          updateRevisionRange();
-          // Clamp slider if currently below the available minimum
-          const currentVal = parseInt(dom.historyRevisionSlider.value, 10);
-          if (currentVal < currentMinRevision) {
-            dom.historyRevisionSlider.value = String(currentMinRevision);
-            dom.historyRevisionInput.value = String(currentMinRevision);
-          }
-        }
-        if (data._modified) {
-          oldestTimestamp = data._modified;
-          const oldestLocal = toDatetimeLocalValue(oldestTimestamp);
-          dom.historyTimestampInput.min = oldestLocal;
-          // Clamp timestamp value if currently older than available
-          if (dom.historyTimestampInput.value < oldestLocal) {
-            dom.historyTimestampInput.value = oldestLocal;
-          }
-        }
-      } catch (e) {
-        // ignore parse errors from probe
+  probe.promise.then((result) => {
+    activeProbe = null;
+    if (!result || thingId !== currentThingId) return;
+
+    if (result.revision) {
+      currentMinRevision = result.revision;
+      updateRevisionRange();
+      const currentVal = parseInt(dom.historyRevisionSlider.value, 10);
+      if (currentVal < currentMinRevision) {
+        dom.historyRevisionSlider.value = String(currentMinRevision);
+        dom.historyRevisionInput.value = String(currentMinRevision);
       }
     }
-  };
-
-  probeSource.onerror = () => {
-    probeSource.close();
-  };
+    if (result.modified) {
+      oldestTimestamp = result.modified;
+      const oldestLocal = Utils.toDatetimeLocalValue(oldestTimestamp);
+      dom.historyTimestampInput.min = oldestLocal;
+      if (dom.historyTimestampInput.value < oldestLocal) {
+        dom.historyTimestampInput.value = oldestLocal;
+      }
+    }
+  });
 }
 
 function updateRevisionRange() {
@@ -221,7 +223,7 @@ function removeHistoryBadges() {
 
 function addBadgeToSection(siblingId: string) {
   const sibling = document.getElementById(siblingId);
-  if (sibling && !sibling.parentElement.querySelector('.history-badge')) {
+  if (sibling?.parentElement && !sibling.parentElement.querySelector('.history-badge')) {
     const badge = document.createElement('span');
     badge.className = 'badge rounded-pill bg-warning text-dark history-badge ms-1';
     badge.style.fontSize = '0.6em';
@@ -235,7 +237,7 @@ function onModeRadioChange() {
   const byRevision = dom.historyRadioRevision.checked;
   dom.historyRevisionControls.hidden = !byRevision;
   dom.historyTimestampControls.hidden = byRevision;
-  if (Things.historyModeActive) {
+  if (Things.isHistoryModeActive()) {
     fetchHistoricalState();
   }
 }
@@ -274,7 +276,7 @@ function onRevisionNext() {
 }
 
 function onTimestampChange() {
-  if (Things.historyModeActive) {
+  if (Things.isHistoryModeActive()) {
     fetchHistoricalState();
   }
 }
@@ -308,18 +310,19 @@ function fetchHistoricalState() {
   if (dom.historyRadioRevision.checked) {
     const revision = parseInt(dom.historyRevisionSlider.value, 10);
     dom.historyBannerText.textContent = `Time travel to revision ${revision}`;
-    Things.refreshThingAtRevision(currentThingId, revision);
+    Things.refreshThingAtRevision(currentThingId, revision)
+      .catch(() => {
+        dom.historyBannerText.textContent = `Time travel failed — revision ${revision} may not exist`;
+      });
   } else {
     const timestamp = dom.historyTimestampInput.value;
     if (timestamp) {
       const isoTimestamp = new Date(timestamp).toISOString();
       dom.historyBannerText.textContent = `Time travel to ${timestamp.replace('T', ' ')}`;
-      Things.refreshThingAtTimestamp(currentThingId, isoTimestamp);
+      Things.refreshThingAtTimestamp(currentThingId, isoTimestamp)
+        .catch(() => {
+          dom.historyBannerText.textContent = `Time travel failed — no data at ${timestamp.replace('T', ' ')}`;
+        });
     }
   }
-}
-
-function toDatetimeLocalValue(isoString: string): string {
-  if (!isoString) return '';
-  return isoString.substring(0, 19);
 }

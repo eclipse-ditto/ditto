@@ -323,15 +323,18 @@ button.busy .spinner-border {
 }
 
 /* Revision picker alignment: force fixed sizes to align stacked rows */
-.input-group input[type="number"] {
+#collapseThings .input-group input[type="number"],
+#collapseThingUpdates .input-group input[type="number"] {
   flex: 0 0 80px !important;
   width: 80px !important;
   padding-right: 6px !important;
   -moz-appearance: textfield !important;
 }
 
-.input-group input[type="number"]::-webkit-outer-spin-button,
-.input-group input[type="number"]::-webkit-inner-spin-button {
+#collapseThings .input-group input[type="number"]::-webkit-outer-spin-button,
+#collapseThings .input-group input[type="number"]::-webkit-inner-spin-button,
+#collapseThingUpdates .input-group input[type="number"]::-webkit-outer-spin-button,
+#collapseThingUpdates .input-group input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }

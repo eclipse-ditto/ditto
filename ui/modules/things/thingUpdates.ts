@@ -11,13 +11,17 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
+import { Collapse } from 'bootstrap';
 import * as API from '../api.js';
+import * as Environments from '../environments/environments.js';
 import * as Utils from '../utils.js';
 import { FilterType, Term } from '../utils/basicFilters.js';
 import { TableFilter } from '../utils/tableFilter.js';
 import thingUpdatesHTML from './thingUpdates.html';
 import * as Things from './things.js';
 import * as ThingsSSE from './thingsSSE.js';
+
+const MAX_MESSAGES = 5000;
 
 enum ThingUpdateContent {
   ONLY_CONTEXT = 'ONLY_CONTEXT',
@@ -82,8 +86,8 @@ let dom: DomElements = {
   tableFilterThingUpdates: null,
 };
 
-let messages = [];
-let filteredMessages = [];
+let messages: any[] = [];
+let filteredMessages: any[] = [];
 let selectedRow;
 let messageDetail;
 let currentThingId: string | null = null;
@@ -96,12 +100,14 @@ let probedMinRevision = 1;
 let probedMaxRevision = 1;
 let probedOldestTimestamp: string | null = null;
 let probedNewestTimestamp: string | null = null;
+let activeProbe: { cancel: () => void } | null = null;
 
 document.getElementById('thingUpdatesHTML').innerHTML = thingUpdatesHTML;
 
 export function ready() {
   ThingsSSE.addChangeListener(onLiveMessage);
   Things.addChangeListener(onThingChanged);
+  Environments.addChangeListener(onEnvironmentChanged);
 
   Utils.getAllElementsById(dom);
 
@@ -153,8 +159,26 @@ export function ready() {
   };
 }
 
+function onEnvironmentChanged(modifiedField) {
+  if (!['pinnedThings', 'filterList', 'messageTemplates', 'recentPolicyIds'].includes(modifiedField)) {
+    cancelActiveProbe();
+    onStopHistorical();
+    onResetClick();
+    currentThingId = null;
+  }
+}
+
+function cancelActiveProbe() {
+  if (activeProbe) {
+    activeProbe.cancel();
+    activeProbe = null;
+  }
+}
+
 function onTableClick(event) {
-  selectedRow = event.target.parentNode.rowIndex - 1;
+  const row = (event.target as HTMLElement).closest('tr');
+  if (!row) return;
+  selectedRow = row.rowIndex - 1;
   updateDetailView();
   messageDetail.session.getUndoManager().reset();
 }
@@ -250,37 +274,55 @@ function addTableRow(messageData: any) {
 }
 
 function onThingChanged(thing) {
-  if (!thing || thing.thingId !== currentThingId) {
-    currentThingId = thing ? thing.thingId : null;
+  if (!thing) {
+    currentThingId = null;
+    cancelActiveProbe();
     onResetClick();
     onStopHistorical();
+    dom.tableFilterThingUpdates.filterOptions = createFilterOptions();
+    return;
+  }
+
+  const isNewThingId = thing.thingId !== currentThingId;
+  if (isNewThingId) {
+    currentThingId = thing.thingId;
+    onResetClick();
+    onStopHistorical();
+    cancelActiveProbe();
     dom.tableFilterThingUpdates.filterOptions = createFilterOptions(thing);
+  }
 
-    if (thing) {
-      const rev = thing._revision || 1;
-      probedMinRevision = 1;
-      probedMaxRevision = rev;
-      probedOldestTimestamp = thing._created ? toDatetimeLocalValue(thing._created) : null;
-      probedNewestTimestamp = thing._modified ? toDatetimeLocalValue(thing._modified) : null;
+  // Always update max revision (handles same-thing reselection with advanced revision)
+  const rev = thing._revision || 1;
+  if (isNewThingId) {
+    probedMinRevision = 1;
+  }
+  probedMaxRevision = rev;
+  probedOldestTimestamp = thing._created ? Utils.toDatetimeLocalValue(thing._created) : null;
+  probedNewestTimestamp = thing._modified ? Utils.toDatetimeLocalValue(thing._modified) : null;
 
-      updateRevisionSliderRanges();
-      dom.historicalFromRevision.value = '1';
-      dom.historicalFromRevisionSlider.value = '1';
-      dom.historicalToRevision.value = String(rev);
-      dom.historicalToRevisionSlider.value = String(rev);
-      if (probedOldestTimestamp) {
-        dom.historicalFromTimestamp.value = probedOldestTimestamp;
-      }
-      if (probedNewestTimestamp) {
-        dom.historicalToTimestamp.value = probedNewestTimestamp;
-      }
-      probeOldestRevision(thing.thingId);
-    }
+  updateRevisionSliderRanges();
+
+  if (isNewThingId) {
+    dom.historicalFromRevision.value = '1';
+    dom.historicalFromRevisionSlider.value = '1';
+  }
+  dom.historicalToRevision.value = String(rev);
+  dom.historicalToRevisionSlider.value = String(rev);
+  if (probedOldestTimestamp && isNewThingId) {
+    dom.historicalFromTimestamp.value = probedOldestTimestamp;
+  }
+  if (probedNewestTimestamp) {
+    dom.historicalToTimestamp.value = probedNewestTimestamp;
+  }
+
+  if (isNewThingId) {
+    probeOldestRevision(thing.thingId);
   }
 }
 
-function createFilterOptions(thing?: any): [Term?] {
-  let result: [Term?] = [];
+function createFilterOptions(thing?: any): Term[] {
+  const result: Term[] = [];
   ['created', 'modified', 'merged', 'deleted'].forEach((e) => result.push(
     new Term(FilterType.PROP_LIKE, `/${e}`, '_context.topic', 'Action')));
   if (thing) {
@@ -341,7 +383,7 @@ function activateHistoricalMode() {
   // Expand the Thing Updates section if collapsed
   const collapseEl = document.getElementById('collapseThingUpdates');
   if (collapseEl && !collapseEl.classList.contains('show')) {
-    collapseEl.classList.add('show');
+    new Collapse(collapseEl).show();
   }
   // Switch to Historical mode
   dom.thingUpdatesModeHistorical.checked = true;
@@ -360,6 +402,23 @@ function onRangeModeChange() {
 
 function onFetchHistorical() {
   if (!currentThingId) return;
+
+  // Validate range: from must be <= to
+  if (dom.historicalRangeModeRevision.checked) {
+    const from = parseInt(dom.historicalFromRevision.value, 10);
+    const to = parseInt(dom.historicalToRevision.value, 10);
+    if (!isNaN(from) && !isNaN(to) && from > to) {
+      Utils.showError('"From" revision must not be greater than "To" revision');
+      return;
+    }
+  } else {
+    const from = dom.historicalFromTimestamp.value;
+    const to = dom.historicalToTimestamp.value;
+    if (from && to && from > to) {
+      Utils.showError('"From" timestamp must not be later than "To" timestamp');
+      return;
+    }
+  }
 
   onStopHistorical();
   onResetClick();
@@ -405,7 +464,13 @@ function onFetchHistorical() {
 
 function onHistoricalMessage(event) {
   if (event.data && event.data !== '') {
-    const messageData = JSON.parse(event.data);
+    let messageData;
+    try {
+      messageData = JSON.parse(event.data);
+    } catch (e) {
+      console.error('Failed to parse historical SSE event', e);
+      return;
+    }
     const revision = messageData._revision;
 
     // Stop the stream when the historical range is exhausted:
@@ -425,6 +490,12 @@ function onHistoricalMessage(event) {
 
     messages.push(messageData);
 
+    // Enforce message cap
+    if (messages.length >= MAX_MESSAGES) {
+      onStopHistorical();
+      Utils.showError(`Message limit reached (${MAX_MESSAGES}). Narrow your revision/time range for more detail.`);
+    }
+
     const filteredMessage = dom.tableFilterThingUpdates.filterItems([messageData]);
     if (filteredMessage.length > 0) {
       filteredMessages.push(filteredMessage[0]);
@@ -440,6 +511,9 @@ function onHistoricalError(event) {
   // closed connection as a transient error and auto-reconnects, restarting
   // the stream. Always stop on error to prevent this loop.
   onStopHistorical();
+  if (messages.length === 0) {
+    Utils.showError('Historical stream ended unexpectedly. The connection may have been interrupted.');
+  }
 }
 
 function onStopHistorical() {
@@ -451,60 +525,38 @@ function onStopHistorical() {
   dom.buttonStopHistorical.hidden = true;
 }
 
-/**
- * Probes the oldest available revision by opening a historical SSE stream
- * starting at revision 1. The backend skips cleaned-up revisions, so the
- * first event contains the oldest available revision and timestamp.
- */
 function probeOldestRevision(thingId: string) {
-  const urlParams = 'from-historical-revision=1&fields=_revision,_modified';
-  let probeSource;
-  try {
-    probeSource = API.getHistoricalEventSource(thingId, urlParams);
-  } catch (err) {
-    return;
-  }
+  cancelActiveProbe();
+  const probe = Things.probeOldestRevision(thingId);
+  activeProbe = probe;
 
-  probeSource.onmessage = (event) => {
-    probeSource.close();
-    if (event.data && event.data !== '' && thingId === currentThingId) {
-      try {
-        const data = JSON.parse(event.data);
-        if (data._revision) {
-          probedMinRevision = data._revision;
-          updateRevisionSliderRanges();
-          dom.historicalFromRevision.value = String(probedMinRevision);
-          dom.historicalFromRevisionSlider.value = String(probedMinRevision);
-        }
-        if (data._modified) {
-          probedOldestTimestamp = toDatetimeLocalValue(data._modified);
-          dom.historicalFromTimestamp.value = probedOldestTimestamp;
-          dom.historicalFromTimestamp.min = probedOldestTimestamp;
-        }
-      } catch (e) {
-        // ignore parse errors from probe
-      }
+  probe.promise.then((result) => {
+    activeProbe = null;
+    if (!result || thingId !== currentThingId) return;
+
+    if (result.revision) {
+      probedMinRevision = result.revision;
+      updateRevisionSliderRanges();
+      dom.historicalFromRevision.value = String(probedMinRevision);
+      dom.historicalFromRevisionSlider.value = String(probedMinRevision);
     }
-  };
-
-  probeSource.onerror = () => {
-    probeSource.close();
-  };
+    if (result.modified) {
+      probedOldestTimestamp = Utils.toDatetimeLocalValue(result.modified);
+      dom.historicalFromTimestamp.value = probedOldestTimestamp;
+      dom.historicalFromTimestamp.min = probedOldestTimestamp;
+    }
+  });
 }
 
 function updateRevisionSliderRanges() {
   const min = String(probedMinRevision);
   const max = String(probedMaxRevision);
   dom.historicalFromRevision.min = min;
+  dom.historicalFromRevision.max = max;
   dom.historicalFromRevisionSlider.min = min;
   dom.historicalFromRevisionSlider.max = max;
   dom.historicalToRevision.min = min;
   dom.historicalToRevision.max = max;
   dom.historicalToRevisionSlider.min = min;
   dom.historicalToRevisionSlider.max = max;
-}
-
-function toDatetimeLocalValue(isoString: string): string {
-  if (!isoString) return '';
-  return isoString.substring(0, 19);
 }

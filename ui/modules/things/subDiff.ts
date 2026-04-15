@@ -29,7 +29,7 @@ export function SubDiff(targetTab, title: string) {
   let pendingRight: string | null = null;
   let onActivatedCallback: ((link: HTMLAnchorElement) => void) | null = null;
 
-  return { ready, update, getTabLink, setOnActivated };
+  return { ready, update, getTabLink, setOnActivated, destroy: destroyDiff };
 
   async function ready() {
     const tabId = Utils.addTab(
@@ -82,7 +82,7 @@ export function SubDiff(targetTab, title: string) {
       diffInstance.diff();
     } else {
       diffInstance = new AceDiff({
-        ace: ace as any,
+        ace: ace as unknown as { edit: typeof ace.edit },
         element: container,
         mode: 'ace/mode/json',
         theme: null,
@@ -103,6 +103,13 @@ export function SubDiff(targetTab, title: string) {
           copyLinkEnabled: false,
         },
       });
+    }
+  }
+
+  function destroyDiff() {
+    if (diffInstance) {
+      diffInstance.destroy();
+      diffInstance = null;
     }
   }
 }

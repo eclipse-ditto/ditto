@@ -95,9 +95,8 @@ document.addEventListener('DOMContentLoaded', async function() {
       itemsId: 'tabItemsThing',
       contentId: 'tabContentThing',
     });
-  Things.addChangeListener(thingsDiff.onThingChanged);
-  Things.addHistoryModeChangeListener(thingsDiff.onHistoryModeChanged);
   await thingsDiff.ready();
+  Things.addChangeListener(thingsDiff.onThingChanged);
 
   const attributesDiff = SubDiff({
       itemsId: 'tabItemsAttribute',
