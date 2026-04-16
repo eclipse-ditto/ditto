@@ -111,5 +111,10 @@ export function SubDiff(targetTab, title: string) {
       diffInstance.destroy();
       diffInstance = null;
     }
+    pendingLeft = null;
+    pendingRight = null;
+    if (container) {
+      container.textContent = '';
+    }
   }
 }

@@ -109,9 +109,16 @@ export function ThingsDiff(targetTab) {
   const onThingChanged = (thing, isNewThingId: boolean) => {
     if (!thing) {
       currentThingId = null;
+      currentMinRevision = 1;
       currentMaxRevision = 1;
+      lastLeftJson = null;
+      lastRightJson = null;
+      viewDirty = false;
       cancelActiveProbe();
       destroyDiff();
+      for (const { subDiff } of subDiffs) {
+        subDiff.destroy();
+      }
       return;
     }
 
@@ -170,6 +177,9 @@ export function ThingsDiff(targetTab) {
       diffInstance = null;
     }
     overviewSvg = null;
+    if (dom.diffContainer) {
+      dom.diffContainer.textContent = '';
+    }
   }
 
   function onTabActivated() {
