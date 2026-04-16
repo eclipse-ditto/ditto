@@ -15,7 +15,7 @@ package org.eclipse.ditto.policies.model;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
-import java.util.List;
+import java.util.Collections;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -119,7 +119,7 @@ public final class ImmutableImportsAliasTest {
     @Test
     public void roundTripJsonSerialization() {
         final ImportsAlias original = ImmutableImportsAlias.of(LABEL,
-                List.of(ImmutableImportsAliasTarget.of(IMPORTED_POLICY_ID, ENTRY_LABEL)));
+                Collections.singletonList(ImmutableImportsAliasTarget.of(IMPORTED_POLICY_ID, ENTRY_LABEL)));
 
         final JsonObject json = original.toJson();
         final ImportsAlias deserialized = ImmutableImportsAlias.fromJson(LABEL, json);
