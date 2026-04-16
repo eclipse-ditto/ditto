@@ -46,6 +46,18 @@
                         <input type="radio" class="btn-check" name="historicalRangeMode" id="historicalRangeModeTimestamp">
                         <label class="btn btn-outline-secondary btn-sm" for="historicalRangeModeTimestamp">By Timestamp</label>
                     </div>
+                    <span class="ms-2" id="quickFetchRevisionButtons">
+                        <button class="btn btn-outline-primary btn-sm" id="buttonLastNRevisions10"
+                            data-bs-toggle="tooltip" title="Fetch the last 10 revisions">Last 10</button>
+                        <button class="btn btn-outline-primary btn-sm" id="buttonLastNRevisions100"
+                            data-bs-toggle="tooltip" title="Fetch the last 100 revisions">Last 100</button>
+                    </span>
+                    <span class="ms-2" id="quickFetchTimestampButtons" hidden>
+                        <button class="btn btn-outline-primary btn-sm" id="buttonLastTime1h"
+                            data-bs-toggle="tooltip" title="Fetch events from the last hour">Last 1h</button>
+                        <button class="btn btn-outline-primary btn-sm" id="buttonLastTime24h"
+                            data-bs-toggle="tooltip" title="Fetch events from the last 24 hours">Last 24h</button>
+                    </span>
                 </div>
                 <div id="historicalRevisionRange">
                     <div class="input-group input-group-sm mb-1">

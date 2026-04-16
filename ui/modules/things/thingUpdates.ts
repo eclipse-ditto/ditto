@@ -53,6 +53,12 @@ type DomElements = {
   historicalToTimestamp: HTMLInputElement,
   buttonFromOldestTimestamp: HTMLButtonElement,
   buttonToMostRecentTimestamp: HTMLButtonElement,
+  quickFetchRevisionButtons: HTMLSpanElement,
+  buttonLastNRevisions10: HTMLButtonElement,
+  buttonLastNRevisions100: HTMLButtonElement,
+  quickFetchTimestampButtons: HTMLSpanElement,
+  buttonLastTime1h: HTMLButtonElement,
+  buttonLastTime24h: HTMLButtonElement,
   inputHistoricalRqlFilter: HTMLInputElement,
   buttonFetchHistorical: HTMLButtonElement,
   buttonStopHistorical: HTMLButtonElement,
@@ -82,6 +88,12 @@ let dom: DomElements = {
   historicalToTimestamp: null,
   buttonFromOldestTimestamp: null,
   buttonToMostRecentTimestamp: null,
+  quickFetchRevisionButtons: null,
+  buttonLastNRevisions10: null,
+  buttonLastNRevisions100: null,
+  quickFetchTimestampButtons: null,
+  buttonLastTime1h: null,
+  buttonLastTime24h: null,
   inputHistoricalRqlFilter: null,
   buttonFetchHistorical: null,
   buttonStopHistorical: null,
@@ -153,6 +165,11 @@ export function ready() {
     dom.historicalToRevision.value = String(probedMaxRevision);
     dom.historicalToRevisionSlider.value = String(probedMaxRevision);
   };
+  dom.buttonLastNRevisions10.onclick = () => quickFetchLastRevisions(10);
+  dom.buttonLastNRevisions100.onclick = () => quickFetchLastRevisions(100);
+  dom.buttonLastTime1h.onclick = () => quickFetchLastTime(1);
+  dom.buttonLastTime24h.onclick = () => quickFetchLastTime(24);
+
   dom.buttonFromOldestTimestamp.onclick = () => {
     if (probedOldestTimestamp) {
       dom.historicalFromTimestamp.value = probedOldestTimestamp;
@@ -432,6 +449,26 @@ function onRangeModeChange() {
   const byRevision = dom.historicalRangeModeRevision.checked;
   dom.historicalRevisionRange.hidden = !byRevision;
   dom.historicalTimestampRange.hidden = byRevision;
+  dom.quickFetchRevisionButtons.hidden = !byRevision;
+  dom.quickFetchTimestampButtons.hidden = byRevision;
+}
+
+function quickFetchLastRevisions(count: number) {
+  const from = Math.max(probedMinRevision, probedMaxRevision - count + 1);
+  const to = probedMaxRevision;
+  dom.historicalFromRevision.value = String(from);
+  dom.historicalFromRevisionSlider.value = String(from);
+  dom.historicalToRevision.value = String(to);
+  dom.historicalToRevisionSlider.value = String(to);
+  onFetchHistorical();
+}
+
+function quickFetchLastTime(hours: number) {
+  const now = new Date();
+  const from = new Date(now.getTime() - hours * 60 * 60 * 1000);
+  dom.historicalFromTimestamp.value = Utils.toDatetimeLocalValue(from.toISOString());
+  dom.historicalToTimestamp.value = Utils.toDatetimeLocalValue(now.toISOString());
+  onFetchHistorical();
 }
 
 function onFetchHistorical() {
