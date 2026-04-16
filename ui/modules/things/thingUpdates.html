@@ -31,6 +31,12 @@
                     data-bs-toggle="tooltip" title="Reset the updates table">
                     <i class="bi bi-x-circle"></i> Reset
                 </button>
+                <div class="form-check form-check-inline ms-2 mb-0 d-flex align-items-center">
+                    <input class="form-check-input mt-0" type="checkbox" id="checkboxIncludeHeaders">
+                    <label class="form-check-label ms-1" for="checkboxIncludeHeaders"
+                        data-bs-toggle="tooltip" title="Include _context/headers in SSE events (reconnects live stream)">
+                        Include context headers</label>
+                </div>
             </div>
             <div id="historicalUpdateControls" hidden>
                 <div class="input-group input-group-sm mb-1">

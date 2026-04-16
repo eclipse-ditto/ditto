@@ -19,8 +19,13 @@ import * as Environments from '../environments/environments.js';
 import * as Things from './things.js';
 import * as ThingsSearch from './thingsSearch.js';
 
+const DEFAULT_SELECTED_FIELDS =
+  'fields=thingId,policyId,definition,attributes,features,_revision,_created,_modified,_metadata,_context/topic,_context/path,_context/value' +
+  '&extraFields=thingId,policyId,definition,attributes,features,_revision,_created,_modified,_metadata';
+
 let selectedThingEventSource;
 let thingsTableEventSource;
+let currentSelectedFields = DEFAULT_SELECTED_FIELDS;
 
 
 /**
@@ -53,12 +58,27 @@ function onSelectedThingChanged(newThingJson, isNewThingId) {
   if (!newThingJson) {
     stopSSE(selectedThingEventSource);
   } else if (isNewThingId) {
-    selectedThingEventSource && selectedThingEventSource.close();
-    // console.log('SSE Start: SELECTED THING : ' + newThingJson.thingId);
-    selectedThingEventSource = API.getEventSource(newThingJson.thingId,
-        'fields=thingId,policyId,definition,attributes,features,_revision,_created,_modified,_metadata,_context/topic,_context/path,_context/value' +
-      '&extraFields=thingId,policyId,definition,attributes,features,_revision,_created,_modified,_metadata');
-    selectedThingEventSource.onmessage = onMessageSelectedThing;
+    connectSelectedThing(newThingJson.thingId);
+  }
+}
+
+function connectSelectedThing(thingId: string) {
+  if (selectedThingEventSource) {
+    selectedThingEventSource.close();
+  }
+  selectedThingEventSource = API.getEventSource(thingId, currentSelectedFields);
+  selectedThingEventSource.onmessage = onMessageSelectedThing;
+}
+
+/**
+ * Reconnects the live SSE for the currently selected thing with updated
+ * field parameters (e.g. after toggling "Include headers").
+ */
+export function reconnectSelectedThing(fields: string) {
+  currentSelectedFields = fields;
+  const thingId = Things.theThing?.thingId;
+  if (thingId && selectedThingEventSource) {
+    connectSelectedThing(thingId);
   }
 }
 

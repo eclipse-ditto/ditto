@@ -21,6 +21,9 @@ import thingUpdatesHTML from './thingUpdates.html';
 import * as Things from './things.js';
 import * as ThingsSSE from './thingsSSE.js';
 
+const BASE_CONTEXT_FIELDS = '_context/topic,_context/path,_context/value';
+const EXTRA_FIELDS = 'thingId,policyId,definition,attributes,features,_revision,_created,_modified,_metadata';
+
 const MAX_MESSAGES = 5000;
 
 enum ThingUpdateContent {
@@ -53,6 +56,7 @@ type DomElements = {
   inputHistoricalRqlFilter: HTMLInputElement,
   buttonFetchHistorical: HTMLButtonElement,
   buttonStopHistorical: HTMLButtonElement,
+  checkboxIncludeHeaders: HTMLInputElement,
   selectThingUpdateContent: HTMLSelectElement,
   tbodyThingUpdates: HTMLTableElement,
   tableFilterThingUpdates: TableFilter,
@@ -81,6 +85,7 @@ let dom: DomElements = {
   inputHistoricalRqlFilter: null,
   buttonFetchHistorical: null,
   buttonStopHistorical: null,
+  checkboxIncludeHeaders: null,
   selectThingUpdateContent: null,
   tbodyThingUpdates: null,
   tableFilterThingUpdates: null,
@@ -119,6 +124,7 @@ export function ready() {
   dom.tableFilterThingUpdates.addEventListener('filterChange', onFilterChange);
   dom.tableFilterThingUpdates.filterOptions = createFilterOptions();
 
+  dom.checkboxIncludeHeaders.onchange = onIncludeHeadersChange;
   dom.thingUpdatesModeLive.onchange = onModeChange;
   dom.thingUpdatesModeHistorical.onchange = onModeChange;
   dom.historicalRangeModeRevision.onchange = onRangeModeChange;
@@ -157,6 +163,23 @@ export function ready() {
       dom.historicalToTimestamp.value = probedNewestTimestamp;
     }
   };
+}
+
+/**
+ * Returns the SSE fields parameter string, optionally including context headers.
+ * In historical mode only `_context/headers/historical-headers` is useful;
+ * in live mode the full `_context/headers` is requested.
+ */
+export function buildFieldsParam(historical = false): string {
+  const headerField = historical ? '_context/headers/historical-headers' : '_context/headers';
+  const contextFields = dom.checkboxIncludeHeaders?.checked
+    ? `${BASE_CONTEXT_FIELDS},${headerField}`
+    : BASE_CONTEXT_FIELDS;
+  return `fields=${EXTRA_FIELDS},${contextFields}&extraFields=${EXTRA_FIELDS}`;
+}
+
+function onIncludeHeadersChange() {
+  ThingsSSE.reconnectSelectedThing(buildFieldsParam());
 }
 
 function onEnvironmentChanged(modifiedField) {
@@ -436,8 +459,7 @@ function onFetchHistorical() {
   lastReceivedRevision = null;
   requestedToRevision = null;
 
-  const fields = 'fields=thingId,policyId,definition,attributes,features,_revision,_created,_modified,_metadata,_context/topic,_context/path,_context/value' +
-    '&extraFields=thingId,policyId,definition,attributes,features,_revision,_created,_modified,_metadata';
+  const fields = buildFieldsParam(true);
 
   let rangeParams = '';
   if (dom.historicalRangeModeRevision.checked) {
