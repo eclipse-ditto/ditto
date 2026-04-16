@@ -29,7 +29,6 @@ export function isHistoryModeActive(): boolean {
 }
 
 const observers = [];
-const historyModeObservers = [];
 
 const dom = {
   collapseThings: null,
@@ -115,7 +114,6 @@ export function refreshThingAtTimestamp(thingId: string, timestamp: string): Pro
 
 export function setHistoryMode(active: boolean) {
   _historyModeActive = active;
-  historyModeObservers.forEach((observer) => observer.call(null, active));
   if (!active && theThing) {
     refreshThing(theThing.thingId);
   }

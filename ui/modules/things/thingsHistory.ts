@@ -312,7 +312,15 @@ function fetchHistoricalState() {
     dom.historyBannerText.textContent = `Time travel to revision ${revision}`;
     Things.refreshThingAtRevision(currentThingId, revision)
       .catch(() => {
-        dom.historyBannerText.textContent = `Time travel failed — revision ${revision} may not exist`;
+        if (revision >= currentMinRevision && revision < currentMaxRevision) {
+          currentMinRevision = revision + 1;
+          updateRevisionRange();
+          if (parseInt(dom.historyRevisionSlider.value, 10) < currentMinRevision) {
+            dom.historyRevisionSlider.value = String(currentMinRevision);
+            dom.historyRevisionInput.value = String(currentMinRevision);
+          }
+        }
+        dom.historyBannerText.textContent = `Revision ${revision} has been pruned from history (retention). Oldest retrievable is now ${currentMinRevision}.`;
       });
   } else {
     const timestamp = dom.historyTimestampInput.value;
@@ -321,7 +329,7 @@ function fetchHistoricalState() {
       dom.historyBannerText.textContent = `Time travel to ${timestamp.replace('T', ' ')}`;
       Things.refreshThingAtTimestamp(currentThingId, isoTimestamp)
         .catch(() => {
-          dom.historyBannerText.textContent = `Time travel failed — no data at ${timestamp.replace('T', ' ')}`;
+          dom.historyBannerText.textContent = `Time travel failed — no data at ${timestamp.replace('T', ' ')} (may be before retention window)`;
         });
     }
   }

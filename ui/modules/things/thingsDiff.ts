@@ -15,6 +15,7 @@ import { Tab } from 'bootstrap';
 import * as ace from 'ace-builds/src-noconflict/ace';
 import AceDiff from 'ace-diff';
 import * as API from '../api.js';
+import * as Environments from '../environments/environments.js';
 import * as Utils from '../utils.js';
 import thingsDiffHTML from './thingsDiff.html';
 import * as Things from './things.js';
@@ -73,6 +74,8 @@ export function ThingsDiff(targetTab) {
     tabLink = document.querySelector(`a[data-bs-target="#${tabId}"]`);
     tabLink.addEventListener('shown.bs.tab', onTabActivated);
 
+    Environments.addChangeListener(onEnvironmentChanged);
+
     Utils.getAllElementsById(dom);
 
     // Left revision controls
@@ -129,12 +132,20 @@ export function ThingsDiff(targetTab) {
     cancelActiveProbe();
     probeOldestRevision(thing.thingId);
 
-    if (tabLink && tabLink.classList.contains('active')) {
+    if (isAnyDiffTabActive()) {
       fetchAndDiff();
     } else {
       viewDirty = true;
     }
   };
+
+  function isAnyDiffTabActive(): boolean {
+    if (tabLink && tabLink.classList.contains('active')) return true;
+    return subDiffs.some((s) => {
+      const link = s.subDiff.getTabLink();
+      return link && link.classList.contains('active');
+    });
+  }
 
   const addSubDiff = (subDiff, kind: 'attributes' | 'feature') => {
     subDiffs.push({ subDiff, kind });
@@ -218,6 +229,20 @@ export function ThingsDiff(targetTab) {
     }
   }
 
+  function onEnvironmentChanged(modifiedField) {
+    if (['pinnedThings', 'filterList', 'messageTemplates', 'recentPolicyIds'].includes(modifiedField)) {
+      return;
+    }
+    cancelActiveProbe();
+    destroyDiff();
+    currentThingId = null;
+    currentMinRevision = 1;
+    currentMaxRevision = 1;
+    lastLeftJson = null;
+    lastRightJson = null;
+    viewDirty = false;
+  }
+
   function probeOldestRevision(thingId: string) {
     const probe = Things.probeOldestRevision(thingId);
     activeProbe = probe;
@@ -292,6 +317,16 @@ export function ThingsDiff(targetTab) {
       fetchRevision(currentThingId, rightRev),
     ]).then((results) => {
       if (token !== fetchToken) return; // stale response
+
+      if (results[0].status === 'rejected') {
+        console.warn(`Diff: failed to fetch left revision ${leftRev}`, results[0].reason);
+      }
+      if (results[1].status === 'rejected') {
+        console.warn(`Diff: failed to fetch right revision ${rightRev}`, results[1].reason);
+      }
+      if (results[0].status === 'rejected' && results[1].status === 'rejected') {
+        Utils.showError(`Failed to fetch both revisions (${leftRev}, ${rightRev}) for diff`);
+      }
 
       const leftJson = results[0].status === 'fulfilled' ? results[0].value : {};
       const rightJson = results[1].status === 'fulfilled' ? results[1].value : {};

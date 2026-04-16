@@ -230,6 +230,17 @@ function onSelectContentChange() {
 function onLiveMessage(messageData) {
   if (isHistoricalMode) return;
 
+  while (messages.length >= MAX_MESSAGES) {
+    messages.shift();
+  }
+  while (filteredMessages.length >= MAX_MESSAGES) {
+    filteredMessages.shift();
+    const tbody = dom.tbodyThingUpdates;
+    if (tbody.rows.length > 0) {
+      tbody.deleteRow(0);
+    }
+  }
+
   messages.push(messageData);
 
   const filteredMessage = dom.tableFilterThingUpdates.filterItems([messageData]);
@@ -494,6 +505,7 @@ function onHistoricalMessage(event) {
     if (messages.length >= MAX_MESSAGES) {
       onStopHistorical();
       Utils.showError(`Message limit reached (${MAX_MESSAGES}). Narrow your revision/time range for more detail.`);
+      return;
     }
 
     const filteredMessage = dom.tableFilterThingUpdates.filterItems([messageData]);

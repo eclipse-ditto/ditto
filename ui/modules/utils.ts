@@ -338,8 +338,9 @@ export function formatDate(dateISOString: string, withMilliseconds = false): str
 export function toDatetimeLocalValue(isoString: string): string {
   if (!isoString) return '';
   const d = new Date(isoString);
+  if (isNaN(d.getTime())) return '';
   const offset = d.getTimezoneOffset() * 60000;
-  return new Date(d.getTime() - offset).toISOString().substring(0, 19);
+  return new Date(d.getTime() - offset).toISOString().substring(0, 23);
 }
 
 let modalConfirm;
