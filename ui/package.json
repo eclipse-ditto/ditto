@@ -28,6 +28,7 @@
     "@popperjs/core": "^2.11.8",
     "@tarekraafat/autocomplete.js": "^10.2.7",
     "ace-builds": "^1.35.4",
+    "ace-diff": "4.0.0",
     "bootstrap": "^5.3.3",
     "bootstrap-icons": "^1.11.3",
     "dompurify": "^3.3.2",

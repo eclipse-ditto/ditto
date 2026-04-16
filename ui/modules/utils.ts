@@ -330,6 +330,19 @@ export function formatDate(dateISOString: string, withMilliseconds = false): str
   }
 }
 
+/**
+ * Converts an ISO 8601 UTC timestamp to a value suitable for datetime-local inputs.
+ * Adjusts to the browser's local timezone so the displayed value matches
+ * the user's wall-clock time.
+ */
+export function toDatetimeLocalValue(isoString: string): string {
+  if (!isoString) return '';
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) return '';
+  const offset = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - offset).toISOString().substring(0, 23);
+}
+
 let modalConfirm;
 
 /**

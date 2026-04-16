@@ -22,6 +22,12 @@ import * as ThingsSearch from './thingsSearch.js';
 
 export let theThing;
 
+let _historyModeActive = false;
+
+export function isHistoryModeActive(): boolean {
+  return _historyModeActive;
+}
+
 const observers = [];
 
 const dom = {
@@ -31,6 +37,7 @@ const dom = {
 
 document.getElementById('thingsHTML').innerHTML = thingsHTML;
 
+export const HISTORY_FIELDS = 'fields=thingId%2CpolicyId%2Cdefinition%2Cattributes%2Cfeatures%2C_created%2C_modified%2C_revision%2C_metadata';
 
 /**
  * Adds a listener function for the currently selected thing
@@ -79,3 +86,90 @@ function refreshView() {
   ThingsSearch.performLastSearch();
 }
 
+export function refreshThingAtRevision(thingId: string, revision: number): Promise<void> {
+  console.assert(thingId && thingId !== '', 'thingId expected');
+  return API.callDittoREST('GET',
+      `/things/${thingId}?${HISTORY_FIELDS}`,
+      null,
+      {'at-historical-revision': String(revision)})
+      .then((thing) => setTheThing(thing))
+      .catch((err) => {
+        console.error('Failed to fetch historical thing at revision', revision, err);
+        throw err;
+      });
+}
+
+export function refreshThingAtTimestamp(thingId: string, timestamp: string): Promise<void> {
+  console.assert(thingId && thingId !== '', 'thingId expected');
+  return API.callDittoREST('GET',
+      `/things/${thingId}?${HISTORY_FIELDS}`,
+      null,
+      {'at-historical-timestamp': timestamp})
+      .then((thing) => setTheThing(thing))
+      .catch((err) => {
+        console.error('Failed to fetch historical thing at timestamp', timestamp, err);
+        throw err;
+      });
+}
+
+export function setHistoryMode(active: boolean) {
+  _historyModeActive = active;
+  if (!active && theThing) {
+    refreshThing(theThing.thingId);
+  }
+}
+
+
+export type ProbeResult = { revision: number; modified: string | null };
+
+/**
+ * Probes for the oldest available revision by opening a historical SSE stream
+ * starting at revision 1. The first event received contains the oldest available
+ * revision (cleaned-up revisions are skipped by the backend). The stream is
+ * closed immediately after receiving the first event.
+ * @returns An object with a promise for the result and a cancel function.
+ */
+export function probeOldestRevision(thingId: string): { promise: Promise<ProbeResult | null>; cancel: () => void } {
+  let probeSource;
+  let cancelled = false;
+
+  const cancel = () => {
+    cancelled = true;
+    if (probeSource) {
+      probeSource.close();
+    }
+  };
+
+  const promise = new Promise<ProbeResult | null>((resolve) => {
+    const urlParams = 'from-historical-revision=1&fields=_revision,_modified';
+    try {
+      probeSource = API.getHistoricalEventSource(thingId, urlParams);
+    } catch (err) {
+      resolve(null);
+      return;
+    }
+    probeSource.onmessage = (event) => {
+      probeSource.close();
+      if (cancelled) { resolve(null); return; }
+      if (event.data && event.data !== '') {
+        try {
+          const data = JSON.parse(event.data);
+          resolve({
+            revision: data._revision || 1,
+            modified: data._modified || null,
+          });
+        } catch (e) {
+          resolve(null);
+        }
+      } else {
+        resolve(null);
+      }
+    };
+    probeSource.onerror = () => {
+      probeSource.close();
+      resolve(null);
+    };
+  });
+
+  return { promise, cancel };
+}

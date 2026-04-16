@@ -13,6 +13,7 @@
 import { Dropdown } from 'bootstrap';
 /* eslint-disable new-cap */
 import 'bootstrap/dist/css/bootstrap.min.css';
+import 'ace-diff/styles';
 import './main.scss';
 import * as Connections from './modules/connections/connections.js';
 import * as ConnectionsCRUD from './modules/connections/connectionsCRUD.js';
@@ -33,13 +34,16 @@ import * as Attributes from './modules/things/attributes.js';
 import * as FeatureMessages from './modules/things/featureMessages.js';
 import * as Features from './modules/things/features.js';
 import * as Fields from './modules/things/fields.js';
-import * as MessagesIncoming from './modules/things/messagesIncoming.js';
+import * as ThingsHistory from './modules/things/thingsHistory.js';
+import * as ThingUpdates from './modules/things/thingUpdates.js';
 import * as SearchFilter from './modules/things/searchFilter.js';
 import * as ThingMessages from './modules/things/thingMessages.js';
 import * as Things from './modules/things/things.js';
 import * as ThingsCRUD from './modules/things/thingsCRUD.js';
 import * as ThingsSearch from './modules/things/thingsSearch.js';
 import * as ThingsSSE from './modules/things/thingsSSE.js';
+import { SubDiff } from './modules/things/subDiff.js';
+import { ThingsDiff } from './modules/things/thingsDiff.js';
 import { WoTDescription } from './modules/things/wotDescription.js';
 import * as Utils from './modules/utils.js';
 import './modules/utils/crudToolbar.js';
@@ -56,7 +60,8 @@ document.addEventListener('DOMContentLoaded', async function() {
   await ThingsCRUD.ready();
   await ThingMessages.ready();
   await ThingsSSE.ready();
-  MessagesIncoming.ready();
+  ThingsHistory.ready();
+  ThingUpdates.ready();
   Attributes.ready();
   await Fields.ready();
   await SearchFilter.ready();
@@ -86,12 +91,34 @@ document.addEventListener('DOMContentLoaded', async function() {
   Things.addChangeListener(thingDescription.onReferenceChanged);
   await thingDescription.ready();
 
+  const thingsDiff = ThingsDiff({
+      itemsId: 'tabItemsThing',
+      contentId: 'tabContentThing',
+    });
+  await thingsDiff.ready();
+  Things.addChangeListener(thingsDiff.onThingChanged);
+
+  const attributesDiff = SubDiff({
+      itemsId: 'tabItemsAttribute',
+      contentId: 'tabContentAttribute',
+    }, 'Compare attributes between two revisions');
+  await attributesDiff.ready();
+  thingsDiff.addSubDiff(attributesDiff, 'attributes');
+
   const featureDescription = WoTDescription({
       itemsId: 'tabItemsFeatures',
       contentId: 'tabContentFeatures',
     }, true);
   Features.addChangeListener(featureDescription.onReferenceChanged);
   await featureDescription.ready();
+
+  const featureDiff = SubDiff({
+      itemsId: 'tabItemsFeatures',
+      contentId: 'tabContentFeatures',
+    }, 'Compare selected feature between two revisions');
+  await featureDiff.ready();
+  thingsDiff.addSubDiff(featureDiff, 'feature');
+  Features.addChangeListener(thingsDiff.onFeatureChanged);
 
   // make dropdowns not cutting off
   new Dropdown(document.querySelector('.dropdown-toggle'), {

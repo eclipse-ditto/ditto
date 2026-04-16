@@ -12,6 +12,7 @@
  */
 
 import * as ace from 'ace-builds/src-noconflict/ace';
+import { Ace } from 'ace-builds';
 import * as API from '../api.js';
 import * as Utils from '../utils.js';
 import { CrudOperation, CrudToolbar } from '../utils/crudToolbar.js';
@@ -35,7 +36,7 @@ let dom : DomElements = {
   crudResource: null,
 } ;
 
-let resourceEditor: ace.Editor;
+let resourceEditor: Ace.Editor;
 
 export function ready() {
   Utils.getAllElementsById(dom);
