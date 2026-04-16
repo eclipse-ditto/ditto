@@ -302,6 +302,14 @@ button.busy .spinner-border {
     fill: rgba(58, 140, 154, 0.2);
     stroke: rgba(58, 140, 154, 0.5);
   }
+
+  // Let clicks pass through AceDiff's gutter SVG (connectors) so that
+  // the overview minimap (.diff-overview) underneath remains clickable.
+  // AceDiff recreates its gutter SVG asynchronously on scroll/resize,
+  // which can push it on top of the minimap in the DOM.
+  .acediff__gutter > svg:not(.diff-overview) {
+    pointer-events: none;
+  }
 }
 
 /* History mode styles */

@@ -187,11 +187,17 @@ export function ThingsDiff(targetTab) {
       fetchAndDiff();
       viewDirty = false;
     }
-    // Resize editors to fit the container
+    // Resize editors to fit the container and re-render the overview
+    // after AceDiff's async event handlers (scroll sync, resize) settle.
     if (diffInstance) {
       const editors = diffInstance.getEditors();
       editors.left.resize();
       editors.right.resize();
+      setTimeout(() => {
+        if (diffInstance) {
+          renderChangeOverview(diffInstance.diffs);
+        }
+      }, 50);
     }
     syncTabs(tabLink);
   }
@@ -420,6 +426,13 @@ export function ThingsDiff(targetTab) {
 
     const svgNS = 'http://www.w3.org/2000/svg';
 
+    // Ensure AceDiff's connector SVGs don't block minimap clicks.
+    // AceDiff recreates its gutter SVG asynchronously (on scroll, resize),
+    // so this must run every time the overview is (re-)rendered.
+    gutterEl.querySelectorAll(':scope > svg:not(.diff-overview)').forEach(
+      (svg: SVGElement) => { svg.style.pointerEvents = 'none'; }
+    );
+
     // Reuse existing SVG or create a new one
     if (!overviewSvg) {
       overviewSvg = document.createElementNS(svgNS, 'svg');
@@ -459,11 +472,11 @@ export function ThingsDiff(targetTab) {
 
       rect.addEventListener('click', (e) => {
         e.stopPropagation();
-        // Scroll both editors without animation. Animation caused a
-        // bounce: each animated frame triggered AceDiff's proportional
-        // scroll sync on the opposite editor, creating oscillation.
+        // Only scroll the left editor — AceDiff's locked proportional
+        // scroll sync will position the right editor automatically.
+        // Scrolling both editors caused a race: AceDiff's throttled
+        // (16ms) sync handlers would override one or both positions.
         editors.left.scrollToLine(diff.leftStartLine, true, false, () => {});
-        editors.right.scrollToLine(diff.rightStartLine, true, false, () => {});
       });
       rect.addEventListener('mouseenter', () => {
         rect.style.fill = 'rgba(58, 140, 154, 0.9)';

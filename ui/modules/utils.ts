@@ -17,6 +17,10 @@ import * as ace from 'ace-builds/src-noconflict/ace';
 import { Modal, Toast } from 'bootstrap';
 import DOMPurify from 'dompurify';
 
+// Disable Ace worker loading globally — the JSON worker would try to fetch
+// from a CDN, which fails in restricted environments. Workers are only used
+// for live syntax validation, which is not needed in our read-only editors.
+ace.config.setDefaultValue('session', 'useWorker', false);
 
 const dom = {
   modalBodyConfirm: null,
@@ -370,7 +374,6 @@ export function confirm(message: string, action: string, callback) {
 export function createAceEditor(domId: string, sessionMode, readOnly = false, wrap = false) {
   const result = ace.edit(domId);
   result.setOption('wrap', wrap);
-  result.setOption('useWorker', false);
   result.session.setMode(sessionMode);
   if (readOnly) {
     result.setReadOnly(true);
