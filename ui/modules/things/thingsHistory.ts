@@ -111,6 +111,11 @@ function onThingChanged(thing, isNewThingId: boolean) {
   }
 
   if (isNewThingId && Things.isHistoryModeActive()) {
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+      debounceTimer = null;
+    }
+    cancelActiveProbe();
     Things.setHistoryMode(false);
     dom.historyModeSwitch.checked = false;
     hideHistoryControls();
@@ -305,7 +310,7 @@ function debouncedFetch() {
 }
 
 function fetchHistoricalState() {
-  if (!currentThingId) return;
+  if (!currentThingId || !Things.isHistoryModeActive()) return;
 
   if (dom.historyRadioRevision.checked) {
     const revision = parseInt(dom.historyRevisionSlider.value, 10);

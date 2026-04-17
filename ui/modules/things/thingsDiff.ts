@@ -34,6 +34,7 @@ export function ThingsDiff(targetTab) {
   let lastLeftJson: any = null;
   let lastRightJson: any = null;
   let syncing = false;
+  let scrollSyncing = false;
   let fetchToken = 0;
   let activeProbe: { cancel: () => void } | null = null;
   let overviewSvg: SVGSVGElement | null = null;
@@ -176,6 +177,7 @@ export function ThingsDiff(targetTab) {
       diffInstance.destroy();
       diffInstance = null;
     }
+    scrollSyncing = false;
     overviewSvg = null;
     if (dom.diffContainer) {
       dom.diffContainer.textContent = '';
@@ -373,8 +375,12 @@ export function ThingsDiff(targetTab) {
   function createOrUpdateDiff(leftContent: string, rightContent: string) {
     if (diffInstance) {
       const editors = diffInstance.getEditors();
+      scrollSyncing = true;
       editors.left.setValue(leftContent, -1);
       editors.right.setValue(rightContent, -1);
+      editors.left.getSession().setScrollTop(0);
+      editors.right.getSession().setScrollTop(0);
+      scrollSyncing = false;
       diffInstance.diff();
       renderChangeOverview(diffInstance.diffs);
     } else {
@@ -384,7 +390,7 @@ export function ThingsDiff(targetTab) {
         mode: 'ace/mode/json',
         theme: null,
         diffGranularity: 'specific',
-        lockScrolling: true,
+        lockScrolling: false,
         showDiffs: true,
         showConnectors: true,
         charDiffs: true,
@@ -401,7 +407,46 @@ export function ThingsDiff(targetTab) {
         },
         onDiffReady: renderChangeOverview,
       });
+      setupScrollSync();
     }
+  }
+
+  /**
+   * Sets up proportional scroll synchronization between the two diff editors.
+   * AceDiff's built-in lockScrolling uses a throttled (16ms) handler with a
+   * synchronous re-entrancy guard, which allows a reverse-sync feedback loop
+   * because the guard resets before the throttled reverse handler fires.
+   * Our implementation uses direct (un-throttled) handlers, so the guard is
+   * still active when setScrollTop fires the reverse changeScrollTop event
+   * synchronously, reliably blocking the feedback loop.
+   */
+  function setupScrollSync() {
+    if (!diffInstance) return;
+    const editors = diffInstance.getEditors();
+
+    const sync = (source, target) => {
+      if (scrollSyncing) return;
+      scrollSyncing = true;
+
+      const srcSession = source.getSession();
+      const tgtSession = target.getSession();
+      const srcTop = srcSession.getScrollTop();
+      const lineHeight = source.renderer.lineHeight || 16;
+      const srcTotal = srcSession.getLength() * lineHeight;
+      const srcVisible = source.renderer.$size.scrollerHeight;
+      const srcMax = Math.max(0, srcTotal - srcVisible);
+      const ratio = srcMax > 0 ? srcTop / srcMax : 0;
+
+      const tgtTotal = tgtSession.getLength() * lineHeight;
+      const tgtVisible = target.renderer.$size.scrollerHeight;
+      const tgtMax = Math.max(0, tgtTotal - tgtVisible);
+
+      tgtSession.setScrollTop(Math.round(ratio * tgtMax));
+      scrollSyncing = false;
+    };
+
+    editors.left.getSession().on('changeScrollTop', () => sync(editors.left, editors.right));
+    editors.right.getSession().on('changeScrollTop', () => sync(editors.right, editors.left));
   }
 
   /**
