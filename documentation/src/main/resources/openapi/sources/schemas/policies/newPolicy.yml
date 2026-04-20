@@ -13,5 +13,9 @@ description: Policy consisting of policy entries
 properties:
   entries:
     $ref: 'policyEntries.yml'
+  imports:
+    $ref: 'policyImports.yml'
+  importsAliases:
+    $ref: 'importsAliases.yml'
 required:
   - entries

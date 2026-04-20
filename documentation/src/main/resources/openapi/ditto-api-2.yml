@@ -7618,6 +7618,141 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/PreconditionFailed'
+  '/api/2/policies/{policyId}/imports/{importedPolicyId}/transitiveImports':
+    get:
+      summary: Retrieve the transitive resolution policy IDs of a specific policy import
+      description: |-
+        Returns the "transitiveImports" array of the policy import identified by the `policyId` path
+        parameter and the `importedPolicyId` path parameter.
+
+        The array lists policy IDs from the imported policy's own imports that should be resolved
+        transitively before extracting entries. This enables multi-level import chains.
+      tags:
+        - Policies
+      parameters:
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/components/parameters/ImportedPolicyIdPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+      responses:
+        '200':
+          description: The request successfully returned. The transitiveImports array is returned.
+          headers:
+            ETag:
+              description: |-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransitiveImports'
+        '304':
+          $ref: '#/components/responses/NotModified'
+        '400':
+          description: |-
+            The request could not be completed. Possible reasons:
+
+              * the `policyId` or the `importedPolicyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '404':
+          description: |-
+            The request could not be completed. The policy with the given ID or
+            the policy import was not found in the context of the authenticated
+            user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+    put:
+      summary: Modify the transitive resolution policy IDs of a specific policy import
+      description: |-
+        Modify the "transitiveImports" array of the policy import identified by the `policyId` path
+        parameter and the `importedPolicyId` path parameter.
+
+        The array lists policy IDs from the imported policy's own imports that should be resolved
+        transitively before extracting entries.
+      tags:
+        - Policies
+      parameters:
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/components/parameters/ImportedPolicyIdPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
+      responses:
+        '204':
+          description: The transitiveImports array was successfully updated.
+          headers:
+            ETag:
+              description: |-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+              schema:
+                type: string
+        '400':
+          description: |-
+            The request could not be completed. Possible reasons:
+
+              * the `policyId` or the `importedPolicyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
+              * the JSON body is not a valid JSON array of policy ID strings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '403':
+          description: |-
+            The request could not be completed. Possible reasons:
+            * the caller has insufficient permissions.
+              You need `WRITE` permission on the `policy:/imports/{importedPolicyId}` resource,
+              without any revoke in a deeper path of the policy resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '404':
+          description: |-
+            The request could not be completed. The policy with the given ID or
+            the policy import was not found in the context of the authenticated
+            user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '413':
+          $ref: '#/components/responses/EntityTooLarge'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransitiveImports'
+            example:
+              - 'org.eclipse.ditto:policy-template'
+        description: JSON array of policy IDs to resolve transitively.
+        required: true
   '/api/2/policies/{policyId}/importsAliases':
     get:
       summary: Retrieve all imports aliases of a policy
@@ -11071,6 +11206,10 @@ components:
       properties:
         entries:
           $ref: '#/components/schemas/PolicyEntries'
+        imports:
+          $ref: '#/components/schemas/PolicyImports'
+        importsAliases:
+          $ref: '#/components/schemas/ImportsAliases'
       required:
         - entries
     Policy:
@@ -11084,6 +11223,8 @@ components:
           $ref: '#/components/schemas/PolicyEntries'
         imports:
           $ref: '#/components/schemas/PolicyImports'
+        importsAliases:
+          $ref: '#/components/schemas/ImportsAliases'
       required:
         - policyId
         - entries
@@ -11120,6 +11261,8 @@ components:
             description: Label of a policy entry to import from the referenced policy.
         entriesAdditions:
           $ref: '#/components/schemas/EntriesAdditions'
+        transitiveImports:
+          $ref: '#/components/schemas/TransitiveImports'
       example:
         entries:
           - default
@@ -11323,6 +11466,20 @@ components:
             grant:
               - READ
             revoke: []
+    TransitiveImports:
+      type: array
+      description: |-
+        List of policy IDs from the imported policy's own imports that should be resolved transitively
+        before extracting entries. This enables multi-level import chains where a template policy defines
+        resources and an intermediate policy adds subjects via "entriesAdditions".
+
+        Each entry is the policy ID of a policy that the directly imported policy itself imports from.
+        Only the listed policy IDs are resolved — this is an explicit whitelist, not a recursive flag.
+      items:
+        type: string
+        description: Policy ID of a policy that the imported policy itself imports from.
+      example:
+        - 'org.eclipse.ditto:policy-template'
     ImportsAliases:
       type: object
       description: |-

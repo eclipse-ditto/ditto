@@ -90,6 +90,10 @@ public final class PolicyCommandStrategies
         addStrategy(new ModifyPolicyImportEntryAdditionStrategy(policyConfig));
         addStrategy(new DeletePolicyImportEntryAdditionStrategy(policyConfig));
 
+        // Policy Import Resolve Transitively
+        addStrategy(new RetrievePolicyImportTransitiveImportsStrategy(policyConfig));
+        addStrategy(new ModifyPolicyImportTransitiveImportsStrategy(policyConfig));
+
         // Subject Aliases
         addStrategy(new RetrieveImportsAliasesStrategy(policyConfig));
         addStrategy(new ModifyImportsAliasesStrategy(policyConfig));

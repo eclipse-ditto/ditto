@@ -32,8 +32,10 @@ import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyRevision;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyRevisionResponse;
 import org.eclipse.ditto.policies.enforcement.config.DefaultNamespacePoliciesConfig;
+import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyImport;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
@@ -204,6 +206,192 @@ public final class BackgroundSyncStreamTest {
             // the set-equality check fails and the entry is flagged as inconsistent.
             assertThat(inconsistentThingIds.toCompletableFuture().join())
                     .containsExactly("x:9-missing-root-tag");
+        }};
+    }
+
+    @Test
+    public void missingTransitiveImportPolicyTagInIndexTriggersReIndexing() {
+        // Scenario: A → B → C → D (3-level transitive chain)
+        // Policy A imports B with transitiveImports: ["C"]
+        // Policy B imports C with transitiveImports: ["D"]
+        // The indexed entry is missing the transitive policy tags for C and D
+        // → should be flagged as inconsistent and trigger re-indexing
+
+        final Duration toleranceWindow = Duration.ofHours(1L);
+        final PolicyId policyIdA = PolicyId.of("com.example.thing", "policy-a");
+        final PolicyId policyIdB = PolicyId.of("com.example", "intermediate-b");
+        final PolicyId policyIdC = PolicyId.of("com.example", "intermediate-c");
+        final PolicyId policyIdD = PolicyId.of("com.example", "template-d");
+
+        // Persisted thing uses policy A at revision 5
+        final Source<Metadata, NotUsed> persisted = Source.from(List.of(
+                Metadata.of(ThingId.of("x:10-transitive-missing"), 3L,
+                        PolicyTag.of(policyIdA, 5L), null, Set.of(), null)
+        ));
+        // Indexed entry has policy A tag and B tag, but is MISSING C and D tags
+        final Source<Metadata, NotUsed> indexed = Source.from(List.of(
+                Metadata.of(ThingId.of("x:10-transitive-missing"), 3L,
+                        PolicyTag.of(policyIdA, 5L), null,
+                        Set.of(PolicyTag.of(policyIdB, 2L)), null)
+        ));
+
+        new TestKit(actorSystem) {{
+            final BackgroundSyncStream underTest =
+                    BackgroundSyncStream.of(getRef(), Duration.ofSeconds(3L), toleranceWindow, 100,
+                            Duration.ofSeconds(10L),
+                            DefaultNamespacePoliciesConfig.of(ConfigFactory.empty()));
+            final CompletionStage<List<String>> inconsistentThingIds =
+                    underTest.filterForInconsistencies(persisted, indexed)
+                            .map(metadata -> metadata.getThingId().toString())
+                            .runWith(Sink.seq(), actorSystem);
+
+            // BackgroundSyncStream retrieves policy A to check consistency
+            expectMsg(SudoRetrievePolicy.of(policyIdA, DittoHeaders.empty()));
+
+            // Policy A: imports B with transitiveImports: ["C"]
+            final Policy policyA = Policy.newBuilder(policyIdA)
+                    .setRevision(5L)
+                    .setPolicyImport(PoliciesModelFactory.newPolicyImport(policyIdB,
+                            PoliciesModelFactory.newEffectedImportedLabels(
+                                    java.util.Collections.emptyList(), null,
+                                    List.of(policyIdC))))
+                    .build();
+            reply(SudoRetrievePolicyResponse.of(policyIdA, policyA, DittoHeaders.empty()));
+
+            // The expected referenced policy IDs are: B (direct import), C (transitiveImports from A's import of B)
+            // The indexed entry only has B → set mismatch → flagged as inconsistent
+            // No further messages expected since the set comparison already fails
+
+            assertThat(inconsistentThingIds.toCompletableFuture().join())
+                    .containsExactly("x:10-transitive-missing");
+        }};
+    }
+
+    @Test
+    public void transitiveImportPolicyTagsInIndexAreConsideredConsistent() {
+        // Same 3-level scenario, but the indexed entry HAS all the expected transitive policy tags
+        // → should be considered consistent (no re-indexing needed)
+
+        final Duration toleranceWindow = Duration.ofHours(1L);
+        final PolicyId policyIdA = PolicyId.of("com.example.thing", "policy-a2");
+        final PolicyId policyIdB = PolicyId.of("com.example", "intermediate-b2");
+        final PolicyId policyIdC = PolicyId.of("com.example", "intermediate-c2");
+        final PolicyId policyIdD = PolicyId.of("com.example", "template-d2");
+
+        // Policy A imports B with transitiveImports: ["C"]
+        // B imports C with transitiveImports: ["D"]
+        // Expected referenced policies: B, C, D (all transitive dependencies)
+
+        final Source<Metadata, NotUsed> persisted = Source.from(List.of(
+                Metadata.of(ThingId.of("x:11-transitive-consistent"), 3L,
+                        PolicyTag.of(policyIdA, 5L), null, Set.of(), null)
+        ));
+        // Indexed entry includes ALL expected transitive tags
+        final Source<Metadata, NotUsed> indexed = Source.from(List.of(
+                Metadata.of(ThingId.of("x:11-transitive-consistent"), 3L,
+                        PolicyTag.of(policyIdA, 5L), null,
+                        Set.of(PolicyTag.of(policyIdB, 2L),
+                                PolicyTag.of(policyIdC, 3L),
+                                PolicyTag.of(policyIdD, 4L)), null)
+        ));
+
+        new TestKit(actorSystem) {{
+            final BackgroundSyncStream underTest =
+                    BackgroundSyncStream.of(getRef(), Duration.ofSeconds(3L), toleranceWindow, 100,
+                            Duration.ofSeconds(10L),
+                            DefaultNamespacePoliciesConfig.of(ConfigFactory.empty()));
+            final CompletionStage<List<String>> inconsistentThingIds =
+                    underTest.filterForInconsistencies(persisted, indexed)
+                            .map(metadata -> metadata.getThingId().toString())
+                            .runWith(Sink.seq(), actorSystem);
+
+            // BackgroundSyncStream retrieves policy A
+            expectMsg(SudoRetrievePolicy.of(policyIdA, DittoHeaders.empty()));
+
+            // Policy A: imports B with transitiveImports: ["C"]
+            // B's import of C has transitiveImports: ["D"]
+            final Policy policyA = Policy.newBuilder(policyIdA)
+                    .setRevision(5L)
+                    .setPolicyImport(PoliciesModelFactory.newPolicyImport(policyIdB,
+                            PoliciesModelFactory.newEffectedImportedLabels(
+                                    java.util.Collections.emptyList(), null,
+                                    List.of(policyIdC, policyIdD))))
+                    .build();
+            reply(SudoRetrievePolicyResponse.of(policyIdA, policyA, DittoHeaders.empty()));
+
+            // Verify revision of each referenced policy (order is non-deterministic)
+            for (int i = 0; i < 3; i++) {
+                final SudoRetrievePolicyRevision revisionCmd =
+                        expectMsgClass(SudoRetrievePolicyRevision.class);
+                final PolicyId requestedId = revisionCmd.getEntityId();
+                final long revision;
+                if (requestedId.equals(policyIdB)) {
+                    revision = 2L;
+                } else if (requestedId.equals(policyIdC)) {
+                    revision = 3L;
+                } else if (requestedId.equals(policyIdD)) {
+                    revision = 4L;
+                } else {
+                    throw new AssertionError("Unexpected policy revision request for: " + requestedId);
+                }
+                reply(SudoRetrievePolicyRevisionResponse.of(requestedId, revision, DittoHeaders.empty()));
+            }
+
+            // All tags match → consistent → empty result
+            assertThat(inconsistentThingIds.toCompletableFuture().join()).isEmpty();
+        }};
+    }
+
+    @Test
+    public void removedTransitiveImportMakesStaleIndexEntryInconsistent() {
+        // Scenario: Policy A previously had transitiveImports: ["C"] on its import of B.
+        // The indexed entry has B and C in __referencedPolicies.
+        // Policy A is updated to remove transitiveImports (now only imports B without transitiveImports).
+        // The expected set is now just {B}, but the indexed entry still has {B, C}
+        // → the set-equality check fails and the entry is flagged as inconsistent for re-indexing.
+
+        final Duration toleranceWindow = Duration.ofHours(1L);
+        final PolicyId policyIdA = PolicyId.of("com.example.thing", "policy-a3");
+        final PolicyId policyIdB = PolicyId.of("com.example", "intermediate-b3");
+        final PolicyId policyIdC = PolicyId.of("com.example", "template-c3");
+
+        // Persisted thing uses policy A at revision 6 (updated, transitiveImports removed)
+        final Source<Metadata, NotUsed> persisted = Source.from(List.of(
+                Metadata.of(ThingId.of("x:12-transitive-removed"), 3L,
+                        PolicyTag.of(policyIdA, 6L), null, Set.of(), null)
+        ));
+        // Indexed entry still has the OLD __referencedPolicies with both B and C
+        final Source<Metadata, NotUsed> indexed = Source.from(List.of(
+                Metadata.of(ThingId.of("x:12-transitive-removed"), 3L,
+                        PolicyTag.of(policyIdA, 5L), null,
+                        Set.of(PolicyTag.of(policyIdB, 2L),
+                                PolicyTag.of(policyIdC, 3L)), null)
+        ));
+
+        new TestKit(actorSystem) {{
+            final BackgroundSyncStream underTest =
+                    BackgroundSyncStream.of(getRef(), Duration.ofSeconds(3L), toleranceWindow, 100,
+                            Duration.ofSeconds(10L),
+                            DefaultNamespacePoliciesConfig.of(ConfigFactory.empty()));
+            final CompletionStage<List<String>> inconsistentThingIds =
+                    underTest.filterForInconsistencies(persisted, indexed)
+                            .map(metadata -> metadata.getThingId().toString())
+                            .runWith(Sink.seq(), actorSystem);
+
+            // BackgroundSyncStream retrieves policy A (updated version without transitiveImports)
+            expectMsg(SudoRetrievePolicy.of(policyIdA, DittoHeaders.empty()));
+
+            // Policy A now only imports B (no transitiveImports)
+            final Policy updatedPolicyA = Policy.newBuilder(policyIdA)
+                    .setRevision(6L)
+                    .setPolicyImport(PoliciesModelFactory.newPolicyImport(policyIdB))
+                    .build();
+            reply(SudoRetrievePolicyResponse.of(policyIdA, updatedPolicyA, DittoHeaders.empty()));
+
+            // Policy revision mismatch (indexed has rev 5, persisted has rev 6) already triggers
+            // inconsistency, but even if revisions matched, the set {B} ≠ {B, C} would catch it.
+            assertThat(inconsistentThingIds.toCompletableFuture().join())
+                    .containsExactly("x:12-transitive-removed");
         }};
     }
 

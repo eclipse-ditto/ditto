@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.policies.model;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
@@ -76,6 +78,19 @@ public interface PolicyImport extends Jsonifiable.WithFieldSelectorAndPredicate<
      */
     default Optional<EntriesAdditions> getEntriesAdditions() {
         return getEffectedImports().flatMap(EffectedImports::getEntriesAdditions);
+    }
+
+    /**
+     * Returns the list of {@link PolicyId}s from the imported policy's own imports that should be resolved
+     * transitively before extracting entries.
+     *
+     * @return the list of transitive PolicyIds, or an empty list if none are defined.
+     * @since 3.9.0
+     */
+    default List<PolicyId> getTransitiveImports() {
+        return getEffectedImports()
+                .map(EffectedImports::getTransitiveImports)
+                .orElse(Collections.emptyList());
     }
 
     /**

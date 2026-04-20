@@ -36,6 +36,7 @@ import org.eclipse.ditto.policies.model.signals.events.PolicyImportEntriesModifi
 import org.eclipse.ditto.policies.model.signals.events.PolicyImportEntryAdditionCreated;
 import org.eclipse.ditto.policies.model.signals.events.PolicyImportEntryAdditionDeleted;
 import org.eclipse.ditto.policies.model.signals.events.PolicyImportEntryAdditionModified;
+import org.eclipse.ditto.policies.model.signals.events.PolicyImportTransitiveImportsModified;
 import org.eclipse.ditto.policies.model.signals.events.PolicyModified;
 import org.eclipse.ditto.policies.model.signals.events.ResourceCreated;
 import org.eclipse.ditto.policies.model.signals.events.ResourceDeleted;
@@ -90,6 +91,7 @@ final class PolicyEventMappingStrategies extends AbstractPolicyMappingStrategies
         addImportableEvents(mappingStrategies);
         addImportEntriesEvents(mappingStrategies);
         addImportEntriesAdditionsEvents(mappingStrategies);
+        addImportTransitiveImportsEvents(mappingStrategies);
         addPolicyImportsEvents(mappingStrategies);
         addImportsAliasesEvents(mappingStrategies);
         return mappingStrategies;
@@ -325,6 +327,18 @@ final class PolicyEventMappingStrategies extends AbstractPolicyMappingStrategies
                 adaptable -> PolicyImportEntryAdditionDeleted.of(policyIdFrom(adaptable),
                         importedPolicyIdFrom(adaptable),
                         entryAdditionLabelFromImportPath(adaptable.getPayload().getPath()),
+                        revisionFrom(adaptable),
+                        timestampFrom(adaptable),
+                        dittoHeadersFrom(adaptable),
+                        metadataFrom(adaptable)));
+    }
+
+    private static void addImportTransitiveImportsEvents(
+            final Map<String, JsonifiableMapper<PolicyEvent<?>>> mappingStrategies) {
+        mappingStrategies.put(PolicyImportTransitiveImportsModified.TYPE,
+                adaptable -> PolicyImportTransitiveImportsModified.of(policyIdFrom(adaptable),
+                        importedPolicyIdFrom(adaptable),
+                        transitiveImportsFrom(adaptable),
                         revisionFrom(adaptable),
                         timestampFrom(adaptable),
                         dittoHeadersFrom(adaptable),

@@ -23,6 +23,8 @@ properties:
       description: Label of a policy entry to import from the referenced policy.
   entriesAdditions:
     $ref: 'entriesAdditions.yml'
+  transitiveImports:
+    $ref: 'transitiveImports.yml'
 example:
   entries: [ "default", "import" ]
   entriesAdditions:

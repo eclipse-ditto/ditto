@@ -947,6 +947,51 @@ public final class PoliciesModelFactory {
     }
 
     /**
+     * Returns a new {@link EffectedImports} containing the optionally passed policy entry labels, entries
+     * additions, and transitive resolution policy IDs.
+     *
+     * @param importedLabels the labels of the policy entries which should be imported.
+     * @param entriesAdditions the additional subjects/resources to merge into imported entries, or {@code null}.
+     * @param transitiveImports list of policy IDs from the imported policy's own imports that should be
+     *        resolved transitively before extracting entries, or {@code null}.
+     * @return the new {@code EffectedImports}.
+     * @since 3.9.0
+     */
+    public static EffectedImports newEffectedImportedLabels(@Nullable final Iterable<Label> importedLabels,
+            @Nullable final EntriesAdditions entriesAdditions,
+            @Nullable final List<PolicyId> transitiveImports) {
+
+        return ImmutableEffectedImports.of(getOrEmptyCollection(importedLabels), entriesAdditions,
+                transitiveImports);
+    }
+
+    /**
+     * Creates a new {@link PolicyImport} from an existing import, replacing only the transitive imports list
+     * while preserving the imported labels and entries additions.
+     *
+     * @param existingImport the existing import to base the new import on.
+     * @param newTransitiveImports the new list of policy IDs for transitive resolution.
+     * @return the new PolicyImport with updated transitive imports.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 3.9.0
+     */
+    public static PolicyImport policyImportWithTransitiveImports(final PolicyImport existingImport,
+            final List<PolicyId> newTransitiveImports) {
+        checkNotNull(existingImport, "existingImport");
+        checkNotNull(newTransitiveImports, "newTransitiveImports");
+
+        final ImportedLabels labels = existingImport.getEffectedImports()
+                .map(EffectedImports::getImportedLabels)
+                .orElse(noImportedEntries());
+        final EntriesAdditions entriesAdditions = existingImport.getEffectedImports()
+                .flatMap(EffectedImports::getEntriesAdditions)
+                .orElse(null);
+        final EffectedImports newEffectedImports =
+                newEffectedImportedLabels(labels, entriesAdditions, newTransitiveImports);
+        return newPolicyImport(existingImport.getImportedPolicyId(), newEffectedImports);
+    }
+
+    /**
      * Returns a new immutable instance of {@link ImportedLabels} containing the given entry labels.
      *
      * @param entryLabels the entryLabels to initialise the result with.

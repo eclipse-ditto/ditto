@@ -281,6 +281,11 @@ public final class BackgroundSyncStream {
                 .map(PolicyImport::getImportedPolicyId)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
 
+        // Add transitive policy IDs declared via transitiveImports
+        thingPolicy.getPolicyImports().stream()
+                .flatMap(imp -> imp.getTransitiveImports().stream())
+                .forEach(expectedReferencedPolicyIds::add);
+
         final Optional<PolicyId> entityId = thingPolicy.getEntityId();
         final String namespace = thingPolicy.getNamespace().orElse("");
         final List<PolicyId> namespaceRootPolicyIds = namespacePoliciesConfig.getRootPoliciesForNamespace(namespace)

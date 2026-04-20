@@ -16,6 +16,7 @@ import static org.eclipse.ditto.policies.model.assertions.DittoPolicyAssertions.
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -64,6 +65,51 @@ public final class ImmutableEffectedImportsTest {
     @Test
     public void testGetEntriesAdditionsEmpty() {
         assertThat(underTest.getEntriesAdditions()).isEmpty();
+    }
+
+    @Test
+    public void testToAndFromJsonWithTransitiveImports() {
+        final List<PolicyId> transitiveImports =
+                Collections.singletonList(PolicyId.of("ns", "template"));
+        final EntriesAdditions entriesAdditions = ImmutableEntriesAdditions.of(Collections.singletonList(
+                ImmutableEntryAddition.of(Label.of("IncludedEntry1"),
+                        Subjects.newInstance(Subject.newInstance(SubjectIssuer.GOOGLE, "extraUser")),
+                        null)));
+
+        final EffectedImports withTransitive = ImmutableEffectedImports.of(
+                Arrays.asList(Label.of("IncludedEntry1"), Label.of("IncludedEntry2")),
+                entriesAdditions,
+                transitiveImports);
+
+        final JsonObject json = withTransitive.toJson();
+        final EffectedImports fromJson = ImmutableEffectedImports.fromJson(json);
+
+        // Round-trip equality
+        assertThat(withTransitive).isEqualTo(fromJson);
+        // JSON contains the transitiveImports key with expected content
+        assertThat(json.contains("transitiveImports")).isTrue();
+        assertThat(json.getValue("transitiveImports")).isPresent();
+        assertThat(json.getValue("transitiveImports").get().asArray().get(0).get().asString())
+                .isEqualTo("ns:template");
+    }
+
+    @Test
+    public void testGetTransitiveImportsReturnsEmptyListByDefault() {
+        // underTest is created with just labels (no transitiveImports)
+        assertThat(underTest.getTransitiveImports()).isEmpty();
+    }
+
+    @Test
+    public void testTransitiveImportsNotSerializedWhenEmpty() {
+        final EffectedImports withEmptyTransitive = ImmutableEffectedImports.of(
+                Arrays.asList(Label.of("IncludedEntry1"), Label.of("IncludedEntry2")),
+                null,
+                Collections.emptyList());
+
+        final JsonObject json = withEmptyTransitive.toJson();
+
+        // JSON should NOT contain transitiveImports key when empty
+        assertThat(json.contains("transitiveImports")).isFalse();
     }
 
     @Test

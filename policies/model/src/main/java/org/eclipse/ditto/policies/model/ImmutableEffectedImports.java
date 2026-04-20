@@ -15,8 +15,11 @@ package org.eclipse.ditto.policies.model;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.base.model.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -28,6 +31,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
@@ -42,11 +46,16 @@ final class ImmutableEffectedImports implements EffectedImports {
 
     private final ImportedLabels importedLabels;
     @Nullable private final EntriesAdditions entriesAdditions;
+    private final List<PolicyId> transitiveImports;
 
     private ImmutableEffectedImports(final ImportedLabels importedLabels,
-            @Nullable final EntriesAdditions entriesAdditions) {
+            @Nullable final EntriesAdditions entriesAdditions,
+            @Nullable final List<PolicyId> transitiveImports) {
         this.importedLabels = importedLabels;
         this.entriesAdditions = entriesAdditions;
+        this.transitiveImports = transitiveImports != null
+                ? Collections.unmodifiableList(new ArrayList<>(transitiveImports))
+                : Collections.emptyList();
     }
 
     /**
@@ -57,7 +66,7 @@ final class ImmutableEffectedImports implements EffectedImports {
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static EffectedImports of(final Iterable<Label> labels) {
-        return of(labels, null);
+        return of(labels, null, null);
     }
 
     /**
@@ -71,11 +80,29 @@ final class ImmutableEffectedImports implements EffectedImports {
      */
     public static EffectedImports of(final Iterable<Label> labels,
             @Nullable final EntriesAdditions entriesAdditions) {
+        return of(labels, entriesAdditions, null);
+    }
+
+    /**
+     * Returns a new {@code EffectedImports} object of the given {@code importedLabels},
+     * {@code entriesAdditions}, and {@code transitiveImports} policy IDs.
+     *
+     * @param labels the labels of the policy entries which should be added from the imported policy.
+     * @param entriesAdditions additional subjects/resources to merge into imported entries, or {@code null}.
+     * @param transitiveImports list of policy IDs from the imported policy's own imports that should be
+     *        resolved transitively before extracting entries, or {@code null}.
+     * @return a new {@code EffectedImports} object.
+     * @throws NullPointerException if {@code labels} is {@code null}.
+     * @since 3.9.0
+     */
+    public static EffectedImports of(final Iterable<Label> labels,
+            @Nullable final EntriesAdditions entriesAdditions,
+            @Nullable final List<PolicyId> transitiveImports) {
 
         final ImportedLabels importedLabels =
                 toImportedEntries(toSet(checkNotNull(labels, "importedLabels")));
 
-        return new ImmutableEffectedImports(importedLabels, entriesAdditions);
+        return new ImmutableEffectedImports(importedLabels, entriesAdditions, transitiveImports);
     }
 
     private static Collection<Label> toSet(final Iterable<Label> iterable) {
@@ -110,7 +137,14 @@ final class ImmutableEffectedImports implements EffectedImports {
         final EntriesAdditions entriesAdditions = jsonObject.getValue(JsonFields.ENTRIES_ADDITIONS)
                 .map(ImmutableEntriesAdditions::fromJson)
                 .orElse(null);
-        return of(importedLabels, entriesAdditions);
+        final List<PolicyId> transitiveImports = jsonObject.getValue(JsonFields.TRANSITIVE_IMPORTS)
+                .map(array -> array.stream()
+                        .filter(JsonValue::isString)
+                        .map(JsonValue::asString)
+                        .map(PolicyId::of)
+                        .collect(Collectors.toList()))
+                .orElse(null);
+        return of(importedLabels, entriesAdditions, transitiveImports);
     }
 
     private static Set<Label> getImportedEntries(final JsonObject jsonObject) {
@@ -135,12 +169,24 @@ final class ImmutableEffectedImports implements EffectedImports {
     }
 
     @Override
+    public List<PolicyId> getTransitiveImports() {
+        return transitiveImports;
+    }
+
+    @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder builder = JsonFactory.newObjectBuilder()
                 .set(JsonFields.ENTRIES, importedLabels.toJson(), predicate);
         if (entriesAdditions != null && !entriesAdditions.isEmpty()) {
             builder.set(JsonFields.ENTRIES_ADDITIONS, entriesAdditions.toJson(schemaVersion, thePredicate), predicate);
+        }
+        if (!transitiveImports.isEmpty()) {
+            final JsonArray transitiveArray = transitiveImports.stream()
+                    .map(PolicyId::toString)
+                    .map(JsonFactory::newValue)
+                    .collect(JsonCollectors.valuesToArray());
+            builder.set(JsonFields.TRANSITIVE_IMPORTS, transitiveArray, predicate);
         }
         return builder.build();
     }
@@ -155,12 +201,13 @@ final class ImmutableEffectedImports implements EffectedImports {
         }
         final ImmutableEffectedImports that = (ImmutableEffectedImports) o;
         return Objects.equals(importedLabels, that.importedLabels) &&
-                Objects.equals(entriesAdditions, that.entriesAdditions);
+                Objects.equals(entriesAdditions, that.entriesAdditions) &&
+                Objects.equals(transitiveImports, that.transitiveImports);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(importedLabels, entriesAdditions);
+        return Objects.hash(importedLabels, entriesAdditions, transitiveImports);
     }
 
     @Override
@@ -168,6 +215,7 @@ final class ImmutableEffectedImports implements EffectedImports {
         return getClass().getSimpleName() + " [" +
                 "importedLabels=" + importedLabels +
                 ", entriesAdditions=" + entriesAdditions +
+                ", transitiveImports=" + transitiveImports +
                 "]";
     }
 

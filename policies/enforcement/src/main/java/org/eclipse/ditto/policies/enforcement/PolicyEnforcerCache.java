@@ -50,27 +50,58 @@ final class PolicyEnforcerCache implements Cache<PolicyId, Entry<PolicyEnforcer>
         this.namespacePoliciesConfig = namespacePoliciesConfig;
         this.delegate = CacheFactory.createCache(
                 (policyId, executor) -> policyEnforcerCacheLoader.asyncLoad(policyId, executor)
-                        .whenCompleteAsync(((policyEnforcerEntry, throwable) -> policyEnforcerEntry.get()
-                                .flatMap(PolicyEnforcer::getPolicy)
-                                .map(Policy::getPolicyImports)
-                                .filter(imports -> !imports.isEmpty())
-                                .ifPresent(imports -> imports.stream()
-                                        .map(PolicyImport::getImportedPolicyId)
-                                        .forEach(importedPolicyId -> policyIdToImportingMap.compute(
-                                                importedPolicyId, (importedPolicyId1, importingPolicyIds) -> {
-                                                    final Set<PolicyId> newImportingPolicyIds =
-                                                            importingPolicyIds == null ? new HashSet<>() :
-                                                                    importingPolicyIds;
-                                                    newImportingPolicyIds.add(policyId);
-                                                    return newImportingPolicyIds;
-                                                })))
-                                ),
+                        .whenCompleteAsync(((policyEnforcerEntry, throwable) -> {
+                                    if (throwable != null || policyEnforcerEntry == null) {
+                                        return;
+                                    }
+                                    policyEnforcerEntry.get()
+                                            .flatMap(PolicyEnforcer::getPolicy)
+                                            .map(Policy::getPolicyImports)
+                                            .ifPresent(imports -> {
+                                                // Remove stale mappings from previous loads of this policy
+                                                // before registering the current import relationships.
+                                                deregisterImportMappings(policyId);
+                                                if (!imports.isEmpty()) {
+                                                    imports.stream().forEach(policyImport -> {
+                                                        registerImportMapping(
+                                                                policyImport.getImportedPolicyId(), policyId);
+                                                        policyImport.getTransitiveImports()
+                                                                .forEach(transitivePolicyId ->
+                                                                        registerImportMapping(
+                                                                                transitivePolicyId, policyId));
+                                                    });
+                                                }
+                                            });
+                                }),
                                 cacheDispatcher
                         ),
                 cacheConfig,
                 "policy_enforcer_cache",
                 cacheDispatcher
         );
+    }
+
+    /**
+     * Removes {@code importingPolicyId} from all value sets in the import mapping.
+     * Called before re-registering mappings on policy reload so that stale entries
+     * (e.g. from removed imports or transitive imports) don't accumulate.
+     */
+    private void deregisterImportMappings(final PolicyId importingPolicyId) {
+        policyIdToImportingMap.forEach((importedId, importingSet) ->
+                policyIdToImportingMap.computeIfPresent(importedId, (id, set) -> {
+                    set.remove(importingPolicyId);
+                    return set.isEmpty() ? null : set;
+                })
+        );
+    }
+
+    private void registerImportMapping(final PolicyId importedPolicyId, final PolicyId importingPolicyId) {
+        policyIdToImportingMap.compute(importedPolicyId, (id, importingPolicyIds) -> {
+            final Set<PolicyId> newImportingPolicyIds =
+                    importingPolicyIds == null ? new HashSet<>() : importingPolicyIds;
+            newImportingPolicyIds.add(importingPolicyId);
+            return newImportingPolicyIds;
+        });
     }
 
     @Override

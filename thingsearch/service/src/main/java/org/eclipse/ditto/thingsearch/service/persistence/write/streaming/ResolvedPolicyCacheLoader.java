@@ -20,7 +20,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+import java.util.stream.Collectors;
 
 import org.apache.pekko.japi.Pair;
 import org.eclipse.ditto.internal.utils.cache.Cache;
@@ -67,7 +69,7 @@ final class ResolvedPolicyCacheLoader
                         final long revision = policy.getRevision().map(PolicyRevision::toLong)
                                 .orElseThrow(
                                         () -> new IllegalStateException("Bad SudoRetrievePolicyResponse: no revision"));
-                        final Set<PolicyTag> referencedPolicies = new LinkedHashSet<>();
+                        final Set<PolicyTag> referencedPolicies = ConcurrentHashMap.newKeySet();
 
                         if (policyIdResolvingImports.resolveImports()) {
                             return cacheFuture.thenComposeAsync(cache ->
@@ -154,7 +156,24 @@ final class ResolvedPolicyCacheLoader
             final Policy policy,
             final Set<PolicyTag> referencedPolicies) {
 
-        return policy.withResolvedImports(importedPolicyId ->
+        // Track transitive policy IDs as referenced policies for search index invalidation.
+        // These lookups run in parallel with the main import resolution below.
+        final List<CompletableFuture<Void>> transitiveTagFutures = policy.getPolicyImports().stream()
+                .flatMap(imp -> imp.getTransitiveImports().stream())
+                .distinct()
+                .map(transitivePolicyId ->
+                        cache.get(new PolicyIdResolvingImports(transitivePolicyId, false))
+                                .thenApply(entry -> entry.flatMap(Entry::get))
+                                .thenAccept(optionalRefPolicy -> optionalRefPolicy.ifPresent(refPair ->
+                                        addPolicyTag(refPair.first(), referencedPolicies)))
+                                .toCompletableFuture()
+                )
+                .collect(Collectors.toList());
+
+        final CompletableFuture<Void> allTransitiveTags =
+                CompletableFuture.allOf(transitiveTagFutures.toArray(CompletableFuture[]::new));
+
+        final CompletionStage<Policy> resolvedPolicyCs = policy.withResolvedImports(importedPolicyId ->
                 cache.get(new PolicyIdResolvingImports(importedPolicyId, false)) // don't transitively resolve imports, only 1 "level"
                         .thenApply(entry -> entry.flatMap(Entry::get))
                         .thenApply(optionalReferencedPolicy -> {
@@ -169,6 +188,9 @@ final class ResolvedPolicyCacheLoader
                             return optionalReferencedPolicy.map(Pair::first);
                         })
         );
+
+        // Wait for both transitive tag tracking and import resolution to complete
+        return resolvedPolicyCs.thenCombine(allTransitiveTags, (resolvedPolicy, ignored) -> resolvedPolicy);
     }
 
     private CompletableFuture<Optional<Pair<Policy, Set<PolicyTag>>>> resolveNamespaceRootPolicy(
