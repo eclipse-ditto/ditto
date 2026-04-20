@@ -74,6 +74,16 @@ public final class FeatureToggle {
             "ditto.devops.feature.policy-enforcement-use-throughput-optimized-evaluator-enabled";
 
     /**
+     * System property name of the property defining whether WoT Thing Description responses are filtered based on
+     * the requesting user's policy permissions. When enabled, TDs only contain properties, actions, and events the
+     * user is authorized to access. When disabled, TDs are returned unfiltered (legacy behavior).
+     *
+     * @since 3.9.0
+     */
+    public static final String WOT_TD_PERMISSION_FILTERING_ENABLED =
+            "ditto.devops.feature.wot-td-permission-filtering-enabled";
+
+    /**
      * Resolves the system property {@value MERGE_THINGS_ENABLED}.
      */
     private static final boolean IS_MERGE_THINGS_ENABLED = resolveProperty(MERGE_THINGS_ENABLED);
@@ -108,6 +118,12 @@ public final class FeatureToggle {
      */
     private static final boolean IS_POLICY_ENFORCEMENT_USE_THROUGHPUT_OPTIMIZED_EVALUATOR_ENABLED =
             resolveProperty(POLICY_ENFORCEMENT_USE_THROUGHPUT_OPTIMIZED_EVALUATOR_ENABLED);
+
+    /**
+     * Resolves the system property {@value WOT_TD_PERMISSION_FILTERING_ENABLED}.
+     */
+    private static final boolean IS_WOT_TD_PERMISSION_FILTERING_ENABLED =
+            resolveProperty(WOT_TD_PERMISSION_FILTERING_ENABLED);
 
     private static boolean resolveProperty(final String propertyName) {
         final String propertyValue = System.getProperty(propertyName, Boolean.TRUE.toString());
@@ -240,5 +256,16 @@ public final class FeatureToggle {
      */
     public static boolean isPolicyEnforcementUseThroughputOptimizedEvaluatorEnabled() {
         return IS_POLICY_ENFORCEMENT_USE_THROUGHPUT_OPTIMIZED_EVALUATOR_ENABLED;
+    }
+
+    /**
+     * Returns whether WoT Thing Description permission filtering is enabled based on the system property
+     * {@value WOT_TD_PERMISSION_FILTERING_ENABLED}.
+     *
+     * @return whether WoT TD permission filtering is enabled.
+     * @since 3.9.0
+     */
+    public static boolean isWotTdPermissionFilteringEnabled() {
+        return IS_WOT_TD_PERMISSION_FILTERING_ENABLED;
     }
 }
