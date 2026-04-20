@@ -195,7 +195,7 @@ public final class ConnectionValidator {
 
         // validate configured certificate
         final ConnectionLogger connectionLogger = ConnectionLogger.getInstance(connection.getId(),
-                connectivityConfig.getMonitoringConfig().logger());
+                connectivityConfig.getMonitoringConfig().logger(), actorSystem);
         validateFormatOfCertificates(connection, dittoHeaders, connectionLogger);
         final ConnectionType connectionType = connection.getConnectionType();
         // validate configured host

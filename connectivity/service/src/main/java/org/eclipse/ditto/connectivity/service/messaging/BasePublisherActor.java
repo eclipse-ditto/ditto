@@ -130,9 +130,9 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         connectionConfig = connectivityConfig.getConnectionConfig();
         final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
         final MonitoringLoggerConfig loggerConfig = monitoringConfig.logger();
-        connectionLogger = ConnectionLogger.getInstance(connection.getId(), loggerConfig);
+        connectionLogger = ConnectionLogger.getInstance(connection.getId(), loggerConfig, getContext().getSystem());
         this.connectivityStatusResolver = checkNotNull(connectivityStatusResolver, "connectivityStatusResolver");
-        connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig);
+        connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig, getContext().getSystem());
         responseDroppedMonitor = connectionMonitorRegistry.forResponseDropped(connection);
         responsePublishedMonitor = connectionMonitorRegistry.forResponsePublished(connection);
         responseAcknowledgedMonitor = connectionMonitorRegistry.forResponseAcknowledged(connection);

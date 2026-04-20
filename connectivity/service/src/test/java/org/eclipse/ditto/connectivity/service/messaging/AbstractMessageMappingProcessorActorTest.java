@@ -372,6 +372,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                 outboundMappingProcessorActor,
                 testKit.getRef(),
                 actorSystem,
+                actorSystem,
                 ConnectivityConfig.of(config),
                 DittoHeadersValidator.get(actorSystem, ScopedConfig.dittoExtension(config)),
                 null);

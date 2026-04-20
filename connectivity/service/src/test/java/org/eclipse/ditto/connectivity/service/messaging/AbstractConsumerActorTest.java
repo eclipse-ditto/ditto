@@ -274,6 +274,7 @@ public abstract class AbstractConsumerActorTest<M> {
                 outboundProcessorActor,
                 TestProbe.apply(actorSystem).ref(),
                 actorSystem,
+                actorSystem,
                 ConnectivityConfig.of(config),
                 DittoHeadersValidator.get(actorSystem, ScopedConfig.dittoExtension(config)),
                 null);

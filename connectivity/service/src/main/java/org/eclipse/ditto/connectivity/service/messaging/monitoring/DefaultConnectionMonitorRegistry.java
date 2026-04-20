@@ -28,6 +28,8 @@ import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLoggerRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.ConnectivityCounterRegistry;
 
+import org.apache.pekko.actor.ActorSystem;
+
 /**
  * Default implementation of {@link ConnectionMonitorRegistry}.
  */
@@ -45,15 +47,19 @@ public final class DefaultConnectionMonitorRegistry implements ConnectionMonitor
     /**
      * Builds a new {@code DefaultConnectionMonitorRegistry} from a configuration.
      *
-     * @param connectivityConfig the configuration to  use.
+     * @param connectivityConfig the configuration to use.
+     * @param actorSystem the actor system used to look up the Fluency provider extension.
      * @return a new instance of {@code DefaultConnectionMonitorRegistry}.
-     * @throws java.lang.NullPointerException if {@code connectivityConfig} is null.
+     * @throws java.lang.NullPointerException if any argument is {@code null}.
      */
-    public static DefaultConnectionMonitorRegistry fromConfig(final ConnectivityConfig connectivityConfig) {
+    public static DefaultConnectionMonitorRegistry fromConfig(final ConnectivityConfig connectivityConfig,
+            final ActorSystem actorSystem) {
+
         checkNotNull(connectivityConfig);
+        checkNotNull(actorSystem);
 
         final ConnectionLoggerRegistry loggerRegistry =
-                ConnectionLoggerRegistry.fromConfig(connectivityConfig.getMonitoringConfig().logger());
+                ConnectionLoggerRegistry.fromConfig(connectivityConfig.getMonitoringConfig().logger(), actorSystem);
         final ConnectivityCounterRegistry counterRegistry = ConnectivityCounterRegistry.newInstance(connectivityConfig);
 
         return new DefaultConnectionMonitorRegistry(loggerRegistry, counterRegistry);

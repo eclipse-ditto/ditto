@@ -224,7 +224,7 @@ public final class ConnectionPersistenceActor
                 .newProvider(self(), log);
         clientActorAskTimeout = connectionConfig.getClientActorAskTimeout();
         final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
-        connectionLoggerRegistry = ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger());
+        connectionLoggerRegistry = ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger(), actorSystem);
         connectionLogger = connectionLoggerRegistry.forConnection(connectionId);
 
         loggingEnabledDuration = monitoringConfig.logger().logDuration();
