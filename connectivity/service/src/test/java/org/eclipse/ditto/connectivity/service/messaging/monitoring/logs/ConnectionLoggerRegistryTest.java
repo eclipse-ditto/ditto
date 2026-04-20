@@ -47,6 +47,7 @@ import org.eclipse.ditto.connectivity.service.config.DefaultMonitoringLoggerConf
 import org.eclipse.ditto.connectivity.service.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
+import org.junit.After;
 import org.junit.Test;
 import org.komamitsu.fluency.Fluency;
 import org.komamitsu.fluency.fluentd.FluencyBuilderForFluentd;
@@ -66,6 +67,11 @@ public final class ConnectionLoggerRegistryTest {
     private final Duration moreThanLoggingDuration =
             TestConstants.MONITORING_CONFIG.logger().logDuration()
                     .plusMinutes(1);
+
+    @After
+    public void tearDown() {
+        ConnectionLoggerRegistry.resetForTests();
+    }
 
     @Test
     public void addsLoggerToRegistryOnRetrieve() {
@@ -405,7 +411,9 @@ public final class ConnectionLoggerRegistryTest {
         final Fluency red = new FluencyBuilderForFluentd().build();
         final Fluency black = new FluencyBuilderForFluentd().build("localhost", 9999);
 
-        forClass(ConnectionLoggerRegistry.class).withPrefabValues(Fluency.class, red, black).verify();
+        forClass(ConnectionLoggerRegistry.class)
+                .withPrefabValues(Fluency.class, red, black)
+                .verify();
     }
 
     private ConnectionId connectionId() {

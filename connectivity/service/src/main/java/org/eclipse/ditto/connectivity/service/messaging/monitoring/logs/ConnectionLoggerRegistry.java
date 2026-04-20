@@ -44,14 +44,12 @@ import org.eclipse.ditto.connectivity.model.LogEntry;
 import org.eclipse.ditto.connectivity.model.LogType;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
-import org.eclipse.ditto.connectivity.service.config.FluencyLoggerPublisherConfig;
-import org.eclipse.ditto.connectivity.service.config.LoggerPublisherConfig;
 import org.eclipse.ditto.connectivity.service.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
-import org.komamitsu.fluency.Fluency;
+import org.apache.pekko.actor.ActorSystem;
 import org.slf4j.Logger;
 
 /**
@@ -82,38 +80,44 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
             final int failureCapacity,
             final long maximumLogSizeInByte,
             final Duration loggingDuration,
-            final LoggerPublisherConfig loggerPublisherConfig) {
+            @Nullable final FluentPublishingConnectionLoggerContext fluentPublishingConnectionLoggerContext) {
 
         this.successCapacity = successCapacity;
         this.failureCapacity = failureCapacity;
         this.maximumLogSizeInByte = maximumLogSizeInByte;
         this.loggingDuration = checkNotNull(loggingDuration);
-
-        if (loggerPublisherConfig.isEnabled()) {
-            final FluencyLoggerPublisherConfig fluencyConfig = loggerPublisherConfig.getFluencyLoggerPublisherConfig();
-            final Fluency fluency = fluencyConfig.buildFluencyLoggerPublisher();
-            fluentPublishingConnectionLoggerContext = ConnectionLoggerFactory.newPublishingLoggerContext(fluency,
-                    fluencyConfig.getWaitUntilAllBufferFlushedDurationOnClose(),
-                    loggerPublisherConfig.getLogLevels(),
-                    loggerPublisherConfig.isLogHeadersAndPayload(),
-                    loggerPublisherConfig.getLogTag().orElse(null),
-                    loggerPublisherConfig.getAdditionalLogContext()
-            );
-        } else {
-            fluentPublishingConnectionLoggerContext = null;
-        }
+        this.fluentPublishingConnectionLoggerContext = fluentPublishingConnectionLoggerContext;
     }
 
     /**
      * Build a new {@code ConnectionLoggerRegistry} from configuration.
+     * The Fluency forwarder context is obtained from {@link FluencyProvider} which manages the singleton
+     * Fluency instance and its lifecycle via {@link org.apache.pekko.actor.CoordinatedShutdown}.
      *
      * @param config the configuration to use.
+     * @param actorSystem the actor system used to look up the {@link FluencyProvider} extension.
      * @return a new instance of {@code ConnectionLoggerRegistry}.
      */
-    public static ConnectionLoggerRegistry fromConfig(final MonitoringLoggerConfig config) {
+    public static ConnectionLoggerRegistry fromConfig(final MonitoringLoggerConfig config,
+            final ActorSystem actorSystem) {
+
+        checkNotNull(config);
+        checkNotNull(actorSystem);
+        final FluentPublishingConnectionLoggerContext context =
+                FluencyProvider.get(actorSystem).getContext().orElse(null);
+        return new ConnectionLoggerRegistry(config.successCapacity(), config.failureCapacity(),
+                config.maxLogSizeInBytes(), config.logDuration(), context);
+    }
+
+    static ConnectionLoggerRegistry fromConfig(final MonitoringLoggerConfig config) {
         checkNotNull(config);
         return new ConnectionLoggerRegistry(config.successCapacity(), config.failureCapacity(),
-                config.maxLogSizeInBytes(), config.logDuration(), config.getLoggerPublisherConfig());
+                config.maxLogSizeInBytes(), config.logDuration(), null);
+    }
+
+    static void resetForTests() {
+        LOGGERS.clear();
+        METADATA.clear();
     }
 
     /**

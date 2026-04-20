@@ -275,7 +275,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
         final var monitoringConfig = connectivityConfig().getMonitoringConfig();
         connectionCounterRegistry = ConnectivityCounterRegistry.newInstance(connectivityConfig);
-        connectionLoggerRegistry = ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger());
+        connectionLoggerRegistry = ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger(), system);
         connectionLoggerRegistry.initForConnection(connection);
         connectionLogger = connectionLoggerRegistry.forConnection(connection.getId());
         connectionCounterRegistry.initForConnection(connection);
@@ -1956,6 +1956,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 outboundMappingProcessorActor,
                 getSelf(),
                 getContext(),
+                getContext().getSystem(),
                 connectivityConfig,
                 dittoHeadersValidator,
                 getResponseValidationFailureConsumer());

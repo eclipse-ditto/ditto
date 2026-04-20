@@ -384,6 +384,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
                 testRef,
                 TestProbe.apply(actorSystem).ref(),
                 actorSystem,
+                actorSystem,
                 ConnectivityConfig.of(config),
                 DittoHeadersValidator.get(actorSystem, ScopedConfig.dittoExtension(config)),
                 null);

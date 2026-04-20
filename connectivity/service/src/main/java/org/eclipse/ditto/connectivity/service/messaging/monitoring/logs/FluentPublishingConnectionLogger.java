@@ -114,21 +114,8 @@ final class FluentPublishingConnectionLogger
     }
 
     @Override
-    public void close() throws IOException {
-        LOGGER.info("Flushing and closing Fluency forwarder, waiting <{}> for buffers being flushed...",
-                waitUntilAllBufferFlushedDurationOnClose);
-
-        // fluencyForwarder.close also flushes:
-        fluencyForwarder.close();
-
-        if (!waitUntilAllBufferFlushedDurationOnClose.isZero() &&
-                !waitUntilAllBufferFlushedDurationOnClose.isNegative()) {
-            try {
-                fluencyForwarder.waitUntilAllBufferFlushed((int) waitUntilAllBufferFlushedDurationOnClose.getSeconds());
-            } catch (final InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }
+    public void close() {
+        // no-op: the shared Fluency forwarder is owned by FluencyProvider
     }
 
     @Override

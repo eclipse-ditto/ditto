@@ -24,6 +24,8 @@ import org.eclipse.ditto.connectivity.model.LogEntry;
 import org.eclipse.ditto.connectivity.service.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 
+import org.apache.pekko.actor.ActorSystem;
+
 /**
  * Logger for connections that provides log messages for end users.
  */
@@ -34,10 +36,13 @@ public interface ConnectionLogger extends Closeable {
      *
      * @param connectionId the ID of the connection.
      * @param config the logger config.
+     * @param actorSystem the actor system used to look up the {@link FluencyProvider} extension.
      * @return the logger.
      */
-    static ConnectionLogger getInstance(final ConnectionId connectionId, final MonitoringLoggerConfig config) {
-        final ConnectionLoggerRegistry connectionLoggerRegistry = ConnectionLoggerRegistry.fromConfig(config);
+    static ConnectionLogger getInstance(final ConnectionId connectionId, final MonitoringLoggerConfig config,
+            final ActorSystem actorSystem) {
+        final ConnectionLoggerRegistry connectionLoggerRegistry =
+                ConnectionLoggerRegistry.fromConfig(config, actorSystem);
         return connectionLoggerRegistry.forConnection(connectionId);
     }
 

@@ -106,6 +106,7 @@ import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateS
 import org.apache.pekko.NotUsed;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorRefFactory;
+import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.ActorSelection;
 import org.apache.pekko.japi.pf.PFBuilder;
 import org.apache.pekko.pattern.Patterns;
@@ -156,6 +157,7 @@ public final class InboundDispatchingSink
             final ActorRef clientActor,
             final ConnectivityConfig connectivityConfig,
             final ActorRefFactory actorRefFactory,
+            final ActorSystem actorSystem,
             final DittoHeadersValidator dittoHeadersValidator,
             @Nullable final Consumer<MatchingValidationResult.Failure> responseValidationFailureConsumer) {
 
@@ -177,7 +179,7 @@ public final class InboundDispatchingSink
                 ConnectivityPlaceholders.newConnectionIdPlaceholder(),
                 connection.getId());
 
-        connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig);
+        connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig, actorSystem);
         responseMappedMonitor = connectionMonitorRegistry.forResponseMapped(connection);
         toErrorResponseFunction = DittoRuntimeExceptionToErrorResponseFunction.of(dittoHeadersValidator);
         acknowledgementConfig = connectivityConfig.getConnectionConfig().getAcknowledgementConfig();
@@ -207,6 +209,7 @@ public final class InboundDispatchingSink
      * @param outboundMessageMappingProcessorActor used to publish errors.
      * @param clientActor the client actor ref to forward commands to.
      * @param actorRefFactory the ActorRefFactory to use in order to create new actors in.
+     * @param actorSystem the ActorSystem to use for looking up extensions.
      * @param connectivityConfig the connectivity configuration including potential overwrites.
      * @param responseValidationFailureConsumer optional handler for response validation failures.
      * @return the Sink.
@@ -219,6 +222,7 @@ public final class InboundDispatchingSink
             final ActorRef outboundMessageMappingProcessorActor,
             final ActorRef clientActor,
             final ActorRefFactory actorRefFactory,
+            final ActorSystem actorSystem,
             final ConnectivityConfig connectivityConfig,
             final DittoHeadersValidator dittoHeadersValidator,
             @Nullable final Consumer<MatchingValidationResult.Failure> responseValidationFailureConsumer) {
@@ -232,6 +236,7 @@ public final class InboundDispatchingSink
                 clientActor,
                 connectivityConfig,
                 actorRefFactory,
+                actorSystem,
                 dittoHeadersValidator,
                 responseValidationFailureConsumer
         );

@@ -185,7 +185,7 @@ public final class OutboundMappingProcessorActor
 
 
         final var dittoExtensionConfig = ScopedConfig.dittoExtension(system.settings().config());
-        connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig);
+        connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig, system);
         responseDispatchedMonitor = connectionMonitorRegistry.forResponseDispatched(this.connection);
         responseDroppedMonitor = connectionMonitorRegistry.forResponseDropped(this.connection);
         responseMappedMonitor = connectionMonitorRegistry.forResponseMapped(this.connection);

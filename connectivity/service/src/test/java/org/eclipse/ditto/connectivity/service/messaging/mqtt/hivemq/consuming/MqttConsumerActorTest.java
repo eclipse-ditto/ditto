@@ -64,6 +64,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.datatypes.MqttTopic;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
+import com.typesafe.config.ConfigFactory;
 
 import org.apache.pekko.NotUsed;
 import org.apache.pekko.actor.ActorRef;
@@ -81,7 +82,8 @@ public final class MqttConsumerActorTest {
             DittoTracingInitResource.disableDittoTracing();
 
     @ClassRule
-    public static final ActorSystemResource ACTOR_SYSTEM_RESOURCE = ActorSystemResource.newInstance();
+    public static final ActorSystemResource ACTOR_SYSTEM_RESOURCE =
+            ActorSystemResource.newInstance(ConfigFactory.load("test"));
 
     private static final ConnectionId CONNECTION_ID = ConnectionId.generateRandom();
     private static final Set<String> SOURCE_ADDRESSES = Set.of("source/telemetry", "source/status");

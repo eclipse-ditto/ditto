@@ -16,9 +16,15 @@ package org.eclipse.ditto.connectivity.service.messaging.monitoring;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.komamitsu.fluency.Fluency;
 import org.komamitsu.fluency.fluentd.FluencyBuilderForFluentd;
+
+import org.apache.pekko.actor.ActorSystem;
+
+import com.typesafe.config.ConfigFactory;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -27,9 +33,23 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public class DefaultConnectionMonitorRegistryTest {
 
+    private static ActorSystem actorSystem;
+
+    @BeforeClass
+    public static void setUp() {
+        actorSystem = ActorSystem.create("test", ConfigFactory.load("test"));
+    }
+
+    @AfterClass
+    public static void tearDown() {
+        if (actorSystem != null) {
+            actorSystem.terminate();
+        }
+    }
+
     @Test
     public void fromConfig() {
-        assertThat(DefaultConnectionMonitorRegistry.fromConfig(TestConstants.CONNECTIVITY_CONFIG))
+        assertThat(DefaultConnectionMonitorRegistry.fromConfig(TestConstants.CONNECTIVITY_CONFIG, actorSystem))
                 .isNotNull();
     }
 
