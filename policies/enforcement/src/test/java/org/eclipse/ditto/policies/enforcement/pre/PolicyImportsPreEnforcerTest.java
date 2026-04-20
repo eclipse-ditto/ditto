@@ -59,6 +59,8 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImport;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImports;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubject;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjects;
 import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommand;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -96,6 +98,12 @@ class PolicyImportsPreEnforcerTest {
         when(policyEnforcerProvider.getPolicyEnforcer(Policies.IMPORTED_WITH_ADDITIONS_POLICY_ID))
                 .thenReturn(CompletableFuture.completedFuture(
                         Optional.of(PolicyEnforcer.of(Policies.IMPORTED_WITH_ADDITIONS))));
+        when(policyEnforcerProvider.getPolicyEnforcer(Policies.IMPORTING_WITH_ALIAS_POLICY_ID))
+                .thenReturn(CompletableFuture.completedFuture(
+                        Optional.of(PolicyEnforcer.of(Policies.IMPORTING_WITH_ALIAS))));
+        when(policyEnforcerProvider.getPolicyEnforcer(Policies.IMPORTING_WITH_ALLOWED_ALIAS_POLICY_ID))
+                .thenReturn(CompletableFuture.completedFuture(
+                        Optional.of(PolicyEnforcer.of(Policies.IMPORTING_WITH_ALLOWED_ALIAS))));
         when(policyEnforcerProvider.getPolicyEnforcer(argThat(id -> !KNOWN_IDS.contains(id))))
                 .thenReturn(CompletableFuture.completedFuture(Optional.empty()));
 
@@ -270,6 +278,120 @@ class PolicyImportsPreEnforcerTest {
                 .withCauseInstanceOf(PolicyImportInvalidException.class)
                 .withMessageContaining("NOT_IN_ENTRIES")
                 .withMessageContaining("not listed in 'entries'");
+    }
+
+    @Test
+    void testModifySubjectViaAliasRejectedWhenSubjectAdditionsNotAllowed() {
+        // IMPORTING_WITH_ALIAS has alias "myalias" targeting IMPORTED's "EXPLICIT" entry
+        // which does NOT have allowedImportAdditions=["subjects"]
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .authorizationContext(AuthorizationModelFactory.newAuthContext(
+                        DittoAuthorizationContextType.UNSPECIFIED,
+                        java.util.Collections.singletonList(
+                                AuthorizationSubject.newInstance("ditto:admin"))))
+                .build();
+
+        final var subject = PoliciesModelFactory.newSubject(
+                PoliciesModelFactory.newSubjectId("ditto:newuser"),
+                PoliciesModelFactory.newSubjectType("test"));
+
+        final var command = ModifySubject.of(
+                Policies.IMPORTING_WITH_ALIAS_POLICY_ID,
+                Label.of("myalias"),
+                subject,
+                dittoHeaders);
+
+        final CompletableFuture<Signal<?>> applyFuture =
+                policyImportsPreEnforcer.apply(command).toCompletableFuture();
+
+        assertThatExceptionOfType(CompletionException.class)
+                .isThrownBy(applyFuture::join)
+                .withCauseInstanceOf(PolicyImportInvalidException.class)
+                .withMessageContaining("subject additions");
+    }
+
+    @Test
+    void testModifySubjectsViaAliasRejectedWhenSubjectAdditionsNotAllowed() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .authorizationContext(AuthorizationModelFactory.newAuthContext(
+                        DittoAuthorizationContextType.UNSPECIFIED,
+                        java.util.Collections.singletonList(
+                                AuthorizationSubject.newInstance("ditto:admin"))))
+                .build();
+
+        final var subjects = PoliciesModelFactory.newSubjects(
+                PoliciesModelFactory.newSubject(
+                        PoliciesModelFactory.newSubjectId("ditto:newuser"),
+                        PoliciesModelFactory.newSubjectType("test")));
+
+        final var command = ModifySubjects.of(
+                Policies.IMPORTING_WITH_ALIAS_POLICY_ID,
+                Label.of("myalias"),
+                subjects,
+                dittoHeaders);
+
+        final CompletableFuture<Signal<?>> applyFuture =
+                policyImportsPreEnforcer.apply(command).toCompletableFuture();
+
+        assertThatExceptionOfType(CompletionException.class)
+                .isThrownBy(applyFuture::join)
+                .withCauseInstanceOf(PolicyImportInvalidException.class)
+                .withMessageContaining("subject additions");
+    }
+
+    @Test
+    void testModifySubjectViaAliasPassesWhenSubjectAdditionsAllowed() {
+        // IMPORTING_WITH_ALLOWED_ALIAS has alias "myalias" targeting
+        // IMPORTED_WITH_ADDITIONS's "IMPLICIT" entry which allows subjects
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .authorizationContext(AuthorizationModelFactory.newAuthContext(
+                        DittoAuthorizationContextType.UNSPECIFIED,
+                        java.util.Collections.singletonList(
+                                AuthorizationSubject.newInstance("ditto:admin"))))
+                .build();
+
+        final var subject = PoliciesModelFactory.newSubject(
+                PoliciesModelFactory.newSubjectId("ditto:newuser"),
+                PoliciesModelFactory.newSubjectType("test"));
+
+        final var command = ModifySubject.of(
+                Policies.IMPORTING_WITH_ALLOWED_ALIAS_POLICY_ID,
+                Label.of("myalias"),
+                subject,
+                dittoHeaders);
+
+        final CompletableFuture<Signal<?>> applyFuture =
+                policyImportsPreEnforcer.apply(command).toCompletableFuture();
+
+        final Signal<?> signal = applyFuture.join();
+        assertThat(signal).isSameAs(command);
+    }
+
+    @Test
+    void testRegularModifySubjectPassesThroughUnchanged() {
+        // ModifySubject targeting a regular entry (not an alias) should pass through
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .authorizationContext(AuthorizationModelFactory.newAuthContext(
+                        DittoAuthorizationContextType.UNSPECIFIED,
+                        java.util.Collections.singletonList(
+                                AuthorizationSubject.newInstance("ditto:admin"))))
+                .build();
+
+        final var subject = PoliciesModelFactory.newSubject(
+                PoliciesModelFactory.newSubjectId("ditto:newuser"),
+                PoliciesModelFactory.newSubjectType("test"));
+
+        final var command = ModifySubject.of(
+                Policies.IMPORTING_POLICY_ID,
+                Label.of("DEFAULT"),
+                subject,
+                dittoHeaders);
+
+        final CompletableFuture<Signal<?>> applyFuture =
+                policyImportsPreEnforcer.apply(command).toCompletableFuture();
+
+        final Signal<?> signal = applyFuture.join();
+        assertThat(signal).isSameAs(command);
     }
 
     static class PolicyModifyCommandsProvider implements ArgumentsProvider {
@@ -493,8 +615,57 @@ class PolicyImportsPreEnforcerTest {
                 IMPORTED_WITH_ADDITIONS.getEntityId().orElseThrow();
         static final PolicyId IMPORT_NOT_FOUND_POLICY_ID = IMPORT_NOT_FOUND.getEntityId().orElseThrow();
 
+        // Importing policy with alias targeting IMPORTED's "EXPLICIT" (no allowedImportAdditions)
+        static final PolicyId IMPORTING_WITH_ALIAS_POLICY_ID = PolicyId.of("test", "importing.with.alias");
+        static final Policy IMPORTING_WITH_ALIAS = buildImportingWithAlias();
+
+        // Importing policy with alias targeting IMPORTED_WITH_ADDITIONS's "IMPLICIT" (allows subjects)
+        static final PolicyId IMPORTING_WITH_ALLOWED_ALIAS_POLICY_ID =
+                PolicyId.of("test", "importing.with.allowed.alias");
+        static final Policy IMPORTING_WITH_ALLOWED_ALIAS = buildImportingWithAllowedAlias();
+
         static final Collection<PolicyId> KNOWN_IDS =
                 List.of(IMPORTED_POLICY_ID, IMPORTING_POLICY_ID, IMPORT_NOT_FOUND_POLICY_ID,
-                        IMPORTED_WITH_ADDITIONS_POLICY_ID);
+                        IMPORTED_WITH_ADDITIONS_POLICY_ID, IMPORTING_WITH_ALIAS_POLICY_ID,
+                        IMPORTING_WITH_ALLOWED_ALIAS_POLICY_ID);
+
+        private static Policy buildImportingWithAlias() {
+            final var target = PoliciesModelFactory.newImportsAliasTarget(
+                    IMPORTED_POLICY_ID, Label.of("EXPLICIT"));
+            final var alias = PoliciesModelFactory.newImportsAlias(Label.of("myalias"), List.of(target));
+            final var aliases = PoliciesModelFactory.newImportsAliases(List.of(alias));
+
+            final var effectedImports = EffectedImports.newInstance(List.of(Label.of("EXPLICIT")));
+            final var policyImport = PolicyImport.newInstance(IMPORTED_POLICY_ID, effectedImports);
+
+            return PoliciesModelFactory.newPolicyBuilder(IMPORTING_WITH_ALIAS_POLICY_ID)
+                    .setSubjectFor(Label.of("DEFAULT"),
+                            PoliciesModelFactory.newSubjectId("ditto:admin"),
+                            PoliciesModelFactory.newSubjectType("test"))
+                    .setGrantedPermissionsFor(Label.of("DEFAULT"), "policy", "/", "READ", "WRITE")
+                    .setPolicyImports(PolicyImports.newInstance(policyImport))
+                    .setImportsAliases(aliases)
+                    .build();
+        }
+
+        private static Policy buildImportingWithAllowedAlias() {
+            final var target = PoliciesModelFactory.newImportsAliasTarget(
+                    IMPORTED_WITH_ADDITIONS_POLICY_ID, Label.of("IMPLICIT"));
+            final var alias = PoliciesModelFactory.newImportsAlias(Label.of("myalias"), List.of(target));
+            final var aliases = PoliciesModelFactory.newImportsAliases(List.of(alias));
+
+            final var effectedImports = EffectedImports.newInstance(List.of(Label.of("IMPLICIT")));
+            final var policyImport = PolicyImport.newInstance(
+                    IMPORTED_WITH_ADDITIONS_POLICY_ID, effectedImports);
+
+            return PoliciesModelFactory.newPolicyBuilder(IMPORTING_WITH_ALLOWED_ALIAS_POLICY_ID)
+                    .setSubjectFor(Label.of("DEFAULT"),
+                            PoliciesModelFactory.newSubjectId("ditto:admin"),
+                            PoliciesModelFactory.newSubjectType("test"))
+                    .setGrantedPermissionsFor(Label.of("DEFAULT"), "policy", "/", "READ", "WRITE")
+                    .setPolicyImports(PolicyImports.newInstance(policyImport))
+                    .setImportsAliases(aliases)
+                    .build();
+        }
     }
 }
