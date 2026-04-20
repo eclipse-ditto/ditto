@@ -559,13 +559,17 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
     private void handleReceiveTimeout() {
         final var actorContext = getContext();
         final var receiveTimeout = actorContext.getReceiveTimeout();
+        // Resolve the timeout exception BEFORE cancelling the receive timeout, because cancelling
+        // sets it to infinite duration and the supplier reads it from the actor context.
+        @Nullable final DittoRuntimeException timeoutException =
+                null != timeoutExceptionSupplier ? timeoutExceptionSupplier.get() : null;
         actorContext.cancelReceiveTimeout();
 
-        if (null != timeoutExceptionSupplier) {
+        if (null != timeoutException) {
             logger.withCorrelationId(receivedCommand)
                     .info("Got <{}> after <{}> before an appropriate response arrived.",
                             ReceiveTimeout.class.getSimpleName(), receiveTimeout);
-            handleDittoRuntimeException(timeoutExceptionSupplier.get());
+            handleDittoRuntimeException(timeoutException);
         } else if (!isResponseRequired()) {
             // Fire-and-forget: no enforcement/validation error arrived within the timeout, accept optimistically
             logger.withCorrelationId(receivedCommand)
