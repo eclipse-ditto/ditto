@@ -1,0 +1,33 @@
+# Copyright (c) 2026 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+#
+# zizmor configuration — scoped suppressions with written justification.
+# https://docs.zizmor.sh/configuration/
+#
+# This file lists findings we have knowingly accepted. Every entry must be
+# justified. Do NOT add new entries without a comment explaining the reason.
+
+rules:
+  cache-poisoning:
+    ignore:
+      # PR/build-validation workflows: run on pull_request and push to master
+      # but do NOT publish artifacts to any registry. A poisoned cache cannot
+      # leak into released images because these workflows don't build images.
+      - maven.yml
+      - ui-ci.yml
+
+      # Release/publish workflows: setup-node is invoked without a `cache:`
+      # input, so caching is not enabled on this step. Zizmor flags the
+      # action defensively because it is cache-capable; the actual runtime
+      # behaviour does not populate or restore any cache here.
+      - docker-nightly.yml
+      - push-dockerhub.yml
+      - push-dockerhub-on-demand.yml

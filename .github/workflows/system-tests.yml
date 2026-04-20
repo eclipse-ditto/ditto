@@ -98,6 +98,7 @@ jobs:
           ref: ${{ env.DITTO_BRANCH }}
           token: ${{ secrets.GITHUB_TOKEN }}
           path: ditto
+          persist-credentials: false
 
       - name: Checkout ditto-testing repo
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -106,6 +107,7 @@ jobs:
           ref: ${{ env.DITTO_TESTING_BRANCH }}
           token: ${{ secrets.GITHUB_TOKEN }}
           path: ditto-testing
+          persist-credentials: false
 
       - name: Checkout ditto-clients repo
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -114,6 +116,7 @@ jobs:
           ref: 'master'
           token: ${{ secrets.GITHUB_TOKEN }}
           path: ditto-clients
+          persist-credentials: false
 
       - name: Set up JDK 25
         uses: actions/setup-java@17f84c3641ba7b8f6deff6309fc4c864478f5d62 # v3.14.1

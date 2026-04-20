@@ -42,6 +42,8 @@ jobs:
       -
         name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
@@ -66,11 +68,13 @@ jobs:
       -
         name: Branch name
         id: branch_name
+        env:
+          DITTO_VERSION_INPUT: ${{ inputs.dittoVersion }}
         run: |
-          echo "IMAGE_TAG=${{ inputs.dittoVersion }}" >> $GITHUB_ENV
-          echo "IMAGE_MINOR_TAG=$(echo ${{ inputs.dittoVersion }} | cut -d. -f-2)" >> $GITHUB_ENV
-          echo "IMAGE_MAJOR_TAG=$(echo ${{ inputs.dittoVersion }} | cut -d. -f-1)" >> $GITHUB_ENV
-          echo "MILESTONE_OR_RC_SUFFIX=$(echo ${{ inputs.dittoVersion }} | cut -d- -f2)" >> $GITHUB_ENV
+          echo "IMAGE_TAG=$DITTO_VERSION_INPUT" >> $GITHUB_ENV
+          echo "IMAGE_MINOR_TAG=$(echo "$DITTO_VERSION_INPUT" | cut -d. -f-2)" >> $GITHUB_ENV
+          echo "IMAGE_MAJOR_TAG=$(echo "$DITTO_VERSION_INPUT" | cut -d. -f-1)" >> $GITHUB_ENV
+          echo "MILESTONE_OR_RC_SUFFIX=$(echo "$DITTO_VERSION_INPUT" | cut -d- -f2)" >> $GITHUB_ENV
       -
         name: Building Docker images for tag
         run: |
