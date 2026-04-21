@@ -55,6 +55,8 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImport;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImports;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportEntriesAdditions;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportEntryAddition;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubject;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjects;
 import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommand;
@@ -63,6 +65,12 @@ import com.typesafe.config.Config;
 
 /**
  * Pre-Enforcer for authorizing modifications to policy imports.
+ * <p>
+ * <b>Note:</b> The validation performed here is best-effort. The pre-enforcer reads policies from the enforcer cache,
+ * but the persistence actor applies the command against its authoritative state. A concurrent modification (e.g. a
+ * racing {@code ModifyImportsAlias}) between cache read and persistence write could change the targets or
+ * allowedImportAdditions, making the pre-enforcer check stale (TOCTOU). The pre-enforcer therefore acts as a
+ * first line of defense, not a guarantee.
  */
 public class PolicyImportsPreEnforcer implements PreEnforcer {
 
@@ -106,6 +114,10 @@ public class PolicyImportsPreEnforcer implements PreEnforcer {
             return validateAliasSubjectModification(modifySubject, modifySubject.getLabel());
         } else if (signal instanceof ModifySubjects modifySubjects) {
             return validateAliasSubjectModification(modifySubjects, modifySubjects.getLabel());
+        } else if (signal instanceof ModifyPolicyImportEntryAddition modifyEntryAddition) {
+            return validateEntryAdditionAgainstImportedPolicy(modifyEntryAddition);
+        } else if (signal instanceof ModifyPolicyImportEntriesAdditions modifyEntriesAdditions) {
+            return validateEntriesAdditionsAgainstImportedPolicy(modifyEntriesAdditions);
         } else {
             return CompletableFuture.completedFuture(signal);
         }
@@ -295,32 +307,138 @@ public class PolicyImportsPreEnforcer implements PreEnforcer {
 
                                 final Optional<PolicyEntry> entryOpt =
                                         importedPolicy.getEntryFor(entryLabel);
-                                if (entryOpt.isPresent()) {
-                                    final Set<AllowedImportAddition> allowed = entryOpt.get()
-                                            .getAllowedImportAdditions()
-                                            .orElse(Collections.emptySet());
-
-                                    if (!allowed.contains(AllowedImportAddition.SUBJECTS)) {
-                                        throw PolicyImportInvalidException.newBuilder()
-                                                .message("The imports alias targets entry '" +
-                                                        entryLabel + "' of imported policy '" +
-                                                        importedPolicyId +
-                                                        "' which does not allow subject additions.")
-                                                .description("The imported policy entry '" +
-                                                        entryLabel + "' does not allow " +
-                                                        "subject additions. Its " +
-                                                        "'allowedImportAdditions' is: " + allowed)
-                                                .dittoHeaders(dittoHeaders)
-                                                .build();
-                                    }
+                                if (entryOpt.isEmpty()) {
+                                    throw PolicyImportInvalidException.newBuilder()
+                                            .message("The imports alias targets entry '" +
+                                                    entryLabel + "' of imported policy '" +
+                                                    importedPolicyId +
+                                                    "' which does not exist.")
+                                            .description("The imported policy '" +
+                                                    importedPolicyId +
+                                                    "' does not contain an entry with label '" +
+                                                    entryLabel + "'.")
+                                            .dittoHeaders(dittoHeaders)
+                                            .build();
                                 }
-                                // Entry doesn't exist in imported policy — silently ignored at merge time
+                                final Set<AllowedImportAddition> allowed = entryOpt.get()
+                                        .getAllowedImportAdditions()
+                                        .orElse(Collections.emptySet());
+
+                                if (!allowed.contains(AllowedImportAddition.SUBJECTS)) {
+                                    throw PolicyImportInvalidException.newBuilder()
+                                            .message("The imports alias targets entry '" +
+                                                    entryLabel + "' of imported policy '" +
+                                                    importedPolicyId +
+                                                    "' which does not allow subject additions.")
+                                            .description("The imported policy entry '" +
+                                                    entryLabel + "' does not allow " +
+                                                    "subject additions. Its " +
+                                                    "'allowedImportAdditions' is: " + allowed)
+                                            .dittoHeaders(dittoHeaders)
+                                            .build();
+                                }
                                 return true;
                             });
                 })
                 .reduce(CompletableFuture.completedFuture(true),
                         (s1, s2) -> s1.thenCombine(s2, (b1, b2) -> b1 && b2))
                 .thenApply(ignored -> command);
+    }
+
+    /**
+     * Validates that a single {@link ModifyPolicyImportEntryAddition} is permitted by the imported policy's
+     * {@code allowedImportAdditions}.
+     */
+    private CompletionStage<Signal<?>> validateEntryAdditionAgainstImportedPolicy(
+            final ModifyPolicyImportEntryAddition command) {
+
+        final PolicyId importedPolicyId = command.getImportedPolicyId();
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+
+        return getPolicyEnforcer(importedPolicyId, dittoHeaders)
+                .thenApply(importedEnforcer -> {
+                    final Policy importedPolicy = importedEnforcer.getPolicy()
+                            .orElseThrow(policyNotAccessible(importedPolicyId, dittoHeaders));
+
+                    validateSingleEntryAdditionAllowed(
+                            command.getEntryAddition(), importedPolicyId, importedPolicy, dittoHeaders);
+                    return (Signal<?>) command;
+                });
+    }
+
+    /**
+     * Validates that a {@link ModifyPolicyImportEntriesAdditions} is permitted by the imported policy's
+     * {@code allowedImportAdditions}.
+     */
+    private CompletionStage<Signal<?>> validateEntriesAdditionsAgainstImportedPolicy(
+            final ModifyPolicyImportEntriesAdditions command) {
+
+        final PolicyId importedPolicyId = command.getImportedPolicyId();
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+
+        return getPolicyEnforcer(importedPolicyId, dittoHeaders)
+                .thenApply(importedEnforcer -> {
+                    final Policy importedPolicy = importedEnforcer.getPolicy()
+                            .orElseThrow(policyNotAccessible(importedPolicyId, dittoHeaders));
+
+                    for (final EntryAddition addition : command.getEntriesAdditions()) {
+                        validateSingleEntryAdditionAllowed(
+                                addition, importedPolicyId, importedPolicy, dittoHeaders);
+                    }
+                    return (Signal<?>) command;
+                });
+    }
+
+    /**
+     * Validates that a single {@link EntryAddition} is permitted by the imported policy entry's
+     * {@code allowedImportAdditions}. Rejects if the entry does not exist in the imported policy.
+     */
+    private static void validateSingleEntryAdditionAllowed(final EntryAddition entryAddition,
+            final PolicyId importedPolicyId, final Policy importedPolicy, final DittoHeaders dittoHeaders) {
+
+        final Label label = entryAddition.getLabel();
+        final Optional<PolicyEntry> entryOpt = importedPolicy.getEntryFor(label);
+        if (entryOpt.isEmpty()) {
+            throw PolicyImportInvalidException.newBuilder()
+                    .message("The imported policy '" + importedPolicyId +
+                            "' does not contain entry '" + label + "'.")
+                    .description("The entry '" + label +
+                            "' must exist in the imported policy to accept additions.")
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+        final Set<AllowedImportAddition> allowed = entryOpt.get().getAllowedImportAdditions()
+                .orElse(Collections.emptySet());
+        if (entryAddition.getSubjects().isPresent() &&
+                !allowed.contains(AllowedImportAddition.SUBJECTS)) {
+            throw PolicyImportInvalidException.newBuilder()
+                    .message("The policy import for '" + importedPolicyId +
+                            "' contains disallowed subject additions for entry '" + label + "'.")
+                    .description("The imported policy entry '" + label +
+                            "' does not allow subject additions. Its 'allowedImportAdditions' is: " + allowed)
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+        if (entryAddition.getResources().isPresent() &&
+                !allowed.contains(AllowedImportAddition.RESOURCES)) {
+            throw PolicyImportInvalidException.newBuilder()
+                    .message("The policy import for '" + importedPolicyId +
+                            "' contains disallowed resource additions for entry '" + label + "'.")
+                    .description("The imported policy entry '" + label +
+                            "' does not allow resource additions. Its 'allowedImportAdditions' is: " + allowed)
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+        if (entryAddition.getNamespaces().isPresent() &&
+                !allowed.contains(AllowedImportAddition.NAMESPACES)) {
+            throw PolicyImportInvalidException.newBuilder()
+                    .message("The policy import for '" + importedPolicyId +
+                            "' contains disallowed namespace additions for entry '" + label + "'.")
+                    .description("The imported policy entry '" + label +
+                            "' does not allow namespace additions. Its 'allowedImportAdditions' is: " + allowed)
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
     }
 
     private static DittoRuntimeException errorForPolicyModifyCommand(final PolicyImport policyImport) {
