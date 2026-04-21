@@ -151,6 +151,132 @@ public final class PolicyEnforcerCacheTest {
     }
 
     @Test
+    public void transitiveImportChangeCascadeInvalidatesToImportingPolicy() throws Exception {
+        final AsyncCacheLoader<PolicyId, Entry<PolicyEnforcer>> cacheLoader = mock(AsyncCacheLoader.class);
+        final ExecutionContextExecutor executor = actorSystem.dispatcher();
+        final var underTest = new PolicyEnforcerCache(
+                cacheLoader,
+                executor,
+                DefaultCacheConfig.of(actorSystem.settings().config(), "ditto.policies-enforcer-cache"),
+                DefaultNamespacePoliciesConfig.of(actorSystem.settings().config())
+        );
+
+        // Template policy (C) → imported by intermediate (B) → transitively imported by leaf (A)
+        final var templatePolicyId = PolicyId.generateRandom();
+        final var intermediatePolicyId = PolicyId.generateRandom();
+        final var leafPolicyId = PolicyId.generateRandom();
+        final var unrelatedPolicyId = PolicyId.generateRandom();
+
+        new TestKit(actorSystem) {{
+            // Intermediate policy imports from template (direct import)
+            final Policy intermediatePolicy = Policy.newBuilder(intermediatePolicyId)
+                    .setPolicyImport(PoliciesModelFactory.newPolicyImport(templatePolicyId))
+                    .build();
+
+            // Leaf policy imports from intermediate with transitiveImports listing the template
+            final List<Label> noLabels = Collections.emptyList();
+            final Policy leafPolicy = Policy.newBuilder(leafPolicyId)
+                    .setPolicyImport(PoliciesModelFactory.newPolicyImport(intermediatePolicyId,
+                            PoliciesModelFactory.newEffectedImportedLabels(
+                                    noLabels, null,
+                                    Collections.singletonList(templatePolicyId))))
+                    .build();
+
+            final Policy templatePolicy = Policy.newBuilder(templatePolicyId).build();
+            final Policy unrelatedPolicy = Policy.newBuilder(unrelatedPolicyId).build();
+
+            // Load all policies into cache
+            verifyLoadedFromCacheLoader(templatePolicy, underTest, cacheLoader);
+            verifyLoadedFromCacheLoader(intermediatePolicy, underTest, cacheLoader);
+            verifyLoadedFromCacheLoader(leafPolicy, underTest, cacheLoader);
+            verifyLoadedFromCacheLoader(unrelatedPolicy, underTest, cacheLoader);
+            reset(cacheLoader);
+
+            // Verify all served from cache
+            verifyLoadedFromCache(templatePolicy, underTest, cacheLoader);
+            verifyLoadedFromCache(intermediatePolicy, underTest, cacheLoader);
+            verifyLoadedFromCache(leafPolicy, underTest, cacheLoader);
+            verifyLoadedFromCache(unrelatedPolicy, underTest, cacheLoader);
+            reset(cacheLoader);
+
+            // When: template policy changes
+            underTest.invalidate(templatePolicyId);
+
+            // Then: template, intermediate (direct importer), AND leaf (transitive importer) are invalidated
+            verifyLoadedFromCacheLoader(templatePolicy, underTest, cacheLoader);
+            verifyLoadedFromCacheLoader(intermediatePolicy, underTest, cacheLoader);
+            verifyLoadedFromCacheLoader(leafPolicy, underTest, cacheLoader);
+            // Unrelated policy is still cached
+            verifyLoadedFromCache(unrelatedPolicy, underTest, cacheLoader);
+        }};
+    }
+
+    @Test
+    public void removingTransitiveImportsStopsInvalidationCascade() throws Exception {
+        final AsyncCacheLoader<PolicyId, Entry<PolicyEnforcer>> cacheLoader = mock(AsyncCacheLoader.class);
+        final ExecutionContextExecutor executor = actorSystem.dispatcher();
+        final var underTest = new PolicyEnforcerCache(
+                cacheLoader,
+                executor,
+                DefaultCacheConfig.of(actorSystem.settings().config(), "ditto.policies-enforcer-cache"),
+                DefaultNamespacePoliciesConfig.of(actorSystem.settings().config())
+        );
+
+        final var templatePolicyId = PolicyId.generateRandom();
+        final var intermediatePolicyId = PolicyId.generateRandom();
+        final var leafPolicyId = PolicyId.generateRandom();
+
+        new TestKit(actorSystem) {{
+            final Policy templatePolicy = Policy.newBuilder(templatePolicyId).build();
+            final Policy intermediatePolicy = Policy.newBuilder(intermediatePolicyId)
+                    .setPolicyImport(PoliciesModelFactory.newPolicyImport(templatePolicyId))
+                    .build();
+
+            final List<Label> noLabels = Collections.emptyList();
+            final Policy leafPolicyWithTransitive = Policy.newBuilder(leafPolicyId)
+                    .setPolicyImport(PoliciesModelFactory.newPolicyImport(intermediatePolicyId,
+                            PoliciesModelFactory.newEffectedImportedLabels(
+                                    noLabels, null,
+                                    Collections.singletonList(templatePolicyId))))
+                    .build();
+
+            // Phase 1: Load all policies. Leaf has transitiveImports → template cascades to leaf.
+            verifyLoadedFromCacheLoader(templatePolicy, underTest, cacheLoader);
+            verifyLoadedFromCacheLoader(intermediatePolicy, underTest, cacheLoader);
+            verifyLoadedFromCacheLoader(leafPolicyWithTransitive, underTest, cacheLoader);
+            reset(cacheLoader);
+
+            underTest.invalidate(templatePolicyId);
+            // Template change invalidates: template, intermediate (direct), leaf (transitive)
+            verifyLoadedFromCacheLoader(templatePolicy, underTest, cacheLoader);
+            verifyLoadedFromCacheLoader(intermediatePolicy, underTest, cacheLoader);
+            verifyLoadedFromCacheLoader(leafPolicyWithTransitive, underTest, cacheLoader);
+            reset(cacheLoader);
+
+            // Phase 2: Invalidate template again — this clears the import mapping for templatePolicyId.
+            // Then reload all three, but this time the leaf has NO transitiveImports.
+            // The fresh mapping for templatePolicyId will only contain {intermediate}, not {leaf}.
+            final Policy leafPolicyWithoutTransitive = Policy.newBuilder(leafPolicyId)
+                    .setPolicyImport(PoliciesModelFactory.newPolicyImport(intermediatePolicyId))
+                    .build();
+
+            underTest.invalidate(templatePolicyId);
+            verifyLoadedFromCacheLoader(templatePolicy, underTest, cacheLoader);
+            verifyLoadedFromCacheLoader(intermediatePolicy, underTest, cacheLoader);
+            verifyLoadedFromCacheLoader(leafPolicyWithoutTransitive, underTest, cacheLoader);
+            reset(cacheLoader);
+
+            // Phase 3: Template changes again → leaf should NO LONGER be invalidated
+            // because leafPolicyWithoutTransitive did not register templatePolicyId as a dependency.
+            underTest.invalidate(templatePolicyId);
+            verifyLoadedFromCacheLoader(templatePolicy, underTest, cacheLoader);
+            verifyLoadedFromCacheLoader(intermediatePolicy, underTest, cacheLoader);
+            // Leaf is still cached — template change no longer cascades to it
+            verifyLoadedFromCache(leafPolicyWithoutTransitive, underTest, cacheLoader);
+        }};
+    }
+
+    @Test
     public void policyTagInvalidatesCachedPoliciesInNamespacesOfChangedRootPolicy() throws Exception {
         final AsyncCacheLoader<PolicyId, Entry<PolicyEnforcer>> cacheLoader = mock(AsyncCacheLoader.class);
         final ExecutionContextExecutor executor = actorSystem.dispatcher();

@@ -12,7 +12,9 @@
  */
 package org.eclipse.ditto.policies.model;
 
+import java.util.LinkedHashSet;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import org.eclipse.ditto.base.model.json.FieldType;
@@ -131,6 +133,25 @@ public interface PolicyImports extends Iterable<PolicyImport>, Jsonifiable.WithF
      * @return a sequential stream of the PolicyImports of this container.
      */
     Stream<PolicyImport> stream();
+
+    /**
+     * Returns the set of all policy IDs that are expected to be referenced by these imports,
+     * including directly imported IDs and transitive IDs declared via {@code transitiveImports}.
+     * <p>
+     * This is the single source of truth for both search index tracking
+     * ({@code __referencedPolicies}) and background sync consistency checks.
+     *
+     * @return the set of expected referenced policy IDs.
+     * @since 3.9.0
+     */
+    default Set<PolicyId> getExpectedReferencedPolicyIds() {
+        final Set<PolicyId> result = stream()
+                .map(PolicyImport::getImportedPolicyId)
+                .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+        stream().flatMap(imp -> imp.getTransitiveImports().stream())
+                .forEach(result::add);
+        return result;
+    }
 
     /**
      * Returns all non hidden marked fields of this PolicyImports.

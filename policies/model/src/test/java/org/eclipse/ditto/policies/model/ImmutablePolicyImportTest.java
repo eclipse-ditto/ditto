@@ -16,6 +16,7 @@ import static org.eclipse.ditto.policies.model.assertions.DittoPolicyAssertions.
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -66,6 +67,25 @@ public final class ImmutablePolicyImportTest {
 
         final PolicyImport policyImport = ImmutablePolicyImport.fromJson(IMPORTED_POLICY_ID, jsonObject);
         assertThat(policyImport.getEffectedImports()).isEmpty();
+    }
+
+    @Test
+    public void testGetTransitiveImportsDelegation() {
+        final List<PolicyId> transitiveImports = Arrays.asList(
+                PolicyId.of("ns", "templateA"),
+                PolicyId.of("ns", "templateB"));
+
+        final EffectedImports effectedImports = PoliciesModelFactory.newEffectedImportedLabels(
+                Collections.singletonList(Label.of("IncludedPolicyImport1")),
+                null,
+                transitiveImports);
+
+        final PolicyImport policyImport = ImmutablePolicyImport.of(IMPORTED_POLICY_ID, effectedImports);
+
+        assertThat(policyImport.getTransitiveImports()).hasSize(2);
+        assertThat(policyImport.getTransitiveImports()).containsExactly(
+                PolicyId.of("ns", "templateA"),
+                PolicyId.of("ns", "templateB"));
     }
 
     @Test

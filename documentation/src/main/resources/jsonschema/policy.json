@@ -57,6 +57,15 @@
                   }
                 }
               }
+            },
+            "transitiveImports": {
+              "title": "Transitive imports",
+              "type": "array",
+              "description": "List of policy IDs from the imported policy's own imports that should be resolved transitively before extracting entries. This enables multi-level import chains where a template policy defines resources and an intermediate policy adds subjects via entriesAdditions.",
+              "items": {
+                "type": "string",
+                "description": "Policy ID of a policy that the imported policy itself imports from."
+              }
             }
           }
         }

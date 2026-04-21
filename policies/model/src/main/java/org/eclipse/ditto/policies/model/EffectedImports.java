@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.policies.model;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
@@ -76,6 +78,17 @@ public interface EffectedImports extends Jsonifiable.WithFieldSelectorAndPredica
     }
 
     /**
+     * Returns the list of {@link PolicyId}s that the imported policy itself imports from, which should be
+     * resolved transitively before extracting entries.
+     *
+     * @return the list of transitive policy IDs to resolve, or an empty list if none are defined.
+     * @since 3.9.0
+     */
+    default List<PolicyId> getTransitiveImports() {
+        return Collections.emptyList();
+    }
+
+    /**
      * Returns all non-hidden marked fields of this EffectedImports.
      *
      * @return a JSON object representation of this EffectedImports including only non-hidden marked fields.
@@ -109,6 +122,16 @@ public interface EffectedImports extends Jsonifiable.WithFieldSelectorAndPredica
          */
         public static final JsonFieldDefinition<JsonObject> ENTRIES_ADDITIONS =
                 JsonFactory.newJsonObjectFieldDefinition("entriesAdditions", FieldType.REGULAR,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the list of policy IDs from the imported policy's own imports that should be
+         * resolved transitively before extracting entries.
+         *
+         * @since 3.9.0
+         */
+        public static final JsonFieldDefinition<JsonArray> TRANSITIVE_IMPORTS =
+                JsonFactory.newJsonArrayFieldDefinition("transitiveImports", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

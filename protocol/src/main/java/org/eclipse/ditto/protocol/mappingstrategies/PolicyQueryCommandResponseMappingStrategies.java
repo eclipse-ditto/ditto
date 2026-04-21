@@ -26,6 +26,7 @@ import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEnt
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImportEntriesResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImportEntriesAdditionsResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImportEntryAdditionResponse;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImportTransitiveImportsResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImportResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImportsResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyResponse;
@@ -66,6 +67,7 @@ final class PolicyQueryCommandResponseMappingStrategies
         addPolicyEntryImportableResponses(mappingStrategies);
         addPolicyImportEntriesResponses(mappingStrategies);
         addPolicyImportEntriesAdditionsResponses(mappingStrategies);
+        addPolicyImportTransitiveImportsResponses(mappingStrategies);
         addImportsAliasesResponses(mappingStrategies);
         return mappingStrategies;
     }
@@ -200,6 +202,20 @@ final class PolicyQueryCommandResponseMappingStrategies
                         importedPolicyIdFrom(adaptable),
                         entryAdditionLabelFromImportPath(adaptable.getPayload().getPath()),
                         getValueFromPayload(adaptable),
+                        dittoHeadersFrom(adaptable)));
+    }
+
+    private static void addPolicyImportTransitiveImportsResponses(
+            final Map<String, JsonifiableMapper<PolicyQueryCommandResponse<?>>> mappingStrategies) {
+
+        mappingStrategies.put(RetrievePolicyImportTransitiveImportsResponse.TYPE,
+                adaptable -> RetrievePolicyImportTransitiveImportsResponse.of(
+                        policyIdFromTopicPath(adaptable.getTopicPath()),
+                        importedPolicyIdFrom(adaptable),
+                        adaptable.getPayload().getValue()
+                                .filter(JsonValue::isArray)
+                                .map(JsonValue::asArray)
+                                .orElse(JsonArray.empty()),
                         dittoHeadersFrom(adaptable)));
     }
 

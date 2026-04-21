@@ -412,6 +412,23 @@ abstract class AbstractPolicyMappingStrategies<T extends Jsonifiable.WithPredica
     }
 
     /**
+     * Extracts the resolve transitively list of {@code PolicyId}s from the payload value (a JSON array).
+     *
+     * @param adaptable the adaptable to extract from.
+     * @return the list of Policy IDs to resolve transitively.
+     * @since 3.9.0
+     */
+    protected static List<PolicyId> transitiveImportsFrom(final Adaptable adaptable) {
+        final JsonValue value = adaptable.getPayload().getValue()
+                .orElseThrow(() -> new NullPointerException("Payload value must not be null."));
+        final JsonArray jsonArray = value.isArray() ? value.asArray() : JsonArray.empty();
+        return jsonArray.stream()
+                .map(JsonValue::asString)
+                .map(PolicyId::of)
+                .collect(Collectors.toList());
+    }
+
+    /**
      * Extracts {@code EntriesAdditions} from the payload.
      *
      * @param adaptable the adaptable to extract from.

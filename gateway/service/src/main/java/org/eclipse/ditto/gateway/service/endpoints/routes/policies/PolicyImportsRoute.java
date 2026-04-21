@@ -14,12 +14,16 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.policies;
 
 import static org.eclipse.ditto.base.model.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.EntriesAdditions;
 import org.eclipse.ditto.policies.model.EntryAddition;
 import org.eclipse.ditto.policies.model.ImportedLabels;
@@ -27,6 +31,7 @@ import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyImport;
+import org.eclipse.ditto.policies.model.PolicyImportInvalidException;
 import org.eclipse.ditto.policies.model.PolicyImports;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImport;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImportEntryAddition;
@@ -35,11 +40,13 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImpo
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportEntries;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportEntriesAdditions;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportEntryAddition;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportTransitiveImports;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImports;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImport;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImportEntries;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImportEntriesAdditions;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImportEntryAddition;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImportTransitiveImports;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImports;
 
 import org.apache.pekko.http.javadsl.server.PathMatchers;
@@ -53,6 +60,7 @@ final class PolicyImportsRoute extends AbstractRoute {
 
     private static final String PATH_SUFFIX_ENTRIES = "entries";
     private static final String PATH_SUFFIX_ENTRIES_ADDITIONS = "entriesAdditions";
+    private static final String PATH_SUFFIX_TRANSITIVE_IMPORTS = "transitiveImports";
 
     /**
      * Constructs the {@code /imports} route builder.
@@ -76,6 +84,7 @@ final class PolicyImportsRoute extends AbstractRoute {
                 policyImportEntries(ctx, dittoHeaders, policyId),
                 policyImportEntriesAdditions(ctx, dittoHeaders, policyId),
                 policyImportEntriesAdditionsEntry(ctx, dittoHeaders, policyId),
+                policyImportTransitiveImports(ctx, dittoHeaders, policyId),
                 policyImport(ctx, dittoHeaders, policyId)
         );
     }
@@ -241,6 +250,57 @@ final class PolicyImportsRoute extends AbstractRoute {
     private static EntryAddition createEntryAdditionForPut(final String jsonString, final CharSequence label) {
         final JsonObject jsonObject = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
         return PoliciesModelFactory.newEntryAddition(Label.of(label), jsonObject);
+    }
+
+    /*
+     * Describes {@code /imports/<importedPolicyId>/transitiveImports} route.
+     */
+    private Route policyImportTransitiveImports(final RequestContext ctx, final DittoHeaders dittoHeaders,
+            final PolicyId policyId) {
+
+        return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), importedPolicyId ->
+                rawPathPrefix(PathMatchers.slash().concat(PATH_SUFFIX_TRANSITIVE_IMPORTS), () ->
+                        pathEndOrSingleSlash(() ->
+                                concat(
+                                        get(() -> // GET /imports/<importedPolicyId>/transitiveImports
+                                                handlePerRequest(ctx,
+                                                        RetrievePolicyImportTransitiveImports.of(policyId,
+                                                                PolicyId.of(importedPolicyId), dittoHeaders))
+                                        ),
+                                        put(() -> // PUT /imports/<importedPolicyId>/transitiveImports
+                                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx,
+                                                        dittoHeaders,
+                                                        payloadSource ->
+                                                                handlePerRequest(ctx, dittoHeaders,
+                                                                        payloadSource,
+                                                                        transitiveImportsJson ->
+                                                                                ModifyPolicyImportTransitiveImports.of(
+                                                                                        policyId,
+                                                                                        PolicyId.of(importedPolicyId),
+                                                                                        createTransitiveImportsForPut(transitiveImportsJson),
+                                                                                        dittoHeaders)))
+                                        )
+                                )
+                        )
+                )
+        );
+    }
+
+    private static List<PolicyId> createTransitiveImportsForPut(final String jsonString) {
+        final JsonArray jsonArray = wrapJsonRuntimeException(() -> JsonFactory.newArray(jsonString));
+        jsonArray.forEach(element -> {
+            if (!element.isString()) {
+                throw PolicyImportInvalidException.newBuilder()
+                        .message("The 'transitiveImports' array contains a non-string element: " + element)
+                        .description("Every element in 'transitiveImports' must be a string " +
+                                "representing a valid policy ID.")
+                        .build();
+            }
+        });
+        return jsonArray.stream()
+                .map(JsonValue::asString)
+                .map(PolicyId::of)
+                .collect(Collectors.toList());
     }
 
     /*

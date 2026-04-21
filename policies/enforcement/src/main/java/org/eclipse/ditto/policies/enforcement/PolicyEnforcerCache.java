@@ -50,27 +50,59 @@ final class PolicyEnforcerCache implements Cache<PolicyId, Entry<PolicyEnforcer>
         this.namespacePoliciesConfig = namespacePoliciesConfig;
         this.delegate = CacheFactory.createCache(
                 (policyId, executor) -> policyEnforcerCacheLoader.asyncLoad(policyId, executor)
-                        .whenCompleteAsync(((policyEnforcerEntry, throwable) -> policyEnforcerEntry.get()
-                                .flatMap(PolicyEnforcer::getPolicy)
-                                .map(Policy::getPolicyImports)
-                                .filter(imports -> !imports.isEmpty())
-                                .ifPresent(imports -> imports.stream()
-                                        .map(PolicyImport::getImportedPolicyId)
-                                        .forEach(importedPolicyId -> policyIdToImportingMap.compute(
-                                                importedPolicyId, (importedPolicyId1, importingPolicyIds) -> {
-                                                    final Set<PolicyId> newImportingPolicyIds =
-                                                            importingPolicyIds == null ? new HashSet<>() :
-                                                                    importingPolicyIds;
-                                                    newImportingPolicyIds.add(policyId);
-                                                    return newImportingPolicyIds;
-                                                })))
-                                ),
+                        .thenApplyAsync(policyEnforcerEntry -> {
+                                    // Register import mappings eagerly (before the cache entry becomes
+                                    // visible to readers) to avoid a window where the entry is cached
+                                    // but invalidation of an imported policy cannot cascade to it.
+                                    if (policyEnforcerEntry != null) {
+                                        policyEnforcerEntry.get()
+                                                .flatMap(PolicyEnforcer::getPolicy)
+                                                .map(Policy::getPolicyImports)
+                                                .ifPresent(imports -> {
+                                                    deregisterImportMappings(policyId);
+                                                    if (!imports.isEmpty()) {
+                                                        imports.stream().forEach(policyImport -> {
+                                                            registerImportMapping(
+                                                                    policyImport.getImportedPolicyId(), policyId);
+                                                            policyImport.getTransitiveImports()
+                                                                    .forEach(transitivePolicyId ->
+                                                                            registerImportMapping(
+                                                                                    transitivePolicyId, policyId));
+                                                        });
+                                                    }
+                                                });
+                                    }
+                                    return policyEnforcerEntry;
+                                },
                                 cacheDispatcher
                         ),
                 cacheConfig,
                 "policy_enforcer_cache",
                 cacheDispatcher
         );
+    }
+
+    /**
+     * Removes {@code importingPolicyId} from all value sets in the import mapping.
+     * Called before re-registering mappings on policy reload so that stale entries
+     * (e.g. from removed imports or transitive imports) don't accumulate.
+     */
+    private void deregisterImportMappings(final PolicyId importingPolicyId) {
+        policyIdToImportingMap.forEach((importedId, importingSet) ->
+                policyIdToImportingMap.computeIfPresent(importedId, (id, set) -> {
+                    set.remove(importingPolicyId);
+                    return set.isEmpty() ? null : set;
+                })
+        );
+    }
+
+    private void registerImportMapping(final PolicyId importedPolicyId, final PolicyId importingPolicyId) {
+        policyIdToImportingMap.compute(importedPolicyId, (id, importingPolicyIds) -> {
+            final Set<PolicyId> newImportingPolicyIds =
+                    importingPolicyIds == null ? new HashSet<>() : importingPolicyIds;
+            newImportingPolicyIds.add(importingPolicyId);
+            return newImportingPolicyIds;
+        });
     }
 
     @Override
@@ -128,10 +160,14 @@ final class PolicyEnforcerCache implements Cache<PolicyId, Entry<PolicyEnforcer>
         // Invalidate the changed policy itself
         final boolean directlyCached = delegate.invalidateConditionally(policyId, valueCondition);
 
-        // Invalidate all policies that explicitly import the changed policy, and for each such
-        // importer that is itself a namespace root, also invalidate its namespace dependents.
-        final Set<PolicyId> importingPolicies =
-                Optional.ofNullable(policyIdToImportingMap.remove(policyId)).orElseGet(Set::of);
+        // Only remove the reverse-mapping when the primary cache entry was actually invalidated.
+        // Otherwise importers that remain cached would lose their cascade-invalidation link.
+        final Set<PolicyId> importingPolicies;
+        if (directlyCached) {
+            importingPolicies = Optional.ofNullable(policyIdToImportingMap.remove(policyId)).orElseGet(Set::of);
+        } else {
+            importingPolicies = Optional.ofNullable(policyIdToImportingMap.get(policyId)).orElseGet(Set::of);
+        }
         final boolean indirectlyCachedViaImport = importingPolicies.stream()
                 .map(importingPolicyId -> {
                     final boolean importerInvalidated =

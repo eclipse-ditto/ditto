@@ -45,6 +45,7 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntr
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportEntriesResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportEntriesAdditionsResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportEntryAdditionResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportTransitiveImportsResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportsResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyResponse;
@@ -94,6 +95,8 @@ final class PolicyModifyCommandResponseMappingStrategies implements MappingStrat
         addPolicyImportEntriesResponses(streamBuilder);
 
         addPolicyImportEntriesAdditionsResponses(streamBuilder);
+
+        addPolicyImportTransitiveImportsResponses(streamBuilder);
 
         addPolicyImportsResponses(streamBuilder);
 
@@ -302,6 +305,17 @@ final class PolicyModifyCommandResponseMappingStrategies implements MappingStrat
                         mappingContext.getImportedPolicyId(),
                         Label.of(mappingContext.getAdaptable().getPayload().getPath().get(3)
                                 .map(JsonKey::toString).orElse("")),
+                        mappingContext.getHttpStatusOrThrow(),
+                        mappingContext.getDittoHeaders())));
+    }
+
+    private static void addPolicyImportTransitiveImportsResponses(
+            final Consumer<AdaptableToSignalMapper<? extends PolicyModifyCommandResponse<?>>> streamBuilder) {
+
+        streamBuilder.accept(AdaptableToSignalMapper.of(ModifyPolicyImportTransitiveImportsResponse.TYPE,
+                mappingContext -> ModifyPolicyImportTransitiveImportsResponse.newInstance(
+                        mappingContext.getPolicyIdFromTopicPath(),
+                        mappingContext.getImportedPolicyId(),
                         mappingContext.getHttpStatusOrThrow(),
                         mappingContext.getDittoHeaders())));
     }

@@ -145,6 +145,8 @@ paths:
     $ref: "./paths/policies/entriesAdditions.yml"
   '/api/2/policies/{policyId}/imports/{importedPolicyId}/entriesAdditions/{label}':
     $ref: "./paths/policies/entryAddition.yml"
+  '/api/2/policies/{policyId}/imports/{importedPolicyId}/transitiveImports':
+    $ref: "./paths/policies/transitiveImports.yml"
   '/api/2/policies/{policyId}/importsAliases':
     $ref: "./paths/policies/importsAliases.yml"
   '/api/2/policies/{policyId}/importsAliases/{label}':
@@ -443,6 +445,8 @@ components:
       $ref: "./schemas/policies/entriesAdditions.yml"
     EntryAddition:
       $ref: "./schemas/policies/entryAddition.yml"
+    TransitiveImports:
+      $ref: "./schemas/policies/transitiveImports.yml"
     ImportsAliases:
       $ref: "./schemas/policies/importsAliases.yml"
     ImportsAlias:

@@ -30,6 +30,7 @@ import org.eclipse.ditto.policies.model.signals.events.PolicyImportsDeleted;
 import org.eclipse.ditto.policies.model.signals.events.PolicyImportModified;
 import org.eclipse.ditto.policies.model.signals.events.PolicyImportEntriesAdditionsModified;
 import org.eclipse.ditto.policies.model.signals.events.PolicyImportEntriesModified;
+import org.eclipse.ditto.policies.model.signals.events.PolicyImportTransitiveImportsModified;
 import org.eclipse.ditto.policies.model.signals.events.PolicyImportEntryAdditionCreated;
 import org.eclipse.ditto.policies.model.signals.events.PolicyImportEntryAdditionDeleted;
 import org.eclipse.ditto.policies.model.signals.events.PolicyImportEntryAdditionModified;
@@ -89,6 +90,7 @@ public final class PolicyEventStrategies extends AbstractEventStrategies<PolicyE
         addStrategy(PolicyEntryImportableModified.class, new PolicyEntryImportableModifiedStrategy());
         addStrategy(PolicyImportEntriesModified.class, new PolicyImportEntriesModifiedStrategy());
         addStrategy(PolicyImportEntriesAdditionsModified.class, new PolicyImportEntriesAdditionsModifiedStrategy());
+        addStrategy(PolicyImportTransitiveImportsModified.class, new PolicyImportTransitiveImportsModifiedStrategy());
         addStrategy(PolicyImportEntryAdditionCreated.class, new PolicyImportEntryAdditionCreatedStrategy());
         addStrategy(PolicyImportEntryAdditionModified.class, new PolicyImportEntryAdditionModifiedStrategy());
         addStrategy(PolicyImportEntryAdditionDeleted.class, new PolicyImportEntryAdditionDeletedStrategy());

@@ -583,6 +583,149 @@ The entries of the importing policy and the entries of the imported policy are m
 {% include note.html content="The sanity check, ensuring that at least one subject has WRITE permission on the policy's root resource, is *not* applied for policies defining policy imports. So pay attention that you don't lock yourself out when creating/modifying such policies."
 %}
 
+### Transitive import resolution
+
+By default, policy imports are resolved one level deep: if policy A imports from policy B, A gets B's
+inline entries only. If B itself imports entries from policy C, those entries are **not** visible to A.
+
+The `transitiveImports` field on a policy import enables selective multi-level resolution. It contains
+an explicit list of policy IDs that the directly imported policy itself imports from, which should be
+resolved before extracting entries.
+
+#### Why `transitiveImports` requires `entriesAdditions`
+
+Transitive import resolution is a natural complement to `entriesAdditions` — and would be meaningless
+without it. Before `entriesAdditions`, imported entries were always taken as-is from the imported
+policy's persisted entries. There was no mechanism for an intermediate policy to *add* anything to entries
+it imported from elsewhere, so resolving through it would yield nothing beyond what a direct import
+already provides.
+
+`entriesAdditions` changes this by allowing an intermediate policy to hold **per-import state** (subjects,
+resources, namespaces) that only materializes during resolution. For example, a global template defines
+roles with resources, and each regional policy adds its own subjects via `entriesAdditions`. Those
+subjects are not part of the template's persisted entries — they exist only in the intermediate policy's
+import configuration and are applied when that intermediate policy resolves its own import.
+
+A consuming policy that directly imports the global template gets the raw entries (empty subjects).
+A consuming policy that directly imports the intermediate policy gets nothing (its inline entries are
+empty). Only by resolving *through* the intermediate policy — which is what `transitiveImports`
+does — can the consuming policy obtain the combined result: template resources merged with the
+intermediate policy's subject additions.
+
+#### Use case: template-based policy hierarchies
+
+A typical three-level hierarchy:
+
+**1. Global template** (`acme:fleet-roles`) defines roles with resources and `allowedImportAdditions`:
+
+```json
+{
+  "policyId": "acme:fleet-roles",
+  "entries": {
+    "driver": {
+      "subjects": {},
+      "resources": {
+        "thing:/features/location": { "grant": ["READ"], "revoke": [] },
+        "thing:/features/fuel": { "grant": ["READ"], "revoke": [] },
+        "message:/features/fuel/inbox": { "grant": ["WRITE"], "revoke": [] }
+      },
+      "namespaces": ["acme.vehicle"],
+      "allowedImportAdditions": ["subjects"],
+      "importable": "implicit"
+    }
+  }
+}
+```
+
+**2. Regional fleet policy** (`acme:fleet-west`) imports the template and adds drivers via
+`entriesAdditions`:
+
+```json
+{
+  "policyId": "acme:fleet-west",
+  "imports": {
+    "acme:fleet-roles": {
+      "entriesAdditions": {
+        "driver": {
+          "subjects": {
+            "oauth2:alice@acme.com": { "type": "employee" },
+            "oauth2:bob@acme.com": { "type": "employee" }
+          }
+        }
+      }
+    }
+  },
+  "entries": {}
+}
+```
+
+**3. Vehicle policy** needs the `driver` entry with resources from the template AND subjects from the
+fleet policy. It uses `transitiveImports` to resolve through the intermediate policy:
+
+```json
+{
+  "policyId": "acme.vehicle:truck-42",
+  "imports": {
+    "acme:fleet-west": {
+      "entries": ["driver"],
+      "transitiveImports": ["acme:fleet-roles"]
+    }
+  }
+}
+```
+
+At resolution time:
+1. The directly imported policy `fleet-west` is loaded (its inline entries are empty)
+2. Because `transitiveImports` lists `fleet-roles`, that import on `fleet-west` is resolved first
+3. `fleet-roles`'s `driver` entry is merged into `fleet-west`, applying `fleet-west`'s
+   `entriesAdditions` (subjects Alice and Bob)
+4. The vehicle policy then extracts `driver` from the enriched result — getting both the resources from
+   the template and the subjects from the fleet policy
+
+Without `transitiveImports`, this composition would be impossible: a direct import of `fleet-roles`
+yields the entry without subjects, and a direct import of `fleet-west` yields nothing (no inline entries).
+
+#### Deeper nesting
+
+`transitiveImports` supports chains deeper than two levels. If each level in the chain declares its own
+`transitiveImports`, the resolution recurses naturally. For example, A → B → C → D works when:
+* A's import of B has `transitiveImports: ["C"]`
+* B's import of C has `transitiveImports: ["D"]`
+* C's import of D has `entriesAdditions` (adding subjects)
+* D has inline entries (the template)
+
+An important consequence: **`entriesAdditions` are applied at the level that declares them, not at higher
+levels.** In the chain above, C's `entriesAdditions` are applied when resolving C's import of D. The
+`transitiveImports` at B and A merely open the doors so that resolution can reach down to where the
+additions are declared. A higher-level policy (e.g., B) cannot use its own `entriesAdditions` to target
+entries that were transitively resolved at a lower level, because after transitive resolution the entry
+labels are rewritten with import prefixes (e.g., `ROLE` becomes `imported:<D-id>/ROLE`).
+
+#### Key rules
+
+* `transitiveImports` is an explicit **whitelist** — only the listed policy IDs are resolved. This is
+  not a recursive flag; it prevents surprise permission expansion and keeps the dependency graph auditable.
+* The listed policy IDs must be imports of the directly imported policy. Non-matching IDs are silently
+  ignored.
+* The importing policy's own ID **must not** appear in `transitiveImports` (cycle prevention).
+  Cross-policy cycles (e.g., A→B→C→A) are **not** detected at write time because detection would
+  require loading the full transitive graph on every PUT. Instead, cycles are broken gracefully at
+  resolution time via a visited set and a depth limit (max 10 levels). If the depth limit is reached,
+  resolution stops and returns the entries resolved so far.
+* Transitive policy IDs are tracked in the search index (`__referencedPolicies`), so changes to the
+  template policy trigger re-indexing of all dependent things.
+* **Label collisions:** If the directly imported policy transitively imports two policies that both
+  export an entry with the same label (e.g., both export `X`), both entries survive resolution and
+  produce entries with the same prefixed label (e.g., `imported:<B-id>/X`). The resulting policy will
+  contain both entries, with the first-encountered entry taking precedence during merge. To avoid
+  confusion, use distinct entry labels across imported policies in the same chain.
+* **Lenient transitive IDs:** Policy IDs listed in `transitiveImports` that do not match any of the
+  directly imported policy's actual imports are silently ignored at resolution time. This allows
+  forward references (the intermediate policy's import may be added later).
+
+The `transitiveImports` array is managed via dedicated API endpoints:
+* `GET/PUT /api/2/policies/{id}/imports/{importedPolicyId}/transitiveImports`
+
 ### Limitations
 
 When managing and using policy imports the following limitations apply:
