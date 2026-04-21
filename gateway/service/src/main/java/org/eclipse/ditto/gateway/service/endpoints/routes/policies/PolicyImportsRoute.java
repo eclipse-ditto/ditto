@@ -31,6 +31,7 @@ import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyImport;
+import org.eclipse.ditto.policies.model.PolicyImportInvalidException;
 import org.eclipse.ditto.policies.model.PolicyImports;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImport;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImportEntryAddition;
@@ -287,8 +288,16 @@ final class PolicyImportsRoute extends AbstractRoute {
 
     private static List<PolicyId> createTransitiveImportsForPut(final String jsonString) {
         final JsonArray jsonArray = wrapJsonRuntimeException(() -> JsonFactory.newArray(jsonString));
+        jsonArray.forEach(element -> {
+            if (!element.isString()) {
+                throw PolicyImportInvalidException.newBuilder()
+                        .message("The 'transitiveImports' array contains a non-string element: " + element)
+                        .description("Every element in 'transitiveImports' must be a string " +
+                                "representing a valid policy ID.")
+                        .build();
+            }
+        });
         return jsonArray.stream()
-                .filter(JsonValue::isString)
                 .map(JsonValue::asString)
                 .map(PolicyId::of)
                 .collect(Collectors.toList());

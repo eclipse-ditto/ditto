@@ -36,6 +36,7 @@ public enum PolicyResource {
     POLICY_IMPORT_ENTRIES,
     POLICY_IMPORT_ENTRIES_ADDITIONS,
     POLICY_IMPORT_ENTRY_ADDITION,
+    POLICY_IMPORT_TRANSITIVE_IMPORTS,
     POLICY_ENTRIES,
     POLICY_ENTRY,
     POLICY_ENTRY_RESOURCES,
@@ -58,6 +59,8 @@ public enum PolicyResource {
                                 .add(EffectedImports.JsonFields.ENTRIES_ADDITIONS,
                                         ResourceMap.newBuilder(POLICY_IMPORT_ENTRIES_ADDITIONS)
                                                 .addOne(POLICY_IMPORT_ENTRY_ADDITION))
+                                .add(EffectedImports.JsonFields.TRANSITIVE_IMPORTS,
+                                        POLICY_IMPORT_TRANSITIVE_IMPORTS)
                                 .end())
                 )
                 .add(Policy.JsonFields.IMPORTS_ALIASES, ResourceMap.newBuilder(POLICY_IMPORTS_ALIASES)

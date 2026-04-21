@@ -1200,8 +1200,11 @@ public final class PolicyImporterTest {
         final Set<PolicyEntry> entries =
                 PolicyImporter.mergeImportedPolicyEntries(policyA, loader).toCompletableFuture().join();
 
-        // Resolution completes (depth limit prevents infinite recursion) and produces some entries
-        assertThat(entries).isNotNull();
+        // Resolution terminates and produces C's ROLE entry via the chain A → B → (transitive C) → ROLE.
+        // The cycle (A→B→C→A) is broken by the visited-set; only the first traversal contributes entries.
+        assertThat(entries).isNotEmpty();
+        assertThat(entries).hasSize(1);
+        assertThat(entries.iterator().next().getLabel().toString()).contains("ROLE");
     }
 
     @Test

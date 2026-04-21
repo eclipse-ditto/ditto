@@ -277,14 +277,8 @@ public final class BackgroundSyncStream {
     }
 
     private CompletionStage<Set<PolicyId>> getExpectedReferencedPolicyIds(final Policy thingPolicy) {
-        final Set<PolicyId> expectedReferencedPolicyIds = thingPolicy.getPolicyImports().stream()
-                .map(PolicyImport::getImportedPolicyId)
-                .collect(Collectors.toCollection(LinkedHashSet::new));
-
-        // Add transitive policy IDs declared via transitiveImports
-        thingPolicy.getPolicyImports().stream()
-                .flatMap(imp -> imp.getTransitiveImports().stream())
-                .forEach(expectedReferencedPolicyIds::add);
+        final Set<PolicyId> expectedReferencedPolicyIds =
+                new LinkedHashSet<>(thingPolicy.getPolicyImports().getExpectedReferencedPolicyIds());
 
         final Optional<PolicyId> entityId = thingPolicy.getEntityId();
         final String namespace = thingPolicy.getNamespace().orElse("");

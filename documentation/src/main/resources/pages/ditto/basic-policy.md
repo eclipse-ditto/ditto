@@ -708,8 +708,20 @@ labels are rewritten with import prefixes (e.g., `ROLE` becomes `imported:<D-id>
 * The listed policy IDs must be imports of the directly imported policy. Non-matching IDs are silently
   ignored.
 * The importing policy's own ID **must not** appear in `transitiveImports` (cycle prevention).
+  Cross-policy cycles (e.g., A→B→C→A) are **not** detected at write time because detection would
+  require loading the full transitive graph on every PUT. Instead, cycles are broken gracefully at
+  resolution time via a visited set and a depth limit (max 10 levels). If the depth limit is reached,
+  resolution stops and returns the entries resolved so far.
 * Transitive policy IDs are tracked in the search index (`__referencedPolicies`), so changes to the
   template policy trigger re-indexing of all dependent things.
+* **Label collisions:** If the directly imported policy transitively imports two policies that both
+  export an entry with the same label (e.g., both export `X`), both entries survive resolution and
+  produce entries with the same prefixed label (e.g., `imported:<B-id>/X`). The resulting policy will
+  contain both entries, with the first-encountered entry taking precedence during merge. To avoid
+  confusion, use distinct entry labels across imported policies in the same chain.
+* **Lenient transitive IDs:** Policy IDs listed in `transitiveImports` that do not match any of the
+  directly imported policy's actual imports are silently ignored at resolution time. This allows
+  forward references (the intermediate policy's import may be added later).
 
 The `transitiveImports` array is managed via dedicated API endpoints:
 * `GET/PUT /api/2/policies/{id}/imports/{importedPolicyId}/transitiveImports`

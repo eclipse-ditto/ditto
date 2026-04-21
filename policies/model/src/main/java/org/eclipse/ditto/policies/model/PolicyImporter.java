@@ -39,8 +39,18 @@ public final class PolicyImporter {
     /**
      * Maximum depth for transitive import resolution. Prevents infinite recursion caused by mutual
      * transitive cycles (e.g., A→B with transitiveImports=["C"], B→C with transitiveImports=["A"]).
+     * <p>
+     * When this limit is reached, resolution stops and returns the loaded policy's own entries without
+     * recursing further. This is intentionally silent at the model layer (no SLF4J dependency in model
+     * modules). Callers that need diagnostics should check the resolved entry count or implement their
+     * own depth tracking.
+     * <p>
+     * Cross-policy cycles (A→B→C→A) are not rejected at write time because cycle detection across
+     * multiple independently-managed policies would require loading the full transitive graph on every
+     * PUT. Instead, cycles are broken gracefully at resolution time via the {@code visited} set and
+     * this depth limit.
      */
-    static final int MAX_TRANSITIVE_RESOLUTION_DEPTH = 10;
+    public static final int MAX_TRANSITIVE_RESOLUTION_DEPTH = 10;
 
     private PolicyImporter() {
         throw new AssertionError();
@@ -67,6 +77,11 @@ public final class PolicyImporter {
      * Resolves the given {@code policyImports} using the {@code policyLoader}, merging the resulting entries
      * with the provided {@code baseEntries}. All imports are resolved in parallel; their entry sets are
      * collected in a single pass to avoid O(n²) intermediate copies.
+     *
+     * <p>
+     * <b>Merge precedence:</b> The result uses a {@link LinkedHashSet}, so when two imports produce entries
+     * with the same label, the first-encountered entry wins (based on import declaration order). This is
+     * a deterministic, order-dependent merge — not a conflict error.
      *
      * @param baseEntries the policy's own entries (starting set for the merge).
      * @param policyImports the imports to resolve.
@@ -172,6 +187,8 @@ public final class PolicyImporter {
         final Set<PolicyId> transitiveIdSet = new LinkedHashSet<>(transitiveIds);
         transitiveIdSet.removeAll(visited);
 
+        // Filter the loaded policy's imports to only those matching the transitive whitelist.
+        // IDs that don't match any actual import are silently ignored (lenient / forward-reference semantics).
         final List<PolicyImport> filteredImportsList = loadedPolicy.getPolicyImports().stream()
                 .filter(imp -> transitiveIdSet.contains(imp.getImportedPolicyId()))
                 .collect(Collectors.toList());
@@ -261,6 +278,8 @@ public final class PolicyImporter {
         return templateSubjects.setSubjects(additionalSubjects);
     }
 
+    // Note: inner merge is O(k) per resource due to immutable copy-on-write in Resources.setResource.
+    // The overall merge across all entries is O(n·k) where n = entries and k = resources per entry.
     private static Resources mergeResources(final Resources templateResources, final Resources additionalResources) {
         Resources result = templateResources;
         for (final Resource additionalResource : additionalResources) {

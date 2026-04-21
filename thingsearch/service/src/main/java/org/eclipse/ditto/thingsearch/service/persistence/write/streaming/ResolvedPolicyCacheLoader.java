@@ -131,7 +131,7 @@ final class ResolvedPolicyCacheLoader
                     Policy result = resolvedPolicy;
                     for (final PolicyId rootId : rootPolicies) {
                         final Optional<Pair<Policy, Set<PolicyTag>>> rootPolicyOpt =
-                                futures.get(rootId).getNow(Optional.empty());
+                                futures.get(rootId).join();
                         if (rootPolicyOpt.isPresent()) {
                             referencedPolicies.addAll(rootPolicyOpt.get().second());
                             result = mergeImplicitEntries(rootPolicyOpt.get().first(), result);
@@ -158,6 +158,8 @@ final class ResolvedPolicyCacheLoader
 
         // Track transitive policy IDs as referenced policies for search index invalidation.
         // These lookups run in parallel with the main import resolution below.
+        // See also PolicyImports.getExpectedReferencedPolicyIds() for the authoritative set of
+        // referenced IDs (used in BackgroundSyncStream for consistency checks).
         final List<CompletableFuture<Void>> transitiveTagFutures = policy.getPolicyImports().stream()
                 .flatMap(imp -> imp.getTransitiveImports().stream())
                 .distinct()

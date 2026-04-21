@@ -23,6 +23,13 @@ import org.eclipse.ditto.policies.model.PolicyImports;
 
 /**
  * Validator for policy imports.
+ * <p>
+ * <b>Cycle detection limitation:</b> This validator only catches one-hop self-references (the importing
+ * policy's own ID appearing as a direct import or in {@code transitiveImports}). Cross-policy cycles
+ * (e.g., A→B→C→A) are <em>not</em> detected at write time because cycle detection across multiple
+ * independently-managed policies would require loading the full transitive graph on every PUT. Instead,
+ * cycles are broken gracefully at resolution time via a visited set and depth limit in
+ * {@link org.eclipse.ditto.policies.model.PolicyImporter}.
  */
 public final class PolicyImportsValidator {
 

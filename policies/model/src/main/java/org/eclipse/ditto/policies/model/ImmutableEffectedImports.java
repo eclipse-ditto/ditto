@@ -138,11 +138,22 @@ final class ImmutableEffectedImports implements EffectedImports {
                 .map(ImmutableEntriesAdditions::fromJson)
                 .orElse(null);
         final List<PolicyId> transitiveImports = jsonObject.getValue(JsonFields.TRANSITIVE_IMPORTS)
-                .map(array -> array.stream()
-                        .filter(JsonValue::isString)
-                        .map(JsonValue::asString)
-                        .map(PolicyId::of)
-                        .collect(Collectors.toList()))
+                .map(array -> {
+                    array.forEach(element -> {
+                        if (!element.isString()) {
+                            throw PolicyImportInvalidException.newBuilder()
+                                    .message("The 'transitiveImports' array contains a non-string element: " +
+                                            element)
+                                    .description("Every element in 'transitiveImports' must be a string " +
+                                            "representing a valid policy ID.")
+                                    .build();
+                        }
+                    });
+                    return array.stream()
+                            .map(JsonValue::asString)
+                            .map(PolicyId::of)
+                            .collect(Collectors.toList());
+                })
                 .orElse(null);
         return of(importedLabels, entriesAdditions, transitiveImports);
     }

@@ -26,6 +26,8 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import static org.eclipse.ditto.base.model.exceptions.DittoJsonException.wrapJsonRuntimeException;
+
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableEvent;
@@ -189,12 +191,14 @@ public final class PolicyImportTransitiveImportsModified
 
     @Override
     public PolicyImportTransitiveImportsModified setEntity(final JsonValue entity) {
-        final List<PolicyId> policyIds = entity.asArray().stream()
-                .map(JsonValue::asString)
-                .map(PolicyId::of)
-                .collect(Collectors.toList());
-        return of(getPolicyEntityId(), importedPolicyId, policyIds,
-                getRevision(), getTimestamp().orElse(null), getDittoHeaders(), getMetadata().orElse(null));
+        return wrapJsonRuntimeException(() -> {
+            final List<PolicyId> policyIds = entity.asArray().stream()
+                    .map(JsonValue::asString)
+                    .map(PolicyId::of)
+                    .collect(Collectors.toList());
+            return of(getPolicyEntityId(), importedPolicyId, policyIds,
+                    getRevision(), getTimestamp().orElse(null), getDittoHeaders(), getMetadata().orElse(null));
+        });
     }
 
     @Override
