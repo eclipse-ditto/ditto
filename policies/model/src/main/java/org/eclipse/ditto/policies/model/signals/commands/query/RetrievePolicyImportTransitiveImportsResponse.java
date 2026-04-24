@@ -180,7 +180,7 @@ public final class RetrievePolicyImportTransitiveImportsResponse
         return transitiveImports.stream()
                 .map(JsonValue::asString)
                 .map(PolicyId::of)
-                .collect(Collectors.toUnmodifiableList());
+                .collect(Collectors.collectingAndThen(Collectors.toList(), Collections::unmodifiableList));
     }
 
     @Override

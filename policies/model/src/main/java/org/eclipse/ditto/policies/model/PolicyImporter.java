@@ -107,7 +107,7 @@ public final class PolicyImporter {
                         visited).toCompletableFuture())
                 .collect(Collectors.toList());
 
-        return CompletableFuture.allOf(importFutures.toArray(CompletableFuture[]::new))
+        return CompletableFuture.allOf(importFutures.toArray(new CompletableFuture[0]))
                 .thenApply(ignored -> {
                     final Set<PolicyEntry> result = new LinkedHashSet<>(baseEntries);
                     for (final CompletableFuture<Set<PolicyEntry>> future : importFutures) {
