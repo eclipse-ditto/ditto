@@ -31,7 +31,9 @@ Ditto maps these standard AMQP 1.0 properties:
 `absolute-expiry-time`, `creation-time`, `group-id`, `group-sequence`, `reply-to-group-id`
 
 Headers not in this list are mapped as AMQP application properties. To set an application property
-whose name collides with a standard property, prefix it with `amqp.application.property:`:
+whose name collides with a standard property, prefix it with `amqp.application.property:`.
+
+**Target** -- set the application property `to` to the Ditto protocol header `reply-to`:
 
 ```json
 {
@@ -41,12 +43,34 @@ whose name collides with a standard property, prefix it with `amqp.application.p
 }
 ```
 
-To set a message annotation, prefix with `amqp.message.annotation:`:
+**Source** -- read the application property `to` into the Ditto protocol header `reply-to`:
+
+```json
+{
+  "headerMapping": {
+    "reply-to": "{%raw%}{{ header:amqp.application.property:to }}{%endraw%}"
+  }
+}
+```
+
+To set or read a message annotation, prefix with `amqp.message.annotation:`.
+
+**Target** -- set the message annotation `to`:
 
 ```json
 {
   "headerMapping": {
     "amqp.message.annotation:to": "{%raw%}{{ header:reply-to }}{%endraw%}"
+  }
+}
+```
+
+**Source** -- read the message annotation `to`:
+
+```json
+{
+  "headerMapping": {
+    "reply-to": "{%raw%}{{ header:amqp.message.annotation:to }}{%endraw%}"
   }
 }
 ```

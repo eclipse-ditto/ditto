@@ -91,9 +91,16 @@ is configured, the HTTP response is automatically mapped to an acknowledgement:
 For [live messages](basic-messages.html) published via HTTP targets, you can respond in two ways:
 
 1. **Explicit** -- respond with a [Ditto Protocol Message Response](protocol-specification-things-messages.html#responding-to-a-message)
-   with `Content-Type: application/vnd.eclipse.ditto+json`
-2. **Implicit** -- configure the issued acknowledgement label `live-response`, and the HTTP response
-   is automatically converted to a message response
+   with `Content-Type: application/vnd.eclipse.ditto+json`. The `correlation-id`, `thing-id`, and
+   potentially `feature-id` of the response must match the original message.
+2. **Implicit** -- configure the
+   [issued acknowledgement label](basic-connections.html#target-issued-acknowledgement-label) `live-response`,
+   and the HTTP response is automatically converted to a message response when the response is not
+   a Ditto Protocol message (i.e., not `application/vnd.eclipse.ditto+json`). The HTTP response is
+   mapped as follows:
+   * `Message.headers` -- the HTTP response headers
+   * `Message.status` -- the HTTP response status code
+   * `Message.value` -- the HTTP response body (inlined as JSON if `application/json`, otherwise as a string)
 
 ## Specific configuration options
 
@@ -174,9 +181,20 @@ by the configured token endpoint. Ditto obtains a new token before the old one e
 You can configure `max-clock-skew` and HTTPS enforcement in `connectivity-extension.conf`:
 
 ```hocon
-ditto.connectivity.connection.http-push.oauth2 {
-  max-clock-skew = 60s
-  enforce-https = true
+ditto {
+  connectivity {
+    connection {
+      http-push {
+        oauth2 {
+          max-clock-skew = 60s
+          max-clock-skew = ${?CONNECTIVITY_HTTP_OAUTH2_MAX_CLOCK_SKEW}
+
+          enforce-https = true
+          enforce-https = ${?CONNECTIVITY_HTTP_OAUTH2_ENFORCE_HTTPS}
+        }
+      }
+    }
+  }
 }
 ```
 
@@ -198,7 +216,9 @@ Authenticate via [RFC-6749 Section 4.4](https://datatracker.ietf.org/doc/html/rf
 
 #### OAuth2 password flow
 
-Authenticate via [RFC-6749 Section 4.3](https://datatracker.ietf.org/doc/html/rfc6749#section-4.3):
+Authenticate via [RFC-6749 Section 4.3](https://datatracker.ietf.org/doc/html/rfc6749#section-4.3).
+Optionally set `clientSecret` to include a client secret in access token requests, or leave it out
+if the client is public and does not have a secret:
 
 ```json
 {

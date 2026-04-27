@@ -90,6 +90,17 @@ Ditto extracts these headers from each consumed Kafka record:
 | `kafka.key` | Record key (if available) |
 | `kafka.timestamp` | Record timestamp |
 
+These headers can be used in a source header mapping:
+
+```json
+{
+  "headerMapping": {
+    "the-topic": "{%raw%}{{ header:kafka.topic }}{%endraw%}",
+    "the-key": "{%raw%}{{ header:kafka.key }}{%endraw%}"
+  }
+}
+```
+
 All other Kafka record headers are also available for [header mapping](connectivity-header-mapping.html).
 
 ### Message expiry
@@ -152,6 +163,16 @@ When you configure [issued acknowledgement labels](basic-connections.html#target
 | `200` | Message consumed successfully (debug mode enabled, includes `RecordMetadata`) |
 | `4xx` | Kafka failed to consume (no retry) |
 | `5xx` | Kafka failed to consume (retry feasible) |
+
+When debug mode is enabled (`"debugEnabled": "true"`), the `200` response includes the Kafka
+`RecordMetadata` as a JSON object with these fields:
+
+* `timestamp` (if present)
+* `serializedKeySize`
+* `serializedValueSize`
+* `topic`
+* `partition`
+* `offset` (if present)
 
 ## Specific configuration options
 

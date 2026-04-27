@@ -40,7 +40,9 @@ The common [source configuration](basic-connections.html#sources) applies, with 
 
 * `addresses` are MQTT topics to subscribe to (wildcards `+` and `#` allowed)
 * `authorizationContext` may **not** contain `{%raw%}{{ header:<name> }}{%endraw%}` placeholders (MQTT 3.1.1 has no application headers)
-* `qos` (required) sets the maximum QoS to request: `0` (at-most-once), `1` (at-least-once), or `2` (exactly-once)
+* `qos` (required) sets the maximum QoS to request: `0` (at-most-once), `1` (at-least-once), or `2` (exactly-once).
+  Support of any QoS level depends on the external MQTT broker; [AWS IoT][awsiot] for example does not
+  acknowledge subscriptions with `qos=2`.
 
 ```json
 {
@@ -154,12 +156,18 @@ Overwrites the default MQTT client ID. Default: the Ditto connection ID.
 
 ### reconnectForRedelivery
 
-When `true`, the MQTT connection reconnects if a consumed QoS 1/2 message cannot be acknowledged,
-causing the broker to redeliver it. Default: `false`.
+When `true`, the MQTT connection reconnects whenever a consumed QoS 1 ("at least once") or 2
+("exactly once") message cannot be [acknowledged](#source-acknowledgement-handling) successfully.
+The MQTT broker will then re-publish the message after reconnection. When `false`, the MQTT
+message is simply acknowledged (`PUBACK` or `PUBREC`, `PUBREL`). Default: `false`.
 
 Handle with care:
-* QoS 0 messages are lost during reconnection
-* Outbound messages are lost during reconnection unless `separatePublisherClient` is also `true`
+* When `true`, incoming QoS 0 messages are lost during the reconnection phase
+* When `true` and an MQTT target is also configured, outbound messages are lost during reconnection
+  -- to fix this, set `separatePublisherClient` to `true` to publish via a separate MQTT connection
+* When `false`, MQTT messages with QoS 1 and 2 are redelivered based on the MQTT broker's strategy,
+  but may not be redelivered at all as the MQTT specification does not require unacknowledged
+  messages to be redelivered without reconnection of the client
 
 ### cleanSession
 

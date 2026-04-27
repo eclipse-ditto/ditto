@@ -105,6 +105,32 @@ http://localhost:8080/api/2/things?filter=gt(attributes/counter,42)
 
 ### Example: JavaScript EventSource
 
+Assuming a Thing with the following content:
+
+```json
+{
+  "thingId": "org.eclipse.ditto:fancy-thing",
+  "policyId": "org.eclipse.ditto:fancy-thing",
+  "attributes": {
+    "manufacturer": "ACME corp",
+    "complex": {
+      "some": false,
+      "serialNo": 4711
+    }
+  },
+  "features": {
+    "lamp": {
+      "properties": {
+        "on": false,
+        "color": "blue"
+      }
+    }
+  }
+}
+```
+
+Create an `EventSource` to stream changes for this Thing's `lamp` feature:
+
 ```javascript
 // the JavaScript must be served from the same domain as Ditto to avoid CORS issues
 let source = new EventSource(
@@ -222,6 +248,9 @@ id:ditto:device7153
 
 data:{"thingId":"ditto:device7154"}
 id:ditto:device7154
+
+data:{"thingId":"ditto:device7155"}
+id:ditto:device7155
 ```
 
 ## Further reading

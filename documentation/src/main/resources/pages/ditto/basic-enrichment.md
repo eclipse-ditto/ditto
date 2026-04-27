@@ -57,6 +57,12 @@ Consider a Thing with this structure:
         "value": 23.42,
         "unit": "Celsius"
       }
+    },
+    "humidity": {
+      "properties": {
+        "value": 45,
+        "unit": "%"
+      }
     }
   }
 }

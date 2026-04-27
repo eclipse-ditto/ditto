@@ -228,6 +228,8 @@ Supports the same patterns as `like`, but ignores case:
 ```text
 ilike(attributes/key1,"*known-CHARS-at-end")
 ilike(attributes/key1,"known-chars-AT-start*")
+ilike(attributes/key1,"*KNOWN-CHARS-IN-BETWEEN*")
+ilike(attributes/key1,"just-som?-char?-unkn?wn")
 ```
 
 #### exists

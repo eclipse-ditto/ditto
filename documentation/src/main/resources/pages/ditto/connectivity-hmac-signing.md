@@ -181,6 +181,31 @@ parameters `doubleEncode: false` and `xAmzContentSha256: "INCLUDED"`:
 ```
 {%endraw%}
 
+The payload mapper creates a distinct S3 object per event by computing the path via the
+[special header](connectivity-protocol-bindings-http.html#target-header-mapping) `http.path`.
+It overrides `mapFromDittoProtocolMsgWrapper` instead of `mapFromDittoProtocolMsg` to access the revision number.
+The object name consists of the event topic with `/` replaced by `:` followed by its revision (for example,
+`<namespace>:<name>:things:twin:events:modified:42`):
+
+```js
+function mapFromDittoProtocolMsgWrapper(msg) {
+  let topic = msg['topic'].split('/').join(':');
+  let headers = {
+      'http.path': topic + ':' + msg['revision']
+  };
+  let textPayload = JSON.stringify(msg);
+  let bytePayload = null;
+  let contentType = 'application/json';
+
+  return Ditto.buildExternalMsg(
+    headers,
+    textPayload,
+    bytePayload,
+    contentType
+  );
+}
+```
+
 ### Azure Monitor Data Collector
 
 Push twin events to [Azure Monitor](https://docs.microsoft.com/en-us/azure/azure-monitor/logs/data-collector-api):
@@ -259,6 +284,68 @@ Forward live messages as direct method calls to
 }
 ```
 {%endraw%}
+
+The outgoing JavaScript mapper transforms the Ditto Protocol message into the
+[direct method format](https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-devguide-direct-methods#invoke-a-direct-method-from-a-back-end-app),
+using the live message subject as `methodName`, the timeout as `responseTimeoutInSeconds`, and the value as `payload`:
+
+```javascript
+function mapFromDittoProtocolMsg(
+        namespace,
+        name,
+        group,
+        channel,
+        criterion,
+        action,
+        path,
+        dittoHeaders,
+        value,
+        status,
+        extra
+) {
+
+  let headers = dittoHeaders;
+  let payload = {
+    "methodName": action,
+    "responseTimeoutInSeconds": parseInt(dittoHeaders.timeout),
+    "payload": value
+  };
+  let textPayload = JSON.stringify(payload);
+  let bytePayload = null;
+  let contentType = 'application/json';
+
+  return Ditto.buildExternalMsg(
+    headers,
+    textPayload,
+    bytePayload,
+    contentType
+  );
+}
+```
+
+Azure IoT Hub direct methods require this JSON format:
+
+```json
+{
+    "methodName": "reboot",
+    "responseTimeoutInSeconds": 200,
+    "payload": {
+        "input1": "someInput",
+        "input2": "anotherInput"
+    }
+}
+```
+
+Send live messages to a Thing containing the expected `payload` as value, the expected `methodName` as live message
+subject, and the expected `responseTimeoutInSeconds` as timeout. For example, invoke the above direct method with a
+`POST` to `<ditto>/api/2/things/<thing-id>/inbox/messages/reboot?timeout=200s` with body:
+
+```json
+{
+    "input1": "someInput",
+    "input2": "anotherInput"
+}
+```
 
 ### Azure IoT Hub (AMQP)
 
@@ -340,6 +427,35 @@ in [connectivity.conf](https://github.com/eclipse-ditto/ditto/blob/master/connec
 |----------------|-------------|-----------|
 | HTTP Push | `ditto.connectivity.connection.http-push.hmac-algorithms` | [HttpRequestSigningFactory](https://github.com/eclipse-ditto/ditto/blob/master/connectivity/service/src/main/java/org/eclipse/ditto/connectivity/service/messaging/httppush/HttpRequestSigningFactory.java) |
 | AMQP 1.0 | `ditto.connectivity.connection.amqp10.hmac-algorithms` | [AmqpConnectionSigningFactory](https://github.com/eclipse-ditto/ditto/blob/master/connectivity/service/src/main/java/org/eclipse/ditto/connectivity/service/messaging/amqp/AmqpConnectionSigningFactory.java) |
+
+The default configuration registers the pre-defined algorithms as follows:
+
+```hocon
+ditto.connectivity.connection {
+  http-push.hmac-algorithms = {
+
+    aws4-hmac-sha256 =
+      "org.eclipse.ditto.connectivity.service.messaging.httppush.AwsRequestSigningFactory"
+
+    az-monitor-2016-04-01 =
+      "org.eclipse.ditto.connectivity.service.messaging.httppush.AzMonitorRequestSigningFactory"
+
+    az-sasl =
+      "org.eclipse.ditto.connectivity.service.messaging.signing.AzSaslSigningFactory"
+
+    // my-own-request-signing-algorithm =
+    //   "my.package.MyOwnImplementationOfHttpRequestSigningFactory"
+  }
+  amqp10.hmac-algorithms = {
+
+    az-sasl =
+      "org.eclipse.ditto.connectivity.service.messaging.signing.AzSaslSigningFactory"
+
+    // my-own-connection-signing-algorithm =
+    //   "my.package.MyOwnImplementationOfAmqpConnectionSigningFactory"
+  }
+}
+```
 
 ## Further reading
 

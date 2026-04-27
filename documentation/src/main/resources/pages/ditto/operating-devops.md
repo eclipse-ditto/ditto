@@ -73,6 +73,29 @@ Changing log levels at runtime is useful for debugging problems without restarti
 
 `GET /devops/logging/gateway`
 
+Response example:
+
+```json
+{
+    "1": {
+        "type": "devops.responses:retrieveLoggerConfig",
+        "status": 200,
+        "serviceName": "gateway",
+        "instance": 1,
+        "loggerConfigs": [{
+            "level": "info",
+            "logger": "ROOT"
+        }, {
+            "level": "info",
+            "logger": "org.eclipse.ditto"
+        }, {
+            "level": "warn",
+            "logger": "org.mongodb.driver"
+        }]
+    }
+}
+```
+
 ### Change a log level for one service
 
 `PUT /devops/logging/gateway`
@@ -117,6 +140,28 @@ The path `ditto.info` returns service name, instance index, JVM arguments, and e
 `GET /devops/config/gateway/1?path=ditto`
 
 This is faster than retrieving from all instances because the response is not aggregated.
+
+Response example:
+
+```json
+{
+  "type": "common.responses:retrieveConfig",
+  "status": 200,
+  "config": {
+    "cluster": {
+      "number-of-shards": 20
+    },
+    "gateway": {
+      "authentication": {
+        "devops": {
+          "password": "foobar",
+          "secured": false
+        }
+      }
+    }
+  }
+}
+```
 
 ## Piggyback commands
 
@@ -197,6 +242,23 @@ Send any [ThingCommand](https://github.com/eclipse-ditto/ditto/blob/master/thing
 }
 ```
 
+**Retrieve a thing:**
+
+```json
+{
+  "targetActorSelection": "/system/sharding/thing",
+  "headers": {
+    "aggregate": false,
+    "is-group-topic": true,
+    "ditto-sudo": true
+  },
+  "piggybackCommand": {
+    "type": "things.commands:retrieveThing",
+    "thingId": "<thing-id>"
+  }
+}
+```
+
 ### Managing connections
 
 Use the [HTTP API](connectivity-manage-connections.html) for connection management. [Piggyback-based management](connectivity-manage-connections-piggyback.html) is also available.
@@ -219,6 +281,26 @@ Each Things, Policies, and Connectivity instance has a cleanup coordinator actor
 }
 ```
 
+Response example:
+
+```json
+{
+  "type": "status.responses:retrieveHealth",
+  "status": 200,
+  "statusInfo": {
+    "status": "UP",
+    "details": [
+      {
+        "INFO": {
+          "state": "RUNNING",
+          "pid": "thing:org.eclipse.ditto:fancy-thing_53"
+        }
+      }
+    ]
+  }
+}
+```
+
 **Query cleanup configuration:**
 
 ```json
@@ -227,6 +309,25 @@ Each Things, Policies, and Connectivity instance has a cleanup coordinator actor
   "headers": {},
   "piggybackCommand": {
     "type": "common.commands:retrieveConfig"
+  }
+}
+```
+
+Response example:
+
+```json
+{
+  "type": "common.responses:retrieveConfig",
+  "status": 200,
+  "config": {
+    "enabled": true,
+    "interval": "3s",
+    "quiet-period": "5m",
+    "timer-threshold": "150ms",
+    "credits-per-batch": 3,
+    "reads-per-query": 100,
+    "writes-per-credit": 100,
+    "delete-final-deleted-snapshot": false
   }
 }
 ```
@@ -250,6 +351,26 @@ Each Things, Policies, and Connectivity instance has a cleanup coordinator actor
 }
 ```
 
+The response contains the effective configuration. If the configuration in the piggyback command contains any error,
+an error is logged and the actor's configuration is unchanged. The field `last-pid` is not part of the configuration.
+
+```json
+{
+  "type": "common.responses:modifyConfig",
+  "status": 200,
+  "config": {
+    "enabled": true,
+    "interval": "3s",
+    "quiet-period": "240d",
+    "timer-threshold": "150ms",
+    "credits-per-batch": 3,
+    "reads-per-query": 100,
+    "writes-per-credit": 100,
+    "delete-final-deleted-snapshot": false
+  }
+}
+```
+
 **Clean up a specific entity:**
 
 `POST /devops/piggyback/things/<INSTANCE_INDEX>?timeout=10s`
@@ -262,6 +383,16 @@ Each Things, Policies, and Connectivity instance has a cleanup coordinator actor
     "type": "cleanup.sudo.commands:cleanupPersistence",
     "entityId": "ditto:thing1"
   }
+}
+```
+
+Response example:
+
+```json
+{
+  "type": "cleanup.sudo.responses:cleanupPersistence",
+  "status": 200,
+  "entityId": "thing:ditto:thing1"
 }
 ```
 
@@ -308,7 +439,24 @@ Supported `COMMAND-TYPE` values: `common.commands:shutdown`, `common.commands:re
 }
 ```
 
-**Things in specific namespaces:** Add a `"namespaces": ["namespace1", "namespace2"]` header.
+**Things in specific namespaces:**
+
+`POST /devops/piggyback/search?timeout=10s`
+
+```json
+{
+  "targetActorSelection": "/user/thingsWildcardSearchRoot/searchUpdaterRoot/backgroundSyncProxy",
+  "headers": {
+    "aggregate": false,
+    "is-group-topic": false,
+    "force-update": true,
+    "namespaces": ["namespace1", "namespace2"]
+  },
+  "piggybackCommand": {
+    "type": "common.commands:shutdown"
+  }
+}
+```
 
 **A single thing:**
 
@@ -349,6 +497,17 @@ You can erase all data within a namespace during live operations by following th
 
 The namespace stays blocked for the lifetime of the cluster or until you unblock it in step 4.
 
+Response:
+
+```json
+{
+  "type": "namespaces.responses:blockNamespace",
+  "status": 200,
+  "namespace": "namespaceToBlock",
+  "resourceType": "namespaces"
+}
+```
+
 ### Step 2: Shut down actors in the namespace
 
 `PUT /devops/piggyback?timeout=0`
@@ -386,7 +545,36 @@ This command has no response (always returns `408` timeout). You can send it mul
 }
 ```
 
-Set the timeout to a safe margin above the estimated erasure time. The response reports results per resource type (`thing`, `policy`, `thing-search`).
+Set the timeout to a safe margin above the estimated erasure time. The response reports results per resource type.
+Note that to see responses from multiple resource types, the header `aggregate` must not be `false`.
+
+```json
+{
+  "?": {
+    "?": {
+      "type": "namespaces.responses:purgeNamespace",
+      "status": 200,
+      "namespace": "namespaceToPurge",
+      "resourceType": "thing",
+      "successful": true
+    },
+    "?1": {
+      "type": "namespaces.responses:purgeNamespace",
+      "status": 200,
+      "namespace": "namespaceToPurge",
+      "resourceType": "policy",
+      "successful": true
+    },
+    "?2": {
+      "type": "namespaces.responses:purgeNamespace",
+      "status": 200,
+      "namespace": "namespaceToPurge",
+      "resourceType": "thing-search",
+      "successful": true
+    }
+  }
+}
+```
 
 ### Step 4: Unblock the namespace
 
@@ -400,6 +588,17 @@ Set the timeout to a safe margin above the estimated erasure time. The response 
     "type": "namespaces.commands:unblockNamespace",
     "namespace": "namespaceToUnblock"
   }
+}
+```
+
+Response:
+
+```json
+{
+  "type": "namespaces.responses:unblockNamespace",
+  "status": 200,
+  "namespace": "namespaceToUnblock",
+  "resourceType": "namespaces"
 }
 ```
 

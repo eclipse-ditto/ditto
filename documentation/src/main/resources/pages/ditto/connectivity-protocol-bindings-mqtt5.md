@@ -160,22 +160,29 @@ When you configure [issued acknowledgement labels](basic-connections.html#target
 
 Overwrites the default MQTT client ID. Default: the Ditto connection ID.
 
-If `clientCount` is 2 or more, the connectivity service instance ID is appended to prevent
-client ID collisions.
+If the connection's `clientCount` is 2 or more, the ID of each connectivity service instance is
+appended to the client ID to prevent clients from having the same ID. Otherwise the broker will
+disconnect the already-connected client every time another client with the same ID connects.
 
 ### reconnectForRedelivery
 
-When `true`, the MQTT connection reconnects if a consumed QoS 1/2 message cannot be acknowledged.
-Default: `false`.
+When `true`, the MQTT connection reconnects whenever a consumed QoS 1 ("at least once") or 2
+("exactly once") message cannot be [acknowledged](#source-acknowledgement-handling) successfully.
+The MQTT broker will then re-publish the message after reconnection. When `false`, the MQTT
+message is simply acknowledged (`PUBACK` or `PUBREC`, `PUBREL`). Default: `false`.
 
 Handle with care:
-* QoS 0 messages are lost during reconnection
-* Outbound messages are lost during reconnection unless `separatePublisherClient` is also `true`
+* When `true`, incoming QoS 0 messages are lost during the reconnection phase
+* When `true` and an MQTT target is also configured, outbound messages are lost during reconnection
+  -- to fix this, set `separatePublisherClient` to `true` to publish via a separate MQTT connection
+* When `false`, MQTT messages with QoS 1 and 2 are redelivered based on the MQTT broker's strategy,
+  but may not be redelivered at all as the MQTT specification does not require unacknowledged
+  messages to be redelivered without reconnection of the client
 
 ### cleanSession
 
-Sets the MQTT 5 `cleanStart` flag. (The option is named `cleanSession` for consistency with
-MQTT 3.1.1.) Default: `false`.
+Sets the MQTT 5 `cleanStart` flag. (The flag is called `cleanStart` in MQTT 5 but the option is
+named `cleanSession` for consistency with MQTT 3.1.1.) Default: `false`.
 
 ### separatePublisherClient
 

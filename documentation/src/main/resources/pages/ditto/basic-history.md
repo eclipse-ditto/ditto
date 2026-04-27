@@ -170,7 +170,33 @@ Ditto responds with a `created` event containing the subscription ID:
 }
 ```
 
-Ditto sends `next` events with historical events, followed by `complete` when done, or it pauses after fulfilling the requested demand.
+Ditto sends `next` events containing the historical events:
+
+```json
+{
+  "topic": "org.eclipse.ditto/thing-2/things/twin/streaming/next",
+  "path": "/",
+  "value": {
+    "subscriptionId": "0",
+    "item": {
+      
+    }
+  }
+}
+```
+
+It continues until all existing events are sent, at which point it sends a `complete` event:
+
+```json
+{
+  "topic": "org.eclipse.ditto/thing-2/things/twin/streaming/complete",
+  "path": "/",
+  "value": { "subscriptionId": "0" }
+}
+```
+
+If the requested `demand` is fulfilled before all events are sent, the backend pauses and waits
+for the requester to claim more demand with a new `request` message.
 
 #### Filtering via Ditto Protocol
 

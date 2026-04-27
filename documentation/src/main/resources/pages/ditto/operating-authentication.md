@@ -70,6 +70,8 @@ ditto.gateway.authentication {
           auth-subjects = [
             "{%raw%}{{ jwt:sub }}{%endraw%}",
             "{%raw%}{{ jwt:sub }}/{{ jwt:scp }}{%endraw%}",
+            "{%raw%}{{ jwt:sub }}/{{ jwt:scp }}@{{ jwt:client_id }}{%endraw%}",
+            "{%raw%}{{ jwt:sub }}/{{ jwt:scp }}@{{ jwt:non_existing }}{%endraw%}",
             "{%raw%}{{ jwt:roles/support }}{%endraw%}"
           ]
           inject-claims-into-headers = {

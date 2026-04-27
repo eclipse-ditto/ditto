@@ -17,32 +17,133 @@ properties with `PUT` -- all using standard HTTP." type="primary" %}
 * The default credentials `ditto:ditto` set up by the Docker deployment's nginx
   (see [Docker deployment README](https://github.com/eclipse-ditto/ditto/blob/master/deployment/docker/README.md))
 
+## What a complete Thing looks like
+
+Before diving into the steps, here is a fully modeled floor lamp Thing with 7 features. This is
+what you are building toward:
+
+```json
+{
+  "thingId": "io.eclipseprojects.ditto:floor-lamp-0815",
+  "policyId": "io.eclipseprojects.ditto:floor-lamp-0815",
+  "definition": "https://eclipse-ditto.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld",
+  "attributes": {
+    "manufacturer": "",
+    "serialNo": ""
+  },
+  "features": {
+    "Spot1": {
+      "definition": [
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/dimmable-colored-lamp-1.0.0.tm.jsonld",
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld",
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld"
+      ],
+      "properties": {
+        "dimmer-level": 0,
+        "color": { "r": 0, "g": 0, "b": 0 },
+        "on": false
+      }
+    },
+    "Spot2": {
+      "definition": [
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/dimmable-colored-lamp-1.0.0.tm.jsonld",
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld",
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld"
+      ],
+      "properties": {
+        "dimmer-level": 0,
+        "color": { "r": 0, "g": 0, "b": 0 },
+        "on": false
+      }
+    },
+    "Spot3": {
+      "definition": [
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/dimmable-colored-lamp-1.0.0.tm.jsonld",
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld",
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld"
+      ],
+      "properties": {
+        "dimmer-level": 0,
+        "color": { "r": 0, "g": 0, "b": 0 },
+        "on": false
+      }
+    },
+    "ConnectionStatus": {
+      "definition": [
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/connection-status-1.0.0.tm.jsonld"
+      ],
+      "properties": {
+        "readySince": "",
+        "readyUntil": ""
+      }
+    },
+    "PowerConsumptionAwareness": {
+      "definition": [
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/power-consumption-aware-1.0.0.tm.jsonld"
+      ],
+      "properties": {
+        "reportPowerConsumption": {}
+      }
+    },
+    "SmokeDetection": {
+      "definition": [
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/smoke-detector-1.0.0.tm.jsonld"
+      ]
+    },
+    "Status-LED": {
+      "definition": [
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld",
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld"
+      ],
+      "properties": {
+        "color": { "r": 0, "g": 0, "b": 0 },
+        "on": false
+      }
+    }
+  }
+}
+```
+
+A Thing has three top-level data sections:
+
+* **attributes**: static metadata (manufacturer, serial number) -- any JSON structure
+* **features**: dynamic state data -- each feature has a `properties` object and optionally a `definition`
+  linking to a [WoT Thing Model](basic-wot-integration.html)
+* **definition**: model reference -- a single string linking to a Thing Model describing the Thing's
+  capabilities
+
 ## Step 1: Create a Thing
 
-Send a POST request to create a new Thing. This example creates a floor lamp with some metadata
-in `attributes` and a model reference in `definition`:
+Send a PUT request to create a new Thing with a specific ID. This example creates a floor lamp
+with metadata in `attributes` and a model reference in `definition`:
 
 ```bash
-curl -u ditto:ditto -X POST -H 'Content-Type: application/json' -d '{
+curl -u ditto:ditto -X PUT -H 'Content-Type: application/json' -d '{
   "definition": "https://eclipse-ditto.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld",
   "attributes": {
     "manufacturer": "ACME",
     "serialNo": "0815666337"
   }
-}' 'http://localhost:8080/api/2/things'
+}' 'http://localhost:8080/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815'
 ```
 
-**What happens:** Ditto creates the Thing and returns its JSON representation. Because you used
-POST, Ditto auto-generates a Thing ID. Every ID contains a namespace prefix before the `:` to
-help organize your Things.
+**What happens:** Ditto creates the Thing and returns `201 Created`. The ID
+`io.eclipseprojects.ditto:floor-lamp-0815` contains a namespace (`io.eclipseprojects.ditto`)
+before the `:` to help organize your Things.
+
+{% include note.html content="You can also use `POST` to `/api/2/things` without specifying an ID -- Ditto will auto-generate one." %}
 
 ## Step 2: Retrieve the Thing
 
-Query your Thing by its ID. Replace the ID below with the one returned in Step 1:
+Query the Thing by its ID:
 
 ```bash
 curl -u ditto:ditto -X GET \
-  'http://localhost:8080/api/2/things/<NAMESPACE>:<THING-NAME>' | jq
+  'http://localhost:8080/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815' | jq
+
+# if you have python installed, that's an alternative for pretty-printing:
+curl -u ditto:ditto -X GET \
+  'http://localhost:8080/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815' | python -m json.tool
 ```
 
 **What happens:** Ditto returns the full JSON representation of your Thing, including its
@@ -60,7 +161,7 @@ curl -u ditto:ditto -X PUT -H 'Content-Type: application/json' -d '{
     "dimmer-level": 0,
     "color": { "r": 0, "g": 0, "b": 0 }
   }
-}' 'http://localhost:8080/api/2/things/<NAMESPACE>:<THING-NAME>/features/Spot1'
+}' 'http://localhost:8080/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815/features/Spot1'
 ```
 
 **What happens:** Ditto adds a `Spot1` feature to your Thing with the specified properties.
@@ -72,7 +173,7 @@ current on/off state of `Spot1`:
 
 ```bash
 curl -u ditto:ditto -X GET \
-  'http://localhost:8080/api/2/things/<NAMESPACE>:<THING-NAME>/features/Spot1/properties/on'
+  'http://localhost:8080/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815/features/Spot1/properties/on'
 ```
 
 **What happens:** Ditto returns the value `false` (or whatever the current value is).
@@ -83,7 +184,7 @@ Turn on the lamp spot by updating its `on` property:
 
 ```bash
 curl -u ditto:ditto -X PUT -H 'Content-Type: application/json' -d 'true' \
-  'http://localhost:8080/api/2/things/<NAMESPACE>:<THING-NAME>/features/Spot1/properties/on'
+  'http://localhost:8080/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815/features/Spot1/properties/on'
 ```
 
 **What happens:** Ditto updates the property and returns `204 No Content` on success.

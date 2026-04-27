@@ -113,7 +113,12 @@ PUT /api/2/things/org.eclipse.ditto:thing-1?requested-acks=twin-persisted,my-cus
       "thingId": "org.eclipse.ditto:thing-1",
       "policyId": "org.eclipse.ditto:thing-1"
     },
-    "headers": { "correlation-id": "db878735-4957-4fd9-92dc-6f09bb12a093" }
+    "headers": {
+      "correlation-id": "db878735-4957-4fd9-92dc-6f09bb12a093",
+      "version": 2,
+      "etag": "\"rev:1\"",
+      "location": "http://127.0.0.1:8080/api/2/things/org.eclipse.ditto:thing-1"
+    }
   },
   "my-custom-ack": {
     "status": 408,
@@ -163,6 +168,11 @@ Each subscriber must declare the labels of acknowledgements it sends. Any label 
 | `424` | Mixed status codes | Yes | Contains a timeout or server error. |
 | `5xx` | Server error | Yes | Temporary backend error. |
 
+### Issuing ACKs via HTTP
+
+You cannot issue acknowledgements via Ditto's HTTP API. HTTP does not support subscribing to
+twin events, live commands, or live messages -- use WebSocket or managed connections instead.
+
 ### Issuing ACKs via WebSocket
 
 Send the [acknowledgement message](protocol-specification-acks.html#acknowledgement) over the WebSocket. Declare labels via the `declared-acks` query parameter:
@@ -181,10 +191,12 @@ The WebSocket closes immediately if another subscriber already declared the same
 
 You can issue acknowledgements in two ways:
 
-1. **Via source**: Send a [Ditto Protocol acknowledgement](protocol-specification-acks.html#acknowledgement) message through a source of the same connection. Labels must be [declared](basic-connections.html#source-declared-acknowledgement-labels) in the `declaredAcks` field.
-2. **Via target configuration**: [Configure the target](basic-connections.html#target-issued-acknowledgement-label) to automatically issue acknowledgements for all published signals.
+1. **Via source**: Send a [Ditto Protocol acknowledgement](protocol-specification-acks.html#acknowledgement) message through a source of the same connection. Labels must be [declared](basic-connections.html#source-declared-acknowledgement-labels) in the `declaredAcks` field as a JSON array.
+2. **Via target configuration**: [Configure the target](basic-connections.html#target-issued-acknowledgement-label) to automatically issue acknowledgements for each twin event, live command, or live message published to the underlying channel (e.g., a message broker). When the target confirms delivery via its transport protocol (see [status code semantics](#status-code-semantics)), Ditto creates a successful acknowledgement and returns it to the requester. Target-issued labels are declared automatically.
 
 Acknowledgement labels for connections must be prefixed by the connection ID or the `{%raw%}{{connection:id}}{%endraw%}` placeholder followed by a colon, e.g., `{%raw%}{{connection:id}}:my-custom-ack{%endraw%}`.
+
+If a source-declared or target-issued label conflicts with a label declared by a WebSocket subscriber, all acknowledgements from the connection are rejected until the WebSocket is closed.
 
 ## Quality of Service
 
@@ -194,19 +206,57 @@ By default, Ditto processes signals with "at most once" semantics. For many IoT 
 
 ### QoS 1 -- at least once
 
-For critical signals, use acknowledgements to achieve "at least once" delivery:
+For critical signals, use acknowledgements to achieve "at least once" delivery. Modify commands
+are technically acknowledged on the transport channel (HTTP, WebSocket, or any
+[connection type](basic-connections.html#supported-connection-types)) only when processing succeeds. On failure,
+the signal is negatively acknowledged (e.g., AMQP NACK, MQTT no-PUBACK), triggering redelivery
+by the broker.
 
-* **twin-persisted**: Ensures the command was persisted in the digital twin's database.
-* **live-response**: Ensures a live command or message was processed by a subscriber.
-* **Custom label**: Ensures an event was consumed by a specific integration.
+The [acknowledgement status code](protocol-specification-acks.html#combined-status-code) reflects the
+outcome. For HTTP, this translates to `2xx` for success and `4xx` for failure.
 
-If an acknowledgement fails or times out, the signal is negatively acknowledged on the transport layer (e.g., AMQP NACK, MQTT no-PUBACK), triggering redelivery by the broker.
+#### Ensure persistence -- twin-persisted
+
+Request the [built-in `twin-persisted`](#built-in-acknowledgement-labels) label to confirm that a
+modify command successfully updated the digital twin in Ditto's database.
+
+#### Ensure live processing -- live-response
+
+Set `response-required: true` on live commands or live messages. This automatically adds
+`live-response` to `requested-acks`. The acknowledgement is fulfilled when a subscriber sends a
+live response or message response.
+
+#### Ensure subscriber consumption -- custom labels
+
+Request a [custom acknowledgement label](#custom-acknowledgement-labels) to confirm that an
+external subscriber processed the resulting event or live command. The subscriber must
+[issue the acknowledgement](#issuing-acknowledgements) via WebSocket or a connection source.
 
 ## Weak Acknowledgements (WACKs)
 
-When a subscriber has an RQL filter that excludes an event, or when a policy prevents delivery, Ditto cannot obtain a real acknowledgement. To prevent commands from failing due to missing acks in these cases, Ditto issues **weak acknowledgements** automatically.
+When a subscriber has an RQL filter that excludes an event, or when a policy prevents delivery,
+Ditto cannot obtain a real acknowledgement. To prevent commands from failing due to missing acks
+in these cases, Ditto issues **weak acknowledgements** automatically.
 
-Identify weak acknowledgements by checking the `ditto-weak-ack` header (set to `true`). Weak acknowledgements do not cause redelivery of messages consumed by a connection.
+Weak acknowledgements are issued when a subscriber that declared one or more of the requested
+acknowledgement labels filters out the event or message (e.g., via an RQL filter on a connection
+target or a policy restriction).
+
+Identify weak acknowledgements by checking the `ditto-weak-ack` header:
+
+```json
+{
+  "my-connection:my-ack": {
+    "status": 200,
+    "headers": {
+      "correlation-id": "...",
+      "ditto-weak-ack": true
+    }
+  }
+}
+```
+
+Weak acknowledgements do **not** cause redelivery of messages consumed by a connection.
 
 ## Interaction between headers
 

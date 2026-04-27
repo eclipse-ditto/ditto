@@ -105,6 +105,64 @@ The resulting `_metadata` on the Thing:
 }
 ```
 
+### Combining wildcards with absolute paths
+
+You can mix wildcard keys and absolute-path keys in a single `put-metadata` array. For example, to
+add a change log to every leaf **and** a description to the `color` property:
+
+```json
+[
+  {
+    "key": "*/changeLog",
+    "value": {
+      "changedAt": "2022-08-02T04:30:07",
+      "changedBy": { "name": "ditto", "mail": "ditto@mail.com" }
+    }
+  },
+  {
+    "key": "/features/lamp/properties/color/description",
+    "value": "Color represented with RGB values"
+  }
+]
+```
+
+The resulting `_metadata` contains both the per-leaf `changeLog` entries and the absolute-path
+`description`:
+
+```json
+{
+  "_metadata": {
+    "features": {
+      "lamp": {
+        "properties": {
+          "color": {
+            "r": {
+              "changeLog": {
+                "changedAt": "2022-08-02T04:30:07",
+                "changedBy": { "name": "ditto", "mail": "ditto@mail.com" }
+              }
+            },
+            "g": {
+              "changeLog": {
+                "changedAt": "2022-08-02T04:30:07",
+                "changedBy": { "name": "ditto", "mail": "ditto@mail.com" }
+              }
+            },
+            "b": {
+              "changeLog": {
+                "changedAt": "2022-08-02T04:30:07",
+                "changedBy": { "name": "ditto", "mail": "ditto@mail.com" }
+              }
+            },
+            "description": "Color represented with RGB values"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
 ### Setting metadata on all JSON leaves
 
 Use the special key syntax `*/{key}` to set the same metadata on every leaf value affected by your
@@ -123,7 +181,48 @@ update. For example, to record a change log on all modified properties:
 ```
 
 This adds a `changeLog` entry to each individual leaf property (`r`, `g`, `b`, `on`) rather than
-to the parent objects.
+to the parent objects. The resulting `_metadata` would look like:
+
+```json
+{
+  "_metadata": {
+    "features": {
+      "lamp": {
+        "properties": {
+          "color": {
+            "r": {
+              "changeLog": {
+                "changedAt": "2022-08-02T04:30:07",
+                "changedBy": { "name": "ditto", "mail": "ditto@mail.com" }
+              }
+            },
+            "g": {
+              "changeLog": {
+                "changedAt": "2022-08-02T04:30:07",
+                "changedBy": { "name": "ditto", "mail": "ditto@mail.com" }
+              }
+            },
+            "b": {
+              "changeLog": {
+                "changedAt": "2022-08-02T04:30:07",
+                "changedBy": { "name": "ditto", "mail": "ditto@mail.com" }
+              }
+            }
+          },
+          "status": {
+            "on": {
+              "changeLog": {
+                "changedAt": "2022-08-02T04:30:07",
+                "changedBy": { "name": "ditto", "mail": "ditto@mail.com" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
 
 ## Reading metadata
 
@@ -134,25 +233,113 @@ You have two ways to retrieve metadata.
 Add `_metadata` to the `fields` query parameter:
 
 ```bash
-GET /api/2/things/org.eclipse.ditto:my-lamp-1?fields=thingId,features,_metadata
+GET /api/2/things/org.eclipse.ditto:my-lamp-1?fields=thingId,policyId,features,_created,_modified,_revision,_metadata
 ```
 
-This returns the Thing along with its full `_metadata` object.
+This returns the Thing along with its full `_metadata` object:
+
+```json
+{
+  "thingId": "org.eclipse.ditto:my-lamp-1",
+  "policyId": "...",
+  "features": {
+    "lamp": {
+      "properties": {
+        "color": { "r": 0, "g": 255, "b": 255 },
+        "status": { "on": "true" }
+      }
+    }
+  },
+  "_created": "2022-06-01T10:00:00Z",
+  "_modified": "2022-06-09T14:30:00Z",
+  "_revision": 42,
+  "_metadata": {
+    "features": {
+      "lamp": {
+        "properties": {
+          "color": {
+            "r": {
+              "changeLog": {
+                "changedAt": "2022-08-02T04:30:07",
+                "changedBy": { "name": "ditto", "mail": "ditto@mail.com" }
+              }
+            },
+            "g": {
+              "changeLog": {
+                "changedAt": "2022-08-02T04:30:07",
+                "changedBy": { "name": "ditto", "mail": "ditto@mail.com" }
+              }
+            },
+            "b": {
+              "changeLog": {
+                "changedAt": "2022-08-02T04:30:07",
+                "changedBy": { "name": "ditto", "mail": "ditto@mail.com" }
+              }
+            },
+            "description": "Color represented with RGB values"
+          },
+          "status": {
+            "on": {
+              "changeLog": {
+                "changedAt": "2022-08-02T04:30:07",
+                "changedBy": { "name": "ditto", "mail": "ditto@mail.com" }
+              }
+            },
+            "description": "Status of the Lamp"
+          }
+        }
+      }
+    }
+  }
+}
+```
 
 ### Using the get-metadata header
 
 Set the `get-metadata` HTTP header to a comma-separated list of metadata paths. Ditto returns
 the matching metadata in the `ditto-metadata` response header.
 
-For example, to get metadata for a specific property:
+For example, to get the metadata for a specific leaf property, set the header
+`get-metadata: features/lamp/properties/color/r`. The `ditto-metadata` response header contains:
 
-```
-get-metadata: features/lamp/properties/color/r
+```json
+{
+  "features": {
+    "lamp": {
+      "properties": {
+        "color": {
+          "r": {
+            "changeLog": {
+              "changedAt": "2022-08-02T04:30:07",
+              "changedBy": { "name": "ditto", "mail": "ditto@mail.com" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
 ```
 
 You can use wildcards to expand one level. For example,
-`features/lamp/properties/*/description` returns the `description` metadata for all properties
-of the `lamp` feature.
+`get-metadata: features/lamp/properties/*/description` returns:
+
+```json
+{
+  "features": {
+    "lamp": {
+      "properties": {
+        "color": {
+          "description": "Color represented with RGB values"
+        },
+        "status": {
+          "description": "Status of the lamp"
+        }
+      }
+    }
+  }
+}
+```
 
 ## Deleting metadata
 

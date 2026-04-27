@@ -47,6 +47,42 @@ Every Thing command can result in an [error](protocol-specification-errors.html)
 | `413` | Request Entity Too Large - entity exceeds the size limit (default: 100 kB). |
 | `429` | Too Many Requests - too many outstanding modifying requests to this Thing. |
 
+## Response and Event conventions
+
+All commands produce a **response** and (for successful state changes) an **event**. Both use the
+same `topic` and `path` as the command, with the criterion set to `events` for events.
+
+### Response fields
+
+| Field | Description |
+|---|---|
+| **topic** | Mirrors the command topic, with criterion replaced by `events` for events. |
+| **path** | Same as the command path. |
+| **status** | HTTP-semantics status code. |
+| **value** | The affected resource (conditional -- see below). |
+| **headers** | Includes `correlation-id` from the command. |
+
+### Status codes by command type
+
+| Command type | Success status | `value` in response |
+|---|---|---|
+| Create | `201` Created | The created resource |
+| Modify (resource existed) | `204` Modified | Not present |
+| Modify (resource did not exist) | `201` Created | The created resource |
+| Merge | `204` Modified (or `201` if Thing created at root) | Not present (or created Thing) |
+| Retrieve | `200` OK | The requested resource |
+| Delete | `204` Deleted | Not present |
+
+### Event fields
+
+Events use the same `path` as the command. The `value` field always contains the affected resource
+(the full resource for create/modify, the merge patch for merge, omitted for delete).
+
+### Permissions
+
+All modify, merge, and delete commands require **WRITE** permission on the targeted resource path.
+Retrieve commands require **READ** permission.
+
 ## Create and modify commands
 
 Create and modify commands use the `modify` or `create` action in the topic path. A `modify` command with path `/` creates the Thing if it does not exist, or replaces it if it does.
@@ -61,7 +97,7 @@ Create a new Thing. The Policy must include at least one subject with READ and W
 | **path** | `/` |
 | **value** | Complete Thing as JSON. See [payload](protocol-specification.html#dittoProtocolPayload). |
 
-**Response**: `201` (created). **Event**: `created` at path `/`. | [Create a Thing](protocol-examples-creatething.html)
+**Response**: `201` (created), `value` contains the created Thing. **Event**: `created` at path `/` with the Thing as `value`. | [Create a Thing](protocol-examples-creatething.html)
 
 ### Create or modify a Thing
 
@@ -73,7 +109,7 @@ If the Thing exists, replace it. If not, create it.
 | **path** | `/` |
 | **value** | Complete Thing as JSON. See [payload](protocol-specification.html#dittoProtocolPayload). |
 
-**Response**: `201` (created) or `204` (modified). **Event**: `created` or `modified` at path `/`. | [Modify a Thing](protocol-examples-modifything.html)
+**Response**: `201` (created, `value` contains the Thing) or `204` (modified, no `value`). **Event**: `created` or `modified` at path `/`. | [Modify a Thing](protocol-examples-modifything.html)
 
 ### Create or modify Attributes
 
@@ -85,7 +121,7 @@ Replace all Attributes of a Thing.
 | **path** | `/attributes` |
 | **value** | Attributes as JSON object. |
 
-**Response**: `201` (created) or `204` (modified). **Event**: `created` or `modified` at path `/attributes`. | [Modify Attributes](protocol-examples-modifyattributes.html) | [Create Attributes](protocol-examples-createattributes.html)
+**Response**: `201` (created, `value` contains the resource) or `204` (modified, no `value`). **Event**: `created` or `modified` at path `/attributes`. | [Modify Attributes](protocol-examples-modifyattributes.html) | [Create Attributes](protocol-examples-createattributes.html)
 
 ### Create or modify a single Attribute
 
@@ -97,7 +133,7 @@ Create or update a specific attribute. Use [JSON Pointer (RFC-6901)](https://too
 | **path** | `/attributes/<attributePath>` |
 | **value** | The attribute value as JSON. |
 
-**Response**: `201` (created) or `204` (modified). **Event**: `created` or `modified` at path `/attributes/<attributePath>`. | [Modify Attribute](protocol-examples-modifyattribute.html) | [Create Attribute](protocol-examples-createattribute.html)
+**Response**: `201` (created, `value` contains the resource) or `204` (modified, no `value`). **Event**: `created` or `modified` at path `/attributes/<attributePath>`. | [Modify Attribute](protocol-examples-modifyattribute.html) | [Create Attribute](protocol-examples-createattribute.html)
 
 ### Create or modify a Definition
 
@@ -109,7 +145,7 @@ Create or update the Thing's definition.
 | **path** | `/definition` |
 | **value** | Definition as JSON string. |
 
-**Response**: `201` (created) or `204` (modified). **Event**: `created` or `modified` at path `/definition`. | [Modify Definition](protocol-examples-modifythingdefinition.html) | [Create Definition](protocol-examples-createthingdefinition.html)
+**Response**: `201` (created, `value` contains the resource) or `204` (modified, no `value`). **Event**: `created` or `modified` at path `/definition`. | [Modify Definition](protocol-examples-modifythingdefinition.html) | [Create Definition](protocol-examples-createthingdefinition.html)
 
 ### Create or modify all Features
 
@@ -121,7 +157,7 @@ Replace all Features of a Thing.
 | **path** | `/features` |
 | **value** | All Features as JSON. See [payload](protocol-specification.html#dittoProtocolPayload). |
 
-**Response**: `201` (created) or `204` (modified). **Event**: `created` or `modified` at path `/features`. | [Modify Features](protocol-examples-modifyfeatures.html) | [Create Features](protocol-examples-createfeatures.html)
+**Response**: `201` (created, `value` contains the resource) or `204` (modified, no `value`). **Event**: `created` or `modified` at path `/features`. | [Modify Features](protocol-examples-modifyfeatures.html) | [Create Features](protocol-examples-createfeatures.html)
 
 ### Create or modify a single Feature
 
@@ -133,7 +169,7 @@ Create or update a specific Feature identified by `<featureId>`.
 | **path** | `/features/<featureId>` |
 | **value** | The Feature as JSON. |
 
-**Response**: `201` (created) or `204` (modified). **Event**: `created` or `modified` at path `/features/<featureId>`. | [Modify Feature](protocol-examples-modifyfeature.html) | [Create Feature](protocol-examples-createfeature.html)
+**Response**: `201` (created, `value` contains the resource) or `204` (modified, no `value`). **Event**: `created` or `modified` at path `/features/<featureId>`. | [Modify Feature](protocol-examples-modifyfeature.html) | [Create Feature](protocol-examples-createfeature.html)
 
 ### Create or modify a Feature Definition
 
@@ -143,7 +179,7 @@ Create or update a specific Feature identified by `<featureId>`.
 | **path** | `/features/<featureId>/definition` |
 | **value** | Definition as JSON array. |
 
-**Response**: `201` (created) or `204` (modified). **Event**: `created` or `modified` at path `/features/<featureId>/definition`. | [Modify Feature Definition](protocol-examples-modifydefinition.html) | [Create Feature Definition](protocol-examples-createdefinition.html)
+**Response**: `201` (created, `value` contains the resource) or `204` (modified, no `value`). **Event**: `created` or `modified` at path `/features/<featureId>/definition`. | [Modify Feature Definition](protocol-examples-modifydefinition.html) | [Create Feature Definition](protocol-examples-createdefinition.html)
 
 ### Create or modify Feature Properties
 
@@ -155,7 +191,7 @@ Replace all Properties of a Feature.
 | **path** | `/features/<featureId>/properties` |
 | **value** | Properties as JSON object. |
 
-**Response**: `201` (created) or `204` (modified). **Event**: `created` or `modified` at path `/features/<featureId>/properties`. | [Modify Properties](protocol-examples-modifyproperties.html) | [Create Properties](protocol-examples-createproperties.html)
+**Response**: `201` (created, `value` contains the resource) or `204` (modified, no `value`). **Event**: `created` or `modified` at path `/features/<featureId>/properties`. | [Modify Properties](protocol-examples-modifyproperties.html) | [Create Properties](protocol-examples-createproperties.html)
 
 ### Create or modify a single Feature Property
 
@@ -167,7 +203,7 @@ Use [JSON Pointer (RFC-6901)](https://tools.ietf.org/html/rfc6901) to address ne
 | **path** | `/features/<featureId>/properties/<propertyPath>` |
 | **value** | The property value as JSON. |
 
-**Response**: `201` (created) or `204` (modified). **Event**: `created` or `modified` at path `/features/<featureId>/properties/<propertyPath>`. | [Modify Property](protocol-examples-modifyproperty.html) | [Create Property](protocol-examples-createproperty.html)
+**Response**: `201` (created, `value` contains the resource) or `204` (modified, no `value`). **Event**: `created` or `modified` at path `/features/<featureId>/properties/<propertyPath>`. | [Modify Property](protocol-examples-modifyproperty.html) | [Create Property](protocol-examples-createproperty.html)
 
 ### Create or modify desired Properties
 
@@ -179,7 +215,7 @@ Replace all desired Properties of a Feature.
 | **path** | `/features/<featureId>/desiredProperties` |
 | **value** | Desired properties as JSON object. |
 
-**Response**: `201` (created) or `204` (modified). **Event**: `created` or `modified` at path `/features/<featureId>/desiredProperties`. | [Modify Desired Properties](protocol-examples-modifydesiredproperties.html) | [Create Desired Properties](protocol-examples-createdesiredproperties.html)
+**Response**: `201` (created, `value` contains the resource) or `204` (modified, no `value`). **Event**: `created` or `modified` at path `/features/<featureId>/desiredProperties`. | [Modify Desired Properties](protocol-examples-modifydesiredproperties.html) | [Create Desired Properties](protocol-examples-createdesiredproperties.html)
 
 ### Create or modify a single desired Property
 
@@ -189,7 +225,7 @@ Replace all desired Properties of a Feature.
 | **path** | `/features/<featureId>/desiredProperties/<desiredPropertyPath>` |
 | **value** | The desired property value as JSON. |
 
-**Response**: `201` (created) or `204` (modified). **Event**: `created` or `modified` at path `/features/<featureId>/desiredProperties/<desiredPropertyPath>`. | [Modify Desired Property](protocol-examples-modifydesiredproperty.html) | [Create Desired Property](protocol-examples-createdesiredproperty.html)
+**Response**: `201` (created, `value` contains the resource) or `204` (modified, no `value`). **Event**: `created` or `modified` at path `/features/<featureId>/desiredProperties/<desiredPropertyPath>`. | [Modify Desired Property](protocol-examples-modifydesiredproperty.html) | [Create Desired Property](protocol-examples-createdesiredproperty.html)
 
 ## Merge commands
 
@@ -205,7 +241,7 @@ Apply a JSON Merge Patch to the entire Thing. Creates the Thing if it does not e
 | **path** | `/` |
 | **value** | JSON Merge Patch for the Thing. |
 
-**Response**: `201` (created) or `204` (merged). **Event**: `merged` at path `/`. | [Merge a Thing](protocol-examples-mergething.html)
+**Response**: `201` (created, `value` contains the Thing) or `204` (merged, no `value`). **Event**: `merged` at path `/` with the merge patch as `value`. | [Merge a Thing](protocol-examples-mergething.html)
 
 ### Merge Attributes
 
@@ -215,7 +251,7 @@ Apply a JSON Merge Patch to the entire Thing. Creates the Thing if it does not e
 | **path** | `/attributes` |
 | **value** | JSON Merge Patch for attributes. |
 
-**Response**: `204`. **Event**: `merged` at path `/attributes`. | [Merge Attributes](protocol-examples-mergeattributes.html)
+**Response**: `204` (no `value`). **Event**: `merged` at path `/attributes`. | [Merge Attributes](protocol-examples-mergeattributes.html)
 
 ### Merge a single Attribute
 
@@ -225,7 +261,7 @@ Apply a JSON Merge Patch to the entire Thing. Creates the Thing if it does not e
 | **path** | `/attributes/<attributePath>` |
 | **value** | JSON Merge Patch for the attribute. |
 
-**Response**: `204`. **Event**: `merged` at path `/attributes/<attributePath>`. | [Merge Attribute](protocol-examples-mergeattribute.html)
+**Response**: `204` (no `value`). **Event**: `merged` at path `/attributes/<attributePath>`. | [Merge Attribute](protocol-examples-mergeattribute.html)
 
 ### Merge the Definition
 
@@ -235,7 +271,7 @@ Apply a JSON Merge Patch to the entire Thing. Creates the Thing if it does not e
 | **path** | `/definition` |
 | **value** | A valid [Thing definition](basic-thing.html#definition). |
 
-**Response**: `204`. **Event**: `merged` at path `/definition`. | [Merge Definition](protocol-examples-mergethingdefinition.html)
+**Response**: `204` (no `value`). **Event**: `merged` at path `/definition`. | [Merge Definition](protocol-examples-mergethingdefinition.html)
 
 ### Merge the Policy ID
 
@@ -255,7 +291,7 @@ Apply a JSON Merge Patch to the entire Thing. Creates the Thing if it does not e
 | **path** | `/features` |
 | **value** | JSON Merge Patch for features. |
 
-**Response**: `204`. **Event**: `merged` at path `/features`. | [Merge Features](protocol-examples-mergefeatures.html)
+**Response**: `204` (no `value`). **Event**: `merged` at path `/features`. | [Merge Features](protocol-examples-mergefeatures.html)
 
 ### Merge a single Feature
 
@@ -275,7 +311,7 @@ Apply a JSON Merge Patch to the entire Thing. Creates the Thing if it does not e
 | **path** | `/features/<featureId>/definition` |
 | **value** | JSON Merge Patch for the definition. |
 
-**Response**: `204`. **Event**: `merged` at path `/features/<featureId>/definition`. | [Merge Feature Definition](protocol-examples-mergefeaturedefinition.html)
+**Response**: `204` (no `value`). **Event**: `merged` at path `/features/<featureId>/definition`. | [Merge Feature Definition](protocol-examples-mergefeaturedefinition.html)
 
 ### Merge Feature Properties
 
@@ -285,7 +321,7 @@ Apply a JSON Merge Patch to the entire Thing. Creates the Thing if it does not e
 | **path** | `/features/<featureId>/properties` |
 | **value** | JSON Merge Patch for properties. |
 
-**Response**: `204`. **Event**: `merged` at path `/features/<featureId>/properties`. | [Merge Properties](protocol-examples-mergeproperties.html)
+**Response**: `204` (no `value`). **Event**: `merged` at path `/features/<featureId>/properties`. | [Merge Properties](protocol-examples-mergeproperties.html)
 
 ### Merge a single Feature Property
 
@@ -295,7 +331,7 @@ Apply a JSON Merge Patch to the entire Thing. Creates the Thing if it does not e
 | **path** | `/features/<featureId>/properties/<propertyPath>` |
 | **value** | JSON Merge Patch for the property. |
 
-**Response**: `204`. **Event**: `merged` at path `/features/<featureId>/properties/<propertyPath>`. | [Merge Property](protocol-examples-mergeproperty.html)
+**Response**: `204` (no `value`). **Event**: `merged` at path `/features/<featureId>/properties/<propertyPath>`. | [Merge Property](protocol-examples-mergeproperty.html)
 
 ### Merge desired Properties
 
@@ -305,7 +341,7 @@ Apply a JSON Merge Patch to the entire Thing. Creates the Thing if it does not e
 | **path** | `/features/<featureId>/desiredProperties` |
 | **value** | JSON Merge Patch for desired properties. |
 
-**Response**: `204`. **Event**: `merged` at path `/features/<featureId>/desiredProperties`. | [Merge Desired Properties](protocol-examples-mergedesiredproperties.html)
+**Response**: `204` (no `value`). **Event**: `merged` at path `/features/<featureId>/desiredProperties`. | [Merge Desired Properties](protocol-examples-mergedesiredproperties.html)
 
 ### Merge a single desired Property
 
@@ -315,7 +351,7 @@ Apply a JSON Merge Patch to the entire Thing. Creates the Thing if it does not e
 | **path** | `/features/<featureId>/desiredProperties/<desiredPropertyPath>` |
 | **value** | JSON Merge Patch for the desired property. |
 
-**Response**: `204`. **Event**: `merged` at path `/features/<featureId>/desiredProperties/<desiredPropertyPath>`. | [Merge Desired Property](protocol-examples-mergedesiredproperty.html)
+**Response**: `204` (no `value`). **Event**: `merged` at path `/features/<featureId>/desiredProperties/<desiredPropertyPath>`. | [Merge Desired Property](protocol-examples-mergedesiredproperty.html)
 
 ## Retrieve commands
 
@@ -329,7 +365,7 @@ Retrieve commands read the current state of a Thing or its sub-resources. Use th
 | **path** | `/` |
 | **fields** | Optional comma-separated list of fields to include. |
 
-**Response**: `200` with the Thing as JSON. | [Retrieve a Thing](protocol-examples-retrievething.html)
+**Response**: `200`, `value` contains the Thing as JSON. | [Retrieve a Thing](protocol-examples-retrievething.html)
 
 ### Retrieve multiple Things
 
@@ -351,7 +387,7 @@ Use the placeholder `_` for `<thingName>` in the topic. Specify the Thing IDs in
 | **topic** | `<namespace>/<thingName>/things/<channel>/commands/retrieve` |
 | **path** | `/attributes` |
 
-**Response**: `200` with the Attributes as JSON. | [Retrieve Attributes](protocol-examples-retrieveattributes.html)
+**Response**: `200`, `value` contains the Attributes as JSON. | [Retrieve Attributes](protocol-examples-retrieveattributes.html)
 
 ### Retrieve a single Attribute
 
@@ -360,7 +396,7 @@ Use the placeholder `_` for `<thingName>` in the topic. Specify the Thing IDs in
 | **topic** | `<namespace>/<thingName>/things/<channel>/commands/retrieve` |
 | **path** | `/attributes/<attributePath>` |
 
-**Response**: `200` with the Attribute value. | [Retrieve Attribute](protocol-examples-retrieveattribute.html)
+**Response**: `200`, `value` contains the Attribute value. | [Retrieve Attribute](protocol-examples-retrieveattribute.html)
 
 ### Retrieve the Definition
 
@@ -369,7 +405,7 @@ Use the placeholder `_` for `<thingName>` in the topic. Specify the Thing IDs in
 | **topic** | `<namespace>/<thingName>/things/<channel>/commands/retrieve` |
 | **path** | `/definition` |
 
-**Response**: `200` with the Definition. | [Retrieve Definition](protocol-examples-retrievethingdefinition.html)
+**Response**: `200`, `value` contains the Definition. | [Retrieve Definition](protocol-examples-retrievethingdefinition.html)
 
 ### Retrieve all Features
 
@@ -387,7 +423,7 @@ Use the placeholder `_` for `<thingName>` in the topic. Specify the Thing IDs in
 | **topic** | `<namespace>/<thingName>/things/<channel>/commands/retrieve` |
 | **path** | `/features/<featureId>` |
 
-**Response**: `200` with the Feature as JSON. | [Retrieve Feature](protocol-examples-retrievefeature.html)
+**Response**: `200`, `value` contains the Feature as JSON. | [Retrieve Feature](protocol-examples-retrievefeature.html)
 
 ### Retrieve a Feature Definition
 
@@ -396,7 +432,7 @@ Use the placeholder `_` for `<thingName>` in the topic. Specify the Thing IDs in
 | **topic** | `<namespace>/<thingName>/things/<channel>/commands/retrieve` |
 | **path** | `/features/<featureId>/definition` |
 
-**Response**: `200` with the Feature Definition. | [Retrieve Feature Definition](protocol-examples-retrievedefinition.html)
+**Response**: `200`, `value` contains the Feature Definition. | [Retrieve Feature Definition](protocol-examples-retrievedefinition.html)
 
 ### Retrieve Feature Properties
 
@@ -405,7 +441,7 @@ Use the placeholder `_` for `<thingName>` in the topic. Specify the Thing IDs in
 | **topic** | `<namespace>/<thingName>/things/<channel>/commands/retrieve` |
 | **path** | `/features/<featureId>/properties` |
 
-**Response**: `200` with the Properties as JSON. | [Retrieve Feature Properties](protocol-examples-retrieveproperties.html)
+**Response**: `200`, `value` contains the Properties as JSON. | [Retrieve Feature Properties](protocol-examples-retrieveproperties.html)
 
 ### Retrieve a single Feature Property
 
@@ -414,7 +450,7 @@ Use the placeholder `_` for `<thingName>` in the topic. Specify the Thing IDs in
 | **topic** | `<namespace>/<thingName>/things/<channel>/commands/retrieve` |
 | **path** | `/features/<featureId>/properties/<propertyPath>` |
 
-**Response**: `200` with the Property value. | [Retrieve Feature Property](protocol-examples-retrieveproperty.html)
+**Response**: `200`, `value` contains the Property value. | [Retrieve Feature Property](protocol-examples-retrieveproperty.html)
 
 ### Retrieve desired Properties
 
@@ -423,7 +459,7 @@ Use the placeholder `_` for `<thingName>` in the topic. Specify the Thing IDs in
 | **topic** | `<namespace>/<thingName>/things/<channel>/commands/retrieve` |
 | **path** | `/features/<featureId>/desiredProperties` |
 
-**Response**: `200` with the desired Properties as JSON. | [Retrieve Desired Properties](protocol-examples-retrieveproperties.html)
+**Response**: `200`, `value` contains the desired Properties as JSON. | [Retrieve Desired Properties](protocol-examples-retrieveproperties.html)
 
 ### Retrieve a single desired Property
 
@@ -432,7 +468,7 @@ Use the placeholder `_` for `<thingName>` in the topic. Specify the Thing IDs in
 | **topic** | `<namespace>/<thingName>/things/<channel>/commands/retrieve` |
 | **path** | `/features/<featureId>/desiredProperties/<desiredPropertyPath>` |
 
-**Response**: `200` with the desired Property value. | [Retrieve Desired Property](protocol-examples-retrievedesiredproperty.html)
+**Response**: `200`, `value` contains the desired Property value. | [Retrieve Desired Property](protocol-examples-retrievedesiredproperty.html)
 
 ## Delete commands
 

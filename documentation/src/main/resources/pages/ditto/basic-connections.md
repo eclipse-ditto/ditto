@@ -107,6 +107,8 @@ that it can only write to its own twin:
 }
 ```
 
+{% include note.html content="If you use basic auth from the HTTP API, prefix authorization subjects with `nginx:` (e.g., `nginx:ditto`). See [Basic Authentication](basic-auth.html#authorization-context-in-devops-commands)." %}
+
 ### Source acknowledgement requests
 
 To process inbound messages with "at least once" (QoS 1) semantics instead of the default "at most
@@ -125,7 +127,7 @@ to control when acknowledgements are requested:
     "qos": "{%raw%}{{ header:qos }}{%endraw%}"
   },
   "acknowledgementRequests": {
-    "includes": ["twin-persisted"],
+    "includes": ["twin-persisted", "{%raw%}{{connection:id}}{%endraw%}:my-custom-ack"],
     "filter": "fn:filter(header:qos,'ne','0')"
   }
 }
@@ -164,8 +166,13 @@ Mapped headers are added to the Ditto protocol message produced by payload mappi
 
 ### Source reply target
 
-A source may define a reply target to publish responses to incoming commands. The reply target
-inherits its payload mapping from the parent source.
+A source may define a reply target to publish responses to incoming commands. The reply target's
+address and header mapping are defined within the reply target, while its payload mapping is
+inherited from the parent source.
+
+To publish responses at the address from the incoming command's `reply-to` header, configure source
+header mapping and reply target together. If an incoming command lacks the `reply-to` header, no
+response is published:
 
 ```json
 {
@@ -194,11 +201,61 @@ The `expectedResponseTypes` control which responses are published:
 Sources can redirect responses to different connections instead of the configured reply target using
 special header mapping keys. See [Response diversion](connectivity-response-diversion.html) for details.
 
+**Static response diversion** -- redirect all responses to a fixed connection:
+
 ```json
 {
+  "addresses": ["commands/sensor"],
+  "authorizationContext": ["ditto:sensor-commands"],
   "headerMapping": {
-    "divert-response-to-connection": "target-connection-id",
-    "divert-expected-response-types": "response,error,nack"
+    "divert-response-to-connection": "analytics-connection",
+    "divert-expected-response-types": "response,error"
+  },
+  "replyTarget": {
+    "enabled": true,
+    "address": "responses/sensor"
+  }
+}
+```
+
+Where:
+- `divert-response-to-connection`: Target connection ID for diversion
+- `divert-expected-response-types`: Comma-separated list of response types to divert
+
+**Dynamic response diversion** -- route based on message content using a JavaScript payload mapper:
+
+```json
+{
+  "addresses": ["commands/+"],
+  "authorizationContext": ["ditto:device-commands"],
+  "headerMapping": {
+    "divert-expected-response-types": "response,error"
+  },
+  "payloadMapping": ["response-router"]
+}
+```
+
+```javascript
+function mapToDittoProtocolMsg(headers, textPayload, bytePayload, contentType) {
+  var parsedPayload = JSON.parse(textPayload);
+  var dittoHeaders = {
+    "correlation-id": headers["correlation-id"],
+    "divert-response-to": determineTargetConnection(headers, parsedPayload),
+    "divert-expected-response-types": "response,error"
+  };
+  return Ditto.buildDittoProtocolMsg(
+    namespace, name, group, channel, criterion, action, path,
+    dittoHeaders, value
+  );
+}
+
+function determineTargetConnection(headers, payload) {
+  if (payload.priority === "high") {
+    return "priority-processing-connection";
+  } else if (payload.deviceType === "sensor") {
+    return "sensor-analytics-connection";
+  } else {
+    return "default-processing-connection";
   }
 }
 ```
@@ -243,6 +300,7 @@ filter values before using them:
   "address": "<target-address>",
   "topics": [
     "_/_/things/twin/events?namespaces=org.eclipse.ditto&filter=gt(attributes/counter,42)",
+    "_/_/things/twin/events?extraFields=attributes/placement&filter=gt(attributes/placement,'Kitchen')",
     "_/_/things/live/messages?namespaces=org.eclipse.ditto"
   ],
   "authorizationContext": ["ditto:outbound-auth-subject"]
@@ -252,13 +310,27 @@ filter values before using them:
 ### Target topics and enrichment
 
 You can add extra fields to outgoing messages with the `extraFields` parameter.
-See [signal enrichment](basic-enrichment.html) for details:
+See [signal enrichment](basic-enrichment.html) for details.
+
+Not all topics support enrichment:
+
+| Topic | Extra fields |
+|-------|:---:|
+| `_/_/things/twin/events` | &#10004; |
+| `_/_/things/live/messages` | &#10004; |
+| `_/_/things/live/commands` | &#10004; |
+| `_/_/things/live/events` | &#10004; |
+| `_/_/policies/announcements` | &#10060; |
+| `_/_/connections/announcements` | &#10060; |
+
+Example:
 
 ```json
 {
   "address": "<target-address>",
   "topics": [
-    "_/_/things/twin/events?extraFields=attributes/placement"
+    "_/_/things/twin/events?extraFields=attributes/placement",
+    "_/_/things/live/messages?extraFields=features/ConnectionStatus"
   ],
   "authorizationContext": ["ditto:outbound-auth-subject"]
 }
@@ -291,7 +363,8 @@ You can apply an optional [header mapping](connectivity-header-mapping.html) to 
   "headerMapping": {
     "message-id": "{%raw%}{{ header:correlation-id }}{%endraw%}",
     "content-type": "{%raw%}{{ header:content-type }}{%endraw%}",
-    "subject": "{%raw%}{{ topic:subject }}{%endraw%}"
+    "subject": "{%raw%}{{ topic:subject }}{%endraw%}",
+    "reply-to": "all-replies"
   }
 }
 ```

@@ -154,7 +154,27 @@ String values in `migrationPayload` may use the [thing-json placeholder](basic-p
 
 Because every JSON element has its own endpoint, you can update individual values without touching the rest of the `Thing`. This reduces payload size and prevents accidentally overwriting data with stale values.
 
-Instead of replacing the entire `Thing` with `PUT .../things/{thingId}` and the full JSON body, you target only the changed value:
+For example, to change the `on` property of `lamp` to `true`, instead of replacing the entire
+Thing with `PUT .../things/{thingId}` and the full JSON body:
+
+```json
+{
+  "thingId": "{thingId}",
+  "policyId": "{policyId}",
+  "definition": "{definition}",
+  "attributes": {
+    "manufacturer": "ACME corp",
+    "complex": { "some": false, "serialNo": 4711 }
+  },
+  "features": {
+    "lamp": {
+      "properties": { "on": true, "color": "blue" }
+    }
+  }
+}
+```
+
+You target only the changed value:
 
 `PUT .../things/{thingId}/features/lamp/properties/on`
 
@@ -174,7 +194,44 @@ true
 
 ### Field selectors
 
-Use the `fields` query parameter to retrieve specific fields while preserving the JSON structure. Pass a comma-separated list of field paths:
+Use the `fields` query parameter to retrieve specific fields while preserving the JSON structure.
+Pass a comma-separated list of field paths. You can also use `*` as a feature ID wildcard to
+retrieve a property across multiple features.
+
+Given this Thing:
+
+```json
+{
+  "thingId": "{thingId}",
+  "policyId": "{policyId}",
+  "definition": "{definition}",
+  "attributes": {
+    "manufacturer": "ACME corp",
+    "complex": { "some": false, "serialNo": 4711, "misc": "foo" }
+  },
+  "features": {
+    "lamp": {
+      "properties": { "on": true, "color": "blue" }
+    },
+    "infrared-lamp": {
+      "properties": { "on": false, "color": "red" }
+    }
+  }
+}
+```
+
+#### Field selector examples
+
+`GET .../things/{thingId}?fields=attributes`
+
+```json
+{
+  "attributes": {
+    "manufacturer": "ACME corp",
+    "complex": { "some": false, "serialNo": 4711, "misc": "foo" }
+  }
+}
+```
 
 `GET .../things/{thingId}?fields=attributes/manufacturer`
 
@@ -186,7 +243,29 @@ Use the `fields` query parameter to retrieve specific fields while preserving th
 }
 ```
 
-You can select multiple fields and use parentheses to group fields under the same parent:
+`GET .../things/{thingId}?fields=attributes/complex/serialNo`
+
+```json
+{
+  "attributes": {
+    "complex": {
+      "serialNo": 4711
+    }
+  }
+}
+```
+
+`GET .../things/{thingId}?fields=attributes/complex/some,attributes/complex/serialNo`
+
+```json
+{
+  "attributes": {
+    "complex": { "some": false, "serialNo": 4711 }
+  }
+}
+```
+
+The same result using parentheses to group fields under the same parent:
 
 `GET .../things/{thingId}?fields=attributes/complex(some,serialNo)`
 
@@ -198,9 +277,26 @@ You can select multiple fields and use parentheses to group fields under the sam
 }
 ```
 
+Selecting fields from different branches of the JSON:
+
+`GET .../things/{thingId}?fields=attributes/complex/misc,features/lamp/properties/on`
+
+```json
+{
+  "attributes": {
+    "complex": { "misc": "foo" }
+  },
+  "features": {
+    "lamp": {
+      "properties": { "on": true }
+    }
+  }
+}
+```
+
 #### Wildcard field selectors
 
-Use `*` as a feature ID wildcard to retrieve a property across multiple features:
+Use `*` as a feature ID wildcard to retrieve a property across all features:
 
 `GET .../things/{thingId}?fields=features/*/properties/on`
 
@@ -255,7 +351,28 @@ You need `WRITE` permission on **all** resources affected by the merge patch. If
 
 ### Merge update example
 
-Given an existing Thing, you can use a single `PATCH .../things/{thingId}` to add, update, and remove multiple fields:
+Given an existing Thing with this JSON:
+
+```json
+{
+  "thingId": "{thingId}",
+  "policyId": "{policyId}",
+  "attributes": {
+    "location": { "longitude": 47.682170, "latitude": 9.386372 },
+    "serialNo": "0000000"
+  },
+  "features": {
+    "temperature": {
+      "properties": { "value": 25.43, "unit": "°C" }
+    },
+    "pressure": {
+      "properties": { "value": 1013.25, "unit": "hPa" }
+    }
+  }
+}
+```
+
+A single `PATCH .../things/{thingId}` can add, update, and remove multiple fields:
 
 ```json
 {
@@ -278,7 +395,32 @@ Given an existing Thing, you can use a single `PATCH .../things/{thingId}` to ad
 }
 ```
 
-This patch removes `location`, updates `manufacturer` and `serialNo`, changes the temperature value, removes the pressure unit, and adds a new `humidity` feature -- all in one request.
+The resulting Thing after applying the patch:
+
+```json
+{
+  "thingId": "{thingId}",
+  "policyId": "{policyId}",
+  "attributes": {
+    "manufacturer": "Bosch",
+    "serialNo": "23091861"
+  },
+  "features": {
+    "temperature": {
+      "properties": { "value": 26.89, "unit": "°C" }
+    },
+    "pressure": {
+      "properties": { "value": 1013.25 }
+    },
+    "humidity": {
+      "properties": { "value": 55, "unit": "%" }
+    }
+  }
+}
+```
+
+This patch removes `location`, adds `manufacturer`, updates `serialNo`, changes the temperature
+value, removes the pressure unit, and adds a new `humidity` feature -- all in one request.
 
 ## Conditional requests
 
@@ -305,7 +447,15 @@ Ditto always provides strong entity-tags. See [Conditional Requests](basic-condi
 
 ### Exempted fields
 
-The `_policy` field bypasses precondition checks. If you modify a Thing's associated Policy, the Thing's revision does not change, so `If-None-Match` checks based on the Thing's ETag would not detect the Policy change. Ditto exempts `_policy` from these checks to prevent inconsistencies.
+When querying a Thing with:
+
+```
+GET .../things/{thingId}?fields=_policy
+```
+
+you get the Thing with its associated policy. If you modify the associated policy, the Thing's
+revision does not change, so `If-None-Match` checks based on the Thing's ETag would not detect
+the policy change. Ditto exempts `_policy` from precondition checks to prevent inconsistencies.
 
 ### Examples
 
@@ -319,7 +469,10 @@ If-None-Match: *
 ```json
 {
   "policyId": "{policyId}",
-  "attributes": { "manufacturer": "ACME corp" }
+  "attributes": {
+    "manufacturer": "ACME crop",
+    "otherData": 4711
+  }
 }
 ```
 
@@ -335,7 +488,10 @@ If-Match: *
 
 ```json
 {
-  "attributes": { "manufacturer": "ACME corp" }
+  "attributes": {
+    "manufacturer": "ACME crop",
+    "otherData": 4711
+  }
 }
 ```
 
@@ -346,9 +502,25 @@ If-Match: *
 
 First, retrieve the Thing and its ETag:
 
-`GET .../things/{thingId}` returns `ETag: "rev:2"` with the Thing body.
+`GET .../things/{thingId}`:
 
-Then update with the ETag in `If-Match`:
+Response:
+
+`ETag: "rev:2"`
+
+```json
+{
+  "thingId": "{thingId}",
+  "policyId": "{policyId}",
+  "definition": "{definition}",
+  "attributes": {
+    "manufacturer": "ACME crop",
+    "otherData": 4711
+  }
+}
+```
+
+Then update with the ETag in `If-Match` to fix the typo without overwriting concurrent changes:
 
 ```
 PUT .../things/{thingId}
@@ -357,7 +529,10 @@ If-Match: "rev:2"
 
 ```json
 {
-  "attributes": { "manufacturer": "ACME corp" }
+  "attributes": {
+    "manufacturer": "ACME corp",
+    "otherData": 4711
+  }
 }
 ```
 

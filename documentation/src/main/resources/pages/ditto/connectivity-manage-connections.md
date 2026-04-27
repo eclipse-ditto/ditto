@@ -179,9 +179,13 @@ Each log entry contains:
 | `level` | `success`, `failure` |
 | `category` | `connection`, `source`, `target`, `response` |
 | `type` | `consumed`, `dispatched`, `filtered`, `mapped`, `dropped`, `enforced`, `published`, `acknowledged` |
+| `connectionId` | ID of the connection which produced the log entry |
 | `correlationId` | Correlation ID (if available) |
 | `address` | Source/target address (if available) |
 | `entityId` | Thing or policy ID |
+| `entityType` | `"thing"` or `"policy"` |
+| `instanceId` | ID of the connectivity instance (helpful when `clientCount > 1`) |
+| `message` | The actual log message |
 
 See [connectivity.conf](https://github.com/eclipse-ditto/ditto/blob/master/connectivity/service/src/main/resources/connectivity.conf)
 at path `ditto.connectivity.monitoring.logger.publisher` for all options.

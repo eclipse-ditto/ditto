@@ -97,6 +97,62 @@ type Environment = {
 }
 ```
 
+#### Authentication type definitions
+
+```ts
+type AuthSettings = {
+    main: MainAuthSettings,       // settings for things+policies access
+    devops: CommonAuthSettings,   // settings for connections+operations access
+    oidc: Record<string, OidcProviderConfiguration> // shared OIDC provider configs, keyed by provider name
+}
+
+type CommonAuthSettings = {
+    method: AuthMethod,           // active authentication method
+    oidc: OidcAuthSettings,       // SSO (OIDC) settings
+    bearer: BearerAuthSettings,   // manual Bearer token settings
+    basic: BasicAuthSettings,     // Basic Auth settings
+}
+
+type MainAuthSettings = CommonAuthSettings & {
+    pre: PreAuthSettings          // pre-authenticated settings (main context only)
+}
+
+// extends UserManagerSettings from 'oidc-client-ts'
+type OidcProviderConfiguration = UserManagerSettings & {
+    displayName: string,          // label shown in the OIDC provider dropdown
+    extractBearerTokenFrom: string // field from the /token response to use as Bearer token ("access_token" or "id_token")
+}
+
+enum AuthMethod {
+    oidc = 'oidc',
+    basic = 'basic',
+    bearer = 'bearer',
+    pre = 'pre'
+}
+
+type OidcAuthSettings = {
+    enabled: boolean,             // show the OIDC section in the Authorize popup
+    defaultProvider: string | null, // must match a key in AuthSettings.oidc
+    autoSso: boolean,             // automatically start SSO when the Authorize popup opens
+    provider?: string             // currently chosen provider (user-changeable)
+}
+
+type BasicAuthSettings = {
+    enabled: boolean,             // show the Basic Auth section
+    defaultUsernamePassword: string | null // pre-filled "user:pass"
+}
+
+type BearerAuthSettings = {
+    enabled: boolean              // show the Bearer Auth section
+}
+
+type PreAuthSettings = {
+    enabled: boolean,             // show the Pre-Authenticated section
+    defaultDittoPreAuthenticatedUsername: string | null, // pre-filled username
+    dittoPreAuthenticatedUsername?: string // cached username
+}
+```
+
 ### Example environment JSON
 
 ```json
@@ -114,6 +170,35 @@ type Environment = {
         },
         "bearer": { "enabled": true },
         "pre": { "enabled": false }
+      },
+      "devops": {
+        "method": "basic",
+        "oidc": { "enabled": false },
+        "basic": {
+          "enabled": true,
+          "defaultUsernamePassword": "devops:foobar"
+        },
+        "bearer": { "enabled": true }
+      },
+      "oidc": {}
+    }
+  },
+  "local_ditto_ide": {
+    "api_uri": "http://localhost:8080",
+    "ditto_version": 3,
+    "authSettings": {
+      "main": {
+        "method": "pre",
+        "oidc": { "enabled": false },
+        "basic": {
+          "enabled": true,
+          "defaultUsernamePassword": null
+        },
+        "bearer": { "enabled": true },
+        "pre": {
+          "enabled": false,
+          "defaultDittoPreAuthenticatedUsername": "pre:ditto"
+        }
       },
       "devops": {
         "method": "basic",
@@ -153,6 +238,56 @@ type Environment = {
         "bearer": { "enabled": false }
       },
       "oidc": {}
+    }
+  },
+  "oidc_example": {
+    "api_uri": "http://localhost:8080",
+    "ditto_version": 3,
+    "authSettings": {
+      "main": {
+        "method": "oidc",
+        "oidc": {
+          "enabled": true,
+          "defaultProvider": "fake",
+          "autoSso": true
+        },
+        "basic": {
+          "enabled": false,
+          "defaultUsernamePassword": null
+        },
+        "bearer": { "enabled": true },
+        "pre": {
+          "enabled": false,
+          "defaultDittoPreAuthenticatedUsername": null
+        }
+      },
+      "devops": {
+        "method": "oidc",
+        "oidc": {
+          "enabled": true,
+          "defaultProvider": "fake",
+          "autoSso": true
+        },
+        "basic": {
+          "enabled": false,
+          "defaultUsernamePassword": null
+        },
+        "bearer": { "enabled": true }
+      },
+      "oidc": {
+        "providers": {
+          "fake": {
+            "displayName": "Fake IDP to test",
+            "extractBearerTokenFrom": "access_token",
+            "authority": "http://localhost:9900/fake",
+            "client_id": "some-client-id",
+            "redirect_uri": "http://localhost:8000",
+            "post_logout_redirect_uri": "http://localhost:8000",
+            "response_type": "code",
+            "scope": "openid"
+          }
+        }
+      }
     }
   }
 }
@@ -195,6 +330,7 @@ Configure it in your OIDC provider settings:
         "authority": "https://your-oidc-provider.com",
         "client_id": "your-client-id",
         "redirect_uri": "https://your-ditto-ui.com",
+        "post_logout_redirect_uri": "https://your-ditto-ui.com",
         "silent_redirect_uri": "https://your-ditto-ui.com/silent-callback.html",
         "response_type": "code",
         "scope": "openid groups email offline_access",
@@ -204,6 +340,8 @@ Configure it in your OIDC provider settings:
   }
 }
 ```
+
+Set `post_logout_redirect_uri` to point back to your UI so users return to the application after logout. The silent refresh callback HTML page must be served at the path configured in `silent_redirect_uri` (e.g., `/silent-callback.html`).
 
 ## Further reading
 

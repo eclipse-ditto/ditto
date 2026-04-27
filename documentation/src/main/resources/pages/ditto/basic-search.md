@@ -74,11 +74,23 @@ Given a Thing with tags of different types:
 You can query against scalar values in the array:
 
 ```text
-eq(attributes/tags,"high-priority")   -> match
-ne(attributes/tags,"high-priority")   -> no match
-in(attributes/tags,"misc","other")    -> match
-like(attributes/tags,"*-priority")    -> match
-gt(attributes/tags,6)                 -> no match
+eq(attributes/tags,"high-priority")
+-> match:       "high-priority" is contained
+
+ne(attributes/tags,"high-priority")
+-> no match:    "high-priority" is contained, so "ne" will not match
+
+in(attributes/tags,"misc","something-non-matching")
+-> match:       "misc" is a match
+
+like(attributes/tags,"*-priority")
+-> match:       "high-priority" string matches
+
+ne(attributes/tags,1)
+-> match:       as 1 is not part of the tags
+
+gt(attributes/tags,6)
+-> no match:    as no number > 6 is contained
 ```
 
 You can also query JSON objects inside the array:
@@ -151,6 +163,12 @@ limit(<offset>,<count>)
 ```
 
 Default: `limit(0,25)`. Maximum count: `200`.
+
+**Example** -- return the first ten items:
+
+```text
+limit(0,10)
+```
 
 **Example** -- return items 11 to 20:
 

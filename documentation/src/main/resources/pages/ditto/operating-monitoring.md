@@ -71,7 +71,36 @@ http://<container-host-or-ip>:9095/
 
 ### Gathered metrics
 
-Visit the Prometheus endpoint of any service to see the full list of exported metrics. Ditto reports:
+Visit the Prometheus endpoint of any service to see the full list of exported metrics. The following
+excerpt shows metrics gathered for the [gateway service](architecture-services-gateway.html):
+
+```
+#Kamon Metrics
+# TYPE jvm_threads gauge
+jvm_threads{component="system-metrics",measure="total"} 72.0
+# TYPE jvm_memory_buffer_pool_count gauge
+jvm_memory_buffer_pool_count{component="system-metrics",pool="direct"} 14.0
+# TYPE jvm_class_loading gauge
+jvm_class_loading{component="system-metrics",mode="loaded"} 10491.0
+# TYPE jvm_memory_buffer_pool_usage gauge
+jvm_memory_buffer_pool_usage{component="system-metrics",pool="direct",measure="used"} 396336.0
+# TYPE roundtrip_http_seconds histogram
+roundtrip_http_seconds_bucket{le="0.05",ditto_request_path="/api/2/things/x",ditto_request_method="PUT",ditto_statusCode="201",segment="overall"} 1.0
+roundtrip_http_seconds_sum{ditto_request_path="/api/2/things/x",ditto_statusCode="201",ditto_request_method="PUT",segment="overall"} 0.038273024
+roundtrip_http_seconds_bucket{le="0.001",ditto_request_path="/api/2/things/x",ditto_request_method="PUT",ditto_statusCode="204",segment="overall"} 0.0
+roundtrip_http_seconds_bucket{le="0.1",ditto_request_path="/api/2/things/x",ditto_request_method="PUT",ditto_statusCode="204",segment="overall"} 7.0
+roundtrip_http_seconds_sum{ditto_request_path="/api/2/things/x",ditto_statusCode="204",ditto_request_method="PUT",segment="overall"} 0.828899328
+# TYPE jvm_gc_promotion histogram
+jvm_gc_promotion_sum{space="old"} 7315456.0
+# TYPE jvm_gc_seconds histogram
+jvm_gc_seconds_count{component="system-metrics",collector="scavenge"} 9.0
+jvm_gc_seconds_sum{component="system-metrics",collector="scavenge"} 0.063
+# TYPE jvm_memory_bytes histogram
+jvm_memory_bytes_count{component="system-metrics",measure="used",segment="miscellaneous-non-heap-storage"} 54.0
+jvm_memory_bytes_sum{component="system-metrics",measure="used",segment="miscellaneous-non-heap-storage"} 786350080.0
+```
+
+Ditto reports:
 
 * **JVM metrics** (all services): garbage collection counts and times, memory consumption (heap and non-heap), thread counts, loaded classes
 * **HTTP metrics** ([gateway service](architecture-services-gateway.html)): roundtrip times, request counts, response status codes
@@ -113,9 +142,21 @@ Ditto performs a [count things operation](basic-search.html#search-count-queries
 all_produced_and_not_installed_devices{company="acme-corp"} 42.0
 ```
 
+To add custom metrics via system properties:
+```
+-Dditto.search.operator-metrics.custom-metrics.all_produced_and_not_installed_devices.enabled=true
+-Dditto.search.operator-metrics.custom-metrics.all_produced_and_not_installed_devices.scrape-interval=5m
+-Dditto.search.operator-metrics.custom-metrics.all_produced_and_not_installed_devices.namespaces.0=org.eclipse.ditto.smokedetectors
+-Dditto.search.operator-metrics.custom-metrics.all_produced_and_not_installed_devices.namespaces.1=org.eclipse.ditto.cameras
+-Dditto.search.operator-metrics.custom-metrics.all_produced_and_not_installed_devices.filter=and(exists(attributes/production-date),not(exists(attributes/installation-date)))
+-Dditto.search.operator-metrics.custom-metrics.all_produced_and_not_installed_devices.tags.company=acme-corp
+```
+
 ### Custom aggregation metrics
 
 Since Ditto 3.6.0, you can define aggregation-based metrics with dynamic tags populated from thing data using the `group-by` placeholder.
+
+{% include note.html content="**Since Ditto 3.7.3** there is a change in how the custom aggregation metrics are configured. See the [Release notes of 3.7.3](release_notes_373.html) for details on migration steps." %}
 
 {% include warning.html content="Avoid grouping by fields with high cardinality, as this creates many metric series and may overload your Prometheus server." %}
 
@@ -150,6 +191,19 @@ This produces metrics like:
 ```text
 online_things{location="Berlin",isGateway="false",hardcoded-tag="hardcoded_value"} 6.0
 online_things{location="Immenstaad",isGateway="true",hardcoded-tag="hardcoded_value"} 8.0
+```
+
+To add custom aggregation metrics via system properties:
+```
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.enabled=true
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.scrape-interval=20m
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.namespaces.0=org.eclipse.ditto
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.group-by.location="attributes/Info/location"
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.group-by.isGateway="attributes/Info/gateway"
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.tags.hardcoded-tag="hardcoded_value"
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.tags.location="{%raw%}{{ group-by:location | fn:default('missing location') }}{%endraw%}"
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.tags.isGateway="{%raw%}{{ group-by:isGateway }}{%endraw%}"
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.filter=gt(features/ConnectionStatus/properties/status/readyUntil/,time:now)
 ```
 
 [Function expressions](basic-placeholders.html#function-expressions) are supported for transforming placeholder values.

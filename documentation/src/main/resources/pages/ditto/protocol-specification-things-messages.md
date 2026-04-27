@@ -67,7 +67,9 @@ A response from the coffee machine might look like:
     "topic": "org.eclipse.ditto/smartcoffee/things/live/messages/ask",
     "headers": {
         "correlation-id": "a-unique-string-for-this-message",
-        "content-type": "text/plain"
+        "auth-subjects": ["ditto", "nginx:ditto"],
+        "content-type": "text/plain",
+        "version": 1
     },
     "path": "/inbox/messages/ask",
     "value": "I do not know, since i am only a coffee machine.",
@@ -103,6 +105,22 @@ websocket.onopen(function(ws) {
 });
 ```
 
+The JavaScript receiver would receive the following data:
+
+```json
+{
+    "topic": "org.eclipse.ditto/smartcoffee/things/live/messages/ask",
+    "headers": {
+        "correlation-id": "demo-6qaal9l",
+        "auth-subjects": ["ditto", "nginx:ditto"],
+        "content-type": "text/plain",
+        "version": 1
+    },
+    "path": "/inbox/messages/ask",
+    "value": "Hey, how are you?"
+}
+```
+
 ### Responding to a Message
 
 To respond, reuse the original message's `topic` and `correlation-id`, and change the path from `inbox` to `outbox`:
@@ -124,6 +142,23 @@ createTextResponse = function(originalMessage, payload, statusCode) {
       "value": payload
     };
 };
+```
+
+The response sent back via the WebSocket binding would look like:
+
+```json
+{
+    "topic": "org.eclipse.ditto/smartcoffee/things/live/messages/ask",
+    "headers": {
+        "correlation-id": "demo-6qaal9l",
+        "auth-subjects": ["ditto", "nginx:ditto"],
+        "content-type": "text/plain",
+        "version": 1
+    },
+    "path": "/inbox/messages/ask",
+    "status": 418,
+    "value": "I don't know since i am only a coffee machine"
+}
 ```
 
 ### Sending Messages to Features
@@ -164,7 +199,22 @@ Because claiming bypasses normal write permissions, the receiving device must ca
 }
 ```
 
-After verifying the claim, the device grants access by updating the Policy and responds with status `200` or `204`. To reject the claim, respond with a non-success status code.
+After verifying the claim, the device grants access by updating the Policy and responds with
+status `200` or `204`:
+
+```json
+{
+    "topic": "org.eclipse.ditto/smartcoffee/things/live/messages/claim",
+    "headers": {
+        "content-type": "text/plain",
+        "correlation-id": "a-unique-string-for-this-claim-message"
+    },
+    "path": "/inbox/messages/claim",
+    "status": 204
+}
+```
+
+To reject the claim, respond with a non-success status code instead.
 
 ## Further reading
 

@@ -152,6 +152,16 @@ client.twin().registerForThingChanges("my-enriched-changes",
     });
 ```
 
+Combine enrichment with a filter to use extra fields in the filter expression:
+
+```java
+client.twin().startConsumption(
+    Options.Consumption.extraFields(
+        JsonFieldSelector.newInstance("attributes/location")),
+    Options.Consumption.filter("eq(attributes/location,\"kitchen\")")
+).toCompletableFuture().get();
+```
+
 ### Send and receive messages
 
 Register a handler for messages with subject `hello.world`:
@@ -238,6 +248,12 @@ Publisher<List<Thing>> publisher = client.twin().search()
         .options(builder -> builder
             .sort(s -> s.desc("thingId"))
             .size(1)));
+
+// integrate the publisher in the reactive streams library of your choice, e.g. Pekko streams:
+org.apache.pekko.stream.javadsl.Source<Thing, NotUsed> things =
+    org.apache.pekko.stream.javadsl.Source.fromPublisher(publisher)
+        .flatMapConcat(Source::from);
+// .. proceed working with the Pekko Source ..
 ```
 
 ### Request and issue acknowledgements

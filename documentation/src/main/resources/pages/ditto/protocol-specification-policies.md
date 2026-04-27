@@ -45,6 +45,19 @@ Every Policy command can result in an [error](protocol-specification-errors.html
 | `413` | Request Entity Too Large - Policy exceeds the size limit (default: 100 kB). |
 | `429` | Too Many Requests - too many outstanding modifying requests to this Policy. |
 
+## Response and Event conventions
+
+Policy commands follow the same response and event conventions as Thing commands. See
+[Things - Response and Event conventions](protocol-specification-things.html#response-and-event-conventions)
+for the full reference.
+
+Key differences:
+* Policy topics have no `channel` segment.
+* Create/modify: `201` (created, `value` contains the resource) or `204` (modified, no `value`).
+* Retrieve: `200`, `value` contains the requested resource.
+* Delete: `204`, no `value`.
+* All modify and delete commands require WRITE permission on `policy:/` or the targeted sub-resource.
+
 ## Create and modify commands
 
 ### Create a Policy
@@ -57,7 +70,7 @@ Create a Policy with the specified ID and JSON representation.
 | **path** | `/` |
 | **value** | Complete Policy as JSON. See [Policy representation](#policy-representation). |
 
-**Response**: `201` (created).
+**Response**: `201` (created, `value` contains the Policy).
 
 **Example:** [Create a Policy](protocol-examples-policies-createpolicy.html)
 
@@ -71,7 +84,7 @@ If the Policy exists, replace it. If not, create it. You need WRITE permission o
 | **path** | `/` |
 | **value** | Complete Policy as JSON. See [Policy representation](#policy-representation). |
 
-**Response**: `201` (created) or `204` (modified).
+**Response**: `201` (created, `value` contains the Policy) or `204` (modified, no `value`).
 
 **Example:** [Modify a Policy](protocol-examples-policies-modifypolicy.html)
 
@@ -99,7 +112,7 @@ Create or update a single Policy entry identified by `<label>`.
 | **path** | `/entries/<label>` |
 | **value** | Policy entry as JSON. See [Policy representation](#policy-representation). |
 
-**Response**: `201` (created) or `204` (modified).
+**Response**: `201` (created, `value` contains the resource) or `204` (modified, no `value`).
 
 **Example:** [Modify a Policy entry](protocol-examples-policies-modifypolicyentry.html)
 
@@ -125,7 +138,7 @@ Replace all subjects of a Policy entry.
 | **path** | `/entries/<label>/subjects/<subjectId>` |
 | **value** | Subject as JSON. See [Policy representation](#policy-representation). |
 
-**Response**: `201` (created) or `204` (modified).
+**Response**: `201` (created, `value` contains the resource) or `204` (modified, no `value`).
 
 **Example:** [Modify a subject](protocol-examples-policies-modifysubject.html)
 
@@ -151,7 +164,7 @@ Replace all resources of a Policy entry.
 | **path** | `/entries/<label>/resources/<resource>` |
 | **value** | Resource as JSON. See [Policy representation](#policy-representation). |
 
-**Response**: `201` (created) or `204` (modified).
+**Response**: `201` (created, `value` contains the resource) or `204` (modified, no `value`).
 
 **Example:** [Modify a resource](protocol-examples-policies-modifyresource.html)
 
@@ -189,7 +202,7 @@ Replace all imports of the Policy.
 | **path** | `/imports/<importedPolicyId>` |
 | **value** | Import as JSON. See [Policy representation](#policy-representation). |
 
-**Response**: `201` (created) or `204` (modified).
+**Response**: `201` (created, `value` contains the resource) or `204` (modified, no `value`).
 
 **Example:** [Modify an import](protocol-examples-policies-modifyimport.html)
 
@@ -203,7 +216,7 @@ Replace all imports of the Policy.
 | **path** | `/` |
 | **fields** | Optional comma-separated list of fields to include. |
 
-**Response**: `200` with the Policy as JSON.
+**Response**: `200`, `value` contains the Policy as JSON.
 
 **Example:** [Retrieve a Policy](protocol-examples-policies-retrievepolicy.html)
 
@@ -214,7 +227,7 @@ Replace all imports of the Policy.
 | **topic** | `<namespace>/<policyName>/policies/commands/retrieve` |
 | **path** | `/entries` |
 
-**Response**: `200` with all entries as JSON.
+**Response**: `200`, `value` contains all entries as JSON.
 
 **Example:** [Retrieve Policy entries](protocol-examples-policies-retrievepolicyentries.html)
 
@@ -225,7 +238,7 @@ Replace all imports of the Policy.
 | **topic** | `<namespace>/<policyName>/policies/commands/retrieve` |
 | **path** | `/entries/<label>` |
 
-**Response**: `200` with the entry as JSON.
+**Response**: `200`, `value` contains the entry as JSON.
 
 **Example:** [Retrieve a Policy entry](protocol-examples-policies-retrievepolicyentry.html)
 
@@ -247,7 +260,7 @@ Replace all imports of the Policy.
 | **topic** | `<namespace>/<policyName>/policies/commands/retrieve` |
 | **path** | `/entries/<label>/subjects/<subjectId>` |
 
-**Response**: `200` with the subject as JSON.
+**Response**: `200`, `value` contains the subject as JSON.
 
 **Example:** [Retrieve a subject](protocol-examples-policies-retrievesubject.html)
 
@@ -269,7 +282,7 @@ Replace all imports of the Policy.
 | **topic** | `<namespace>/<policyName>/policies/commands/retrieve` |
 | **path** | `/entries/<label>/resources/<resource>` |
 
-**Response**: `200` with the resource as JSON.
+**Response**: `200`, `value` contains the resource as JSON.
 
 **Example:** [Retrieve a resource](protocol-examples-policies-retrieveresource.html)
 
@@ -282,7 +295,7 @@ Retrieve the namespace patterns of a Policy entry.
 | **topic** | `<namespace>/<policyName>/policies/commands/retrieve` |
 | **path** | `/entries/<label>/namespaces` |
 
-**Response**: `200` with the namespace patterns as JSON array, e.g. `["com.acme", "com.acme.*"]`. An empty array means the entry applies to all namespaces.
+**Response**: `200`, `value` contains the namespace patterns as JSON array, e.g. `["com.acme", "com.acme.*"]`. An empty array means the entry applies to all namespaces.
 
 ### Retrieve Policy imports
 
@@ -291,7 +304,7 @@ Retrieve the namespace patterns of a Policy entry.
 | **topic** | `<namespace>/<policyName>/policies/commands/retrieve` |
 | **path** | `/imports` |
 
-**Response**: `200` with all imports as JSON.
+**Response**: `200`, `value` contains all imports as JSON.
 
 **Example:** [Retrieve imports](protocol-examples-policies-retrieveimports.html)
 
@@ -302,7 +315,7 @@ Retrieve the namespace patterns of a Policy entry.
 | **topic** | `<namespace>/<policyName>/policies/commands/retrieve` |
 | **path** | `/imports/<importedPolicyId>` |
 
-**Response**: `200` with the import as JSON.
+**Response**: `200`, `value` contains the import as JSON.
 
 **Example:** [Retrieve an import](protocol-examples-policies-retrieveimport.html)
 

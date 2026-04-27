@@ -68,7 +68,32 @@ For simple configuration changes, use [system properties](operating-configuratio
 
 These files can contain any configuration from the [service config files](operating-configuration.html).
 
-For example, to remove the "connectivity" role from the Gateway health check, create a `gateway-extension.conf` with:
+For example, the [gateway.conf](https://github.com/eclipse-ditto/ditto/blob/master/gateway/service/src/main/resources/gateway.conf)
+contains the following health-check configuration:
+
+```hocon
+ditto {
+  gateway {
+    health-check {
+      cluster-roles = {
+        enabled = true
+        enabled = ${?HEALTH_CHECK_ROLES_ENABLED}
+
+        expected = [
+          "policies",
+          "things",
+          "search",
+          "gateway",
+          "connectivity"
+        ]
+      }
+    }
+  }
+}
+```
+
+To remove the "connectivity" role from the health check (e.g. when not starting `ditto-connectivity`
+at all), create a `gateway-extension.conf` with:
 
 ```hocon
 ditto.gateway.health-check.cluster-roles = {

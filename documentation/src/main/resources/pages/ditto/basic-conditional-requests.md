@@ -157,15 +157,32 @@ Given this Thing state:
 ```json
 {
   "thingId": "org.eclipse.ditto:fancy-thing",
+  "policyId": "org.eclipse.ditto:fancy-thing",
+  "attributes": {
+    "location": "kitchen",
+    "manufacturer": "ACME Corp",
+    "lastMaintenance": "2023-01-15T10:30:00Z"
+  },
   "features": {
     "temperature": {
-      "properties": { "value": 15 }
+      "properties": {
+        "value": 15,
+        "unit": "celsius",
+        "lastUpdated": "2023-01-20T14:30:00Z"
+      }
     },
     "humidity": {
-      "properties": { "value": 90 }
+      "properties": {
+        "value": 90,
+        "unit": "percent",
+        "lastUpdated": "2023-01-20T14:30:00Z"
+      }
     },
     "status": {
-      "properties": { "state": "active" }
+      "properties": {
+        "state": "active",
+        "mode": "automatic"
+      }
     }
   }
 }
@@ -185,6 +202,16 @@ In this example:
 - `humidity` is not updated (90 is not < 80)
 - `status` is always updated (no condition)
 
+The same call can also target the `/features` path with adjusted condition keys.
+Notice that conditions are still relative to the root of the Thing, only the key paths are adjusted:
+
+```bash
+curl -X PATCH -H 'Content-Type: application/merge-patch+json' \
+    -H 'merge-thing-patch-conditions: {"temperature/properties/value": "gt(features/temperature/properties/value,20)", "humidity/properties/value": "lt(features/humidity/properties/value,80)"}' \
+    http://localhost:8080/api/2/things/org.eclipse.ditto:fancy-thing/features \
+    -d '{"temperature": {"properties": {"value": 25}}, "humidity": {"properties": {"value": 60}}, "status": {"properties": {"state": "updated"}}}'
+```
+
 #### Ditto Protocol
 
 ```json
@@ -195,6 +222,9 @@ In this example:
   },
   "path": "/",
   "value": {
+    "attributes": {
+      "lastMaintenance": "2023-01-20T15:00:00Z"
+    },
     "features": {
       "temperature": { "properties": { "value": 25 } },
       "humidity": { "properties": { "value": 60 } },
@@ -215,6 +245,9 @@ Option<Map<String, String>> condOption = Options.mergeThingPatchConditions(patch
 
 client.twin().forId(ThingId.of("org.eclipse.ditto:fancy-thing"))
         .merge(JsonObject.newBuilder()
+                .set("attributes", JsonObject.newBuilder()
+                        .set("lastMaintenance", "2023-01-20T15:00:00Z")
+                        .build())
                 .set("features", JsonObject.newBuilder()
                         .set("temperature", JsonObject.newBuilder()
                                 .set("properties", JsonObject.newBuilder()
@@ -242,7 +275,58 @@ client.twin().forId(ThingId.of("org.eclipse.ditto:fancy-thing"))
 
 **Default**: `false` (empty objects preserved for backward compatibility).
 
-When enabled, Ditto recursively removes empty JSON objects created by condition filtering. This prevents unnecessary database operations when all parts of a merge patch are filtered out.
+When enabled, Ditto recursively removes empty JSON objects created by condition filtering. This
+prevents unnecessary database operations when all parts of a merge patch are filtered out.
+
+**Example scenario** -- given this Thing state:
+
+```json
+{
+  "features": {
+    "temp": { "properties": { "value": 15 } },
+    "hum": { "properties": { "value": 70 } }
+  }
+}
+```
+
+Merge payload:
+
+```json
+{
+  "features": {
+    "temp": { "properties": { "value": 25 } },
+    "hum": { "properties": { "value": 60 } }
+  }
+}
+```
+
+Patch conditions (both evaluate to `false`):
+
+```json
+{
+  "features/temp/properties/value": "gt(features/temp/properties/value,30)",
+  "features/hum/properties/value": "lt(features/hum/properties/value,50)"
+}
+```
+
+**Result with configuration disabled** (default) -- empty objects preserved, database operation
+still occurs:
+
+```json
+{
+  "features": {
+    "temp": { "properties": {} },
+    "hum": { "properties": {} }
+  }
+}
+```
+
+**Result with configuration enabled** -- completely empty payload, database operation skipped
+entirely (no storage, no event emission, no new revision):
+
+```json
+{}
+```
 
 For configuration details, see [Merge operations configuration](operating-configuration.html#merge-operations-configuration).
 

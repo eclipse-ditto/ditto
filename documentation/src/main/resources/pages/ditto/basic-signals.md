@@ -15,7 +15,19 @@ that already happened), and Announcements (advance notices of upcoming changes).
 ## Overview
 
 Ditto follows the <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.cqrs}}">CQRS</a> and
-Event Sourcing architectural patterns. Every change goes through a well-defined flow:
+Event Sourcing architectural patterns.
+[This page](https://cqrs.nu/Faq) provides a good explanation of the basic concepts:
+
+> People request changes to the domain by sending commands.
+They are named with a verb in the imperative mood plus and may include the aggregate type, for example
+`ConfirmOrder`. Unlike an event, a command is not a statement of fact; it's only a request, and thus may be refused.
+
+> An event represents something that took place in the domain.
+They are always named with a past-participle verb, such as `OrderConfirmed`.
+Since an event represents something in the past, it can be considered a statement of fact and used to take decisions in
+other parts of the system.
+
+Every change goes through a well-defined flow:
 
 1. A **Command** arrives requesting a change or a query.
 2. Ditto processes it and sends back either a **Command Response** (success) or an **Error Response**
@@ -35,6 +47,8 @@ through its entire lifecycle.
 
 Commands are requests to change or retrieve data from a digital twin or a connected device. Every
 command targets a specific entity by its ID (for example, a Thing ID).
+
+See [Commands detail](basic-signals-command.html) for the full command lifecycle.
 
 ### Modify commands
 
@@ -64,6 +78,8 @@ A command response is the reply to a command. It tells you whether the operation
 
 If something goes wrong, you receive an [error response](#error-responses) instead.
 
+See [Command Responses detail](basic-signals-commandresponse.html) for response structure and examples.
+
 ## Error Responses
 
 When a command or [message](basic-messages.html) fails, Ditto sends an error response explaining
@@ -75,6 +91,7 @@ what went wrong. Failures can happen for many reasons:
 * Internal server errors
 
 The [Ditto Protocol for Errors](protocol-specification-errors.html) defines the error response format.
+See also [Error Responses detail](basic-signals-errorresponse.html).
 
 Example error responses:
 * [Things error responses](protocol-examples-errorresponses.html)
@@ -84,6 +101,8 @@ Example error responses:
 
 Events record that something **already happened**. They are past tense and irreversible -- the
 change is already persisted.
+
+See [Events detail](basic-signals-event.html) for event structure and persistence.
 
 Events serve three purposes in Ditto:
 
@@ -108,6 +127,8 @@ credentials.
 Announcements are published to authorized subscribers via the
 [WebSocket API](httpapi-protocol-bindings-websocket.html) and
 [connection targets](basic-connections.html#targets).
+
+See [Announcements detail](basic-signals-announcement.html) for announcement types and examples.
 
 ## Communication pattern summary
 
