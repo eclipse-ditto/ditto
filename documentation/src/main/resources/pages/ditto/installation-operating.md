@@ -601,7 +601,7 @@ Namespace access control is configured via `ditto.gateway.authentication.namespa
 
 A list of **rules** is defined. Each rule can specify:
 - **`conditions`** (AND semantics): a list of placeholder expressions that must all evaluate to a non-empty value for
-  the rule to apply. Placeholders: `{{ jwt:claim }}` for JWT claims, `{{ header:name }}` for HTTP headers.
+  the rule to apply. Placeholders: `{%raw%}{{ jwt:claim }}{%endraw%}` for JWT claims, `{%raw%}{{ header:name }}{%endraw%}` for HTTP headers.
   Functions `fn:filter` and `fn:default` can be used (see below).
 - **`resource-types`**: list of resource types this rule applies to (`"thing"`, `"policy"`).
   An empty list means the rule applies to all resource types.
@@ -634,6 +634,7 @@ search is handled via the `namespaces` parameter instead.
 
 ### Configuration example
 
+{%raw%}
 ```hocon
 ditto.gateway.authentication {
   namespace-access = [
@@ -654,14 +655,17 @@ ditto.gateway.authentication {
   ]
 }
 ```
+{%endraw%}
 
 ### Using `fn:default` before `fn:filter` for optional headers
 
 When a condition references an HTTP header that may be absent, always add `fn:default` before `fn:filter`:
 
+{%raw%}
 ```
 "{{ header:someheader | fn:default('safe') | fn:filter('ne','dangerous') }}"
 ```
+{%endraw%}
 
 Without `fn:default`, an absent header produces an empty pipeline result which causes the entire condition to fail.
 This would silently bypass the rule rather than enforcing it, which is a security footgun.
