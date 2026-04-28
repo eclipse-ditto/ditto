@@ -74,6 +74,7 @@
                         import { PagefindUI } from "https://cdn.jsdelivr.net/npm/@pagefind/default-ui@1.5.2/+esm";
                         var pf = new PagefindUI({
                             element: "#search",
+                            bundlePath: window.location.origin + "{{ site.baseurl }}/pagefind/",
                             showSubResults: true,
                             showImages: false
                         });
