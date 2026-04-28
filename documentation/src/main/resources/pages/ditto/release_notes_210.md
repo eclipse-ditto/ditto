@@ -68,7 +68,7 @@ A discussion of how a WoT "Thing Model" can be mapped to an Eclipse Ditto "Thing
 
 #### [Addition of category "misconfigured" for current connection status](https://github.com/eclipse-ditto/ditto/pull/1151)
 
-When [retrieving the connection status](connectivity-manage-connections.html#retrieve-connection-status), a connection 
+When [retrieving the connection status](connectivity-manage-connections.html#connection-status), a connection 
 was previously in status `"failed"` when e.g. the credentials to an endpoint were wrong or a queue in a message broker
 was not existing.
 

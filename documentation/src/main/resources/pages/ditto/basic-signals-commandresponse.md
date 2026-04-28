@@ -5,8 +5,4 @@ tags: [signal]
 permalink: basic-signals-commandresponse.html
 ---
 
-CommandResponses are the answer to [Commands](basic-signals-command.html) and include information about whether the
-intention of changing something via a `ModifyCommand` has worked or if there was an [Error](basic-signals-errorresponse.html) 
-instead.
-
-The CommandResponse of QueryCommands contains the requested information.
+{% include callout.html content="This content has been merged into the [Signals & Communication Pattern](basic-signals.html#command-responses) page. Please refer to that page for full details on command responses." type="primary" %}

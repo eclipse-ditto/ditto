@@ -31,7 +31,7 @@ The Helm chart configuration for the Ditto search index throttling contained a t
 #### Fix migrate thing definition validation issue for dry-runs
 
 PR [#2136](https://github.com/eclipse-ditto/ditto/pull/2136) fixes an issue where the error message of a "dry-run" 
-[migration of a thing's definition](httpapi-concepts.html#things-in-api-2---migrate-thing-definitions) (added in 
+[migration of a thing's definition](httpapi-concepts.html#things-endpoints---migrate-thing-definitions) (added in 
 Ditto 3.7.0) was not correctly returned in case of validation errors.
 
 #### Fix pre-defined extraFields caused missing extra data for thing creation events

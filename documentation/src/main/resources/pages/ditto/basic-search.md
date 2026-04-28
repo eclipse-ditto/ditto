@@ -5,93 +5,75 @@ tags: [search, rql]
 permalink: basic-search.html
 ---
 
-Ditto provides a search functionality as one of the services around its managed **digital twins**.
-The functionality is available for the following APIs.
+Ditto provides a search service that lets you query across all managed digital twins using [RQL expressions](basic-rql.html).
+
+{% include callout.html content="**TL;DR**: You search Things using RQL filter expressions, with results sorted and paged. The search index updates asynchronously (eventual consistency) -- typically within 1-2 seconds." type="primary" %}
+
+## Overview
+
+You can access the search functionality through three APIs:
 
 | API | Access Method | Characteristics |
-|-----|---------------|-----------------|
-|[HTTP](httpapi-search.html)|HTTP request-response|Stateless|
-|[Ditto protocol](protocol-specification-things-search.html)|[Websocket](httpapi-protocol-bindings-websocket.html) and [connections](basic-connections.html)| [Reactive-streams](https://reactive-streams.org) compatible |
-|[Server-sent events](httpapi-sse.html#sse-api-searchthings)|[HTML5 server-sent events](https://html.spec.whatwg.org/multipage/server-sent-events.html)|Streaming with resumption|
+|---|---|---|
+| [HTTP](httpapi-search.html) | HTTP request-response | Stateless |
+| [Ditto protocol](protocol-specification-things-search.html) | [WebSocket](httpapi-protocol-bindings-websocket.html) and [connections](basic-connections.html) | [Reactive-streams](https://reactive-streams.org) compatible |
+| [Server-sent events](httpapi-sse.html#sse-for-search-results) | [HTML5 server-sent events](https://html.spec.whatwg.org/multipage/server-sent-events.html) | Streaming with resumption |
 
-## Search index
+## How it works
 
-Ditto's microservice [things-search](architecture-services-things-search.html) automatically consumes all 
-[events](basic-signals-event.html) which are emitted for changes to `Things` and `Policies` and updates an for search 
-optimized representation of the `Thing` data into its own database.
+### Search index
 
-No custom indexes have to be defined as the structure in the database is "flattened" so that all data contained in 
-[Things](basic-thing.html) can be searched for efficiently.
+Ditto's [things-search](architecture-services-things-search.html) microservice automatically consumes all [events](basic-signals-event.html) emitted for changes to `Things` and `Policies`. It updates a search-optimized representation in its own database.
 
-## Consistency
+You do not need to define custom indexes. The database structure is "flattened" so that all data in [Things](basic-thing.html) can be searched efficiently.
 
-Ditto's search index provides **eventual consistency**.
+### Consistency
 
-In order to reduce load to the database when processing updates in a high frequency, the search index is updated 
-with a default interval of 1 second (configurable via environment variable `THINGS_SEARCH_UPDATER_STREAM_WRITE_INTERVAL`).
+The search index provides **eventual consistency**. Updates are written at a default interval of 1 second (configurable via `THINGS_SEARCH_UPDATER_STREAM_WRITE_INTERVAL`).
 
-That means that when a thing is updated and the API (e.g. the HTTP endpoint) returns a success response, the search index
-will not reflect that change in that instant. The change will most likely be reflected in the search index within
-1-2 seconds. In rare cases the duration until consistency is reached again might be higher.
+When you update a Thing and receive a success response, the search index does not reflect that change immediately. The change typically appears within 1-2 seconds.
 
-If it is important to know when a twin modification is reflected in the search index, request the
-[built-in acknowledgement](basic-acknowledgements.html#built-in-acknowledgement-labels) `search-persisted` 
-in the corresponding command.  
-Search index update is successful if the status code of `search-persisted` in the command response is 204 "no content".
-Status codes at or above 400 indicate failed search index update due to client or server errors.
+If you need to know when a modification is reflected in the search index, request the [built-in acknowledgement](basic-acknowledgements.html#built-in-acknowledgement-labels) `search-persisted` in the command. A status code of `204` confirms successful index update. Status codes at or above `400` indicate failure.
 
 ## Search queries
 
-Queries can be made via Ditto's APIs ([HTTP](httpapi-search.html) or 
-[Ditto Protocol](protocol-specification-things-search.html) e.g. via [WebSocket](httpapi-protocol-bindings-websocket.html)).
+You formulate search queries using the Ditto-supported subset of [RQL](basic-rql.html). Queries work through the [HTTP API](httpapi-search.html) or the [Ditto Protocol](protocol-specification-things-search.html) (e.g., via [WebSocket](httpapi-protocol-bindings-websocket.html)).
 
-Search queries are formulated using the by Ditto supported subset of [RQL](basic-rql.html).
+### Querying scalar JSON values
 
-### Search queries on scalar JSON values
+The [query property](basic-rql.html#query-property) can target scalar JSON values: booleans, numbers, or strings.
 
-The [query property](basic-rql.html#query-property) used in a search can contain either a scalar JSON value:
-* JSON boolean
-* JSON number
-* JSON string
+**Example** -- find all Things located in "living-room", sorted ascending by Thing ID, returning the first 5 results:
 
-**Example:** Search for all things located in "living-room", reorder the list to start with the lowest thing ID as
-the first element, and return the first 5 results:
-```
+```text
 Filter:     eq(attributes/location,"living-room")
 Sorting:    sort(+thingId)
 Paging:     size(5),cursor(CURSOR_ID)
 ```
 
-### Search queries in JSON arrays
+### Querying JSON arrays
 
-Or the [query property](basic-rql.html#query-property) used in a search it can also contain a JSON array.  
-The search index will index any values in that array, even arrays if mixed types are supported.
+The query property can also target JSON arrays. Ditto indexes all values in the array, including mixed types.
 
-For example, assuming that we have the following thing containing special "tags" of different types:
+Given a Thing with tags of different types:
+
 ```json
 {
   "thingId": "org.eclipse.ditto:tagged-thing-1",
   "policyId": "org.eclipse.ditto:tagged-thing-1",
   "attributes": {
     "tags": [
-      "misc",
-      "no-due-date",
-      "high-priority",
-      2,
-      3,
-      5,
-      false,
-      {
-        "room": "kitchen",
-        "floor": 2
-      }
+      "misc", "no-due-date", "high-priority",
+      2, 3, 5, false,
+      { "room": "kitchen", "floor": 2 }
     ]
   }
 }
 ```
 
-We can formulate various different queries on different scalar values:
-```
+You can query against scalar values in the array:
+
+```text
 eq(attributes/tags,"high-priority")
 -> match:       "high-priority" is contained
 
@@ -111,97 +93,94 @@ gt(attributes/tags,6)
 -> no match:    as no number > 6 is contained
 ```
 
-And we can even formulate queries on JSON objects contained in the JSON array:
+You can also query JSON objects inside the array:
+
+```text
+exists(attributes/tags/room)            -> match
+eq(attributes/tags/room,"kitchen")      -> match
+ge(attributes/tags/floor,2)             -> match
 ```
-exists(attributes/tags/room)
--> match:       array contains one object having a key "room"
-
-eq(attributes/tags/room,"kitchen")
--> match:       array contains one object with "room"="kitchen"
-
-ge(attributes/tags/floor,2)
--> match:       array contains one object where floor is >= 2
-```
-
 
 ## Search count queries
 
-The same syntax applies for search count queries - only the [sorting](basic-rql.html#rql-sorting) and 
-[paging](#rql-paging-deprecated) makes no sense here, so there are not necessary to specify. 
-
+Count queries use the same filter syntax. Sorting and paging options are not applicable for count queries.
 
 ## Namespaces
 
-The Search supports specifying in which `namespaces` it should be searched. This may significantly improve the search 
-performance when many Things of different namespaces are managed in Ditto's search index.  
-
+You can restrict the search to specific `namespaces`. This can significantly improve performance when many Things from different namespaces exist in the index.
 
 ## RQL
 
-In order to apply queries when searching, Ditto uses the [RQL notation](basic-rql.html) which is also applied for other 
-scenarios (e.g. filtering [notifications](basic-changenotifications.html)).
-
+Ditto uses [RQL notation](basic-rql.html) for search queries and other scenarios such as filtering [notifications](basic-changenotifications.html).
 
 ## Sorting and paging options
 
-The [`sort` option](basic-rql.html#rql-sorting) governs the order of search results.
+### Sorting
 
-```
+The [`sort` option](basic-rql.html#rql-sorting) controls the order of search results:
+
+```text
 sort(<+|-><property1>,<+|-><property2>,...)
 ```
 
-If not given, search results are listed in the ascending order of thing IDs, namely `sort(+thingId)`.
+If not specified, results are sorted ascending by Thing ID: `sort(+thingId)`.
 
-The `size` option
-```
+### Paging with cursor
+
+The `size` option limits results per response:
+
+```text
 size(<count>)
 ```
-limits the search results delivered in one HTTP response or one Ditto protocol message to `<count>` items.
 
-If the paging option is not explicitly specified a **default value** of _25_ is used. 
-The **maximum** allowed count is _200_.
+Default: **25**. Maximum: **200**.
 
-```
+Use cursor-based paging to iterate through large result sets:
+
+```text
 cursor(<cursor-id>)
 ```
-Starts the search at the position of the cursor with ID `<cursor-id>`. The cursor ID is obtained from the field 
-`cursor` of a previous response and marks the **position after the last entry** of the previous search. A response 
-includes no cursor if there are no more results.
 
-If a request has a `cursor` option, then any included `filter` or `sort` option may not differ from the original request 
-of the cursor. Otherwise, the request is rejected.
+The cursor ID comes from the `cursor` field of a previous response and marks the position after the last returned entry. No cursor in the response means no more results.
 
-**Example - return ten items with a cursor**
-```
+If a request includes a `cursor`, the `filter` and `sort` options must match the original request that produced the cursor.
+
+**Example** -- return ten items with a cursor:
+
+```text
 option=size(10),cursor(<cursor-from-previous-result>)
 ```
 
 ## RQL paging (deprecated)
 
-{% include note.html content="The limit option is deprecated, it may be removed in future releases. Use [cursor-based 
+{% include note.html content="The limit option is deprecated, it may be removed in future releases. Use [cursor-based
 paging](basic-search.html#sorting-and-paging-options) instead." %}
 
-The RQL limiting part specifies which part (or "page") should be returned of a large search result set.
+The `limit` option specifies which page to return:
 
-```
+```text
 limit(<offset>,<count>)
 ```
 
-Limits the search results to `<count>` items, starting with the item at index `<offset>`. 
-* if the paging option is not explicitly specified, the **default** value `limit(0,25)` is used, 
-  i.e. the first `25` results are returned.
-* the **maximum** allowed count is `200`.
+Default: `limit(0,25)`. Maximum count: `200`.
 
-**Example - return the first ten items**
-```
+**Example** -- return the first ten items:
+
+```text
 limit(0,10)
 ```
 
-**Example - return the items 11 to 20**
-```
+**Example** -- return items 11 to 20:
+
+```text
 limit(10,10)
 ```
-i.e. Return the next ten items (from index 11 to 20)
 
 {% include note.html content="We recommend **not to use high offsets** (e.g. higher than 10000) for paging
     because of potential performance degradations." %}
+
+## Further reading
+
+- [RQL expressions](basic-rql.html) -- query language reference
+- [Search protocol](protocol-specification-things-search.html) -- reactive-streams search via Ditto Protocol
+- [HTTP search API](httpapi-search.html) -- REST-based search

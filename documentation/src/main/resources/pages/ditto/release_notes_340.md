@@ -56,7 +56,7 @@ In [#1706](https://github.com/eclipse-ditto/ditto/pull/1706) support for the add
 search HTTP API `/api/2/search/things` and `/api/2/search/things/count` was added.  
 This is beneficial if the passed in [RQL search query](basic-search.html#rql) would get too long to send via query 
 parameter of the `GET` verb.  
-Documentation was added [here](httpapi-search.html#post) and in the [OpenAPI documentation](http-api-doc.html#/Things-Search/post_api_2_search_things).
+Documentation was added [here](httpapi-search.html#search-with-post) and in the [OpenAPI documentation](http-api-doc.html#/Things-Search/post_api_2_search_things).
 
 #### Addition of a new placeholder to use in connections to use payload of the thing JSON e.g. in headers or addresses
 

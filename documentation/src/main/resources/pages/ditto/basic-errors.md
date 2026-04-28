@@ -5,56 +5,59 @@ tags: [model]
 permalink: basic-errors.html
 ---
 
-Errors are datatypes containing information about occurred failures which were either
-cause by the user or appeared in the server.  
+Errors are structured responses that describe failures caused by client mistakes or server problems.
 
-## Error model specification
+{% include callout.html content="**TL;DR**: Every error includes an HTTP `status` code, an `error` code string, a human-readable `message`, and an optional `description` with resolution hints. Use the `status` code for programmatic handling -- the `error` code string may change without notice." type="primary" %}
+
+## Overview
+
+When a Ditto operation fails, Ditto returns an error response containing details about what went wrong and how you might fix it.
+
+## Error model
 
 {% include docson.html schema="jsonschema/error.json" %}
 
 ### Status
 
-The "status" uses HTTP status codes semantics (see [RFC 7231](https://tools.ietf.org/html/rfc7231#section-6))
-to indicate whether a specific command has been successfully completed, or not.
+The `status` field uses HTTP status code semantics (see [RFC 7231](https://tools.ietf.org/html/rfc7231#section-6)) to indicate whether a command succeeded or failed.
 
-These "status" codes can be seen as API/contract which will be always the same for a specific error.  
-Use the "status" in order to identify an error, as the additional "error" and "description" might change
-without prior notice.
+The `status` code is part of Ditto's stable API. Use it to identify and handle errors programmatically.
 
-### Error
+### Error code
 
-A Ditto error contains an "error" code which is a string identifier that uniquely identifies the error.
+The `error` field contains a string identifier that uniquely identifies the error type (e.g., `things:attribute.notfound`).
 
-These error codes Ditto provides in addition to the HTTP **status** code are not to be considered as API and must 
-therefore not be relied on.  
-They might change without prior notice.
+These error codes are **not** part of the stable API and may change without notice. Do not rely on them for programmatic error handling.
 
-Ditto itself uses the following prefixes for its error codes:
+Ditto uses these prefixes for its error codes:
 
-* `things:` - for errors related to [things](basic-thing.html)
-* `policies:` - for errors related to [policies](basic-policy.html)
-* `things-search:` - for errors related to the [things search](basic-search.html)
-* `acknowledgement:` - for errors related to [acknowledgements](basic-acknowledgements.html)
-* `messages:` - for errors related to [messages](basic-messages.html)
-* `placeholder:` - for errors related to [placeholders](basic-placeholders.html)
-* `jwt:` - for errors related to <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.jwt}}">JWT</a> based [authentication](basic-auth.html)
-* `gateway:` - for errors produced by the (HTTP/WS) [gateway](architecture-services-gateway.html) service
-* `connectivity:` - for errors produced by the [connectivity](architecture-services-connectivity.html) service
+| Prefix | Domain |
+|---|---|
+| `things:` | [Things](basic-thing.html) |
+| `policies:` | [Policies](basic-policy.html) |
+| `things-search:` | [Things search](basic-search.html) |
+| `acknowledgement:` | [Acknowledgements](basic-acknowledgements.html) |
+| `messages:` | [Messages](basic-messages.html) |
+| `placeholder:` | [Placeholders](basic-placeholders.html) |
+| `jwt:` | <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.jwt}}">JWT</a>-based [authentication](basic-auth.html) |
+| `gateway:` | [Gateway](architecture-services-gateway.html) service |
+| `connectivity:` | [Connectivity](architecture-services-connectivity.html) service |
 
 ### Message
 
-The error "message" contains a short message describing the encountered problem in plain english text.
+The `message` field contains a short, human-readable description of the problem.
 
 ### Description
 
-The optional error "description" describes in more detail how the error could be resolved.
+The optional `description` field provides more detail on how to resolve the error.
 
 ### Href
 
-The optional href contains a link to Ditto documentation or external resources in order to help to resolve the error.
-
+The optional `href` field links to Ditto documentation or external resources that help resolve the error.
 
 ## Examples
+
+A "not found" error:
 
 ```json
 {
@@ -64,6 +67,8 @@ The optional href contains a link to Ditto documentation or external resources i
   "description": "Check if the ID of the thing and the key of your requested attribute was correct and you have sufficient permissions."
 }
 ```
+
+An "invalid ID" error:
 
 ```json
 {
@@ -75,3 +80,7 @@ The optional href contains a link to Ditto documentation or external resources i
 }
 ```
 
+## Further reading
+
+- [Protocol errors](protocol-specification-errors.html) -- error format in Ditto Protocol messages
+- [Protocol specification](protocol-specification.html) -- the full message format reference

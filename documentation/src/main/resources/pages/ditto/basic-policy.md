@@ -802,8 +802,8 @@ namespace <code>org.eclipse.ditto</code> (the pattern requires at least one sub-
 
 ## Tools for editing a Policy
 
-The Policy can be edited with a text editor of your choice.
-Just make sure it is in valid JSON representation, and that at least one valid subject is granted write permission at
+You can edit the Policy with any text editor.
+Make sure it is valid JSON and that at least one valid subject is granted write permission at
 the root resources.
 
   {%
@@ -817,7 +817,7 @@ granted or revoked the permissions your use case is supposed to support.
 
 ## Example
 
-Given you need to support the following scenario:
+Consider this access control scenario:
 
 * Owner: The Thing *my.namespace:thing-0123* is owned by a user. Thus, she needs full access and admin rights for the
   complete Thing.

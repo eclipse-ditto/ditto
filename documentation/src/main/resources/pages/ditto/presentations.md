@@ -5,103 +5,106 @@ permalink: presentations.html
 topnav: topnav
 ---
 
-This page contains a collection of presentations, videos and workshops about Eclipse Ditto, sorted from most recent ones downwards.
+Browse presentations, videos, and workshops about Eclipse Ditto, sorted from most recent to oldest.
 
-## 27.02.2024 Eclipse Ditto project update in Eclipse IoT monthly WG meeting
+{% include callout.html content="**TL;DR**: Browse slide decks and recorded talks covering Eclipse Ditto -- from project status updates at EclipseCon to deep-dive introductions and hands-on workshops." type="primary" %}
 
-Topic: Status of the project in 2024
+## 2024
 
-The slides can be found here: [2024_02_27_eclipse-iot-wg-update](slides/2024_02_27_eclipse-iot-wg-update/index.html).
+### Eclipse IoT WG Meeting -- Project Update (February 27, 2024)
 
-## 26.01.2023 Eclipse Ditto in 30 minutes
+Status of the project in 2024.
 
-Topic: Short 30 minutes overview of Eclipse Ditto
+Slides: [2024_02_27_eclipse-iot-wg-update](slides/2024_02_27_eclipse-iot-wg-update/index.html)
 
-The slides can be found here: [2023_01_ditto-in-30-min](slides/2023_01_ditto-in-30-min/index.html).
+## 2023
 
+### Eclipse Ditto in 30 Minutes (January 26, 2023)
 
-## 24.10.2022 EclipseCon Europe 2022 Community Day
+A short 30-minute overview of Eclipse Ditto.
 
-Topic: Project status update of Eclipse Ditto
+Slides: [2023_01_ditto-in-30-min](slides/2023_01_ditto-in-30-min/index.html)
 
-The slides can be found here: [2022_10_24_eclipse-iot-wg-community-day](slides/2022_10_24_eclipse-iot-wg-community-day/index.html).
+## 2022
 
+### EclipseCon Europe 2022 Community Day (October 24, 2022)
 
-## 13.10.2022 Web of Things Community Meetup 1 - Digital Twins
+Project status update of Eclipse Ditto.
 
-Topic: Eclipse Ditto and Web of Things
+Slides: [2022_10_24_eclipse-iot-wg-community-day](slides/2022_10_24_eclipse-iot-wg-community-day/index.html)
 
-The slides can be found here: [2022_10_ditto-and-wot](slides/2022_10_ditto-and-wot/index.html).
+### Web of Things Community Meetup 1 -- Digital Twins (October 13, 2022)
 
+Eclipse Ditto and Web of Things.
 
-## 25.10.2021 EclipseCon Europe 2021 Community Day
+Slides: [2022_10_ditto-and-wot](slides/2022_10_ditto-and-wot/index.html)
 
-Topic: Project status update of Eclipse Ditto
+## 2021
 
-The slides can be found here: [2021_10_25-eclipse-iot-wg-community-day](slides/2021_10_25-eclipse-iot-wg-community-day/index.html).
+### EclipseCon Europe 2021 Community Day (October 25, 2021)
 
+Project status update of Eclipse Ditto.
 
-## 22.06.2021 Eclipse IoT WorkingGroup status update
+Slides: [2021_10_25-eclipse-iot-wg-community-day](slides/2021_10_25-eclipse-iot-wg-community-day/index.html)
 
-Topic: Eclipse Ditto™ 2.0: Changes and roadmap
+### Eclipse IoT WG Status Update (June 22, 2021)
 
-The slides can be found here: [2021_06_ditto-20-overview](slides/2021_06_ditto-20-overview/index.html).
+Eclipse Ditto 2.0: Changes and roadmap.
 
+Slides: [2021_06_ditto-20-overview](slides/2021_06_ditto-20-overview/index.html)
 
-## 19.10.2020 EclipseCon Europe 2020 Community Day
+## 2020
 
-Topic: Project status update of Eclipse Ditto
+### EclipseCon Europe 2020 Community Day (October 19, 2020)
 
-The slides can be found here: [2020_10_19-eclipse-iot-wg-community-day](slides/2020_10_19-eclipse-iot-wg-community-day/index.html).
+Project status update of Eclipse Ditto.
 
+Slides: [2020_10_19-eclipse-iot-wg-community-day](slides/2020_10_19-eclipse-iot-wg-community-day/index.html)
 
-## 28.07.2020 Eclipse IoT WorkingGroup status update
+### Eclipse IoT WG Status Update (July 28, 2020)
 
-Topic: Eclipse Ditto: Eclipse IoT WG status update
+Eclipse Ditto: Eclipse IoT WG status update.
 
-The slides can be found here: [2020_07_28-iot-wg-status-update](slides/2020_07_28-iot-wg-status-update/index.html).
+Slides: [2020_07_28-iot-wg-status-update](slides/2020_07_28-iot-wg-status-update/index.html)
 
+### The Things Network Virtual Conference -- #StayHome (April 16, 2020)
 
-## 16.04.2020 The Things Network Virtual Conference 2020 #StayHome
-
-Topic: Eclipse Ditto: Digital Twins as part of an open IoT platform
+Eclipse Ditto: Digital Twins as part of an open IoT platform.
 
 {% include youtube.html youtube-id="D33JrN2RWiI" width="560" height="315" %}
 
-The slides can be found here: [2020_04_16-ttn-virtual-conference](slides/2020_04_16-ttn-virtual-conference/index.html).
+Slides: [2020_04_16-ttn-virtual-conference](slides/2020_04_16-ttn-virtual-conference/index.html)
 
-The blogpost for the hands-on part, connecting Ditto to The Things Network via MQTT can be found 
-[here](2020-04-16-connecting-to-ttn-via-mqtt.html).
+The hands-on blog post about connecting Ditto to The Things Network via MQTT is available [here](2020-04-16-connecting-to-ttn-via-mqtt.html).
 
-## 21.10.2019 EclipseCon Europe 2019 in Ludwigsburg
+## 2019
 
-Topic: Project status update of Eclipse Ditto
+### EclipseCon Europe 2019 in Ludwigsburg (October 21, 2019)
 
-The slides can be found here: [2019_10_21-eclipse-iot-wg-f2f-ludwigsburg](slides/2019_10_21-eclipse-iot-wg-f2f-ludwigsburg/index.html).
+Project status update of Eclipse Ditto.
 
+Slides: [2019_10_21-eclipse-iot-wg-f2f-ludwigsburg](slides/2019_10_21-eclipse-iot-wg-f2f-ludwigsburg/index.html)
 
-## 22.10.2018 EclipseCon Europe 2018 in Ludwigsburg
+## 2018
 
-Topic: Project status update of Eclipse Ditto
+### EclipseCon Europe 2018 in Ludwigsburg (October 22, 2018)
 
-The slides can be found here: [2018_10_22-eclipse-iot-wg-f2f-ludwigsburg](slides/2018_10_22-eclipse-iot-wg-f2f-ludwigsburg/index.html).
+Project status update of Eclipse Ditto.
 
-## 23.05.2018 IoT Hessen Meetup during webweek rhein-main /18
+Slides: [2018_10_22-eclipse-iot-wg-f2f-ludwigsburg](slides/2018_10_22-eclipse-iot-wg-f2f-ludwigsburg/index.html)
 
-Topic: "Digital twins with Eclipse Ditto"
+### IoT Hessen Meetup -- webweek rhein-main (May 23, 2018)
 
-Organized via [Meetup](https://www.meetup.com/IoT-Hessen/events/248886802/) by Diana Kupfer from codecentric.
+"Digital twins with Eclipse Ditto" -- organized via [Meetup](https://www.meetup.com/IoT-Hessen/events/248886802/) by Diana Kupfer from codecentric.
 
-The slides can be found here: [2018_05_23-meetup-iot-hessen](slides/2018_05_23-meetup-iot-hessen/index.html).
+Slides: [2018_05_23-meetup-iot-hessen](slides/2018_05_23-meetup-iot-hessen/index.html)
 
-The code of the showed live demo can be found in our [ditto-examples](https://github.com/eclipse-ditto/ditto-examples/tree/master/octopus-via-hono).
+The live demo code is available in [ditto-examples](https://github.com/eclipse-ditto/ditto-examples/tree/master/octopus-via-hono).
 
-## 07.02.2018 Virtual IoT Meetup
+### Virtual IoT Meetup (February 7, 2018)
 
-Topic: "Digital twins go open source: Eclipse Ditto introduction"
-u
-On 07.02.2018 we gave an introduction into Eclipse Ditto via [Meetup](https://www.meetup.com/Virtual-IoT/events/247048104/).
+"Digital twins go open source: Eclipse Ditto introduction" -- presented via [Meetup](https://www.meetup.com/Virtual-IoT/events/247048104/).
 
 {% include youtube.html youtube-id="NpC4ROGqwKc" width="560" height="315" %}
 
-The slides can be found here: [2018_02_07-virtualiot-meetup](slides/2018_02_07-virtualiot-meetup/index.html).
+Slides: [2018_02_07-virtualiot-meetup](slides/2018_02_07-virtualiot-meetup/index.html)

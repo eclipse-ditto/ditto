@@ -1,71 +1,92 @@
 ---
-title: Authentication and authorization
+title: Authentication & Authorization
 keywords: auth, authentication, authorization, policies, policy, sso, single sign on
 tags: [model]
 permalink: basic-auth.html
 ---
 
-You can integrate your solutions with Ditto 
+Ditto protects every API request with authentication (verifying identity) and authorization
+(checking permissions).
 
-* via the [HTTP API](http-api-doc.html) or
-* via WebSocket.
-
-On all APIs Ditto protects functionality and data by using
-
-* **Authentication** to make sure the requester is the one he/she claims to be,
-* **Authorization** to make sure the requester is allowed to see, use or change the information he wants to access.
+{% include callout.html content="**TL;DR**: Ditto authenticates requests via pre-authentication (for example, nginx
+basic auth) or JWT tokens from OpenID Connect providers. Authorization is enforced through
+[Policies](basic-policy.html) that map authenticated subjects to fine-grained permissions." type="primary" %}
 
 ## Authentication
 
-User authentication at the HTTP API
+Every request to Ditto's [HTTP API](http-api-doc.html) or WebSocket API must carry valid
+credentials. Ditto supports two authentication mechanisms:
 
-A user who calls the HTTP API can be authenticated using two mechanisms:
+### Pre-authentication
 
-* Pre-authentication by an HTTP reverse proxy in front of Ditto, e.g. doing HTTP BASIC Authentication by providing 
-  username and password as [documented in the installation/operation guide](installation-operating.html#pre-authentication).
-* A <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.jwt}}">JWT</a> issued by Google or other
-  OpenID Connect providers as [documented in the installation/operation guide](installation-operating.html#openid-connect).
+An HTTP reverse proxy (like nginx) in front of Ditto authenticates the user and passes the
+verified identity to Ditto. The default Docker deployment uses nginx with HTTP Basic Authentication.
 
-### Authenticated subjects
+See the [pre-authentication configuration guide](operating-authentication.html#pre-authentication)
+for setup details.
 
-Every request to one of Ditto's API is done in scope of already authenticated subjects.   
-This authentication may be provided via nginx (like mentioned [above](#authentication)), a 
-<a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.jwt}}">JWT</a> or in a connection via the
-configured `authorizationContext` in scope of the connection's [authorization](basic-connections.html#authorization).
+### JWT (OpenID Connect)
 
-For each of the possibilities of authenticating subjects, the [command](basic-signals-command.html) or 
-[message](basic-messages.html) processed by Ditto will contain one or more of the "authenticated subjects" which e.g.
-might be user IDs.
+Ditto accepts <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.jwt}}">JWT</a> tokens
+from Google and other OpenID Connect providers. You configure trusted providers in the Ditto
+installation, and Ditto validates the token signature and claims on each request.
 
+See the [OpenID Connect configuration guide](operating-authentication.html#openid-connect) for
+setup details.
 
-### Single sign-on (SSO)
+## Authenticated subjects
 
-By configuring an arbitrary OpenID Connect provider (as mentioned above) it is possible for Ditto to participate in SSO
-for the following browser based requests:
-* [HTTP API](httpapi-overview.html) invocations
-   * sending along a JWT token as `Authorization` header with `Bearer` value
-* Establishing a [WebSocket](httpapi-protocol-bindings-websocket.html) connection for bidirectional communication with 
-  Ditto via [Ditto Protocol](protocol-overview.html) JSON messages
-   * sending along a JWT token as `Authorization` header with `Bearer` value (recommended)
-   * sending along a JWT token as query parameter `access_token` (use only if the websocket client does not 
-   support setting http headers e.g. plain WebSocket API of browsers)
-* Opening a [Server sent event](httpapi-sse.html) connection in order to receive change notifications of twins in the 
+Every request processed by Ditto carries one or more **authenticated subjects**. A subject
+identifies the requester and takes the form `<issuer>:<id>`:
+
+| Example | Source |
+|---------|--------|
+| `nginx:ditto` | nginx pre-authentication |
+| `google:1234567890` | Google JWT |
+| `my-keycloak:user-uuid` | Custom OpenID Connect provider |
+
+These subjects are matched against [Policy](basic-policy.html) entries to determine what the
+requester can read, write, or execute.
+
+For connections, the subjects come from the connection's configured
+[authorization context](basic-connections.html#authorization).
+
+## Single sign-on (SSO)
+
+By configuring an OpenID Connect provider, Ditto participates in single sign-on flows for
+browser-based applications:
+
+* **HTTP API** -- send the JWT as an `Authorization: Bearer <token>` header
+* **WebSocket** -- send the JWT as an `Authorization: Bearer <token>` header (recommended), or as
+  the `access_token` query parameter (use only if your WebSocket client does not support custom
+  headers, for example the plain browser WebSocket API)
+* **Server Sent Events** -- pass `withCredentials: true` when creating the `EventSource` in the
   browser
-   * passing the `withCredentials: true` option when creating the SSE in the browser
 
 ## Authorization
 
-Authorization is implemented with a <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.policy}}">Policy</a>
-(in API version 2).
+Once Ditto identifies the authenticated subjects, it checks them against the
+<a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.policy}}">Policy</a>
+attached to the target resource. The Policy determines whether the subjects have the required
+permissions (`READ`, `WRITE`, or `EXECUTE`) on the requested resource path.
 
-Please find details at [Policies](basic-policy.html).
+See [Policies](basic-policy.html) for the full authorization model.
 
-### Authorization Context in DevOps Commands
+### Authorization context in DevOps commands
 
-An `authorizationContext` which is passed to [DevOps Commands](installation-operating.html#devops-commands) needs
-to be a subject known to Ditto's authentication. In the simplest case, it's `nginx:{username}` where `{username}` is a user 
-that is configured for basic auth in the included nginx's `nginx.htpasswd` file (where the `nginx:` prefix comes from).
+When using [DevOps commands](operating-devops.html), you pass an
+`authorizationContext` that must contain a subject known to Ditto's authentication layer.
 
-If you are using the provided docker quickstart example from [Getting Started](installation-running.html) you
-can simply use `nginx:ditto`, then the commands that are passed from the connection are executed as if they 
-were issued via HTTP from the user `ditto`.
+For the Docker quickstart deployment, use `nginx:ditto` -- this makes DevOps commands execute
+with the same identity as HTTP requests from the `ditto` user:
+
+```text
+nginx:ditto
+```
+
+## Further reading
+
+* [Policies](basic-policy.html) -- define fine-grained access control
+* [Checking Permissions](basic-auth-checkpermissions.html) -- validate permissions without
+  modifying data
+* [Installation & Operation](installation-operating.html) -- configure authentication providers

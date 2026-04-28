@@ -1,151 +1,104 @@
 ---
-title: Payload mapping in connectivity service
+title: Payload Mapping
 keywords: mapping, transformation, payload, javascript, mapper, protobuf
 tags: [connectivity]
 permalink: connectivity-mapping.html
 ---
 
-{% include callout.html content="**TL;DR**<br/>The payload mapping feature in Ditto's connectivity APIs can be used to 
-    transform arbitrary payload consumed via the different supported protocols 
-    to [Ditto Protocol](protocol-overview.html) messages and vice versa." type="primary" %}
+You use payload mapping to transform messages between your device's native format and [Ditto Protocol](protocol-overview.html) JSON.
 
+{% include callout.html content="**TL;DR**: Payload mapping transforms arbitrary payloads consumed via connections
+    to [Ditto Protocol](protocol-overview.html) messages and vice versa. Use built-in mappers or write custom JavaScript to handle any format." type="primary" %}
 
-## Motivation
+## Overview
 
-Eclipse Ditto is about providing access to IoT devices via the [digital twin](intro-digitaltwins.html) pattern. 
-In order to provide structured APIs for different heterogeneous devices Ditto defines a lightweight JSON based 
-[model](basic-overview.html).
-
-A [Thing](basic-thing.html) might look like in the following example:
+Devices rarely send data in Ditto Protocol format. A device might send:
 
 ```json
-{
-  "thingId": "the.namespace:the-thing-id",
-  "policyId": "the.namespace:the-policy-id",
-  "attributes": {
-    "location": "kitchen"
-  },
-  "features": {
-    "transmission": {
-       "properties": {
-         "cur_speed": 90
-       }
-     }
-  }
-}
+{"val": "23.42 °C", "ts": 1523946112727}
 ```
 
-Devices in the IoT, may they be brownfield devices or newly produced devices, will probably not send their data to the
-cloud in the structure and [protocol](protocol-overview.html) Ditto requires.
-
-They should not need to be aware of something like Ditto running in the cloud mirroring them as digital twins.
-
-So for example device payload could look like this:
-
-```json
-{
-  "val": "23.42 °C",
-  "ts": 1523946112727
-}
-```
-
-In case of constrained devices or IoT protocols, even binary payload might be common.
+Or even binary:
 
 ```
-0x08BD (hex representation)
+0x08BD
 ```
 
-## Builtin mappers
+Payload mapping bridges this gap by converting between device-native formats and the structured
+[Ditto Protocol](protocol-specification.html) that Ditto requires.
 
-The following message mappers are included in the Ditto codebase:
+## Built-in mappers
 
-| Mapper Alias | Description                    | Inbound           | Outbound           |
-|------------|--------------------------------|---------------------------|---------------------------|
-| [Ditto](#ditto-mapper) | Assumes that inbound/outbound messages are already in [Ditto Protocol](protocol-overview.html) (JSON) format. | ✓ | ✓ |
-| [JavaScript](#javascript-mapper) | Converts arbitrary messages from and to the [Ditto Protocol](protocol-overview.html) format using **custom** JavaScript code executed by Ditto. | ✓ | ✓ |
-| [Normalized](#normalized-mapper) | Transforms the payload of events to a normalized view. |  | ✓ |
-| [ConnectionStatus](#connectionstatus-mapper) | This mapper handles messages containing `creation-time` and `ttd` headers by updating a feature of the targeted thing with [definition](basic-feature.html#feature-definition) [ConnectionStatus](https://github.com/eclipse/vorto/tree/development/models/org.eclipse.ditto-ConnectionStatus-1.0.0.fbmodel). | ✓ |  |
-| [RawMessage](#rawmessage-mapper) | For outgoing message commands and responses, this mapper extracts the payload for publishing directly into the channel. For incoming messages, this mapper wraps them in a configured message command or response envelope. | ✓ | ✓ |
-| [ImplicitThingCreation](#implicitthingcreation-mapper) | This mapper handles messages for which a Thing should be created automatically based on a defined template. | ✓ |  |
-| [UpdateTwinWithLiveResponse](#updatetwinwithliveresponse-mapper) | This mapper creates a [merge Thing command](protocol-specification-things-merge.html) when an indiviudal [retrieve command](protocol-specification-things-retrieve.html) for an single Thing was received via the [live channel](protocol-twinlive.html#live) patching exactly the retrieved "live" data into the twin. | ✓ |  |
-| [CloudEvents Mapper](#cloudevents-mapper) | The mapper maps incoming CloudEvent to Ditto Protocol. Supports both Binary and Structured CloudEvent. | ✓ | ✓ |
+| Mapper | Alias | Inbound | Outbound | Description |
+|--------|-------|:---:|:---:|-------------|
+| [Ditto](#ditto-mapper) | `Ditto` | &#10004; | &#10004; | Messages already in Ditto Protocol format |
+| [JavaScript](#javascript-mapper) | `JavaScript` | &#10004; | &#10004; | Custom JS scripts for arbitrary formats |
+| [Normalized](#normalized-mapper) | `Normalized` | | &#10004; | Transforms events to a normalized JSON view |
+| [ConnectionStatus](#connectionstatus-mapper) | `ConnectionStatus` | &#10004; | | Updates a feature based on `ttd`/`creation-time` headers |
+| [RawMessage](#rawmessage-mapper) | `RawMessage` | &#10004; | &#10004; | Maps message command payloads directly |
+| [ImplicitThingCreation](#implicitthingcreation-mapper) | `ImplicitThingCreation` | &#10004; | | Auto-creates things from incoming messages |
+| [UpdateTwinWithLiveResponse](#updatetwinwithliveresponse-mapper) | `UpdateTwinWithLiveResponse` | &#10004; | | Patches twin data from live responses |
+| [CloudEvents](#cloudevents-mapper) | `CloudEvents` | &#10004; | &#10004; | Maps CloudEvent format to Ditto Protocol |
 
 ### Ditto mapper
 
-This is the default [Ditto Protocol](protocol-overview.html) mapper. If you do not specify any payload mapping this
- mapper is used to map inbound and outbound messages. The mapper requires no mandatory options, so its alias can
- be directly used as a mapper reference.
-
-It assumes that received messages are in [Ditto Protocol JSON](protocol-specification.html) and emits outgoing messages
- also in that format.
+The default mapper. Assumes messages are in [Ditto Protocol JSON](protocol-specification.html).
+No configuration required -- use the alias `Ditto` directly.
 
 ### JavaScript mapper
 
-This mapper may be used whenever any inbound messages are not yet in [Ditto Protocol](protocol-overview.html). 
-By using the built in [JavaScript mapping engine](#javascript-mapping-engine) (based on Rhino) custom defined 
-JavaScript scripts can be executed which are responsible for creating [Ditto Protocol JSON](protocol-specification.html) 
-message from arbitrary consumed payload.
+Transforms arbitrary payloads using custom JavaScript scripts executed in a sandboxed
+[Rhino](https://github.com/mozilla/rhino) engine. See the
+[JavaScript mapping engine](#javascript-mapping-engine) section for details.
 
-The same is possible for outbound messages in order to transform [Ditto Protocol JSON](protocol-specification.html) 
-messages (e.g. events or responses) to arbitrary other formats.
+**Options:**
 
-#### Configuration options
-
-* `incomingScript` (required): the mapping script for incoming messages
-* `outgoingScript` (required):  the mapping script for outgoing messages
-* `loadBytebufferJS` (optional, default: `"false"`): whether to load ByteBufferJS library
-* `loadLongJS` (optional, default: `"false"`): whether to load LongJS library
+| Option | Required | Description |
+|--------|----------|-------------|
+| `incomingScript` | Yes | Script for inbound messages |
+| `outgoingScript` | Yes | Script for outbound messages |
+| `loadBytebufferJS` | No | Load ByteBufferJS library (default: `false`) |
+| `loadLongJS` | No | Load LongJS library (default: `false`) |
 
 ### Normalized mapper
 
-This mapper transforms `created`, `modified`, and `deleted` events (other type of messages are dropped) to a normalized view. 
-Events are mapped to a nested sparse JSON.
+Transforms `created`, `modified`, and `deleted` events to a normalized JSON structure.
+Other message types are dropped.
 
-**Note:** By default, only complete thing deletions (`ThingDeleted`) are mapped with a special `_deleted` field. Partial
-deletions like `AttributeDeleted`, `FeatureDeleted`, etc. are dropped unless explicitly enabled (see option below).
+**Options:**
 
-#### Configuration options
+| Option | Default | Description |
+|--------|---------|-------------|
+| `fields` | all | Comma-separated list of [field selectors](httpapi-concepts.html#field-selectors) |
+| `includeDeletedFields` | `false` | Track partial deletions in `_deletedFields` |
 
-* `includeDeletedFields` (optional, default: `false`): when enabled, partial delete events are mapped and merge-patch
-  `null` values are tracked in `_deletedFields`. The `_deletedFields` object mirrors the JSON structure of the deleted
-  paths and stores ISO-8601 timestamps at the leaf nodes.
-
+Example input:
 ```json
 {
   "topic": "thing/id/things/twin/events/modified",
-  "headers": { "content-type": "application/json" },
-  "path": "/features/sensors/properties/temperature/indoor/value",
+  "path": "/features/sensors/properties/temperature/value",
   "value": 42
 }
 ```
 
-would result in the following normalized JSON representation:
-
+Normalized output:
 ```json
 {
   "thingId": "thing:id",
   "features": {
     "sensors": {
       "properties": {
-        "temperature": {
-          "indoor": {
-            "value": 42
-          }
-        }
+        "temperature": { "value": 42 }
       }
     }
   },
   "_context": {
     "topic": "thing/id/things/twin/events/modified",
-    "path": "/features/sensors/properties/temperature/indoor/value",
-    "value": 42,
-    "headers": {
-      "content-type": "application/json"
-    }
+    "path": "/features/sensors/properties/temperature/value",
+    "value": 42
   }
 }
 ```
-The `_context` field contains the original message content excluding the `value`.
 
 For `deleted` events, the mapper includes a `_deleted` field with the deletion timestamp:
 
@@ -158,7 +111,7 @@ For `deleted` events, the mapper includes a `_deleted` field with the deletion t
 }
 ```
 
-would result in the following normalized JSON representation:
+Normalized output:
 
 ```json
 {
@@ -175,11 +128,9 @@ would result in the following normalized JSON representation:
 }
 ```
 
-The `_deleted` field contains the timestamp when the thing was deleted in ISO-8601 format.
+The `_deleted` field contains the ISO-8601 timestamp when the thing was deleted. This field is only added for complete thing deletions.
 
-**Note:** The `_deleted` field is only added for complete thing deletions (when the entire thing is deleted).
-
-When `includeDeletedFields` is enabled, the mapper adds `_deletedFields` for partial deletions and merge-patch deletions:
+When `includeDeletedFields` is enabled, partial deletions and merge-patch deletions are tracked in `_deletedFields`. The `_deletedFields` object mirrors the JSON structure of the deleted paths and stores ISO-8601 timestamps at the leaf nodes:
 
 ```json
 {
@@ -197,21 +148,24 @@ When `includeDeletedFields` is enabled, the mapper adds `_deletedFields` for par
 }
 ```
 
-#### Configuration options
-
-* `fields` (optional, default: all fields): comma separated list of fields that are contained in the result (see also
- chapter about [field selectors](httpapi-concepts.html#with-field-selector))
- 
 ### ConnectionStatus mapper
-This mapper transforms the information from the `ttd` and `creation-time` message headers 
-(see Eclipse Hono [device notifications](https://www.eclipse.org/hono/docs/concepts/device-notifications/)) into a 
-ModifyFeature command that complies with the [Vorto functionblock](https://github.com/eclipse/vorto/tree/development/models/org.eclipse.ditto-ConnectionStatus-1.0.0.fbmodel) `{%raw%}org.eclipse.ditto:ConnectionStatus{%endraw%}`. 
- 
-The connectivity state of the device is then represented in a Feature.<br/>
-It is mostly used in conjunction with another mapper that transforms the payload e.g.:<br/>
-`"payloadMapping": [ "Ditto" , "connectionStatus" ]`
- 
+
+Transforms `ttd` and `creation-time` headers (from
+[Eclipse Hono device notifications](https://www.eclipse.org/hono/docs/concepts/device-notifications/))
+into a ModifyFeature command that updates a `ConnectionStatus` feature.
+
+Typically used alongside another mapper:
+`"payloadMapping": ["Ditto", "connectionStatus"]`
+
+**Options:**
+
+| Option | Required | Description |
+|--------|----------|-------------|
+| `thingId` | Yes | Thing ID (supports placeholders like `{%raw%}{{ header:device_id }}{%endraw%}`) |
+| `featureId` | No | Feature ID (default: `ConnectionStatus`) |
+
 Example of a resulting `ConnectionStatus` feature:
+
 ```json
 {
   "thingId": "eclipse:ditto",
@@ -228,25 +182,47 @@ Example of a resulting `ConnectionStatus` feature:
   }
 }
 ```
- 
-#### Configuration options
 
-* `thingId` (required): The ID of the Thing that is updated with the connectivity state. It can either be a fixed value
- or a header placeholder (e.g. `{%raw%}{{ header:device_id }}{%endraw%}`).
-* `featureId` (optional, default: `ConnectionStatus`): The ID of the Feature that is updated. It can either be a
- fixed value or resolved from a message header (e.g. `{%raw%}{{ header:feature_id }}{%endraw%}`).
+Use the ConnectionStatus mapper alongside another mapper in a source configuration:
+
+```json
+{
+  "addresses": ["<source>"],
+  "authorizationContext": ["ditto:inbound"],
+  "payloadMapping": ["Ditto", "connectionStatus"]
+}
+```
 
 ### RawMessage mapper
 
-This mapper relates the payload in the `"value"` field of message commands and message responses to the payload
-of AMQP, MQTT and Kafka messages and the body of HTTP requests. The encoding of the payload is chosen according to
-the configured content type. The subject, direction, thing ID and feature ID of the envelope for incoming message
-commands and responses need to be configured.
+Maps message command/response payloads directly to/from the external message format. The encoding
+is determined by the content type.
 
-Messages with the Ditto protocol content type `application/vnd.eclipse.ditto+json` or signals that are not message
-commands or responses are mapped by the [Ditto mapper](#ditto-mapper) instead.
+For incoming messages, the mapper wraps the payload in a message command envelope.
+For outgoing messages, the mapper extracts the `"value"` field for publishing.
 
-For example, the mapper maps between the feature message command response
+Messages with `content-type: application/vnd.eclipse.ditto+json` fall through to the Ditto mapper.
+
+**Options:**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `outgoingContentType` | `text/plain; charset=UTF-8` | Fallback content type for outgoing messages |
+| `incomingMessageHeaders` | (see below) | Headers for constructing the message envelope |
+
+Key incoming headers (all support placeholders):
+
+| Header | Purpose | Default |
+|--------|---------|---------|
+| `content-type` | Encoding of the payload | `{%raw%}{{ header:content-type \| fn:default('application/octet-stream') }}{%endraw%}` |
+| `ditto-message-subject` | Message subject (required for MQTT 3) | `{%raw%}{{ header:ditto-message-subject }}{%endraw%}` |
+| `ditto-message-thing-id` | Target thing ID (required for MQTT 3) | `{%raw%}{{ header:ditto-message-thing-id }}{%endraw%}` |
+| `ditto-message-direction` | `TO` (inbox) or `FROM` (outbox) | `TO` |
+| `ditto-message-feature-id` | Feature ID (omit for thing-level messages) | `{%raw%}{{ header:ditto-message-feature-id }}{%endraw%}` |
+| `status` | Include for responses, omit for commands | `{%raw%}{{ header:status }}{%endraw%}` |
+
+The mapper maps between a feature message command response like:
+
 ```json
 {
   "topic": "org.eclipse.ditto/smartcoffee/things/live/messages/heatUp",
@@ -256,11 +232,15 @@ For example, the mapper maps between the feature message command response
   "status": 200
 }
 ```
-and an AMQP, MQTT 5, Kafka message with payload or an HTTP request with body of 6 bytes
+
+and an AMQP, MQTT 5, or Kafka message with payload of 6 bytes:
+
 ```
 0x01 02 03 04 05 06
 ```
-and headers
+
+with headers:
+
 ```
 content-type: application/octet-stream
 status: 200
@@ -269,11 +249,11 @@ ditto-message-direction: TO
 ditto-message-thing-id: org.eclipse.ditto:smartcoffee
 ditto-message-feature-id: water-tank
 ```
-The headers are lost for connection protocols without application headers such as MQTT 3.
- 
-#### Configuration options
+
+Headers are lost for connection protocols without application headers such as MQTT 3.
 
 Example configuration:
+
 ```json
 {
   "outgoingContentType": "application/octet-stream",
@@ -288,77 +268,43 @@ Example configuration:
 }
 ```
 
-* `outgoingContentType` (optional): The fallback content-type for outgoing message commands and responses without
-  the content-type header. Default to `text/plain; charset=UTF-8`.
-* `incomingMessageHeaders` (optional): A JSON object containing the following headers needed to construct a message
-  command or response envelope containing the incoming message as payload in the field `"value"`. 
-  The following placeholders may be used in the headers:
-
-    | Placeholder                       | Description                                                                                            |
-    |-----------------------------------|--------------|
-    | `{%raw%}{{ header:<header-name> }}{%endraw%}` | header value from the external message, e.g. from protocol headers                                     |
-    | `{%raw%}{{ request:subjectId }}{%endraw%}` | the first authenticated subjectId which did the request - the one of the connection source in this case |
-    | `{%raw%}{{ time:now }}{%endraw%}` | the current timestamp in ISO-8601 format as string in UTC timezone                                                    | 
-    | `{%raw%}{{ time:now_epoch_millis }}{%endraw%}` | the current timestamp in "milliseconds since epoch" formatted as string                                | 
-
-   * `content-type` (optional): The content type with which to encode the incoming message as payload.
-      Default to `{%raw%}{{ header:content-type | fn:default('application/octet-stream') }}{%endraw%}`.
-      If resolved to the Ditto protocol content type `application/vnd.eclipse.ditto+json`, then the entire payload
-      is interpreted as a Ditto protocol message instead.
-   * `status` (optional): Include for message responses. Exclude for message commands. Default to
-     `{%raw%}{{ header:status }}{%endraw%}`.
-   * `ditto-message-subject` (mandatory for MQTT 3): Subject of the message. Default to `{%raw%}{{ header:ditto-message-subject }}{%endraw%}`.
-      Mapping will fail if not resolvable.
-   * `ditto-message-direction` (optional): The message direction. Default to `TO`, which corresponds to `inbox` in
-      message commands and responses.
-   * `ditto-message-thing-id` (mandatory for MQTT 3): ID of the thing to send the message command or response to.
-     Default to `{%raw%}{{ header:ditto-message-thing-id }}{%endraw%}`. Mapping will fail if not resolvable.
-   * `ditto-message-feature-id` (optional): Include to send the message or message response to a feature of the thing.
-     Exclude to send it to the thing itself. Default to `{%raw%}{{ header:ditto-message-feature-id }}{%endraw%}`.
-
 ### ImplicitThingCreation mapper
 
-This mapper implicitly creates a new thing for an incoming message. 
- 
-The created thing contains the values defined in the template, configured in the `mappingDefinitions` `options`.  
+Automatically creates a thing when an incoming message arrives. The thing structure is defined
+in the `thing` option as a JSON template with placeholder support.
 
-#### Configuration options
+**Options:**
 
-* `thing` (required): The values of the thing that is created implicitly. It can either contain fixed values
- or header placeholders (e.g. `{%raw%}{{ header:device_id }}{%endraw%}`).
-    * the following placeholders may be used inside the `"thing"` JSON:
+* `thing` (required): The values of the thing that is created implicitly. It can contain fixed values
+  or header placeholders (e.g. `{%raw%}{{ header:device_id }}{%endraw%}`).
+    * The following placeholders may be used inside the `"thing"` JSON:
 
-      | Placeholder                       | Description                                                                                             |
-      |------------------------------------|--------------|
-      | `{%raw%}{{ header:<header-name> }}{%endraw%}` | header value from the external message, e.g. from protocol headers                                      |
-      | `{%raw%}{{ request:subjectId }}{%endraw%}` | the first authenticated subjectId which did the request - the one of the connection source in this case |
-      | `{%raw%}{{ time:now }}{%endraw%}` | the current timestamp in ISO-8601 format as string in UTC timezone                                                     | 
-      | `{%raw%}{{ time:now_epoch_millis }}{%endraw%}` | the current timestamp in "milliseconds since epoch" formatted as string                                 | 
+      | Placeholder | Description |
+      |-------------|-------------|
+      | `{%raw%}{{ header:<header-name> }}{%endraw%}` | Header value from the external message, e.g. from protocol headers |
+      | `{%raw%}{{ request:subjectId }}{%endraw%}` | The first authenticated subjectId which did the request |
+      | `{%raw%}{{ time:now }}{%endraw%}` | The current timestamp in ISO-8601 format as string in UTC timezone |
+      | `{%raw%}{{ time:now_epoch_millis }}{%endraw%}` | The current timestamp in "milliseconds since epoch" formatted as string |
 
     * The `"thing"` JSON may also include:
-      * an inline policy: `"_policy"` containing the [Policy JSON](basic-policy.html#model-specification) to create a new policy
-        from and link with the thing
+      * an inline policy: `"_policy"` containing the [Policy JSON](basic-policy.html#model-specification)
       * a "copy policy from" statement: `"_copyPolicyFrom"` - see also [create Thing alternatives](protocol-examples-creatething.html#alternative-creatething-commands)
           * either including a policyId to copy from
-          * or containing the link to a thing to copy the policy from in the form: `{% raw %}{{ ref:things/<theThingId>/policyId }}{% endraw %}`
+          * or containing the link to a thing to copy the policy from in the form: `{%raw%}{{ ref:things/<theThingId>/policyId }}{%endraw%}`
 
-* `commandHeaders` (optional, default: `{"If-None-Match": "*"}`): The Ditto headers to use for constructing the "create thing" command for creating the
-  twin and to use for creating errors.
-    * in this configured headers, the following placeholders may be used:
+* `commandHeaders` (optional, default: `{"If-None-Match": "*"}`): The Ditto headers to use for constructing the "create thing" command.
+    * The following placeholders may be used:
 
-      | Placeholder                       | Description                                                                                             |
-      |-----------------------------------|--------------|
-      | `{%raw%}{{ header:<header-name> }}{%endraw%}` | header value from the external message, e.g. from protocol headers                                      |
-      | `{%raw%}{{ request:subjectId }}{%endraw%}` | the first authenticated subjectId which did the request - the one of the connection source in this case |
-      | `{%raw%}{{ time:now }}{%endraw%}` | the current timestamp in ISO-8601 format as string in UTC timezone                                                     | 
-      | `{%raw%}{{ time:now_epoch_millis }}{%endraw%}` | the current timestamp in "milliseconds since epoch" formatted as string                                 | 
+      | Placeholder | Description |
+      |-------------|-------------|
+      | `{%raw%}{{ header:<header-name> }}{%endraw%}` | Header value from the external message, e.g. from protocol headers |
+      | `{%raw%}{{ request:subjectId }}{%endraw%}` | The first authenticated subjectId which did the request |
+      | `{%raw%}{{ time:now }}{%endraw%}` | The current timestamp in ISO-8601 format as string in UTC timezone |
+      | `{%raw%}{{ time:now_epoch_millis }}{%endraw%}` | The current timestamp in "milliseconds since epoch" formatted as string |
 
-* `allowPolicyLockout` (optional, default: `true`): whether it should be allowed to create policies without having `WRITE`
-  permissions in the created policy for the subject which creates the policy 
-  (the [authorizationContext](connectivity-manage-connections.html#authorization) of the connection source which 
-  received the message for which a thing should be created implicitly)
- 
-Example of a template defined in `options`:
+* `allowPolicyLockout` (optional, default: `true`): Whether it should be allowed to create policies without having `WRITE`
+  permissions in the created policy for the subject which creates the policy.
+
 ```json
 {
   "thing": {
@@ -377,26 +323,25 @@ Example of a template defined in `options`:
 
 ### UpdateTwinWithLiveResponse mapper
 
-This mapper creates a [merge Thing command](protocol-specification-things-merge.html) when a 
-[retrieve command](protocol-specification-things-retrieve.html) was received via the 
-[live channel](protocol-twinlive.html#live) patching exactly the retrieved "live" data into the twin.
- 
-#### Configuration options
+Creates a [merge Thing command](protocol-specification-things-merge.html) from a
+[live retrieve response](protocol-twinlive.html#live-channel), patching the live data into the twin.
+
+**Options:**
 
 * `dittoHeadersForMerge` (optional): The Ditto headers to use for constructing the "merge thing"
-  command for updating the twin, may for example add a condition to apply in order to update the twin
-  (default applied Ditto headers if not configured: `"response-required": false`, `"if-match": "*"`).
-   * in this configured headers, the following placeholders may be used:
+  command, may for example add a condition to apply in order to update the twin
+  (default: `"response-required": false`, `"if-match": "*"`).
+   * The following placeholders may be used:
 
-       | Placeholder                       | Description                                                                                            |
-       |-----------------------------------|--------------|
-       | `{%raw%}{{ header:<header-name> }}{%endraw%}` | header value from the external message, e.g. from protocol headers                                     |
-       | `{%raw%}{{ request:subjectId }}{%endraw%}` | the first authenticated subjectId which did the request - the one of the connection source in this case |
-       | `{%raw%}{{ time:now }}{%endraw%}` | the current timestamp in ISO-8601 format as string in UTC timezone                                                    | 
-       | `{%raw%}{{ time:now_epoch_millis }}{%endraw%}` | the current timestamp in "milliseconds since epoch" formatted as string                                | 
-
+       | Placeholder | Description |
+       |-------------|-------------|
+       | `{%raw%}{{ header:<header-name> }}{%endraw%}` | Header value from the external message, e.g. from protocol headers |
+       | `{%raw%}{{ request:subjectId }}{%endraw%}` | The first authenticated subjectId which did the request |
+       | `{%raw%}{{ time:now }}{%endraw%}` | The current timestamp in ISO-8601 format as string in UTC timezone |
+       | `{%raw%}{{ time:now_epoch_millis }}{%endraw%}` | The current timestamp in "milliseconds since epoch" formatted as string |
 
 Example configuration:
+
 ```json
 {
   "dittoHeadersForMerge": {
@@ -411,11 +356,13 @@ Example configuration:
   }
 }
 ```
-### CloudEvents Mapper
 
-This mapper maps incoming [CloudEvent](https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/spec.md) to Ditto Protocol. It provides support for both Binary CloudEvents as well as Structured CloudEvents.
+### CloudEvents mapper
 
-**Note**: The mapper supports incoming Structured CloudEvents  messages with `content-type:application/cloudevents+json` and Binary CloudEvents message with `content-type:application/vnd.eclipse.ditto+json`
+Maps incoming [CloudEvents](https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/spec.md) to
+Ditto Protocol. Supports both Binary and Structured CloudEvents.
+
+**Note**: The mapper supports incoming Structured CloudEvents messages with `content-type:application/cloudevents+json` and Binary CloudEvents messages with `content-type:application/vnd.eclipse.ditto+json`.
 
 #### CloudEvents examples
 
@@ -458,7 +405,6 @@ For example, a Binary CloudEvent for Ditto would look like this:
 A Structured CloudEvent for Ditto would look like this:
 
 ```
-
 headers:
   content-type:application/cloudevents+json
 ```
@@ -493,21 +439,19 @@ headers:
 }
 ```
 
-## Example connection with multiple mappers
+## Using multiple mappers
 
-The following example connection defines a `ConnectionStatus` mapping with the ID `status` and references it in a source.  
-Messages received via this source will be mapped by the `Ditto` mapping and the `ConnectionStatus` mapping.  
-The `Ditto` mapping requires no options to be configured, so you can directly use its alias `Ditto`.  
+Reference multiple mappers in a source's `payloadMapping` array. Define custom mappers in
+`mappingDefinitions`:
 
 ```json
-{ 
+{
   "name": "exampleConnection",
   "sources": [{
-      "addresses": ["<source>"],
-      "authorizationContext": ["ditto:inbound"],
-      "payloadMapping": ["Ditto", "status"]
-    }
-  ],
+    "addresses": ["<source>"],
+    "authorizationContext": ["ditto:inbound"],
+    "payloadMapping": ["Ditto", "status"]
+  }],
   "mappingDefinitions": {
     "status": {
       "mappingEngine": "ConnectionStatus",
@@ -519,30 +463,15 @@ The `Ditto` mapping requires no options to be configured, so you can directly us
 }
 ```
 
-{% include note.html content="Starting aliases with an uppercase character and IDs with a lowercase character is
- encouraged to avoid confusion but this is not enforced. "%}
+{% include note.html content="Start aliases with an uppercase character and IDs with a lowercase character to distinguish them clearly. This convention is not enforced. "%}
 
+## Mapping conditions
 
-
-## Example connection with mapping conditions
-
-The following example connection defines `incomingConditions` and `outgoingConditions`for the ConnectionStatus 
-mapping engine.  
-Optional incomingConditions are validated before the mapping of inbound messages.  
-Optional outgoingConditions are validated before the mapping of outbound messages.  
-Conditional Mapping can be achieved by using [function expressions](basic-placeholders.html#function-expressions).
-When multiple incoming or outgoing conditions are set for one `mappingEngine`, 
-all have to equal true for the mapping to be executed.  
+You can add `incomingConditions` and `outgoingConditions` to control when a mapper executes.
+All conditions must evaluate to true for the mapping to run:
 
 ```json
-{ 
-  "name": "exampleConnection",
-  "sources": [{
-      "addresses": ["<source>"],
-      "authorizationContext": ["ditto:inbound"],
-      "payloadMapping": ["status"]
-    }
-  ],
+{
   "mappingDefinitions": {
     "status": {
       "mappingEngine": "ConnectionStatus",
@@ -560,103 +489,52 @@ all have to equal true for the mapping to be executed.
 }
 ```
 
-
-
 ## JavaScript mapping engine
 
-Ditto utilizes the [Rhino](https://github.com/mozilla/rhino) JavaScript engine for Java for evaluating the JavaScript
-to apply for mapping payloads.
+Ditto uses the [Rhino](https://github.com/mozilla/rhino) JavaScript engine (version `1.7.14`,
+ES6 flag enabled) with strict sandboxing for security.
 
-Using Rhino instead of Nashorn, the newer JavaScript engine shipped with Java, has the benefit that sandboxing can be 
-applied in a better way. 
+### Sandboxing constraints
 
-Sandboxing of different payload scripts is required as Ditto is intended to be run as cloud service where multiple
-connections to different endpoints are managed for different tenants at the same time. This requires the isolation of
-each single script to avoid interference with other scripts and to protect the JVM executing the script against harmful
-code execution.
+* No access to Java packages or classes
+* No file access, network calls, or `exit`/`quit`/`print`
+* Endless loops and deep recursion are terminated
+* Script file size is limited
+* No foreign JS library loading (unless included inline)
 
-
-### Constraints
-
-Rhino does not fully support EcmaScript 6. Check which language constructs are supported before using
-them in a mapping function. See [https://mozilla.github.io/rhino/compat/engines.html](https://mozilla.github.io/rhino/compat/engines.html).
-
-Ditto currently includes Rhino version `1.7.14` and has the `VERSION_ES6` flag enabled.
-
-#### Sandboxing
-
-For sandboxing/security reasons following restrictions apply:
-
-
-* access to Java packages and classes is not possible
-* using `exit`, `quit`, `print`, etc. is not possible
-* file access is not possible
-* doing remote calls (e.g. to foreign web-servers) is not possible
-* programming an endless-loop will terminate the script
-* programming a recursion will terminate the script
-* the file size of the script is limited
-* no foreign JS libraries can be loaded (unless they fit in the file size limit and are included into the mapping script)
+Check [Rhino compatibility](https://mozilla.github.io/rhino/compat/engines.html) for supported
+ES6 features.
 
 ### Helper libraries
 
-In order to work more conveniently with binary payloads, the following libraries may be loaded for payload transformations:
+You can load these libraries via `specificConfig` options:
 
+* [bytebuffer.js](https://github.com/dcodeIO/bytebuffer.js) -- `ArrayBuffer` manipulation
+* [long.js](https://github.com/dcodeIO/long.js) -- 64-bit integer support
 
-* [bytebuffer.js](https://github.com/dcodeIO/bytebuffer.js) a ByteBuffer implementation using ArrayBuffers
-* [long.js](https://github.com/dcodeIO/long.js) for representing a 64-bit two's-complement integer value
+### Adding CommonJS modules
 
+Configure `CONNECTIVITY_MESSAGE_MAPPING_JS_COMMON_JS_MODULE_PATH` to point to a directory
+containing CommonJS modules (for example, via a Docker volume mount):
 
-### Adding additional JS libraries
-
-The used [Rhino JS engine](https://github.com/mozilla/rhino) allows making use of "CommonJS" in order to load JS
-modules via `require('')` into the engine.  
-This feature is exposed to Ditto, configuring the configuration key `commonJsModulePath` or environment variable 
-`CONNECTIVITY_MESSAGE_MAPPING_JS_COMMON_JS_MODULE_PATH` of the connectivity service to a path in the
-connectivity Docker container where to load additional CommonJS modules from - e.g. use a volume mount in order to get
-additional JS modules into the container.
-
-For example, configure this variable to a folder to which you add (our mount) JavaScript libraries:
 ```
 CONNECTIVITY_MESSAGE_MAPPING_JS_COMMON_JS_MODULE_PATH=/opt/commonjs-modules/
 ```
 
-Then, for example, put [`pbf.js`](https://www.npmjs.com/package/pbf) (or any other JS library you want to use) 
-into that folder.
+Then use `require()` in your scripts:
 
-Afterwards, the library can be used in your JS snippet using:
 ```javascript
 var Pbf = require('pbf');
 ```
 
-
 ### Helper functions
 
-Ditto comes with a few helper functions, which makes writing the mapping scripts easier. They are available under the
-`Ditto` scope:
+Ditto provides these functions under the `Ditto` scope:
 
 ```javascript
-/**
- * Builds a Ditto Protocol message from the passed parameters.
- * @param {string} namespace - The namespace of the entity in java package notation, e.g.: "org.eclipse.ditto". Or "_"
- * (underscore) for connection announcements.
- * @param {string} name - The name of the entity, e.g.: "device".
- * @param {string} channel - The channel for the signal: "twin"|"live"|"none"
- * @param {string} group - The affected group/entity: "things"|"policies"|"connections".
- * @param {string} criterion - The criterion to apply: "commands"|"events"|"search"|"messages"|"announcements"|"errors".
- * @param {string} action - The action to perform: "create"|"retrieve"|"modify"|"delete". Or the announcement name:
- * "opened"|"closed"|"subjectDeletion". Or the subject of the message.
- * @param {string} path - The path which is affected by the message (e.g.: "/attributes"), or the destination
- * of a message (e.g.: "inbox"|"outbox").
- * @param {Object.<string, string>} dittoHeaders - The headers Object containing all Ditto Protocol header values.
- * @param {*} [value] - The value to apply / which was applied (e.g. in a "modify" action).
- * @param {number} [status] - The status code that indicates the result of the command. If setting a status code,
- * the Ditto Protocol Message will be interpreted as a response (e.g. content will be ignored when using 204).
- * @param {Object} [extra] - The enriched extra fields when selected via "extraFields" option.
- * @returns {DittoProtocolMessage} dittoProtocolMessage(s) -
- *  The mapped Ditto Protocol message or
- *  <code>null</code> if the message could/should not be mapped
- */
-function buildDittoProtocolMsg(namespace, name, group, channel, criterion, action, path, dittoHeaders, value, status, extra) {
+// Builds a Ditto Protocol message from the passed parameters.
+function buildDittoProtocolMsg(namespace, name, group, channel,
+    criterion, action, path, dittoHeaders, value, status, extra) {
     const topic = buildTopic(namespace, name, group, channel, criterion, action);
 
     return {
@@ -669,34 +547,14 @@ function buildDittoProtocolMsg(namespace, name, group, channel, criterion, actio
     };
 }
 
-/**
- * Builds a Ditto Protocol topic from the passed parameters.
- * @param {string} namespace - The namespace of the entity in java package notation, e.g.: "org.eclipse.ditto". Or "_"
- * (underscore) for connection announcements.
- * @param {string} name - The name of the entity, e.g.: "device".
- * @param {string} channel - The channel for the signal: "twin"|"live"|"none"
- * @param {string} group - The affected group/entity: "things"|"policies"|"connections".
- * @param {string} criterion - The criterion to apply: "commands"|"events"|"search"|"messages"|"announcements"|"errors".
- * @param {string} action - The action to perform: "create"|"retrieve"|"modify"|"delete". Or the announcement name:
- * "opened"|"closed"|"subjectDeletion". Or the subject of the message.
- * @returns {string} topic - the topic.
- */
+// Builds a Ditto Protocol topic string.
 function buildTopic(namespace, name, group, channel, criterion, action) {
     const topicChannel = 'none' === channel ? '' : '/' + channel;
 
     return namespace + "/" + name + "/" + group + topicChannel + "/" + criterion + "/" + action;
 }
 
-/**
- * Builds an external message from the passed parameters.
- * @param {Object.<string, string>} headers - The external headers Object containing header values
- * @param {string} [textPayload] - The external mapped String
- * @param {ArrayBuffer} [bytePayload] - The external mapped bytes as ArrayBuffer
- * @param {string} [contentType] - The returned Content-Type
- * @returns {ExternalMessage} externalMessage - 
- *  the mapped external message
- *  or <code>null</code> if the message could/should not be mapped
- */
+// Builds an external message from the passed parameters.
 function buildExternalMsg(headers, textPayload, bytePayload, contentType) {
 
   return {
@@ -707,24 +565,13 @@ function buildExternalMsg(headers, textPayload, bytePayload, contentType) {
   };
 }
 
-/**
- * Transforms the passed ArrayBuffer to a String interpreting the content of the passed arrayBuffer as unsigned 8
- * bit integers.
- *
- * @param {ArrayBuffer} arrayBuffer the ArrayBuffer to transform to a String
- * @returns {String} the transformed String
- */
+// Transforms an ArrayBuffer to a String (unsigned 8-bit integers).
 function arrayBufferToString(arrayBuffer) {
 
   return String.fromCharCode.apply(null, new Uint8Array(arrayBuffer));
 }
 
-/**
- * Transforms the passed String to an ArrayBuffer using unsigned 8 bit integers.
- *
- * @param {String} string the String to transform to an ArrayBuffer
- * @returns {ArrayBuffer} the transformed ArrayBuffer
- */
+// Transforms a String to an ArrayBuffer (unsigned 8-bit integers).
 function stringToArrayBuffer(string) {
 
   let buf = new ArrayBuffer(string.length);
@@ -735,14 +582,9 @@ function stringToArrayBuffer(string) {
   return buf;
 }
 
-/**
- * Transforms the passed ArrayBuffer to a {ByteBuffer} (from bytebuffer.js library which needs to be loaded).
- *
- * @param {ArrayBuffer} arrayBuffer the ArrayBuffer to transform
- * @returns {ByteBuffer} the transformed ByteBuffer
- */
+// Transforms an ArrayBuffer to a ByteBuffer (requires bytebuffer.js).
 function asByteBuffer(arrayBuffer) {
-    
+
   let byteBuffer = new ArrayBuffer(arrayBuffer.byteLength);
   new Uint8Array(byteBuffer).set(new Uint8Array(arrayBuffer));
   return dcodeIO.ByteBuffer.wrap(byteBuffer);
@@ -751,20 +593,9 @@ function asByteBuffer(arrayBuffer) {
 
 ### Mapping incoming messages
 
-Incoming external messages can be mapped to Ditto Protocol conform messages by implementing the following JavaScript function:
+Implement `mapToDittoProtocolMsg` to convert external payloads to Ditto Protocol:
 
 ```javascript
-/**
- * Maps the passed parameters to a Ditto Protocol message.
- * @param {Object.<string, string>} headers - The headers Object containing all received header values
- * @param {string} [textPayload] - The String to be mapped
- * @param {ArrayBuffer} [bytePayload] - The bytes to be mapped as ArrayBuffer
- * @param {string} [contentType] - The received Content-Type, e.g. "application/json"
- * @returns {(DittoProtocolMessage|Array<DittoProtocolMessage>)} dittoProtocolMessage(s) -
- *  the mapped Ditto Protocol message,
- *  an array of Ditto Protocol messages or
- *  <code>null</code> if the message could/should not be mapped
- */
 function mapToDittoProtocolMsg(
   headers,
   textPayload,
@@ -772,25 +603,23 @@ function mapToDittoProtocolMsg(
   contentType
 ) {
 
-  // ### Insert/adapt your mapping logic here.
-  // Use helper function Ditto.buildDittoProtocolMsg to build Ditto protocol message
-  // based on incoming payload.
-  // See https://websites.eclipseprojects.io/ditto/connectivity-mapping.html#helper-functions for details.
-  // ### example code assuming the Ditto protocol content type for incoming messages.
+  // Insert/adapt your mapping logic here.
+  // Use Ditto.buildDittoProtocolMsg to build Ditto Protocol messages from incoming payload.
   if (contentType === 'application/vnd.eclipse.ditto+json') {
-    // Message is sent as Ditto protocol text payload and can be used directly
+    // Message is already in Ditto Protocol format -- use directly
     return JSON.parse(textPayload);
   } else if (contentType === 'application/octet-stream') {
-    // Message is sent as binary payload; assume Ditto protocol message (JSON).
+    // Binary payload -- assume Ditto Protocol message (JSON)
     try {
       return JSON.parse(Ditto.arrayBufferToString(bytePayload));
     } catch (e) {
-      // parsing failed (no JSON document); return null to drop the message
+      // parsing failed (no JSON document); drop the message
       return null;
     }
   } else if (contentType === 'application/json') {
     let parsedJson = JSON.parse(textPayload);
-    // the following variables would be determined from the "parsedJson" and from the "headers":
+    value = parsedJson.number1 + parsedJson['sub-field']; // access JSON keys with dashes using bracket notation
+    // determine these variables from parsedJson and headers:
     let namespace = "";
     let name = "";
     let group = "things";
@@ -803,128 +632,56 @@ function mapToDittoProtocolMsg(
       "a": 1
     };
     return Ditto.buildDittoProtocolMsg(
-      namespace, 
-      name, 
-      group, 
-      channel, 
-      criterion, 
-      action, 
-      path, 
-      dittoHeaders, 
+      namespace,
+      name,
+      group,
+      channel,
+      criterion,
+      action,
+      path,
+      dittoHeaders,
       value)
   }
-  // no mapping logic matched; return null to drop the message
+  // no mapping logic matched; drop the message
   return null;
 }
 ```
 
-The result of the function has to be a JavaScript object in [Ditto Protocol](protocol-overview.html) or an array of 
-such JavaScript objects. That's where the helper method `Ditto.buildDittoProtocolMsg` is useful: 
-it explicitly defines which parameters are required for the Ditto Protocol message.
+Return a single Ditto Protocol message, an array of messages, or `null` to drop the message.
 
-There is another JavaScript function which is helpful when access to the complete external message is needed.
-It is possible to define the `mapToDittoProtocolMsgWrapper` in the incoming payload mapping and access the original
-`externalMsg`.
+For full access to the external message object, implement `mapToDittoProtocolMsgWrapper` instead:
 
-This is the default implementation of `mapToDittoProtocolMsgWrapper`, delegating to `mapToDittoProtocolMsg`:
 ```javascript
-/**
- * Maps the passed external message to a Ditto Protocol message.
- * @param {ExternalMessage} externalMsg - The external message to map to a Ditto Protocol message
- * @returns {(DittoProtocolMessage|Array<DittoProtocolMessage>)} dittoProtocolMessage(s) -
- *  The mapped Ditto Protocol message,
- *  an array of Ditto Protocol messages or
- *  <code>null</code> if the message could/should not be mapped
- */
 function mapToDittoProtocolMsgWrapper(externalMsg) {
-
   let headers = externalMsg.headers;
   let textPayload = externalMsg.textPayload;
   let bytePayload = externalMsg.bytePayload;
   let contentType = externalMsg.contentType;
-
   return mapToDittoProtocolMsg(headers, textPayload, bytePayload, contentType);
 }
 ```
 
 ### Mapping outgoing messages
 
-Outgoing Ditto Protocol messages (e.g. [responses](basic-signals-commandresponse.html) or [events](basic-signals-event.html)) 
-can be mapped to external messages by implementing the following JavaScript function:
+Implement `mapFromDittoProtocolMsg` to convert Ditto Protocol messages to external format:
 
 ```javascript
-/**
- * Maps the passed parameters which originated from a Ditto Protocol message to an external message.
- * @param {string} namespace - The namespace of the entity in java package notation, e.g.: "org.eclipse.ditto". Or "_" 
- * (underscore) for connection announcements.
- * @param {string} name - The name of the entity, e.g.: "device".
- * @param {string} group - The affected group/entity: "things"|"policies"|"connections".
- * @param {string} channel - The channel for the signal: "twin"|"live"|"none"
- * @param {string} criterion - The criterion to apply: "commands"|"events"|"search"|"messages"|"announcements"|
- * "errors".
- * @param {string} action - The action to perform: "create"|"retrieve"|"modify"|"delete". Or the announcement name: 
- * "opened"|"closed"|"subjectDeletion". Or the subject of the message.
- * @param {string} path - The path which is affected by the message (e.g.: "/attributes"), or the destination
- * of a message (e.g.: "inbox"|"outbox").
- * @param {Object.<string, string>} dittoHeaders - The headers Object containing all Ditto Protocol header values.
- * @param {*} [value] - The value to apply / which was applied (e.g. in a "modify" action).
- * @param {number} [status] - The status code that indicates the result of the command. When this field is set,
- * it indicates that the Ditto Protocol Message contains a response.
- * @param {Object} [extra] - The enriched extra fields when selected via "extraFields" option.
- * @returns {(ExternalMessage|Array<ExternalMessage>)} externalMessage - The mapped external message, an array of 
- * external messages or <code>null</code> if the message could/should not be mapped.
- */
-function mapFromDittoProtocolMsg(
-  namespace,
-  name,
-  group,
-  channel,
-  criterion,
-  action,
-  path,
-  dittoHeaders,
-  value,
-  status,
-  extra
-) {
-
-  // ###
-  // Insert your mapping logic here
-  // ### example code using the Ditto protocol content type.
+function mapFromDittoProtocolMsg(namespace, name, group, channel,
+    criterion, action, path, dittoHeaders, value, status, extra) {
   let headers = dittoHeaders;
-  let textPayload = JSON.stringify(Ditto.buildDittoProtocolMsg(namespace, name, group, channel, criterion, action, 
-                                                               path, dittoHeaders, value, status, extra));
-  let bytePayload = null;
-  let contentType = 'application/vnd.eclipse.ditto+json';
-  return Ditto.buildExternalMsg(
-    headers, // The external headers Object containing header values
-    textPayload, // The external mapped String
-    bytePayload, // The external mapped byte[]
-    contentType // The returned Content-Type
+  let textPayload = JSON.stringify(
+    Ditto.buildDittoProtocolMsg(namespace, name, group, channel,
+      criterion, action, path, dittoHeaders, value, status, extra)
   );
+  return Ditto.buildExternalMsg(headers, textPayload, null,
+    'application/vnd.eclipse.ditto+json');
 }
 ```
 
-The result of the function has to be a JavaScript object or, an array of JavaScript objects with the fields `headers`, 
-`textPayload`, `bytePayload` and `contentType`. That's where the helper method `Ditto.buildExternalMsg` is useful: 
-it explicitly defines which parameters are required for the external message.
+For access to the full Ditto Protocol message (including `revision`), implement
+`mapFromDittoProtocolMsgWrapper`:
 
-There is another JavaScript function which is helpful when access to the complete Ditto protocol message is needed.
-It is possible to define the `mapFromDittoProtocolMsgWrapper` in the outgoing payload mapping and access the
-original `dittoProtocolMsg`.  
-Please refer to the [Ditto Protocol specification](protocol-specification.html#dittoProtocolEnvelope)
-to inspect which JSON fields are available when.
-
-This is the default implementation of `mapFromDittoProtocolMsgWrapper`, delegating to `mapFromDittoProtocolMsg`:
 ```javascript
-/**
- * Maps the passed Ditto Protocol message to an external message.
- * @param {DittoProtocolMessage} dittoProtocolMsg - The Ditto Protocol message to map
- * @returns {(ExternalMessage|Array<ExternalMessage>)} externalMessage -
- *  The mapped external message,
- *  an array of external messages or
- *  <code>null</code> if the message could/should not be mapped
- */
 function mapFromDittoProtocolMsgWrapper(dittoProtocolMsg) {
 
   let topic = dittoProtocolMsg.topic;
@@ -957,67 +714,26 @@ function mapFromDittoProtocolMsgWrapper(dittoProtocolMsg) {
 }
 ```
 
-## JavaScript payload types
+### Working with byte payloads
 
-Both, text payloads and byte payloads may be mapped.
-
-### Text payloads
-
-Working with text payloads is as easy as it gets in JavaScript. For example, for the content-type `application/json`
-structured data may be processed like this:
+Use [TypedArrays](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray)
+or [DataViews](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView)
+to process binary data:
 
 ```javascript
-let value;
-if (contentType === 'application/json') {
-  let parsedJson = JSON.parse(textPayload);
-  value = parsedJson.number1 + parsedJson['sub-field']; // remember to access JSON keys with dashes in a JS special way
-} else {
-  // a script may decide to not map other content-types than application/json
-  return null;
-}
-// proceed ...
+// TypedArray approach
+let bytes = new Uint8Array(bytePayload);
+
+// DataView approach (mixed types)
+let view = new DataView(bytePayload);
+view.getInt8(0);                       // 8-bit signed integer (byte) at offset 0
+view.getUint16(1);                     // 16-bit unsigned integer (unsigned short) at offset 1
+let temp = view.getInt16(0) / 100.0;   // 16-bit signed int at offset 0
+let pressure = view.getInt16(2);       // 16-bit signed int at offset 2
+let humidity = view.getUint8(4);       // 8-bit unsigned int at offset 4
 ```
 
-### Byte payloads
-
-Working with byte payloads is also possible but does require a little bit of knowledge about JavaScript's 
-[ArrayBuffer](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer) 
-[TypedArrays](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray) and
-[DataView](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView).
-
-What you get in the mapping scripts is a `bytePayload` of type `ArrayBuffer` which lets you work on the bytes 
-in different ways: 
-
-#### Typed Arrays
-
-> A TypedArray \[is\] a view into an ArrayBuffer where every item has the same size and type.<br/> [source](https://hacks.mozilla.org/2017/01/typedarray-or-dataview-understanding-byte-order/)
-
-With TypedArrays you can simply wrap the `bytePayload` `ArrayBuffer` and work on all the items e.g. 
-as unsigned 8-bit integers:
-
-```javascript
-let bytes = new Uint8Array(bytePayload);
-bytes[0]; // access the first byte
-bytes[1]; // access the second byte
-``` 
-
-#### DataViews
-
-> The DataView \[is\] another view into an ArrayBuffer, but one which allows items of different size and type in the ArrayBuffer.<br/> [source](https://hacks.mozilla.org/2017/01/typedarray-or-dataview-understanding-byte-order/)
-
-```javascript
-let view = new DataView(bytePayload);
-view.getInt8(0); // access a 8-bit signed integer (byte) on offset=0
-view.getUint16(1); // access a 16-bit unsigned integer (usigned short) on offset=1
-``` 
-
-DataViews also allow to `set` bytes to an underlying ArrayBuffer conveniently.
-
-#### ByteBuffer.js
-
-Alternatively, Ditto's JavaScript transformation may be loaded with the [above mentioned](#helper-libraries) libraries, 
-e.g. "bytebuffer.js".<br />
-With `ByteBuffer`, the content of an `ArrayBuffer` can be accessed in a buffered way:
+Or use `ByteBuffer.js` (load with `"loadBytebufferJS": "true"`):
 
 ```javascript
 let byteBuf = Ditto.asByteBuffer(bytePayload);
@@ -1031,225 +747,88 @@ buf.readUTF8String(4); // read 4 characters of UTF-8 encoded string + advances t
 buf.remaining(); // gets the number of remaining readable bytes in the buffer
 ```
 
-Check the [ByteBuffer API documentation](https://github.com/dcodeIO/bytebuffer.js/wiki/API) to find out what is possible 
-with that helper.
+Check the [ByteBuffer API documentation](https://github.com/dcodeIO/bytebuffer.js/wiki/API) for the full list of operations.
 
-
-## JavaScript Examples
+## JavaScript examples
 
 ### Text payload example
 
-Let's assume your device sends telemetry data via [Eclipse Hono's](https://www.eclipse.org/hono/) MQTT adapter 
-into the cloud. And, that an example payload of your device is:
+Device sends JSON telemetry:
 
 ```json
-{
-  "temp": "23.42 °C",
-  "hum": 78,
-  "pres": {
-    "value": 760,
-    "unit": "mmHg"
-  }
-}
+{"temp": "23.42 °C", "hum": 78, "pres": {"value": 760, "unit": "mmHg"}}
 ```
 
-We want to map a single message of this device containing updates for all 3 values to a Thing in the following structure:
-
-```json
-{
-  "thingId": "the.namespace:the-thing-id",
-  "policyId": "the.namespace:the-policy-id",
-  "features": {
-    "temperature": {
-       "properties": {
-         "value": 23.42
-       }
-     },
-    "pressure": {
-       "properties": {
-         "value": 760
-       }
-     },
-    "humidity": {
-       "properties": {
-         "value": 78
-       }
-     }
-  }
-}
-```
-
-Therefore, we define following `incoming` mapping function:
+Mapping to update thing features:
 
 ```javascript
-function mapToDittoProtocolMsg(
-    headers,
-    textPayload,
-    bytePayload,
-    contentType
-) {
-    
-    if (contentType !== 'application/json') {
-        return null; // only handle messages with content-type application/json
-    }
-    
-    let jsonData = JSON.parse(textPayload);
-    
-    let value = {
-        temperature: {
-            properties: {
-                value: jsonData.temp.split(" ")[0] // omit the unit
-            }
-        },
-        pressure: {
-            properties: {
-                value: jsonData.pres.value
-            }
-        },
-        humidity: {
-            properties: {
-                value: jsonData.hum
-            }
-        }
-    };
+function mapToDittoProtocolMsg(headers, textPayload, bytePayload, contentType) {
+  if (contentType !== 'application/json') return null;
 
-    return Ditto.buildDittoProtocolMsg(
-        'org.eclipse.ditto', // in this example always the same
-        headers['device_id'], // Eclipse Hono sets the authenticated device_id as AMQP 1.0 header
-        'things', // we deal with a Thing
-        'twin', // we want to update the twin
-        'commands', // we want to create a command to update a twin
-        'modify', // modify the twin
-        '/features', // modify all features at once
-        headers, // pass through the headers from AMQP 1.0
-        value
-    );
+  let jsonData = JSON.parse(textPayload);
+  let value = {
+    temperature: { properties: { value: parseFloat(jsonData.temp.split(" ")[0]) } },
+    pressure: { properties: { value: jsonData.pres.value } },
+    humidity: { properties: { value: jsonData.hum } }
+  };
+
+  return Ditto.buildDittoProtocolMsg(
+    'org.eclipse.ditto', headers['device_id'],
+    'things', 'twin', 'commands', 'modify',
+    '/features', headers, value
+  );
 }
 ```
 
-When your device now sends its payload via the MQTT adapter of Eclipse Hono:
+Send this payload via Eclipse Hono's MQTT adapter:
 
 ```bash
 mosquitto_pub -u 'sensor1@DEFAULT_TENANT' -P hono-secret -t telemetry -m '{"temp": "23.42 °C","hum": 78,"pres": {"value": 760,"unit": "mmHg"}}'
 ```
 
-Your digital twin is updated by applying the specified script and extracting the relevant values from the passed `textPayload`.
+The digital twin is updated by applying the script and extracting the relevant values from the `textPayload`.
 
+### Binary payload example
 
-### Bytes payload example
+Device sends 5 bytes as hexadecimal `0x09EF03F72A`:
 
-For this example, let's assume your device sends telemetry data via [Eclipse Hono's](https://www.eclipse.org/hono/) 
-HTTP adapter into the cloud. An example payload of your device - displayed as hexadecimal - is:
-
-```
-0x09EF03F72A
-```
-
-Let us now also assume that
-
-* the first 2 bytes `09 EF` represent 
-  * the temperature as 16bit signed integer (thus, may also be negative)
-  * this is not a float in oder to save space (as float needs at least 32 bit)
-* the second 2 bytes `03 F7` represent the pressure as 16bit signed integer
-* the last byte `2A` represents the humidity as 8bit unsigned integer of our device.
-
-We want to map a single message of this device containing updates for all 3 values to a Thing in the following structure:
-
-```json
-{
-  "thingId": "the.namespace:the-thing-id",
-  "policyId": "the.namespace:the-policy-id",
-  "features": {
-    "temperature": {
-       "properties": {
-         "value": 25.43
-       }
-     },
-    "pressure": {
-       "properties": {
-         "value": 1015
-       }
-     },
-    "humidity": {
-       "properties": {
-         "value": 42
-       }
-     }
-  }
-}
-```
-
-Therefore, we define following `incoming` mapping function:
+* the first 2 bytes `09 EF` represent the temperature as 16-bit signed integer (not a float, to save space)
+* the next 2 bytes `03 F7` represent the pressure as 16-bit signed integer
+* the last byte `2A` represents the humidity as 8-bit unsigned integer
 
 ```javascript
-function mapToDittoProtocolMsg(
-    headers,
-    textPayload,
-    bytePayload,
-    contentType
-) {
-    
-    if (contentType !== 'application/octet-stream') {
-        return null; // only handle messages with content-type application/octet-stream
-    }
-    
-    let view = new DataView(bytePayload);
-    
-    let value = {
-        temperature: {
-            properties: {
-                // interpret the first 2 bytes (16 bit) as signed int and divide through 100.0:
-                value: view.getInt16(0) / 100.0
-            }
-        },
-        pressure: {
-            properties: {
-                // interpret the next 2 bytes (16 bit) as signed int:
-                value: view.getInt16(2)
-            }
-        },
-        humidity: {
-            properties: {
-                // interpret the next 1 bytes (8 bit) as unsigned int:
-                value: view.getUint8(4)
-            }
-        }
-    };
+function mapToDittoProtocolMsg(headers, textPayload, bytePayload, contentType) {
+  if (contentType !== 'application/octet-stream') return null;
 
-    return Ditto.buildDittoProtocolMsg(
-        'org.eclipse.ditto', // in this example always the same
-        headers['device_id'], // Eclipse Hono sets the authenticated device_id as AMQP 1.0 header
-        'things', // we deal with a Thing
-        'twin', // we want to update the twin
-        'commands', // we want to create a command to update a twin
-        'modify', // modify the twin
-        '/features', // modify all features at once
-        headers, // pass through the headers from AMQP 1.0
-        value
-    );
+  let view = new DataView(bytePayload);
+  let value = {
+    temperature: { properties: { value: view.getInt16(0) / 100.0 } },
+    pressure: { properties: { value: view.getInt16(2) } },
+    humidity: { properties: { value: view.getUint8(4) } }
+  };
+
+  return Ditto.buildDittoProtocolMsg(
+    'org.eclipse.ditto', headers['device_id'],
+    'things', 'twin', 'commands', 'modify',
+    '/features', headers, value
+  );
 }
 ```
 
-When your device now sends its payload via the HTTP adapter of Eclipse Hono:
+Send this payload via Eclipse Hono's HTTP adapter:
 
 ```bash
 echo -e $((0x09EF03F72A)) | curl -i -X POST -u sensor1@DEFAULT_TENANT:hono-secret -H 'Content-Type: application/octet-stream' --data-binary @- http://127.0.0.1:8080/telemetry
 ```
 
-Your digital twin is updated by applying the specified script and extracting the relevant values from the passed `bytePayload`.
+The digital twin is updated by applying the script and extracting the relevant values from the `bytePayload`.
 
+## Custom Java mapper
 
-## Custom Java based implementation
+For advanced use cases, implement a custom Java-based mapper by extending
+[`AbstractMessageMapper`](https://github.com/eclipse-ditto/ditto/blob/master/connectivity/service/src/main/java/org/eclipse/ditto/connectivity/service/mapping/AbstractMessageMapper.java).
 
-Beside the JavaScript based mapping - which can be configured/changed at runtime without the need of restarting the
-connectivity service - there is also the possibility to implement a custom Java based mapper.
-
-The interface to be implemented is
-[`MessageMapper`](https://github.com/eclipse-ditto/ditto/blob/master/connectivity/service/src/main/java/org/eclipse/ditto/connectivity/service/mapping/MessageMapper.java))
-and there is an abstract class [`AbstractMessageMapper`](https://github.com/eclipse-ditto/ditto/blob/master/connectivity/service/src/main/java/org/eclipse/ditto/connectivity/service/mapping/AbstractMessageMapper.java)
-which eases implementation of a custom mapper.
-
-Simply extend from `AbstractMessageMapper` to provide a custom mapper:
+Extend `AbstractMessageMapper` to provide a custom mapper:
 
 ```java
 public final class FooMapper extends AbstractMessageMapper {
@@ -1304,41 +883,28 @@ public final class FooMapper extends AbstractMessageMapper {
 }
 ```
 
-After instantiation of the custom `MessageMapper`, the `doConfigure` method is called with all the *options* which were 
-provided to the mapper in the [configured connection](connectivity-manage-connections.html#create-connection). 
-Use them in order to pass in configurations, thresholds, etc.
+Key methods to implement:
 
-Then, simply implement both of the `map` methods:
+* `List<Adaptable> map(ExternalMessage message)` -- inbound mapping (return empty list to drop)
+* `List<ExternalMessage> map(Adaptable adaptable)` -- outbound mapping (return empty list to drop)
+* `String getAlias()` -- unique mapper alias (must start with uppercase)
 
-* `List<Adaptable> map(ExternalMessage message)` maps from an incoming external message to
-  * an empty list of `Adaptable`s if the incoming message should be dropped
-  * a list of one or many [Ditto Protocol](protocol-overview.html) `Adaptable`s
-* `List<ExternalMessage> map(Adaptable adaptable)` maps from an outgoing [Ditto Protocol](protocol-overview.html) `Adaptable` to
-  * an empty list of `ExternalMessage`s if the outgoing message should be dropped
-  * a list of one or many external messages
+To deploy:
 
-In order to use this custom Java based mapper implementation, the following steps are required:
-
-* the alias has to be defined via the implemented `getAlias()` method - it must be unique and *should* start with an uppercase letter
-* if the custom mapper requires mandatory options then implement `isConfigurationMandatory()` to return `true`
-* the mapper class needs to be on the classpath of the [connectivity](architecture-services-connectivity.html) 
-  microservice in order to be loaded.  
-  Follow the instructions of 
-  [how to extend Ditto](installation-extending.html#providing-additional-functionality-by-adding-jars-to-the-classpath)
-  to achieve that.
-* the mapper needs to be registered via configuration in the connectivity service, 
-  [extend the configuration](installation-extending.html#adjusting-configuration-of-ditto) or add the mapper via 
-  [system properties](installation-operating.html#ditto-configuration) configuration
-* when creating a new connection you have to specify the alias of your mapper as the `mappingEngine` in the
-  connection's `mappingDefinitions` and reference the ID of your mapper in a source or a target
+1. Add the mapper JAR to the connectivity service classpath
+   ([extending Ditto](installation-extending.html#adding-jars-to-the-classpath))
+2. Register the alias in [connectivity configuration](installation-extending.html#adjusting-service-configuration)
+3. Reference the alias in your connection's `mappingDefinitions`
 
 {% include tip.html content="If your mapper does not require any options (`isConfigurationMandatory() = true`), you can
-    directly reference the alias in a source or a target without first defining it inside `mappingDefinitions`." %} 
+    directly reference the alias in a source or a target without first defining it inside `mappingDefinitions`." %}
 
-### Example for Custom Java based mapper
+For a complete example, see the
+[custom-ditto-java-payload-mapper](https://github.com/eclipse-ditto/ditto-examples/tree/master/custom-ditto-java-payload-mapper)
+project.
 
-Please have a look at the following Ditto example project:
-* [custom-ditto-java-payload-mapper](https://github.com/eclipse-ditto/ditto-examples/tree/master/custom-ditto-java-payload-mapper)
+## Further reading
 
-This shows how to implement, add and configure a custom, Protobuf based, Java payload mapper for Ditto to use in the
-connectivity service for mapping a custom domain specific Protbuf encoded payload.
+* [Connections overview](basic-connections.html) -- connection model and configuration
+* [Header mapping](connectivity-header-mapping.html) -- map external headers
+* [Ditto Protocol](protocol-overview.html) -- message format specification

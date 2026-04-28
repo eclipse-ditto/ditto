@@ -50,7 +50,7 @@ The old values are not deleted, which often is needed and expected.
 In this enhancement an option is provided to define that for a certain json object the existing content should be 
 completely replaced with the new object.
 
-More details can be found in the [added documentation about "Removing fields in a merge update with a regex"](httpapi-concepts.html#removing-fields-in-a-merge-update-with-a-regex).
+More details can be found in the [added documentation about "Removing fields in a merge update with a regex"](httpapi-concepts.html#removing-fields-with-a-regex).
 
 #### [Implicitly convert a merge/PATCH command to a "Create Thing" if thing is not yet existing](https://github.com/eclipse-ditto/ditto/issues/1614)
 

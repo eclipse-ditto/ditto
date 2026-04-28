@@ -64,7 +64,7 @@ This new feature can work together with the
 
 When [HTTP connections](connectivity-protocol-bindings-http.html) there are now several options 
 to respond to published [live messages](protocol-specification-things-messages.html): 
-[Responding to messages]([HTTP connections](connectivity-protocol-bindings-http.html#responding-to-messages)
+[Responding to messages]([HTTP connections](connectivity-protocol-bindings-http.html#responding-to-live-messages)
 
 For example, it is possible to use the HTTP response of the foreign HTTP endpoint (Webhook) as Ditto live message 
 response.

@@ -5,28 +5,37 @@ tags: [architecture]
 permalink: architecture-services-gateway.html
 ---
 
-The "gateway" service is responsible for providing Ditto's [HTTP](httpapi-overview.html) + 
-[WebSocket](httpapi-protocol-bindings-websocket.html) API.
+The Gateway service provides Ditto's external-facing [HTTP](httpapi-overview.html) and [WebSocket](httpapi-protocol-bindings-websocket.html) APIs, translating between HTTP/WebSocket requests and internal Ditto signals.
 
-## Model
+{% include callout.html content="**TL;DR**: The Gateway service is the entry point for all HTTP and WebSocket traffic. It translates HTTP requests into internal commands, routes Ditto Protocol messages from WebSocket and Cloud Events, and streams change notifications back to connected clients." type="primary" %}
 
-The gateway service has no model by its own, but uses the model of all the services it provides the HTTP + WebSocket API for.
+## Overview
 
-## Signals
+The Gateway service acts as Ditto's API layer. It does not own any entities or persistence -- instead, it translates external requests into internal [signals](basic-signals.html) and forwards them to the appropriate services within the cluster.
 
-The gateway service has no signals by its own, but uses the signals of all the services it provides the HTTP + WebSocket API for.
+## How it works
 
-## Persistence
+### Model and signals
 
-The gateway service has no persistence by its own.
+The Gateway service does not define its own entity model or signal types. It uses the models and signals from all other Ditto services to provide a unified API surface.
 
-## Tasks
+### Persistence
 
-* translate HTTP request to [commands](basic-signals-command.html) and translates [command responses](basic-signals-commandresponse.html)
-  back to HTTP responses
-* translate [Ditto Protocol](protocol-overview.html) messages incoming via the [WebSocket](httpapi-protocol-bindings-websocket.html)
-  to [commands](basic-signals-command.html) and translates [command responses](basic-signals-commandresponse.html) back
-  to [Ditto Protocol](protocol-overview.html) response messages
-* accepts [Ditto Protocol](protocol-overview.html) messages incoming via the [Cloud Events HTTP Binding](httpapi-protocol-bindings-cloudevents.html)
-* subscribe for [events](basic-signals-event.html) in Ditto cluster and emits [change notifications](basic-changenotifications.html)
-  via connected [WebSocket](httpapi-protocol-bindings-websocket.html) clients or via [SSEs](httpapi-sse.html)
+The Gateway service does not maintain any persistence of its own.
+
+### Tasks
+
+The Gateway service performs these core tasks:
+
+* **HTTP API**: Translate incoming HTTP requests to [commands](basic-signals-command.html) and translate [command responses](basic-signals-commandresponse.html) back to HTTP responses
+* **WebSocket API**: Translate [Ditto Protocol](protocol-overview.html) messages arriving via [WebSocket](httpapi-protocol-bindings-websocket.html) to commands, and translate responses back to Ditto Protocol messages
+* **Cloud Events**: Accept [Ditto Protocol](protocol-overview.html) messages via the [Cloud Events HTTP Binding](httpapi-protocol-bindings-cloudevents.html)
+* **Change notifications**: Subscribe to [events](basic-signals-event.html) in the Ditto cluster and stream [change notifications](basic-changenotifications.html) to connected [WebSocket](httpapi-protocol-bindings-websocket.html) clients and [SSE](httpapi-sse.html) consumers
+
+## Further reading
+
+* [HTTP API Overview](httpapi-overview.html)
+* [WebSocket Protocol Binding](httpapi-protocol-bindings-websocket.html)
+* [Cloud Events Binding](httpapi-protocol-bindings-cloudevents.html)
+* [SSE (Server-Sent Events)](httpapi-sse.html)
+* [Architecture Overview](architecture-overview.html)

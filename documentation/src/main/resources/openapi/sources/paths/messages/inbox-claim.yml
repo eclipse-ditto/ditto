@@ -38,7 +38,7 @@ post:
     No special permission is required to issue a claim message.
 
     ### Example
-    See [Claiming](https://www.eclipse.dev/ditto/protocol-specification-things-messages.html#sending-and-handling-claim-messages) concept in detail and example in GitHub.
+    See [Claiming](https://www.eclipse.dev/ditto/protocol-specification-things-messages.html#claim-messages) concept in detail and example in GitHub.
     However, in that scenario, the policy should grant you READ and WRITE permission on
     the "message:/" resource in order to be able to send the message and read the response.
     Further, the things-client which handles the "claim" message, needs permission to change the policy itself

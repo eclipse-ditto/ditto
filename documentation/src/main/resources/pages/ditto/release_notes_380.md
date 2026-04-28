@@ -181,7 +181,7 @@ PR [#2220](https://github.com/eclipse-ditto/ditto/pull/2220) fixes the issue tha
 #### Fixing issues around "put-metadata" in combination with merge commands
 
 PR [#2226](https://github.com/eclipse-ditto/ditto/pull/2226) resolves issue [#1790](https://github.com/eclipse-ditto/ditto/issues/1790)
-and other problems around using [put-metadata](basic-metadata.html#modifying-metadata) in combination with
+and other problems around using [put-metadata](basic-metadata.html#how-it-works) in combination with
 [Merge Thing commands](protocol-specification-things-merge.html).
 
 #### Fixing that certificate chains for client certificate based authentication in Ditto connection was not fully parsed

@@ -11,21 +11,21 @@ toc: true
 ---
 
 The upcoming release of Eclipse Ditto **version 2.3.0** will support sending commands via the HTTP API 
-directly to devices using the [live channel](protocol-twinlive.html#live) by just adding the `channel=live` 
-query parameter to the same HTTP API request which would target the [twin](protocol-twinlive.html#twin).
+directly to devices using the [live channel](protocol-twinlive.html#live-channel) by just adding the `channel=live` 
+query parameter to the same HTTP API request which would target the [twin](protocol-twinlive.html#twin-channel).
 
 ## HTTP Live channel
 
-Ditto supports sending all kind of [Thing commands](protocol-specification-things.html#commands) via
+Ditto supports sending all kind of [Thing commands](protocol-specification-things.html#create-and-modify-commands) via
 the `live` channel directly to devices.
 When sending a `live` command to  a device, the device is responsible for sending a correlated and correct response 
 in [Ditto Protocol](protocol-overview.html).
 
 Ditto supports two types of `channel`s for communication.
 
-* [twin](protocol-twinlive.html#twin): The default value of the channel parameter is `twin` 
+* [twin](protocol-twinlive.html#twin-channel): The default value of the channel parameter is `twin` 
   to communicate with the persisted **twin** representation.
-* [live](protocol-twinlive.html#live): The `channel` parameter can be changed to `live` 
+* [live](protocol-twinlive.html#live-channel): The `channel` parameter can be changed to `live` 
   to communicate with the real device.
 
 {% include note.html content="In order to use the live channel, the device receiving live commands must be able to understand

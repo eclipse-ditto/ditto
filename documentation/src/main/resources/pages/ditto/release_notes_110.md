@@ -74,7 +74,7 @@ the payload with additional "extra fields" from the thing which was affected by 
 This can be useful when e.g. only a sensor value of a device changes, but your application also needs to be aware of 
 additional context of the affected thing (e.g. a location which does not change with each sensor update).
 
-APIs for [enriching changes](client-sdk-java.html#subscribe-to-enriched-change-notifications) were also added to the 
+APIs for [enriching changes](client-sdk-java.html#enriched-change-notifications) were also added to the 
 [Ditto Java Client](https://github.com/eclipse-ditto/ditto-clients/pull/43).
 
 #### [Establish connections to MQTT 5 brokers](https://github.com/eclipse-ditto/ditto/issues/561)

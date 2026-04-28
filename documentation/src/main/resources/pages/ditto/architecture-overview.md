@@ -5,47 +5,50 @@ tags: [architecture]
 permalink: architecture-overview.html
 ---
 
-The architecture chapter describes the overall architecture of Eclipse Ditto and in detail which sub-components fulfill
-which responsibilities.
+Eclipse Ditto consists of five microservices that communicate over a Pekko cluster to provide digital twin management, access control, search, and connectivity to external systems.
 
-## Top level component view
+{% include callout.html content="**TL;DR**: Ditto runs five services -- Policies, Things, Things-Search, Gateway, and Connectivity -- all in one Pekko cluster. They communicate via TCP using serializable signals, with MongoDB as the persistence layer and nginx as a reverse proxy." type="primary" %}
 
-This overview shows the Ditto services (components), the externally provided and consumed API endpoints, 
-the external dependencies (MongoDB and nginx) and the relations of the services to each other.
+## Overview
+
+The architecture of Eclipse Ditto is built around five cooperating microservices, each with a clear responsibility. This page describes the top-level component view, how services are defined, and how they communicate.
+
+## How it works
+
+### Component view
 
 {% include image.html file="pages/architecture/ditto-architecture-overview-2022.png" alt="Ditto services and context" caption="Ditto services in blue and context with nginx as reverse proxy and MongoDB" max-width=800 %}
 
-The components have the following tasks:
+The five services and their responsibilities:
 
-* [Policies](architecture-services-policies.html): persistence + enforcement (authorization) of [Policies](basic-policy.html)
-* [Things](architecture-services-things.html): persistence + enforcement (authorization) of [Things](basic-thing.html) 
-  and [Features](basic-feature.html)
-* [Things-Search](architecture-services-things-search.html): tracking changes to `Things`, `Features`, `Policies` and 
-  updating an optimized search index + executes queries on this search index
-* [Gateway](architecture-services-gateway.html): provides HTTP and WebSocket API
-* [Connectivity](architecture-services-connectivity.html):
-   * persistence of [Connections](basic-connections.html)
-   * sends [Ditto Protocol](protocol-overview.html) messages to external message brokers and receives messages from them
+| Service | Responsibilities |
+|---------|-----------------|
+| [Policies](architecture-services-policies.html) | Persist and enforce (authorize) [Policies](basic-policy.html) |
+| [Things](architecture-services-things.html) | Persist and enforce (authorize) [Things](basic-thing.html) and [Features](basic-feature.html) |
+| [Things-Search](architecture-services-things-search.html) | Track changes to `Things`, `Features`, and `Policies`; maintain an optimized search index; execute search queries |
+| [Gateway](architecture-services-gateway.html) | Provide [HTTP](httpapi-overview.html) and [WebSocket](httpapi-protocol-bindings-websocket.html) APIs |
+| [Connectivity](architecture-services-connectivity.html) | Persist [Connections](basic-connections.html); send and receive [Ditto Protocol](protocol-overview.html) messages to/from external message brokers |
 
-All services run in the same [Pekko cluster](https://pekko.apache.org/docs/pekko/current/typed/cluster-concepts.html) and can
-reach each other via TCP without the need for an additional message broker in between.
+All services run in the same [Pekko cluster](https://pekko.apache.org/docs/pekko/current/typed/cluster-concepts.html) and reach each other via TCP without requiring an additional message broker between them.
 
-## Components
+### Microservice definition
 
-Ditto consists of multiple "microservices" as shown in the above component view.
+Each Ditto microservice follows three rules:
 
-A "microservice" in Ditto is defined as:
+1. **Own data store**: Only the owning microservice can access and write to its data store.
+2. **Signal-based API**: The service exposes its API as [signals](basic-signals.html) (commands, command responses, events).
+3. **Signal-only access**: Other services interact with it exclusively through these signals.
 
-* has its own data store which only this microservice may access and write to
-* has an API in form of [signals](basic-signals.html) (commands, command responses, events)
-* can be accessed by other services only via the defined [signals](basic-signals.html)
+### Communication
 
-## Communication
+All microservices communicate asynchronously within the Ditto cluster using [Pekko remoting](https://pekko.apache.org/docs/pekko/current/general/remoting.html). Each service acts as both a TCP server (accepting connections) and a TCP client (sending messages to other services).
 
-All microservices can communicate asynchronously in a Ditto cluster. Communication is done via 
-[Pekko remoting](https://pekko.apache.org/docs/pekko/current/general/remoting.html) which means that each service acts as server, 
-providing a TCP endpoint, as well as client sending data to other services.
+All messages sent between services are serializable. Ditto [signals](basic-signals.html) serialize from Java objects to JSON and deserialize back from JSON to Java objects.
 
-All messages which are sent between Ditto microservices must in a way be serializable and deserializable.  
-All Ditto [signals](basic-signals.html) can be serialized from Java objects to JSON representation and deserialized back 
-from JSON to Java objects. 
+## Further reading
+
+* [Policies Service](architecture-services-policies.html)
+* [Things Service](architecture-services-things.html)
+* [Things-Search Service](architecture-services-things-search.html)
+* [Gateway Service](architecture-services-gateway.html)
+* [Connectivity Service](architecture-services-connectivity.html)

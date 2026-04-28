@@ -45,7 +45,7 @@ The following notable fixes are included:
 #### [Provide API to stream/replay persisted events from the event journal](https://github.com/eclipse-ditto/ditto/issues/1498)
 
 Starting with this release, Eclipse Ditto is now able to provide historical values via its APIs.  
-Ditto makes use of the [Event Sourcing](basic-signals.html#architectural-style) persistence pattern in order to persist
+Ditto makes use of the [Event Sourcing](basic-signals.html#overview) persistence pattern in order to persist
 the different managed entities:
 * things
 * policies

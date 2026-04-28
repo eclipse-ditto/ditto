@@ -122,7 +122,7 @@ This standard behavior now is to fail, but this can be configured via environmen
 #### Provide negative numbers when querying for the historical events of an entity
 
 In [#1866](https://github.com/eclipse-ditto/ditto/pull/1866) we added the option to provide negative numbers or `0` when
-[querying for the historical events](basic-history.html#streaming-historical-events-of-entity).  
+[querying for the historical events](basic-history.html#streaming-historical-events).  
 With that, it is e.g. possible to only stream the last 50 events by specifying:
 * `from-historical-revision=-50`
 * `to-historical-revision=0`

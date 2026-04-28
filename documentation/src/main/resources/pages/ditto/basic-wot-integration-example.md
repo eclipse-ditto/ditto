@@ -1,63 +1,60 @@
 ---
-title: WoT integration example
+title: WoT Integration Example
 keywords: WoT, TD, TM, ThingDescription, ThingModel, W3C, Semantic, Model, definition, ThingDefinition, FeatureDefinition, example
 tags: [wot]
 permalink: basic-wot-integration-example.html
 ---
 
-Wrapping up the [WoT integration](basic-wot-integration.html) with a practical example.
+This page walks you through a complete WoT integration example -- from creating a Thing with a WoT Thing Model to inspecting the generated Thing Descriptions for both the Thing and its Features.
+
+{% include callout.html content="**TL;DR**: Create a Thing with a `definition` pointing to a WoT Thing Model URL. Ditto generates the full JSON skeleton automatically. Then request `Accept: application/td+json` to get a complete Thing Description with API endpoints." type="primary" %}
 
 {% include tip.html content="To experiment with Thing Models and having them exposed as HTTP resources, simply create them as a [GitHub Gist](https://gist.github.com).<br/>
     Each revision of the file will get a unique HTTP endpoint which you can use as endpoint for your Thing Model." %}
 
-## Thing Model
+## Overview
 
-You can provide a WoT Thing Model via any HTTP(s) URL addressable endpoint, for example simply put your WoT TMs into
-a GitHub repository.  
-For this example, Ditto added a model into its `ditto-examples` GitHub Repo:  
-[floor-lamp-1.0.0.tm.jsonld](https://github.com/eclipse-ditto/ditto-examples/blob/master/wot/models/floor-lamp-1.0.0.tm.jsonld)
+This example uses a "Floor Lamp" model that demonstrates WoT composition with multiple sub-models. You will:
 
-This file is available as HTTP served file at:  
-[https://eclipse-ditto.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld](https://eclipse-ditto.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld)
+1. Understand the Thing Model structure
+2. Create a Thing that references the model
+3. Inspect the generated Thing Description for the Thing
+4. Inspect the generated Thing Description for a Feature
 
-The example model is composed of the following submodels:
-* [dimmable-colored-lamp-1.0.0.tm.jsonld](https://eclipse-ditto.github.io/ditto-examples/wot/models/dimmable-colored-lamp-1.0.0.tm.jsonld), instanceName: "Spot1"
-    * which `tm:extends` [colored-lamp-1.0.0.tm.jsonld](https://eclipse-ditto.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld)
-        * which `tm:extends` [switchable-1.0.0.tm.jsonld](https://eclipse-ditto.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld)
-* [dimmable-colored-lamp-1.0.0.tm.jsonld](https://eclipse-ditto.github.io/ditto-examples/wot/models/dimmable-colored-lamp-1.0.0.tm.jsonld), instanceName: "Spot2"
-    * which `tm:extends` [colored-lamp-1.0.0.tm.jsonld](https://eclipse-ditto.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld)
-        * which `tm:extends` [switchable-1.0.0.tm.jsonld](https://eclipse-ditto.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld)
-* [dimmable-colored-lamp-1.0.0.tm.jsonld](https://eclipse-ditto.github.io/ditto-examples/wot/models/dimmable-colored-lamp-1.0.0.tm.jsonld), instanceName: "Spot3"
-    * which `tm:extends` [colored-lamp-1.0.0.tm.jsonld](https://eclipse-ditto.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld)
-        * which `tm:extends` [switchable-1.0.0.tm.jsonld](https://eclipse-ditto.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld)
-* [connection-status-1.0.0.tm.jsonld](https://eclipse-ditto.github.io/ditto-examples/wot/models/connection-status-1.0.0.tm.jsonld), instanceName: "ConnectionStatus"
-* [power-consumption-aware-1.0.0.tm.jsonld](https://eclipse-ditto.github.io/ditto-examples/wot/models/power-consumption-aware-1.0.0.tm.jsonld), instanceName: "PowerConsumptionAwareness"
-* [smoke-detector-1.0.0.tm.jsonld](https://eclipse-ditto.github.io/ditto-examples/wot/models/smoke-detector-1.0.0.tm.jsonld), instanceName: "SmokeDetection"
-* [colored-lamp-1.0.0.tm.jsonld](https://eclipse-ditto.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld), instanceName: "Status-LED"
-    * which `tm:extends` [switchable-1.0.0.tm.jsonld](https://eclipse-ditto.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld)
+## Step 1: Understand the Thing Model
 
-Summarizing, our example model is the model of a "Floor Lamp" with:
-* 3 (dimmable, colored, switchable) Spots
-* a connection status indicating whether the lamp is currently connected
-* awareness of its current power consumption
-* an included smoke detector
-* and a (colored, switchable) status LED
+The example uses a floor lamp model hosted in the Ditto examples repository:
+[floor-lamp-1.0.0.tm.jsonld](https://eclipse-ditto.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld)
 
+Source: [GitHub](https://github.com/eclipse-ditto/ditto-examples/blob/master/wot/models/floor-lamp-1.0.0.tm.jsonld)
 
-## Creating a new Thing based on the TM
+This model composes several sub-models:
 
-To create a Thing (instance) and create the Thing JSON skeleton following the WoT Thing Model, simply create 
-a Thing via the Ditto HTTP API (e.g. `PUT /api/2/things/<thingId>`):
+| Sub-model | Instance name | Inherits from |
+|-----------|---------------|---------------|
+| [dimmable-colored-lamp](https://eclipse-ditto.github.io/ditto-examples/wot/models/dimmable-colored-lamp-1.0.0.tm.jsonld) | Spot1, Spot2, Spot3 | colored-lamp -> switchable |
+| [connection-status](https://eclipse-ditto.github.io/ditto-examples/wot/models/connection-status-1.0.0.tm.jsonld) | ConnectionStatus | -- |
+| [power-consumption-aware](https://eclipse-ditto.github.io/ditto-examples/wot/models/power-consumption-aware-1.0.0.tm.jsonld) | PowerConsumptionAwareness | -- |
+| [smoke-detector](https://eclipse-ditto.github.io/ditto-examples/wot/models/smoke-detector-1.0.0.tm.jsonld) | SmokeDetection | -- |
+| [colored-lamp](https://eclipse-ditto.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld) | Status-LED | switchable |
+
+The floor lamp has 3 dimmable colored spots, a connection status indicator, power consumption awareness, a smoke detector, and a status LED.
+
+## Step 2: Create a Thing from the model
+
+Send a `PUT` request with just the `definition` field pointing to the Thing Model URL. Ditto generates the entire JSON skeleton for you:
 
 ```bash
-curl --location --request PUT -u ditto:ditto 'https://ditto.eclipseprojects.io/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815' \
---header 'Content-Type: application/json' \
---data-raw '{
+curl --location --request PUT -u ditto:ditto \
+  'https://ditto.eclipseprojects.io/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815' \
+  --header 'Content-Type: application/json' \
+  --data-raw '{
     "definition": "https://eclipse-ditto.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld"
-}'
+  }'
 ```
 
-That should result in an HTTP status code `201` (Created) and return the following body:
+Ditto returns `201 Created` with the generated Thing:
+
 ```json
 {
   "thingId": "io.eclipseprojects.ditto:floor-lamp-0815",
@@ -76,11 +73,7 @@ That should result in an HTTP status code `201` (Created) and return the followi
       ],
       "properties": {
         "dimmer-level": 0.0,
-        "color": {
-          "r": 0,
-          "g": 0,
-          "b": 0
-        },
+        "color": { "r": 0, "g": 0, "b": 0 },
         "on": false
       }
     },
@@ -92,11 +85,7 @@ That should result in an HTTP status code `201` (Created) and return the followi
       ],
       "properties": {
         "dimmer-level": 0.0,
-        "color": {
-          "r": 0,
-          "g": 0,
-          "b": 0
-        },
+        "color": { "r": 0, "g": 0, "b": 0 },
         "on": false
       }
     },
@@ -108,11 +97,7 @@ That should result in an HTTP status code `201` (Created) and return the followi
       ],
       "properties": {
         "dimmer-level": 0.0,
-        "color": {
-          "r": 0,
-          "g": 0,
-          "b": 0
-        },
+        "color": { "r": 0, "g": 0, "b": 0 },
         "on": false
       }
     },
@@ -144,11 +129,7 @@ That should result in an HTTP status code `201` (Created) and return the followi
         "https://eclipse-ditto.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld"
       ],
       "properties": {
-        "color": {
-          "r": 0,
-          "g": 0,
-          "b": 0
-        },
+        "color": { "r": 0, "g": 0, "b": 0 },
         "on": false
       }
     }
@@ -156,23 +137,24 @@ That should result in an HTTP status code `201` (Created) and return the followi
 }
 ```
 
-You see that:
-* all of the `properties` defined in the `floor-lamp` itself were generated (as `attributes` in the Thing) with default values
-* all included `tm:submodel`s were generated as Features 
-* all submodel `properties` were generated (as `properties` in the Feature) with default values
-* Feature `definition`s were set accordingly, including the extension hierarchy
+Notice what Ditto generated automatically:
+* **Attributes** from the TM's top-level `properties` (with empty string defaults)
+* **Features** from each `tm:submodel` (using `instanceName` as the Feature ID)
+* **Feature properties** from each submodel's `properties` (with default or neutral values)
+* **Feature definitions** including the full extension hierarchy
 
+## Step 3: Inspect the Thing Description
 
-## Inspecting the Thing Description of the Thing
-
-The Thing we just created can now be asked for its capabilities / interaction affordances by sending the following request:
+Request the Thing Description using the `Accept: application/td+json` header:
 
 ```bash
-curl --location --request GET -u ditto:ditto 'https://ditto.eclipseprojects.io/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815' \
---header 'Accept: application/td+json'
+curl --location --request GET -u ditto:ditto \
+  'https://ditto.eclipseprojects.io/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815' \
+  --header 'Accept: application/td+json'
 ```
 
 That should result in an HTTP status code `200` (OK) and return the following body:
+
 ```json
 {
   "@context": [
@@ -518,24 +500,27 @@ That should result in an HTTP status code `200` (OK) and return the following bo
 }
 ```
 
-You see that:
-* a complete and valid WoT Thing Description was generated and returned
-* you can inspect which `properties`, `actions` and `events` the Thing level TD supports
-* in the `forms` section you have concrete API endpoints (defined relatively to the top-level `base`) which describe how to e.g. read a single property, or to observe properties, or how to invoke actions 
-* you see in the `links` section that this TD contains other `"item"` relations with relative `"href"` link to the Thing's Features
-* you get also possible `uriVariables` and a `dittoError` `schemaDefinition` which may be returned when accessing a `property` or invoking an `action`
+Key observations:
+* A complete and valid WoT Thing Description was generated and returned
+* The `properties` section describes each attribute with its data type, read/write capabilities, and API forms
+* The `actions` section defines invocable operations with their HTTP endpoints
+* The `forms` section at root level provides bulk operations (read/write all properties, observe, subscribe)
+* The `links` section contains `"item"` relations pointing to each Feature's TD (relative to the `base` URL)
+* The `uriVariables` define query parameters (`channel`, `timeout`, `response-required`, `fields`)
+* The `schemaDefinitions` provide a `dittoError` schema for error responses
 
+## Step 4: Inspect a Feature's Thing Description
 
-## Inspecting the Thing Description of a Feature
-
-In order to inspect which capabilities / interaction affordances now a Feature provides, simply perform such a query:
+Request the TD for a specific Feature:
 
 ```bash
-curl --location --request GET -u ditto:ditto 'https://ditto.eclipseprojects.io/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815/features/Spot1' \
---header 'Accept: application/td+json'
+curl --location --request GET -u ditto:ditto \
+  'https://ditto.eclipseprojects.io/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815/features/Spot1' \
+  --header 'Accept: application/td+json'
 ```
 
 That should result in an HTTP status code `200` (OK) and return the following body:
+
 ```json
 {
   "@context": [
@@ -578,80 +563,44 @@ That should result in an HTTP status code `200` (OK) and return the following bo
       "href": "/properties{?channel,timeout}",
       "htv:methodName": "GET",
       "contentType": "application/json",
-      "additionalResponses": [
-        {
-          "success": false,
-          "schema": "dittoError"
-        }
-      ]
+      "additionalResponses": [{ "success": false, "schema": "dittoError" }]
     },
     {
       "op": "readmultipleproperties",
       "href": "/properties{?fields,channel,timeout}",
       "htv:methodName": "GET",
       "contentType": "application/json",
-      "additionalResponses": [
-        {
-          "success": false,
-          "schema": "dittoError"
-        }
-      ]
+      "additionalResponses": [{ "success": false, "schema": "dittoError" }]
     },
     {
       "op": "writeallproperties",
       "href": "/properties{?channel,timeout,response-required}",
       "htv:methodName": "PUT",
       "contentType": "application/json",
-      "additionalResponses": [
-        {
-          "success": false,
-          "schema": "dittoError"
-        }
-      ]
+      "additionalResponses": [{ "success": false, "schema": "dittoError" }]
     },
     {
       "op": "writemultipleproperties",
       "href": "/properties{?channel,timeout,response-required}",
       "htv:methodName": "PATCH",
       "contentType": "application/merge-patch+json",
-      "additionalResponses": [
-        {
-          "success": false,
-          "schema": "dittoError"
-        }
-      ]
+      "additionalResponses": [{ "success": false, "schema": "dittoError" }]
     },
     {
-      "op": [
-        "observeallproperties",
-        "unobserveallproperties"
-      ],
+      "op": ["observeallproperties", "unobserveallproperties"],
       "href": "/properties",
       "htv:methodName": "GET",
       "subprotocol": "sse",
       "contentType": "text/event-stream",
-      "additionalResponses": [
-        {
-          "success": false,
-          "schema": "dittoError"
-        }
-      ]
+      "additionalResponses": [{ "success": false, "schema": "dittoError" }]
     },
     {
-      "op": [
-        "subscribeallevents",
-        "unsubscribeallevents"
-      ],
+      "op": ["subscribeallevents", "unsubscribeallevents"],
       "href": "/outbox/messages",
       "htv:methodName": "GET",
       "subprotocol": "sse",
       "contentType": "text/event-stream",
-      "additionalResponses": [
-        {
-          "success": false,
-          "schema": "dittoError"
-        }
-      ]
+      "additionalResponses": [{ "success": false, "schema": "dittoError" }]
     }
   ],
   "properties": {
@@ -670,52 +619,29 @@ That should result in an HTTP status code `200` (OK) and return the following bo
           "href": "/properties/dimmer-level{?channel,timeout}",
           "htv:methodName": "GET",
           "contentType": "application/json",
-          "additionalResponses": [
-            {
-              "success": false,
-              "schema": "dittoError"
-            }
-          ]
+          "additionalResponses": [{ "success": false, "schema": "dittoError" }]
         },
         {
           "op": "writeproperty",
           "href": "/properties/dimmer-level{?channel,timeout,response-required}",
           "htv:methodName": "PUT",
           "contentType": "application/json",
-          "additionalResponses": [
-            {
-              "success": false,
-              "schema": "dittoError"
-            }
-          ]
+          "additionalResponses": [{ "success": false, "schema": "dittoError" }]
         },
         {
           "op": "writeproperty",
           "href": "/properties/dimmer-level{?channel,timeout,response-required}",
           "htv:methodName": "PATCH",
           "contentType": "application/merge-patch+json",
-          "additionalResponses": [
-            {
-              "success": false,
-              "schema": "dittoError"
-            }
-          ]
+          "additionalResponses": [{ "success": false, "schema": "dittoError" }]
         },
         {
-          "op": [
-            "observeproperty",
-            "unobserveproperty"
-          ],
+          "op": ["observeproperty", "unobserveproperty"],
           "href": "/properties/dimmer-level",
           "htv:methodName": "GET",
           "subprotocol": "sse",
           "contentType": "text/event-stream",
-          "additionalResponses": [
-            {
-              "success": false,
-              "schema": "dittoError"
-            }
-          ]
+          "additionalResponses": [{ "success": false, "schema": "dittoError" }]
         }
       ]
     },
@@ -724,30 +650,11 @@ That should result in an HTTP status code `200` (OK) and return the following bo
       "description": "The current color.",
       "type": "object",
       "properties": {
-        "r": {
-          "title": "Red",
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 255
-        },
-        "g": {
-          "title": "Green",
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 255
-        },
-        "b": {
-          "title": "Blue",
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 255
-        }
+        "r": { "title": "Red", "type": "integer", "minimum": 0, "maximum": 255 },
+        "g": { "title": "Green", "type": "integer", "minimum": 0, "maximum": 255 },
+        "b": { "title": "Blue", "type": "integer", "minimum": 0, "maximum": 255 }
       },
-      "required": [
-        "r",
-        "g",
-        "b"
-      ],
+      "required": ["r", "g", "b"],
       "observable": true,
       "forms": [
         {
@@ -755,52 +662,29 @@ That should result in an HTTP status code `200` (OK) and return the following bo
           "href": "/properties/color{?channel,timeout}",
           "htv:methodName": "GET",
           "contentType": "application/json",
-          "additionalResponses": [
-            {
-              "success": false,
-              "schema": "dittoError"
-            }
-          ]
+          "additionalResponses": [{ "success": false, "schema": "dittoError" }]
         },
         {
           "op": "writeproperty",
           "href": "/properties/color{?channel,timeout,response-required}",
           "htv:methodName": "PUT",
           "contentType": "application/json",
-          "additionalResponses": [
-            {
-              "success": false,
-              "schema": "dittoError"
-            }
-          ]
+          "additionalResponses": [{ "success": false, "schema": "dittoError" }]
         },
         {
           "op": "writeproperty",
           "href": "/properties/color{?channel,timeout,response-required}",
           "htv:methodName": "PATCH",
           "contentType": "application/merge-patch+json",
-          "additionalResponses": [
-            {
-              "success": false,
-              "schema": "dittoError"
-            }
-          ]
+          "additionalResponses": [{ "success": false, "schema": "dittoError" }]
         },
         {
-          "op": [
-            "observeproperty",
-            "unobserveproperty"
-          ],
+          "op": ["observeproperty", "unobserveproperty"],
           "href": "/properties/color",
           "htv:methodName": "GET",
           "subprotocol": "sse",
           "contentType": "text/event-stream",
-          "additionalResponses": [
-            {
-              "success": false,
-              "schema": "dittoError"
-            }
-          ]
+          "additionalResponses": [{ "success": false, "schema": "dittoError" }]
         }
       ]
     },
@@ -815,52 +699,29 @@ That should result in an HTTP status code `200` (OK) and return the following bo
           "href": "/properties/on{?channel,timeout}",
           "htv:methodName": "GET",
           "contentType": "application/json",
-          "additionalResponses": [
-            {
-              "success": false,
-              "schema": "dittoError"
-            }
-          ]
+          "additionalResponses": [{ "success": false, "schema": "dittoError" }]
         },
         {
           "op": "writeproperty",
           "href": "/properties/on{?channel,timeout,response-required}",
           "htv:methodName": "PUT",
           "contentType": "application/json",
-          "additionalResponses": [
-            {
-              "success": false,
-              "schema": "dittoError"
-            }
-          ]
+          "additionalResponses": [{ "success": false, "schema": "dittoError" }]
         },
         {
           "op": "writeproperty",
           "href": "/properties/on{?channel,timeout,response-required}",
           "htv:methodName": "PATCH",
           "contentType": "application/merge-patch+json",
-          "additionalResponses": [
-            {
-              "success": false,
-              "schema": "dittoError"
-            }
-          ]
+          "additionalResponses": [{ "success": false, "schema": "dittoError" }]
         },
         {
-          "op": [
-            "observeproperty",
-            "unobserveproperty"
-          ],
+          "op": ["observeproperty", "unobserveproperty"],
           "href": "/properties/on",
           "htv:methodName": "GET",
           "subprotocol": "sse",
           "contentType": "text/event-stream",
-          "additionalResponses": [
-            {
-              "success": false,
-              "schema": "dittoError"
-            }
-          ]
+          "additionalResponses": [{ "success": false, "schema": "dittoError" }]
         }
       ]
     }
@@ -879,12 +740,7 @@ That should result in an HTTP status code `200` (OK) and return the following bo
           "href": "/inbox/messages/toggle{?timeout,response-required}",
           "htv:methodName": "POST",
           "contentType": "application/json",
-          "additionalResponses": [
-            {
-              "success": false,
-              "schema": "dittoError"
-            }
-          ]
+          "additionalResponses": [{ "success": false, "schema": "dittoError" }]
         }
       ]
     },
@@ -903,12 +759,7 @@ That should result in an HTTP status code `200` (OK) and return the following bo
           "href": "/inbox/messages/switch-on-for-duration{?timeout,response-required}",
           "htv:methodName": "POST",
           "contentType": "application/json",
-          "additionalResponses": [
-            {
-              "success": false,
-              "schema": "dittoError"
-            }
-          ]
+          "additionalResponses": [{ "success": false, "schema": "dittoError" }]
         }
       ]
     }
@@ -918,10 +769,7 @@ That should result in an HTTP status code `200` (OK) and return the following bo
       "type": "string",
       "title": "The Ditto channel to interact with.",
       "description": "Defines to which channel to route the command: 'twin' (digital twin) or 'live' (the device).",
-      "enum": [
-        "twin",
-        "live"
-      ],
+      "enum": ["twin", "live"],
       "default": "twin"
     },
     "timeout": {
@@ -979,12 +827,34 @@ That should result in an HTTP status code `200` (OK) and return the following bo
           "maximum": 599
         }
       },
-      "required": [
-        "status",
-        "error",
-        "message"
-      ]
+      "required": ["status", "error", "message"]
     }
   }
 }
 ```
+
+Key observations:
+* A complete and valid WoT Thing Description was generated and returned
+* The `properties` section describes each attribute with its data type, read/write capabilities, and API forms
+* The `actions` section defines invocable operations with their HTTP endpoints
+* The `forms` section at root level provides bulk operations (read/write all properties, observe, subscribe)
+* The `links` section contains `"item"` relations pointing to each Feature's TD (relative to the `base` URL)
+* The `uriVariables` define query parameters (`channel`, `timeout`, `response-required`, `fields`)
+* The `schemaDefinitions` provide a `dittoError` schema for error responses
+
+## Summary
+
+In this walkthrough you:
+
+1. **Created a Thing** with just a `definition` URL -- Ditto generated all attributes, features, and properties
+2. **Retrieved a Thing Description** that documents every property, action, and event with concrete API endpoints
+3. **Retrieved a Feature Description** that provides detailed interaction affordances including data types, constraints, and API forms
+
+The generated Thing Descriptions are fully compliant WoT TDs that any WoT-compatible tool or library can consume.
+
+## Further reading
+
+* [WoT Overview](basic-wot-integration.html) -- concepts and configuration
+* [WoT Validation Configuration](basic-wot-validation-config.html) -- runtime validation API
+* [W3C WoT Thing Description 1.1](https://www.w3.org/TR/wot-thing-description11/) -- the specification
+* [Eclipse edi{TD}or](https://eclipse.github.io/editdor/) -- online WoT model editor

@@ -1,63 +1,70 @@
 ---
-title: Client SDK JavaScript
-keywords: 
+title: JavaScript SDK
+keywords:
 tags: [client_sdk]
 permalink: client-sdk-javascript.html
 ---
 
-A TypeScript library to facilitate working the the REST-like HTTP API and web socket API of Eclipse Ditto.
+You use the Ditto JavaScript SDK to work with the Ditto HTTP API and WebSocket API from browser and Node.js environments.
 
-## How to use it
-Install `@eclipse-ditto/ditto-javascript-client-dom` for the DOM (browser) implementation, 
-`@eclipse-ditto/ditto-javascript-client-node` for the NodeJS implementation, or `@eclipse/ditto-javascript-client-api-ditto` for
-the API and build your own client implementation.
+{% include callout.html content="**TL;DR**: Install `@eclipse-ditto/ditto-javascript-client-dom` for browsers or `@eclipse-ditto/ditto-javascript-client-node` for Node.js, then use the client to manage Things, subscribe to events, and send messages." type="primary" %}
 
-More information can be found in the descriptions of the subpackages:
-* [@eclipse-ditto/ditto-javascript-client-api](https://github.com/eclipse-ditto/ditto-clients/blob/master/javascript/lib/api/README.md)
-* [@eclipse-ditto/ditto-javascript-client-dom](https://github.com/eclipse-ditto/ditto-clients/blob/master/javascript/lib/dom/README.md) 
-* [@eclipse-ditto/ditto-javascript-client-node](https://github.com/eclipse-ditto/ditto-clients/blob/master/javascript/lib/node/README.md)
+## Overview
+
+The JavaScript SDK provides separate packages for different environments:
+
+| Package | Environment | Description |
+|---------|-------------|-------------|
+| [`@eclipse-ditto/ditto-javascript-client-dom`](https://github.com/eclipse-ditto/ditto-clients/blob/master/javascript/lib/dom/README.md) | Browser (DOM) | Uses browser-native HTTP and WebSocket |
+| [`@eclipse-ditto/ditto-javascript-client-node`](https://github.com/eclipse-ditto/ditto-clients/blob/master/javascript/lib/node/README.md) | Node.js | Uses Node.js HTTP and WebSocket |
+| [`@eclipse-ditto/ditto-javascript-client-api`](https://github.com/eclipse-ditto/ditto-clients/blob/master/javascript/lib/api/README.md) | Any | API-only -- build your own client implementation |
 
 All released versions are published on [npmjs.com](https://www.npmjs.com/~eclipse_ditto).
 
-## Compatibility with [Eclipse Ditto](https://github.com/eclipse-ditto/ditto)
+## Getting started
 
-The newest release of the JavaScript client will always try to cover as much API
-functionality of the same Eclipse Ditto major version as possible. There might
-however be missing features for which we would be very happy to accept contributions.
+### Installation
 
+Install the package for your environment:
 
-## Coding
+```bash
+# For browser applications:
+npm install @eclipse-ditto/ditto-javascript-client-dom
+
+# For Node.js applications:
+npm install @eclipse-ditto/ditto-javascript-client-node
 ```
+
+### Compatibility
+
+The JavaScript SDK tracks the same major version as Eclipse Ditto. The latest release covers as much API functionality as possible for the corresponding Ditto version.
+
+## Building from source
+
+```bash
 npm install
 npm run build
 npm run lint
 npm test
-# or npm run test:watch
 ```
 
-## Troubleshooting
-If you get strange errors, it would be best cleaning all dependencies and
-starting from the beginning again:
-```
+### Troubleshooting build issues
+
+If you encounter build errors, clean everything and start fresh:
+
+```bash
 npm run clean
-# by hand delete node_modules in the root folder, or use a tool like rm, rimraf, etc.
+# Delete node_modules in the root folder
 npm install
 npm run build
-# ...
 ```
-It is important to know that during install and build some extra processes
-are triggered by e.g. lerna which will symlink the `api` dependency into 
-the node_modules of `dom` and `node` packages.
 
-## Internals
-This project is using [lerna](https://github.com/lerna/lerna) to split up the
-client into different packages. This way we can have standalone codeable 
-subprojects (`api`, `dom` and `node`) but still are able to control dependencies,
-build processes or release processes globally.
+The build process uses [lerna](https://github.com/lerna/lerna) for multi-package management and [rollup.js](https://rollupjs.org/) for generating multiple module formats (IIFE, ES Module, CommonJS). During install and build, lerna symlinks the `api` dependency into the `dom` and `node` packages.
 
-Furthermore we use [rollup.js](https://rollupjs.org/) for providing multiple
-module types of the packages, e.g. the `api` will be published as IIFE,
-ES Module and CommonJS module.
+## Further reading
 
-For automatically generating barrel files, [barrelsby](https://github.com/bencoveney/barrelsby)
-is used during the build process.
+* [@eclipse-ditto/ditto-javascript-client-dom README](https://github.com/eclipse-ditto/ditto-clients/blob/master/javascript/lib/dom/README.md) -- browser usage details
+* [@eclipse-ditto/ditto-javascript-client-node README](https://github.com/eclipse-ditto/ditto-clients/blob/master/javascript/lib/node/README.md) -- Node.js usage details
+* [@eclipse-ditto/ditto-javascript-client-api README](https://github.com/eclipse-ditto/ditto-clients/blob/master/javascript/lib/api/README.md) -- API package details
+* [HTTP API overview](httpapi-overview.html) -- the REST API the SDK wraps
+* [WebSocket binding](httpapi-protocol-bindings-websocket.html) -- the WebSocket transport

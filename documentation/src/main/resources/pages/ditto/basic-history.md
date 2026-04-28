@@ -5,171 +5,137 @@ tags: [history]
 permalink: basic-history.html
 ---
 
-Starting with **Eclipse Ditto 3.2.0**, APIs for retrieving the history of the following entities is provided:
-* [things](basic-thing.html)
-* [policies](basic-policy.html)
-* [connections](basic-connections.html)
+Ditto provides APIs for retrieving the history of Things, Policies, and Connections, letting you inspect past states and stream modification events.
 
-The capabilities of these APIs are the following:
+{% include callout.html content="**TL;DR**: You can retrieve any entity at a specific revision or timestamp, and stream historical modification events for Things and Policies. Configure `history-retention-duration` to control how long historical data is kept." type="primary" %}
 
-| Entity     | [Retrieving entity at a specific revision or timestamp](#retrieving-entity-from-history) | [Streaming modification events of an entity specifying from/to revision/timestamp](#streaming-historical-events-of-entity) |
-|------------|------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------|
-| Thing      | ✓                                                                                        | ✓                                                                                                                          |
-| Policy     | ✓                                                                                        | ✓                                                                                                                          |
-| Connection | ✓                                                                                        | no                                                                                                                         |
+## Overview
+
+Since Eclipse Ditto 3.2.0, you can access the history of:
+
+* [Things](basic-thing.html)
+* [Policies](basic-policy.html)
+* [Connections](basic-connections.html)
+
+| Entity | Retrieve at revision/timestamp | Stream historical events |
+|---|---|---|
+| Thing | Yes | Yes |
+| Policy | Yes | Yes |
+| Connection | Yes | No |
 
 {% include note.html content="Ditto's history API capabilities are not comparable with the features of a time series database.
     E.g. no aggregations on or compactions of the historical data can be done." %}
 
+## Retrieving an entity from history
 
-## Retrieving entity from history
+You can retrieve the state of an entity (Thing, Policy, Connection) at a given revision number or timestamp. You can also retrieve "historical headers" persisted alongside a modification (see [configuring historical headers](#configuring-historical-headers-to-persist)).
 
-Provides:
-* Finding out the state of an entity (thing, policy, connection) at a given:
-  * revision number
-  * timestamp
-* Retrieving "historical headers" persisted together with a modification (see [configuring historical headers to persist](#configuring-historical-headers-to-persist))
+Use cases:
+* Compare an entity's current state to a former state for debugging
+* **Audit log**: Find out which subject made a specific change
 
-Target use cases:
-* Compare changes to entity (e.g. a connection) to a former state
-  * In order to solve potential errors in e.g. policy or connection configuration
-* **Audit log**: Find out who (which subject) did a change to an entity
-  * E.g. in order to find out who changed a policy/connection
-  * Configure [which headers to persist as historical headers](#configuring-historical-headers-to-persist) to e.g. include the subject which did a modification
+### Retrieve at a specific revision
 
-### Retrieve entity at specific revision
+Set the `at-historical-revision` header to a revision number on any retrieve command.
 
-Retrieving an entity at an (historical) revision, set the header `at-historical-revision` to a `long` number for all
-"retrieve" commands of persisted state.
-
-Example for the HTTP API:
 ```bash
-# Access a thing:
+# Retrieve a Thing at revision 1:
 curl -u ditto:ditto 'http://localhost:8080/api/2/things/org.eclipse.ditto:thing-1' \
   --header 'at-historical-revision: 1'
-  
-# Access a policy:
+
+# Retrieve a Policy at revision 1:
 curl -u ditto:ditto 'http://localhost:8080/api/2/policies/org.eclipse.ditto:policy-1' \
   --header 'at-historical-revision: 1'
-  
-# Access a connection:
+
+# Retrieve a Connection at revision 1:
 curl -u devops:foobar 'http://localhost:8080/api/2/connections/some-connection-1' \
   --header 'at-historical-revision: 1'
 ```
 
-The same functionality is available via a [header of a Ditto Protocol](protocol-specification.html#headers) message.
+This functionality is also available via [Ditto Protocol headers](protocol-specification.html#headers).
 
-If [historical headers](#configuring-historical-headers-to-persist) were configured to be persisted, they can be found
-in the response header named `historical-headers`.
+If [historical headers](#configuring-historical-headers-to-persist) are configured, they appear in the response header `historical-headers`.
 
-### Retrieve entity at specific timestamp
+### Retrieve at a specific timestamp
 
-Retrieving an entity at an (historical) timestamp, set the header `at-historical-timestamp` to an ISO-8601 formatted 
-`string`  for all "retrieve" commands of persisted state.
+Set the `at-historical-timestamp` header to an ISO-8601 timestamp.
 
-Example for the HTTP API:
 ```bash
-# Access a thing:
+# Retrieve a Thing at a specific time:
 curl -u ditto:ditto 'http://localhost:8080/api/2/things/org.eclipse.ditto:thing-1' \
   --header 'at-historical-timestamp: 2022-10-24T03:11:15Z'
-  
-# Access a policy:
+
+# Retrieve a Policy at a specific time:
 curl -u ditto:ditto 'http://localhost:8080/api/2/policies/org.eclipse.ditto:policy-1' \
   --header 'at-historical-timestamp: 2022-10-24T06:11:15Z'
-  
-# Access a connection:
+
+# Retrieve a Connection at a specific time:
 curl -u devops:foobar 'http://localhost:8080/api/2/connections/some-connection-1' \
   --header 'at-historical-timestamp: 2022-10-24T07:11Z'
 ```
 
-The same functionality is available via a [header of a Ditto Protocol](protocol-specification.html#headers) message.
+## Streaming historical events
 
-If [historical headers](#configuring-historical-headers-to-persist) were configured to be persisted, they can be found
-in the response header named `historical-headers`.
+You can stream a sequence of modification events for a specific Thing or Policy. Specify the range by revision numbers or timestamps.
 
+Use cases:
+* Inspect how an entity changed over time
+* Display historical values on a chart
 
-## Streaming historical events of entity
+### Streaming via SSE
 
-Provides:
-* A stream of changes to a specific thing or policy, based on specified:
-  * entity ID
-  * start revision number (and optional stop revision number)
-  * start timestamp (and optional stop timestamp)
-* Retrieving "historical headers" persisted together with a modification (see [configuring historical headers to persist](#configuring-historical-headers-to-persist))
+The [SSE (Server Sent Event) API](httpapi-sse.html) is the simplest way to stream historical events. It is available **for Things only**.
 
-Target use cases:
-* Inspect the changes of an entity over time
-  * E.g. displaying a value on a chart with that way
+Use these query parameters:
 
-### Streaming historical events via SSE
+**Revision-based:**
+* `from-historical-revision`: Starting revision. Use negative values for relative offsets from the current revision.
+* `to-historical-revision`: Optional end revision. Use `0` for latest, or negative for relative offsets.
 
-The easiest way to stream historical events is the [SSE (Server Sent Event) API](httpapi-sse.html).  
-This API is however **only available for things** (not for policies).
+**Timestamp-based:**
+* `from-historical-timestamp`: Starting timestamp (ISO-8601).
+* `to-historical-timestamp`: Optional end timestamp.
 
-Use the following query parameters in order to specify the start/stop revision/timestamp.
+Each historical event is normalized to the Thing JSON representation.
 
-Either use the revision based parameters:
-* `from-historical-revision`: Specifies the revision number to start streaming historical modification events from.
-  May also be negative in order to specify to get the last `n` revisions relative to the **most recent revision** (`_revision` of the thing).
-* `to-historical-revision`: Optionally specifies the revision number to stop streaming at (if omitted, it streams events until the current state of the entity). 
-  May also be 0 or negative in order to specify to get either the latest (`0`) or the `n`th most recent revision.
-
-Alternatively, use the timestamp based parameters:
-* `from-historical-timestamp`: specifies the timestamp to start streaming historical modification events from
-* `to-historical-timestamp`: optionally specifies the timestamp to stop streaming at (if omitted, it streams events until the current state of the entity)
-
-The messages sent over the SSE are the same as for the [SSE (Server Sent Event) API](httpapi-sse.html), each historical 
-modification event is "normalized" to the Thing JSON representation.
-
-Examples:
 ```bash
-# stream complete history starting from earliest available revision of a thing:
+# Stream complete history from earliest available revision:
 curl --http2 -u ditto:ditto -H 'Accept:text/event-stream' -N \
   http://localhost:8080/api/2/things/org.eclipse.ditto:thing-2?from-historical-revision=0&fields=thingId,attributes,features,_revision,_modified
 
-# stream specific history range of a thing based on revisions:
+# Stream a specific revision range:
 curl --http2 -u ditto:ditto -H 'Accept:text/event-stream' -N \
   http://localhost:8080/api/2/things/org.eclipse.ditto:thing-2?from-historical-revision=23&to-historical-revision=42&fields=thingId,attributes,features,_revision,_modified
 
-# stream specific history range of a thing based on timestamps:
+# Stream a specific timestamp range:
 curl --http2 -u ditto:ditto -H 'Accept:text/event-stream' -N \
   http://localhost:8080/api/2/things/org.eclipse.ditto:thing-2?from-historical-timestamp=2022-10-24T11:44:36Z&to-historical-timestamp=2022-10-24T11:44:37Z&fields=thingId,attributes,features,_revision,_modified
 
-# stream specific history range, additionally selecting _context in "fields" which contains the historical headers:
+# Include historical headers via the _context field:
 curl --http2 -u ditto:ditto -H 'Accept:text/event-stream' -N \
   http://localhost:8080/api/2/things/org.eclipse.ditto:thing-2?from-historical-revision=0&fields=thingId,attributes,features,_revision,_modified,_context
 ```
 
-#### Filtering streamed historical events for things via SEE
+#### Filtering streamed events via SSE
 
-When streaming historical events for [things](basic-thing.html), an optional `filter` in form of an
-[RQL](basic-rql.html) may be declared in order to only receive thing events matching the defined query.
+Add a `filter` parameter with an [RQL](basic-rql.html) expression to only receive events matching the query:
 
-This can e.g. be useful to only stream events in which a certain feature or a certain property/attribute was included.
-
-In addition to the parameters selecting from/to revision or timestamp, the following parameter can be defined:
-* `filter`: specifies the [RQL](basic-rql.html) filter which events to return in the stream must match
-
-Examples:
 ```bash
-# stream complete history starting from earliest available revision of a thing, but only those where a feature "bamboo" was modified:
+# Only events where a "bamboo" feature was modified:
 curl --http2 -u ditto:ditto -H 'Accept:text/event-stream' -N \
   http://localhost:8080/api/2/things/org.eclipse.ditto:thing-2?from-historical-revision=0&fields=thingId,attributes,features,_revision,_modified&filter=exists(features/bamboo)
 
-# stream specific history range of a thing based on timestamps, filtering for temperature values of a sensor being greater than 50:
+# Only events where temperature exceeded 50:
 curl --http2 -u ditto:ditto -H 'Accept:text/event-stream' -N \
   http://localhost:8080/api/2/things/org.eclipse.ditto:thing-2?from-historical-timestamp=2022-10-24T11:44:36Z&to-historical-timestamp=2022-10-24T11:44:37Z&fields=thingId,attributes,features,_revision,_modified&filter=gt(features/temperature/properties/value,50)
 ```
 
-### Streaming historical events via Ditto Protocol
+### Streaming via Ditto Protocol
 
-Please inspect the [protocol specification of DittoProtocol messages for streaming persisted events](protocol-specification-streaming-subscription.html)
-to find out how to stream historical (persisted) events via DittoProtocol.  
-Using the DittoProtocol, historical events can be streamed either via WebSocket or connections.
+Use the [streaming subscription protocol](protocol-specification-streaming-subscription.html) to stream historical events via WebSocket or connections.
 
-Example protocol interaction for retrieving the persisted events of a thing:
+**Step 1**: Subscribe for persisted events:
 
-**First:** Subscribe for the persisted events of a thing
 ```json
 {
   "topic": "org.eclipse.ditto/thing-2/things/twin/streaming/subscribeForPersistedEvents",
@@ -182,42 +148,34 @@ Example protocol interaction for retrieving the persisted events of a thing:
 }
 ```
 
-Alternatively to `fromHistoricalRevision` and `toHistoricalRevision`, also a timestamp based range may be used:
-`fromHistoricalTimestamp` and `toHistoricalTimestamp`.  
-The "to" can be omitted in order to receive all events up to the current revision or timestamp.
+You can also use `fromHistoricalTimestamp` and `toHistoricalTimestamp`. Omit the "to" parameter to stream up to the current state.
 
-As a result, the following `created` event is received as response:
+Ditto responds with a `created` event containing the subscription ID:
+
 ```json
 {
   "topic": "org.eclipse.ditto/thing-2/things/twin/streaming/created",
   "path": "/",
-  "headers": {},
-  "value": {
-    "subscriptionId": "0"
-  }
+  "value": { "subscriptionId": "0" }
 }
 ```
 
-**Second:** Once the streaming subscription is confirmed to be created, request demand (of how many events to get streamed), 
-referencing the `subscriptionId`:
+**Step 2**: Request demand:
+
 ```json
 {
   "topic": "org.eclipse.ditto/thing-2/things/twin/streaming/request",
   "path": "/",
-  "headers": {},
-  "value": {
-    "subscriptionId": "0",
-    "demand": 25
-  }
+  "value": { "subscriptionId": "0", "demand": 25 }
 }
 ```
 
-The backend will start sending the requested persisted events as `next` messages: 
+Ditto sends `next` events containing the historical events:
+
 ```json
 {
   "topic": "org.eclipse.ditto/thing-2/things/twin/streaming/next",
   "path": "/",
-  "headers": {},
   "value": {
     "subscriptionId": "0",
     "item": {
@@ -227,31 +185,27 @@ The backend will start sending the requested persisted events as `next` messages
 }
 ```
 
-It will do so either until all existing events were sent, in that case a `complete` event is sent:
+It continues until all existing events are sent, at which point it sends a `complete` event:
+
 ```json
 {
   "topic": "org.eclipse.ditto/thing-2/things/twin/streaming/complete",
   "path": "/",
-  "headers": {},
-  "value": {
-    "subscriptionId": "0"
-  }
+  "value": { "subscriptionId": "0" }
 }
 ```
 
-Or it will stop after the `demand` was fulfilled, waiting for the requester to claim more demand with a new `request` 
-message.
+If the requested `demand` is fulfilled before all events are sent, the backend pauses and waits
+for the requester to claim more demand with a new `request` message.
 
-#### Filtering streamed historical events for things via Ditto Protocol
+#### Filtering via Ditto Protocol
 
-The `filter` for streaming historical thing events may also be specified via Ditto Protocol.
+Include a `filter` in the subscribe command's value:
 
-Example protocol message for subscribing for the persisted events of a thing with a `filter`:
 ```json
 {
   "topic": "org.eclipse.ditto/thing-2/things/twin/streaming/subscribeForPersistedEvents",
   "path": "/",
-  "headers": {},
   "value": {
     "fromHistoricalRevision": 1,
     "toHistoricalRevision": 10,
@@ -260,35 +214,32 @@ Example protocol message for subscribing for the persisted events of a thing wit
 }
 ```
 
-
 ## Configuring historical headers to persist
 
-In the configuration of the services (things, policies, connectivity) there is a section where to configure the historical
-headers to persist, for example this is the section for policies:
+Configure which Ditto headers to persist alongside events in the service configuration (things, policies, connectivity):
 
 ```hocon
 event {
-  # define the DittoHeaders to persist when persisting events to the journal
-  # those can e.g. be retrieved as additional "audit log" information when accessing a historical policy revision
   historical-headers-to-persist = [
-    #"ditto-originator"  # who (user-subject/connection-pre-auth-subject) issued the event
+    #"ditto-originator"
     #"correlation-id"
   ]
   historical-headers-to-persist = ${?POLICY_EVENT_HISTORICAL_HEADERS_TO_PERSIST}
 }
 ```
 
-By default, no headers are persisted as historical headers, but it could e.g. make sense to persist the `ditto-originator`
-in order to provide "audit log" functionality in order to find out who (which subject) changed a policy at which time.
+By default, no headers are persisted. Persisting `ditto-originator` enables audit-log functionality (tracking who made each change).
 
 ## Cleanup retention time configuration
 
-In order to be able to access the history of entities, their journal database entries must not be cleaned up too quickly.
+To access entity history, journal entries must not be cleaned up too quickly.
 
-By default, Ditto enables the [background cleanup](installation-operating.html#managing-background-cleanup) in order to
-delete "stale" (when not using the history feature) data from the MongoDB.
+By default, Ditto enables [background cleanup](operating-devops.html#managing-background-cleanup) to remove stale data from MongoDB. If you use history capabilities, either:
 
-If Ditto shall be used with history capabilities, the cleanup has either
-* be disabled completely (which however could lead to a lot of used database storage)
-* or be configured with a `history-retention-duration` of a duration how long to keep "the history" before cleaning up
-  snapshots and events
+* Disable cleanup entirely (which increases database storage usage)
+* Configure `history-retention-duration` to keep history for a specific duration before cleanup
+
+## Further reading
+
+- [Streaming subscription protocol](protocol-specification-streaming-subscription.html) -- reactive-streams protocol for historical events
+- [SSE API](httpapi-sse.html) -- server-sent events for streaming

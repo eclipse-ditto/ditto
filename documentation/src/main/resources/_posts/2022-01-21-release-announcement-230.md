@@ -12,11 +12,11 @@ toc: false
 
 The Eclipse Ditto teams announces availability of Eclipse Ditto [2.3.0](https://projects.eclipse.org/projects/iot.ditto/releases/2.3.0).
 
-It contains mainly new features around the Ditto ["live" channel](protocol-twinlive.html#live) which can be used to 
+It contains mainly new features around the Ditto ["live" channel](protocol-twinlive.html#live-channel) which can be used to 
 directly interact with devices.
 
 Such live commands may now be easily [created via the HTTP API](2021-12-20-http-live-channel.html) - and in addition
-a conventional API call targeting the persisted [twin](protocol-twinlive.html#twin) may now be automatically converted
+a conventional API call targeting the persisted [twin](protocol-twinlive.html#twin-channel) may now be automatically converted
 to a live command, based on a passed [live channel condition](2021-12-22-live-channel-condition.html).
 
 With that, we are proud that we now can provide a really powerful addition to Ditto's "Digital Twin pattern":

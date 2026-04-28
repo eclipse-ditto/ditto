@@ -1,118 +1,128 @@
 ---
-title: HTTP API concepts 
-keywords: http, api, concepts, partial, conditional, optimistic locking, ETag, If-Match, If-None-Match 
+title: HTTP API Concepts
+keywords: http, api, concepts, partial, conditional, optimistic locking, ETag, If-Match, If-None-Match
 tags: [http]
 permalink: httpapi-concepts.html
 ---
 
-Ditto's [HTTP API](http-api-doc.html) follows some concepts which are documented on this page.
+The Ditto HTTP API follows REST conventions and maps the JSON structure of digital twins directly to API endpoints, giving you fine-grained access to every piece of twin data.
 
-The entry point into the HTTP API is:
+{% include callout.html content="**TL;DR**: The HTTP API auto-generates endpoints from your Thing's JSON structure, supports partial reads/writes, merge updates via `PATCH`, and conditional requests with ETags for optimistic locking." type="primary" %}
+
+## Overview
+
+The HTTP API entry point is:
+
 ```
 http://localhost:8080/api/<apiVersion>
 ```
 
+Explore the full API interactively in the [HTTP API documentation](http-api-doc.html).
+
 ## API versioning
 
-Ditto's HTTP API is versioned in the URL: `/api/<apiVersion>`. Currently, Ditto only provides API version `2`.  
-API version 1 was deprecated and deleted as of Ditto version 2.0.0
+Ditto versions its HTTP API in the URL path: `/api/<apiVersion>`. Currently, only API version `2` is available (version 1 was removed in Ditto 2.0.0).
 
-The API version is a promise that no HTTP resources (the static ones defined by Ditto itself) are modified in an
-incompatible/breaking way. As the HTTP resources reflect the JSON structure of the `Thing` entity, that also applies 
-for this entity. 
-
-In API 2 the `Thing` structure contains a [Policy](basic-policy.html) where the authorization information is
-managed.
+The version guarantee means that no existing HTTP resources or JSON structures change in breaking ways within the same API version. In API 2, each [Thing](basic-thing.html) references a [Policy](basic-policy.html) for authorization.
 
 ## Endpoints
 
-In the HTTP API, some endpoints are static and can be seen as the "schema" of Ditto. They are in sync with the JSON
-representation of the model classes, e.g. [Thing](basic-thing.html#model-specification) for the layout of the `/things`
-endpoint and [Policy](basic-policy.html) for the layout of the `/policies` endpoint, and `/checkPermissions` for verifying 
-access rights of entities on specific resources based on defined policies.
+The HTTP API has two types of endpoints: **static** endpoints that mirror the Thing/Policy/Connection data model, and **dynamic** endpoints that Ditto generates automatically from your Thing's JSON structure.
 
-### API version 2
+### Static endpoints
 
-In API version 2, a `Thing` contains a `policyId`, which points to a `Policy` managed as another entity. 
-Its API endpoint is `/policies`.
+#### `/things` endpoints
 
-#### `/things` in API 2
-
-The base endpoint for accessing and working with `Things`.<br/>
-A `Thing` in API 2 has the following JSON structure:
+A `Thing` in API 2 has this JSON structure:
 
 ```json
 {
   "thingId": "{thingId}",
   "policyId": "{policyId}",
   "definition": "{definition}",
-  "attributes": {
-  },
-  "features": {
+  "attributes": {},
+  "features": {}
+}
+```
+
+This maps to these API endpoints:
+
+* `/things/{thingId}` -- the complete Thing
+* `/things/{thingId}/policyId` -- the Policy ID
+* `/things/{thingId}/definition` -- the Thing definition
+* `/things/{thingId}/attributes` -- all attributes
+* `/things/{thingId}/features` -- all features
+
+#### `/policies` endpoints
+
+A `Policy` has this JSON structure:
+
+```json
+{
+  "policyId": "{policyId}",
+  "entries": {
+    "{entryLabel}": {
+      "subjects": { "{subjectId}": {} },
+      "resources": { "{resource}": {} }
+    }
   }
 }
 ```
 
-This maps to the following HTTP API endpoints:
+This maps to:
 
-* `/things/{thingId}`: accessing a complete specific thing
-* `/things/{thingId}/policyId`: accessing the policy ID of the specific thing
-* `/things/{thingId}/definition`: accessing the definition of the specific thing
-* `/things/{thingId}/attributes`: accessing the attributes of the specific thing
-* `/things/{thingId}/features`: accessing the features of the specific thing
+* `/policies/{policyId}` -- the complete `Policy`
+* `/policies/{policyId}/entries` -- all `Policy` entries
+* `/policies/{policyId}/entries/{entryLabel}` -- a single entry
+* `/policies/{policyId}/entries/{entryLabel}/subjects` -- subjects of an entry
+* `/policies/{policyId}/entries/{entryLabel}/resources` -- resources of an entry
 
-#### `/things` in API 2 - dynamic part
+#### `/connections` endpoints
 
-Additionally, to that "static part" of the HTTP API which is defined by Ditto, the API is dynamically enhanced by the
-JSON structure of the Thing.<br/>
+* `/connections` -- list all connections or create a new one
+* `/connections/{connectionId}` -- a specific connection
+* `/connections/{connectionId}/command` -- send a command
+* `/connections/{connectionId}/status` -- retrieve status
+* `/connections/{connectionId}/metrics` -- retrieve metrics
+* `/connections/{connectionId}/logs` -- retrieve logs
+
+### Dynamic endpoints
 
 {% include note.html content="This automatically turns each small aspect of a **digital twin** into an API endpoint." %}
 
-For example for a `Thing` with following content:
+Ditto generates additional endpoints based on your `Thing`'s actual JSON content. For example, given this `Thing`:
 
 ```json
 {
   "thingId": "{thingId}",
   "policyId": "{policyId}",
-  "definition": "{definition}",
   "attributes": {
     "manufacturer": "ACME corp",
-    "complex": {
-      "some": false,
-      "serialNo": 4711
-    }
+    "complex": { "some": false, "serialNo": 4711 }
   },
   "features": {
     "lamp": {
-      "properties": {
-        "on": false,
-        "color": "blue"
-      }
+      "properties": { "on": false, "color": "blue" }
     }
   }
 }
 ```
 
-The following additional API endpoints are automatically available:
+These additional endpoints become available automatically:
 
-* `/things/{thingId}/attributes/manufacturer`: accessing the attribute `manufacturer` of the specific thing
-* `/things/{thingId}/attributes/complex`: accessing the attribute `complex` of the specific thing
-* `/things/{thingId}/attributes/complex/some`: accessing the attribute `complex/some` of the specific thing
-* `/things/{thingId}/attributes/complex/serialNo`: accessing the attribute `complex/serialNo` of the specific thing
-* `/things/{thingId}/features/lamp`: accessing the feature `lamp` of the specific thing
-* `/things/{thingId}/features/lamp/properties`: accessing all properties of the feature `lamp` of the specific thing
-* `/things/{thingId}/features/lamp/properties/on`: accessing the `on` property of the feature `lamp` of the specific
-  thing
-* `/things/{thingId}/features/lamp/properties/color`: accessing the `color` properties of the feature `lamp` of the
-  specific thing
+* `/things/{thingId}/attributes/manufacturer`
+* `/things/{thingId}/attributes/complex`
+* `/things/{thingId}/attributes/complex/some`
+* `/things/{thingId}/attributes/complex/serialNo`
+* `/things/{thingId}/features/lamp`
+* `/things/{thingId}/features/lamp/properties`
+* `/things/{thingId}/features/lamp/properties/on`
+* `/things/{thingId}/features/lamp/properties/color`
 
-#### `/things` in API 2 - Migrate Thing Definitions
+### Migrate Thing definitions
 
-The endpoint `/things/{thingId}/migrateDefinition` allows migrating the thing definition with a new model, as well as optionally migrating attributes and features.
+Use `POST /things/{thingId}/migrateDefinition` to migrate a Thing to a new model version, optionally updating attributes and features.
 
-HTTP Method: `POST /things/{thingId}/migrateDefinition`
-
-Request Example:
 ```json
 {
   "thingDefinitionUrl": "https://models.example.com/thing-definition-1.0.0.tm.jsonld",
@@ -125,10 +135,7 @@ Request Example:
       "thermostat": {
         "properties": {
           "status": {
-            "temperature": {
-              "value": 23.5, 
-              "unit": "DEGREE_CELSIUS"
-            }
+            "temperature": { "value": 23.5, "unit": "DEGREE_CELSIUS" }
           }
         }
       }
@@ -141,70 +148,14 @@ Request Example:
 }
 ```
 
-String values in `migrationPayload` may use the [thing-json placeholder](basic-placeholders.html#thing-json-placeholder)
-(brace or legacy). When the value is exactly one such placeholder (no pipeline), the resolved value preserves its JSON type. Pipelines and multiple placeholders yield a string. Resolution uses the existing Thing. Missing paths cause the request to fail.
-
-#### `/policies` in API 2
-
-The base endpoint for accessing and working with `Policies`.<br/>
-A `Policy` in API 2 has the following JSON structure:
-
-```json
-{
-  "policyId": "{policyId}",
-  "entries": {
-    "{entryLabel-1}": {
-      "subjects": {
-        "{subjectId1}": {
-        }
-      },
-      "resources": {
-        "{resource1}": {
-        }
-      }
-    }
-  }
-}
-```
-
-This maps to the following HTTP API endpoints:
-
-* `/policies/{policyId}`: accessing complete `Policy`
-* `/policies/{policyId}/entries`: accessing the `Policy` entries
-* `/policies/{policyId}/entries/{entryLabel-1}`: accessing a single `Policy` entry with the label `{entryLabel-1}`
-* `/policies/{policyId}/entries/{entryLabel-1}/subjects`: accessing the subjects of a single `Policy` entry with the
-  label `{entryLabel-1}`
-* `/policies/{policyId}/entries/{entryLabel-1}/resources`: accessing the resources of a single `Policy` entry with the
-  label `{entryLabel-1}`
-
-#### `/connections` in API 2
-
-The base endpoint for accessing and working with `Connections`.
-
-It has the following HTTP API endpoints:
-
-* `/connections`: accessing all connections or create a new connection
-* `/connections/{connectionId}`: accessing a specific `Connection` entry
-* `/connections/{connectionId}/command`: send a command to a specific Connection
-* `/connections/{connectionId}/status`: retrieve status of a specific Connection
-* `/connections/{connectionId}/metrics`: retrieve metrics of a specific Connection
-* `/connections/{connectionId}/logs`: retrieve logs of a specific Connection
+String values in `migrationPayload` may use the [thing-json placeholder](basic-placeholders.html#thing-json-placeholder) (brace or legacy). When the value is exactly one such placeholder (no pipeline), the resolved value preserves its JSON type. Pipelines and multiple placeholders yield a string. Resolution uses the existing Thing. Missing paths cause the request to fail.
 
 ## Partial updates
 
-As a benefit of the above-mentioned mechanism that an API is automatically available based on the JSON structure, the
-"partial update" pattern can be applied when modifying data.
+Because every JSON element has its own endpoint, you can update individual values without touching the rest of the `Thing`. This reduces payload size and prevents accidentally overwriting data with stale values.
 
-The benefit of this is a reduction in payload to be transferred. Further, it is beneficial because other parts of the
-`Thing` are not overwritten with a potentially outdated value - only the actually changed data part can be modified.
-
-So instead of modifying a complete `Thing` only a specific part is affected.
-
-Given, the `on` property of `lamp` should be changed to `true`.
-
-Instead of  
-<br/>
-`PUT .../things/{thingId}` with the complete payload:
+For example, to change the `on` property of `lamp` to `true`, instead of replacing the entire
+Thing with `PUT .../things/{thingId}` and the full JSON body:
 
 ```json
 {
@@ -213,23 +164,19 @@ Instead of
   "definition": "{definition}",
   "attributes": {
     "manufacturer": "ACME corp",
-    "complex": {
-      "some": false,
-      "serialNo": 4711
-    }
+    "complex": { "some": false, "serialNo": 4711 }
   },
   "features": {
     "lamp": {
-      "properties": {
-        "on": true,
-        "color": "blue"
-      }
+      "properties": { "on": true, "color": "blue" }
     }
   }
 }
 ```
 
-we can use a smarter request<br/>`PUT .../things/{thingId}/features/lamp/properties/on` with a minimal payload:
+You target only the changed value:
+
+`PUT .../things/{thingId}/features/lamp/properties/on`
 
 ```json
 true
@@ -237,30 +184,21 @@ true
 
 ## Partial requests
 
-Similar to the partial updates from above, the HTTP API can also be used to retrieve a single value instead of a
-complete `Thing`.
+You can also read individual values instead of the full `Thing`:
 
-Again, the benefit is a reduction in response payload and that the caller can directly use the returned data value
-(for example expect it to be a `boolean` and treat it accordingly).
-
-For example, we can request<br/>`GET .../things/{thingId}/features/lamp/properties/on` and get as response:
+`GET .../things/{thingId}/features/lamp/properties/on`
 
 ```json
 true
 ```
 
-### With field selector
+### Field selectors
 
-A further mechanism in the API for partial requests is using a so-called field selector. This is useful when the JSON
-structure of the `Thing` or other entity should be kept intact, but not all information is relevant.
+Use the `fields` query parameter to retrieve specific fields while preserving the JSON structure.
+Pass a comma-separated list of field paths. You can also use `*` as a feature ID wildcard to
+retrieve a property across multiple features.
 
-The field selector is passed as an HTTP query parameter `fields` and contains a comma separated list of fields to include
-in the response.
-
-It is possible to use the wildcard operator '*' as feature ID and retrieve a property of multiple features. 
-For details see the example [below](#field-selector-with-wildcard).
-
-Given, you have the following Thing:
+Given this Thing:
 
 ```json
 {
@@ -269,24 +207,14 @@ Given, you have the following Thing:
   "definition": "{definition}",
   "attributes": {
     "manufacturer": "ACME corp",
-    "complex": {
-      "some": false,
-      "serialNo": 4711,
-      "misc": "foo"
-    }
+    "complex": { "some": false, "serialNo": 4711, "misc": "foo" }
   },
   "features": {
     "lamp": {
-      "properties": {
-        "on": true,
-        "color": "blue"
-      }
+      "properties": { "on": true, "color": "blue" }
     },
     "infrared-lamp": {
-      "properties": {
-        "on": false,
-        "color": "red"
-      }
+      "properties": { "on": false, "color": "red" }
     }
   }
 }
@@ -294,27 +222,18 @@ Given, you have the following Thing:
 
 #### Field selector examples
 
-The following `GET` request examples with field selectors show how you can retrieve only the parts of a thing which you
-are interested in:
-
-`GET .../things/{thingId}?fields=attributes`<br/>
-Response:
+`GET .../things/{thingId}?fields=attributes`
 
 ```json
 {
   "attributes": {
     "manufacturer": "ACME corp",
-    "complex": {
-      "some": false,
-      "serialNo": 4711,
-      "misc": "foo"
-    }
+    "complex": { "some": false, "serialNo": 4711, "misc": "foo" }
   }
 }
 ```
 
-`GET .../things/{thingId}?fields=attributes/manufacturer`<br/>
-Response:
+`GET .../things/{thingId}?fields=attributes/manufacturer`
 
 ```json
 {
@@ -324,8 +243,7 @@ Response:
 }
 ```
 
-`GET .../things/{thingId}?fields=attributes/complex/serialNo`<br/>
-Response:
+`GET .../things/{thingId}?fields=attributes/complex/serialNo`
 
 ```json
 {
@@ -337,158 +255,81 @@ Response:
 }
 ```
 
-`GET .../things/{thingId}?fields=attributes/complex/some,attributes/complex/serialNo`<br/>
-Response:
+`GET .../things/{thingId}?fields=attributes/complex/some,attributes/complex/serialNo`
 
 ```json
 {
   "attributes": {
-    "complex": {
-      "some": false,
-      "serialNo": 4711
-    }
+    "complex": { "some": false, "serialNo": 4711 }
   }
 }
 ```
 
-`GET .../things/{thingId}?fields=attributes/complex(some,serialNo)`<br/>
-Response:
+The same result using parentheses to group fields under the same parent:
+
+`GET .../things/{thingId}?fields=attributes/complex(some,serialNo)`
 
 ```json
 {
   "attributes": {
-    "complex": {
-      "some": false,
-      "serialNo": 4711
-    }
+    "complex": { "some": false, "serialNo": 4711 }
   }
 }
 ```
 
-`GET .../things/{thingId}?fields=attributes/complex/misc,features/lamp/properties/on`<br/>
-Response:
+Selecting fields from different branches of the JSON:
+
+`GET .../things/{thingId}?fields=attributes/complex/misc,features/lamp/properties/on`
 
 ```json
 {
   "attributes": {
-    "complex": {
-      "misc": "foo"
-    }
+    "complex": { "misc": "foo" }
   },
   "features": {
     "lamp": {
-      "properties": {
-        "on": true
-      }
+      "properties": { "on": true }
     }
   }
 }
 ```
 
-##### Field selector with wildcard
+#### Wildcard field selectors
 
-`GET .../things/{thingId}?fields=features/*/properties/on`<br/>
-Response:
+Use `*` as a feature ID wildcard to retrieve a property across all features:
+
+`GET .../things/{thingId}?fields=features/*/properties/on`
 
 ```json
 {
   "features": {
-    "lamp": {
-      "properties": {
-        "on": true
-      }
-    },
-    "infrared-lamp": {
-      "properties": {
-        "on": false
-      }
-    }
+    "lamp": { "properties": { "on": true } },
+    "infrared-lamp": { "properties": { "on": false } }
   }
 }
 ```
 
 ## Merge updates
 
-Merge updates can be used to update multiple parts of a Thing _in a single request_ e.g. multiple properties of
-different features or a feature property and an attribute value. Merge updates are applied by using the HTTP
-`PATCH` method with the payload in [JSON merge patch (RFC-7396)](https://tools.ietf.org/html/rfc7396) format. The
-content-type of the request must be set to `application/merge-patch+json`.
+Use `PATCH` with [JSON Merge Patch (RFC 7396)](https://tools.ietf.org/html/rfc7396) to update multiple parts of a Thing in a single request. Set the content type to `application/merge-patch+json`.
 
-[RFC-7396](https://tools.ietf.org/html/rfc7396) specifies how a set of modifications is applied to an existing JSON
-document:
-
-```
-A JSON merge patch document describes changes to be made to a target JSON document using a syntax that closely 
-mimics the document being modified. Recipients of a merge patch document determine the exact set of changes being  
-requested by comparing the content of the provided patch against the current content of the target document.
-If the provided merge patch contains members that do not appear within the target, those members are added. If the 
-target does contain the member, the value is replaced.  Null values in the merge patch are given special meaning to 
-indicate the removal of existing values in the target.
-```
+The merge patch rules are:
+* New members are added
+* Existing members are replaced with the new value
+* Members set to `null` are removed
 
 {% include note.html content="Please note the special meaning of `null` values. When using `PATCH` a `null` value is
 interpreted as delete in contrast to `PUT` requests where `null` values have no special meaning. " %}
 
-Like `PUT` requests, `PATCH` requests can be applied at any level of the JSON structure of a thing, e.g. patching a
-complete thing at root level or patching a single property value at property level.
+You can apply `PATCH` at any level of the JSON structure.
 
-### Removing fields in a merge update with a regex
+### Removing fields with a regex
 
 {% include note.html content="This is an addition to the JSON merge patch (RFC-7396), enhancing using `null` values
     for deleting certain parts of JSON objects specified with a regular expression before applying new fields to it." %}
 
-The merge patch functionality in Ditto solves a common problem to the JSON merge patch (RFC-7396): whenever a JSON object
-shall be patched, all the old json fields are merged with all the new json fields, unless the exact field names are 
-specified in the patch with `"<field>": null`.  
-This would however require to know all existing fields upfront, which for a merge patch can not be assumed.
+Ditto extends RFC 7396 with regex-based field removal. Use the syntax `{%raw%}{{ ~<regex>~ }}{%endraw%}` with a `null` value to delete matching keys before applying the rest of the patch:
 
-The solution is a little enhancement to Ditto's merge patch functionality: The ability to delete arbitrary parts from
-JSON objects using a regular expression **before** applying all other patch values.
-
-The syntax for this function is rather specific (so that no "normally" occurring JSON keys match the same syntax):
-```json
-{
-  "{%raw%}{{ ~.*~ }}{%endraw%}": null
-}
-```
-
-The recommended regex delimiter to use is the `~` character, additionally supported delimiters at this point are:
-* `~`
-* `/` (discouraged due to the special meaning of `/` for HTTP paths)
-
-A discouraged and thus deprecated way to define the regex (using `/` as delimiter) is:
-```json
-{
-  "{%raw%}{{ /.*/ }}{%endraw%}": null
-}
-```
-
-When such a `{%raw%}{{ ~<regex>~ }}{%endraw%}` with the value `null` is detected in the merge patch, the content between the 2 delimiters is 
-interpreted as regular expression to apply for finding keys to delete from the target object.  
-As a result, using `"{%raw%}{{ ~.*~ }}{%endraw%}": null` would delete all the values inside a JSON object before applying the new 
-values provided in the patch.
-
-Example:  
-Assuming that inside a JSON object every month some aggregated data is stored with the year and month:  
-```json
-{
-  "thingId": "{thingId}",
-  "policyId": "{policyId}",
-  "features": {
-    "aggregated-history": {
-      "properties": {
-        "2022-11": 42.3,
-        "2022-12": 54.3,
-        "2023-01": 80.2,
-        "2023-02": 99.9
-      }
-    }
-  }
-}
-```
-
-Then the data from "last year" could be purged with the following patch, while adding a new value to the existing ones
-of this year:
 ```json
 {
   "features": {
@@ -502,71 +343,36 @@ of this year:
 }
 ```
 
-The resulting Thing JSON after applying the patch would then look like:
-```json
-{
-  "thingId": "{thingId}",
-  "policyId": "{policyId}",
-  "features": {
-    "aggregated-history": {
-      "properties": {
-        "2023-01": 80.2,
-        "2023-02": 99.9,
-        "2023-03": 105.21
-      }
-    }
-  }
-}
-```
+This removes all keys matching `2022-.*` from `properties`, then adds the new value. The recommended delimiter is `~`. The `/` delimiter is also supported but discouraged due to its special meaning in HTTP paths.
 
-### Permissions required for merge update
+### Merge update permissions
 
-To successfully execute merge update the authorized subject needs to have *WRITE* permission on *all* resources 
-affected by the provided JSON merge patch. If the permission is missing for one of the affected resources the whole 
-merge patch is *rejected*, i.e. the merge update is executed as a whole or not at all.
+You need `WRITE` permission on **all** resources affected by the merge patch. If permission is missing for any affected resource, the entire patch is rejected.
 
 ### Merge update example
 
-Given an existing thing with the JSON structure:
+Given an existing Thing with this JSON:
 
 ```json
 {
   "thingId": "{thingId}",
   "policyId": "{policyId}",
   "attributes": {
-    "location": {
-      "longitude": 47.682170,
-      "latitude": 9.386372
-    },
+    "location": { "longitude": 47.682170, "latitude": 9.386372 },
     "serialNo": "0000000"
   },
   "features": {
     "temperature": {
-      "properties": {
-        "value": 25.43,
-        "unit": "°C"
-      }
+      "properties": { "value": 25.43, "unit": "°C" }
     },
     "pressure": {
-      "properties": {
-        "value": 1013.25,
-        "unit": "hPa"
-      }
+      "properties": { "value": 1013.25, "unit": "hPa" }
     }
   }
 }
 ```
 
-Assuming a single request should:
-
-* add the `manufacturer` attribute
-* update the existing `serialNo` attribute to the value of `23091861`
-* remove the existing `location` attribute
-* set the existing property `value` of feature `temperature` to the value of `26.89`
-* remove the existing property `unit` of feature `pressure`
-* add a new feature `humidity`
-
-This can be achieved using a `PATCH .../things/{thingId}` with the request payload of
+A single `PATCH .../things/{thingId}` can add, update, and remove multiple fields:
 
 ```json
 {
@@ -577,26 +383,19 @@ This can be achieved using a `PATCH .../things/{thingId}` with the request paylo
   },
   "features": {
     "temperature": {
-      "properties": {
-        "value": 26.89
-      }
+      "properties": { "value": 26.89 }
     },
     "pressure": {
-      "properties": {
-        "unit": null
-      }
+      "properties": { "unit": null }
     },
     "humidity": {
-      "properties": {
-        "value": 55,
-        "unit": "%"
-      }
+      "properties": { "value": 55, "unit": "%" }
     }
   }
 }
 ```
 
-The resulting JSON representation of the updated thing after applying the `PATCH` is:
+The resulting Thing after applying the patch:
 
 ```json
 {
@@ -608,120 +407,59 @@ The resulting JSON representation of the updated thing after applying the `PATCH
   },
   "features": {
     "temperature": {
-      "properties": {
-        "value": 26.89,
-        "unit": "°C"
-      }
+      "properties": { "value": 26.89, "unit": "°C" }
     },
     "pressure": {
-      "properties": {
-        "value": 1015
-      }
+      "properties": { "value": 1013.25 }
     },
     "humidity": {
-      "properties": {
-        "value": 55,
-        "unit": "%"
-      }
+      "properties": { "value": 55, "unit": "%" }
     }
   }
 }
 ```
 
-## Conditional Requests
+This patch removes `location`, adds `manufacturer`, updates `serialNo`, changes the temperature
+value, removes the pressure unit, and adds a new `humidity` feature -- all in one request.
 
-The HTTP API for `Things` and `Policies` partially supports `Conditional Requests` as defined
-in [RFC-7232](https://tools.ietf.org/html/rfc7232).
+## Conditional requests
+
+The HTTP API for `Things` and `Policies` partially supports [Conditional Requests (RFC 7232)](https://tools.ietf.org/html/rfc7232).
 
 ### ETag
 
-A successful response on a `thing` or `policy` resource provides an `ETag` header.
+Successful responses include an `ETag` header:
 
-* For read responses, it contains the current entity-tag of the resource.
-* For write responses, it contains the entity-tag after successful write.
+* **Top-level resources** (e.g., `.../things/{thingId}`): `"rev:<revision>"` (e.g., `"rev:2"`)
+* **Sub-resources** (e.g., `.../things/{thingId}/features/{featureId}`): `"hash:<calculated-hash>"`
 
-The `ETag` has a different format for top-level resources and sub-resources.
+### Conditional headers
 
-* Top-level resources (e.g. `.../things/{thingId}`): The entity-tag contains the revision of the entity which is
-  addressed by the resource in the format `"rev:<revision>"`, e.g. `"rev:2"`.
-* Sub-resources (e.g. `.../things/{thingId}/features/{featureId}`): The entity-tag contains a hash of the current value
-  of the addressed sub-resource in the format `"hash:<calculated-hash>"`, e.g.
-  `"hash:87192253740"`. Note that this format may change in the future.
+| Header | Behavior |
+|--------|----------|
+| `If-Match` | Proceed only if the current entity-tag matches. Use `*` to require the entity exists. Returns `412` on mismatch. |
+| `If-None-Match` | Proceed only if the current entity-tag does NOT match. Use `*` to require the entity does NOT exist. Returns `412` for writes or `304` for reads on mismatch. |
+| `if-equal` | Controls update behavior: `update` (default) always updates; `skip` returns `412` if the entity is unchanged; `skip-minimizing-merge` does the same but also reduces merge commands to only changed fields. |
 
-### Conditional Headers
+The `skip-minimizing-merge` option for `if-equal` is particularly useful for reducing MongoDB storage and event payload when redundant data is sent frequently.
 
-The following request headers can be used to issue a conditional request:
-
-* `If-Match`:
-    * Read or write the resource only
-        * if the current entity-tag matches at least one of the entity-tags provided in this header
-        * or if the header is `*` and the entity exists
-    * The response will be:
-        * in case of a match, the same response as if the header wouldn't have been specified
-        * in case of no match, status `412 (Precondition Failed)` with an error response containing detail information
-          and the current entity-tag of the resource as `ETag` header
-* `If-None-Match`:
-    * Read or write the resource only
-        * if the current entity-tag does not match any one of the entity-tags provided in this header
-        * or if the header is `*` and the entity does not exist
-    * The response will be:
-        * in case of no match, the same response as if the header wouldn't have been specified
-        * in case of a match:
-            * for write requests, status `412 (Precondition Failed)` with an error response containing detail
-              information and the current entity-tag of the resource as `ETag` header
-            * for read requests, status `304 (Not Modified)` without response body, with the current entity-tag of the
-              resource as `ETag` header
-* `if-equal`:
-   * The `if-equal` header can take the values `'update'` (which is the default if omitted), `'skip'` or `'skip-minimizing-merge'`
-   * Modify/Update the resource only
-      * in case `if-equal: 'update'` is defined always updates - even if the entity is equal before the update.
-      * in case `if-equal: 'skip'` is defined, the entity will not be updated if it is equal before the update.  
-        In this case a 'Precondition Failed' 412 status is returned.
-      * in case `if-equal: 'skip-minimizing-merge'` is defined, the entity will not be updated if it is equal before the update.  
-        In this case a 'Precondition Failed' 412 status is returned.
-        Additionally, [Merge commands](protocol-specification-things-merge.html) will be minimized to only the fields 
-        which actually changed, compared to the current state of the entity.
-         * this reduces the part of a merge/patch command to the actually changed elements, removing non-changed elements
-         * this reduces e.g. required storage in the MongoDB by a lot, if redundant data is sent often
-         * this also reduces the event payload (e.g. emitted to subscribers) to only the actually changed parts of the thing
-
-Note that the Ditto HTTP API always provides a `strong` entity-tag in the `ETag` header, thus you will never receive a
-`weak` entity-tag (see [RFC-7232 Section 2.1](https://tools.ietf.org/html/rfc7232#section-2.1)). If you convert this
-strong entity-tag to a weak entity-tag and use it in a Conditional Header, Ditto will handle it according to RFC-7232.
-However, we discourage the usage of weak entity-tags, because in the context of Ditto they only add unnecessary
-complexity.
-
-In addition to the `ETag` header Ditto supports conditional requests with a `condition` header. For further information
-see [Conditional Requests](basic-conditional-requests.html) 
+Ditto always provides strong entity-tags. See [Conditional Requests](basic-conditional-requests.html) for using the `condition` header with RQL expressions.
 
 ### Exempted fields
 
-Assuming you have a thing with an associated policy. When querying the thing with
+When querying a Thing with:
 
 ```
 GET .../things/{thingId}?fields=_policy
 ```
 
-you will get the thing containing its revision and associated policy.
-
-If you now modify the associated policy, the revision of the thing will not change! This could lead to an inconsistent
-state if the thing is getting refetched by using the `If-None-Match` header, because this would return
-a `304 Not Modified`, even if the policy has changed.
-
-To tackle this, Ditto has the following list of exempted fields which automatically bypass the precondition header
-check:
-
-* `_policy`
+you get the Thing with its associated policy. If you modify the associated policy, the Thing's
+revision does not change, so `If-None-Match` checks based on the Thing's ETag would not detect
+the policy change. Ditto exempts `_policy` from precondition checks to prevent inconsistencies.
 
 ### Examples
 
-The following examples show several scenarios on a top-level (Thing) resource. Nevertheless, these scenarios can also be
-applied on any sub-resource in the same way.
-
-#### Create: Write only if the resource does not exist
-
-The following example request shows, how you can make sure that a `PUT` request does not overwrite existing data, i.e.
-how you can enforce that the Thing can only be created by the request.
+#### Create only if the Thing does not exist
 
 ```
 PUT .../things/{thingId}
@@ -738,16 +476,10 @@ If-None-Match: *
 }
 ```
 
-You will get one of the following responses:
+* `201 Created` -- the Thing was created successfully
+* `412 Precondition Failed` -- a Thing with this ID already exists
 
-* `201 (Created)` in case the creation was successful, i.e. the Thing did not yet exist.
-* `412 (Precondition Failed)` in case the creation failed, i.e. a Thing with the exactly same `{thingId}` already
-  exists.
-
-#### Update: Write only if the resource already exists
-
-The following example request shows how you can make sure that a `PUT` request does not create the resource, i.e. how
-you can enforce that the Thing can only be updated by the request, but you do not generate a duplicate by mistake.
+#### Update only if the Thing exists
 
 ```
 PUT .../things/{thingId}
@@ -763,14 +495,12 @@ If-Match: *
 }
 ```
 
-You will get one of the following responses:
+* `204 No Content` -- the Thing was updated successfully
+* `412 Precondition Failed` -- the Thing does not exist
 
-* `204 (No Content)` in case the update was successful, i.e. the Thing already existed.
-* `412 (Precondition Failed)` in case the update failed, i.e. the Thing does not yet exist.
+#### Optimistic locking
 
-#### Optimistic Locking
-
-First, `GET` the Thing in order to retrieve both: the current data and the entity-tag:
+First, retrieve the Thing and its ETag:
 
 `GET .../things/{thingId}`:
 
@@ -790,12 +520,7 @@ Response:
 }
 ```
 
-Assume that you have detected the typo in the manufacturer attribute ("ACME crop") and want to fix this with a top-level
-Thing PUT. You want to make sure, that no one else has modified the Thing in the meantime, because otherwise his changes
-would be lost. (You could also achieve this with a PUT on the concrete attribute, but for this example we assume that
-you want to use a top-level Thing PUT.)
-
-`PUT` the Thing with the changed data and the entity-tag from the preceding `GET` response in the `If-Match` header.
+Then update with the ETag in `If-Match` to fix the typo without overwriting concurrent changes:
 
 ```
 PUT .../things/{thingId}
@@ -811,8 +536,12 @@ If-Match: "rev:2"
 }
 ```
 
-You will get one of the following responses:
+* `204 No Content` -- no one else changed the Thing since your `GET`
+* `412 Precondition Failed` -- someone else modified the Thing in the meantime
 
-* `204 (No Content)` in case the update was successful, i.e. no one else has changed the Thing in the meantime.
-* `412 (Precondition Failed)` in case the update was not successful, i.e. the Thing has been changed by someone else in
-  the meantime.
+## Further reading
+
+* [HTTP API documentation](http-api-doc.html) -- interactive API reference
+* [HTTP API search](httpapi-search.html) -- querying Things with RQL
+* [HTTP API messages](httpapi-messages.html) -- sending messages to/from Things
+* [Conditional requests](basic-conditional-requests.html) -- RQL-based conditions

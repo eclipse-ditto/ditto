@@ -5,17 +5,17 @@ tags: [protocol, history]
 permalink: protocol-specification-streaming-subscription.html
 ---
 
-The [history capabilities](basic-history.html) of the Ditto protocol consists of 3 commands and 4 events that together 
-implement the [reactive-streams](https://reactive-streams.org) protocol over any duplex transport layer.
-For each streaming subscription request, Ditto acts as the reactive-streams publisher of pages of historical events,
-and the client acts as the subscriber.
-By reactive-streams means, the client controls how fast pages are delivered to it and may cancel
-a request before all results are sent.
+The streaming subscription protocol lets you stream historical persisted events for Things and Policies using a reactive-streams-based flow.
 
-While [connections](basic-connections.html) do not expose or require a duplex transport layer,
-the streaming subscription protocol is available for them as well: Send commands from client to Ditto via any
-[connection source](basic-connections.html#sources). For each command, 0 or more events from Ditto to client
-are published to the reply-target of the source.
+{% include callout.html content="**TL;DR**: Send a `subscribeForPersistedEvents` command to start streaming historical events, use `request` to pull items, and `cancel` to stop early. Ditto responds with `created`, `next`, `complete`, or `failed` events." type="primary" %}
+
+## Overview
+
+The [history capabilities](basic-history.html) of the Ditto Protocol consist of 3 commands and 4 events that implement the [reactive-streams](https://reactive-streams.org) protocol over any duplex transport layer. Ditto acts as the publisher of historical events, and you act as the subscriber. You control the delivery pace and can cancel before all results arrive.
+
+### Connections support
+
+While [connections](basic-connections.html) do not inherently expose a duplex transport layer, the streaming subscription protocol works with them too. Send commands via any [connection source](basic-connections.html#sources), and receive events at the source's reply-target.
 
 [ps]: https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/concurrent/Flow.Publisher.html#subscribe(java.util.concurrent.Flow.Subscriber)
 [ss]: https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/concurrent/Flow.Subscriber.html#onSubscribe(java.util.concurrent.Flow.Subscription)
@@ -26,143 +26,125 @@ are published to the reply-target of the source.
 [nc]: https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/concurrent/Flow.Subscription.html#cancel()
 [n]: https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/concurrent/Flow.Subscription.html
 
-For reactive-streams on the JVM, a publisher-subscriber pair is identified by a [Subscription][n] object according
-to reference equality.
-Similarly, the streaming subscription protocol commands and events of one request are identified by a subscription ID.
+## How it works
 
-Each streaming subscription protocol command or event corresponds to a reactive-streams _signal_ and are bound
-by the same rules in the [reactive-streams specification](https://github.com/reactive-streams/reactive-streams-jvm/blob/v1.0.3/README.md).
+### Signal mapping
 
-| Reactive-streams signal      | Streaming subscription protocol message topic                                                                         |Type   | Message direction |
-|------------------------------|-----------------------------------------------------------------------------------------------------------------------|-------|-------------------|
-| [Publisher#subscribe][ps]    | [`<namespace>/<entityName>/<group>/<channel>/streaming/subscribeForPersistedEvents`](#subscribe-for-persisted-events) |Command| Client to Ditto   |
-| [Subscription#request][nr]   | [`<namespace>/<entityName>/<group>/<channel>/streaming/request`](#request)                                            |Command| Client to Ditto   |
-| [Subscription#cancel][nc]    | [`<namespace>/<entityName>/<group>/<channel>/streaming/cancel`](#cancel)                                              |Command| Client to Ditto   |
-| [Subscriber#onSubscribe][ss] | [`<namespace>/<entityName>/<group>/<channel>/streaming/created`](#created)                                            |Event  | Ditto to Client   |
-| [Subscriber#onNext][sn]      | [`<namespace>/<entityName>/<group>/<channel>/streaming/next`](#next)                                                  |Event  | Ditto to Client   |
-| [Subscriber#onComplete][sc]  | [`<namespace>/<entityName>/<group>/<channel>/streaming/complete`](#complete)                                          |Event  | Ditto to Client   |
-| [Subscriber#onError][se]     | [`<namespace>/<entityName>/<group>/<channel>/streaming/failed`](#failed)                                              |Event  | Ditto to Client   |
+Each command or event corresponds to a reactive-streams signal. A subscription ID links all messages of one streaming request.
 
-## Interaction pattern
+| Reactive-streams signal | Streaming protocol topic | Type | Direction |
+|---|---|---|---|
+| [Publisher#subscribe][ps] | [`<ns>/<entity>/<group>/<channel>/streaming/subscribeForPersistedEvents`](#subscribe-for-persisted-events) | Command | Client to Ditto |
+| [Subscription#request][nr] | [`<ns>/<entity>/<group>/<channel>/streaming/request`](#request) | Command | Client to Ditto |
+| [Subscription#cancel][nc] | [`<ns>/<entity>/<group>/<channel>/streaming/cancel`](#cancel) | Command | Client to Ditto |
+| [Subscriber#onSubscribe][ss] | [`<ns>/<entity>/<group>/<channel>/streaming/created`](#created) | Event | Ditto to Client |
+| [Subscriber#onNext][sn] | [`<ns>/<entity>/<group>/<channel>/streaming/next`](#next) | Event | Ditto to Client |
+| [Subscriber#onComplete][sc] | [`<ns>/<entity>/<group>/<channel>/streaming/complete`](#complete) | Event | Ditto to Client |
+| [Subscriber#onError][se] | [`<ns>/<entity>/<group>/<channel>/streaming/failed`](#failed) | Event | Ditto to Client |
 
-For one request, the commands from client to Ditto should follow this protocol:
-```
+### Interaction pattern
+
+**Client sends** (in order):
+```text
 subscribe request* cancel?
 ```
-The client should send one ["subscribeForPersistedEvents"](#subscribe-for-persisted-events) command,
-followed by multiple ["request"](#request) commands and an optional ["cancel"](#cancel) command.
 
-In response to a ["subscribeForPersistedEvents"](#subscribe-for-persisted-events) command and after each ["request"](#request) command,
-Ditto will send 0 or more events to the client according to the following protocol:
-```
+**Ditto responds** with:
+```text
 created next* (complete | failed)?
 ```
-A ["created"](#created) event bearing the subscription ID is always sent.
-0 or more ["next"](#next) events are sent according to the amount of results requested 
-by the client. A ["complete"](#complete) or ["failed"](#failed) event comes at the
-end unless the client sends a ["cancel"](#cancel) command before the results are exhausted.
 
-There is no special event in response to a ["cancel"](#cancel) command.
-The client may continue to receive buffered ["next"](#next),
-["complete"](#complete) or ["failed"](#failed) events after sending a ["cancel"](#cancel) command.
+1. You send a `subscribeForPersistedEvents` command. Ditto responds with a `created` event containing the subscription ID.
+2. You send `request` commands specifying how many items you want. Ditto sends `next` events with results.
+3. When all results are delivered, Ditto sends `complete`. On error, Ditto sends `failed`.
+4. You can send `cancel` at any time to stop receiving results.
 
-In addition to the rules of reactive-streams, Ditto guarantees that no ["complete"](#complete) or
-["failed"](#failed) event will arrive
-before the client expresses its readiness by a first ["request"](#request) command. The reason is to facilitate
-concurrency at the client side. Without the extra guarantee, a multi-threaded client would have to process a
-["complete"](#complete) or ["failed"](#failed) event in parallel of the preceding ["created"](#created) event.
-It would put the burden of sequentialization at the client side and complicate the programming there.
+Ditto guarantees that no `complete` or `failed` event arrives before your first `request` command. This simplifies concurrency handling on multi-threaded clients.
 
-## Commands from Client to Ditto
+After sending `cancel`, you may still receive buffered `next`, `complete`, or `failed` events.
+
+## Commands (client to Ditto)
 
 ### Subscribe for persisted events
 
-Sent a ["subscribeForPersistedEvents"](#subscribe-for-persisted-events) command to Ditto to start receiving persisted events as results.
-Ditto will always respond with a ["created"](#created) event.
+Start streaming historical events. Ditto always responds with a `created` event.
 
-| Field      | Value                                                                                                                                                                                                     |
-|------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **topic**  | `<namespace>/<entityName>/<group>/<channel>/streaming/subscribeForPersistedEvents`                                                                                                                        |
-| **path**   | `/`                                                                                                                                                                                                       |
-| **value**  | JSON object specifying the options how the persisted events should be selected. {% include docson.html schema="jsonschema/protocol-streaming-subscription-subscribe-for-persisted-events-payload.json" %} |
+| Field | Value |
+|---|---|
+| **topic** | `<namespace>/<entityName>/<group>/<channel>/streaming/subscribeForPersistedEvents` |
+| **path** | `/` |
+| **value** | JSON object specifying start/stop options. {% include docson.html schema="jsonschema/protocol-streaming-subscription-subscribe-for-persisted-events-payload.json" %} |
 
-The options where to start/stop historical persisted events from can be specified in the `value` field
-of a ["subscribeForPersistedEvents"](#subscribe-for-persisted-events) command.
-If no options are provided at all, the complete available history for the specified entity is streamed as a result.
+Specify where to start and stop via the `value` field:
+- `fromHistoricalRevision` / `toHistoricalRevision` -- revision-based range
+- `fromHistoricalTimestamp` / `toHistoricalTimestamp` -- timestamp-based range
+
+If you provide no options, Ditto streams the complete available history.
 
 ### Request
 
-After obtaining a subscription ID from a ["created"](#created) event,
-use ["request"](#request) commands to tell Ditto how many results you are prepared to receive.
-Ditto will send ["next"](#next) events until all requested results are fulfilled,
-the results are exhausted, or an error occurred.
+After receiving a subscription ID from the `created` event, send `request` commands to tell Ditto how many items you want.
 
-| Field      | Value                                                                                                                                            |
-|------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
-| **topic**  | `<namespace>/<entityName>/<group>/<channel>/streaming/request`                                                                                   |
-| **path**   | `/`                                                                                                                                              |
-| **value**  | JSON object specifying the demand of results. {% include docson.html schema="jsonschema/protocol-streaming-subscription-request-payload.json" %} |
+| Field | Value |
+|---|---|
+| **topic** | `<namespace>/<entityName>/<group>/<channel>/streaming/request` |
+| **path** | `/` |
+| **value** | JSON object specifying the demand. {% include docson.html schema="jsonschema/protocol-streaming-subscription-request-payload.json" %} |
 
 ### Cancel
 
-After obtaining a subscription ID from a ["created"](#created) event,
-use a ["cancel"](#cancel) command to stop Ditto from sending more items of the results.
-Pages in-flight may yet arrive, but the client will eventually stop receiving
-events of the same subscription ID.
+Send a `cancel` command to stop receiving items. Items already in flight may still arrive.
 
-| Field      | Value                                                                                                                     |
-|------------|---------------------------------------------------------------------------------------------------------------------------|
-| **topic**  | `<namespace>/<entityName>/<group>/<channel>/streaming/cancel`                                                             |
-| **path**   | `/`                                                                                                                       |
-| **value**  | Identifies a streaming subscription. {% include docson.html schema="jsonschema/protocol-streaming-subscriptionid.json" %} |
+| Field | Value |
+|---|---|
+| **topic** | `<namespace>/<entityName>/<group>/<channel>/streaming/cancel` |
+| **path** | `/` |
+| **value** | JSON object identifying the subscription. {% include docson.html schema="jsonschema/protocol-streaming-subscriptionid.json" %} |
 
-## Events from Ditto to Client
+## Events (Ditto to client)
 
 ### Created
 
-To any ["subscribeForPersistedEvents"](#subscribe-for-persisted-events) command, Ditto will always respond with 
-a ["created"](#created) event.
+Ditto sends a `created` event in response to every `subscribeForPersistedEvents` command. It contains the subscription ID.
 
-| Field      | Value                                                                                                                                                                           |
-|------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **topic**  | `<namespace>/<entityName>/<group>/<channel>/streaming/created`                                                                                                                  |
-| **path**   | `/`                                                                                                                                                                             |
-| **value**  | Discloses the ID of a streaming subscription which all subsequent commands should include. {% include docson.html schema="jsonschema/protocol-streaming-subscriptionid.json" %} |
+| Field | Value |
+|---|---|
+| **topic** | `<namespace>/<entityName>/<group>/<channel>/streaming/created` |
+| **path** | `/` |
+| **value** | JSON object with the subscription ID. {% include docson.html schema="jsonschema/protocol-streaming-subscriptionid.json" %} |
 
 ### Next
 
-Each ["next"](#next) event contains one item of the results.
-Ditto will not send more ["next"](#next) events for a given subscription ID than the total number of items
-requested by previous ["request"](#request) commands.
+Each `next` event contains one historical event item. Ditto sends at most as many items as you requested.
 
-| Field      | Value                                                                                                                                           |
-|------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
-| **topic**  | `<namespace>/<entityName>/<group>/<channel>/streaming/next`                                                                                     |
-| **path**   | `/`                                                                                                                                             |
-| **value**  | JSON object containing one item of the results. {% include docson.html schema="jsonschema/protocol-streaming-subscription-next-payload.json" %} |
+| Field | Value |
+|---|---|
+| **topic** | `<namespace>/<entityName>/<group>/<channel>/streaming/next` |
+| **path** | `/` |
+| **value** | JSON object with one result item. {% include docson.html schema="jsonschema/protocol-streaming-subscription-next-payload.json" %} |
 
 ### Complete
 
-A streaming subscription ends with a ["complete"](#complete) or a ["failed"](#failed) event from Ditto,
-or with a ["cancel"](#cancel) command from the client.
-Ditto sends a ["complete"](#complete) event when all items of the results are delivered to the client.
+Ditto sends `complete` when all items have been delivered.
 
-| Field      | Value                                                                                                                     |
-|------------|---------------------------------------------------------------------------------------------------------------------------|
-| **topic**  | `<namespace>/<entityName>/<group>/<channel>/streaming/complete`                                                           |
-| **path**   | `/`                                                                                                                       |
-| **value**  | Identifies a streaming subscription. {% include docson.html schema="jsonschema/protocol-streaming-subscriptionid.json" %} |
+| Field | Value |
+|---|---|
+| **topic** | `<namespace>/<entityName>/<group>/<channel>/streaming/complete` |
+| **path** | `/` |
+| **value** | JSON object identifying the subscription. {% include docson.html schema="jsonschema/protocol-streaming-subscriptionid.json" %} |
 
 ### Failed
 
-A streaming subscription ends with a ["complete"](#complete) or a ["failed"](#failed) event from Ditto,
-or with an ["cancel"](#cancel) command from the client.
-Ditto sends a ["failed"](#failed) event when an internal error occurred,
-or when the client breaches the reactive-streams specification.
-It is not possible to ["request"](#request) more items of the streaming subscription results after a ["failed"](#failed) event.
+Ditto sends `failed` on internal errors or reactive-streams specification violations. You cannot request more items after receiving `failed`.
 
-| Field      | Value                                                                                                                                                |
-|------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **topic**  | `<namespace>/<entityName>/<group>/<channel>/streaming/failed`                                                                                        |
-| **path**   | `/`                                                                                                                                                  |
-| **value**  | JSON object containing the reason for the failure. {% include docson.html schema="jsonschema/protocol-streaming-subscription-failed-payload.json" %} |
+| Field | Value |
+|---|---|
+| **topic** | `<namespace>/<entityName>/<group>/<channel>/streaming/failed` |
+| **path** | `/` |
+| **value** | JSON object with the failure reason. {% include docson.html schema="jsonschema/protocol-streaming-subscription-failed-payload.json" %} |
+
+## Further reading
+
+- [History](basic-history.html) -- history concepts, SSE streaming, and configuration
+- [Things specification](protocol-specification-things.html) -- Thing commands reference
+- [Search protocol](protocol-specification-things-search.html) -- another reactive-streams protocol for searching

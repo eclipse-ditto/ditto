@@ -5,24 +5,21 @@ tags: [rql, protocol]
 permalink: basic-rql.html
 ---
 
-Ditto utilizes a subset of <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.rql}}">RQL</a> 
-as language for specifying queries.
+You query Ditto using a subset of Resource Query Language (RQL) for specifying queries, filters, and conditions.
 
-The [RQL project page](https://github.com/persvr/rql) says about it:
+{% include callout.html content="**TL;DR**: RQL provides nestable operators like `eq()`, `gt()`, `like()`, and `exists()` combined with `and()`, `or()`, `not()`. Use it for search queries, change notification filters, and conditional requests." type="primary" %}
 
-> Resource Query Language (RQL) is a query language designed for use in URIs with object style data structures. [...]<br/>
-RQL can be thought as basically a set of nestable named operators which each have a set of arguments. 
-RQL is designed to have an extremely simple, but extensible grammar that can be written in a URL friendly query string.
+## Overview
 
-An example helps more than a thousand words, so that would be the example of a simple RQL query querying 
-for `foo="ditto"` and `bar<10`:
-```
+<a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.rql}}">RQL</a> is a query language designed for use in URIs with object-style data structures (see the [RQL project page](https://github.com/persvr/rql)).
+
+Here is a simple RQL query that filters for `foo="ditto"` and `bar<10`:
+
+```text
 and(eq(foo,"ditto"),lt(bar,10))
 ```
 
-That query consists of one [logical operator ](#logical-operators) ["and"](#and),
-two [relational operators](#relational-operators) of which each consists of a [property](#query-property)
-and a [value](#query-value).
+This query consists of one [logical operator](#logical-operators) (`and`) containing two [relational operators](#relational-operators), each with a [property](#query-property) and a [value](#query-value).
 
 The following sections describe what the RQL syntax is capable of and which RQL operators are supported in 
 Eclipse Ditto.
@@ -31,244 +28,230 @@ Eclipse Ditto.
     `eq(foo,3)`, is supported by Eclipse Ditto and that Ditto added more non-specified operators, e.g. 
     `like`, `exists` and `empty`." %}
 
-
 ## RQL filter
 
 The RQL filter specifies "what" to filter.
 
 ### Query property
-```
+
+```text
 <property> = url-encoded-string
 ```
 
-When not starting with a prefix `<some-prefix>:`, the RQL query property specifies a field in the JSON representation 
-of a [Thing](basic-thing.html#api-version-2).  
-For example a query property `thingId` selects the Thing ID as property, a query property `attributes/location` selects
-an attribute with the name `location` as query property.
+A query property specifies a field in the JSON representation of a [Thing](basic-thing.html#model-specification). For example, `thingId` selects the Thing ID, and `attributes/location` selects the `location` attribute.
 
-To filter nested properties, Ditto uses the JSON Pointer notation ([RFC-6901](https://tools.ietf.org/html/rfc6901)), 
-where the property can also start with a slash `/` or omit it, so those 2 query properties are semantically the same:
+Ditto uses JSON Pointer notation ([RFC-6901](https://tools.ietf.org/html/rfc6901)) for nested properties. You can include or omit the leading slash -- these are equivalent:
 
 * `/attributes/location`
 * `attributes/location`
 
-The following example shows how to apply a filter for the sub property `location` of the parent property `attributes` 
-with a forward slash as separator:
-```
+**Example** -- filter by a nested attribute:
+
+```text
 eq(attributes/location,"kitchen")
 ```
 
 #### Placeholders as query properties
 
-When using an RQL expression in order to e.g. filter for certain 
-[change notifications](basic-changenotifications.html#by-rql-expression), the query property might be a 
-[placeholder](basic-placeholders.html#scope-rql-expressions-when-filtering-for-ditto-protocol-messages) instead of a 
-field in JSON representation inside the Thing.
+When you use RQL to filter [change notifications](basic-changenotifications.html#filter-by-rql-expression), you can use [placeholders](basic-placeholders.html#scope-rql-expressions-when-filtering-for-ditto-protocol-messages) instead of Thing JSON fields:
 
-Currently supported placeholders for RQL expressions are:
 * `topic:<placeholder-name>`
 * `resource:<placeholder-name>`
 * `time:<placeholder-name>`
 
-The [placeholder](basic-placeholders.html#scope-rql-expressions-when-filtering-for-ditto-protocol-messages) 
-documentation describes which placeholder names are supported.
-
+See the [placeholder documentation](basic-placeholders.html#scope-rql-expressions-when-filtering-for-ditto-protocol-messages) for supported names.
 
 ### Query value
-```
+
+```text
 <value> = <number>, <string>, <placeholder>, true, false, null
 <number> = <double>, <integer>
 <string> = "url-encoded-string", 'url-encoded-string'
 <placeholder> = time:now, time:now_epoch_millis
 ```
 
-String values may either be delimited using single or double quotes.
+String values can use single or double quotes.
 
-**Comparison of string values**
+**String comparison**
 
-{% include note.html content="Comparison operators such as `gt`, `ge`, `lt` and `le`, do not support a special 
+{% include note.html content="Comparison operators such as `gt`, `ge`, `lt` and `le`, do not support a special
     \"semantics\" of string comparison (e.g. regarding alphabetical or lexicographical ordering).<br/>
-    However, you can rely on the alphabetical sorting of strings with the same length (e.g. \"aaa\" < \"zzz\") and that the 
+    However, you can rely on the alphabetical sorting of strings with the same length (e.g. \"aaa\" < \"zzz\") and that the
     order stays the same over multiple/different filter requests." %}
-    
-**Comparison of other data types**
 
-{% include note.html content="Please note that the comparison of other data types is supported by the API, but it 
+**Other data types**
+
+{% include note.html content="Please note that the comparison of other data types is supported by the API, but it
     only supports comparison of same data types, and does not do any conversion during comparison." %}
-
 
 ### Relational operators
 
-The following relational operators are supported.
-
 #### eq
+
 Filter property values equal to `<value>`.
 
-```
+```text
 eq(<property>,<value>)
 ```
 
-**Example - filter things owned by "SID123"**
-```
+**Example** -- filter Things owned by "SID123":
+
+```text
 eq(attributes/owner,"SID123")
 ```
 
 #### ne
+
 Filter property values not equal to `<value>`.
 
-```
+```text
 ne(<property>,<value>)
-``` 
-
-**Example - filter things with owner different than "SID123"**
 ```
+
+**Example** -- filter Things with owner different from "SID123":
+
+```text
 ne(attributes/owner,"SID123")
 ```
 
-The response will contain only things which **do** provide an owner attribute (in this case with value 0 or not SID123).
+The response only contains Things that have an owner attribute (with a value other than "SID123").
 
 #### gt
-Filter property values greater than a `<value>`.
 
-```
-gt(<property>,<value>) 
+Filter property values greater than `<value>`.
+
+```text
+gt(<property>,<value>)
 ```
 
-**Example - filter things with thing ID greater than "A000"**
-```
+**Example**:
+
+```text
 gt(thingId,"A000")
 ```
 
 #### ge
-Filter property values greater than or equal to a `<value>`.
 
-```
-ge(<property>,<value>) 
+Filter property values greater than or equal to `<value>`.
+
+```text
+ge(<property>,<value>)
 ```
 
-**Example - filter things with thing ID "A000" or greater**
-```
+**Example**:
+
+```text
 ge(thingId,"A000")
 ```
 
 #### lt
-Filter property values less than a `<value>`.
 
+Filter property values less than `<value>`.
+
+```text
+lt(<property>,<value>)
 ```
-lt(<property>,<value>) 
-```
- 
-**Example - filter things with thing ID lower than "A000"**
-```
+
+**Example**:
+
+```text
 lt(thingId,"A000")
 ```
 
 #### le
-Filter property values less than or equal to a `<value>`.
 
-```
-le(<property>,<value>) 
+Filter property values less than or equal to `<value>`.
+
+```text
+le(<property>,<value>)
 ```
 
-**Example - filter things with thing ID "A000" or lower**
-```
+**Example**:
+
+```text
 le(thingId,"A000")
 ```
 
 #### in
-Filter property values which contains at least one of the listed `<value>`s.
 
-```
-in(<property>,<value>,<value>, ...) 
+Filter property values matching at least one of the listed values.
+
+```text
+in(<property>,<value>,<value>, ...)
 ```
 
-**Example - filter things with thing ID "A000" or "AB00" or "AZ99"**
-```
+**Example** -- filter Things with ID "A000", "AB00", or "AZ99":
+
+```text
 in(thingId,"A000","AB00","AZ99")
 ```
 
 #### like
-Filter property values which are like (similar) a `<value>`.
 
-```
-like(<property>,<value>) 
+Filter property values matching a pattern (Ditto-specific operator).
+
+```text
+like(<property>,<value>)
 ```
 
 {% include note.html content="The `like` operator is not defined in the linked RQL grammar, it is a Ditto
     specific operator." %}
 
-**Details concerning the like-operator**
+Supported pattern expressions:
+* `*endswith` -- match at the end of a string
+* `startswith*` -- match at the beginning of a string
+* `*contains*` -- match if a string contains the pattern
+* `Th?ng` -- match a single wildcard character
 
-The `like` operator provides some regular expression capabilities for pattern matching Strings.  
-The following expressions are supported:
+**Examples**:
 
-* \*endswith => match at the end of a specific String.
-* startswith\* => match at the beginning of a specific String.
-* \*contains\* => match if contains a specific String.
-* Th?ng => match for a wildcard character.
-
-**Examples**
-```
+```text
 like(attributes/key1,"*known-chars-at-end")
-
-like(attributes/key1,"known-chars-at-start*") 
-
-like(attributes/key1,"*known-chars-in-between*") 
-
+like(attributes/key1,"known-chars-at-start*")
+like(attributes/key1,"*known-chars-in-between*")
 like(attributes/key1,"just-som?-char?-unkn?wn")
 ```
 
 #### ilike
-Filter property values which are like (similar) and case insensitive `<value>`.
 
-```
-ilike(<property>,<value>) 
+Filter property values matching a pattern, case-insensitively (Ditto-specific operator).
+
+```text
+ilike(<property>,<value>)
 ```
 
 {% include note.html content="The `ilike` operator is not defined in the linked RQL grammar, it is a Ditto
     specific operator." %}
 
-**Details concerning the ilike-operator**
+Supports the same patterns as `like`, but ignores case:
 
-The `ilike` operator provides some regular expression capabilities for pattern matching Strings with case insensitivity.
-
-The following expressions are supported:
-
-* \*endswith => match at the end of a specific String.
-* startswith\* => match at the beginning of a specific String.
-* \*contains\* => match if contains a specific String.
-* Th?ng => match for a wildcard character.
-
-**Examples**
-```
+```text
 ilike(attributes/key1,"*known-CHARS-at-end")
-
-ilike(attributes/key1,"known-chars-AT-start*") 
-
-ilike(attributes/key1,"*KNOWN-CHARS-IN-BETWEEN*") 
-
+ilike(attributes/key1,"known-chars-AT-start*")
+ilike(attributes/key1,"*KNOWN-CHARS-IN-BETWEEN*")
 ilike(attributes/key1,"just-som?-char?-unkn?wn")
 ```
 
 #### exists
 
-Filter property values which exist.
+Filter for properties that exist (Ditto-specific operator).
 
-```
+```text
 exists(<property>)
 ```
 
 {% include note.html content="The `exists` operator is not defined in the linked RQL grammar, it is a Ditto
     specific operator." %}
 
+**Example** -- filter Things that have a Feature with ID "feature_1":
 
-**Example - filter things which have a feature with ID "feature_1"**
-```
+```text
 exists(features/feature_1)
 ```
 
-**Example - filter lamps which are located in the "living-room"**
-```
+**Example** -- filter lamps located in the "living-room":
+
+```text
 and(exists(features/lamp),eq(attributes/location,"living-room"))
 ```
 
@@ -311,79 +294,82 @@ or(empty(attributes/tags),eq(attributes/tags,"default"))
 ### Logical operators
 
 #### and
-Ensure that all given queries match.
 
-```
+All given queries must match.
+
+```text
 and(<query>,<query>, ...)
-```   
-
-**Example - filter things which are located on the "upper floor" in the "living-room"**
 ```
+
+**Example** -- filter Things on the "upper floor" in the "living-room":
+
+```text
 and(eq(attributes/floor,"upper floor"),eq(attributes/location,"living-room"))
 ```
-  
+
 #### or
-At least one of the given queries match.
 
-```
+At least one of the given queries must match.
+
+```text
 or(<query>,<query>, ...)
-```  
-
-**Example - filter all things located on the "upper floor", and all things with location "living-room"**
 ```
+
+**Example** -- filter Things on the "upper floor" or in the "living-room":
+
+```text
 or(eq(attributes/floor,"upper floor"),eq(attributes/location,"living-room"))
 ```
 
 #### not
-Negates the given query.
 
-```
+Negate the given query.
+
+```text
 not(<query>)
-```   
-
-**Example - filter things whose ID do not start with a common prefix**
 ```
+
+**Example** -- filter Things whose ID does not start with a common prefix:
+
+```text
 not(like(thingId,"org.eclipse.ditto:blocked*"))
 ```
 
 ## RQL sorting
 
-The RQL sorting part specifies in which order the result should be returned.
+The sorting part specifies result order:
 
-```
+```text
 sort(<+|-><property>,<+|-><property>,...)
 ```
 
-* Use **+** for an ascending sort order (URL encoded character **%2B**)
-* Use **-** for a descending sort order (URL encoded character **%2D**)
+* Use **+** for ascending order (URL encoded: `%2B`)
+* Use **-** for descending order (URL encoded: `%2D`)
 
-**Example - sort the list ascending by the thing ID**
-```
+**Examples**:
+
+```text
 sort(+thingId)
-```
-
-**Example - sort the list ascending by an attribute**
-```
 sort(+attributes/location)
-```
-
-**Example - multiple sort options**
-```
 sort(-attributes/location,+thingId)
 ```
 
-This expression will sort the list descending by location attribute.<br/>
-In case there are multiple things with the same location attribute, these are sorted ascending by their ID.
+The last example sorts descending by location, then ascending by Thing ID for ties.
 
 ### Sorting of string values
 
-{% include note.html content="Sorting does not support a special \"semantics\" of string comparison (e.g. regarding 
-    alphabetical or lexicographical ordering). However, you can rely on the alphabetical sorting of strings with the 
+{% include note.html content="Sorting does not support a special \"semantics\" of string comparison (e.g. regarding
+    alphabetical or lexicographical ordering). However, you can rely on the alphabetical sorting of strings with the
     same length (e.g. \"aaa\" < \"zzz\") and that the order stays the same over multiple/different filter requests." %}
 
 ### Sorting of other values
 
-{% include note.html content="Sorting does not support a special \"semantics\" of comparison for fields with values of 
-    different data types (e.g. numbers vs. strings). However, you can rely on the fact that values of the same type are 
+{% include note.html content="Sorting does not support a special \"semantics\" of comparison for fields with values of
+    different data types (e.g. numbers vs. strings). However, you can rely on the fact that values of the same type are
     sorted respectively." %}
-    
+
+## Further reading
+
+- [Search](basic-search.html) -- search concepts and paging
+- [Conditional requests](basic-conditional-requests.html) -- using RQL as conditions for updates
+- [Change notifications](basic-changenotifications.html) -- filtering notifications with RQL

@@ -21,5 +21,5 @@ This is a complete list of the
 #### Fix new option "merge empty objects after patch condition filtering" only worked on JsonObjects
 
 PR [#2237](https://github.com/eclipse-ditto/ditto/pull/2237) fixes an issue introduced with the new option `MERGE_REMOVE_EMPTY_OBJECTS_AFTER_PATCH_CONDITION_FILTERING`
-of the in 3.8.0 added [path specific conditions of thing merge commands](basic-conditional-requests.html#configuration-for-path-specific-conditions)
+of the in 3.8.0 added [path specific conditions of thing merge commands](basic-conditional-requests.html#empty-object-removal-configuration)
 where it was assumed that the value to be merged is always a `JsonObject` and an exception was raised if it was not.

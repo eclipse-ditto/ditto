@@ -6,6 +6,10 @@ permalink: glossary.html
 toc: false
 ---
 
+This glossary defines key terms used throughout the Eclipse Ditto documentation.
+
+{% include callout.html content="**TL;DR**: Quick reference for IoT, Ditto-specific, and architectural terms you will encounter in the documentation." type="primary" %}
+
 ## Common terms
 
 IoT
@@ -13,6 +17,9 @@ IoT
 
 IIoT
 : {{site.data.glossary.iiot}}
+
+JWT
+: {{site.data.glossary.jwt}}
 
 CQRS
 : {{site.data.glossary.cqrs}}
@@ -23,8 +30,7 @@ RQL
 SSE
 : {{site.data.glossary.sse}}
 
-
-## Ditto specific terms
+## Ditto-specific terms
 
 Asset
 : {{site.data.glossary.asset}}

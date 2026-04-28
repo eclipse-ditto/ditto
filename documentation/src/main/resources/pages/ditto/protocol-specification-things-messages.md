@@ -5,65 +5,45 @@ tags: [protocol]
 permalink: protocol-specification-things-messages.html
 ---
 
-Messages within the Ditto Protocol allow sending, receiving and responding to 
-Messages. They contain an arbitrary *payload*, so you can choose what content 
-fits your solution best. If you want to learn more about the basic concepts of the Messages 
-functionality, please have a look at the [Messages page](basic-messages.html).
+The Messages protocol lets you send, receive, and respond to custom messages between applications and devices through Ditto.
+
+{% include callout.html content="**TL;DR**: Messages carry arbitrary payloads over the live channel. You address them to a Thing's inbox (sending to a device) or outbox (sending from a device), and correlate request/response pairs via `correlation-id`." type="primary" %}
+
+## Overview
+
+Messages carry custom payloads and can be answered by correlated response messages. If you want to learn more about the concepts behind messaging, see the [Messages page](basic-messages.html).
 
 {% include tip.html content="If you only need to send Messages, but don't need to receive
- or respond, you could also use the [HTTP Messages API](httpapi-messages.html)" %} 
+ or respond, you could also use the [HTTP Messages API](httpapi-messages.html)" %}
 
- 
-## Messages protocol
+## How it works
 
-The Messages protocol is part of the [Ditto Protocol](protocol-specification.html) and therefore 
-conforms to its specification. This section describes how the protocol envelope can be filled
-for sending Messages. If you want to jump right into using the API, head over to the
-next section that describes how to [use the messages API](#using-the-messages-api).
+### Protocol envelope for Messages
 
-There are three protocol parameters that have special meaning for Messages:
-* `topic` : *{namespace}*/*{thingId}*/things/live/messages/*{messageSubject}*
-* `path` : *{addressedPartOfThing}*/*{mailbox}*/messages/*{messageSubject}*
-* `headers` : The headers for Messages must include *content-type*
+Three fields have special meaning for Messages:
 
-<br/>
+* **topic**: `{namespace}/{thingId}/things/live/messages/{messageSubject}`
+* **path**: `{addressedPartOfThing}/{mailbox}/messages/{messageSubject}`
+* **headers**: must include `content-type`
 
-The `topic` definition for Messages needs the *namespace* and *thingId*
-of the Thing you're sending Messages to. The *messageSubject* describes the Message
-and must conform to the *path* as described in [RFC-3986](https://tools.ietf.org/html/rfc3986).
-Examples for valid topics are:
+The `topic` uses the Thing's namespace and ID, with `messages` as the criterion and `live` as the channel. The `messageSubject` describes the message and must conform to [RFC-3986](https://tools.ietf.org/html/rfc3986).
+
+Examples of valid topics:
 * `org.eclipse.ditto/smartcoffee/things/live/messages/ask/question`
 * `com.example/smarthome/things/live/messages/turnoff`
 
-<br/>
+The `path` also contains the `messageSubject`. The `mailbox` is either `inbox` (message sent to a Thing) or `outbox` (message sent from a Thing). The `addressedPartOfThing` specifies which part of the Thing you address -- `/features/water-tank` targets the water-tank Feature, while an empty prefix targets the whole Thing.
 
-The `path` also contains the *messageSubject* that describes the Message.
-*mailbox* can be *inbox* (Message is sent to a Thing) or *outbox* (Message is
-sent from a Thing). The *addressedPartOfThing* tells which part of the Thing
-is addressed. `/features/water-tank` would address the water-tank Feature of 
-the Thing, while `` would address the whole Thing. Valid paths are e.g.:
+Examples of valid paths:
 * `/inbox/messages/ask/question`
 * `/features/lights/inbox/messages/turnoff`
 * `/features/smokedetector/outbox/messages/smokedetected`
 
-<br>
-
-In the `headers` of the envelope the Messages API requires:
-* `content-type` : The type of the payload you are sending, e.g. *text/plain*
-
-## Using the Messages API
-
-The following parts contain examples that will show you how to leverage the Messages API. 
-In the examples we will use some kind of smart coffee machine with the id *smartcoffee*.
-
-{% include note.html content="We encourage you to play around with the examples. You can use
-the WebSocket binding to do so. Make sure the Thing you are sending Messages to is existing and has
- the correct access rights." %}
+## Examples
 
 ### Sending a Message to a Thing
 
-When sending a Message to a Thing, we send it to the inbox of the receiving entity.<br/>
-What follows is a simple example Message that asks our Thing *smartcoffee* how it is feeling today:
+Send a message to the inbox of the receiving entity. Here is a message asking the Thing `smartcoffee` how it is doing:
 
 ```json
 {
@@ -77,18 +57,10 @@ What follows is a simple example Message that asks our Thing *smartcoffee* how i
 }
 ```
 
-Notice that our `topic` adheres to the [Ditto Protocol topic definition](protocol-specification-topic.html)
-with *messages* as the criterion, *live* as channel, and the message-subject as action.
-
-We encourage you to always send a `correlation-id` with your Messages.
-This is especially important, since the WebSocket Ditto Protocol binding
-sends messages in a fire-and-forget manner. Ditto wouldn't know who to 
-respond to if there was no `correlation-id` set in the Message.
-
-{% include tip.html content="If you want to receive the response to 
+{% include tip.html content="If you want to receive the response to
 a Message, make sure to always send a `correlation-id` with it." %}
 
-The response we would get from our coffee machine could look something like this:
+A response from the coffee machine might look like:
 
 ```json
 {
@@ -97,7 +69,7 @@ The response we would get from our coffee machine could look something like this
         "correlation-id": "a-unique-string-for-this-message",
         "auth-subjects": ["ditto", "nginx:ditto"],
         "content-type": "text/plain",
-        "version": 1,
+        "version": 1
     },
     "path": "/inbox/messages/ask",
     "value": "I do not know, since i am only a coffee machine.",
@@ -105,25 +77,21 @@ The response we would get from our coffee machine could look something like this
 }
 ```
 
-The answer of the coffee machine has the same `topic` and `correlation-id`
-as the original message. As we can see, the response does not only contain a
-`value` but also the `status` of the response
-which is based on the [HTTP status codes](protocol-specification.html#status). 
-Ditto automatically added some headers that we can ignore for now.
+The response shares the same `topic` and `correlation-id` as the original message. The `status` field uses [HTTP status code](protocol-specification.html#status) semantics.
 
-### Receiving a message
+### Receiving a Message
 
-To be able to show how to receive Messages, we need to use one of the provided Ditto Protocol
-bindings. We will use the WebSocket binding for now. With it, it is amazingly easy to
-receive Messages sent *to* or *from* Things. You only need to fulfill these *three* simple requirements:
+To receive Messages using the WebSocket binding, you need to:
 
-1. Having an open connection to the Ditto WebSocket
-2. Having sent the [WebSocket binding specific message](httpapi-protocol-bindings-websocket.html#request-events) 
-`START-SEND-MESSAGES` to the WebSocket to be able to retrieve Messages
-3. You are allowed ([authorized](basic-auth.html)) to receive Messages 
+1. Have an open WebSocket connection to Ditto
+2. Send the [WebSocket binding message](httpapi-protocol-bindings-websocket.html#subscription-control-messages) `START-SEND-MESSAGES`
+3. Be [authorized](basic-auth.html) to receive Messages for the Thing
 
-If we have a user *ditto* that has `READ` permission on *smartcoffee*, we could receive Messages
-for it using a local Ditto instance using simple JavaScript:
+{% include note.html content="We encourage you to play around with the examples. You can use
+the WebSocket binding to do so. Make sure the Thing you are sending Messages to is existing and has
+ the correct access rights." %}
+
+Example JavaScript code:
 
 ```javascript
 // connect to the WebSocket
@@ -137,8 +105,7 @@ websocket.onopen(function(ws) {
 });
 ```
 
-If we would send the Message described in [Sending a Message to a Thing](#sending-a-message-to-a-thing)
-to the WebSocket, our JavaScript receiver would receive the following data:
+The JavaScript receiver would receive the following data:
 
 ```json
 {
@@ -154,26 +121,16 @@ to the WebSocket, our JavaScript receiver would receive the following data:
 }
 ```
 
-The content is almost the same, except for automatically added headers that we can ignore.
-In the next part you can learn how to respond to this Message.
-
-
 ### Responding to a Message
 
-After [sending a Message to a Thing](#sending-a-message-to-a-thing) and 
-[receiving the Message](#receiving-a-message), we are able to respond to the
-Message we received. To do this, we can re-use the relevant Message contents 
-and change the type from incoming to outgoing. Here is a simple JavaScript
-function that shows how you could respond to a given Message. It takes
-the original Message, the response payload and status code and returns the
-response Message you can send using a Ditto Protocol binding.
+To respond, reuse the original message's `topic` and `correlation-id`, and change the path from `inbox` to `outbox`:
 
 ```javascript
 createTextResponse = function(originalMessage, payload, statusCode) {
     var topic = originalMessage.topic;
     var correlationId = originalMessage.headers["correlation-id"];
     var outboxPath = originalMessage.path.replace("inbox", "outbox");
-    
+
     return {
       "topic": topic,
       "headers": {
@@ -187,10 +144,8 @@ createTextResponse = function(originalMessage, payload, statusCode) {
 };
 ```
 
-With this method you could create a simple text response, and send it
-using e.g. the WebSocket binding. Since the original Message and the response
-Message have the same `correlation-id`, the issuer would receive your response:
- 
+The response sent back via the WebSocket binding would look like:
+
 ```json
 {
     "topic": "org.eclipse.ditto/smartcoffee/things/live/messages/ask",
@@ -206,11 +161,9 @@ Message have the same `correlation-id`, the issuer would receive your response:
 }
 ```
 
-### Talking to Features
+### Sending Messages to Features
 
-When sending Messages to or from Features, almost everything stays the same as with
-Things. The `path` in the JSON and an additional `feature-id` header are the only parts to change. 
-A Message to a Feature could therefore have the following JSON:
+When you send Messages to or from Features, only the `path` and an additional `feature-id` header change:
 
 ```json
 {
@@ -224,14 +177,15 @@ A Message to a Feature could therefore have the following JSON:
 }
 ```
 
-### Sending and handling Claim Messages
+### Claim Messages
 
-Claim Messages are handled like standard Messages with the difference that the message subject is *claim* and they 
-can only be sent to a Thing. As the purpose of claiming is to gain access to a Thing, you do not require `WRITE` 
-permission to send a Claim Message to a Thing. This however means for a receiver that incoming Claim Messages have to be 
-carefully verified before granting access to a Thing. 
+Claim Messages let a user request access to a Thing. They work like standard Messages with these differences:
 
-A Claim Message to gain access to our smart coffee machine might look like this:
+- The message subject is always `claim`
+- They can only be sent to a Thing (not to Features)
+- You do not need `WRITE` permission to send a Claim Message
+
+Because claiming bypasses normal write permissions, the receiving device must carefully verify incoming Claim Messages before granting access.
 
 ```json
 {
@@ -245,9 +199,8 @@ A Claim Message to gain access to our smart coffee machine might look like this:
 }
 ```
 
-After verifying the Message, in particular the correctness of the payload, the smart coffee machine could grant access 
-to the issuer by setting an additional permission and respond with a *status* of `200` or `204` (as you can see the 
-`path` changed to *outbox* and the `direction` is now *from*, same as above for the Thing Message):
+After verifying the claim, the device grants access by updating the Policy and responds with
+status `200` or `204`:
 
 ```json
 {
@@ -261,5 +214,10 @@ to the issuer by setting an additional permission and respond with a *status* of
 }
 ```
 
-In case the Claim Message does not contain the required information the smart coffee machine can reject the 
-claim request by *NOT* granting access and responding with a status different from `200` or `204`.
+To reject the claim, respond with a non-success status code instead.
+
+## Further reading
+
+- [Messages](basic-messages.html) -- messaging concepts
+- [HTTP Messages API](httpapi-messages.html) -- sending messages via HTTP
+- [Things specification](protocol-specification-things.html) -- Thing commands reference

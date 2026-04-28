@@ -1,70 +1,76 @@
 ---
-title: Namespaces and Names
+title: Namespaces & Names
 keywords: namespace, name, id, entity, model, regex
 tags: [model]
 permalink: basic-namespaces-and-names.html
 ---
 
-Ditto uses namespaces and names for the IDs of important entity types like Things or Policies. Due to the fact that 
-those IDs often need to be set in the path of HTTP requests, we have restricted the set of allowed characters.
+Ditto uses namespaced identifiers for Things, Policies, and other entities. Every ID combines a
+namespace and a name separated by a colon.
+
+{% include callout.html content="**TL;DR**: Entity IDs follow the format `namespace:name`, with a maximum length of
+256 characters. Namespaces use dot-separated segments (like Java packages), and names can contain
+most characters except slashes and control characters." type="primary" %}
 
 ## Namespace
 
-The namespace must conform to the following notation:
-* must start with a lower- or uppercase character from a-z
-* may use dots (`.`) or dashes (`-`) to separate characters
-* a dot or dash must be followed by a lower- or uppercase character from a-z
-* numbers may be used
-* underscore may be used
+The namespace identifies the organizational scope for an entity. It must:
 
-When writing a Java application, you can use the following regex to validate your namespaces:  
-    ``(?<ns>|(?:(?:[a-zA-Z]\w*+)(?:[.-][a-zA-Z]\w*+)*+))``
-    (see [RegexPatterns#NAMESPACE_REGEX](https://github.com/eclipse-ditto/ditto/blob/master/base/model/src/main/java/org/eclipse/ditto/base/model/entity/id/RegexPatterns.java)).
-	
-Examples for valid namespaces:
-* `org.eclipse.ditto`,
-* `com.some-domain`,
-* `com.google`,
+* Start with a letter (`a-z` or `A-Z`)
+* Use dots (`.`) or dashes (`-`) to separate segments, each starting with a letter
+* Contain only letters, digits, and underscores within segments
+
+**Valid namespaces:**
+* `org.eclipse.ditto`
+* `com.some-domain`
+* `com.google`
 * `foo.bar_42`
+
+**Regex (Java):**
+``(?<ns>|(?:(?:[a-zA-Z]\w*+)(?:[.-][a-zA-Z]\w*+)*+))``
+(see [RegexPatterns#NAMESPACE_REGEX](https://github.com/eclipse-ditto/ditto/blob/master/base/model/src/main/java/org/eclipse/ditto/base/model/entity/id/RegexPatterns.java))
 
 ## Name
 
-The name must conform to the following notation:
-* may not be empty
-* may not contain `/` (slash)
-* may not contain control characters
+The name identifies the entity within its namespace. It must:
 
-When writing a Java application, you can use the following regex to validate your thing name:  
-    ``(?<name>[^\x00-\x1F\x7F-\xFF/]++)``
-    (see [RegexPatterns#ENTITY_NAME_REGEX](https://github.com/eclipse-ditto/ditto/blob/master/base/model/src/main/java/org/eclipse/ditto/base/model/entity/id/RegexPatterns.java)).
+* Not be empty
+* Not contain `/` (slash)
+* Not contain control characters
 
-Examples for valid names:
-    * `ditto`,
-    * `smart-coffee-1`,
-    * `foo%2Fbar`
-    * `foo bar`
-    * `foo+bar%20`
+**Valid names:**
+* `ditto`
+* `smart-coffee-1`
+* `foo%2Fbar`
+* `foo bar`
+* `foo+bar%20`
+
+**Regex (Java):**
+``(?<name>[^\x00-\x1F\x7F-\xFF/]++)``
+(see [RegexPatterns#ENTITY_NAME_REGEX](https://github.com/eclipse-ditto/ditto/blob/master/base/model/src/main/java/org/eclipse/ditto/base/model/entity/id/RegexPatterns.java))
 
 ## Namespaced ID
 
-A namespaced ID must conform to the following expectations:
-* namespace and name separated by a `:` (colon)
-* have a maximum length of 256 characters
+A complete entity ID joins the namespace and name with a colon (`:`). The combined ID must not
+exceed 256 characters.
 
-When writing a Java application, you can use the following regex to validate your namespaced IDs:  
-	``(?<ns>|(?:(?:[a-zA-Z]\w*+)(?:[.-][a-zA-Z]\w*+)*+)):(?<name>[^\x00-\x1F\x7F-\xFF/]++)``
-	(see [RegexPatterns#ID_REGEX](https://github.com/eclipse-ditto/ditto/blob/master/base/model/src/main/java/org/eclipse/ditto/base/model/entity/id/RegexPatterns.java)).
-
-Examples for valid IDs:
-* `org.eclipse.ditto:smart-coffee-1`,
-* `foo:bar`,
-* `org.eclipse.ditto_42:smart-coffeee`,
-* `com.some-domain.ditto-rocks:foobar`,
-* `org.eclipse:admin-policy`,
+**Valid IDs:**
+* `org.eclipse.ditto:smart-coffee-1`
+* `foo:bar`
+* `org.eclipse.ditto_42:smart-coffeee`
+* `com.some-domain.ditto-rocks:foobar`
+* `org.eclipse:admin-policy`
 * `org.eclipse:admin policy`
+
+**Regex (Java):**
+``(?<ns>|(?:(?:[a-zA-Z]\w*+)(?:[.-][a-zA-Z]\w*+)*+)):(?<name>[^\x00-\x1F\x7F-\xFF/]++)``
+(see [RegexPatterns#ID_REGEX](https://github.com/eclipse-ditto/ditto/blob/master/base/model/src/main/java/org/eclipse/ditto/base/model/entity/id/RegexPatterns.java))
 
 ## Encoding and decoding
 
-If hex encoded characters or spaces are used in the Thing name, the protocol dependent de- or encoding must be 
-taken into account. If a Thing is created with the ID `eclipse.ditto:foo bar` and is to be queried via the HTTP API, 
-the space must be encoded accordingly: `GET /things/eclipse.ditto:foo%20bar`.
+When a Thing name contains spaces or special characters, you must URL-encode them in HTTP requests.
+For example, if you create a Thing with the ID `eclipse.ditto:foo bar`, query it as:
+
+```bash
+GET /things/eclipse.ditto:foo%20bar
+```

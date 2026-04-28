@@ -5,41 +5,41 @@ tags: [protocol, http, rql]
 permalink: basic-conditional-requests.html
 ---
 
-Ditto already supports [Conditional Requests](httpapi-concepts.html#conditional-requests) as defined in [RFC-7232](https://tools.ietf.org/html/rfc7232) 
-where the `If-Match` and `If-None-Match` headers can be used to specify if a request should be applied or not.
-With the `condition` header it is possible to specify a condition based on the state of the actual thing.
-It is possible to combine both headers within one request. If you use both headers keep in mind that the ETag header is evaluated first.   
+Conditional requests let you apply commands to Things only when specific conditions about the Thing's current state are met.
+
+{% include callout.html content="**TL;DR**: Use the `condition` header with an RQL expression to make updates conditional on the Thing's current state. You can also use `If-Match`/`If-None-Match` headers for ETag-based conditions, and `live-channel-condition` for automatic twin/live switching." type="primary" %}
+
+## Overview
+
+Ditto supports [conditional requests as defined in RFC-7232](https://tools.ietf.org/html/rfc7232) using `If-Match` and `If-None-Match` headers. Additionally, the `condition` header lets you specify conditions based on the current state of the persisted twin.
+
+You can combine both header types in one request. When you do, Ditto evaluates the ETag header first.
 
 ## Defining conditions
 
-Ditto supports retrieving, modifying, deleting and sending messages to/from things based on specific conditions of the 
-current persisted twin state.
-For example, if you want to update the value of an attribute, but only if the current attribute value is not already 42,
-you can specify a condition:
+You define conditions using [RQL expressions](basic-rql.html). A condition specifies that Ditto should apply the request only if the expression evaluates to `true` against the current twin state.
 
-```
+For example, to update an attribute only if the current value is not already 42:
+
+```text
 PUT /api/2/things/org.eclipse.ditto:foo1/attributes/value?condition=ne(attributes/value,42)
 42
 ```
 
-Conditions are based on [RQL expressions](basic-rql.html) and define that a request should be applied to a thing 
-only if the condition is met. It is possible to use any field in your thing to define a condition. 
-E.g. you can use a timestamp in case you only want to change the state of the thing, if the provided value 
-is newer than in the last state of the thing.
+You can reference any field in the Thing to build a condition. This is useful for timestamp-based updates where you only want to apply a change if the incoming value is newer than the stored one.
 
-* If the condition specified in the request is fulfilled, the thing will be updated and an event will be emitted.
-* If the condition specified in the request is not fulfilled, the thing is not modified, and no [event/change notification](basic-changenotifications.html) is emitted.
+- If the condition is met, Ditto updates the Thing and emits an event.
+- If the condition is not met, Ditto does not modify the Thing and emits no [event/change notification](basic-changenotifications.html).
 
-Conditional requests are supported by HTTP API, WebSocket, Ditto protocol and Ditto Java Client.
+Conditional requests work with HTTP API, WebSocket, Ditto Protocol, and the Ditto Java Client.
 
 ### Permissions for conditions
 
-READ permission is necessary on the resource specified in the condition, otherwise, the request will fail.
+You need READ permission on the resource referenced in the condition. Otherwise, the request fails.
 
 ## Examples
 
-In this part, we will show how to use conditional updates via HTTP API, Ditto protocol, and Ditto Java Client.
-The below examples assume that we have the following thing state:
+The following examples assume this Thing state:
 
 ```json
 {
@@ -60,36 +60,29 @@ The below examples assume that we have the following thing state:
 }
 ```
 
-In our example we want to update the **temperature** value, but only if the current value is newer than the already stored one.
-To express this condition, we use the _lastModified_ field in the temperature feature.
-
-In the following sections, we will show how request the conditional update via HTTP API, Ditto protocol, 
-and Ditto Java Client which is based on the WebSocket protocol.
+The goal: update the temperature value only if the incoming value is newer than the stored one, using the `lastModified` field.
 
 ### HTTP API
 
-Using the HTTP API it is possible to specify the condition via query parameter
+Specify the condition as a query parameter:
 
-```
+```bash
 curl -X PUT -H 'Content-Type: application/json' /api/2/things/org.eclipse.ditto:fancy-thing/features/temperature/properties/value?condition=gt(features/temperature/properties/lastModified,'2021-08-10T15:10:02.592Z') -d 19.26
 ```
 
-or via HTTP header
+Or as an HTTP header:
 
-```
+```bash
 curl -X PUT -H 'Content-Type: application/json' -H 'condition: gt(features/temperature/properties/lastModified,"2021-08-10T15:10:02.592Z")' /api/2/things/org.eclipse.ditto:fancy-thing/features/temperature/properties/value -d 19.26
 ```
 
-### Ditto protocol
-
-The Ditto protocol supports also conditional updates. 
-This is an example how to do a conditional update via [Ditto Protocol](protocol-specification.html) message:
+### Ditto Protocol
 
 ```json
 {
   "topic": "org.eclipse.ditto/fancy-thing/things/twin/commands/modify",
   "headers": {
-    "condition": "gt(features/temperature/properties/lastModified,2021-08-10T15:10:02.592Z)" 
+    "condition": "gt(features/temperature/properties/lastModified,2021-08-10T15:10:02.592Z)"
   },
   "path": "/features/temperature/properties/value",
   "value": 19.26
@@ -98,13 +91,10 @@ This is an example how to do a conditional update via [Ditto Protocol](protocol-
 
 ### Ditto Java Client
 
-The third option to use conditional updates is the ditto-client.
-The following code snippet demonstrates how to achieve this.
-
 ```java
 final Option<String> option =
         Options.condition("gt(features/temperature/properties/lastModified,\"2021-08-10T15:10:02.592Z\")")
-        
+
 client.twin().forFeature(ThingId.of("org.eclipse.ditto:fancy-thing"), "temperature")
         .putProperty("value", 42, option)
         .whenComplete((ununsed, throwable) -> {
@@ -118,78 +108,51 @@ client.twin().forFeature(ThingId.of("org.eclipse.ditto:fancy-thing"), "temperatu
 
 ## Live channel condition
 
-Ditto also supports retrieving thing data with an automatic approach for switching between 
-[twin](protocol-twinlive.html#twin) and [live](protocol-twinlive.html#live) channel.
+Ditto supports automatic switching between [twin](protocol-twinlive.html#twin-channel) and [live](protocol-twinlive.html#live-channel) channels based on a condition.
 
-Conditions are defined with RQL as described [before](#defining-conditions). 
-If a condition is matched, the Thing data is retrieved from the device itself.
+Define the condition with RQL. If it matches, Ditto retrieves data from the device itself:
 
-Example: retrieve data from the device itself if a certain attribute is configured at the twin:
-```
+```text
 GET .../things/{thingId}?live-channel-condition=eq(attributes/useLiveChannel,true)
 ```
 
-Example: retrieve data from the device itself if the last modification timestamp is behind a specified timestamp:
-```
+```text
 GET .../things/{thingId}?live-channel-condition=lt(_modified,"2021-12-24T12:23:42Z")
 ```
 
-### Live channel condition headers
+### Timeout strategy
 
-Additionally, a strategy to handle timeouts for retrieving live thing data can be specified with the header
-`live-channel-timeout-strategy`.  
-The header value holds a **strategy** what to do in case a timeout (can also be specified as header) was encountered.
+The `live-channel-timeout-strategy` header controls what happens when the device does not respond within the timeout:
 
-* If the value cannot be retrieved live from the device itself during the specified timeout, the request will
-  `fail` (which is the default strategy if not specified otherwise) with a status code 408.
-* Alternatively, if `use-twin` was defined as the `live-channel-timeout-strategy` strategy, the request will fall back 
-  to the persisted twin and return the latest value stored in the digital twin.
+- `fail` (default): return status code `408`
+- `use-twin`: fall back to the persisted twin data
 
+### Response headers
 
-### Live channel condition response headers
+The response includes two headers indicating which channel was used:
 
-The response includes two additional headers to indicate which channel was used to retrieve the thing data:
+- `live-channel-condition-matched`: `true` or `false`
+- `channel`: `twin` or `live`
 
-* `live-channel-condition-matched` – value could be `true` or `false` and states whether the passed live-channel-condition was a match or not
-* `channel` – value could be `twin` or `live` and defines which channel was the origin of the returned data.
-
-In line with the procedure described above on how to retrieve live data directly from a device, a new type of 
-pre-configured payload mapping, namely [UpdateTwinWithLiveResponse](connectivity-mapping.html#updatetwinwithliveresponse-mapper)
-was introduced.
-
-Upon activation, the digital twin stored in Eclipse Ditto will implicitly be updated with the latest data from the 
-_live response_ sent by the device.
+You can use the [UpdateTwinWithLiveResponse](connectivity-mapping.html#updatetwinwithliveresponse-mapper) payload mapper to automatically update the digital twin with live response data.
 
 ## Path-specific conditions
 
-In addition to global conditions, Ditto supports since version 3.8.0 path-specific conditions for 
-[merge operations](protocol-specification-things-merge.html) using the `merge-thing-patch-conditions` header.  
-This feature allows you to apply different [RQL conditions](basic-rql.html) to different parts of a merge patch, 
-enabling fine-grained control over which parts of the patch are applied based on the current state of the Thing.
+Since Ditto 3.8.0, you can apply different conditions to different parts of a [merge operation](protocol-specification-things.html#merge-commands) using the `merge-thing-patch-conditions` header.
 
-The `merge-thing-patch-conditions` header contains a JSON object where each key represents a JSON pointer path and each 
-value is an RQL expression that must evaluate to `true` for that path to be included in the merge.
+The header contains a JSON object where each key is a JSON pointer path (relative to the merge command's `path`) and each value is an RQL expression. Paths without conditions are always applied.
 
-The provided key (JSON pointer path) is relative to the modification `path` of the merge command.  
-When e.g. providing a command which merges at path `/`, provided key to target a `value` property in a `temperature` 
-feature would have the format `features/temperature/properties/value`.  
-Issuing a merge command to merge at the feature level `features/temperature` would require the key to be `properties/value` 
-instead.
-
-* If a path-specific condition is fulfilled, that part of the merge patch will be applied.
-* If a path-specific condition is not fulfilled, that part of the merge patch will be skipped.
-* Paths without conditions will always be applied.
-
-Path-specific conditions are supported by HTTP API, WebSocket, Ditto protocol and Ditto Java Client.
+- If a path-specific condition is met, that part of the merge patch is applied.
+- If a path-specific condition is not met, that part is skipped.
+- Paths without conditions are always applied.
 
 ### Permissions for path-specific conditions
 
-READ permission is necessary on all resources referenced in the path-specific conditions, otherwise, the request will fail.
+You need READ permission on all resources referenced in the conditions.
 
 ### Examples
 
-This part shows how to use path-specific conditions via HTTP API, Ditto protocol, and Ditto Java Client.
-The below examples assume that there is a thing with the following thing state:
+Given this Thing state:
 
 ```json
 {
@@ -227,9 +190,7 @@ The below examples assume that there is a thing with the following thing state:
 
 #### HTTP API
 
-Using the HTTP API it is possible to specify path-specific conditions via HTTP header `merge-thing-patch-conditions`:
-
-```shell
+```bash
 curl -X PATCH -H 'Content-Type: application/merge-patch+json' \
     -H 'merge-thing-patch-conditions: {"features/temperature/properties/value": "gt(features/temperature/properties/value,20)", "features/humidity/properties/value": "lt(features/humidity/properties/value,80)"}' \
     http://localhost:8080/api/2/things/org.eclipse.ditto:fancy-thing \
@@ -237,24 +198,21 @@ curl -X PATCH -H 'Content-Type: application/merge-patch+json' \
 ```
 
 In this example:
-- `temperature` will only be updated if the current temperature is greater than 20 (condition fails, so temperature won't be updated)
-- `humidity` will only be updated if the current humidity is less than 80 (condition fails, so humidity won't be updated)  
-- `status` will always be updated (no condition specified)
+- `temperature` is not updated (15 is not > 20)
+- `humidity` is not updated (90 is not < 80)
+- `status` is always updated (no condition)
 
-The same call could also be done on `/features` path with adjusted condition keys.  
-Notice that the conditions are still relative to the root of the thing, only the key paths are adjusted accordingly:
+The same call can also target the `/features` path with adjusted condition keys.
+Notice that conditions are still relative to the root of the Thing, only the key paths are adjusted:
 
-```shell
+```bash
 curl -X PATCH -H 'Content-Type: application/merge-patch+json' \
     -H 'merge-thing-patch-conditions: {"temperature/properties/value": "gt(features/temperature/properties/value,20)", "humidity/properties/value": "lt(features/humidity/properties/value,80)"}' \
     http://localhost:8080/api/2/things/org.eclipse.ditto:fancy-thing/features \
     -d '{"temperature": {"properties": {"value": 25}}, "humidity": {"properties": {"value": 60}}, "status": {"properties": {"state": "updated"}}}'
 ```
 
-#### Ditto protocol
-
-The Ditto protocol supports also path-specific conditions for merge operations.
-This is an example how to do a conditional merge via [Ditto Protocol](protocol-specification.html) message:
+#### Ditto Protocol
 
 ```json
 {
@@ -268,30 +226,15 @@ This is an example how to do a conditional merge via [Ditto Protocol](protocol-s
       "lastMaintenance": "2023-01-20T15:00:00Z"
     },
     "features": {
-      "temperature": {
-        "properties": {
-          "value": 25
-        }
-      },
-      "humidity": {
-        "properties": {
-          "value": 60
-        }
-      },
-      "status": {
-        "properties": {
-          "state": "updated"
-        }
-      }
+      "temperature": { "properties": { "value": 25 } },
+      "humidity": { "properties": { "value": 60 } },
+      "status": { "properties": { "state": "updated" } }
     }
   }
 }
 ```
 
 #### Ditto Java Client
-
-The third option to use path-specific conditions is the [ditto-client](client-sdk-java.html).  
-The following code snippet demonstrates how to achieve this.
 
 ```java
 Map<String, String> cond = new HashMap<>();
@@ -308,19 +251,13 @@ client.twin().forId(ThingId.of("org.eclipse.ditto:fancy-thing"))
                 .set("features", JsonObject.newBuilder()
                         .set("temperature", JsonObject.newBuilder()
                                 .set("properties", JsonObject.newBuilder()
-                                        .set("value", 25)
-                                        .build())
-                                .build())
+                                        .set("value", 25).build()).build())
                         .set("humidity", JsonObject.newBuilder()
                                 .set("properties", JsonObject.newBuilder()
-                                        .set("value", 60)
-                                        .build())
-                                .build())
+                                        .set("value", 60).build()).build())
                         .set("status", JsonObject.newBuilder()
                                 .set("properties", JsonObject.newBuilder()
-                                        .set("state", "updated")
-                                        .build())
-                                .build())
+                                        .set("state", "updated").build()).build())
                         .build())
                 .build(), condOption)
         .whenComplete((unused, throwable) -> {
@@ -332,63 +269,68 @@ client.twin().forId(ThingId.of("org.eclipse.ditto:fancy-thing"))
         });
 ```
 
-### Configuration for path-specific conditions
-
-When using path-specific conditions, it's possible that all parts of a merge payload are filtered out, resulting in 
-empty JSON objects being persisted to the database.  
-Ditto provides a configuration option to avoid persisting events in case that only empty objects are left after applying 
-the conditions.
-
-#### Empty object removal
+### Empty object removal configuration
 
 **Configuration option:** `MERGE_REMOVE_EMPTY_OBJECTS_AFTER_PATCH_CONDITION_FILTERING`
 
-**Default behavior:** `false` (empty objects are preserved for backward compatibility)
+**Default**: `false` (empty objects preserved for backward compatibility).
 
-**When enabled:** Empty objects created by patch condition filtering are removed recursively, preventing unnecessary 
-database operations and saving database I/O.
+When enabled, Ditto recursively removes empty JSON objects created by condition filtering. This
+prevents unnecessary database operations when all parts of a merge patch are filtered out.
 
-**Example scenario - Complete filtering:**
+**Example scenario** -- given this Thing state:
 
 ```json
-// Current Thing state
 {
   "features": {
-    "temp": {"properties": {"value": 15}},  // Current: 15
-    "hum": {"properties": {"value": 70}}    // Current: 70
+    "temp": { "properties": { "value": 15 } },
+    "hum": { "properties": { "value": 70 } }
   }
 }
-
-// Merge payload
-{
-  "features": {
-    "temp": {"properties": {"value": 25}},
-    "hum": {"properties": {"value": 60}}
-  }
-}
-
-// Patch conditions (both will evaluate to false)
-{
-  "features/temp/properties/value": "gt(features/temp/properties/value,30)",  // 15 > 30 = false
-  "features/hum/properties/value": "lt(features/hum/properties/value,50)"     // 70 < 50 = false
-}
-
-// Result with configuration disabled (default)
-{
-  "features": {
-    "temp": {"properties": {}},  // Empty object preserved
-    "hum": {"properties": {}}    // Empty object preserved
-  }
-}
-// → Database operation still occurs, empty objects stored
-
-// Result with configuration enabled
-{}  // Completely empty payload
-// → Database operation skipped entirely, no storage, no event emission, no new revision
 ```
 
-For configuration details, see [Merge operations configuration](installation-operating.html#merge-operations-configuration).
+Merge payload:
 
-## Further reading on RQL expressions
+```json
+{
+  "features": {
+    "temp": { "properties": { "value": 25 } },
+    "hum": { "properties": { "value": 60 } }
+  }
+}
+```
 
-See [RQL expressions](basic-rql.html).
+Patch conditions (both evaluate to `false`):
+
+```json
+{
+  "features/temp/properties/value": "gt(features/temp/properties/value,30)",
+  "features/hum/properties/value": "lt(features/hum/properties/value,50)"
+}
+```
+
+**Result with configuration disabled** (default) -- empty objects preserved, database operation
+still occurs:
+
+```json
+{
+  "features": {
+    "temp": { "properties": {} },
+    "hum": { "properties": {} }
+  }
+}
+```
+
+**Result with configuration enabled** -- completely empty payload, database operation skipped
+entirely (no storage, no event emission, no new revision):
+
+```json
+{}
+```
+
+For configuration details, see [Merge operations configuration](operating-configuration.html#merge-operations-configuration).
+
+## Further reading
+
+- [RQL expressions](basic-rql.html) -- query language reference
+- [Things specification](protocol-specification-things.html) -- Thing commands including merge

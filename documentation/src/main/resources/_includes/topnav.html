@@ -68,21 +68,57 @@
                 <!--comment out this block if you want to hide search-->
                 <li>
                     <!--start search-->
-                    <div id="search-demo-container">
-                        <input type="text" id="search-input" placeholder="search...">
-                        <ul id="results-container"></ul>
-                    </div>
-                    <script src="https://cdnjs.cloudflare.com/ajax/libs/simple-jekyll-search/0.0.9/jekyll-search.js" type="text/javascript"></script>
-                    <script type="text/javascript">
-                            SimpleJekyllSearch.init({
-                                searchInput: document.getElementById('search-input'),
-                                resultsContainer: document.getElementById('results-container'),
-                                dataSource: '{{ "search.json" }}',
-                                searchResultTemplate: '<li><a href="{url}" title="{{page.title | replace: "\'", "\"}}">{title}</a></li>',
-                                noResultsText: 'No results found.',
-                                limit: 10,
-                                fuzzy: true,
-                    })
+                    <div id="search" class="pagefind-search-container"></div>
+                    <link href="https://cdn.jsdelivr.net/npm/@pagefind/default-ui@1.5.2/css/ui.css" rel="stylesheet">
+                    <script type="module">
+                        import { PagefindUI } from "https://cdn.jsdelivr.net/npm/@pagefind/default-ui@1.5.2/+esm";
+                        var pf = new PagefindUI({
+                            element: "#search",
+                            bundlePath: window.location.origin + "{{ site.baseurl }}/pagefind/",
+                            showSubResults: true,
+                            showImages: false
+                        });
+                        var savedQuery = sessionStorage.getItem("pagefind-query");
+                        if (savedQuery) {
+                            var input = document.querySelector("#search .pagefind-ui__search-input");
+                            if (input) {
+                                input.value = savedQuery;
+                                input.dispatchEvent(new Event("input", { bubbles: true }));
+                            }
+                        }
+                        document.querySelector("#search").addEventListener("input", function(e) {
+                            if (e.target.classList.contains("pagefind-ui__search-input")) {
+                                sessionStorage.setItem("pagefind-query", e.target.value);
+                            }
+                            var drawer = document.querySelector("#search .pagefind-ui__drawer");
+                            if (drawer) {
+                                drawer.style.display = "";
+                            }
+                        });
+                        document.querySelector("#search").addEventListener("click", function(e) {
+                            if (e.target.closest("a")) {
+                                var drawer = document.querySelector("#search .pagefind-ui__drawer");
+                                if (drawer) {
+                                    drawer.style.display = "none";
+                                }
+                            }
+                        });
+                        document.querySelector("#search").addEventListener("focusin", function(e) {
+                            if (e.target.classList.contains("pagefind-ui__search-input") && e.target.value.length > 0) {
+                                var drawer = document.querySelector("#search .pagefind-ui__drawer");
+                                if (drawer) {
+                                    drawer.style.display = "";
+                                }
+                            }
+                        });
+                        document.addEventListener("click", function(e) {
+                            if (!e.target.closest("#search")) {
+                                var drawer = document.querySelector("#search .pagefind-ui__drawer");
+                                if (drawer) {
+                                    drawer.style.display = "none";
+                                }
+                            }
+                        });
                     </script>
                     <!--end search-->
                 </li>

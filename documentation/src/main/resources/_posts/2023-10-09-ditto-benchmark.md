@@ -220,7 +220,7 @@ Example message:
 device_id:org.eclipse.ditto:test-thing-1,ditto_message:y!{"topic":"org.eclipse.ditto/test-thing-1/things/twin/commands/modify","path":"features/coffee-brewer/properties/brewed-coffees","value":"10"}
 ```
 
-In this scenario, connectivity service is used to create a ditto kafka connection, which reads messages from the provided topic, maps them to a ditto modify command and forwards it to things service. The things service then executes mongodb update query and generates the [thing modified event](protocol-specification-things-create-or-modify.html#event), which is pushed to the MMock service instance via an HTTP Push connection. Also, the kafka connection is configured with [qos=1](connectivity-protocol-bindings-kafka2.html#quality-of-service), which means if there is no acknowledgement that the thing is persisted, the operation will be retried.
+In this scenario, connectivity service is used to create a ditto kafka connection, which reads messages from the provided topic, maps them to a ditto modify command and forwards it to things service. The things service then executes mongodb update query and generates the [thing modified event](protocol-specification-things.html#create-or-modify-a-thing), which is pushed to the MMock service instance via an HTTP Push connection. Also, the kafka connection is configured with [qos=1](connectivity-protocol-bindings-kafka2.html#quality-of-service), which means if there is no acknowledgement that the thing is persisted, the operation will be retried.
 
 The HTTP Push connection looks like the following:
 
@@ -354,7 +354,7 @@ Scaling connectivity instance and changing our connection to have **clientCount*
 
 ### Device live messages(commands)
 
-This scenario executes HTTP POST requests to ditto's [live channel](protocol-twinlive.html#live). An HTTP Push connection is subscribed for them and in turn pushes to a MMock instance that acts as a 'dummy' device receiver of live messages/commands and simply responds with pre-configured ditto response.
+This scenario executes HTTP POST requests to ditto's [live channel](protocol-twinlive.html#live-channel). An HTTP Push connection is subscribed for them and in turn pushes to a MMock instance that acts as a 'dummy' device receiver of live messages/commands and simply responds with pre-configured ditto response.
 
 The HTTP POST request looks like the following:
 

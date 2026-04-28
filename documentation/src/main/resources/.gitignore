@@ -5,3 +5,5 @@ _site/
 _pdf
 /openapi/sources/node_modules/
 /Gemfile.lock
+.bundle/
+vendor/

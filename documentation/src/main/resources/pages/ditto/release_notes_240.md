@@ -93,8 +93,8 @@ For more details, please have a look at the [blogpost](2022-03-03-wot-integratio
 #### [SSE (ServerSentEvent) API for subscribing to messages](https://github.com/eclipse-ditto/ditto/issues/1186)
 
 Messages to or from a digital twin can now be subscribed to with the [SSE endpoint](httpapi-sse.html), either on 
-[Thing level](httpapi-sse.html#subscribe-for-messages-for-a-specific-thing) or for a specific 
-[Feature](httpapi-sse.html#subscribe-for-messages-of-a-specific-feature-of-a-specific-thing)
+[Thing level](httpapi-sse.html#thing-messages) or for a specific 
+[Feature](httpapi-sse.html#feature-messages)
 
 #### [Recovery status for connections indicating when e.g. recovery is no longer tried after max backoff](https://github.com/eclipse-ditto/ditto/pull/1336)
 
