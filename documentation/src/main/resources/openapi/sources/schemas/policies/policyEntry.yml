@@ -9,7 +9,10 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 type: object
-description: Single policy entry containing Subjects and Resources.
+description: |-
+  Single policy entry. Both `subjects` and `resources` are optional — they
+  default to empty when absent. An entry may define `references` to inherit
+  subjects, resources, and namespaces from other entries (local or imported).
 properties:
   subjects:
     $ref: 'subjects.yml'
@@ -19,8 +22,7 @@ properties:
     $ref: 'namespaces.yml'
   importable:
     $ref: 'importable.yml'
-  allowedImportAdditions:
-    $ref: 'allowedImportAdditions.yml'
-required:
-  - subjects
-  - resources
+  allowedAdditions:
+    $ref: 'allowedAdditions.yml'
+  references:
+    $ref: 'references.yml'

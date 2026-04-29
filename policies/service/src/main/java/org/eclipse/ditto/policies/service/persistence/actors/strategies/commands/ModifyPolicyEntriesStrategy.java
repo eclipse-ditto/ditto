@@ -23,8 +23,6 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.policies.model.Label;
-import org.eclipse.ditto.policies.model.signals.commands.exceptions.ImportsAliasConflictException;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
@@ -66,18 +64,6 @@ final class ModifyPolicyEntriesStrategy extends AbstractPolicyCommandStrategy<Mo
         final Iterable<PolicyEntry> policyEntries = command.getPolicyEntries();
         final DittoHeaders headers = command.getDittoHeaders();
 
-        // Reject if any new entry label conflicts with an existing imports alias
-        for (final PolicyEntry entry : policyEntries) {
-            final Label entryLabel = entry.getLabel();
-            if (nonNullPolicy.getImportsAliases().getAlias(entryLabel).isPresent()) {
-                return ResultFactory.newErrorResult(
-                        ImportsAliasConflictException.newBuilder(entryLabel)
-                                .dittoHeaders(headers)
-                                .build(),
-                        command);
-            }
-        }
-
         final JsonObject policyEntriesJsonObject = StreamSupport.stream(policyEntries.spliterator(), false)
                 .map(policyEntry -> JsonFactory.newObject(JsonPointer.of(policyEntry.getLabel()), policyEntry.toJson()))
                 .collect(JsonCollectors.objectsToObject());
@@ -95,6 +81,13 @@ final class ModifyPolicyEntriesStrategy extends AbstractPolicyCommandStrategy<Mo
                 checkForAlreadyExpiredSubject(policyEntries, commandHeaders, command);
         if (alreadyExpiredSubject.isPresent()) {
             return alreadyExpiredSubject.get();
+        }
+
+        final Optional<Result<PolicyEvent<?>>> invalidReferences =
+                validateReferencesIntegrity(context.getState(), adjustedEntries, nonNullPolicy,
+                        commandHeaders, command);
+        if (invalidReferences.isPresent()) {
+            return invalidReferences.get();
         }
 
         final PoliciesValidator validator = PoliciesValidator.newInstance(adjustedEntries);

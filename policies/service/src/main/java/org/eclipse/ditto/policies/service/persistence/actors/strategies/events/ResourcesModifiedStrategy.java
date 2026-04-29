@@ -30,7 +30,8 @@ final class ResourcesModifiedStrategy extends AbstractPolicyEventStrategy<Resour
                         policyEntry.getSubjects(), rm.getResources(),
                         policyEntry.getNamespaces().orElse(null),
                         policyEntry.getImportableType(),
-                        policyEntry.getAllowedImportAdditions().orElse(null)))
+                        policyEntry.getAllowedAdditions().orElse(null),
+                        policyEntry.getReferences().isEmpty() ? null : policyEntry.getReferences()))
                 .map(policyBuilder::set)
                 .orElse(policyBuilder.setResourcesFor(rm.getLabel(), rm.getResources()));
     }

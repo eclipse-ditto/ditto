@@ -20,7 +20,6 @@ import java.util.List;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -77,7 +76,6 @@ public final class ImmutablePolicyImportTest {
 
         final EffectedImports effectedImports = PoliciesModelFactory.newEffectedImportedLabels(
                 Collections.singletonList(Label.of("IncludedPolicyImport1")),
-                null,
                 transitiveImports);
 
         final PolicyImport policyImport = ImmutablePolicyImport.of(IMPORTED_POLICY_ID, effectedImports);
@@ -86,35 +84,6 @@ public final class ImmutablePolicyImportTest {
         assertThat(policyImport.getTransitiveImports()).containsExactly(
                 PolicyId.of("ns", "templateA"),
                 PolicyId.of("ns", "templateB"));
-    }
-
-    @Test
-    public void testToAndFromJsonWithEntriesAdditions() {
-        final Subjects additionalSubjects = Subjects.newInstance(
-                Subject.newInstance(SubjectIssuer.GOOGLE, "additionalUser"));
-        final Resources additionalResources = Resources.newInstance(
-                Resource.newInstance(TestConstants.Policy.RESOURCE_TYPE, JsonPointer.of("attributes"),
-                        EffectedPermissions.newInstance(
-                                Permissions.newInstance(TestConstants.Policy.PERMISSION_READ),
-                                Permissions.none())));
-        final EntriesAdditions entriesAdditions = PoliciesModelFactory.newEntriesAdditions(
-                Collections.singletonList(
-                        PoliciesModelFactory.newEntryAddition(Label.of("IncludedPolicyImport1"),
-                                additionalSubjects, additionalResources)));
-
-        final PolicyImport policyImport = ImmutablePolicyImport.of(IMPORTED_POLICY_ID,
-                PoliciesModelFactory.newEffectedImportedLabels(
-                        Arrays.asList(Label.of("IncludedPolicyImport1"), Label.of("IncludedPolicyImport2")),
-                        entriesAdditions)
-        );
-
-        final JsonObject policyImportJson = policyImport.toJson();
-        final PolicyImport restored = ImmutablePolicyImport.fromJson(policyImport.getImportedPolicyId(),
-                policyImportJson);
-
-        assertThat(policyImport).isEqualTo(restored);
-        assertThat(restored.getEntriesAdditions()).isPresent();
-        assertThat(restored.getEntriesAdditions().get().getSize()).isEqualTo(1);
     }
 
 }

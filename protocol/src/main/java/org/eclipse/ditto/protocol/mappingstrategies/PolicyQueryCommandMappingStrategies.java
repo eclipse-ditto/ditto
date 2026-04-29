@@ -19,20 +19,17 @@ import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryComman
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntries;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntry;
-import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryAllowedImportAdditions;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryAllowedAdditions;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryReferences;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryImportable;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryNamespaces;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImport;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImportEntries;
-import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImportEntriesAdditions;
-import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImportEntryAddition;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImportTransitiveImports;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImports;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResource;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResources;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubject;
-import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveImportsAlias;
-import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveImportsAliases;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubjects;
 import org.eclipse.ditto.protocol.JsonifiableMapper;
 
@@ -94,8 +91,8 @@ final class PolicyQueryCommandMappingStrategies extends AbstractPolicyMappingStr
                 adaptable -> RetrieveSubjects.of(policyIdFromTopicPath(adaptable.getTopicPath()),
                         labelFrom(adaptable), dittoHeadersFrom(adaptable)));
 
-        mappingStrategies.put(RetrievePolicyEntryAllowedImportAdditions.TYPE,
-                adaptable -> RetrievePolicyEntryAllowedImportAdditions.of(
+        mappingStrategies.put(RetrievePolicyEntryAllowedAdditions.TYPE,
+                adaptable -> RetrievePolicyEntryAllowedAdditions.of(
                         policyIdFromTopicPath(adaptable.getTopicPath()),
                         labelFrom(adaptable), dittoHeadersFrom(adaptable)));
 
@@ -109,47 +106,22 @@ final class PolicyQueryCommandMappingStrategies extends AbstractPolicyMappingStr
                         policyIdFromTopicPath(adaptable.getTopicPath()),
                         labelFrom(adaptable), dittoHeadersFrom(adaptable)));
 
+        mappingStrategies.put(RetrievePolicyEntryReferences.TYPE,
+                adaptable -> RetrievePolicyEntryReferences.of(
+                        policyIdFromTopicPath(adaptable.getTopicPath()),
+                        labelFrom(adaptable), dittoHeadersFrom(adaptable)));
+
         mappingStrategies.put(RetrievePolicyImportEntries.TYPE,
                 adaptable -> RetrievePolicyImportEntries.of(
                         policyIdFromTopicPath(adaptable.getTopicPath()),
                         importedPolicyIdFrom(adaptable), dittoHeadersFrom(adaptable)));
-
-        mappingStrategies.put(RetrievePolicyImportEntriesAdditions.TYPE,
-                adaptable -> RetrievePolicyImportEntriesAdditions.of(
-                        policyIdFromTopicPath(adaptable.getTopicPath()),
-                        importedPolicyIdFrom(adaptable), dittoHeadersFrom(adaptable)));
-
-        mappingStrategies.put(RetrievePolicyImportEntryAddition.TYPE,
-                adaptable -> RetrievePolicyImportEntryAddition.of(
-                        policyIdFromTopicPath(adaptable.getTopicPath()),
-                        importedPolicyIdFrom(adaptable),
-                        entryAdditionLabelFromImportPath(adaptable.getPayload().getPath()),
-                        dittoHeadersFrom(adaptable)));
 
         mappingStrategies.put(RetrievePolicyImportTransitiveImports.TYPE,
                 adaptable -> RetrievePolicyImportTransitiveImports.of(
                         policyIdFromTopicPath(adaptable.getTopicPath()),
                         importedPolicyIdFrom(adaptable), dittoHeadersFrom(adaptable)));
 
-        addImportsAliasesQueries(mappingStrategies);
-
         return mappingStrategies;
-
-    }
-
-    private static void addImportsAliasesQueries(
-            final Map<String, JsonifiableMapper<PolicyQueryCommand<?>>> mappingStrategies) {
-
-        mappingStrategies.put(RetrieveImportsAliases.TYPE,
-                adaptable -> RetrieveImportsAliases.of(
-                        policyIdFromTopicPath(adaptable.getTopicPath()),
-                        dittoHeadersFrom(adaptable)));
-
-        mappingStrategies.put(RetrieveImportsAlias.TYPE,
-                adaptable -> RetrieveImportsAlias.of(
-                        policyIdFromTopicPath(adaptable.getTopicPath()),
-                        importsAliasLabelFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
     }
 
 }

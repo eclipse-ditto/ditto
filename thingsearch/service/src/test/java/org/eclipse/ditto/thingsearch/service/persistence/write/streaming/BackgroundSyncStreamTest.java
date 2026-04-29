@@ -32,10 +32,13 @@ import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyRevision;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyRevisionResponse;
 import org.eclipse.ditto.policies.enforcement.config.DefaultNamespacePoliciesConfig;
+import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyImport;
+import org.eclipse.ditto.policies.model.SubjectIssuer;
+import org.eclipse.ditto.policies.model.SubjectType;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
@@ -253,7 +256,7 @@ public final class BackgroundSyncStreamTest {
                     .setRevision(5L)
                     .setPolicyImport(PoliciesModelFactory.newPolicyImport(policyIdB,
                             PoliciesModelFactory.newEffectedImportedLabels(
-                                    java.util.Collections.emptyList(), null,
+                                    java.util.Collections.emptyList(),
                                     List.of(policyIdC))))
                     .build();
             reply(SudoRetrievePolicyResponse.of(policyIdA, policyA, DittoHeaders.empty()));
@@ -314,7 +317,7 @@ public final class BackgroundSyncStreamTest {
                     .setRevision(5L)
                     .setPolicyImport(PoliciesModelFactory.newPolicyImport(policyIdB,
                             PoliciesModelFactory.newEffectedImportedLabels(
-                                    java.util.Collections.emptyList(), null,
+                                    java.util.Collections.emptyList(),
                                     List.of(policyIdC, policyIdD))))
                     .build();
             reply(SudoRetrievePolicyResponse.of(policyIdA, policyA, DittoHeaders.empty()));
@@ -392,6 +395,63 @@ public final class BackgroundSyncStreamTest {
             // inconsistency, but even if revisions matched, the set {B} ≠ {B, C} would catch it.
             assertThat(inconsistentThingIds.toCompletableFuture().join())
                     .containsExactly("x:12-transitive-removed");
+        }};
+    }
+
+    @Test
+    public void importDeclaredPurelyForEntryReferenceIsTrackedInExpectedReferencedPolicies() {
+        // Scenario: Policy A imports policy B with no `entries` filter and no `transitiveImports`.
+        // The reason A imports B is so that one of A's entries can use a `references` field
+        // pointing into B (write-time validation requires every import-reference target to be a
+        // declared import — see PolicyImportsPreEnforcer.validateReferencesModification).
+        // The dependency from A to B is therefore captured by A's `imports` block, regardless of
+        // whether A pulls any entries from B implicitly. BackgroundSyncStream's expected
+        // referenced-policies set must include B, and an indexed entry that does not have B's
+        // PolicyTag must be flagged as inconsistent so the thing gets re-indexed when B changes.
+
+        final Duration toleranceWindow = Duration.ofHours(1L);
+        final PolicyId policyIdA = PolicyId.of("com.example.thing", "policy-a-refs");
+        final PolicyId policyIdB = PolicyId.of("com.example", "template-b-refs");
+
+        final Source<Metadata, NotUsed> persisted = Source.from(List.of(
+                Metadata.of(ThingId.of("x:13-references-stale"), 3L,
+                        PolicyTag.of(policyIdA, 5L), null, Set.of(), null)
+        ));
+        // Indexed metadata has policy A's tag at the right revision but does NOT have B's tag —
+        // simulating an out-of-date index that hasn't been told B is a dependency.
+        final Source<Metadata, NotUsed> indexed = Source.from(List.of(
+                Metadata.of(ThingId.of("x:13-references-stale"), 3L,
+                        PolicyTag.of(policyIdA, 5L), null, Set.of(), null)
+        ));
+
+        new TestKit(actorSystem) {{
+            final BackgroundSyncStream underTest =
+                    BackgroundSyncStream.of(getRef(), Duration.ofSeconds(3L), toleranceWindow, 100,
+                            Duration.ofSeconds(10L),
+                            DefaultNamespacePoliciesConfig.of(ConfigFactory.empty()));
+            final CompletionStage<List<String>> inconsistentThingIds =
+                    underTest.filterForInconsistencies(persisted, indexed)
+                            .map(metadata -> metadata.getThingId().toString())
+                            .runWith(Sink.seq(), actorSystem);
+
+            expectMsg(SudoRetrievePolicy.of(policyIdA, DittoHeaders.empty()));
+
+            // Policy A: imports B (default empty effected imports, no transitiveImports). One entry
+            // "admin" inherits resources from B's "role" via a `references` field.
+            final Policy policyA = Policy.newBuilder(policyIdA)
+                    .setRevision(5L)
+                    .setPolicyImport(PoliciesModelFactory.newPolicyImport(policyIdB))
+                    .forLabel("admin")
+                    .setSubject(SubjectIssuer.GOOGLE, "alice", SubjectType.GENERATED)
+                    .setReferencesFor("admin", List.of(
+                            PoliciesModelFactory.newEntryReference(policyIdB, Label.of("role"))))
+                    .build();
+            reply(SudoRetrievePolicyResponse.of(policyIdA, policyA, DittoHeaders.empty()));
+
+            // Expected referenced policies: {B}. Indexed has empty set → mismatch → inconsistent.
+            // No SudoRetrievePolicyRevision is expected because the set-equality check fails first.
+            assertThat(inconsistentThingIds.toCompletableFuture().join())
+                    .containsExactly("x:13-references-stale");
         }};
     }
 

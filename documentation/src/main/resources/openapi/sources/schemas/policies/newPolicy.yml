@@ -15,7 +15,5 @@ properties:
     $ref: 'policyEntries.yml'
   imports:
     $ref: 'policyImports.yml'
-  importsAliases:
-    $ref: 'importsAliases.yml'
 required:
   - entries

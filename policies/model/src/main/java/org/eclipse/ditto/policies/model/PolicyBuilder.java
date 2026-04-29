@@ -560,36 +560,6 @@ public interface PolicyBuilder {
     PolicyBuilder setPolicyImports(PolicyImports imports);
 
     /**
-     * Sets the given {@link ImportsAliases} to this builder, replacing all existing aliases.
-     *
-     * @param importsAliases the imports aliases to set.
-     * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code importsAliases} is {@code null}.
-     * @since 3.9.0
-     */
-    PolicyBuilder setImportsAliases(ImportsAliases importsAliases);
-
-    /**
-     * Sets the given {@link ImportsAlias} to this builder. A previous alias with the same label is replaced.
-     *
-     * @param importsAlias the imports alias to set.
-     * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code importsAlias} is {@code null}.
-     * @since 3.9.0
-     */
-    PolicyBuilder setImportsAlias(ImportsAlias importsAlias);
-
-    /**
-     * Removes the imports alias identified by the given label from this builder.
-     *
-     * @param label the label of the alias to remove.
-     * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code label} is {@code null}.
-     * @since 3.9.0
-     */
-    PolicyBuilder removeImportsAlias(Label label);
-
-    /**
      * Sets the given entry to this builder. A previous entry with the same {@link Label} as the one of the
      * provided {@code entry} is replaced.
      *
@@ -971,13 +941,13 @@ public interface PolicyBuilder {
      * Sets the allowed import additions for the entry specified by {@code label} to this builder.
      *
      * @param label the label identifying the PolicyEntry to modify.
-     * @param allowedImportAdditions which types of additions are allowed when importing this entry.
+     * @param allowedAdditions which types of additions are allowed when importing this entry.
      * @return this builder to allow method chaining.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code label} is empty.
      * @since 3.9.0
      */
-    PolicyBuilder setAllowedImportAdditionsFor(CharSequence label, Set<AllowedImportAddition> allowedImportAdditions);
+    PolicyBuilder setAllowedAdditionsFor(CharSequence label, Set<AllowedAddition> allowedAdditions);
 
     /**
      * Sets the namespace patterns for the entry specified by {@code label} to this builder.
@@ -990,6 +960,18 @@ public interface PolicyBuilder {
      * @since 3.9.0
      */
     PolicyBuilder setNamespacesFor(CharSequence label, List<String> namespaces);
+
+    /**
+     * Sets the references for the entry specified by {@code label} to this builder.
+     *
+     * @param label the label identifying the PolicyEntry to modify.
+     * @param references the list of entry references.
+     * @return this builder to allow method chaining.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code label} is empty.
+     * @since 3.9.0
+     */
+    PolicyBuilder setReferencesFor(CharSequence label, List<EntryReference> references);
 
     /**
      * Returns a new immutable {@link Policy} which contains all the entries which were set to this builder beforehand.

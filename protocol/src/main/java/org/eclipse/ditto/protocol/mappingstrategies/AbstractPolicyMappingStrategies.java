@@ -31,9 +31,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.policies.model.AllowedImportAddition;
-import org.eclipse.ditto.policies.model.EntriesAdditions;
-import org.eclipse.ditto.policies.model.EntryAddition;
+import org.eclipse.ditto.policies.model.AllowedAddition;
+import org.eclipse.ditto.policies.model.EntryReference;
 import org.eclipse.ditto.policies.model.ImportableType;
 import org.eclipse.ditto.policies.model.ImportedLabels;
 import org.eclipse.ditto.policies.model.Label;
@@ -48,9 +47,6 @@ import org.eclipse.ditto.policies.model.Resource;
 import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.Resources;
 import org.eclipse.ditto.policies.model.Subject;
-import org.eclipse.ditto.policies.model.ImportsAlias;
-import org.eclipse.ditto.policies.model.ImportsAliases;
-import org.eclipse.ditto.policies.model.ImportsAliasTarget;
 import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.Subjects;
 import org.eclipse.ditto.policies.model.signals.events.SubjectsDeletedPartially;
@@ -299,19 +295,19 @@ abstract class AbstractPolicyMappingStrategies<T extends Jsonifiable.WithPredica
     }
 
     /**
-     * Extracts {@code AllowedImportAddition}s from the payload value.
+     * Extracts {@code AllowedAddition}s from the payload value.
      *
      * @param adaptable the adaptable to extract from.
      * @return the set of allowed import additions.
      */
-    protected static Set<AllowedImportAddition> allowedImportAdditionsFrom(final Adaptable adaptable) {
+    protected static Set<AllowedAddition> allowedAdditionsFrom(final Adaptable adaptable) {
         final JsonValue value = adaptable.getPayload().getValue()
                 .orElseThrow(() -> new NullPointerException("Payload value must not be null."));
         final JsonArray jsonArray = value.isArray() ? value.asArray() : JsonArray.empty();
         return jsonArray.stream()
                 .filter(JsonValue::isString)
                 .map(JsonValue::asString)
-                .map(AllowedImportAddition::forName)
+                .map(AllowedAddition::forName)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
@@ -360,55 +356,16 @@ abstract class AbstractPolicyMappingStrategies<T extends Jsonifiable.WithPredica
     }
 
     /**
-     * Extracts the imports alias label from the path.
-     * Expected path: {@code importsAliases/<label>}.
+     * Extracts the list of {@code EntryReference}s from the payload value (a JSON array).
      *
      * @param adaptable the adaptable to extract from.
-     * @return the label.
+     * @return the list of entry references.
      */
-    protected static Label importsAliasLabelFrom(final Adaptable adaptable) {
-        final MessagePath path = adaptable.getPayload().getPath();
-        return path.getRoot()
-                .filter(root -> Policy.JsonFields.IMPORTS_ALIASES.getPointer().equals(root.asPointer()))
-                .map(root -> path.nextLevel())
-                .flatMap(JsonPointer::getRoot)
-                .map(JsonKey::toString)
-                .map(Label::of)
-                .orElseThrow(() -> JsonParseException.newBuilder().build());
-    }
-
-    /**
-     * Extracts {@code ImportsAliases} from the payload value.
-     *
-     * @param adaptable the adaptable to extract from.
-     * @return the imports aliases.
-     */
-    protected static ImportsAliases importsAliasesFrom(final Adaptable adaptable) {
-        return PoliciesModelFactory.newImportsAliases(getValueFromPayload(adaptable));
-    }
-
-    /**
-     * Extracts a {@code ImportsAlias} from the payload value, using the label from the path.
-     *
-     * @param adaptable the adaptable to extract from.
-     * @return the imports alias.
-     */
-    protected static ImportsAlias importsAliasFrom(final Adaptable adaptable) {
-        return PoliciesModelFactory.newImportsAlias(importsAliasLabelFrom(adaptable), getValueFromPayload(adaptable));
-    }
-
-    /**
-     * Extracts a list of {@code ImportsAliasTarget}s from a JSON array in the payload value.
-     *
-     * @param jsonArray the JSON array containing serialized targets.
-     * @return the list of targets.
-     */
-    protected static List<ImportsAliasTarget> importsAliasTargetsFrom(final JsonArray jsonArray) {
-        return jsonArray.stream()
-                .filter(JsonValue::isObject)
-                .map(JsonValue::asObject)
-                .map(PoliciesModelFactory::newImportsAliasTarget)
-                .collect(Collectors.toList());
+    protected static List<EntryReference> entryReferencesFrom(final Adaptable adaptable) {
+        final JsonValue value = adaptable.getPayload().getValue()
+                .orElseThrow(() -> new NullPointerException("Payload value must not be null."));
+        final JsonArray jsonArray = value.isArray() ? value.asArray() : JsonArray.empty();
+        return PoliciesModelFactory.parseEntryReferences(jsonArray);
     }
 
     /**
@@ -426,47 +383,6 @@ abstract class AbstractPolicyMappingStrategies<T extends Jsonifiable.WithPredica
                 .map(JsonValue::asString)
                 .map(PolicyId::of)
                 .collect(Collectors.toList());
-    }
-
-    /**
-     * Extracts {@code EntriesAdditions} from the payload.
-     *
-     * @param adaptable the adaptable to extract from.
-     * @return the entries additions.
-     */
-    protected static EntriesAdditions entriesAdditionsFrom(final Adaptable adaptable) {
-        final JsonObject value = getValueFromPayload(adaptable);
-        return PoliciesModelFactory.newEntriesAdditions(value);
-    }
-
-    /**
-     * Extracts an {@code EntryAddition} from the payload.
-     *
-     * @param adaptable the adaptable to extract from.
-     * @return the entry addition.
-     */
-    protected static EntryAddition entryAdditionFrom(final Adaptable adaptable) {
-        final JsonObject value = getValueFromPayload(adaptable);
-        final Label label = entryAdditionLabelFromImportPath(adaptable.getPayload().getPath());
-        return PoliciesModelFactory.newEntryAddition(label, value);
-    }
-
-    /**
-     * Extracts the entry addition label from the import path.
-     * Expected path: {@code imports/<importedPolicyId>/entriesAdditions/<label>}.
-     *
-     * @param path the message path.
-     * @return the label.
-     */
-    protected static Label entryAdditionLabelFromImportPath(final MessagePath path) {
-        // expected: imports/<importedPolicyId>/entriesAdditions/<label>
-        return path.getRoot()
-                .filter(imports -> Policy.JsonFields.IMPORTS.getPointer().equals(imports.asPointer()))
-                .flatMap(imports -> path.get(2))  // entriesAdditions
-                .flatMap(ea -> path.get(3))       // label
-                .map(JsonKey::toString)
-                .map(Label::of)
-                .orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 
     /**

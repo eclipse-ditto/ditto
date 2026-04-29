@@ -223,10 +223,10 @@ public final class ImmutablePolicyBuilderTest {
     }
 
     @Test
-    public void toBuilderBuildPreservesAllowedImportAdditions() {
+    public void toBuilderBuildPreservesAllowedAdditions() {
         final Label endUserLabel = Label.of("EndUser");
-        final Set<AllowedImportAddition> allowedAdditions =
-                Collections.singleton(AllowedImportAddition.SUBJECTS);
+        final Set<AllowedAddition> allowedAdditions =
+                Collections.singleton(AllowedAddition.SUBJECTS);
 
         final PolicyEntry entryWithAdditions = PoliciesModelFactory.newPolicyEntry(endUserLabel,
                 Subjects.newInstance(Subject.newInstance(TestConstants.Policy.SUBJECT_ID,
@@ -244,15 +244,15 @@ public final class ImmutablePolicyBuilderTest {
         final PolicyEntry rebuiltEntry = rebuilt.getEntryFor(endUserLabel)
                 .orElseThrow(() -> new AssertionError("Entry not found after toBuilder().build()"));
         DittoPolicyAssertions.assertThat(rebuiltEntry.getImportableType()).isEqualTo(ImportableType.EXPLICIT);
-        assertThat(rebuiltEntry.getAllowedImportAdditions()).contains(allowedAdditions);
+        assertThat(rebuiltEntry.getAllowedAdditions()).contains(allowedAdditions);
     }
 
     @Test
-    public void setEntryPreservesAllowedImportAdditions() {
+    public void setEntryPreservesAllowedAdditions() {
         final Label label = Label.of("template");
-        final Set<AllowedImportAddition> allowedAdditions =
-                new java.util.HashSet<>(Arrays.asList(AllowedImportAddition.SUBJECTS,
-                        AllowedImportAddition.RESOURCES));
+        final Set<AllowedAddition> allowedAdditions =
+                new java.util.HashSet<>(Arrays.asList(AllowedAddition.SUBJECTS,
+                        AllowedAddition.RESOURCES));
 
         final PolicyEntry entry = PoliciesModelFactory.newPolicyEntry(label,
                 Subjects.newInstance(Subject.newInstance(TestConstants.Policy.SUBJECT_ID,
@@ -268,7 +268,7 @@ public final class ImmutablePolicyBuilderTest {
 
         final PolicyEntry result = policy.getEntryFor(label)
                 .orElseThrow(() -> new AssertionError("Entry not found"));
-        assertThat(result.getAllowedImportAdditions()).contains(allowedAdditions);
+        assertThat(result.getAllowedAdditions()).contains(allowedAdditions);
         DittoPolicyAssertions.assertThat(result.getImportableType()).isEqualTo(ImportableType.IMPLICIT);
     }
 

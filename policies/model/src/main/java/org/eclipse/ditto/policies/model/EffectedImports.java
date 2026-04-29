@@ -14,7 +14,6 @@ package org.eclipse.ditto.policies.model;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -67,17 +66,6 @@ public interface EffectedImports extends Jsonifiable.WithFieldSelectorAndPredica
     ImportedLabels getImportedLabels();
 
     /**
-     * Returns the optional {@link EntriesAdditions} defining additional subjects and/or resources to merge into
-     * imported policy entries.
-     *
-     * @return the entries additions, or empty if none are defined.
-     * @since 3.9.0
-     */
-    default Optional<EntriesAdditions> getEntriesAdditions() {
-        return Optional.empty();
-    }
-
-    /**
      * Returns the list of {@link PolicyId}s that the imported policy itself imports from, which should be
      * resolved transitively before extracting entries.
      *
@@ -114,15 +102,6 @@ public interface EffectedImports extends Jsonifiable.WithFieldSelectorAndPredica
          */
         public static final JsonFieldDefinition<JsonArray> ENTRIES =
                 JsonFactory.newJsonArrayFieldDefinition("entries", FieldType.REGULAR, JsonSchemaVersion.V_2);
-
-        /**
-         * JSON field containing additional subjects and/or resources to merge into imported entries.
-         *
-         * @since 3.9.0
-         */
-        public static final JsonFieldDefinition<JsonObject> ENTRIES_ADDITIONS =
-                JsonFactory.newJsonObjectFieldDefinition("entriesAdditions", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the list of policy IDs from the imported policy's own imports that should be

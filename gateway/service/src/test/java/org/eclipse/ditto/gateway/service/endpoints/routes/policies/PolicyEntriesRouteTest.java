@@ -29,16 +29,19 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteResource;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubject;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntries;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntry;
-import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryAllowedImportAdditions;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryAllowedAdditions;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryImportable;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryNamespaces;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntryReferences;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryReferences;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResource;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResources;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubject;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjects;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntries;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntry;
-import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryAllowedImportAdditions;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryReferences;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryAllowedAdditions;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryImportable;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryNamespaces;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResource;
@@ -269,21 +272,21 @@ public final class PolicyEntriesRouteTest extends EndpointTestBase {
     }
 
     @Test
-    public void getAllowedImportAdditions() {
-        final var result = underTest.run(HttpRequest.GET("/the_label/allowedImportAdditions"));
+    public void getAllowedAdditions() {
+        final var result = underTest.run(HttpRequest.GET("/the_label/allowedAdditions"));
         result.assertStatusCode(StatusCodes.OK);
         assertThat(JsonObject.of(result.entityString()))
-                .contains(JsonKey.of("type"), RetrievePolicyEntryAllowedImportAdditions.TYPE);
+                .contains(JsonKey.of("type"), RetrievePolicyEntryAllowedAdditions.TYPE);
     }
 
     @Test
-    public void putAllowedImportAdditions() {
+    public void putAllowedAdditions() {
         final var result = underTest.run(
-                HttpRequest.PUT("/the_label/allowedImportAdditions")
+                HttpRequest.PUT("/the_label/allowedAdditions")
                         .withEntity(ContentTypes.APPLICATION_JSON, "[\"subjects\",\"resources\"]"));
         result.assertStatusCode(StatusCodes.OK);
         assertThat(JsonObject.of(result.entityString()))
-                .contains(JsonKey.of("type"), ModifyPolicyEntryAllowedImportAdditions.TYPE);
+                .contains(JsonKey.of("type"), ModifyPolicyEntryAllowedAdditions.TYPE);
     }
 
     @Test
@@ -313,9 +316,9 @@ public final class PolicyEntriesRouteTest extends EndpointTestBase {
     }
 
     @Test
-    public void putAllowedImportAdditionsWithInvalidValue() {
+    public void putAllowedAdditionsWithInvalidValue() {
         final var result = underTest.run(
-                HttpRequest.PUT("/the_label/allowedImportAdditions")
+                HttpRequest.PUT("/the_label/allowedAdditions")
                         .withEntity(ContentTypes.APPLICATION_JSON, "[\"invalid\"]"));
         result.assertStatusCode(StatusCodes.BAD_REQUEST);
     }
@@ -388,6 +391,33 @@ public final class PolicyEntriesRouteTest extends EndpointTestBase {
         result.assertStatusCode(StatusCodes.OK);
         assertThat(JsonObject.of(result.entityString()))
                 .contains(JsonKey.of("type"), RetrieveResources.TYPE);
+    }
+
+    @Test
+    public void getReferences() {
+        final var result = underTest.run(HttpRequest.GET("/the_label/references"));
+        result.assertStatusCode(StatusCodes.OK);
+        assertThat(JsonObject.of(result.entityString()))
+                .contains(JsonKey.of("type"), RetrievePolicyEntryReferences.TYPE);
+    }
+
+    @Test
+    public void putReferences() {
+        final var result = underTest.run(
+                HttpRequest.PUT("/the_label/references")
+                        .withEntity(ContentTypes.APPLICATION_JSON,
+                                "[{\"import\":\"com.acme:template\",\"entry\":\"admin\"}]"));
+        result.assertStatusCode(StatusCodes.OK);
+        assertThat(JsonObject.of(result.entityString()))
+                .contains(JsonKey.of("type"), ModifyPolicyEntryReferences.TYPE);
+    }
+
+    @Test
+    public void deleteReferences() {
+        final var result = underTest.run(HttpRequest.DELETE("/the_label/references"));
+        result.assertStatusCode(StatusCodes.OK);
+        assertThat(JsonObject.of(result.entityString()))
+                .contains(JsonKey.of("type"), DeletePolicyEntryReferences.TYPE);
     }
 
     private static AuthenticationResult getPreAuthResult() {

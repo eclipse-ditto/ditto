@@ -28,6 +28,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.policies.enforcement.config.NamespacePoliciesConfig;
+import org.eclipse.ditto.policies.model.EntryReference;
 import org.eclipse.ditto.policies.model.ImportableType;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
@@ -63,11 +64,30 @@ public final class PolicyEnforcer {
      */
     public static CompletionStage<PolicyEnforcer> withResolvedImports(final Policy policy,
             final Function<PolicyId, CompletionStage<Optional<Policy>>> policyResolver) {
-        return policy.withResolvedImports(policyResolver)
+        return policy.withResolvedImports(policyResolver, missingReferenceLogger(policy))
                 .thenApply(resolvedPolicy -> {
                     final Enforcer enforcer = PolicyEnforcers.defaultEvaluator(resolvedPolicy);
                     return new PolicyEnforcer(resolvedPolicy, enforcer);
                 });
+    }
+
+    /**
+     * Returns a callback that logs a warning each time {@link Policy#withResolvedImports} encounters an
+     * entry reference that cannot be resolved (e.g. the referenced entry was deleted, or an import is
+     * not declared). The model layer silently skips missing references — this surfaces them so operators
+     * can investigate silent permission degradation.
+     */
+    private static java.util.function.BiConsumer<PolicyEntry, EntryReference> missingReferenceLogger(
+            final Policy policy) {
+        final String policyIdStr = policy.getEntityId().map(Object::toString).orElse("?");
+        return (referencingEntry, ref) -> {
+            final String target = ref.getImportedPolicyId()
+                    .map(id -> id + ":" + ref.getEntryLabel())
+                    .orElseGet(() -> ref.getEntryLabel().toString());
+            LOG.warn("Policy <{}>: entry <{}> has an unresolved reference to <{}> — silently skipped." +
+                            " The referenced entry may have been deleted or never existed.",
+                    policyIdStr, referencingEntry.getLabel(), target);
+        };
     }
 
     /**
@@ -93,7 +113,7 @@ public final class PolicyEnforcer {
             final Function<PolicyId, CompletionStage<Optional<Policy>>> policyResolver,
             final NamespacePoliciesConfig namespacePoliciesConfig) {
 
-        return policy.withResolvedImports(policyResolver)
+        return policy.withResolvedImports(policyResolver, missingReferenceLogger(policy))
                 .thenCompose(resolvedPolicy -> mergeNamespacePolicies(resolvedPolicy, policyResolver,
                         namespacePoliciesConfig))
                 .thenApply(finalPolicy -> {
@@ -137,7 +157,9 @@ public final class PolicyEnforcer {
                                             " or was deleted - skipping its entries.", rootPolicyId, namespace);
                                     return CompletableFuture.completedFuture(Optional.<Policy>empty());
                                 }
-                                return rootPolicyOpt.get().withResolvedImports(policyResolver)
+                                final Policy rootPolicy = rootPolicyOpt.get();
+                                return rootPolicy.withResolvedImports(policyResolver,
+                                                missingReferenceLogger(rootPolicy))
                                         .thenApply(Optional::of);
                             })
                             .toCompletableFuture());

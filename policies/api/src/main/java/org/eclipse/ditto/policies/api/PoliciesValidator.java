@@ -26,6 +26,7 @@ import org.eclipse.ditto.base.model.common.Validator;
 import org.eclipse.ditto.policies.model.PoliciesResourceType;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
+import org.eclipse.ditto.policies.model.PolicyImporter;
 import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.Subjects;
@@ -56,6 +57,13 @@ public final class PoliciesValidator implements Validator {
 
     /**
      * Creates a new {@code PoliciesValidator} instance.
+     * <p>
+     * If {@code policyEntries} is a {@link Policy} whose entries contain local references, the
+     * local-reference-resolved view is validated rather than the raw entries — otherwise a policy
+     * that splits the WRITE-on-policy:/ subject across two entries linked by mutual local
+     * references would be incorrectly rejected. Cross-policy import refs are not resolved here
+     * (no policy loader available); a policy with imports continues to short-circuit as
+     * {@code valid=true} below.
      *
      * @param policyEntries the policyEntries to be validated.
      * @return a new {@code PoliciesValidator} object.
@@ -65,13 +73,29 @@ public final class PoliciesValidator implements Validator {
         requireNonNull(policyEntries, "The policyEntries to validate must not be null!");
 
         final boolean containsPolicyImport;
+        final Iterable<PolicyEntry> entriesToValidate;
         if (policyEntries instanceof Policy policy) {
             containsPolicyImport = !policy.getPolicyImports().isEmpty();
+            entriesToValidate = resolveLocalReferencesIfAny(policy);
         } else {
             containsPolicyImport = false;
+            entriesToValidate = policyEntries;
         }
 
-        return new PoliciesValidator(policyEntries, containsPolicyImport);
+        return new PoliciesValidator(entriesToValidate, containsPolicyImport);
+    }
+
+    private static Iterable<PolicyEntry> resolveLocalReferencesIfAny(final Policy policy) {
+        final boolean anyEntryHasReferences = StreamSupport.stream(policy.spliterator(), false)
+                .anyMatch(entry -> !entry.getReferences().isEmpty());
+        if (!anyEntryHasReferences) {
+            return policy;
+        }
+        // Synchronous local-reference resolution — does not load imported policies. Import-ref
+        // targets that aren't in the policy's own entry set will be silently skipped and
+        // contribute nothing to the resolved view; that's the correct semantics here, since the
+        // validator only short-circuits when imports are present anyway.
+        return PolicyImporter.resolveReferences(policy, policy.getEntriesSet());
     }
 
     @Override

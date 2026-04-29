@@ -12,7 +12,7 @@ type: array
 description: |-
   List of policy IDs from the imported policy's own imports that should be resolved transitively
   before extracting entries. This enables multi-level import chains where a template policy defines
-  resources and an intermediate policy adds subjects via "entriesAdditions".
+  resources and an intermediate policy defines entries with "references" that add local subjects.
 
   Each entry is the policy ID of a policy that the directly imported policy itself imports from.
   Only the listed policy IDs are resolved — this is an explicit whitelist, not a recursive flag.

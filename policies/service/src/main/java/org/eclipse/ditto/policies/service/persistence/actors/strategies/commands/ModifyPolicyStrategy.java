@@ -20,7 +20,6 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
-import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
@@ -64,7 +63,6 @@ final class ModifyPolicyStrategy extends AbstractPolicyCommandStrategy<ModifyPol
         final Policy adjustedPolicy =
                 PoliciesModelFactory.newPolicyBuilder(commandPolicy.getEntityId().orElseThrow(), adjustedEntries)
                         .setPolicyImports(commandPolicy.getPolicyImports())
-                        .setImportsAliases(commandPolicy.getImportsAliases())
                         .build();
 
         final ModifyPolicy adjustedCommand = ModifyPolicy.of(command.getEntityId(), adjustedPolicy, commandHeaders);
@@ -85,11 +83,11 @@ final class ModifyPolicyStrategy extends AbstractPolicyCommandStrategy<ModifyPol
             return alreadyExpiredSubject.get();
         }
 
-        // Validate imports alias targets reference existing imports
-        final Optional<DittoRuntimeException> aliasValidationError =
-                validateImportsAliasTargets(modifiedPolicyWithImplicits, commandHeaders);
-        if (aliasValidationError.isPresent()) {
-            return ResultFactory.newErrorResult(aliasValidationError.get(), command);
+        final Optional<Result<PolicyEvent<?>>> invalidReferences =
+                validateReferencesIntegrity(context.getState(), adjustedPolicy.getEntriesSet(),
+                        adjustedPolicy, commandHeaders, command);
+        if (invalidReferences.isPresent()) {
+            return invalidReferences.get();
         }
 
         final PoliciesValidator validator = PoliciesValidator.newInstance(modifiedPolicyWithImplicits);

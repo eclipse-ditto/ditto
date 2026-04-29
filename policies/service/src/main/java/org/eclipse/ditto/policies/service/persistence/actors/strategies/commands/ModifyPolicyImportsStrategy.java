@@ -15,12 +15,13 @@ package org.eclipse.ditto.policies.service.persistence.actors.strategies.command
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
-import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
@@ -29,7 +30,9 @@ import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyImport;
 import org.eclipse.ditto.policies.model.PolicyImports;
+import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyImportReferenceConflictException;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImports;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportsResponse;
@@ -63,15 +66,24 @@ final class ModifyPolicyImportsStrategy extends AbstractPolicyCommandStrategy<Mo
                         JsonField.newInstance(Policy.JsonFields.IMPORTS.getPointer(), policyImports.toJson()),
                         command::getDittoHeaders);
 
-        // Validate that alias targets still reference existing imports after replacement
-        final Policy policyWithNewImports = nonNullPolicy.toBuilder().setPolicyImports(policyImports).build();
-        final Optional<DittoRuntimeException> aliasValidationError =
-                validateImportsAliasTargets(policyWithNewImports, dittoHeaders);
-        if (aliasValidationError.isPresent()) {
-            return ResultFactory.newErrorResult(aliasValidationError.get(), command);
+        final PolicyId policyId = context.getState();
+
+        // Check if any existing import being removed is still referenced by entries
+        final Set<PolicyId> newImportIds = policyImports.stream()
+                .map(PolicyImport::getImportedPolicyId)
+                .collect(Collectors.toSet());
+        for (final PolicyImport existingImport : nonNullPolicy.getPolicyImports()) {
+            final PolicyId existingImportId = existingImport.getImportedPolicyId();
+            if (!newImportIds.contains(existingImportId) &&
+                    anyEntryReferencesImport(nonNullPolicy, existingImportId)) {
+                return ResultFactory.newErrorResult(
+                        PolicyImportReferenceConflictException.newBuilder(policyId, existingImportId)
+                                .dittoHeaders(dittoHeaders)
+                                .build(),
+                        command);
+            }
         }
 
-        final PolicyId policyId = context.getState();
         final PolicyImportsModified policyImportsModified =
                 PolicyImportsModified.of(policyId, policyImports, nextRevision, getEventTimestamp(), dittoHeaders,
                         metadata);

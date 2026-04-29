@@ -25,8 +25,6 @@ import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
-import org.eclipse.ditto.policies.model.EffectedImports;
-import org.eclipse.ditto.policies.model.EntriesAdditions;
 import org.eclipse.ditto.policies.model.ImportedLabels;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
@@ -86,12 +84,8 @@ final class ModifyPolicyImportEntriesStrategy
     private static PolicyImport reconstructImportWithEntries(final PolicyImport existingImport,
             final ImportedLabels newLabels) {
 
-        final EntriesAdditions entriesAdditions = existingImport.getEffectedImports()
-                .flatMap(EffectedImports::getEntriesAdditions)
-                .orElse(PoliciesModelFactory.emptyEntriesAdditions());
-        final EffectedImports newEffectedImports =
-                PoliciesModelFactory.newEffectedImportedLabels(newLabels, entriesAdditions);
-        return PoliciesModelFactory.newPolicyImport(existingImport.getImportedPolicyId(), newEffectedImports);
+        return PoliciesModelFactory.newPolicyImport(existingImport.getImportedPolicyId(),
+                PoliciesModelFactory.newEffectedImportedLabels(newLabels));
     }
 
     @Override

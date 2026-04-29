@@ -15,10 +15,8 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.policies;
 import static org.eclipse.ditto.base.model.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
 import java.util.Arrays;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -33,7 +31,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
 import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
-import org.eclipse.ditto.policies.model.AllowedImportAddition;
+import org.eclipse.ditto.policies.model.AllowedAddition;
+import org.eclipse.ditto.policies.model.EntryReference;
 import org.eclipse.ditto.policies.model.ImportableType;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PolicyEntryInvalidException;
@@ -52,21 +51,24 @@ import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIn
 import org.eclipse.ditto.policies.model.signals.commands.actions.DeactivateTokenIntegration;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyActionFailedException;
 import org.eclipse.ditto.policies.model.PolicyEntryNamespaces;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntryReferences;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntry;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteResource;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubject;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryReferences;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntries;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntry;
-import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryAllowedImportAdditions;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryAllowedAdditions;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryImportable;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryNamespaces;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResource;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResources;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubject;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjects;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryReferences;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntries;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntry;
-import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryAllowedImportAdditions;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryAllowedAdditions;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryImportable;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryNamespaces;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResource;
@@ -85,9 +87,10 @@ final class PolicyEntriesRoute extends AbstractRoute {
 
     private static final String PATH_SUFFIX_SUBJECTS = "subjects";
     private static final String PATH_SUFFIX_RESOURCES = "resources";
-    private static final String PATH_SUFFIX_ALLOWED_IMPORT_ADDITIONS = "allowedImportAdditions";
+    private static final String PATH_SUFFIX_ALLOWED_ADDITIONS = "allowedAdditions";
     private static final String PATH_SUFFIX_NAMESPACES = "namespaces";
     private static final String PATH_SUFFIX_IMPORTABLE = "importable";
+    private static final String PATH_SUFFIX_REFERENCES = "references";
 
     private static final String PATH_ACTIONS = "actions";
 
@@ -124,8 +127,9 @@ final class PolicyEntriesRoute extends AbstractRoute {
                 policyEntrySubjectsEntry(ctx, dittoHeaders, policyId),
                 policyEntryResources(ctx, dittoHeaders, policyId),
                 policyEntryResourcesEntry(ctx, dittoHeaders, policyId),
-                policyEntryAllowedImportAdditions(ctx, dittoHeaders, policyId),
+                policyEntryAllowedAdditions(ctx, dittoHeaders, policyId),
                 policyEntryNamespaces(ctx, dittoHeaders, policyId),
+                policyEntryReferences(ctx, dittoHeaders, policyId),
                 policyEntryImportable(ctx, dittoHeaders, policyId),
                 policyEntryActions(ctx, dittoHeaders, policyId, authResult)
         );
@@ -368,30 +372,30 @@ final class PolicyEntriesRoute extends AbstractRoute {
     }
 
     /*
-     * Describes {@code /entries/<label>/allowedImportAdditions} route.
+     * Describes {@code /entries/<label>/allowedAdditions} route.
      */
-    private Route policyEntryAllowedImportAdditions(final RequestContext ctx, final DittoHeaders dittoHeaders,
+    private Route policyEntryAllowedAdditions(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final PolicyId policyId) {
 
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), label ->
-                rawPathPrefix(PathMatchers.slash().concat(PATH_SUFFIX_ALLOWED_IMPORT_ADDITIONS), () ->
+                rawPathPrefix(PathMatchers.slash().concat(PATH_SUFFIX_ALLOWED_ADDITIONS), () ->
                         pathEndOrSingleSlash(() ->
                                 concat(
-                                        get(() -> // GET /entries/<label>/allowedImportAdditions
-                                                handlePerRequest(ctx, RetrievePolicyEntryAllowedImportAdditions.of(
+                                        get(() -> // GET /entries/<label>/allowedAdditions
+                                                handlePerRequest(ctx, RetrievePolicyEntryAllowedAdditions.of(
                                                         policyId, Label.of(label), dittoHeaders))
                                         ),
-                                        put(() -> // PUT /entries/<label>/allowedImportAdditions
+                                        put(() -> // PUT /entries/<label>/allowedAdditions
                                                 ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx,
                                                         dittoHeaders,
                                                         payloadSource ->
                                                                 handlePerRequest(ctx, dittoHeaders,
                                                                         payloadSource,
                                                                         additionsJson ->
-                                                                                ModifyPolicyEntryAllowedImportAdditions.of(
+                                                                                ModifyPolicyEntryAllowedAdditions.of(
                                                                                         policyId,
                                                                                         Label.of(label),
-                                                                                        parseAllowedImportAdditions(additionsJson),
+                                                                                        parseAllowedAdditions(additionsJson),
                                                                                         dittoHeaders)))
                                         )
                                 )
@@ -400,18 +404,9 @@ final class PolicyEntriesRoute extends AbstractRoute {
         );
     }
 
-    private static Set<AllowedImportAddition> parseAllowedImportAdditions(final String jsonString) {
+    private static Set<AllowedAddition> parseAllowedAdditions(final String jsonString) {
         final JsonArray jsonArray = wrapJsonRuntimeException(() -> JsonFactory.newArray(jsonString));
-        return jsonArray.stream()
-                .filter(JsonValue::isString)
-                .map(JsonValue::asString)
-                .map(value -> AllowedImportAddition.forName(value)
-                        .orElseThrow(() -> PolicyEntryInvalidException.newBuilder()
-                                .description("The value '" + value +
-                                        "' is not a valid allowedImportAddition. Valid values are: " +
-                                        Arrays.toString(AllowedImportAddition.values()))
-                                .build()))
-                .collect(Collectors.toCollection(LinkedHashSet::new));
+        return PoliciesModelFactory.parseAllowedAdditions(jsonArray);
     }
 
     /*
@@ -450,6 +445,39 @@ final class PolicyEntriesRoute extends AbstractRoute {
     private static List<String> parseNamespaces(final String jsonString) {
         final JsonArray jsonArray = wrapJsonRuntimeException(() -> JsonFactory.newArray(jsonString));
         return PolicyEntryNamespaces.fromJsonArray(jsonArray);
+    }
+
+    /*
+     * Describes {@code /entries/<label>/references} route.
+     */
+    private Route policyEntryReferences(final RequestContext ctx, final DittoHeaders dittoHeaders,
+            final PolicyId policyId) {
+
+        return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), label ->
+                rawPathPrefix(PathMatchers.slash().concat(PATH_SUFFIX_REFERENCES), () ->
+                        pathEndOrSingleSlash(() ->
+                                concat(
+                                        get(() -> handlePerRequest(ctx, RetrievePolicyEntryReferences.of(
+                                                policyId, Label.of(label), dittoHeaders))),
+                                        put(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx,
+                                                dittoHeaders,
+                                                payloadSource -> handlePerRequest(ctx, dittoHeaders,
+                                                        payloadSource,
+                                                        refsJson -> ModifyPolicyEntryReferences.of(
+                                                                policyId, Label.of(label),
+                                                                parseReferences(refsJson),
+                                                                dittoHeaders)))),
+                                        delete(() -> handlePerRequest(ctx, DeletePolicyEntryReferences.of(
+                                                policyId, Label.of(label), dittoHeaders)))
+                                )
+                        )
+                )
+        );
+    }
+
+    private static List<EntryReference> parseReferences(final String jsonString) {
+        final JsonArray jsonArray = wrapJsonRuntimeException(() -> JsonFactory.newArray(jsonString));
+        return PoliciesModelFactory.parseEntryReferences(jsonArray);
     }
 
     /*

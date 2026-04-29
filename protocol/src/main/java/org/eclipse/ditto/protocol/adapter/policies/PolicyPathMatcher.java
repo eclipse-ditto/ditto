@@ -40,8 +40,6 @@ final class PolicyPathMatcher implements PayloadPathMatcher {
         resourceNames.put(PolicyResource.POLICY_IMPORTS, "policyImports");
         resourceNames.put(PolicyResource.POLICY_IMPORT, "policyImport");
         resourceNames.put(PolicyResource.POLICY_IMPORT_ENTRIES, "policyImportEntries");
-        resourceNames.put(PolicyResource.POLICY_IMPORT_ENTRIES_ADDITIONS, "policyImportEntriesAdditions");
-        resourceNames.put(PolicyResource.POLICY_IMPORT_ENTRY_ADDITION, "policyImportEntryAddition");
         resourceNames.put(PolicyResource.POLICY_IMPORT_TRANSITIVE_IMPORTS, "policyImportTransitiveImports");
         resourceNames.put(PolicyResource.POLICY_ENTRIES, "policyEntries");
         resourceNames.put(PolicyResource.POLICY_ENTRY, "policyEntry");
@@ -50,10 +48,9 @@ final class PolicyPathMatcher implements PayloadPathMatcher {
         resourceNames.put(PolicyResource.POLICY_ENTRY_SUBJECTS, "subjects");
         resourceNames.put(PolicyResource.POLICY_ENTRY_SUBJECT, "subject");
         resourceNames.put(PolicyResource.POLICY_ENTRY_IMPORTABLE, "policyEntryImportable");
-        resourceNames.put(PolicyResource.POLICY_ENTRY_ALLOWED_IMPORT_ADDITIONS, "policyEntryAllowedImportAdditions");
+        resourceNames.put(PolicyResource.POLICY_ENTRY_ALLOWED_ADDITIONS, "policyEntryAllowedAdditions");
         resourceNames.put(PolicyResource.POLICY_ENTRY_NAMESPACES, "policyEntryNamespaces");
-        resourceNames.put(PolicyResource.POLICY_IMPORTS_ALIASES, "importsAliases");
-        resourceNames.put(PolicyResource.POLICY_IMPORTS_ALIAS, "importsAlias");
+        resourceNames.put(PolicyResource.POLICY_ENTRY_REFERENCES, "policyEntryReferences");
     }
 
     private static final PolicyPathMatcher INSTANCE = new PolicyPathMatcher();

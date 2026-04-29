@@ -116,14 +116,27 @@ public interface PolicyEntry extends Jsonifiable.WithFieldSelectorAndPredicate<J
     ImportableType getImportableType();
 
     /**
-     * Returns which types of additions are allowed when this entry is imported by other policies via
-     * {@code entriesAdditions}. An empty {@link Optional} means the field was never configured (no additions allowed).
+     * Returns which types of additions are allowed when this entry is referenced by other policies via
+     * {@code references}. An empty {@link Optional} means the field was never configured (no additions allowed).
      * A present {@link Optional} with an empty set means the field was explicitly set to {@code []}.
      *
      * @return an Optional containing the set of allowed import addition types, or empty if never configured.
      * @since 3.9.0
      */
-    Optional<Set<AllowedImportAddition>> getAllowedImportAdditions();
+    Optional<Set<AllowedAddition>> getAllowedAdditions();
+
+    /**
+     * Returns the list of {@link EntryReference}s of this Policy Entry.
+     * Each reference can point to either an entry in an imported policy or a local entry within the same policy.
+     * The referencing entry inherits resources, namespaces, and (for local references) subjects from the referenced
+     * entries.
+     *
+     * @return the list of entry references, empty if this entry has no references.
+     * @since 3.9.0
+     */
+    default List<EntryReference> getReferences() {
+        return Collections.emptyList();
+    }
 
     /**
      * Returns whether this entry applies to the given thing namespace.
@@ -205,8 +218,15 @@ public interface PolicyEntry extends Jsonifiable.WithFieldSelectorAndPredicate<J
          * JSON field containing which types of additions are allowed when this entry is imported.
          * @since 3.9.0
          */
-        public static final JsonFieldDefinition<JsonArray> ALLOWED_IMPORT_ADDITIONS = JsonFactory
-                .newJsonArrayFieldDefinition("allowedImportAdditions", FieldType.REGULAR, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<JsonArray> ALLOWED_ADDITIONS = JsonFactory
+                .newJsonArrayFieldDefinition("allowedAdditions", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the references array pointing to entries in imported or local policies.
+         * @since 3.9.0
+         */
+        public static final JsonFieldDefinition<JsonArray> REFERENCES = JsonFactory
+                .newJsonArrayFieldDefinition("references", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

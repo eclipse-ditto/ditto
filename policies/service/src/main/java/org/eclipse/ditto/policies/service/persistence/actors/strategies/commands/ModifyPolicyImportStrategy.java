@@ -27,10 +27,15 @@ import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.policies.model.EffectedImports;
+import org.eclipse.ditto.policies.model.EntryReference;
+import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyImport;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
+import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyImportReferenceConflictException;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImport;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
@@ -67,9 +72,40 @@ final class ModifyPolicyImportStrategy extends AbstractPolicyCommandStrategy<Mod
         final PolicyId policyId = context.getState();
         final PolicyId importedPolicyId = policyImport.getImportedPolicyId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
+
+        // If this is an update (not a create), reject any reduction of the imported labels filter
+        // that would orphan an existing entry reference targeting one of the removed labels.
+        // This mirrors the deletion path's `anyEntryReferencesImport` check, but scoped to
+        // labels actually being removed by this modification.
+        final Optional<PolicyImport> existingImportOpt = nonNullPolicy.getPolicyImports().getPolicyImport(importedPolicyId);
+        if (existingImportOpt.isPresent()) {
+            final java.util.Set<Label> oldLabels = labelsOf(existingImportOpt.get());
+            final java.util.Set<Label> newLabels = labelsOf(policyImport);
+            final java.util.Set<Label> removed = new java.util.LinkedHashSet<>(oldLabels);
+            removed.removeAll(newLabels);
+            if (!removed.isEmpty()) {
+                for (final PolicyEntry entry : nonNullPolicy) {
+                    for (final EntryReference ref : entry.getReferences()) {
+                        if (ref.isImportReference() &&
+                                importedPolicyId.equals(ref.getImportedPolicyId().orElse(null)) &&
+                                removed.contains(ref.getEntryLabel())) {
+                            return ResultFactory.newErrorResult(
+                                    PolicyImportReferenceConflictException.newBuilder(policyId, importedPolicyId)
+                                            .description("Removing label '" + ref.getEntryLabel() +
+                                                    "' from this import's filter would orphan the reference " +
+                                                    "from entry '" + entry.getLabel() + "'.")
+                                            .dittoHeaders(dittoHeaders)
+                                            .build(),
+                                    command);
+                        }
+                    }
+                }
+            }
+        }
+
         final PolicyEvent<?> eventToPersist;
         final ModifyPolicyImportResponse createdOrModifiedResponse;
-        if (nonNullPolicy.getPolicyImports().getPolicyImport(importedPolicyId).isPresent()) {
+        if (existingImportOpt.isPresent()) {
             eventToPersist =
                     PolicyImportModified.of(policyId, policyImport, nextRevision, getEventTimestamp(), dittoHeaders,
                             metadata);
@@ -86,6 +122,14 @@ final class ModifyPolicyImportStrategy extends AbstractPolicyCommandStrategy<Mod
         }
         final WithDittoHeaders response = appendETagHeaderIfProvided(command, createdOrModifiedResponse, nonNullPolicy);
         return ResultFactory.newMutationResult(command, eventToPersist, response);
+    }
+
+    private static java.util.Set<Label> labelsOf(final PolicyImport policyImport) {
+        final java.util.Set<Label> labels = new java.util.LinkedHashSet<>();
+        policyImport.getEffectedImports()
+                .map(EffectedImports::getImportedLabels)
+                .ifPresent(labels::addAll);
+        return labels;
     }
 
     @Override

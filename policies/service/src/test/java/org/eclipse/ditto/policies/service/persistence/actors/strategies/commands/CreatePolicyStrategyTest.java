@@ -88,7 +88,7 @@ public final class CreatePolicyStrategyTest extends AbstractPolicyCommandStrateg
                 .orElseThrow();
         final PolicyEntry scopedEntry = PoliciesModelFactory.newPolicyEntry(existingEntry.getLabel(),
                 existingEntry.getSubjects(), existingEntry.getResources(), SCOPED_NAMESPACES,
-                existingEntry.getImportableType(), existingEntry.getAllowedImportAdditions().orElse(null));
+                existingEntry.getImportableType(), existingEntry.getAllowedAdditions().orElse(null));
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(TestConstants.Policy.POLICY)
                 .set(scopedEntry)
                 .setRevision(NEXT_REVISION)

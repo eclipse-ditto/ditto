@@ -76,7 +76,8 @@ public abstract class AbstractTypedSubstitutionStrategy<T extends Signal<?>> imp
                     substitutedSubjects, existingPolicyEntry.getResources(),
                     existingPolicyEntry.getNamespaces().orElse(null),
                     existingPolicyEntry.getImportableType(),
-                    existingPolicyEntry.getAllowedImportAdditions().orElse(null));
+                    existingPolicyEntry.getAllowedAdditions().orElse(null),
+                    existingPolicyEntry.getReferences().isEmpty() ? null : existingPolicyEntry.getReferences());
         }
 
         return resultEntry;

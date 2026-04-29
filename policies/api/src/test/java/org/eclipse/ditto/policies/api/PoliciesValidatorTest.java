@@ -26,10 +26,14 @@ import java.util.Collections;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.policies.model.ImportableType;
+import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PoliciesResourceType;
+import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.Resource;
 import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.SubjectExpiry;
@@ -81,6 +85,38 @@ public class PoliciesValidatorTest {
 
         assertThat(validator.isValid()).isFalse();
         assertThat(validator.getReason().orElseThrow()).contains("It must contain at least one permanent Subject");
+    }
+
+    @Test
+    public void policySplitAcrossEntriesViaMutualLocalReferencesIsValid() {
+        // The WRITE-on-policy:/ invariant is satisfied AFTER local-ref resolution but not on the
+        // raw entries: entry A holds the subject, entry B holds the WRITE grant; mutual refs.
+        final SubjectId subjectId = PoliciesModelFactory.newSubjectId(SUBJECT_ISSUER, "admin");
+        final Subject subject = PoliciesModelFactory.newSubject(subjectId);
+        final Resource policyWriteResource = PoliciesModelFactory.newResource(
+                PoliciesResourceType.policyResource("/"),
+                PoliciesModelFactory.newEffectedPermissions(
+                        Arrays.asList(PERMISSION_READ, PERMISSION_WRITE), new ArrayList<>()));
+
+        final PolicyEntry entryA = PoliciesModelFactory.newPolicyEntry(Label.of("A"),
+                PoliciesModelFactory.newSubjects(subject),
+                PoliciesModelFactory.emptyResources(),
+                null, ImportableType.IMPLICIT, null,
+                Collections.singletonList(PoliciesModelFactory.newLocalEntryReference(Label.of("B"))));
+        final PolicyEntry entryB = PoliciesModelFactory.newPolicyEntry(Label.of("B"),
+                PoliciesModelFactory.emptySubjects(),
+                PoliciesModelFactory.newResources(policyWriteResource),
+                null, ImportableType.IMPLICIT, null,
+                Collections.singletonList(PoliciesModelFactory.newLocalEntryReference(Label.of("A"))));
+
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(PolicyId.of("ns", "split"))
+                .set(entryA).set(entryB).build();
+
+        final PoliciesValidator validator = PoliciesValidator.newInstance(policy);
+
+        // Without local-ref resolution this would fail. With resolution, both entries effectively
+        // have the admin subject and WRITE on policy:/, so it must pass.
+        assertThat(validator.isValid()).isTrue();
     }
 
     private PolicyEntry createPolicyEntry(final String... permissions) {

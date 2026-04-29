@@ -28,40 +28,10 @@
               },
               "maxItems": 10
             },
-            "entriesAdditions": {
-              "title": "Entries additions",
-              "type": "object",
-              "description": "Additional subjects and/or resources to additively merge into imported policy entries. Each key is a label of an imported policy entry. The value is an object with optional \"subjects\" and/or \"resources\" and/or \"namespaces\" fields that will be merged into the corresponding imported entry. The imported policy entry must explicitly allow these additions via its \"allowedImportAdditions\" field, otherwise the additions are rejected.",
-              "additionalProperties": {
-                "title": "EntryAddition",
-                "type": "object",
-                "description": "Defines additional subjects and/or resources to be merged into a single imported policy entry.",
-                "properties": {
-                  "subjects": {
-                    "title": "Subjects",
-                    "type": "object",
-                    "description": "Additional subjects to merge into the imported entry."
-                  },
-                  "resources": {
-                    "title": "Resources",
-                    "type": "object",
-                    "description": "Additional resources to merge into the imported entry."
-                  },
-                  "namespaces": {
-                    "title": "Namespaces",
-                    "type": "array",
-                    "description": "Additional namespaces to merge into the imported entry",
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            },
             "transitiveImports": {
               "title": "Transitive imports",
               "type": "array",
-              "description": "List of policy IDs from the imported policy's own imports that should be resolved transitively before extracting entries. This enables multi-level import chains where a template policy defines resources and an intermediate policy adds subjects via entriesAdditions.",
+              "description": "List of policy IDs from the imported policy's own imports that should be resolved transitively before extracting entries. This enables multi-level import chains where an intermediate policy defines entries with references pointing to a template policy's entries.",
               "items": {
                 "type": "string",
                 "description": "Policy ID of a policy that the imported policy itself imports from."
@@ -69,40 +39,6 @@
             }
           }
         }
-      }
-    },
-    "importsAliases": {
-      "title": "ImportsAliases",
-      "type": "object",
-      "description": "Imports aliases mapping a label to one or more entries additions targets. Subject operations on the alias label via /entries/{label}/subjects are transparently fanned out to all referenced targets. A label must not exist as both an imports alias and a local policy entry.",
-      "additionalProperties": {
-        "title": "ImportsAlias",
-        "type": "object",
-        "description": "A single imports alias defining the targets to fan out subject operations to.",
-        "properties": {
-          "targets": {
-            "title": "Targets",
-            "type": "array",
-            "description": "List of entries additions targets this alias fans out to.",
-            "items": {
-              "title": "ImportsAliasTarget",
-              "type": "object",
-              "description": "A target reference pointing to a specific entry addition in a policy import.",
-              "properties": {
-                "import": {
-                  "type": "string",
-                  "description": "The policy ID of the import this target refers to."
-                },
-                "entry": {
-                  "type": "string",
-                  "description": "The label of the entry within the import's entriesAdditions."
-                }
-              },
-              "required": ["import", "entry"]
-            }
-          }
-        },
-        "required": ["targets"]
       }
     },
     "entries": {
@@ -236,21 +172,37 @@
               "enum": ["implicit", "explicit", "never"],
               "default": "implicit"
             },
-            "allowedImportAdditions": {
+            "references": {
+              "title": "References",
+              "type": "array",
+              "description": "An optional list of references to other policy entries. Each reference points to an entry either in the same policy (local reference) or in an imported policy (import reference). When set, subjects, resources, and namespaces from the referenced entries are additively merged into this entry.",
+              "items": {
+                "type": "object",
+                "description": "A single reference to a policy entry.",
+                "properties": {
+                  "entry": {
+                    "type": "string",
+                    "description": "The label of the referenced entry."
+                  },
+                  "import": {
+                    "type": "string",
+                    "description": "The ID of the imported policy. If absent, the reference points to a local entry within the same policy."
+                  }
+                },
+                "required": ["entry"]
+              }
+            },
+            "allowedAdditions": {
               "title": "Allowed import additions",
               "type": "array",
-              "description": "Defines which types of additions are allowed when this entry is imported by other policies via `entriesAdditions`. If omitted or empty, no additions are allowed. This default ensures that existing policies cannot be extended with additional subjects or resources unless the policy author explicitly opts in.",
+              "description": "Defines which types of additions are allowed when this entry is referenced by other entries via `references`. Semantics: field absent (omitted) means no restriction — the referencing entry's own subjects, resources, and namespaces merge in as usual (upgrade-friendly default for pre-existing entries); field present and explicitly empty (`[]`) means no additions are allowed (only this entry's content is effective on the referencing side); field present with values means only the listed kinds of additions survive on the referencing entry. Enforced at resolution time as a runtime filter, not as a write-time contract: disallowed own additions on referencing entries are silently stripped at enforcement, not rejected at write. The same filter applies whether the reference is local or an import reference.",
               "items": {
                 "type": "string",
                 "enum": ["subjects", "resources", "namespaces"]
               },
               "example": ["subjects"]
             }
-          },
-          "required": [
-            "subjects",
-            "resources"
-          ]
+          }
         }
       }
     },

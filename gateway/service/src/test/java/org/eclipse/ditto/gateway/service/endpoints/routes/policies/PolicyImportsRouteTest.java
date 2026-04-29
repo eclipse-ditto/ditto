@@ -19,16 +19,11 @@ import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImport;
-import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImportEntryAddition;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImport;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportEntries;
-import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportEntriesAdditions;
-import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportEntryAddition;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImports;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImport;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImportEntries;
-import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImportEntriesAdditions;
-import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImportEntryAddition;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImports;
 import org.junit.Before;
 import org.junit.Test;
@@ -60,26 +55,6 @@ public final class PolicyImportsRouteTest extends EndpointTestBase {
             }""";
 
     private static final String DUMMY_ENTRIES_JSON = "[\"the_label\",\"other_label\"]";
-
-    private static final String DUMMY_ENTRIES_ADDITIONS_JSON = """
-            {
-              "the_label": {
-                "subjects": {
-                  "google:someUser": {
-                    "type": "test"
-                  }
-                }
-              }
-            }""";
-
-    private static final String DUMMY_ENTRY_ADDITION_JSON = """
-            {
-              "subjects": {
-                "google:someUser": {
-                  "type": "test"
-                }
-              }
-            }""";
 
     private TestRoute underTest;
 
@@ -160,53 +135,6 @@ public final class PolicyImportsRouteTest extends EndpointTestBase {
     }
 
     @Test
-    public void getPolicyImportEntriesAdditions() {
-        final var result = underTest.run(
-                HttpRequest.GET("/" + IMPORTED_POLICY_ID + "/entriesAdditions"));
-        result.assertStatusCode(StatusCodes.OK);
-        assertThat(JsonObject.of(result.entityString()))
-                .contains(JsonKey.of("type"), RetrievePolicyImportEntriesAdditions.TYPE);
-    }
-
-    @Test
-    public void putPolicyImportEntriesAdditions() {
-        final var result = underTest.run(
-                HttpRequest.PUT("/" + IMPORTED_POLICY_ID + "/entriesAdditions")
-                        .withEntity(ContentTypes.APPLICATION_JSON, DUMMY_ENTRIES_ADDITIONS_JSON));
-        result.assertStatusCode(StatusCodes.OK);
-        assertThat(JsonObject.of(result.entityString()))
-                .contains(JsonKey.of("type"), ModifyPolicyImportEntriesAdditions.TYPE);
-    }
-
-    @Test
-    public void getPolicyImportEntryAddition() {
-        final var result = underTest.run(
-                HttpRequest.GET("/" + IMPORTED_POLICY_ID + "/entriesAdditions/the_label"));
-        result.assertStatusCode(StatusCodes.OK);
-        assertThat(JsonObject.of(result.entityString()))
-                .contains(JsonKey.of("type"), RetrievePolicyImportEntryAddition.TYPE);
-    }
-
-    @Test
-    public void putPolicyImportEntryAddition() {
-        final var result = underTest.run(
-                HttpRequest.PUT("/" + IMPORTED_POLICY_ID + "/entriesAdditions/the_label")
-                        .withEntity(ContentTypes.APPLICATION_JSON, DUMMY_ENTRY_ADDITION_JSON));
-        result.assertStatusCode(StatusCodes.OK);
-        assertThat(JsonObject.of(result.entityString()))
-                .contains(JsonKey.of("type"), ModifyPolicyImportEntryAddition.TYPE);
-    }
-
-    @Test
-    public void deletePolicyImportEntryAddition() {
-        final var result = underTest.run(
-                HttpRequest.DELETE("/" + IMPORTED_POLICY_ID + "/entriesAdditions/the_label"));
-        result.assertStatusCode(StatusCodes.OK);
-        assertThat(JsonObject.of(result.entityString()))
-                .contains(JsonKey.of("type"), DeletePolicyImportEntryAddition.TYPE);
-    }
-
-    @Test
     public void getPolicyImportWithTrailingSlash() {
         final var result = underTest.run(HttpRequest.GET("/" + IMPORTED_POLICY_ID + "/"));
         result.assertStatusCode(StatusCodes.OK);
@@ -220,15 +148,6 @@ public final class PolicyImportsRouteTest extends EndpointTestBase {
         result.assertStatusCode(StatusCodes.OK);
         assertThat(JsonObject.of(result.entityString()))
                 .contains(JsonKey.of("type"), RetrievePolicyImportEntries.TYPE);
-    }
-
-    @Test
-    public void getPolicyImportEntriesAdditionsWithTrailingSlash() {
-        final var result = underTest.run(
-                HttpRequest.GET("/" + IMPORTED_POLICY_ID + "/entriesAdditions/"));
-        result.assertStatusCode(StatusCodes.OK);
-        assertThat(JsonObject.of(result.entityString()))
-                .contains(JsonKey.of("type"), RetrievePolicyImportEntriesAdditions.TYPE);
     }
 
 }

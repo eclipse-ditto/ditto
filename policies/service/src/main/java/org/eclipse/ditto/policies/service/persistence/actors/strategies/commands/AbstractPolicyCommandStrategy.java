@@ -35,20 +35,21 @@ import org.eclipse.ditto.internal.utils.persistentactors.etags.AbstractCondition
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.policies.api.commands.sudo.PolicySudoCommand;
+import org.eclipse.ditto.policies.model.EntryReference;
+import org.eclipse.ditto.policies.model.ImportableType;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.model.PolicyImportInvalidException;
+import org.eclipse.ditto.policies.model.PolicyImport;
 import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.Subject;
-import org.eclipse.ditto.policies.model.ImportsAlias;
-import org.eclipse.ditto.policies.model.ImportsAliasTarget;
 import org.eclipse.ditto.policies.model.SubjectAnnouncement;
 import org.eclipse.ditto.policies.model.SubjectExpiry;
 import org.eclipse.ditto.policies.model.SubjectExpiryInvalidException;
 import org.eclipse.ditto.policies.model.Subjects;
+import org.eclipse.ditto.policies.model.PolicyEntryInvalidException;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyEntryModificationInvalidException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyEntryNotAccessibleException;
@@ -168,7 +169,8 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
         final var adjustedSubjects = potentiallyAdjustSubjects(policyEntry.getSubjects());
         return PoliciesModelFactory.newPolicyEntry(policyEntry.getLabel(), adjustedSubjects,
                 policyEntry.getResources(), policyEntry.getNamespaces().orElse(null),
-                policyEntry.getImportableType(), policyEntry.getAllowedImportAdditions().orElse(null));
+                policyEntry.getImportableType(), policyEntry.getAllowedAdditions().orElse(null),
+                policyEntry.getReferences().isEmpty() ? null : policyEntry.getReferences());
     }
 
     /**
@@ -322,23 +324,142 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
     }
 
     /**
-     * Validates that all imports alias targets in the given policy reference existing imports.
+     * Checks whether any entry in the given policy has an import reference pointing to the specified imported policy ID.
      *
-     * @param policy the policy to validate.
-     * @param dittoHeaders the headers for error responses.
-     * @return an Optional containing an error if validation fails, or empty if validation passes.
+     * @param policy the policy to check.
+     * @param importedPolicyId the imported policy ID to look for in entry references.
+     * @return {@code true} if at least one entry references the given import.
      */
-    static Optional<DittoRuntimeException> validateImportsAliasTargets(final Policy policy,
-            final DittoHeaders dittoHeaders) {
-        for (final ImportsAlias alias : policy.getImportsAliases()) {
-            for (final ImportsAliasTarget target : alias.getTargets()) {
-                if (policy.getPolicyImports().getPolicyImport(target.getImportedPolicyId()).isEmpty()) {
-                    return Optional.of(PolicyImportInvalidException.newBuilder()
-                            .message("The imports alias '" + alias.getLabel() + "' references import '" +
-                                    target.getImportedPolicyId() + "' which does not exist in this policy.")
-                            .description("Ensure all alias targets reference existing policy imports.")
-                            .dittoHeaders(dittoHeaders)
-                            .build());
+    static boolean anyEntryReferencesImport(final Policy policy, final PolicyId importedPolicyId) {
+        for (final PolicyEntry entry : policy) {
+            for (final EntryReference ref : entry.getReferences()) {
+                if (ref.isImportReference() &&
+                        ref.getImportedPolicyId().filter(importedPolicyId::equals).isPresent()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Checks whether any entry in the given policy has any import reference at all.
+     *
+     * @param policy the policy to check.
+     * @return {@code true} if at least one entry has an import reference.
+     */
+    static boolean anyEntryHasImportReferences(final Policy policy) {
+        for (final PolicyEntry entry : policy) {
+            for (final EntryReference ref : entry.getReferences()) {
+                if (ref.isImportReference()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Finds the first entry that has a local reference pointing to the given label.
+     *
+     * @param policy the policy to check.
+     * @param label the label to look for in local references.
+     * @return an Optional containing the label of the first entry that locally references the given label,
+     *         or empty if none.
+     */
+    static Optional<Label> findEntryWithLocalReferenceTo(final Policy policy, final Label label) {
+        for (final PolicyEntry entry : policy) {
+            for (final EntryReference ref : entry.getReferences()) {
+                if (ref.isLocalReference() && ref.getEntryLabel().equals(label)) {
+                    return Optional.of(entry.getLabel());
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Validates the referential integrity of all entry references in the given policy entries.
+     * <ul>
+     *   <li>An entry must not reference itself.</li>
+     *   <li>Duplicate references on the same entry are rejected.</li>
+     *   <li>Local references must point to an entry that exists in {@code entries}.</li>
+     *   <li>Local references to entries marked {@code importable=never} are rejected.</li>
+     *   <li>Import references must point to an import declared in {@code policy}.</li>
+     * </ul>
+     *
+     * @param policyId the policy ID (for error messages).
+     * @param entries the entries to validate.
+     * @param policy the policy providing the imports context.
+     * @param dittoHeaders the headers of the originating command.
+     * @param command the originating command.
+     * @param <T> the event type.
+     * @return an Optional containing an error result if validation fails, empty otherwise.
+     */
+    static <T extends PolicyEvent<?>> Optional<Result<T>> validateReferencesIntegrity(
+            final PolicyId policyId,
+            final Iterable<PolicyEntry> entries,
+            final Policy policy,
+            final DittoHeaders dittoHeaders,
+            final Command<?> command) {
+
+        final java.util.Map<Label, PolicyEntry> entriesByLabel = new java.util.LinkedHashMap<>();
+        entries.forEach(e -> entriesByLabel.put(e.getLabel(), e));
+
+        final Set<PolicyId> importIds = policy.getPolicyImports().stream()
+                .map(PolicyImport::getImportedPolicyId)
+                .collect(Collectors.toSet());
+
+        for (final PolicyEntry entry : entries) {
+            // Use the EntryReference itself as the dedup key — its equals/hashCode already compare
+            // (importedPolicyId, entryLabel) as a structured pair, avoiding the string-concat
+            // collision where a local label of "X:Y" would clash with import-ref to policy "X" entry "Y".
+            final Set<EntryReference> seenRefs = new LinkedHashSet<>();
+            for (final EntryReference ref : entry.getReferences()) {
+                if (!seenRefs.add(ref)) {
+                    return Optional.of(ResultFactory.newErrorResult(
+                            policyEntryReferenceInvalid(policyId, entry.getLabel(),
+                                    "Duplicate reference to entry '" + ref.getEntryLabel() + "'.",
+                                    dittoHeaders),
+                            command));
+                }
+                if (ref.isLocalReference() && ref.getEntryLabel().equals(entry.getLabel())) {
+                    return Optional.of(ResultFactory.newErrorResult(
+                            policyEntryReferenceInvalid(policyId, entry.getLabel(),
+                                    "Entry must not reference itself.",
+                                    dittoHeaders),
+                            command));
+                }
+                if (ref.isLocalReference()) {
+                    final PolicyEntry target = entriesByLabel.get(ref.getEntryLabel());
+                    if (target == null) {
+                        return Optional.of(ResultFactory.newErrorResult(
+                                policyEntryReferenceInvalid(policyId, entry.getLabel(),
+                                        "Local reference targets entry '" + ref.getEntryLabel() +
+                                                "' which does not exist in the policy.",
+                                        dittoHeaders),
+                                command));
+                    }
+                    if (target.getImportableType() == ImportableType.NEVER) {
+                        return Optional.of(ResultFactory.newErrorResult(
+                                policyEntryReferenceInvalid(policyId, entry.getLabel(),
+                                        "Local reference targets entry '" + ref.getEntryLabel() +
+                                                "' which is marked importable=never and cannot be referenced.",
+                                        dittoHeaders),
+                                command));
+                    }
+                }
+                if (ref.isImportReference()) {
+                    final PolicyId refImport = ref.getImportedPolicyId().orElseThrow(() ->
+                            new IllegalStateException("Import reference without imported policy ID"));
+                    if (!importIds.contains(refImport)) {
+                        return Optional.of(ResultFactory.newErrorResult(
+                                policyEntryReferenceInvalid(policyId, entry.getLabel(),
+                                        "Import reference targets policy '" + refImport +
+                                                "' which is not declared in imports.",
+                                        dittoHeaders),
+                                command));
+                    }
                 }
             }
         }
@@ -392,6 +513,15 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
     static DittoRuntimeException policyEntryInvalid(final PolicyId policyId, final Label label,
             @Nullable final String description, final DittoHeaders dittoHeaders) {
         return PolicyEntryModificationInvalidException.newBuilder(policyId, label)
+                .description(description)
+                .dittoHeaders(dittoHeaders)
+                .build();
+    }
+
+    static DittoRuntimeException policyEntryReferenceInvalid(final PolicyId policyId, final Label label,
+            final String description, final DittoHeaders dittoHeaders) {
+        return PolicyEntryInvalidException.newBuilder()
+                .message("The references of PolicyEntry '" + label + "' on Policy '" + policyId + "' are invalid.")
                 .description(description)
                 .dittoHeaders(dittoHeaders)
                 .build();

@@ -22,6 +22,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -37,18 +38,20 @@ import javax.annotation.Nullable;
 public final class PolicyImporter {
 
     /**
-     * Maximum depth for transitive import resolution. Prevents infinite recursion caused by mutual
-     * transitive cycles (e.g., A→B with transitiveImports=["C"], B→C with transitiveImports=["A"]).
+     * Maximum depth for transitive import resolution. Pure cycles are normally caught earlier by the
+     * {@code visited} set in {@link #resolveTransitiveImports}; this limit is a hard ceiling that also
+     * fires for any legitimately deep chain.
      * <p>
-     * When this limit is reached, resolution stops and returns the loaded policy's own entries without
-     * recursing further. This is intentionally silent at the model layer (no SLF4J dependency in model
-     * modules). Callers that need diagnostics should check the resolved entry count or implement their
-     * own depth tracking.
+     * When this limit is reached, resolution fails fast with a {@link PolicyImportInvalidException}
+     * (HTTP 400) so the caller learns the policy graph is invalid rather than silently receiving a
+     * partially-resolved view. The exception is thrown without {@code DittoHeaders}; the calling layer
+     * is expected to attach request headers via
+     * {@code org.eclipse.ditto.base.model.exceptions.DittoRuntimeException#setDittoHeaders}.
      * <p>
      * Cross-policy cycles (A→B→C→A) are not rejected at write time because cycle detection across
      * multiple independently-managed policies would require loading the full transitive graph on every
-     * PUT. Instead, cycles are broken gracefully at resolution time via the {@code visited} set and
-     * this depth limit.
+     * PUT. They are detected at resolution time: the {@code visited} set short-circuits the cycle on
+     * the second encounter, and any chain that nevertheless exceeds this depth is rejected here.
      */
     public static final int MAX_TRANSITIVE_RESOLUTION_DEPTH = 10;
 
@@ -107,7 +110,7 @@ public final class PolicyImporter {
                         visited).toCompletableFuture())
                 .collect(Collectors.toList());
 
-        return CompletableFuture.allOf(importFutures.toArray(CompletableFuture[]::new))
+        return CompletableFuture.allOf(importFutures.toArray(new CompletableFuture[0]))
                 .thenApply(ignored -> {
                     final Set<PolicyEntry> result = new LinkedHashSet<>(baseEntries);
                     for (final CompletableFuture<Set<PolicyEntry>> future : importFutures) {
@@ -124,9 +127,10 @@ public final class PolicyImporter {
     private static CompletionStage<Set<PolicyEntry>> resolveImport(
             final PolicyImport policyImport,
             final Function<PolicyId, CompletionStage<Optional<Policy>>> policyLoader,
-            final int depth, final boolean applyImportPrefix,
-            final Set<PolicyId> visited) {
-
+            final int depth,
+            final boolean applyImportPrefix,
+            final Set<PolicyId> visited
+    ) {
         final PolicyId importedPolicyId = policyImport.getImportedPolicyId();
         return policyLoader.apply(importedPolicyId).thenCompose(loadedPolicyOpt ->
                 loadedPolicyOpt.map(loadedPolicy -> {
@@ -139,13 +143,17 @@ public final class PolicyImporter {
                         resolvedEntriesCs = CompletableFuture.completedFuture(loadedPolicy.getEntriesSet());
                     }
                     return resolvedEntriesCs.thenApply(resolvedEntries -> {
+                        // Resolve the loaded policy's own entry references before importing.
+                        // This ensures entries that inherit resources/subjects via references
+                        // have those values materialized before the references are stripped
+                        // during label rewriting.
+                        final Set<PolicyEntry> withResolvedRefs =
+                                resolveReferences(loadedPolicy, resolvedEntries);
                         final ImportedLabels importedLabels = policyImport.getEffectedImports()
                                 .map(EffectedImports::getImportedLabels)
                                 .orElse(ImportedLabels.none());
-                        final EntriesAdditions entriesAdditions = policyImport.getEntriesAdditions()
-                                .orElse(null);
-                        return rewriteImportedLabels(importedPolicyId, resolvedEntries,
-                                importedLabels, entriesAdditions, applyImportPrefix);
+                        return rewriteImportedLabels(importedPolicyId, withResolvedRefs,
+                                importedLabels, applyImportPrefix);
                     });
                 }).orElse(CompletableFuture.completedFuture(Collections.emptySet())));
     }
@@ -158,7 +166,7 @@ public final class PolicyImporter {
      * <p>
      * Entries resolved from transitive imports are added with their original labels (no import prefix),
      * so that the outer resolution can correctly apply the single import prefix and match {@code entries}
-     * filters and {@code entriesAdditions} keys.
+     * filters and {@code references} resolution.
      * <p>
      * Cycle detection: transitive IDs that appear in {@code visited} are skipped to prevent infinite
      * recursion. Each level creates an immutable copy of the visited set with the current transitive IDs
@@ -177,10 +185,18 @@ public final class PolicyImporter {
             final List<PolicyId> transitiveIds,
             final Function<PolicyId, CompletionStage<Optional<Policy>>> policyLoader,
             final int depth,
-            final Set<PolicyId> visited) {
-
+            final Set<PolicyId> visited
+    ) {
         if (depth >= MAX_TRANSITIVE_RESOLUTION_DEPTH) {
-            return CompletableFuture.completedFuture(loadedPolicy.getEntriesSet());
+            final PolicyId loadedPolicyId = loadedPolicy.getEntityId().orElse(null);
+            throw PolicyImportInvalidException.newBuilder()
+                    .message("The policy import graph exceeded the maximum transitive resolution depth of " +
+                            MAX_TRANSITIVE_RESOLUTION_DEPTH + ".")
+                    .description("Resolution stopped at policy '" + loadedPolicyId +
+                            "'. This usually indicates a cycle across imported policies' " +
+                            "transitiveImports declarations or an excessively deep import chain. " +
+                            "Shorten the chain or break the cycle by removing one of the transitiveImports entries.")
+                    .build();
         }
 
         // Filter out already-visited transitive IDs to break cycles
@@ -203,49 +219,28 @@ public final class PolicyImporter {
         newVisited.addAll(transitiveIdSet);
         final Set<PolicyId> unmodifiableVisited = Collections.unmodifiableSet(newVisited);
 
-        // Resolve filtered imports without label prefixing — the entries are merged into the
-        // loaded policy's entries as if they were its own inline entries. The outer resolution
-        // applies the prefix.
+        // Resolve filtered imports WITH label prefixing so transitive entries don't collide
+        // with the loaded policy's own entries (e.g. both having a "driver" entry). The prefix
+        // allows resolveReferences to find the transitive entries by their import-prefixed labels.
+        // The outer resolution applies its own prefix on top.
         return mergeImportedPolicyEntries(loadedPolicy.getEntriesSet(), filteredImportsList,
-                policyLoader, depth + 1, false, unmodifiableVisited);
+                policyLoader, depth + 1, true, unmodifiableVisited);
     }
 
     private static Set<PolicyEntry> rewriteImportedLabels(final PolicyId importedPolicyId,
             final Set<PolicyEntry> importedEntries, final Collection<Label> importedLabels,
-            @Nullable final EntriesAdditions entriesAdditions, final boolean applyImportPrefix) {
+            final boolean applyImportPrefix) {
 
         return importedEntries.stream()
                 .flatMap(importedEntry -> importEntry(importedLabels, importedEntry))
-                .map(entry -> applyAdditionsAndRewrite(importedPolicyId, entry, entriesAdditions,
-                        applyImportPrefix))
+                .map(entry -> rewriteLabel(importedPolicyId, entry, applyImportPrefix))
                 .collect(Collectors.toSet());
     }
 
-    private static PolicyEntry applyAdditionsAndRewrite(final PolicyId importedPolicyId,
-            final PolicyEntry entry, @Nullable final EntriesAdditions entriesAdditions,
-            final boolean applyImportPrefix) {
-
-        Subjects mergedSubjects = entry.getSubjects();
-        Resources mergedResources = entry.getResources();
-        List<String> mergedNamespaces = entry.getNamespaces().orElse(null);
-
-        if (entriesAdditions != null) {
-            final Optional<EntryAddition> addition = entriesAdditions.getAddition(entry.getLabel());
-            if (addition.isPresent()) {
-                final EntryAddition add = addition.get();
-                final Set<AllowedImportAddition> allowed = entry.getAllowedImportAdditions()
-                        .orElse(Collections.emptySet());
-                if (add.getSubjects().isPresent() && allowed.contains(AllowedImportAddition.SUBJECTS)) {
-                    mergedSubjects = mergeSubjects(mergedSubjects, add.getSubjects().get());
-                }
-                if (add.getResources().isPresent() && allowed.contains(AllowedImportAddition.RESOURCES)) {
-                    mergedResources = mergeResources(mergedResources, add.getResources().get());
-                }
-                if (add.getNamespaces().isPresent() && allowed.contains(AllowedImportAddition.NAMESPACES)) {
-                    mergedNamespaces = mergeNamespaces(mergedNamespaces, add.getNamespaces().get());
-                }
-            }
-        }
+    // Uses the 6-parameter factory intentionally: references are
+    // local concepts of the source policy and are not carried over during import.
+    private static PolicyEntry rewriteLabel(final PolicyId importedPolicyId,
+            final PolicyEntry entry, final boolean applyImportPrefix) {
 
         final Label finalLabel = applyImportPrefix
                 ? PoliciesModelFactory.newImportedLabel(importedPolicyId, entry.getLabel())
@@ -253,11 +248,11 @@ public final class PolicyImporter {
 
         return PoliciesModelFactory.newPolicyEntry(
                 finalLabel,
-                mergedSubjects,
-                mergedResources,
-                mergedNamespaces,
+                entry.getSubjects(),
+                entry.getResources(),
+                entry.getNamespaces().orElse(null),
                 entry.getImportableType(),
-                entry.getAllowedImportAdditions().orElse(null)
+                entry.getAllowedAdditions().orElse(null)
         );
     }
 
@@ -272,10 +267,6 @@ public final class PolicyImporter {
             default:
                 return Stream.empty();
         }
-    }
-
-    private static Subjects mergeSubjects(final Subjects templateSubjects, final Subjects additionalSubjects) {
-        return templateSubjects.setSubjects(additionalSubjects);
     }
 
     // Note: inner merge is O(k) per resource due to immutable copy-on-write in Resources.setResource.
@@ -316,5 +307,181 @@ public final class PolicyImporter {
                 : new LinkedHashSet<>();
         merged.addAll(additionalNamespaces);
         return new ArrayList<>(merged);
+    }
+
+    /**
+     * Resolves {@link EntryReference}s on the importing policy's own entries. Each entry may declare a
+     * {@code references} array containing import references (pointing to imported policy entries) and/or
+     * local references (pointing to entries within the same policy).
+     * <p>
+     * For import references, the referenced entry is looked up in the resolved set (label-prefixed imported entries).
+     * For local references, the referenced entry is looked up directly in the importing policy.
+     * In both cases, resources, namespaces, and subjects are additively merged.
+     *
+     * @param importingPolicy the policy whose entries may contain references.
+     * @param resolvedEntries the full set of resolved entries (own + imported, with prefixed labels).
+     * @return a new set with references resolved (merged with referenced entry content).
+     * @since 3.9.0
+     */
+    public static Set<PolicyEntry> resolveReferences(final Policy importingPolicy,
+            final Set<PolicyEntry> resolvedEntries) {
+        return resolveReferences(importingPolicy, resolvedEntries, (entry, ref) -> { /* no-op */ });
+    }
+
+    /**
+     * Variant of {@link #resolveReferences(Policy, Set)} that invokes {@code onMissingReference} when a
+     * reference cannot be resolved (the referenced entry is absent from the resolved set or from the
+     * importing policy). The callback receives the entry holding the reference and the reference itself,
+     * allowing callers in higher layers (e.g. enforcement) to log a diagnostic without the model module
+     * taking on a logging dependency.
+     *
+     * @param importingPolicy the policy whose entries may contain references.
+     * @param resolvedEntries the full set of resolved entries (own + imported, with prefixed labels).
+     * @param onMissingReference invoked once per reference that fails to resolve; never null.
+     * @return a new set with references resolved (merged with referenced entry content).
+     * @since 3.9.0
+     */
+    public static Set<PolicyEntry> resolveReferences(final Policy importingPolicy,
+            final Set<PolicyEntry> resolvedEntries,
+            final BiConsumer<PolicyEntry, EntryReference> onMissingReference) {
+
+        final Set<PolicyEntry> result = new LinkedHashSet<>(resolvedEntries);
+        for (final PolicyEntry ownEntry : importingPolicy) {
+            final List<EntryReference> refs = ownEntry.getReferences();
+            if (!refs.isEmpty()) {
+                final PolicyEntry merged = resolveAllReferences(importingPolicy, resolvedEntries, ownEntry,
+                        onMissingReference);
+                result.remove(ownEntry);
+                result.add(merged);
+            }
+        }
+        return Collections.unmodifiableSet(result);
+    }
+
+    /**
+     * Resolves all references on a single entry. Subjects, resources, and namespaces from each
+     * referenced entry are accumulated independently, then the own entry's additions are merged
+     * in only if every referenced entry's {@code allowedAdditions} permits them.
+     * <p>
+     * Local and import references share the same merge semantics for {@code importable=never}
+     * skipping and {@code allowedAdditions} filtering:
+     * <ul>
+     *   <li>References to entries marked {@code importable=never} are skipped (the author's
+     *       "do-not-inherit-from-me" signal applies to both kinds).</li>
+     *   <li>Each referenced entry's {@code allowedAdditions} contributes to the strictest
+     *       intersection. A referenced entry that does NOT explicitly declare
+     *       {@code allowedAdditions} imposes no restriction (absent ≠ deny-all). Only
+     *       explicit declarations narrow the effective set.</li>
+     * </ul>
+     * <p>
+     * References do <strong>not</strong> chain transitively at this resolution level: looking up a
+     * referenced entry yields its raw content (the referenced entry's own subjects/resources/
+     * namespaces), not a recursively-resolved view of that entry's own references. This avoids
+     * unbounded recursion within a single policy and keeps resolution semantics predictable.
+     * Cross-policy chains (where an entry in an imported policy references a third policy's entry)
+     * only succeed when the importing policy declares the deeper imports via {@code transitiveImports}
+     * on the import — without that, the deeper reference target is not in the resolved set and is
+     * silently skipped. Within a single policy, local references resolve one level deep, period.
+     */
+    private static PolicyEntry resolveAllReferences(final Policy importingPolicy,
+            final Set<PolicyEntry> resolvedEntries, final PolicyEntry ownEntry,
+            final BiConsumer<PolicyEntry, EntryReference> onMissingReference) {
+
+        Resources accumulatedResources = PoliciesModelFactory.emptyResources();
+        Subjects accumulatedSubjects = PoliciesModelFactory.emptySubjects();
+        List<String> accumulatedNamespaces = Collections.emptyList();
+        // Strictest allowedAdditions across all referenced entries that explicitly declared one.
+        // null = no referenced entry has restricted additions yet (default = unrestricted).
+        Set<AllowedAddition> effectiveAllowed = null;
+
+        for (final EntryReference ref : ownEntry.getReferences()) {
+            final Optional<PolicyEntry> referencedEntryOpt = lookupReference(importingPolicy, resolvedEntries, ref);
+            if (!referencedEntryOpt.isPresent()) {
+                onMissingReference.accept(ownEntry, ref);
+                continue;
+            }
+            final PolicyEntry referencedEntry = referencedEntryOpt.get();
+            if (referencedEntry.getImportableType() == ImportableType.NEVER) {
+                continue;
+            }
+
+            accumulatedResources = mergeResources(accumulatedResources, referencedEntry.getResources());
+            accumulatedNamespaces = mergeNamespaces(
+                    accumulatedNamespaces.isEmpty() ? null : accumulatedNamespaces,
+                    referencedEntry.getNamespaces().orElse(Collections.emptyList()));
+            accumulatedSubjects = mergeSubjects(accumulatedSubjects, referencedEntry.getSubjects());
+
+            // Narrow effective allowedAdditions only when the target explicitly declares it.
+            // Absent contributes nothing (no restriction); explicit empty intersects to deny-all.
+            final Optional<Set<AllowedAddition>> templateAllowedOpt =
+                    referencedEntry.getAllowedAdditions();
+            if (templateAllowedOpt.isPresent()) {
+                final Set<AllowedAddition> templateAllowed = templateAllowedOpt.get();
+                if (effectiveAllowed == null) {
+                    effectiveAllowed = new LinkedHashSet<>(templateAllowed);
+                } else {
+                    effectiveAllowed.retainAll(templateAllowed);
+                }
+            }
+        }
+
+        final boolean hasRestrictions = effectiveAllowed != null;
+        final boolean resourcesAllowed = !hasRestrictions ||
+                effectiveAllowed.contains(AllowedAddition.RESOURCES);
+        final boolean subjectsAllowed = !hasRestrictions ||
+                effectiveAllowed.contains(AllowedAddition.SUBJECTS);
+        final boolean namespacesAllowed = !hasRestrictions ||
+                effectiveAllowed.contains(AllowedAddition.NAMESPACES);
+
+        final Resources finalResources = resourcesAllowed
+                ? mergeResources(accumulatedResources, ownEntry.getResources())
+                : accumulatedResources;
+        final Subjects finalSubjects = subjectsAllowed
+                ? mergeSubjects(accumulatedSubjects, ownEntry.getSubjects())
+                : accumulatedSubjects;
+        final List<String> finalNamespaces = namespacesAllowed
+                ? mergeNamespaces(
+                        accumulatedNamespaces.isEmpty() ? null : accumulatedNamespaces,
+                        ownEntry.getNamespaces().orElse(Collections.emptyList()))
+                : accumulatedNamespaces;
+
+        return PoliciesModelFactory.newPolicyEntry(
+                ownEntry.getLabel(),
+                finalSubjects,
+                finalResources,
+                finalNamespaces.isEmpty() ? null : finalNamespaces,
+                ownEntry.getImportableType(),
+                effectiveAllowed,
+                ownEntry.getReferences().isEmpty() ? null : ownEntry.getReferences()
+        );
+    }
+
+    private static Optional<PolicyEntry> lookupReference(final Policy importingPolicy,
+            final Set<PolicyEntry> resolvedEntries, final EntryReference ref) {
+        if (ref.isImportReference()) {
+            final Label referencedLabel = PoliciesModelFactory.newImportedLabel(
+                    ref.getImportedPolicyId().orElseThrow(() ->
+                            new IllegalStateException("Import reference without imported policy ID")),
+                    ref.getEntryLabel());
+            return resolvedEntries.stream()
+                    .filter(e -> e.getLabel().equals(referencedLabel))
+                    .findFirst();
+        } else {
+            return importingPolicy.getEntryFor(ref.getEntryLabel());
+        }
+    }
+
+    private static Subjects mergeSubjects(final Subjects template, final Subjects additional) {
+        final List<Subject> merged = new ArrayList<>();
+        template.forEach(merged::add);
+        final Set<String> seenIds = merged.stream()
+                .map(s -> s.getId().toString())
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        for (final Subject subject : additional) {
+            if (seenIds.add(subject.getId().toString())) {
+                merged.add(subject);
+            }
+        }
+        return PoliciesModelFactory.newSubjects(merged);
     }
 }

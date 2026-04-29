@@ -178,8 +178,8 @@ public final class PolicyEnforcerCacheTest {
             final Policy leafPolicy = Policy.newBuilder(leafPolicyId)
                     .setPolicyImport(PoliciesModelFactory.newPolicyImport(intermediatePolicyId,
                             PoliciesModelFactory.newEffectedImportedLabels(
-                                    noLabels, null,
-                                    Collections.singletonList(templatePolicyId))))
+                                    noLabels,
+                                    List.<PolicyId>of(templatePolicyId))))
                     .build();
 
             final Policy templatePolicy = Policy.newBuilder(templatePolicyId).build();
@@ -236,8 +236,8 @@ public final class PolicyEnforcerCacheTest {
             final Policy leafPolicyWithTransitive = Policy.newBuilder(leafPolicyId)
                     .setPolicyImport(PoliciesModelFactory.newPolicyImport(intermediatePolicyId,
                             PoliciesModelFactory.newEffectedImportedLabels(
-                                    noLabels, null,
-                                    Collections.singletonList(templatePolicyId))))
+                                    noLabels,
+                                    List.<PolicyId>of(templatePolicyId))))
                     .build();
 
             // Phase 1: Load all policies. Leaf has transitiveImports → template cascades to leaf.

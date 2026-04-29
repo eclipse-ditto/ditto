@@ -34,7 +34,6 @@ import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
-import org.eclipse.ditto.policies.model.signals.commands.exceptions.ImportsAliasConflictException;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntry;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEntryCreated;
@@ -70,13 +69,6 @@ final class ModifyPolicyEntryStrategy extends AbstractPolicyCommandStrategy<Modi
                 .ensureValidSize(nonNullPolicy, JsonField.newInstance(entryPointer, policyEntryJsonObject),
                         command::getDittoHeaders);
 
-        // Reject if the label is already used as an imports alias
-        if (nonNullPolicy.getImportsAliases().getAlias(label).isPresent()) {
-            return ResultFactory.newErrorResult(
-                    ImportsAliasConflictException.newBuilder(label).dittoHeaders(commandHeaders).build(),
-                    command);
-        }
-
         final PolicyEntry adjustedPolicyEntry = potentiallyAdjustPolicyEntry(policyEntry);
         final ModifyPolicyEntry adjustedCommand = ModifyPolicyEntry.of(command.getEntityId(), adjustedPolicyEntry,
                 commandHeaders);
@@ -88,8 +80,16 @@ final class ModifyPolicyEntryStrategy extends AbstractPolicyCommandStrategy<Modi
             return alreadyExpiredSubject.get();
         }
 
-        final PoliciesValidator validator = PoliciesValidator.newInstance(newPolicy);
         final PolicyId policyId = context.getState();
+
+        final Optional<Result<PolicyEvent<?>>> invalidReferences =
+                validateReferencesIntegrity(policyId, newPolicy.getEntriesSet(), newPolicy,
+                        commandHeaders, command);
+        if (invalidReferences.isPresent()) {
+            return invalidReferences.get();
+        }
+
+        final PoliciesValidator validator = PoliciesValidator.newInstance(newPolicy);
 
         if (validator.isValid()) {
             final PolicyEvent<?> eventToPersist;
