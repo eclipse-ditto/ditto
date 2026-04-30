@@ -344,13 +344,39 @@ public final class PolicyImporter {
     public static Set<PolicyEntry> resolveReferences(final Policy importingPolicy,
             final Set<PolicyEntry> resolvedEntries,
             final BiConsumer<PolicyEntry, EntryReference> onMissingReference) {
+        return resolveReferences(importingPolicy, resolvedEntries, onMissingReference,
+                (entry, stripped) -> { /* no-op */ });
+    }
+
+    /**
+     * Variant of {@link #resolveReferences(Policy, Set, BiConsumer)} that also reports when the
+     * referencing entry's own additions (subjects, resources, namespaces) are silently stripped at
+     * resolution time because at least one referenced entry's {@code allowedAdditions} excludes
+     * those kinds. The {@code onOwnAdditionsStripped} callback receives the referencing entry and
+     * the set of {@link AllowedAddition} kinds that survived (may be empty for deny-all). Callers
+     * can combine this with the missing-reference callback to surface the two main causes of
+     * silent permission degradation.
+     *
+     * @param importingPolicy the policy whose entries may contain references.
+     * @param resolvedEntries the full set of resolved entries (own + imported, with prefixed labels).
+     * @param onMissingReference invoked once per reference that fails to resolve; never null.
+     * @param onOwnAdditionsStripped invoked once per referencing entry whose own additions are
+     * partially or fully stripped at enforcement time; receives the entry and the set of surviving
+     * addition kinds; never null.
+     * @return a new set with references resolved (merged with referenced entry content).
+     * @since 3.9.0
+     */
+    public static Set<PolicyEntry> resolveReferences(final Policy importingPolicy,
+            final Set<PolicyEntry> resolvedEntries,
+            final BiConsumer<PolicyEntry, EntryReference> onMissingReference,
+            final BiConsumer<PolicyEntry, Set<AllowedAddition>> onOwnAdditionsStripped) {
 
         final Set<PolicyEntry> result = new LinkedHashSet<>(resolvedEntries);
         for (final PolicyEntry ownEntry : importingPolicy) {
             final List<EntryReference> refs = ownEntry.getReferences();
             if (!refs.isEmpty()) {
                 final PolicyEntry merged = resolveAllReferences(importingPolicy, resolvedEntries, ownEntry,
-                        onMissingReference);
+                        onMissingReference, onOwnAdditionsStripped);
                 result.remove(ownEntry);
                 result.add(merged);
             }
@@ -385,7 +411,8 @@ public final class PolicyImporter {
      */
     private static PolicyEntry resolveAllReferences(final Policy importingPolicy,
             final Set<PolicyEntry> resolvedEntries, final PolicyEntry ownEntry,
-            final BiConsumer<PolicyEntry, EntryReference> onMissingReference) {
+            final BiConsumer<PolicyEntry, EntryReference> onMissingReference,
+            final BiConsumer<PolicyEntry, Set<AllowedAddition>> onOwnAdditionsStripped) {
 
         Resources accumulatedResources = PoliciesModelFactory.emptyResources();
         Subjects accumulatedSubjects = PoliciesModelFactory.emptySubjects();
@@ -433,6 +460,18 @@ public final class PolicyImporter {
         final boolean namespacesAllowed = !hasRestrictions ||
                 effectiveAllowed.contains(AllowedAddition.NAMESPACES);
 
+        // Notify only when restrictions are in play AND the entry actually had own additions of
+        // a now-disallowed kind. Empty own-fields produce no observable strip, so don't fire.
+        if (hasRestrictions) {
+            final boolean strippedResources = !resourcesAllowed && !ownEntry.getResources().isEmpty();
+            final boolean strippedSubjects = !subjectsAllowed && !ownEntry.getSubjects().isEmpty();
+            final boolean strippedNamespaces = !namespacesAllowed &&
+                    ownEntry.getNamespaces().map(ns -> !ns.isEmpty()).orElse(false);
+            if (strippedResources || strippedSubjects || strippedNamespaces) {
+                onOwnAdditionsStripped.accept(ownEntry, Collections.unmodifiableSet(effectiveAllowed));
+            }
+        }
+
         final Resources finalResources = resourcesAllowed
                 ? mergeResources(accumulatedResources, ownEntry.getResources())
                 : accumulatedResources;
@@ -452,7 +491,7 @@ public final class PolicyImporter {
                 finalNamespaces.isEmpty() ? null : finalNamespaces,
                 ownEntry.getImportableType(),
                 effectiveAllowed,
-                ownEntry.getReferences().isEmpty() ? null : ownEntry.getReferences()
+                ownEntry.getReferences()
         );
     }
 

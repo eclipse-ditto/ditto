@@ -23,6 +23,7 @@ import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.policies.model.signals.events.PolicyCreated;
 import org.eclipse.ditto.policies.model.signals.events.PolicyDeleted;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEntriesModified;
+import org.eclipse.ditto.policies.model.signals.events.PolicyEntryAllowedAdditionsDeleted;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEntryAllowedAdditionsModified;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEntryNamespacesModified;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEntryImportableModified;
@@ -242,6 +243,13 @@ final class PolicyEventMappingStrategies extends AbstractPolicyMappingStrategies
                 adaptable -> PolicyEntryAllowedAdditionsModified.of(policyIdFrom(adaptable),
                         labelFrom(adaptable),
                         allowedAdditionsFrom(adaptable),
+                        revisionFrom(adaptable),
+                        timestampFrom(adaptable),
+                        dittoHeadersFrom(adaptable),
+                        metadataFrom(adaptable)));
+        mappingStrategies.put(PolicyEntryAllowedAdditionsDeleted.TYPE,
+                adaptable -> PolicyEntryAllowedAdditionsDeleted.of(policyIdFrom(adaptable),
+                        labelFrom(adaptable),
                         revisionFrom(adaptable),
                         timestampFrom(adaptable),
                         dittoHeadersFrom(adaptable),

@@ -113,6 +113,12 @@ public abstract class AbstractPolicyBuilderLabelScoped implements PolicyBuilder.
     }
 
     @Override
+    public PolicyBuilder removeAllowedAdditionsFor(final CharSequence label) {
+        delegate.removeAllowedAdditionsFor(label);
+        return this;
+    }
+
+    @Override
     public PolicyBuilder setNamespacesFor(final CharSequence label, final List<String> namespaces) {
         delegate.setNamespacesFor(label, namespaces);
         return this;

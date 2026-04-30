@@ -116,11 +116,17 @@ public interface PolicyEntry extends Jsonifiable.WithFieldSelectorAndPredicate<J
     ImportableType getImportableType();
 
     /**
-     * Returns which types of additions are allowed when this entry is referenced by other policies via
-     * {@code references}. An empty {@link Optional} means the field was never configured (no additions allowed).
-     * A present {@link Optional} with an empty set means the field was explicitly set to {@code []}.
+     * Returns which types of additions a referencing entry may keep on top of what this entry
+     * contributes when this entry is referenced via {@code references}. Three-tier semantics:
+     * <ul>
+     *   <li>empty {@link Optional} (field absent) — no restriction; all own additions are kept</li>
+     *   <li>present {@link Optional} with an empty set — deny all own additions</li>
+     *   <li>present {@link Optional} with a non-empty set — only the listed kinds
+     *       (subjects/resources/namespaces) of own additions survive at enforcement time</li>
+     * </ul>
      *
-     * @return an Optional containing the set of allowed import addition types, or empty if never configured.
+     * @return an Optional containing the set of allowed addition types, or empty if no restriction
+     * is configured.
      * @since 3.9.0
      */
     Optional<Set<AllowedAddition>> getAllowedAdditions();

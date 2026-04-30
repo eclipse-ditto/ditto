@@ -327,6 +327,12 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
     }
 
     @Override
+    public ImmutablePolicyBuilder removeAllowedAdditionsFor(final CharSequence label) {
+        allowedAdditions.remove(Label.of(label));
+        return this;
+    }
+
+    @Override
     public ImmutablePolicyBuilder setNamespacesFor(final CharSequence label, final List<String> namespacePatterns) {
         checkNotNull(namespacePatterns, "namespaces");
         namespaces.put(Label.of(label), namespacePatterns);

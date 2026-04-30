@@ -70,6 +70,7 @@ public final class PolicyCommandStrategies
         // Policy Entry Allowed Import Additions
         addStrategy(new RetrievePolicyEntryAllowedAdditionsStrategy(policyConfig));
         addStrategy(new ModifyPolicyEntryAllowedAdditionsStrategy(policyConfig));
+        addStrategy(new DeletePolicyEntryAllowedAdditionsStrategy(policyConfig));
 
         // Policy Entry Namespaces
         addStrategy(new RetrievePolicyEntryNamespacesStrategy(policyConfig));

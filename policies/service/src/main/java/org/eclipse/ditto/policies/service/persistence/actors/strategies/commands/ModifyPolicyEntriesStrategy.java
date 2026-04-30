@@ -90,7 +90,15 @@ final class ModifyPolicyEntriesStrategy extends AbstractPolicyCommandStrategy<Mo
             return invalidReferences.get();
         }
 
-        final PoliciesValidator validator = PoliciesValidator.newInstance(adjustedEntries);
+        // Build a candidate policy carrying the new entries so PoliciesValidator can resolve local
+        // references before checking the WRITE-on-policy:/ invariant — otherwise a payload that
+        // splits the admin subject and the WRITE grant across mutually-referencing entries would
+        // be rejected here while the same payload via PUT /policies/{id} succeeds.
+        final Policy candidatePolicy = nonNullPolicy.toBuilder()
+                .removeAll(nonNullPolicy.getEntriesSet())
+                .setAll(adjustedEntries)
+                .build();
+        final PoliciesValidator validator = PoliciesValidator.newInstance(candidatePolicy);
 
         if (validator.isValid()) {
             final PolicyId policyId = context.getState();

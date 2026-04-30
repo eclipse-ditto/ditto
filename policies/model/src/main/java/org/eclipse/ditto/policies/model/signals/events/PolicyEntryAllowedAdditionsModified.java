@@ -21,7 +21,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -43,6 +42,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.AllowedAddition;
 import org.eclipse.ditto.policies.model.Label;
+import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PolicyId;
 
 
@@ -156,13 +156,7 @@ public final class PolicyEntryAllowedAdditionsModified
                     final JsonArray allowedAdditionsArray =
                             jsonObject.getValueOrThrow(JSON_ALLOWED_ADDITIONS);
                     final Set<AllowedAddition> extractedAllowedAdditions =
-                            allowedAdditionsArray.stream()
-                                    .filter(JsonValue::isString)
-                                    .map(JsonValue::asString)
-                                    .map(AllowedAddition::forName)
-                                    .filter(Optional::isPresent)
-                                    .map(Optional::get)
-                                    .collect(Collectors.toCollection(LinkedHashSet::new));
+                            PoliciesModelFactory.parseAllowedAdditions(allowedAdditionsArray);
 
                     return of(policyId, label, extractedAllowedAdditions, revision, timestamp, dittoHeaders,
                             metadata);
@@ -196,14 +190,7 @@ public final class PolicyEntryAllowedAdditionsModified
 
     @Override
     public PolicyEntryAllowedAdditionsModified setEntity(final JsonValue entity) {
-        final JsonArray jsonArray = entity.asArray();
-        final Set<AllowedAddition> additions = jsonArray.stream()
-                .filter(JsonValue::isString)
-                .map(JsonValue::asString)
-                .map(AllowedAddition::forName)
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .collect(Collectors.toCollection(LinkedHashSet::new));
+        final Set<AllowedAddition> additions = PoliciesModelFactory.parseAllowedAdditions(entity.asArray());
         return of(getPolicyEntityId(), label, additions, getRevision(), getTimestamp().orElse(null),
                 getDittoHeaders(), getMetadata().orElse(null));
     }

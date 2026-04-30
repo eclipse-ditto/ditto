@@ -42,8 +42,10 @@ final class PolicyImportEntriesModifiedStrategy
 
     private static PolicyImport reconstructImportWithEntries(final PolicyImport existingImport,
             final ImportedLabels newLabels) {
+        // Preserve the existing transitiveImports — only the imported-labels filter is modified.
         return PoliciesModelFactory.newPolicyImport(existingImport.getImportedPolicyId(),
-                PoliciesModelFactory.newEffectedImportedLabels(newLabels));
+                PoliciesModelFactory.newEffectedImportedLabels(newLabels,
+                        existingImport.getTransitiveImports()));
     }
 
 }

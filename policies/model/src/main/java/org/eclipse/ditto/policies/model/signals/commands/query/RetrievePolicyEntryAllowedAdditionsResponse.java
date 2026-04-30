@@ -15,12 +15,10 @@ package org.eclipse.ditto.policies.model.signals.commands.query;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -43,6 +41,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.AllowedAddition;
 import org.eclipse.ditto.policies.model.Label;
+import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
 
@@ -75,11 +74,16 @@ public final class RetrievePolicyEntryAllowedAdditionsResponse
             CommandResponseJsonDeserializer.newInstance(TYPE,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
+                        final JsonArray rawArray = jsonObject.getValueOrThrow(JSON_ALLOWED_ADDITIONS);
+                        // Validate strictness now (rejects non-string and unknown-name elements)
+                        // — same rule the HTTP route uses, so wire-format acceptance is symmetric
+                        // across transports.
+                        PoliciesModelFactory.parseAllowedAdditions(rawArray);
                         return new RetrievePolicyEntryAllowedAdditionsResponse(
                                 PolicyId.of(jsonObject.getValueOrThrow(
                                         PolicyCommandResponse.JsonFields.JSON_POLICY_ID)),
                                 Label.of(jsonObject.getValueOrThrow(JSON_LABEL)),
-                                jsonObject.getValueOrThrow(JSON_ALLOWED_ADDITIONS),
+                                rawArray,
                                 context.getDeserializedHttpStatus(),
                                 context.getDittoHeaders()
                         );
@@ -199,13 +203,7 @@ public final class RetrievePolicyEntryAllowedAdditionsResponse
      * @return the retrieved AllowedAdditions.
      */
     public Set<AllowedAddition> getAllowedAdditions() {
-        return allowedAdditions.stream()
-                .filter(JsonValue::isString)
-                .map(JsonValue::asString)
-                .map(AllowedAddition::forName)
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .collect(Collectors.toCollection(LinkedHashSet::new));
+        return PoliciesModelFactory.parseAllowedAdditions(allowedAdditions);
     }
 
     @Override

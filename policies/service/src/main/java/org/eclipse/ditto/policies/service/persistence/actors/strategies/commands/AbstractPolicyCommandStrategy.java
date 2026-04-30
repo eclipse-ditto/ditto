@@ -54,6 +54,7 @@ import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyEntryModificationInvalidException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyEntryNotAccessibleException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyImportNotAccessibleException;
+import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyImportReferenceConflictException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyImportsNotAccessibleException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyModificationInvalidException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
@@ -460,6 +461,47 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
                                         dittoHeaders),
                                 command));
                     }
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Rejects a label-filter narrowing on an import that would orphan an entry reference targeting
+     * one of the dropped labels. Returns the conflict exception when an orphan would be created,
+     * otherwise empty.
+     *
+     * @param policyId the policy whose import is being modified.
+     * @param policy the current policy state (provides entries to scan for references).
+     * @param importedPolicyId the imported policy whose label filter is being narrowed.
+     * @param oldLabels labels currently in the import filter.
+     * @param newLabels labels that will remain after the modification.
+     * @param dittoHeaders the headers of the originating command.
+     * @return optional conflict exception when a reference would be orphaned.
+     */
+    static Optional<DittoRuntimeException> checkLabelNarrowingDoesNotOrphan(final PolicyId policyId,
+            final Policy policy,
+            final PolicyId importedPolicyId,
+            final Set<Label> oldLabels,
+            final Set<Label> newLabels,
+            final DittoHeaders dittoHeaders) {
+        final Set<Label> removed = new LinkedHashSet<>(oldLabels);
+        removed.removeAll(newLabels);
+        if (removed.isEmpty()) {
+            return Optional.empty();
+        }
+        for (final PolicyEntry entry : policy) {
+            for (final EntryReference ref : entry.getReferences()) {
+                if (ref.isImportReference() &&
+                        importedPolicyId.equals(ref.getImportedPolicyId().orElse(null)) &&
+                        removed.contains(ref.getEntryLabel())) {
+                    return Optional.of(PolicyImportReferenceConflictException.newBuilder(policyId, importedPolicyId)
+                            .description("Removing label '" + ref.getEntryLabel() +
+                                    "' from this import's filter would orphan the reference " +
+                                    "from entry '" + entry.getLabel() + "'.")
+                            .dittoHeaders(dittoHeaders)
+                            .build());
                 }
             }
         }

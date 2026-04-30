@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.policies.enforcement.pre;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -20,6 +21,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
@@ -121,7 +123,7 @@ public class PolicyImportsPreEnforcer implements PreEnforcer {
             return validateImportRefsInEntries(List.of(modifyPolicyEntry.getPolicyEntry()),
                     modifyPolicyEntry);
         } else if (signal instanceof ModifyPolicyEntries modifyPolicyEntries) {
-            final List<PolicyEntry> entries = java.util.stream.StreamSupport
+            final List<PolicyEntry> entries = StreamSupport
                     .stream(modifyPolicyEntries.getPolicyEntries().spliterator(), false)
                     .collect(Collectors.toList());
             return validateImportRefsInEntries(entries, modifyPolicyEntries);
@@ -207,7 +209,7 @@ public class PolicyImportsPreEnforcer implements PreEnforcer {
                 .map(PolicyImport::getImportedPolicyId)
                 .collect(Collectors.toSet());
         return validateImportRefsInEntries(
-                java.util.stream.StreamSupport.stream(policy.spliterator(), false).collect(Collectors.toList()),
+                StreamSupport.stream(policy.spliterator(), false).collect(Collectors.toList()),
                 declaredImports, command);
     }
 
@@ -244,7 +246,7 @@ public class PolicyImportsPreEnforcer implements PreEnforcer {
             }
         }
 
-        final List<CompletableFuture<Boolean>> validations = new java.util.ArrayList<>();
+        final List<CompletableFuture<Boolean>> validations = new ArrayList<>();
         for (final PolicyEntry entry : entries) {
             for (final EntryReference ref : entry.getReferences()) {
                 if (ref.isImportReference()) {

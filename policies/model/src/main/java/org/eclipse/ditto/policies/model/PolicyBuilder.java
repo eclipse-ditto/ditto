@@ -950,6 +950,19 @@ public interface PolicyBuilder {
     PolicyBuilder setAllowedAdditionsFor(CharSequence label, Set<AllowedAddition> allowedAdditions);
 
     /**
+     * Clears the allowedAdditions field for the entry specified by {@code label} back to absent
+     * (the no-restriction tier). PUT [] would yield deny-all; this removal returns to the
+     * upgrade-friendly default.
+     *
+     * @param label the label identifying the PolicyEntry to modify.
+     * @return this builder to allow method chaining.
+     * @throws NullPointerException if {@code label} is {@code null}.
+     * @throws IllegalArgumentException if {@code label} is empty.
+     * @since 3.9.0
+     */
+    PolicyBuilder removeAllowedAdditionsFor(CharSequence label);
+
+    /**
      * Sets the namespace patterns for the entry specified by {@code label} to this builder.
      *
      * @param label the label identifying the PolicyEntry to modify.

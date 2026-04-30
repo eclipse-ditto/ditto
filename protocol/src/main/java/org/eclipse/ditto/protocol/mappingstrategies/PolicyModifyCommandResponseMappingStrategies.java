@@ -27,6 +27,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.EntryReference;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntryAllowedAdditionsResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntryReferencesResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntryResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImportResponse;
@@ -223,6 +224,13 @@ final class PolicyModifyCommandResponseMappingStrategies implements MappingStrat
 
         streamBuilder.accept(AdaptableToSignalMapper.of(ModifyPolicyEntryAllowedAdditionsResponse.TYPE,
                 mappingContext -> ModifyPolicyEntryAllowedAdditionsResponse.newInstance(
+                        mappingContext.getPolicyIdFromTopicPath(),
+                        mappingContext.getLabelOrThrow(),
+                        mappingContext.getHttpStatusOrThrow(),
+                        mappingContext.getDittoHeaders())));
+
+        streamBuilder.accept(AdaptableToSignalMapper.of(DeletePolicyEntryAllowedAdditionsResponse.TYPE,
+                mappingContext -> DeletePolicyEntryAllowedAdditionsResponse.newInstance(
                         mappingContext.getPolicyIdFromTopicPath(),
                         mappingContext.getLabelOrThrow(),
                         mappingContext.getHttpStatusOrThrow(),

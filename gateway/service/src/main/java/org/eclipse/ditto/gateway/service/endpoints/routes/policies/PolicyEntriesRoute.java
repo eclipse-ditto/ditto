@@ -51,6 +51,7 @@ import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIn
 import org.eclipse.ditto.policies.model.signals.commands.actions.DeactivateTokenIntegration;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyActionFailedException;
 import org.eclipse.ditto.policies.model.PolicyEntryNamespaces;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntryAllowedAdditions;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntryReferences;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntry;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteResource;
@@ -397,6 +398,10 @@ final class PolicyEntriesRoute extends AbstractRoute {
                                                                                         Label.of(label),
                                                                                         parseAllowedAdditions(additionsJson),
                                                                                         dittoHeaders)))
+                                        ),
+                                        delete(() -> // DELETE /entries/<label>/allowedAdditions
+                                                handlePerRequest(ctx, DeletePolicyEntryAllowedAdditions.of(
+                                                        policyId, Label.of(label), dittoHeaders))
                                         )
                                 )
                         )

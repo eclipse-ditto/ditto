@@ -19,6 +19,7 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntry;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImport;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntryAllowedAdditions;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntryReferences;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteResource;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubject;
@@ -137,6 +138,12 @@ final class PolicyModifyCommandMappingStrategies extends AbstractPolicyMappingSt
                         policyIdFromTopicPath(adaptable.getTopicPath()),
                         labelFrom(adaptable),
                         allowedAdditionsFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
+
+        mappingStrategies.put(DeletePolicyEntryAllowedAdditions.TYPE,
+                adaptable -> DeletePolicyEntryAllowedAdditions.of(
+                        policyIdFromTopicPath(adaptable.getTopicPath()),
+                        labelFrom(adaptable),
                         dittoHeadersFrom(adaptable)));
 
         mappingStrategies.put(ModifyPolicyEntryNamespaces.TYPE,

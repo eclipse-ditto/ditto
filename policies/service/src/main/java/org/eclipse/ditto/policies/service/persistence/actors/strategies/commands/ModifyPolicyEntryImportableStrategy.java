@@ -25,9 +25,11 @@ import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.policies.model.EntryReference;
 import org.eclipse.ditto.policies.model.ImportableType;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryImportable;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryImportableResponse;
@@ -59,19 +61,41 @@ final class ModifyPolicyEntryImportableStrategy
         final ImportableType importableType = command.getImportableType();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        if (nonNullPolicy.getEntryFor(label).isPresent()) {
-            final PolicyEntryImportableModified event =
-                    PolicyEntryImportableModified.of(policyId, label, importableType, nextRevision,
-                            getEventTimestamp(), dittoHeaders, metadata);
-            final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                    ModifyPolicyEntryImportableResponse.of(policyId, label,
-                            createCommandResponseDittoHeaders(dittoHeaders, nextRevision)),
-                    nonNullPolicy);
-            return ResultFactory.newMutationResult(command, event, response);
-        } else {
+        if (nonNullPolicy.getEntryFor(label).isEmpty()) {
             return ResultFactory.newErrorResult(
                     policyEntryNotFound(policyId, label, dittoHeaders), command);
         }
+
+        // Switching to importable=never makes the entry an invalid local-reference target. Reject
+        // the change if any other entry's local reference still points at this label, mirroring
+        // the validateReferencesIntegrity check used on full entry writes.
+        if (importableType == ImportableType.NEVER) {
+            for (final PolicyEntry other : nonNullPolicy) {
+                if (other.getLabel().equals(label)) {
+                    continue;
+                }
+                for (final EntryReference ref : other.getReferences()) {
+                    if (ref.isLocalReference() && ref.getEntryLabel().equals(label)) {
+                        return ResultFactory.newErrorResult(
+                                policyEntryReferenceInvalid(policyId, other.getLabel(),
+                                        "Entry '" + label + "' cannot be marked importable=never " +
+                                                "because entry '" + other.getLabel() +
+                                                "' still references it.",
+                                        dittoHeaders),
+                                command);
+                    }
+                }
+            }
+        }
+
+        final PolicyEntryImportableModified event =
+                PolicyEntryImportableModified.of(policyId, label, importableType, nextRevision,
+                        getEventTimestamp(), dittoHeaders, metadata);
+        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+                ModifyPolicyEntryImportableResponse.of(policyId, label,
+                        createCommandResponseDittoHeaders(dittoHeaders, nextRevision)),
+                nonNullPolicy);
+        return ResultFactory.newMutationResult(command, event, response);
     }
 
     @Override

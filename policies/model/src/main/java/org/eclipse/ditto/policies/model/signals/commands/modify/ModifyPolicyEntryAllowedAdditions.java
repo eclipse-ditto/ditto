@@ -12,14 +12,12 @@
  */
 package org.eclipse.ditto.policies.model.signals.commands.modify;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -41,7 +39,6 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.AllowedAddition;
 import org.eclipse.ditto.policies.model.Label;
-import org.eclipse.ditto.policies.model.PolicyEntryInvalidException;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
@@ -151,16 +148,8 @@ public final class ModifyPolicyEntryAllowedAdditions
                     final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
                     final JsonArray allowedAdditionsArray =
                             jsonObject.getValueOrThrow(JSON_ALLOWED_ADDITIONS);
-                    final Set<AllowedAddition> allowedAdditions = allowedAdditionsArray.stream()
-                            .filter(JsonValue::isString)
-                            .map(JsonValue::asString)
-                            .map(value -> AllowedAddition.forName(value)
-                                    .orElseThrow(() -> PolicyEntryInvalidException.newBuilder()
-                                            .description("The value '" + value +
-                                                    "' is not a valid allowedAddition. Valid values are: " +
-                                                    Arrays.toString(AllowedAddition.values()))
-                                            .build()))
-                            .collect(Collectors.toCollection(LinkedHashSet::new));
+                    final Set<AllowedAddition> allowedAdditions =
+                            PoliciesModelFactory.parseAllowedAdditions(allowedAdditionsArray);
 
                     return of(policyId, label, allowedAdditions, dittoHeaders);
                 });
@@ -203,17 +192,7 @@ public final class ModifyPolicyEntryAllowedAdditions
 
     @Override
     public ModifyPolicyEntryAllowedAdditions setEntity(final JsonValue entity) {
-        final JsonArray jsonArray = entity.asArray();
-        final Set<AllowedAddition> additions = jsonArray.stream()
-                .filter(JsonValue::isString)
-                .map(JsonValue::asString)
-                .map(value -> AllowedAddition.forName(value)
-                        .orElseThrow(() -> PolicyEntryInvalidException.newBuilder()
-                                .description("The value '" + value +
-                                        "' is not a valid allowedAddition. Valid values are: " +
-                                        Arrays.toString(AllowedAddition.values()))
-                                .build()))
-                .collect(Collectors.toCollection(LinkedHashSet::new));
+        final Set<AllowedAddition> additions = PoliciesModelFactory.parseAllowedAdditions(entity.asArray());
         return of(policyId, label, additions, getDittoHeaders());
     }
 

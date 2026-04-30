@@ -26,6 +26,9 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * An immutable implementation of {@link EntryReference}.
@@ -83,18 +86,33 @@ final class ImmutableEntryReference implements EntryReference {
         final Label entryLabel = Label.of(jsonObject.getValueOrThrow(EntryReference.JsonFields.ENTRY));
         // Distinguish "key absent" (→ local reference) from "key present" (→ must be valid import).
         // JsonObject.getValue collapses both null-value and absent-key into Optional.empty, so we
-        // check key presence first.
-        if (jsonObject.contains(EntryReference.JsonFields.IMPORT.getPointer())) {
-            final String importValue = jsonObject.getValue(EntryReference.JsonFields.IMPORT)
-                    .filter(s -> !s.isEmpty())
-                    .orElseThrow(() -> org.eclipse.ditto.json.JsonParseException.newBuilder()
-                            .message("The 'import' field of an entry reference must be a non-empty string.")
-                            .description("To create a local reference, omit the 'import' field entirely. " +
-                                    "Null and empty-string values are not accepted.")
-                            .build());
+        // check key presence first. Use the raw JsonValue accessor so a non-string `import` (e.g.
+        // 42 or {}) yields a ref-specific error instead of the framework's generic
+        // "Value <42> for </import> is not of type <String>!" message.
+        final JsonPointer importPointer = EntryReference.JsonFields.IMPORT.getPointer();
+        if (jsonObject.contains(importPointer)) {
+            final JsonValue rawImport = jsonObject.getValue(importPointer)
+                    .orElseThrow(() -> invalidImportField("null", "Null is not accepted."));
+            if (!rawImport.isString()) {
+                throw invalidImportField(rawImport.toString(),
+                        "Only non-empty string values are accepted (e.g. \"" +
+                                "policy:identifier\").");
+            }
+            final String importValue = rawImport.asString();
+            if (importValue.isEmpty()) {
+                throw invalidImportField("\"\"", "Empty string is not accepted.");
+            }
             return of(PolicyId.of(importValue), entryLabel);
         }
         return ofLocal(entryLabel);
+    }
+
+    private static JsonParseException invalidImportField(final String received, final String details) {
+        return JsonParseException.newBuilder()
+                .message("The 'import' field of an entry reference must be a non-empty string. " +
+                        "Received: " + received + ".")
+                .description("To create a local reference, omit the 'import' field entirely. " + details)
+                .build();
     }
 
     @Override
