@@ -1,0 +1,37 @@
+# Copyright (c) 2026 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+type: array
+description: |-
+  An optional list of references to other policy entries. Each reference points to an entry
+  either in the same policy (local reference) or in an imported policy (import reference).
+  When set, subjects, resources, and namespaces from the referenced entries are additively
+  merged into this entry.
+
+  * Import reference: contains both `entry` (the label) and `import` (the policy ID of the imported policy)
+  * Local reference: contains only `entry` (the label of another entry in the same policy)
+items:
+  type: object
+  description: A single reference to a policy entry.
+  properties:
+    entry:
+      type: string
+      description: The label of the referenced entry.
+    import:
+      type: string
+      description: |-
+        The ID of the imported policy this reference points to.
+        If absent, the reference points to a local entry within the same policy.
+  required:
+    - entry
+example:
+  - entry: "operator"
+    import: "energy-corp:power-plant-roles"
+  - entry: "local-admin"

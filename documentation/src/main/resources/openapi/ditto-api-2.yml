@@ -6264,7 +6264,7 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/PreconditionFailed'
-  '/api/2/policies/{policyId}/entries/{label}/allowedImportAdditions':
+  '/api/2/policies/{policyId}/entries/{label}/allowedAdditions':
     get:
       summary: Retrieve the allowed import additions for a specific policy entry
       description: |-
@@ -6272,7 +6272,7 @@ paths:
         `policyId` path parameter and the `label` path parameter.
 
         Allowed import additions control which types of additions (subjects, resources) are permitted
-        when this entry is imported by other policies via `entriesAdditions`.
+        when this entry is referenced by other entries via `references`.
       tags:
         - Policies
       parameters:
@@ -6294,7 +6294,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AllowedImportAdditions'
+                $ref: '#/components/schemas/AllowedAdditions'
         '304':
           $ref: '#/components/responses/NotModified'
         '400':
@@ -6330,7 +6330,7 @@ paths:
         `policyId` path parameter and the `label` path parameter.
 
         Allowed import additions control which types of additions (subjects, resources) are permitted
-        when this entry is imported by other policies via `entriesAdditions`. Setting an empty array
+        when this entry is referenced by other entries via `references`. Setting an empty array
         disables all additions for this entry.
       tags:
         - Policies
@@ -6372,7 +6372,7 @@ paths:
           description: |-
             The request could not be completed. Possible reasons:
             * the caller has insufficient permissions.
-              You need `WRITE` permission on the `policy:/entries/{label}/allowedImportAdditions` resource,
+              You need `WRITE` permission on the `policy:/entries/{label}/allowedAdditions` resource,
               without any revoke in a deeper path of the policy resource.
           content:
             application/json:
@@ -6394,7 +6394,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AllowedImportAdditions'
+              $ref: '#/components/schemas/AllowedAdditions'
             example:
               - subjects
               - resources
@@ -6824,7 +6824,7 @@ paths:
       summary: Delete all imports of a specific policy
       description: |-
         Removes all imports from the policy identified by the `policyId` path parameter.
-        If any imports alias references an import, the deletion is rejected.
+        If any entry references point to an import, the deletion is rejected.
       tags:
         - Policies
       parameters:
@@ -6870,8 +6870,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '409':
           description: |-
-            The request could not be completed. An imports alias still references one of the imports.
-            Remove the imports alias first before deleting imports.
+            The request could not be completed. An entry reference still points to one of the imports.
+            Remove the entry references first before deleting imports.
           content:
             application/json:
               schema:
@@ -7252,372 +7252,6 @@ paths:
               - import
         description: JSON array of policy entry labels to import.
         required: true
-  '/api/2/policies/{policyId}/imports/{importedPolicyId}/entriesAdditions':
-    get:
-      summary: Retrieve all entries additions of a specific policy import
-      description: |-
-        Returns the entries additions of the policy import identified by the `policyId` path
-        parameter and the `importedPolicyId` path parameter.
-
-        Entries additions define additional subjects and/or resources to be additively merged
-        into imported policy entries.
-      tags:
-        - Policies
-      parameters:
-        - $ref: '#/components/parameters/PolicyIdPathParam'
-        - $ref: '#/components/parameters/ImportedPolicyIdPathParam'
-        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
-        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
-        - $ref: '#/components/parameters/TimeoutParam'
-      responses:
-        '200':
-          description: The request successfully returned. The entries additions are returned.
-          headers:
-            ETag:
-              description: |-
-                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
-                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
-              schema:
-                type: string
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/EntriesAdditions'
-        '304':
-          $ref: '#/components/responses/NotModified'
-        '400':
-          description: |-
-            The request could not be completed. Possible reasons:
-
-              * the `policyId` or the `importedPolicyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '401':
-          description: The request could not be completed due to missing authentication.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '404':
-          description: |-
-            The request could not be completed. The policy with the given ID or
-            the policy import was not found in the context of the authenticated
-            user.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '412':
-          $ref: '#/components/responses/PreconditionFailed'
-    put:
-      summary: Modify all entries additions of a specific policy import
-      description: |-
-        Modify the entries additions of the policy import identified by the `policyId` path
-        parameter and the `importedPolicyId` path parameter.
-
-        Entries additions define additional subjects and/or resources to be additively merged
-        into imported policy entries. The imported policy entries must explicitly allow these
-        additions via their "allowedImportAdditions" field.
-      tags:
-        - Policies
-      parameters:
-        - $ref: '#/components/parameters/PolicyIdPathParam'
-        - $ref: '#/components/parameters/ImportedPolicyIdPathParam'
-        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
-        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
-        - $ref: '#/components/parameters/IfEqualHeaderParam'
-        - $ref: '#/components/parameters/TimeoutParam'
-        - $ref: '#/components/parameters/ResponseRequiredParam'
-      responses:
-        '204':
-          description: The entries additions were successfully updated.
-          headers:
-            ETag:
-              description: |-
-                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
-                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
-              schema:
-                type: string
-        '400':
-          description: |-
-            The request could not be completed. Possible reasons:
-
-              * the `policyId` or the `importedPolicyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
-              * the JSON body of the entries additions is invalid
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '401':
-          description: The request could not be completed due to missing authentication.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '403':
-          description: |-
-            The request could not be completed. Possible reasons:
-            * the caller has insufficient permissions.
-              You need `WRITE` permission on the `policy:/imports/{importedPolicyId}` resource,
-              without any revoke in a deeper path of the policy resource.
-            * the imported policy entries do not allow the specified additions via their
-              "allowedImportAdditions" field.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '404':
-          description: |-
-            The request could not be completed. The policy with the given ID or
-            the policy import was not found in the context of the authenticated
-            user.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '412':
-          $ref: '#/components/responses/PreconditionFailed'
-        '413':
-          $ref: '#/components/responses/EntityTooLarge'
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/EntriesAdditions'
-            example:
-              default:
-                subjects:
-                  'integration:my-connection':
-                    type: generated
-                resources:
-                  'thing:/features':
-                    grant:
-                      - READ
-                    revoke: []
-        description: JSON representation of the entries additions.
-        required: true
-  '/api/2/policies/{policyId}/imports/{importedPolicyId}/entriesAdditions/{label}':
-    get:
-      summary: Retrieve a specific entry addition of a policy import
-      description: |-
-        Returns the entry addition for the specified label of the policy import identified by the
-        `policyId` path parameter and the `importedPolicyId` path parameter.
-
-        An entry addition defines additional subjects and/or resources to be additively merged
-        into the imported policy entry identified by the label.
-      tags:
-        - Policies
-      parameters:
-        - $ref: '#/components/parameters/PolicyIdPathParam'
-        - $ref: '#/components/parameters/ImportedPolicyIdPathParam'
-        - $ref: '#/components/parameters/LabelPathParam'
-        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
-        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
-        - $ref: '#/components/parameters/TimeoutParam'
-      responses:
-        '200':
-          description: The request successfully returned. The entry addition is returned.
-          headers:
-            ETag:
-              description: |-
-                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
-                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
-              schema:
-                type: string
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/EntryAddition'
-        '304':
-          $ref: '#/components/responses/NotModified'
-        '400':
-          description: |-
-            The request could not be completed. Possible reasons:
-
-              * the `policyId` or the `importedPolicyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '401':
-          description: The request could not be completed due to missing authentication.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '404':
-          description: |-
-            The request could not be completed. The policy with the given ID,
-            the policy import, or the entry addition was not found in the context
-            of the authenticated user.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '412':
-          $ref: '#/components/responses/PreconditionFailed'
-    put:
-      summary: Create or modify a specific entry addition of a policy import
-      description: |-
-        Create or modify the entry addition for the specified label of the policy import identified
-        by the `policyId` path parameter and the `importedPolicyId` path parameter.
-
-        * If the entry addition does not yet exist, it will be created.
-        * If the entry addition already exists, it will be updated.
-
-        The imported policy entry must explicitly allow these additions via its "allowedImportAdditions"
-        field, otherwise the additions are rejected.
-      tags:
-        - Policies
-      parameters:
-        - $ref: '#/components/parameters/PolicyIdPathParam'
-        - $ref: '#/components/parameters/ImportedPolicyIdPathParam'
-        - $ref: '#/components/parameters/LabelPathParam'
-        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
-        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
-        - $ref: '#/components/parameters/IfEqualHeaderParam'
-        - $ref: '#/components/parameters/TimeoutParam'
-        - $ref: '#/components/parameters/ResponseRequiredParam'
-      responses:
-        '201':
-          description: The entry addition was successfully created.
-          headers:
-            ETag:
-              description: |-
-                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
-                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
-              schema:
-                type: string
-            Location:
-              description: The location of the created entry addition
-              schema:
-                type: string
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/EntryAddition'
-        '204':
-          description: The entry addition was successfully updated.
-          headers:
-            ETag:
-              description: |-
-                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
-                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
-              schema:
-                type: string
-        '400':
-          description: |-
-            The request could not be completed. Possible reasons:
-
-              * the `policyId` or the `importedPolicyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
-              * the JSON body of the entry addition is invalid
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '401':
-          description: The request could not be completed due to missing authentication.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '403':
-          description: |-
-            The request could not be completed. Possible reasons:
-            * the caller has insufficient permissions.
-              You need `WRITE` permission on the `policy:/imports/{importedPolicyId}` resource,
-              without any revoke in a deeper path of the policy resource.
-            * the imported policy entry does not allow the specified additions via its
-              "allowedImportAdditions" field.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '404':
-          description: |-
-            The request could not be completed. The policy with the given ID or
-            the policy import was not found in the context of the authenticated
-            user.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '412':
-          $ref: '#/components/responses/PreconditionFailed'
-        '413':
-          $ref: '#/components/responses/EntityTooLarge'
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/EntryAddition'
-            example:
-              subjects:
-                'integration:my-connection':
-                  type: generated
-              resources:
-                'thing:/features':
-                  grant:
-                    - READ
-                  revoke: []
-        description: JSON representation of the entry addition.
-        required: true
-    delete:
-      summary: Delete a specific entry addition of a policy import
-      description: |-
-        Deletes the entry addition for the specified label of the policy import identified by the
-        `policyId` path parameter and the `importedPolicyId` path parameter.
-      tags:
-        - Policies
-      parameters:
-        - $ref: '#/components/parameters/PolicyIdPathParam'
-        - $ref: '#/components/parameters/ImportedPolicyIdPathParam'
-        - $ref: '#/components/parameters/LabelPathParam'
-        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
-        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
-        - $ref: '#/components/parameters/TimeoutParam'
-        - $ref: '#/components/parameters/ResponseRequiredParam'
-      responses:
-        '204':
-          description: The entry addition was successfully deleted.
-        '400':
-          description: |-
-            The request could not be completed. Possible reasons:
-
-              * the `policyId` or the `importedPolicyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '401':
-          description: The request could not be completed due to missing authentication.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '403':
-          description: |-
-            The request could not be completed. Possible reasons:
-             * the caller has insufficient permissions.
-               You need `WRITE` permission on the `policy:/imports/{importedPolicyId}` resource,
-               without any revoke in a deeper path of the policy resource.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '404':
-          description: |-
-            The request could not be completed. The policy with the given ID,
-            the policy import, or the entry addition was not found in the context
-            of the authenticated user.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '412':
-          $ref: '#/components/responses/PreconditionFailed'
   '/api/2/policies/{policyId}/imports/{importedPolicyId}/transitiveImports':
     get:
       summary: Retrieve the transitive resolution policy IDs of a specific policy import
@@ -7753,203 +7387,16 @@ paths:
               - 'org.eclipse.ditto:policy-template'
         description: JSON array of policy IDs to resolve transitively.
         required: true
-  '/api/2/policies/{policyId}/importsAliases':
+  '/api/2/policies/{policyId}/entries/{label}/references':
     get:
-      summary: Retrieve all imports aliases of a policy
+      summary: Retrieve the references of a specific policy entry
       description: |-
-        Returns all imports aliases of the policy identified by the `policyId` path parameter.
+        Returns the references of the policy entry identified by the
+        `policyId` path parameter and the `label` path parameter.
 
-        Imports aliases map a label to one or more entries additions targets, enabling transparent
-        subject fan-out. Subject operations on the alias label via `/entries/{label}/subjects` are
-        automatically fanned out to all referenced targets.
-      tags:
-        - Policies
-      parameters:
-        - $ref: '#/components/parameters/PolicyIdPathParam'
-        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
-        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
-        - $ref: '#/components/parameters/TimeoutParam'
-      responses:
-        '200':
-          description: The request successfully returned. The imports aliases are returned.
-          headers:
-            ETag:
-              description: |-
-                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
-                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
-              schema:
-                type: string
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ImportsAliases'
-        '304':
-          $ref: '#/components/responses/NotModified'
-        '400':
-          description: |-
-            The request could not be completed. Possible reasons:
-
-              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '401':
-          description: The request could not be completed due to missing authentication.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '404':
-          description: |-
-            The request could not be completed. The policy with the given ID was not found in the
-            context of the authenticated user.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '412':
-          $ref: '#/components/responses/PreconditionFailed'
-    put:
-      summary: Modify all imports aliases of a policy
-      description: |-
-        Modify all imports aliases of the policy identified by the `policyId` path parameter.
-        All existing imports aliases are replaced.
-
-        A label must not exist as both a imports alias and a local policy entry simultaneously.
-        If a conflict is detected, the request is rejected with a 409 Conflict status.
-      tags:
-        - Policies
-      parameters:
-        - $ref: '#/components/parameters/PolicyIdPathParam'
-        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
-        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
-        - $ref: '#/components/parameters/IfEqualHeaderParam'
-        - $ref: '#/components/parameters/TimeoutParam'
-        - $ref: '#/components/parameters/ResponseRequiredParam'
-      responses:
-        '204':
-          description: The imports aliases were successfully updated.
-          headers:
-            ETag:
-              description: |-
-                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
-                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
-              schema:
-                type: string
-        '400':
-          description: |-
-            The request could not be completed. Possible reasons:
-
-              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
-              * the JSON body of the imports aliases is invalid
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '401':
-          description: The request could not be completed due to missing authentication.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '403':
-          description: |-
-            The request could not be completed. Possible reasons:
-            * the caller has insufficient permissions.
-              You need `WRITE` permission on the `policy:/` resource.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '404':
-          description: |-
-            The request could not be completed. The policy with the given ID was not found in the
-            context of the authenticated user.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '409':
-          description: |-
-            The request could not be completed. A imports alias label conflicts with an existing
-            policy entry label.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '412':
-          $ref: '#/components/responses/PreconditionFailed'
-        '413':
-          $ref: '#/components/responses/EntityTooLarge'
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ImportsAliases'
-            example:
-              operator:
-                targets:
-                  - import: 'energy-corp:power-plant-roles'
-                    entry: operator-reactor
-                  - import: 'energy-corp:power-plant-roles'
-                    entry: operator-turbine
-        description: JSON representation of the imports aliases.
-        required: true
-    delete:
-      summary: Delete all imports aliases of a policy
-      description: Removes all imports aliases from the policy identified by the `policyId` path parameter.
-      tags:
-        - Policies
-      parameters:
-        - $ref: '#/components/parameters/PolicyIdPathParam'
-        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
-        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
-        - $ref: '#/components/parameters/TimeoutParam'
-        - $ref: '#/components/parameters/ResponseRequiredParam'
-      responses:
-        '204':
-          description: The imports aliases were successfully deleted.
-        '400':
-          description: |-
-            The request could not be completed. Possible reasons:
-
-              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '401':
-          description: The request could not be completed due to missing authentication.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '403':
-          description: |-
-            The request could not be completed. Possible reasons:
-            * the caller has insufficient permissions.
-              You need `WRITE` permission on the `policy:/` resource.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '404':
-          description: |-
-            The request could not be completed. The policy with the given ID was not found in the
-            context of the authenticated user.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '412':
-          $ref: '#/components/responses/PreconditionFailed'
-  '/api/2/policies/{policyId}/importsAliases/{label}':
-    get:
-      summary: Retrieve a specific imports alias
-      description: |-
-        Returns the imports alias for the specified label of the policy identified by the
-        `policyId` path parameter.
+        References define links to other policy entries, optionally from imported policies.
+        Each reference object contains a required `entry` field (the label of the referenced entry)
+        and an optional `import` field (the policy ID of the import to reference from).
       tags:
         - Policies
       parameters:
@@ -7960,7 +7407,7 @@ paths:
         - $ref: '#/components/parameters/TimeoutParam'
       responses:
         '200':
-          description: The request successfully returned. The imports alias is returned.
+          description: The request successfully returned. The references are returned.
           headers:
             ETag:
               description: |-
@@ -7971,7 +7418,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ImportsAlias'
+                $ref: '#/components/schemas/References'
         '304':
           $ref: '#/components/responses/NotModified'
         '400':
@@ -7992,7 +7439,8 @@ paths:
         '404':
           description: |-
             The request could not be completed. The policy with the given ID or
-            the imports alias was not found in the context of the authenticated user.
+            the policy entry was not found in the context of the authenticated
+            user.
           content:
             application/json:
               schema:
@@ -8000,16 +7448,15 @@ paths:
         '412':
           $ref: '#/components/responses/PreconditionFailed'
     put:
-      summary: Create or modify a specific imports alias
+      summary: Modify the references of a specific policy entry
       description: |-
-        Create or modify the imports alias for the specified label of the policy identified by the
-        `policyId` path parameter.
+        Sets the references of the policy entry identified by the
+        `policyId` path parameter and the `label` path parameter.
 
-        * If the imports alias does not yet exist, it will be created.
-        * If the imports alias already exists, it will be updated.
-
-        A label must not exist as both a imports alias and a local policy entry simultaneously.
-        If a conflict is detected, the request is rejected with a 409 Conflict status.
+        References define links to other policy entries, optionally from imported policies.
+        Each reference object contains a required `entry` field (the label of the referenced entry)
+        and an optional `import` field (the policy ID of the import to reference from).
+        Setting an empty array removes all references from this entry.
       tags:
         - Policies
       parameters:
@@ -8022,7 +7469,7 @@ paths:
         - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '201':
-          description: The imports alias was successfully created.
+          description: The references were successfully created (the entry had no references before).
           headers:
             ETag:
               description: |-
@@ -8031,15 +7478,15 @@ paths:
               schema:
                 type: string
             Location:
-              description: The location of the created imports alias
+              description: The location of the created references resource.
               schema:
                 type: string
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ImportsAlias'
+                $ref: '#/components/schemas/References'
         '204':
-          description: The imports alias was successfully updated.
+          description: The references were successfully updated (the entry already had references).
           headers:
             ETag:
               description: |-
@@ -8052,7 +7499,7 @@ paths:
             The request could not be completed. Possible reasons:
 
               * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
-              * the JSON body of the imports alias is invalid
+              * the JSON body of the references is invalid
           content:
             application/json:
               schema:
@@ -8066,24 +7513,19 @@ paths:
         '403':
           description: |-
             The request could not be completed. Possible reasons:
-            * the caller has insufficient permissions.
-              You need `WRITE` permission on the `policy:/` resource.
+
+              * the caller has insufficient permissions.
+                You need `WRITE` permission on the `policy:/entries/{label}/references` resource,
+                without any revoke in a deeper path of the policy resource.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The policy with the given ID was not found in the
-            context of the authenticated user.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '409':
-          description: |-
-            The request could not be completed. The imports alias label conflicts with an existing
-            policy entry label.
+            The request could not be completed. The policy with the given ID or
+            the policy entry was not found in the context of the authenticated
+            user.
           content:
             application/json:
               schema:
@@ -8096,20 +7538,21 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ImportsAlias'
+              $ref: '#/components/schemas/References'
             example:
-              targets:
-                - import: 'energy-corp:power-plant-roles'
-                  entry: operator-reactor
-                - import: 'energy-corp:power-plant-roles'
-                  entry: operator-turbine
-        description: JSON representation of the imports alias.
+              - import: 'acme:fleet-roles'
+                entry: driver
+              - entry: shared-subjects
+        description: |-
+          JSON array of reference objects. Each object must contain a required `entry` field
+          (the label of the referenced policy entry) and may contain an optional `import` field
+          (the policy ID of the import to reference from).
         required: true
     delete:
-      summary: Delete a specific imports alias
+      summary: Remove all references from a specific policy entry
       description: |-
-        Deletes the imports alias for the specified label of the policy identified by the
-        `policyId` path parameter.
+        Removes all references from the policy entry identified by the
+        `policyId` path parameter and the `label` path parameter.
       tags:
         - Policies
       parameters:
@@ -8121,7 +7564,7 @@ paths:
         - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '204':
-          description: The imports alias was successfully deleted.
+          description: The references were successfully deleted.
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -8140,8 +7583,10 @@ paths:
         '403':
           description: |-
             The request could not be completed. Possible reasons:
-             * the caller has insufficient permissions.
-               You need `WRITE` permission on the `policy:/` resource.
+
+              * the caller has insufficient permissions.
+                You need `WRITE` permission on the `policy:/entries/{label}/references` resource,
+                without any revoke in a deeper path of the policy resource.
           content:
             application/json:
               schema:
@@ -8149,7 +7594,8 @@ paths:
         '404':
           description: |-
             The request could not be completed. The policy with the given ID or
-            the imports alias was not found in the context of the authenticated user.
+            the policy entry was not found in the context of the authenticated
+            user.
           content:
             application/json:
               schema:
@@ -11208,8 +10654,6 @@ components:
           $ref: '#/components/schemas/PolicyEntries'
         imports:
           $ref: '#/components/schemas/PolicyImports'
-        importsAliases:
-          $ref: '#/components/schemas/ImportsAliases'
       required:
         - entries
     Policy:
@@ -11223,8 +10667,6 @@ components:
           $ref: '#/components/schemas/PolicyEntries'
         imports:
           $ref: '#/components/schemas/PolicyImports'
-        importsAliases:
-          $ref: '#/components/schemas/ImportsAliases'
       required:
         - policyId
         - entries
@@ -11259,24 +10701,12 @@ components:
           items:
             type: string
             description: Label of a policy entry to import from the referenced policy.
-        entriesAdditions:
-          $ref: '#/components/schemas/EntriesAdditions'
         transitiveImports:
           $ref: '#/components/schemas/TransitiveImports'
       example:
         entries:
           - default
           - import
-        entriesAdditions:
-          default:
-            subjects:
-              'integration:my-connection':
-                type: generated
-            resources:
-              'thing:/features':
-                grant:
-                  - READ
-                revoke: []
     Importable:
       type: string
       description: |-
@@ -11302,7 +10732,10 @@ components:
           $ref: '#/components/schemas/PolicyEntry'
     PolicyEntry:
       type: object
-      description: Single policy entry containing Subjects and Resources.
+      description: |-
+        Single policy entry. Both `subjects` and `resources` are optional — they
+        default to empty when absent. An entry may define `references` to inherit
+        subjects, resources, and namespaces from other entries (local or imported).
       properties:
         subjects:
           $ref: '#/components/schemas/Subjects'
@@ -11322,11 +10755,10 @@ components:
             - com.acme.*
         importable:
           $ref: '#/components/schemas/Importable'
-        allowedImportAdditions:
-          $ref: '#/components/schemas/AllowedImportAdditions'
-      required:
-        - subjects
-        - resources
+        allowedAdditions:
+          $ref: '#/components/schemas/AllowedAdditions'
+        references:
+          $ref: '#/components/schemas/References'
     Subjects:
       type: object
       description: A SubjectEntry defines who is addressed.
@@ -11403,16 +10835,26 @@ components:
       enum:
         - READ
         - WRITE
-    AllowedImportAdditions:
+    AllowedAdditions:
       type: array
       description: |-
-        Defines which types of additions are allowed when this entry is imported by other policies
-        via `entriesAdditions`. If omitted or empty, no additions are allowed. This default ensures
-        that existing policies cannot be extended with additional subjects, resources, or namespaces
-        unless the policy author explicitly opts in.
-        * `subjects` — allows importing policies to add additional subjects to this entry
-        * `resources` — allows importing policies to add additional resources to this entry
-        * `namespaces` — allows importing policies to add additional namespace patterns to this entry
+        Defines which types of additions are allowed when this entry is referenced by other entries
+        via `references`.
+
+        Semantics:
+        * Field absent (omitted) — no restriction; the referencing entry's own subjects, resources,
+          and namespaces are merged in as usual. This is the upgrade-friendly default.
+        * Field present and empty (`[]`) — no additions allowed; only the referenced entry's content is
+          effective.
+        * Field present with values — only the listed kinds of additions survive on the referencing entry.
+
+        This field is enforced as a runtime filter, not as a write-time policy contract: a referencing
+        entry that declares own subjects/resources/namespaces not permitted here can still be persisted,
+        but the disallowed own additions are silently stripped at enforcement time. The same filter
+        applies whether the reference is local (within the same policy) or an import reference.
+        * `subjects` — allows referencing entries to add additional subjects on top of this entry
+        * `resources` — allows referencing entries to add additional resources on top of this entry
+        * `namespaces` — allows referencing entries to add additional namespace patterns on top of this entry
       items:
         type: string
         enum:
@@ -11421,57 +10863,12 @@ components:
           - namespaces
       example:
         - subjects
-    EntriesAdditions:
-      type: object
-      description: |-
-        Additional subjects and/or resources to additively merge into imported policy entries.
-        Each key is a label of an imported policy entry. The value is an object with optional "subjects"
-        and/or "resources" fields that will be merged into the corresponding imported entry.
-        Subjects are added (existing subjects from the template are preserved).
-        For resources, new paths are added and overlapping paths get their permissions merged (union of
-        grants and revokes; template revokes are always preserved).
-        The imported policy entry must explicitly allow these additions via its "allowedImportAdditions"
-        field, otherwise the additions are rejected.
-      additionalProperties:
-        $ref: '#/components/schemas/EntryAddition'
-      example:
-        default:
-          subjects:
-            'integration:my-connection':
-              type: generated
-          resources:
-            'thing:/features':
-              grant:
-                - READ
-              revoke: []
-    EntryAddition:
-      type: object
-      description: |-
-        Defines additional subjects, resources, and/or namespaces to be merged into a single imported
-        policy entry. The imported policy entry must explicitly allow these additions via its
-        "allowedImportAdditions" field, otherwise the additions are rejected.
-      properties:
-        subjects:
-          $ref: '#/components/schemas/Subjects'
-        resources:
-          $ref: '#/components/schemas/Resources'
-        namespaces:
-          $ref: '#/components/schemas/PolicyEntry/properties/namespaces'
-      example:
-        subjects:
-          'integration:my-connection':
-            type: generated
-        resources:
-          'thing:/features':
-            grant:
-              - READ
-            revoke: []
     TransitiveImports:
       type: array
       description: |-
         List of policy IDs from the imported policy's own imports that should be resolved transitively
         before extracting entries. This enables multi-level import chains where a template policy defines
-        resources and an intermediate policy adds subjects via "entriesAdditions".
+        resources and an intermediate policy defines entries with "references" that add local subjects.
 
         Each entry is the policy ID of a policy that the directly imported policy itself imports from.
         Only the listed policy IDs are resolved — this is an explicit whitelist, not a recursive flag.
@@ -11480,67 +10877,34 @@ components:
         description: Policy ID of a policy that the imported policy itself imports from.
       example:
         - 'org.eclipse.ditto:policy-template'
-    ImportsAliases:
-      type: object
+    References:
+      type: array
       description: |-
-        A collection of imports aliases keyed by label. Each alias maps a label to one or more
-        entries additions targets, enabling transparent subject fan-out through the existing
-        entries subjects API.
+        An optional list of references to other policy entries. Each reference points to an entry
+        either in the same policy (local reference) or in an imported policy (import reference).
+        When set, subjects, resources, and namespaces from the referenced entries are additively
+        merged into this entry.
 
-        A label must not exist as both a imports alias and a local policy entry simultaneously.
-      additionalProperties:
-        $ref: '#/components/schemas/ImportsAlias'
+        * Import reference: contains both `entry` (the label) and `import` (the policy ID of the imported policy)
+        * Local reference: contains only `entry` (the label of another entry in the same policy)
+      items:
+        type: object
+        description: A single reference to a policy entry.
+        properties:
+          entry:
+            type: string
+            description: The label of the referenced entry.
+          import:
+            type: string
+            description: |-
+              The ID of the imported policy this reference points to.
+              If absent, the reference points to a local entry within the same policy.
+        required:
+          - entry
       example:
-        operator:
-          targets:
-            - import: 'energy-corp:power-plant-roles'
-              entry: operator-reactor
-            - import: 'energy-corp:power-plant-roles'
-              entry: operator-turbine
-    ImportsAlias:
-      type: object
-      description: |-
-        A imports alias maps a label to one or more entries additions targets. Subject operations
-        (GET/PUT/DELETE on subjects) using the alias label are transparently fanned out to all
-        referenced targets. This enables backward-compatible API migration when template policies
-        split a single entry into multiple namespace-scoped entries.
-      properties:
-        targets:
-          type: array
-          description: |-
-            The list of entries additions targets this alias fans out to. Each target references
-            a specific entry addition within a policy import.
-          items:
-            $ref: '#/components/schemas/ImportsAliasTarget'
-      required:
-        - targets
-      example:
-        targets:
-          - import: 'energy-corp:power-plant-roles'
-            entry: operator-reactor
-          - import: 'energy-corp:power-plant-roles'
-            entry: operator-turbine
-    ImportsAliasTarget:
-      type: object
-      description: |-
-        A target reference within a imports alias, pointing to a specific entry addition in a policy
-        import. Subject operations on the alias label are transparently fanned out to this target's
-        entries additions.
-      properties:
-        import:
-          type: string
-          description: |-
-            The policy ID of the import this target refers to. Must match a key in the policy's
-            "imports" object.
-        entry:
-          type: string
-          description: The label of the entry within the import's "entriesAdditions" that this target refers to.
-      required:
-        - import
-        - entry
-      example:
-        import: 'energy-corp:power-plant-roles'
-        entry: operator
+        - entry: operator
+          import: 'energy-corp:power-plant-roles'
+        - entry: local-admin
     SubjectAnnouncement:
       type: object
       description: Settings for announcements to be made about the subject.

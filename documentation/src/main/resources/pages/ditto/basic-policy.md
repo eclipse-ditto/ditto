@@ -339,11 +339,24 @@ The field can have one of the following three values:
 
 If the field is not specified, the default value is `implicit`.
 
-Additionally, each entry can specify `allowedImportAdditions` to control what kinds of additions importing
-policies are permitted to merge into this entry via `entriesAdditions`. Valid values are `"subjects"`,
-`"resources"`, and `"namespaces"`. If the field is omitted or empty, no additions are allowed. This default is intentional: existing
-policies that were created before this feature cannot be extended with additional subjects or resources through
-`entriesAdditions` unless the policy author explicitly opts in by setting `allowedImportAdditions`.
+Additionally, each entry can specify `allowedAdditions` to control what kinds of additions referencing
+entries are permitted to merge into this entry via `references`. Valid values are `"subjects"`,
+`"resources"`, and `"namespaces"`.
+
+The semantics are:
+* **Field omitted (absent)** — no restriction. The referencing entry's own subjects, resources, and namespaces
+  merge in as usual. This is the upgrade-friendly default: pre-existing entries that don't declare the field
+  continue to behave as before.
+* **Field present, explicitly empty `[]`** — no additions allowed. The referencing entry's own subjects,
+  resources, and namespaces are stripped at enforcement time; only the referenced entry's content is effective.
+* **Field present with values** — only the listed kinds of additions survive. Other own additions are stripped.
+
+`allowedAdditions` is enforced as a **runtime filter** on the referencing entry's own additions, not as a
+write-time policy contract. If a referencing entry declares own subjects/resources/namespaces that the strictest
+`allowedAdditions` across all its references does not permit, those own additions are silently stripped at
+enforcement time — the write itself is not rejected. This is intentional: the effective permissions of an entry
+depend on the live state of every referenced entry, which can change over time, so the authoritative check
+happens during enforcement.
 
 Example of a policy specifying different types of `importable` entries and allowed additions:
 ```json
@@ -358,13 +371,13 @@ Example of a policy specifying different types of `importable` entries and allow
       "resources": { ... },
       "namespaces": [ "com.acme", "com.acme.*" ],
       "importable": "implicit",
-      "allowedImportAdditions": [ "subjects" ]
+      "allowedAdditions": [ "subjects" ]
     },
     "EXPLICIT": {
       "subjects": { ... },
       "resources": { ... },
       "importable": "explicit",
-      "allowedImportAdditions": [ "subjects", "resources", "namespaces" ]
+      "allowedAdditions": [ "subjects", "resources", "namespaces" ]
     },
     "NEVER": {
       "subjects": { ... },
@@ -414,30 +427,60 @@ Example of a policy importing two other policies:
 }
 ```
 
-### Entries additions
+### Entry references
 
-Optionally, the importing policy can define `entriesAdditions` to additively merge additional subjects and/or
-resources and/or namespaces into imported policy entries. This enables template-based policy reuse: the imported (template) policy
-defines resources (the "what"), and the importing policy adds subjects (the "who") and namespaces (the "where"),
-optionally extending existing resources.
+Optionally, a policy entry can declare `references` to inherit subjects, resources, and namespaces from other
+policy entries. Each reference is an object in the `references` array that points to either:
 
-Each key in `entriesAdditions` is the label of an imported entry. The value is an object with optional `subjects`
-and/or `resources` fields:
-* **Subjects** are merged additively — all subjects from the template are preserved, and the additional subjects
-  are added.
-* **Resources** at new paths are added directly. For overlapping resource paths, permissions are merged as a union
-  of grants and revokes. Template revokes are always preserved and cannot be removed by additions.
-* **Namespaces** are merged additively — all namespaces from the template are preserved, and the additional namespaces are added.
+* **Import reference** — an entry in an imported policy: `{"import": "policyId", "entry": "label"}`
+* **Local reference** — an entry within the same policy: `{"entry": "label"}`
 
-The imported policy entry must explicitly allow these additions via its `allowedImportAdditions` field.
-If the entry does not allow subject additions, any `subjects` in `entriesAdditions` for that entry will be rejected.
-Likewise for `resources` and `namespaces`.  
-This gives the template policy author full control over what importing policies can extend.
+This enables template-based policy reuse: the imported (template) policy defines resources (the "what"),
+and the referencing entry defines its own local subjects (the "who"), while resources and namespaces are
+additively merged from the referenced entries.
+
+Local references and import references are resolved with the same merge semantics — the only difference is
+where the referenced entry is looked up (within the same policy vs. in an imported policy):
+
+* **Subjects** from referenced entries are merged additively with the entry's own subjects. Subjects sharing
+  the same subject ID are de-duplicated, with the referenced entry's instance winning.
+* **Resources** from referenced entries are merged additively. For overlapping resource paths, permissions
+  are merged as a union of grants and revokes. Referenced revokes are always preserved and cannot be removed
+  by the referencing entry.
+* **Namespaces** from referenced entries are merged additively with any locally defined namespaces.
+
+For both kinds of references, `allowedAdditions` on the referenced entry acts as a runtime filter on
+the referencing entry's <em>own</em> subjects/resources/namespaces. The strictest set across all references on
+an entry applies — see the section above. References to entries marked `importable: never` are skipped at
+resolution time and rejected at write time, regardless of whether the reference is local or import — the
+`importable: never` flag is the policy author's "do not inherit from me" signal and applies uniformly.
+
+References resolve **one level deep**, not transitively:
+* A local reference resolves to the *raw* content of the referenced entry (its own subjects/resources/
+  namespaces). It does not follow the referenced entry's own references — even mutual local references
+  (A → B and B → A) terminate after a single pass with each side seeing only the other's raw content.
+* An import reference resolves against the entries the importing policy can already see. By default that
+  is just the directly imported policy's own entries. To make an import reference reach across an extra
+  layer (e.g. to inherit content that the imported policy itself only obtains via its own imports), the
+  importing policy must declare those deeper imports via `transitiveImports` on the corresponding import.
+  Without that, the deeper target is not in the resolved set and the reference silently resolves to no
+  inherited content.
+
+When multiple references on the same entry contain a subject with the same subject ID, the
+**first-listed reference wins** (later references' instances of that subject ID are skipped). This matters
+when subjects differ in `expiry` or `announcement`: those properties come from the first reference's
+subject. Avoid duplicate subject IDs across references unless the ordering is intentional; if you need
+specific expiry semantics, list the reference that carries the desired expiry first.
+
+Note: granting WRITE access on an entry's `references` sub-resource (`policy:/entries/{label}/references`)
+is equivalent in authority to granting WRITE on the entire entry, because references can inherit any content
+the rest of the policy declares. Policy designers should grant `references` write rights only to subjects who
+could already modify the entry's resources directly.
 
 #### Example: role-based access template for a power plant
 
 A central template policy defines the roles and permissions that apply to all power plants in an organization.
-Each entry specifies `allowedImportAdditions: ["subjects"]` so that the individual power plant policies can add
+Each entry specifies `allowedAdditions: ["subjects"]` so that the individual power plant policies can add
 their own employees while the centrally defined permissions remain unchanged and under central control.
 
 Template policy (`energy-corp:power-plant-roles`):
@@ -453,7 +496,7 @@ Template policy (`energy-corp:power-plant-roles`):
         "thing:/features/cooling":  { "grant": ["READ", "WRITE"], "revoke": [] }
       },
       "importable": "implicit",
-      "allowedImportAdditions": [ "subjects" ]
+      "allowedAdditions": [ "subjects" ]
     },
     "safetyInspector": {
       "subjects": {},
@@ -463,115 +506,58 @@ Template policy (`energy-corp:power-plant-roles`):
         "thing:/features/safetyLogs": { "grant": ["READ"], "revoke": [] }
       },
       "importable": "implicit",
-      "allowedImportAdditions": [ "subjects" ]
+      "allowedAdditions": [ "subjects" ]
     }
   }
 }
 ```
 
-A specific power plant imports this template and assigns its employees to the predefined roles via
-`entriesAdditions`:
+A specific power plant imports this template and assigns its employees to the predefined roles using entries with
+`references`:
 ```json
 {
-  "policyId": "energy-corp:plant-springfield",
-  "entries": {
-    "admin": {
-      "subjects": { "oauth2:plant-springfield-admin@energy-corp.com": { "type": "employee" } },
-      "resources": { "policy:/": { "grant": ["READ", "WRITE"], "revoke": [] } }
-    }
-  },
+  "policyId": "energy-corp:plant-42-policy",
   "imports": {
-    "energy-corp:power-plant-roles": {
-      "entriesAdditions": {
-        "operator": {
-          "subjects": {
-            "oauth2:homer.simpson@energy-corp.com": { "type": "employee" },
-            "oauth2:lenny.leonard@energy-corp.com": { "type": "employee" }
-          }
-        },
-        "safetyInspector": {
-          "subjects": {
-            "oauth2:frank.grimes@energy-corp.com": { "type": "employee" }
-          }
-        }
+    "energy-corp:power-plant-roles": {}
+  },
+  "entries": {
+    "operator": {
+      "references": [{ "import": "energy-corp:power-plant-roles", "entry": "operator" }],
+      "subjects": {
+        "integration:plant42-operators": { "type": "operator-group" }
       }
+    },
+    "safetyInspector": {
+      "references": [{ "import": "energy-corp:power-plant-roles", "entry": "safetyInspector" }],
+      "subjects": {
+        "oauth2:frank.grimes@energy-corp.com": { "type": "employee" }
+      }
+    },
+    "admin": {
+      "subjects": { "oauth2:plant-42-admin@energy-corp.com": { "type": "employee" } },
+      "resources": { "policy:/": { "grant": ["READ", "WRITE"], "revoke": [] } }
     }
   }
 }
 ```
 
-With this setup the operator subjects (`homer.simpson`, `lenny.leonard`) receive READ and WRITE access to the
+With this setup the operator subjects (`plant42-operators`) receive READ and WRITE access to the
 reactor, turbine, and cooling features, while the safety inspector (`frank.grimes`) receives READ-only access to
 reactor, cooling, and safety logs — all defined centrally. If the organization later adds a new resource to the
 `operator` role in the template, every power plant that imports it automatically inherits the change.
 
-### Imports aliases
-
-When migrating to template-based policies via `entriesAdditions`, a template may split a single entry into
-multiple entries for finer namespace scoping. For example, the `operator` role above might be split into
-`operator-reactor` and `operator-turbine` entries, each restricted to a different namespace.
-
-This creates a challenge: existing API consumers that manage subjects via
-`PUT /api/2/policies/{id}/entries/operator/subjects` would break because the local `operator` entry no longer
-exists — the subjects now live in `entriesAdditions` spread across multiple imported entries.
-
-**Imports aliases** solve this by mapping a label to one or more `entriesAdditions` targets. Subject operations
-on the alias label are transparently fanned out to all referenced targets:
-
+An entry can also reference multiple entries, including local entries within the same policy:
 ```json
 {
-  "policyId": "energy-corp:plant-springfield",
-  "imports": {
-    "energy-corp:power-plant-roles": {
-      "entriesAdditions": {
-        "operator-reactor": {
-          "subjects": {
-            "oauth2:homer.simpson@energy-corp.com": { "type": "employee" }
-          }
-        },
-        "operator-turbine": {
-          "subjects": {
-            "oauth2:homer.simpson@energy-corp.com": { "type": "employee" }
-          }
-        }
-      }
-    }
-  },
-  "importsAliases": {
-    "operator": {
-      "targets": [
-        { "import": "energy-corp:power-plant-roles", "entry": "operator-reactor" },
-        { "import": "energy-corp:power-plant-roles", "entry": "operator-turbine" }
-      ]
-    }
-  },
-  "entries": {
-    "admin": {
-      "subjects": { "oauth2:plant-admin@energy-corp.com": { "type": "employee" } },
-      "resources": { "policy:/": { "grant": ["READ", "WRITE"], "revoke": [] } }
-    }
+  "references": [
+    { "import": "energy-corp:power-plant-roles", "entry": "operator" },
+    { "entry": "shared-subjects" }
+  ],
+  "subjects": {
+    "integration:plant42-operators": { "type": "operator-group" }
   }
 }
 ```
-
-With this setup, `PUT /entries/operator/subjects` continues to work: it transparently writes the subjects to
-both `operator-reactor` and `operator-turbine` entries additions. `GET /entries/operator/subjects` returns the
-subjects from the first target's entries additions.
-
-**Key rules:**
-* A label **must not** exist as both an imports alias and a local policy entry. Creating one when the other
-  exists results in a `409 Conflict` error.
-* Only **subject operations** are allowed through an alias (`GET`/`PUT`/`DELETE` on `subjects`). Other operations
-  (resources, namespaces, the full entry) on an alias label are rejected with `400 Bad Request`.
-* Targets may span **multiple imports**.
-* Deleting an import that is referenced by an imports alias is **rejected**. Remove the alias first.
-
-Imports aliases are managed via dedicated API endpoints:
-* `GET/PUT/DELETE /api/2/policies/{id}/importsAliases` — retrieve, replace, or delete all aliases
-* `GET/PUT/DELETE /api/2/policies/{id}/importsAliases/{label}` — manage a single alias
-
-Policy imports can also be deleted in bulk via `DELETE /api/2/policies/{id}/imports`. This is rejected if any
-imports alias still references an import.
 
 A subject creating or modifying a policy with policy imports must have the following permissions:
  * permission on the _importing policy_ to `WRITE` the modified policy import or policy imports
@@ -592,31 +578,27 @@ The `transitiveImports` field on a policy import enables selective multi-level r
 an explicit list of policy IDs that the directly imported policy itself imports from, which should be
 resolved before extracting entries.
 
-#### Why `transitiveImports` requires `entriesAdditions`
+#### Why `transitiveImports` works with `references`
 
-Transitive import resolution is a natural complement to `entriesAdditions` — and would be meaningless
-without it. Before `entriesAdditions`, imported entries were always taken as-is from the imported
-policy's persisted entries. There was no mechanism for an intermediate policy to *add* anything to entries
-it imported from elsewhere, so resolving through it would yield nothing beyond what a direct import
-already provides.
+Transitive import resolution is a natural complement to `references`. An intermediate policy can
+define entries with `references` that reference a template policy, adding local subjects while
+inheriting resources. Without `transitiveImports`, a consuming policy could only see the intermediate
+policy's inline entries — it would not be able to resolve the `references` chain back to the
+original template.
 
-`entriesAdditions` changes this by allowing an intermediate policy to hold **per-import state** (subjects,
-resources, namespaces) that only materializes during resolution. For example, a global template defines
-roles with resources, and each regional policy adds its own subjects via `entriesAdditions`. Those
-subjects are not part of the template's persisted entries — they exist only in the intermediate policy's
-import configuration and are applied when that intermediate policy resolves its own import.
-
-A consuming policy that directly imports the global template gets the raw entries (empty subjects).
-A consuming policy that directly imports the intermediate policy gets nothing (its inline entries are
-empty). Only by resolving *through* the intermediate policy — which is what `transitiveImports`
-does — can the consuming policy obtain the combined result: template resources merged with the
-intermediate policy's subject additions.
+For example, a global template defines roles with resources, and each regional policy creates entries
+with `references` that point back to the template, adding its own subjects. A consuming policy
+that directly imports the global template gets the raw entries (empty subjects). A consuming policy
+that directly imports the intermediate policy sees entries with `references` but cannot resolve
+them without access to the template. Only by resolving *through* the intermediate policy — which is
+what `transitiveImports` does — can the consuming policy obtain the combined result: template resources
+merged with the intermediate policy's local subjects.
 
 #### Use case: template-based policy hierarchies
 
 A typical three-level hierarchy:
 
-**1. Global template** (`acme:fleet-roles`) defines roles with resources and `allowedImportAdditions`:
+**1. Global template** (`acme:fleet-roles`) defines roles with resources and `allowedAdditions`:
 
 ```json
 {
@@ -630,32 +612,31 @@ A typical three-level hierarchy:
         "message:/features/fuel/inbox": { "grant": ["WRITE"], "revoke": [] }
       },
       "namespaces": ["acme.vehicle"],
-      "allowedImportAdditions": ["subjects"],
+      "allowedAdditions": ["subjects"],
       "importable": "implicit"
     }
   }
 }
 ```
 
-**2. Regional fleet policy** (`acme:fleet-west`) imports the template and adds drivers via
-`entriesAdditions`:
+**2. Regional fleet policy** (`acme:fleet-west`) imports the template and defines entries with
+`references` that add local drivers:
 
 ```json
 {
   "policyId": "acme:fleet-west",
   "imports": {
-    "acme:fleet-roles": {
-      "entriesAdditions": {
-        "driver": {
-          "subjects": {
-            "oauth2:alice@acme.com": { "type": "employee" },
-            "oauth2:bob@acme.com": { "type": "employee" }
-          }
-        }
+    "acme:fleet-roles": {}
+  },
+  "entries": {
+    "driver": {
+      "references": [{ "import": "acme:fleet-roles", "entry": "driver" }],
+      "subjects": {
+        "oauth2:alice@acme.com": { "type": "employee" },
+        "oauth2:bob@acme.com": { "type": "employee" }
       }
     }
-  },
-  "entries": {}
+  }
 }
 ```
 
@@ -667,39 +648,50 @@ fleet policy. It uses `transitiveImports` to resolve through the intermediate po
   "policyId": "acme.vehicle:truck-42",
   "imports": {
     "acme:fleet-west": {
-      "entries": ["driver"],
       "transitiveImports": ["acme:fleet-roles"]
+    }
+  },
+  "entries": {
+    "driver": {
+      "references": [{ "import": "acme:fleet-west", "entry": "driver" }],
+      "subjects": {
+        "oauth2:charlie@acme.com": { "type": "temp-driver" }
+      }
+    },
+    "owner": {
+      "subjects": { "oauth2:fleet-admin@acme.com": { "type": "admin" } },
+      "resources": { "policy:/": { "grant": ["READ", "WRITE"], "revoke": [] } }
     }
   }
 }
 ```
 
 At resolution time:
-1. The directly imported policy `fleet-west` is loaded (its inline entries are empty)
+1. The directly imported policy `fleet-west` is loaded
 2. Because `transitiveImports` lists `fleet-roles`, that import on `fleet-west` is resolved first
-3. `fleet-roles`'s `driver` entry is merged into `fleet-west`, applying `fleet-west`'s
-   `entriesAdditions` (subjects Alice and Bob)
-4. The vehicle policy then extracts `driver` from the enriched result — getting both the resources from
-   the template and the subjects from the fleet policy
+3. `fleet-west`'s `driver` entry has a reference to `fleet-roles`'s `driver` — the template's
+   resources are merged with `fleet-west`'s local subjects (Alice and Bob)
+4. The vehicle policy's `driver` entry has a reference to `fleet-west`'s `driver` — the
+   resolved resources and subjects from step 3 are merged with the vehicle policy's local subject
+   (Charlie), producing an entry with template resources and all three subjects
 
 Without `transitiveImports`, this composition would be impossible: a direct import of `fleet-roles`
-yields the entry without subjects, and a direct import of `fleet-west` yields nothing (no inline entries).
+yields the entry without subjects, and a direct import of `fleet-west` cannot resolve `fleet-west`'s
+own references to the template.
 
 #### Deeper nesting
 
 `transitiveImports` supports chains deeper than two levels. If each level in the chain declares its own
-`transitiveImports`, the resolution recurses naturally. For example, A → B → C → D works when:
+`transitiveImports`, the resolution recurses naturally. For example, A -> B -> C -> D works when:
 * A's import of B has `transitiveImports: ["C"]`
 * B's import of C has `transitiveImports: ["D"]`
-* C's import of D has `entriesAdditions` (adding subjects)
+* C has entries with `references` pointing to D (adding subjects)
 * D has inline entries (the template)
 
-An important consequence: **`entriesAdditions` are applied at the level that declares them, not at higher
-levels.** In the chain above, C's `entriesAdditions` are applied when resolving C's import of D. The
-`transitiveImports` at B and A merely open the doors so that resolution can reach down to where the
-additions are declared. A higher-level policy (e.g., B) cannot use its own `entriesAdditions` to target
-entries that were transitively resolved at a lower level, because after transitive resolution the entry
-labels are rewritten with import prefixes (e.g., `ROLE` becomes `imported:<D-id>/ROLE`).
+An important consequence: **references are resolved at the level that declares them, not at higher
+levels.** In the chain above, C's references are resolved against D when resolving C's
+import of D. The `transitiveImports` at B and A merely open the doors so that resolution can reach down
+to where the import references are declared.
 
 #### Key rules
 
@@ -708,7 +700,7 @@ labels are rewritten with import prefixes (e.g., `ROLE` becomes `imported:<D-id>
 * The listed policy IDs must be imports of the directly imported policy. Non-matching IDs are silently
   ignored.
 * The importing policy's own ID **must not** appear in `transitiveImports` (cycle prevention).
-  Cross-policy cycles (e.g., A→B→C→A) are **not** detected at write time because detection would
+  Cross-policy cycles (e.g., A->B->C->A) are **not** detected at write time because detection would
   require loading the full transitive graph on every PUT. Instead, cycles are broken gracefully at
   resolution time via a visited set and a depth limit (max 10 levels). If the depth limit is reached,
   resolution stops and returns the entries resolved so far.

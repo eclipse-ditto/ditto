@@ -12,6 +12,9 @@
  */
 package org.eclipse.ditto.policies.model.enforcers;
 
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.signals.FeatureToggle;
@@ -38,10 +41,17 @@ public final class PolicyEnforcers {
      * @throws NullPointerException if {@code policyEntries} is {@code null}.
      */
     public static Enforcer defaultEvaluator(final Iterable<PolicyEntry> policyEntries) {
+        // Skip entries that cannot contribute to access decisions: entries without subjects
+        // can't authorize anyone, entries without resources can't grant or revoke anything.
+        // This filtering is applied after all import and references resolution is complete.
+        final Iterable<PolicyEntry> effectiveEntries = StreamSupport
+                .stream(policyEntries.spliterator(), false)
+                .filter(entry -> !entry.getSubjects().isEmpty() && !entry.getResources().isEmpty())
+                .collect(Collectors.toList());
         if (FeatureToggle.isPolicyEnforcementUseThroughputOptimizedEvaluatorEnabled()) {
-            return throughputOptimizedEvaluator(policyEntries);
+            return throughputOptimizedEvaluator(effectiveEntries);
         } else {
-            return memoryOptimizedEvaluator(policyEntries);
+            return memoryOptimizedEvaluator(effectiveEntries);
         }
     }
 

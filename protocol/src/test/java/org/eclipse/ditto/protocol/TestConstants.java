@@ -39,13 +39,9 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.messages.model.MessageHeaderDefinition;
-import org.eclipse.ditto.policies.model.AllowedImportAddition;
+import org.eclipse.ditto.policies.model.AllowedAddition;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
-import org.eclipse.ditto.policies.model.EntriesAdditions;
-import org.eclipse.ditto.policies.model.ImportsAlias;
-import org.eclipse.ditto.policies.model.ImportsAliasTarget;
-import org.eclipse.ditto.policies.model.ImportsAliases;
-import org.eclipse.ditto.policies.model.EntryAddition;
+import org.eclipse.ditto.policies.model.EntryReference;
 import org.eclipse.ditto.policies.model.ImportableType;
 import org.eclipse.ditto.policies.model.ImportedLabels;
 import org.eclipse.ditto.policies.model.Label;
@@ -314,28 +310,18 @@ public final class TestConstants {
 
         public static final ImportableType IMPORTABLE_TYPE = ImportableType.EXPLICIT;
 
-        public static final Set<AllowedImportAddition> ALLOWED_IMPORT_ADDITIONS =
-                new HashSet<>(Arrays.asList(AllowedImportAddition.SUBJECTS, AllowedImportAddition.RESOURCES));
+        public static final Set<AllowedAddition> ALLOWED_ADDITIONS =
+                new HashSet<>(Arrays.asList(AllowedAddition.SUBJECTS, AllowedAddition.RESOURCES));
 
         public static final ImportedLabels IMPORTED_LABELS =
                 PoliciesModelFactory.newImportedEntries("admin", "frontend");
 
-        public static final EntryAddition ENTRY_ADDITION = PoliciesModelFactory.newEntryAddition(
-                POLICY_ENTRY_LABEL, Subjects.newInstance(SUBJECT1), Resources.newInstance(RESOURCE1));
-
-        public static final EntriesAdditions ENTRIES_ADDITIONS =
-                PoliciesModelFactory.newEntriesAdditions(singletonList(ENTRY_ADDITION));
-
         public static final List<String> NAMESPACES = Arrays.asList("com.acme", "com.acme.*");
 
-        public static final Label IMPORTS_ALIAS_LABEL = Label.of("operator");
-        public static final ImportsAliasTarget IMPORTS_ALIAS_TARGET =
-                PoliciesModelFactory.newImportsAliasTarget(IMPORTED_POLICY_ID, POLICY_ENTRY_LABEL);
-        public static final ImportsAlias IMPORTS_ALIAS =
-                PoliciesModelFactory.newImportsAlias(IMPORTS_ALIAS_LABEL,
-                        singletonList(IMPORTS_ALIAS_TARGET));
-        public static final ImportsAliases IMPORTS_ALIASES =
-                PoliciesModelFactory.newImportsAliases(singletonList(IMPORTS_ALIAS));
+        public static final List<EntryReference> REFERENCES = List.of(
+                PoliciesModelFactory.newEntryReference(POLICY_ID, Label.of("driver")),
+                PoliciesModelFactory.newLocalEntryReference(Label.of("shared"))
+        );
 
         public static class TopicPaths {
 

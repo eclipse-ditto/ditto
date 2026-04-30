@@ -70,17 +70,6 @@ public interface PolicyImport extends Jsonifiable.WithFieldSelectorAndPredicate<
     Optional<EffectedImports> getEffectedImports();
 
     /**
-     * Returns the optional {@link EntriesAdditions} defining additional subjects and/or resources to merge into
-     * imported policy entries.
-     *
-     * @return the entries additions, or empty if none are defined.
-     * @since 3.9.0
-     */
-    default Optional<EntriesAdditions> getEntriesAdditions() {
-        return getEffectedImports().flatMap(EffectedImports::getEntriesAdditions);
-    }
-
-    /**
      * Returns the list of {@link PolicyId}s from the imported policy's own imports that should be resolved
      * transitively before extracting entries.
      *

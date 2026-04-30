@@ -27,27 +27,22 @@ import org.eclipse.ditto.protocol.TestConstants.Policies.TopicPaths;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntryResponse;
-import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteImportsAliasResponse;
-import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteImportsAliasesResponse;
-import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImportEntryAdditionResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImportsResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteResourceResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubjectResponse;
-import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyImportsAliasResponse;
-import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyImportsAliasesResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntriesResponse;
-import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryAllowedImportAdditionsResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryAllowedAdditionsResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryImportableResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryReferencesResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryResponse;
-import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportEntriesAdditionsResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportEntriesResponse;
-import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportEntryAdditionResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResourceResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResourcesResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjectResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjectsResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntryReferencesResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommandResponse;
 import org.junit.Before;
 import org.junit.runner.RunWith;
@@ -78,19 +73,12 @@ public final class ParametrizedPolicyModifyCommandResponseAdapterTest
                 modifySubjectModifiedResponse(),
                 deleteSubjectResponse(),
                 modifySubjectsResponse(),
-                modifyPolicyEntryAllowedImportAdditionsResponse(),
+                modifyPolicyEntryAllowedAdditionsResponse(),
                 modifyPolicyEntryImportableResponse(),
                 modifyPolicyImportEntriesResponse(),
-                modifyPolicyImportEntriesAdditionsResponse(),
-                modifyPolicyImportEntryAdditionCreatedResponse(),
-                modifyPolicyImportEntryAdditionModifiedResponse(),
-                deletePolicyImportEntryAdditionResponse(),
                 deletePolicyImportsResponse(),
-                modifyImportsAliasesResponse(),
-                modifyImportsAliasCreatedResponse(),
-                modifyImportsAliasModifiedResponse(),
-                deleteImportsAliasResponse(),
-                deleteImportsAliasesResponse());
+                modifyPolicyEntryReferencesResponse(),
+                deletePolicyEntryReferencesResponse());
     }
 
     private PolicyModifyCommandResponseAdapter underTest;
@@ -251,14 +239,14 @@ public final class ParametrizedPolicyModifyCommandResponseAdapterTest
         return TestParameter.of("deleteSubjectResponse", adaptable, response);
     }
 
-    private static TestParameter<PolicyModifyCommandResponse<?>> modifyPolicyEntryAllowedImportAdditionsResponse() {
-        final ModifyPolicyEntryAllowedImportAdditionsResponse response =
-                ModifyPolicyEntryAllowedImportAdditionsResponse.of(Policies.POLICY_ID,
+    private static TestParameter<PolicyModifyCommandResponse<?>> modifyPolicyEntryAllowedAdditionsResponse() {
+        final ModifyPolicyEntryAllowedAdditionsResponse response =
+                ModifyPolicyEntryAllowedAdditionsResponse.of(Policies.POLICY_ID,
                         Policies.POLICY_ENTRY_LABEL, Policies.HEADERS);
         final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY,
-                JsonPointer.of("/entries/" + Policies.POLICY_ENTRY_LABEL + "/allowedImportAdditions"),
+                JsonPointer.of("/entries/" + Policies.POLICY_ENTRY_LABEL + "/allowedAdditions"),
                 HttpStatus.NO_CONTENT);
-        return TestParameter.of("modifyPolicyEntryAllowedImportAdditionsResponse", adaptable, response);
+        return TestParameter.of("modifyPolicyEntryAllowedAdditionsResponse", adaptable, response);
     }
 
     private static TestParameter<PolicyModifyCommandResponse<?>> modifyPolicyEntryImportableResponse() {
@@ -281,49 +269,6 @@ public final class ParametrizedPolicyModifyCommandResponseAdapterTest
         return TestParameter.of("modifyPolicyImportEntriesResponse", adaptable, response);
     }
 
-    private static TestParameter<PolicyModifyCommandResponse<?>> modifyPolicyImportEntriesAdditionsResponse() {
-        final ModifyPolicyImportEntriesAdditionsResponse response =
-                ModifyPolicyImportEntriesAdditionsResponse.modified(Policies.POLICY_ID,
-                        Policies.IMPORTED_POLICY_ID, Policies.HEADERS);
-        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY,
-                JsonPointer.of("/imports/" + Policies.IMPORTED_POLICY_ID + "/entriesAdditions"),
-                HttpStatus.NO_CONTENT);
-        return TestParameter.of("modifyPolicyImportEntriesAdditionsResponse", adaptable, response);
-    }
-
-    private static TestParameter<PolicyModifyCommandResponse<?>> modifyPolicyImportEntryAdditionCreatedResponse() {
-        final ModifyPolicyImportEntryAdditionResponse response =
-                ModifyPolicyImportEntryAdditionResponse.created(Policies.POLICY_ID,
-                        Policies.IMPORTED_POLICY_ID, Policies.ENTRY_ADDITION, Policies.HEADERS);
-        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY,
-                JsonPointer.of("/imports/" + Policies.IMPORTED_POLICY_ID + "/entriesAdditions/" +
-                        Policies.ENTRY_ADDITION.getLabel()),
-                Policies.ENTRY_ADDITION.toJson(FieldType.notHidden()), HttpStatus.CREATED);
-        return TestParameter.of("modifyPolicyImportEntryAdditionCreatedResponse", adaptable, response);
-    }
-
-    private static TestParameter<PolicyModifyCommandResponse<?>> modifyPolicyImportEntryAdditionModifiedResponse() {
-        final ModifyPolicyImportEntryAdditionResponse response =
-                ModifyPolicyImportEntryAdditionResponse.modified(Policies.POLICY_ID,
-                        Policies.IMPORTED_POLICY_ID, Policies.POLICY_ENTRY_LABEL, Policies.HEADERS);
-        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY,
-                JsonPointer.of("/imports/" + Policies.IMPORTED_POLICY_ID + "/entriesAdditions/" +
-                        Policies.POLICY_ENTRY_LABEL),
-                HttpStatus.NO_CONTENT);
-        return TestParameter.of("modifyPolicyImportEntryAdditionModifiedResponse", adaptable, response);
-    }
-
-    private static TestParameter<PolicyModifyCommandResponse<?>> deletePolicyImportEntryAdditionResponse() {
-        final DeletePolicyImportEntryAdditionResponse response =
-                DeletePolicyImportEntryAdditionResponse.of(Policies.POLICY_ID,
-                        Policies.IMPORTED_POLICY_ID, Policies.POLICY_ENTRY_LABEL, Policies.HEADERS);
-        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.DELETE,
-                JsonPointer.of("/imports/" + Policies.IMPORTED_POLICY_ID + "/entriesAdditions/" +
-                        Policies.POLICY_ENTRY_LABEL),
-                HttpStatus.NO_CONTENT);
-        return TestParameter.of("deletePolicyImportEntryAdditionResponse", adaptable, response);
-    }
-
     private static TestParameter<PolicyModifyCommandResponse<?>> deletePolicyImportsResponse() {
         final DeletePolicyImportsResponse response =
                 DeletePolicyImportsResponse.of(Policies.POLICY_ID, Policies.HEADERS);
@@ -332,48 +277,24 @@ public final class ParametrizedPolicyModifyCommandResponseAdapterTest
         return TestParameter.of("deletePolicyImportsResponse", adaptable, response);
     }
 
-    private static TestParameter<PolicyModifyCommandResponse<?>> modifyImportsAliasesResponse() {
-        final ModifyImportsAliasesResponse response =
-                ModifyImportsAliasesResponse.modified(Policies.POLICY_ID, Policies.HEADERS);
+    private static TestParameter<PolicyModifyCommandResponse<?>> modifyPolicyEntryReferencesResponse() {
+        final ModifyPolicyEntryReferencesResponse response =
+                ModifyPolicyEntryReferencesResponse.of(Policies.POLICY_ID,
+                        Policies.POLICY_ENTRY_LABEL, Policies.HEADERS);
         final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY,
-                JsonPointer.of("/importsAliases"), HttpStatus.NO_CONTENT);
-        return TestParameter.of("modifyImportsAliasesResponse", adaptable, response);
+                JsonPointer.of("/entries/" + Policies.POLICY_ENTRY_LABEL + "/references"),
+                HttpStatus.NO_CONTENT);
+        return TestParameter.of("modifyPolicyEntryReferencesResponse", adaptable, response);
     }
 
-    private static TestParameter<PolicyModifyCommandResponse<?>> modifyImportsAliasCreatedResponse() {
-        final ModifyImportsAliasResponse response =
-                ModifyImportsAliasResponse.created(Policies.POLICY_ID, Policies.IMPORTS_ALIAS,
-                        Policies.HEADERS);
-        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY,
-                JsonPointer.of("/importsAliases/" + Policies.IMPORTS_ALIAS_LABEL),
-                Policies.IMPORTS_ALIAS.toJson(FieldType.notHidden()), HttpStatus.CREATED);
-        return TestParameter.of("modifyImportsAliasCreatedResponse", adaptable, response);
-    }
-
-    private static TestParameter<PolicyModifyCommandResponse<?>> modifyImportsAliasModifiedResponse() {
-        final ModifyImportsAliasResponse response =
-                ModifyImportsAliasResponse.modified(Policies.POLICY_ID, Policies.IMPORTS_ALIAS_LABEL,
-                        Policies.HEADERS);
-        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY,
-                JsonPointer.of("/importsAliases/" + Policies.IMPORTS_ALIAS_LABEL), HttpStatus.NO_CONTENT);
-        return TestParameter.of("modifyImportsAliasModifiedResponse", adaptable, response);
-    }
-
-    private static TestParameter<PolicyModifyCommandResponse<?>> deleteImportsAliasResponse() {
-        final DeleteImportsAliasResponse response =
-                DeleteImportsAliasResponse.of(Policies.POLICY_ID, Policies.IMPORTS_ALIAS_LABEL,
-                        Policies.HEADERS);
+    private static TestParameter<PolicyModifyCommandResponse<?>> deletePolicyEntryReferencesResponse() {
+        final DeletePolicyEntryReferencesResponse response =
+                DeletePolicyEntryReferencesResponse.of(Policies.POLICY_ID,
+                        Policies.POLICY_ENTRY_LABEL, Policies.HEADERS);
         final Adaptable adaptable = TestConstants.adaptable(TopicPaths.DELETE,
-                JsonPointer.of("/importsAliases/" + Policies.IMPORTS_ALIAS_LABEL), HttpStatus.NO_CONTENT);
-        return TestParameter.of("deleteImportsAliasResponse", adaptable, response);
-    }
-
-    private static TestParameter<PolicyModifyCommandResponse<?>> deleteImportsAliasesResponse() {
-        final DeleteImportsAliasesResponse response =
-                DeleteImportsAliasesResponse.of(Policies.POLICY_ID, Policies.HEADERS);
-        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.DELETE,
-                JsonPointer.of("/importsAliases"), HttpStatus.NO_CONTENT);
-        return TestParameter.of("deleteImportsAliasesResponse", adaptable, response);
+                JsonPointer.of("/entries/" + Policies.POLICY_ENTRY_LABEL + "/references"),
+                HttpStatus.NO_CONTENT);
+        return TestParameter.of("deletePolicyEntryReferencesResponse", adaptable, response);
     }
 
 }

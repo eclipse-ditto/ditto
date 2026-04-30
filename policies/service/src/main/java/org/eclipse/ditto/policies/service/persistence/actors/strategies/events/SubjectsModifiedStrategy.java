@@ -30,7 +30,8 @@ final class SubjectsModifiedStrategy extends AbstractPolicyEventStrategy<Subject
                         sm.getSubjects(), policyEntry.getResources(),
                         policyEntry.getNamespaces().orElse(null),
                         policyEntry.getImportableType(),
-                        policyEntry.getAllowedImportAdditions().orElse(null)))
+                        policyEntry.getAllowedAdditions().orElse(null),
+                        policyEntry.getReferences().isEmpty() ? null : policyEntry.getReferences()))
                 .map(policyBuilder::set)
                 .orElse(policyBuilder.setSubjectsFor(sm.getLabel(), sm.getSubjects()));
     }

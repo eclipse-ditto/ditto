@@ -23,8 +23,6 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.policies.model.Label;
-import org.eclipse.ditto.policies.model.signals.commands.exceptions.ImportsAliasConflictException;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
@@ -66,18 +64,6 @@ final class ModifyPolicyEntriesStrategy extends AbstractPolicyCommandStrategy<Mo
         final Iterable<PolicyEntry> policyEntries = command.getPolicyEntries();
         final DittoHeaders headers = command.getDittoHeaders();
 
-        // Reject if any new entry label conflicts with an existing imports alias
-        for (final PolicyEntry entry : policyEntries) {
-            final Label entryLabel = entry.getLabel();
-            if (nonNullPolicy.getImportsAliases().getAlias(entryLabel).isPresent()) {
-                return ResultFactory.newErrorResult(
-                        ImportsAliasConflictException.newBuilder(entryLabel)
-                                .dittoHeaders(headers)
-                                .build(),
-                        command);
-            }
-        }
-
         final JsonObject policyEntriesJsonObject = StreamSupport.stream(policyEntries.spliterator(), false)
                 .map(policyEntry -> JsonFactory.newObject(JsonPointer.of(policyEntry.getLabel()), policyEntry.toJson()))
                 .collect(JsonCollectors.objectsToObject());
@@ -97,7 +83,22 @@ final class ModifyPolicyEntriesStrategy extends AbstractPolicyCommandStrategy<Mo
             return alreadyExpiredSubject.get();
         }
 
-        final PoliciesValidator validator = PoliciesValidator.newInstance(adjustedEntries);
+        final Optional<Result<PolicyEvent<?>>> invalidReferences =
+                validateReferencesIntegrity(context.getState(), adjustedEntries, nonNullPolicy,
+                        commandHeaders, command);
+        if (invalidReferences.isPresent()) {
+            return invalidReferences.get();
+        }
+
+        // Build a candidate policy carrying the new entries so PoliciesValidator can resolve local
+        // references before checking the WRITE-on-policy:/ invariant — otherwise a payload that
+        // splits the admin subject and the WRITE grant across mutually-referencing entries would
+        // be rejected here while the same payload via PUT /policies/{id} succeeds.
+        final Policy candidatePolicy = nonNullPolicy.toBuilder()
+                .removeAll(nonNullPolicy.getEntriesSet())
+                .setAll(adjustedEntries)
+                .build();
+        final PoliciesValidator validator = PoliciesValidator.newInstance(candidatePolicy);
 
         if (validator.isValid()) {
             final PolicyId policyId = context.getState();

@@ -161,7 +161,7 @@ delete:
   summary: Delete all imports of a specific policy
   description: |-
     Removes all imports from the policy identified by the `policyId` path parameter.
-    If any imports alias references an import, the deletion is rejected.
+    If any entry references point to an import, the deletion is rejected.
   tags:
     - Policies
   parameters:
@@ -207,8 +207,8 @@ delete:
             $ref: '../../schemas/errors/advancedError.yml'
     '409':
       description: |-
-        The request could not be completed. An imports alias still references one of the imports.
-        Remove the imports alias first before deleting imports.
+        The request could not be completed. An entry reference still points to one of the imports.
+        Remove the entry references first before deleting imports.
       content:
         application/json:
           schema:

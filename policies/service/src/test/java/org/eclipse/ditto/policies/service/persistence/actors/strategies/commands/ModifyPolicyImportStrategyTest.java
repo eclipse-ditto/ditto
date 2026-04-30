@@ -14,9 +14,19 @@ package org.eclipse.ditto.policies.service.persistence.actors.strategies.command
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
+
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.policies.model.EffectedImports;
+import org.eclipse.ditto.policies.model.ImportableType;
+import org.eclipse.ditto.policies.model.Label;
+import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyImport;
+import org.eclipse.ditto.policies.model.PolicyImports;
+import org.eclipse.ditto.policies.model.Subject;
+import org.eclipse.ditto.policies.model.SubjectIssuer;
+import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyImportReferenceConflictException;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImport;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyImportCreated;
@@ -80,5 +90,38 @@ public final class ModifyPolicyImportStrategyTest extends AbstractPolicyCommandS
                 response -> {
                 }
         );
+    }
+
+    @Test
+    public void modifyPolicyImportRejectsRemovingLabelStillReferencedByEntry() {
+        // Build a policy whose driver entry references the imported "driver" entry, with the
+        // import filter currently containing both "driver" and "guest". The modification removes
+        // "driver" from the filter — that would orphan the existing reference.
+        final var importedPolicyId = TestConstants.Policy.POLICY_IMPORT_ID;
+        final var policyId = TestConstants.Policy.POLICY_ID;
+        final EffectedImports oldFilter = PoliciesModelFactory.newEffectedImportedLabels(
+                List.of(Label.of("driver"), Label.of("guest")));
+        final EffectedImports newFilter = PoliciesModelFactory.newEffectedImportedLabels(
+                List.of(Label.of("guest")));
+
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
+                .setSubjectFor("admin", Subject.newInstance(SubjectIssuer.GOOGLE, "admin"))
+                .setGrantedPermissionsFor("admin", "policy", "/", "READ", "WRITE")
+                .setSubjectFor("driver", Subject.newInstance(SubjectIssuer.GOOGLE, "driver"))
+                .setGrantedPermissionsFor("driver", "thing", "/", "READ")
+                .setReferencesFor("driver", List.of(
+                        PoliciesModelFactory.newEntryReference(importedPolicyId, Label.of("driver"))))
+                .setPolicyImports(PolicyImports.newInstance(
+                        PolicyImport.newInstance(importedPolicyId, oldFilter)))
+                .build();
+
+        final ModifyPolicyImport command = ModifyPolicyImport.of(policyId,
+                PolicyImport.newInstance(importedPolicyId, newFilter), DittoHeaders.empty());
+
+        assertErrorResult(underTest, policy, command,
+                PolicyImportReferenceConflictException.newBuilder(policyId, importedPolicyId)
+                        .description("Removing label 'driver' from this import's filter would orphan the " +
+                                "reference from entry 'driver'.")
+                        .build());
     }
 }

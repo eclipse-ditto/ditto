@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -368,13 +369,13 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
      * Sets the allowed import additions for the specified label.
      *
      * @param label the label identifying the PolicyEntry to modify.
-     * @param allowedImportAdditions the set of allowed import additions to set.
+     * @param allowedAdditions the set of allowed import additions to set.
      * @return a copy of this Policy with the changed state.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code label} is empty.
      * @since 3.9.0
      */
-    Policy setAllowedImportAdditionsFor(CharSequence label, Set<AllowedImportAddition> allowedImportAdditions);
+    Policy setAllowedAdditionsFor(CharSequence label, Set<AllowedAddition> allowedAdditions);
 
     /**
      * Sets the namespace patterns for the specified label.
@@ -409,54 +410,6 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
      * @since 3.1.0
      */
     PolicyImports getPolicyImports();
-
-    /**
-     * Returns the {@link ImportsAliases} of this Policy.
-     *
-     * @return the imports aliases of this Policy.
-     * @since 3.9.0
-     */
-    ImportsAliases getImportsAliases();
-
-    /**
-     * Returns the {@link ImportsAlias} for the given label, if present.
-     *
-     * @param label the label of the imports alias to retrieve.
-     * @return the imports alias, or empty if not present.
-     * @throws NullPointerException if {@code label} is {@code null}.
-     * @since 3.9.0
-     */
-    Optional<ImportsAlias> getImportsAlias(Label label);
-
-    /**
-     * Sets the given {@link ImportsAlias} to a copy of this Policy. A previous alias with the same label is replaced.
-     *
-     * @param alias the imports alias to set.
-     * @return a copy of this Policy with the alias set.
-     * @throws NullPointerException if {@code alias} is {@code null}.
-     * @since 3.9.0
-     */
-    Policy setImportsAlias(ImportsAlias alias);
-
-    /**
-     * Removes the imports alias identified by the given label from this Policy.
-     *
-     * @param label the label of the alias to remove.
-     * @return a copy of this Policy without the identified alias.
-     * @throws NullPointerException if {@code label} is {@code null}.
-     * @since 3.9.0
-     */
-    Policy removeImportsAlias(Label label);
-
-    /**
-     * Sets the given {@link ImportsAliases} to a copy of this Policy, replacing all existing aliases.
-     *
-     * @param importsAliases the imports aliases to set.
-     * @return a copy of this Policy with the aliases set.
-     * @throws NullPointerException if {@code importsAliases} is {@code null}.
-     * @since 3.9.0
-     */
-    Policy setImportsAliases(ImportsAliases importsAliases);
 
     /**
      * Returns the entries of this Policy as set. The returned set is modifiable but disjoint from this Policy; thus
@@ -513,13 +466,46 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
 
     default CompletionStage<Policy> withResolvedImports(
             final Function<PolicyId, CompletionStage<Optional<Policy>>> policyResolver) {
+        return withResolvedImports(policyResolver, (entry, ref) -> { /* no-op */ });
+    }
+
+    /**
+     * Variant of {@link #withResolvedImports(Function)} that invokes {@code onMissingReference} once per
+     * entry reference that cannot be resolved at resolution time. Higher layers (e.g. enforcement) can
+     * pass a logging callback to surface the silent skip without the model module taking a logging
+     * dependency.
+     *
+     * @param policyResolver a function to load imported policies.
+     * @param onMissingReference invoked once per missing reference; never null.
+     * @return a policy with imports merged and references resolved.
+     * @since 3.9.0
+     */
+    default CompletionStage<Policy> withResolvedImports(
+            final Function<PolicyId, CompletionStage<Optional<Policy>>> policyResolver,
+            final BiConsumer<PolicyEntry, EntryReference> onMissingReference) {
         final CompletionStage<Policy> result;
         final PolicyImports imports = getPolicyImports();
         if (!imports.isEmpty()) {
+            final Policy self = this;
             result = PolicyImporter.mergeImportedPolicyEntries(this, policyResolver)
-                    .thenApply(mergedEntries -> this.toBuilder().setAll(mergedEntries).build());
+                    .thenApply(mergedEntries -> {
+                        final Set<PolicyEntry> resolved =
+                                PolicyImporter.resolveReferences(self, mergedEntries, onMissingReference);
+                        return self.toBuilder().setAll(resolved).build();
+                    });
         } else {
-            result = CompletableFuture.completedFuture(this);
+            // Even without imports, local references between entries must be resolved
+            final boolean hasReferences = java.util.stream.StreamSupport
+                    .stream(this.spliterator(), false)
+                    .anyMatch(entry -> !entry.getReferences().isEmpty());
+            if (hasReferences) {
+                final Set<PolicyEntry> resolved =
+                        PolicyImporter.resolveReferences(this, this.getEntriesSet(), onMissingReference);
+                result = CompletableFuture.completedFuture(
+                        this.toBuilder().setAll(resolved).build());
+            } else {
+                result = CompletableFuture.completedFuture(this);
+            }
         }
         return result;
     }
@@ -591,14 +577,6 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
          */
         public static final JsonFieldDefinition<JsonObject> ENTRIES =
                 JsonFactory.newJsonObjectFieldDefinition("entries", FieldType.REGULAR, JsonSchemaVersion.V_2);
-
-        /**
-         * JSON field containing the Policy's imports aliases.
-         *
-         * @since 3.9.0
-         */
-        public static final JsonFieldDefinition<JsonObject> IMPORTS_ALIASES =
-                JsonFactory.newJsonObjectFieldDefinition("importsAliases", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Policy's metadata.

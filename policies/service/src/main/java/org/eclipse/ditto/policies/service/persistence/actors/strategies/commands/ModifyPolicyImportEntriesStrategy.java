@@ -14,20 +14,23 @@ package org.eclipse.ditto.policies.service.persistence.actors.strategies.command
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.LinkedHashSet;
 import java.util.Optional;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.policies.model.EffectedImports;
-import org.eclipse.ditto.policies.model.EntriesAdditions;
 import org.eclipse.ditto.policies.model.ImportedLabels;
+import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
@@ -64,45 +67,62 @@ final class ModifyPolicyImportEntriesStrategy
 
         final Optional<PolicyImport> optionalImport =
                 nonNullPolicy.getPolicyImports().getPolicyImport(importedPolicyId);
-        if (optionalImport.isPresent()) {
-            final PolicyImport existingImport = optionalImport.get();
-            final PolicyImport newImport = reconstructImportWithEntries(existingImport, importedLabels);
-            nonNullPolicy.toBuilder().setPolicyImport(newImport).build();
-
-            final PolicyImportEntriesModified event =
-                    PolicyImportEntriesModified.of(policyId, importedPolicyId, importedLabels,
-                            nextRevision, getEventTimestamp(), dittoHeaders, metadata);
-            final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                    ModifyPolicyImportEntriesResponse.modified(policyId, importedPolicyId,
-                            createCommandResponseDittoHeaders(dittoHeaders, nextRevision)),
-                    nonNullPolicy);
-            return ResultFactory.newMutationResult(command, event, response);
-        } else {
+        if (optionalImport.isEmpty()) {
             return ResultFactory.newErrorResult(
                     policyImportNotFound(policyId, importedPolicyId, dittoHeaders), command);
         }
+        final PolicyImport existingImport = optionalImport.get();
+        final Set<Label> oldLabels = labelsOf(existingImport);
+        final Set<Label> newLabels = new LinkedHashSet<>(importedLabels);
+        final Optional<DittoRuntimeException> orphanError =
+                checkLabelNarrowingDoesNotOrphan(policyId, nonNullPolicy, importedPolicyId,
+                        oldLabels, newLabels, dittoHeaders);
+        if (orphanError.isPresent()) {
+            return ResultFactory.newErrorResult(orphanError.get(), command);
+        }
+
+        final PolicyImport newImport = reconstructImportWithEntries(existingImport, importedLabels);
+        final Policy newPolicy = nonNullPolicy.toBuilder().setPolicyImport(newImport).build();
+
+        final PolicyImportEntriesModified event =
+                PolicyImportEntriesModified.of(policyId, importedPolicyId, importedLabels,
+                        nextRevision, getEventTimestamp(), dittoHeaders, metadata);
+        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+                ModifyPolicyImportEntriesResponse.modified(policyId, importedPolicyId,
+                        createCommandResponseDittoHeaders(dittoHeaders, nextRevision)),
+                newPolicy);
+        return ResultFactory.newMutationResult(command, event, response);
     }
 
     private static PolicyImport reconstructImportWithEntries(final PolicyImport existingImport,
             final ImportedLabels newLabels) {
 
-        final EntriesAdditions entriesAdditions = existingImport.getEffectedImports()
-                .flatMap(EffectedImports::getEntriesAdditions)
-                .orElse(PoliciesModelFactory.emptyEntriesAdditions());
-        final EffectedImports newEffectedImports =
-                PoliciesModelFactory.newEffectedImportedLabels(newLabels, entriesAdditions);
-        return PoliciesModelFactory.newPolicyImport(existingImport.getImportedPolicyId(), newEffectedImports);
+        // Preserve the existing transitiveImports — only the imported-labels filter is being modified.
+        return PoliciesModelFactory.newPolicyImport(existingImport.getImportedPolicyId(),
+                PoliciesModelFactory.newEffectedImportedLabels(newLabels, existingImport.getTransitiveImports()));
+    }
+
+    private static Set<Label> labelsOf(final PolicyImport policyImport) {
+        final Set<Label> labels = new LinkedHashSet<>();
+        policyImport.getEffectedImports()
+                .map(EffectedImports::getImportedLabels)
+                .ifPresent(labels::addAll);
+        return labels;
     }
 
     @Override
     public Optional<EntityTag> previousEntityTag(final ModifyPolicyImportEntries command,
             @Nullable final Policy previousEntity) {
-        return Optional.empty();
+        return Optional.ofNullable(previousEntity)
+                .flatMap(p -> p.getPolicyImports().getPolicyImport(command.getImportedPolicyId()))
+                .flatMap(EntityTag::fromEntity);
     }
 
     @Override
     public Optional<EntityTag> nextEntityTag(final ModifyPolicyImportEntries command,
             @Nullable final Policy newEntity) {
-        return Optional.empty();
+        return Optional.ofNullable(newEntity)
+                .flatMap(p -> p.getPolicyImports().getPolicyImport(command.getImportedPolicyId()))
+                .flatMap(EntityTag::fromEntity);
     }
 }

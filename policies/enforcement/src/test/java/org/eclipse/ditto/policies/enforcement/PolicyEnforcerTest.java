@@ -21,7 +21,7 @@ import java.util.Set;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.policies.api.Permission;
-import org.eclipse.ditto.policies.model.AllowedImportAddition;
+import org.eclipse.ditto.policies.model.AllowedAddition;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.ImportableType;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
@@ -100,6 +100,6 @@ public final class PolicyEnforcerTest {
                                 PoliciesModelFactory.noPermissions()))),
                 namespaces,
                 ImportableType.IMPLICIT,
-                Collections.<AllowedImportAddition>emptySet());
+                Collections.<AllowedAddition>emptySet());
     }
 }

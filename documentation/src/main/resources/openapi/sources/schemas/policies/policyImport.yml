@@ -21,18 +21,7 @@ properties:
     items:
       type: string
       description: Label of a policy entry to import from the referenced policy.
-  entriesAdditions:
-    $ref: 'entriesAdditions.yml'
   transitiveImports:
     $ref: 'transitiveImports.yml'
 example:
   entries: [ "default", "import" ]
-  entriesAdditions:
-    default:
-      subjects:
-        "integration:my-connection":
-          type: "generated"
-      resources:
-        "thing:/features":
-          grant: [ "READ" ]
-          revoke: []

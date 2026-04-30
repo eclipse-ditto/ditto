@@ -16,10 +16,14 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Optional;
 
+import java.util.LinkedHashSet;
+import java.util.Set;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
@@ -27,6 +31,8 @@ import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.policies.model.EffectedImports;
+import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyImport;
@@ -67,9 +73,23 @@ final class ModifyPolicyImportStrategy extends AbstractPolicyCommandStrategy<Mod
         final PolicyId policyId = context.getState();
         final PolicyId importedPolicyId = policyImport.getImportedPolicyId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
+
+        // If this is an update (not a create), reject any reduction of the imported labels filter
+        // that would orphan an existing entry reference targeting one of the removed labels.
+        final Optional<PolicyImport> existingImportOpt =
+                nonNullPolicy.getPolicyImports().getPolicyImport(importedPolicyId);
+        if (existingImportOpt.isPresent()) {
+            final Optional<DittoRuntimeException> orphanError =
+                    checkLabelNarrowingDoesNotOrphan(policyId, nonNullPolicy, importedPolicyId,
+                            labelsOf(existingImportOpt.get()), labelsOf(policyImport), dittoHeaders);
+            if (orphanError.isPresent()) {
+                return ResultFactory.newErrorResult(orphanError.get(), command);
+            }
+        }
+
         final PolicyEvent<?> eventToPersist;
         final ModifyPolicyImportResponse createdOrModifiedResponse;
-        if (nonNullPolicy.getPolicyImports().getPolicyImport(importedPolicyId).isPresent()) {
+        if (existingImportOpt.isPresent()) {
             eventToPersist =
                     PolicyImportModified.of(policyId, policyImport, nextRevision, getEventTimestamp(), dittoHeaders,
                             metadata);
@@ -86,6 +106,14 @@ final class ModifyPolicyImportStrategy extends AbstractPolicyCommandStrategy<Mod
         }
         final WithDittoHeaders response = appendETagHeaderIfProvided(command, createdOrModifiedResponse, nonNullPolicy);
         return ResultFactory.newMutationResult(command, eventToPersist, response);
+    }
+
+    private static Set<Label> labelsOf(final PolicyImport policyImport) {
+        final Set<Label> labels = new LinkedHashSet<>();
+        policyImport.getEffectedImports()
+                .map(EffectedImports::getImportedLabels)
+                .ifPresent(labels::addAll);
+        return labels;
     }
 
     @Override

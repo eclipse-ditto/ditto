@@ -94,7 +94,7 @@ public class SubjectsModifiedStrategyUpdateTest extends AbstractPolicyEventStrat
         final PolicyEntry supportEntry = policy.getEntryFor(SUPPORT_LABEL).orElseThrow();
         final PolicyEntry scopedSupportEntry = PoliciesModelFactory.newPolicyEntry(supportEntry.getLabel(),
                 supportEntry.getSubjects(), supportEntry.getResources(), SCOPED_NAMESPACES,
-                supportEntry.getImportableType(), supportEntry.getAllowedImportAdditions().orElse(null));
+                supportEntry.getImportableType(), supportEntry.getAllowedAdditions().orElse(null));
         return PoliciesModelFactory.newPolicyBuilder(policy)
                 .set(scopedSupportEntry)
                 .build();

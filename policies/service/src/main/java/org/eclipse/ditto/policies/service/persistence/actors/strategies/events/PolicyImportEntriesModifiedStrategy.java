@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.policies.service.persistence.actors.strategies.events;
 
-import org.eclipse.ditto.policies.model.EffectedImports;
-import org.eclipse.ditto.policies.model.EntriesAdditions;
 import org.eclipse.ditto.policies.model.ImportedLabels;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
@@ -44,12 +42,10 @@ final class PolicyImportEntriesModifiedStrategy
 
     private static PolicyImport reconstructImportWithEntries(final PolicyImport existingImport,
             final ImportedLabels newLabels) {
-        final EntriesAdditions entriesAdditions = existingImport.getEffectedImports()
-                .flatMap(EffectedImports::getEntriesAdditions)
-                .orElse(PoliciesModelFactory.emptyEntriesAdditions());
-        final EffectedImports newEffectedImports =
-                PoliciesModelFactory.newEffectedImportedLabels(newLabels, entriesAdditions);
-        return PoliciesModelFactory.newPolicyImport(existingImport.getImportedPolicyId(), newEffectedImports);
+        // Preserve the existing transitiveImports — only the imported-labels filter is modified.
+        return PoliciesModelFactory.newPolicyImport(existingImport.getImportedPolicyId(),
+                PoliciesModelFactory.newEffectedImportedLabels(newLabels,
+                        existingImport.getTransitiveImports()));
     }
 
 }

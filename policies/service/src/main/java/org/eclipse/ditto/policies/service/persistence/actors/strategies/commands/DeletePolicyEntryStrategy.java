@@ -28,6 +28,7 @@ import org.eclipse.ditto.policies.api.PoliciesValidator;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyEntryReferenceConflictException;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntry;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntryResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEntryDeleted;
@@ -56,24 +57,33 @@ final class DeletePolicyEntryStrategy extends AbstractPolicyCommandStrategy<Dele
         final Label label = command.getLabel();
         final PolicyId policyId = context.getState();
 
-        if (nonNullPolicy.contains(label)) {
-            final PoliciesValidator validator = PoliciesValidator.newInstance(nonNullPolicy.removeEntry(label));
-
-            if (validator.isValid()) {
-                final PolicyEntryDeleted policyEntryDeleted =
-                        PolicyEntryDeleted.of(policyId, label, nextRevision, getEventTimestamp(), dittoHeaders,
-                                metadata);
-                final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                        DeletePolicyEntryResponse.of(policyId, label,
-                                createCommandResponseDittoHeaders(dittoHeaders, nextRevision)
-                        ), nonNullPolicy);
-                return ResultFactory.newMutationResult(command, policyEntryDeleted, response);
-            } else {
-                return ResultFactory.newErrorResult(
-                        policyEntryInvalid(policyId, label, validator.getReason().orElse(null), dittoHeaders), command);
-            }
-        } else {
+        if (!nonNullPolicy.contains(label)) {
             return ResultFactory.newErrorResult(policyEntryNotFound(policyId, label, dittoHeaders), command);
+        }
+
+        final Optional<Label> referencingEntry = findEntryWithLocalReferenceTo(nonNullPolicy, label);
+        if (referencingEntry.isPresent()) {
+            return ResultFactory.newErrorResult(
+                    PolicyEntryReferenceConflictException.newBuilder(policyId, label, referencingEntry.get())
+                            .dittoHeaders(dittoHeaders)
+                            .build(),
+                    command);
+        }
+
+        final PoliciesValidator validator = PoliciesValidator.newInstance(nonNullPolicy.removeEntry(label));
+
+        if (validator.isValid()) {
+            final PolicyEntryDeleted policyEntryDeleted =
+                    PolicyEntryDeleted.of(policyId, label, nextRevision, getEventTimestamp(), dittoHeaders,
+                            metadata);
+            final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+                    DeletePolicyEntryResponse.of(policyId, label,
+                            createCommandResponseDittoHeaders(dittoHeaders, nextRevision)
+                    ), nonNullPolicy);
+            return ResultFactory.newMutationResult(command, policyEntryDeleted, response);
+        } else {
+            return ResultFactory.newErrorResult(
+                    policyEntryInvalid(policyId, label, validator.getReason().orElse(null), dittoHeaders), command);
         }
     }
 

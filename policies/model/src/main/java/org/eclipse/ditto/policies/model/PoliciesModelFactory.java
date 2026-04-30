@@ -19,6 +19,7 @@ import static org.eclipse.ditto.base.model.exceptions.DittoJsonException.wrapJso
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -541,7 +542,7 @@ public final class PoliciesModelFactory {
      * @param subjects the Subjects contained in the PolicyEntry to create.
      * @param resources the Resources of the PolicyEntry to create.
      * @param importable whether and how the entry is importable by others.
-     * @param allowedImportAdditions which types of additions are allowed when importing this entry.
+     * @param allowedAdditions which types of additions are allowed when importing this entry.
      * @return the new Policy entry.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code label} is empty.
@@ -549,9 +550,9 @@ public final class PoliciesModelFactory {
      */
     public static PolicyEntry newPolicyEntry(final CharSequence label, final Iterable<Subject> subjects,
             final Iterable<Resource> resources, final ImportableType importable,
-            final Set<AllowedImportAddition> allowedImportAdditions) {
+            final Set<AllowedAddition> allowedAdditions) {
         return ImmutablePolicyEntry.of(Label.of(label), newSubjects(subjects), newResources(resources), importable,
-                allowedImportAdditions);
+                allowedAdditions);
     }
 
     /**
@@ -564,7 +565,7 @@ public final class PoliciesModelFactory {
      * @param namespaces the namespace patterns restricting which thing namespaces this entry applies to, or
      * {@code null} if the field is absent (never configured).
      * @param importable whether and how the entry is importable by others.
-     * @param allowedImportAdditions which types of additions are allowed when importing this entry, or {@code null}
+     * @param allowedAdditions which types of additions are allowed when importing this entry, or {@code null}
      * if the field is absent (never configured).
      * @return the new Policy entry.
      * @throws NullPointerException if {@code label}, {@code subjects}, {@code resources} or {@code importable} is
@@ -574,9 +575,129 @@ public final class PoliciesModelFactory {
      */
     public static PolicyEntry newPolicyEntry(final CharSequence label, final Iterable<Subject> subjects,
             final Iterable<Resource> resources, @Nullable final List<String> namespaces,
-            final ImportableType importable, @Nullable final Set<AllowedImportAddition> allowedImportAdditions) {
+            final ImportableType importable, @Nullable final Set<AllowedAddition> allowedAdditions) {
         return ImmutablePolicyEntry.of(Label.of(label), newSubjects(subjects), newResources(resources), namespaces,
-                importable, allowedImportAdditions);
+                importable, allowedAdditions);
+    }
+
+    /**
+     * Returns a new immutable {@link PolicyEntry} with all fields including entry references.
+     *
+     * @param label the Label of the PolicyEntry to create.
+     * @param subjects the Subjects contained in the PolicyEntry to create.
+     * @param resources the Resources of the PolicyEntry to create.
+     * @param namespaces the namespace patterns, or {@code null} if absent.
+     * @param importable whether and how the entry is importable by others.
+     * @param allowedAdditions which types of additions are allowed, or {@code null} if absent.
+     * @param references the list of entry references, or {@code null} if absent.
+     * @return the new Policy entry.
+     * @throws NullPointerException if {@code label}, {@code subjects}, {@code resources} or {@code importable} is
+     * {@code null}.
+     * @throws IllegalArgumentException if {@code label} is empty.
+     * @since 3.9.0
+     */
+    public static PolicyEntry newPolicyEntry(final CharSequence label, final Iterable<Subject> subjects,
+            final Iterable<Resource> resources, @Nullable final List<String> namespaces,
+            final ImportableType importable, @Nullable final Set<AllowedAddition> allowedAdditions,
+            @Nullable final List<EntryReference> references) {
+        return ImmutablePolicyEntry.of(Label.of(label), newSubjects(subjects), newResources(resources), namespaces,
+                importable, allowedAdditions, references);
+    }
+
+    /**
+     * Returns a new import {@link EntryReference} pointing to an entry in an imported policy.
+     *
+     * @param importedPolicyId the ID of the imported policy.
+     * @param entryLabel the label of the entry within the imported policy.
+     * @return the new EntryReference.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 3.9.0
+     */
+    public static EntryReference newEntryReference(final PolicyId importedPolicyId, final Label entryLabel) {
+        return ImmutableEntryReference.of(importedPolicyId, entryLabel);
+    }
+
+    /**
+     * Returns a new local {@link EntryReference} pointing to an entry within the same policy.
+     *
+     * @param entryLabel the label of the local entry.
+     * @return the new EntryReference.
+     * @throws NullPointerException if {@code entryLabel} is {@code null}.
+     * @since 3.9.0
+     */
+    public static EntryReference newLocalEntryReference(final Label entryLabel) {
+        return ImmutableEntryReference.ofLocal(entryLabel);
+    }
+
+    /**
+     * Creates a new {@link EntryReference} from the specified JSON object.
+     *
+     * @param jsonObject the JSON object providing the data.
+     * @return a new EntryReference.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @since 3.9.0
+     */
+    public static EntryReference newEntryReference(final JsonObject jsonObject) {
+        return ImmutableEntryReference.fromJson(jsonObject);
+    }
+
+    /**
+     * Parses a {@link JsonArray} into a {@link Set} of {@link AllowedAddition} values. Every element must be a
+     * string matching one of the {@link AllowedAddition} names; {@link PolicyEntryInvalidException} is thrown
+     * for any element that is not a string or is not a recognised name.
+     *
+     * @param jsonArray the JSON array to parse.
+     * @return the set of parsed allowed additions, preserving insertion order.
+     * @throws PolicyEntryInvalidException if any element is not a string or is not a valid {@link AllowedAddition}
+     * name.
+     * @since 3.9.0
+     */
+    public static Set<AllowedAddition> parseAllowedAdditions(final JsonArray jsonArray) {
+        final Set<AllowedAddition> result = new LinkedHashSet<>(jsonArray.getSize());
+        int index = 0;
+        for (final JsonValue element : jsonArray) {
+            if (!element.isString()) {
+                throw PolicyEntryInvalidException.newBuilder()
+                        .description("The 'allowedAdditions' array contains a non-string element at index " +
+                                index + ": " + element + ". Every element must be a string from " +
+                                Arrays.toString(AllowedAddition.values()) + ".")
+                        .build();
+            }
+            final String value = element.asString();
+            result.add(AllowedAddition.forName(value)
+                    .orElseThrow(() -> PolicyEntryInvalidException.newBuilder()
+                            .description("The value '" + value + "' is not a valid allowedAddition. " +
+                                    "Valid values are: " + Arrays.toString(AllowedAddition.values()) + ".")
+                            .build()));
+            index++;
+        }
+        return Collections.unmodifiableSet(result);
+    }
+
+    /**
+     * Parses a {@link JsonArray} into a list of {@link EntryReference}s, validating that every element is a
+     * JSON object. Throws {@link PolicyEntryInvalidException} if any element is not an object.
+     *
+     * @param jsonArray the JSON array to parse.
+     * @return the list of parsed entry references.
+     * @throws PolicyEntryInvalidException if any element is not a JSON object.
+     * @since 3.9.0
+     */
+    public static List<EntryReference> parseEntryReferences(final JsonArray jsonArray) {
+        final List<EntryReference> result = new ArrayList<>(jsonArray.getSize());
+        int index = 0;
+        for (final JsonValue element : jsonArray) {
+            if (!element.isObject()) {
+                throw PolicyEntryInvalidException.newBuilder()
+                        .description("The 'references' array contains a non-object element at index " + index +
+                                ": " + element + ". Every element must be a JSON object with at least an " +
+                                "'entry' field.")
+                        .build();
+            }
+            result.add(ImmutableEntryReference.fromJson(element.asObject()));
+            index++;
+        }
+        return result;
     }
 
     /**
@@ -757,169 +878,6 @@ public final class PoliciesModelFactory {
     }
 
     /**
-     * Returns a new {@link EntryAddition} with the given parameters.
-     *
-     * @param label the label of the imported policy entry this addition applies to.
-     * @param subjects the additional subjects, or {@code null}.
-     * @param resources the additional resources, or {@code null}.
-     * @return the new {@code EntryAddition}.
-     * @throws NullPointerException if {@code label} is {@code null}.
-     * @since 3.9.0
-     */
-    public static EntryAddition newEntryAddition(final Label label, @Nullable final Subjects subjects,
-            @Nullable final Resources resources) {
-        return ImmutableEntryAddition.of(label, subjects, resources);
-    }
-
-    /**
-     * Returns a new {@link EntryAddition} with the given subjects, resources, and namespace patterns.
-     *
-     * @param label the label of the imported policy entry this addition applies to.
-     * @param subjects the additional subjects, or {@code null}.
-     * @param resources the additional resources, or {@code null}.
-     * @param namespaces the additional namespace patterns, or {@code null}.
-     * @return the new {@code EntryAddition}.
-     * @throws NullPointerException if {@code label} is {@code null}.
-     * @since 3.9.0
-     */
-    public static EntryAddition newEntryAddition(final Label label, @Nullable final Subjects subjects,
-            @Nullable final Resources resources, @Nullable final List<String> namespaces) {
-        return ImmutableEntryAddition.of(label, subjects, resources, namespaces);
-    }
-
-    /**
-     * Returns a new {@link EntryAddition} parsed from the given label and JSON object.
-     *
-     * @param label the label of the imported policy entry this addition applies to.
-     * @param jsonObject the JSON object representation of the entry addition.
-     * @return the new {@code EntryAddition}.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @since 3.9.0
-     */
-    public static EntryAddition newEntryAddition(final Label label, final JsonObject jsonObject) {
-        return ImmutableEntryAddition.fromJson(label, jsonObject);
-    }
-
-    /**
-     * Returns a new {@link EntriesAdditions} containing the given entry additions.
-     *
-     * @param additions the entry additions.
-     * @return the new {@code EntriesAdditions}.
-     * @throws NullPointerException if {@code additions} is {@code null}.
-     * @since 3.9.0
-     */
-    public static EntriesAdditions newEntriesAdditions(final Iterable<EntryAddition> additions) {
-        return ImmutableEntriesAdditions.of(additions);
-    }
-
-    /**
-     * Returns a new {@link EntriesAdditions} parsed from the given JSON object.
-     *
-     * @param jsonObject the JSON object representation of the entries additions.
-     * @return the new {@code EntriesAdditions}.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
-     * @since 3.9.0
-     */
-    public static EntriesAdditions newEntriesAdditions(final JsonObject jsonObject) {
-        return ImmutableEntriesAdditions.fromJson(jsonObject);
-    }
-
-    /**
-     * Returns a new empty {@link EntriesAdditions}.
-     *
-     * @return the empty {@code EntriesAdditions}.
-     * @since 3.9.0
-     */
-    public static EntriesAdditions emptyEntriesAdditions() {
-        return ImmutableEntriesAdditions.empty();
-    }
-
-    /**
-     * Returns a new {@link ImportsAliasTarget} with the given parameters.
-     *
-     * @param importedPolicyId the ID of the imported policy.
-     * @param entryLabel the label of the entry within the import's entries additions.
-     * @return the new {@code ImportsAliasTarget}.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @since 3.9.0
-     */
-    public static ImportsAliasTarget newImportsAliasTarget(final PolicyId importedPolicyId, final Label entryLabel) {
-        return ImmutableImportsAliasTarget.of(importedPolicyId, entryLabel);
-    }
-
-    /**
-     * Returns a new {@link ImportsAliasTarget} parsed from the given JSON object.
-     *
-     * @param jsonObject the JSON object representation of the target.
-     * @return the new {@code ImportsAliasTarget}.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
-     * @since 3.9.0
-     */
-    public static ImportsAliasTarget newImportsAliasTarget(final JsonObject jsonObject) {
-        return ImmutableImportsAliasTarget.fromJson(jsonObject);
-    }
-
-    /**
-     * Returns a new {@link ImportsAlias} with the given parameters.
-     *
-     * @param label the alias label.
-     * @param targets the list of targets.
-     * @return the new {@code ImportsAlias}.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @since 3.9.0
-     */
-    public static ImportsAlias newImportsAlias(final Label label, final List<ImportsAliasTarget> targets) {
-        return ImmutableImportsAlias.of(label, targets);
-    }
-
-    /**
-     * Returns a new {@link ImportsAlias} parsed from the given label and JSON object.
-     *
-     * @param label the alias label.
-     * @param jsonObject the JSON object representation of the alias.
-     * @return the new {@code ImportsAlias}.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @since 3.9.0
-     */
-    public static ImportsAlias newImportsAlias(final Label label, final JsonObject jsonObject) {
-        return ImmutableImportsAlias.fromJson(label, jsonObject);
-    }
-
-    /**
-     * Returns a new {@link ImportsAliases} containing the given aliases.
-     *
-     * @param aliases the imports aliases.
-     * @return the new {@code ImportsAliases}.
-     * @throws NullPointerException if {@code aliases} is {@code null}.
-     * @since 3.9.0
-     */
-    public static ImportsAliases newImportsAliases(final Iterable<ImportsAlias> aliases) {
-        return ImmutableImportsAliases.of(aliases);
-    }
-
-    /**
-     * Returns a new {@link ImportsAliases} parsed from the given JSON object.
-     *
-     * @param jsonObject the JSON object representation of the imports aliases.
-     * @return the new {@code ImportsAliases}.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
-     * @since 3.9.0
-     */
-    public static ImportsAliases newImportsAliases(final JsonObject jsonObject) {
-        return ImmutableImportsAliases.fromJson(jsonObject);
-    }
-
-    /**
-     * Returns a new empty {@link ImportsAliases}.
-     *
-     * @return the empty {@code ImportsAliases}.
-     * @since 3.9.0
-     */
-    public static ImportsAliases emptyImportsAliases() {
-        return ImmutableImportsAliases.empty();
-    }
-
-    /**
      * Returns a new {@link EffectedImports} containing the optionally passed policy entry labels.
      *
      * @param importedLabels the labels of the policy entries which should be imported.
@@ -932,37 +890,19 @@ public final class PoliciesModelFactory {
     }
 
     /**
-     * Returns a new {@link EffectedImports} containing the optionally passed policy entry labels and entries
-     * additions.
+     * Returns a new {@link EffectedImports} containing the optionally passed policy entry labels and transitive
+     * resolution policy IDs.
      *
      * @param importedLabels the labels of the policy entries which should be imported.
-     * @param entriesAdditions the additional subjects/resources to merge into imported entries, or {@code null}.
-     * @return the new {@code EffectedImports}.
-     * @since 3.9.0
-     */
-    public static EffectedImports newEffectedImportedLabels(@Nullable final Iterable<Label> importedLabels,
-            @Nullable final EntriesAdditions entriesAdditions) {
-
-        return ImmutableEffectedImports.of(getOrEmptyCollection(importedLabels), entriesAdditions);
-    }
-
-    /**
-     * Returns a new {@link EffectedImports} containing the optionally passed policy entry labels, entries
-     * additions, and transitive resolution policy IDs.
-     *
-     * @param importedLabels the labels of the policy entries which should be imported.
-     * @param entriesAdditions the additional subjects/resources to merge into imported entries, or {@code null}.
      * @param transitiveImports list of policy IDs from the imported policy's own imports that should be
      *        resolved transitively before extracting entries, or {@code null}.
      * @return the new {@code EffectedImports}.
      * @since 3.9.0
      */
     public static EffectedImports newEffectedImportedLabels(@Nullable final Iterable<Label> importedLabels,
-            @Nullable final EntriesAdditions entriesAdditions,
             @Nullable final List<PolicyId> transitiveImports) {
 
-        return ImmutableEffectedImports.of(getOrEmptyCollection(importedLabels), entriesAdditions,
-                transitiveImports);
+        return ImmutableEffectedImports.of(getOrEmptyCollection(importedLabels), transitiveImports);
     }
 
     /**
@@ -983,11 +923,8 @@ public final class PoliciesModelFactory {
         final ImportedLabels labels = existingImport.getEffectedImports()
                 .map(EffectedImports::getImportedLabels)
                 .orElse(noImportedEntries());
-        final EntriesAdditions entriesAdditions = existingImport.getEffectedImports()
-                .flatMap(EffectedImports::getEntriesAdditions)
-                .orElse(null);
         final EffectedImports newEffectedImports =
-                newEffectedImportedLabels(labels, entriesAdditions, newTransitiveImports);
+                newEffectedImportedLabels(labels, newTransitiveImports);
         return newPolicyImport(existingImport.getImportedPolicyId(), newEffectedImports);
     }
 

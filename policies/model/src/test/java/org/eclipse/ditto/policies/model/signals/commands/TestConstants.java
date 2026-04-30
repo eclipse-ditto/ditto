@@ -28,11 +28,9 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.policies.model.AllowedImportAddition;
+import org.eclipse.ditto.policies.model.AllowedAddition;
 import org.eclipse.ditto.policies.model.EffectedImports;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
-import org.eclipse.ditto.policies.model.EntriesAdditions;
-import org.eclipse.ditto.policies.model.EntryAddition;
 import org.eclipse.ditto.policies.model.ImportableType;
 import org.eclipse.ditto.policies.model.ImportedLabels;
 import org.eclipse.ditto.policies.model.Label;
@@ -356,22 +354,10 @@ public final class TestConstants {
         public static final ImportableType IMPORTABLE_TYPE = ImportableType.EXPLICIT;
 
         /**
-         * Known {@code AllowedImportAddition}s for a {@code PolicyEntry}.
+         * Known {@code AllowedAddition}s for a {@code PolicyEntry}.
          */
-        public static final Set<AllowedImportAddition> ALLOWED_IMPORT_ADDITIONS =
-                new LinkedHashSet<>(Arrays.asList(AllowedImportAddition.SUBJECTS));
-
-        /**
-         * A known {@code EntryAddition} for an import.
-         */
-        public static final EntryAddition ENTRY_ADDITION =
-                PoliciesModelFactory.newEntryAddition(LABEL, SUBJECTS, RESOURCES);
-
-        /**
-         * Known {@code EntriesAdditions} for a {@code PolicyImport}.
-         */
-        public static final EntriesAdditions ENTRIES_ADDITIONS =
-                PoliciesModelFactory.newEntriesAdditions(Collections.singletonList(ENTRY_ADDITION));
+        public static final Set<AllowedAddition> ALLOWED_ADDITIONS =
+                new LinkedHashSet<>(Arrays.asList(AllowedAddition.SUBJECTS));
 
         /**
          * Known {@code ImportedLabels} for a {@code PolicyImport}.

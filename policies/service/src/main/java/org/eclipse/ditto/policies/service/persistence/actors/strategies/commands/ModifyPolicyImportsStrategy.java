@@ -14,7 +14,10 @@ package org.eclipse.ditto.policies.service.persistence.actors.strategies.command
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.LinkedHashSet;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -27,9 +30,13 @@ import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.policies.model.EffectedImports;
+import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyImport;
 import org.eclipse.ditto.policies.model.PolicyImports;
+import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyImportReferenceConflictException;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImports;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportsResponse;
@@ -63,15 +70,39 @@ final class ModifyPolicyImportsStrategy extends AbstractPolicyCommandStrategy<Mo
                         JsonField.newInstance(Policy.JsonFields.IMPORTS.getPointer(), policyImports.toJson()),
                         command::getDittoHeaders);
 
-        // Validate that alias targets still reference existing imports after replacement
-        final Policy policyWithNewImports = nonNullPolicy.toBuilder().setPolicyImports(policyImports).build();
-        final Optional<DittoRuntimeException> aliasValidationError =
-                validateImportsAliasTargets(policyWithNewImports, dittoHeaders);
-        if (aliasValidationError.isPresent()) {
-            return ResultFactory.newErrorResult(aliasValidationError.get(), command);
+        final PolicyId policyId = context.getState();
+
+        // Reject this modification if it would orphan any existing entry reference. Two cases:
+        //   (a) an entire import is being removed and an entry still references it
+        //   (b) an import is retained but its labels filter is narrowed, dropping a label that
+        //       an entry's reference targets.
+        final Set<PolicyId> newImportIds = policyImports.stream()
+                .map(PolicyImport::getImportedPolicyId)
+                .collect(Collectors.toSet());
+        for (final PolicyImport existingImport : nonNullPolicy.getPolicyImports()) {
+            final PolicyId existingImportId = existingImport.getImportedPolicyId();
+            if (!newImportIds.contains(existingImportId)) {
+                if (anyEntryReferencesImport(nonNullPolicy, existingImportId)) {
+                    return ResultFactory.newErrorResult(
+                            PolicyImportReferenceConflictException.newBuilder(policyId, existingImportId)
+                                    .dittoHeaders(dittoHeaders)
+                                    .build(),
+                            command);
+                }
+            } else {
+                final PolicyImport newImport = policyImports.getPolicyImport(existingImportId)
+                        .orElseThrow(() -> new IllegalStateException(
+                                "PolicyImports.getPolicyImport returned empty for ID present in stream: " +
+                                        existingImportId));
+                final Optional<DittoRuntimeException> orphanError =
+                        checkLabelNarrowingDoesNotOrphan(policyId, nonNullPolicy, existingImportId,
+                                labelsOf(existingImport), labelsOf(newImport), dittoHeaders);
+                if (orphanError.isPresent()) {
+                    return ResultFactory.newErrorResult(orphanError.get(), command);
+                }
+            }
         }
 
-        final PolicyId policyId = context.getState();
         final PolicyImportsModified policyImportsModified =
                 PolicyImportsModified.of(policyId, policyImports, nextRevision, getEventTimestamp(), dittoHeaders,
                         metadata);
@@ -82,6 +113,14 @@ final class ModifyPolicyImportsStrategy extends AbstractPolicyCommandStrategy<Mo
                         policy);
 
         return ResultFactory.newMutationResult(command, policyImportsModified, response);
+    }
+
+    private static Set<Label> labelsOf(final PolicyImport policyImport) {
+        final Set<Label> labels = new LinkedHashSet<>();
+        policyImport.getEffectedImports()
+                .map(EffectedImports::getImportedLabels)
+                .ifPresent(labels::addAll);
+        return labels;
     }
 
     @Override

@@ -13,7 +13,7 @@
 }
 ```
 
-### With entries additions
+### With transitive imports
 
 ```json
 {
@@ -24,13 +24,7 @@
   "path": "/imports/org.eclipse.ditto:imported-policy",
   "value": {
     "entries" : [ "IMPORTED_ENTRY" ],
-    "entriesAdditions": {
-      "IMPORTED_ENTRY": {
-        "subjects": {
-          "integration:my-connection": { "type": "generated" }
-        }
-      }
-    }
+    "transitiveImports": [ "org.eclipse.ditto:transitive-policy" ]
   }
 }
 ```
