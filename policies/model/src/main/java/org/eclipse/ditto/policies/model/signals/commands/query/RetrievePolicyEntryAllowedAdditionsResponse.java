@@ -74,17 +74,13 @@ public final class RetrievePolicyEntryAllowedAdditionsResponse
             CommandResponseJsonDeserializer.newInstance(TYPE,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
-                        final JsonArray rawArray = jsonObject.getValueOrThrow(JSON_ALLOWED_ADDITIONS);
-                        // Validate strictness now (rejects non-string and unknown-name elements)
-                        // — same rule the HTTP route uses, so wire-format acceptance is symmetric
-                        // across transports.
-                        PoliciesModelFactory.parseAllowedAdditions(rawArray);
-                        return new RetrievePolicyEntryAllowedAdditionsResponse(
+                        // of(...) validates the JsonArray strictly (rejects non-string and
+                        // unknown-name elements) — single validation site for every transport.
+                        return of(
                                 PolicyId.of(jsonObject.getValueOrThrow(
                                         PolicyCommandResponse.JsonFields.JSON_POLICY_ID)),
                                 Label.of(jsonObject.getValueOrThrow(JSON_LABEL)),
-                                rawArray,
-                                context.getDeserializedHttpStatus(),
+                                jsonObject.getValueOrThrow(JSON_ALLOWED_ADDITIONS),
                                 context.getDittoHeaders()
                         );
                     });
@@ -146,6 +142,11 @@ public final class RetrievePolicyEntryAllowedAdditionsResponse
             final JsonArray allowedAdditions,
             final DittoHeaders dittoHeaders) {
 
+        // Validate now (rejects non-string and unknown-name elements) so a malformed array can't
+        // silently survive into the response and only blow up on the first getAllowedAdditions
+        // call. Same strict rule the HTTP route + fromJson use — wire-format acceptance is
+        // symmetric across all transports and constructor paths.
+        PoliciesModelFactory.parseAllowedAdditions(allowedAdditions);
         return new RetrievePolicyEntryAllowedAdditionsResponse(policyId, label, allowedAdditions,
                 HTTP_STATUS, dittoHeaders);
     }

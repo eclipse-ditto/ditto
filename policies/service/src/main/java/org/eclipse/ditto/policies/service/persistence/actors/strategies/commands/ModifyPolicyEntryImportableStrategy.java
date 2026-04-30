@@ -31,6 +31,7 @@ import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyEntryReferenceConflictException;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryImportable;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryImportableResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEntryImportableModified;
@@ -67,8 +68,10 @@ final class ModifyPolicyEntryImportableStrategy
         }
 
         // Switching to importable=never makes the entry an invalid local-reference target. Reject
-        // the change if any other entry's local reference still points at this label, mirroring
-        // the validateReferencesIntegrity check used on full entry writes.
+        // the change if any other entry's local reference still points at this label. Use
+        // PolicyEntryReferenceConflictException (409 Conflict) to align with the import-side
+        // orphan checks (PolicyImportReferenceConflictException) — same logical conflict, same
+        // status code so API consumers handle one shape.
         if (importableType == ImportableType.NEVER) {
             for (final PolicyEntry other : nonNullPolicy) {
                 if (other.getLabel().equals(label)) {
@@ -77,11 +80,16 @@ final class ModifyPolicyEntryImportableStrategy
                 for (final EntryReference ref : other.getReferences()) {
                     if (ref.isLocalReference() && ref.getEntryLabel().equals(label)) {
                         return ResultFactory.newErrorResult(
-                                policyEntryReferenceInvalid(policyId, other.getLabel(),
-                                        "Entry '" + label + "' cannot be marked importable=never " +
-                                                "because entry '" + other.getLabel() +
-                                                "' still references it.",
-                                        dittoHeaders),
+                                PolicyEntryReferenceConflictException.newBuilder(policyId, label,
+                                                other.getLabel())
+                                        .message("The entry '" + label + "' of Policy '" + policyId +
+                                                "' cannot be marked importable=never because a local " +
+                                                "reference from entry '" + other.getLabel() +
+                                                "' still points to it.")
+                                        .description("Remove the local reference first before " +
+                                                "marking the entry importable=never.")
+                                        .dittoHeaders(dittoHeaders)
+                                        .build(),
                                 command);
                     }
                 }

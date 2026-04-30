@@ -29,12 +29,14 @@ import org.eclipse.ditto.base.model.common.DittoDuration;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.headers.conditional.ConditionalHeadersValidator;
 import org.eclipse.ditto.internal.utils.persistentactors.etags.AbstractConditionHeaderCheckingCommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.policies.api.commands.sudo.PolicySudoCommand;
+import org.eclipse.ditto.policies.model.AllowedAddition;
 import org.eclipse.ditto.policies.model.EntryReference;
 import org.eclipse.ditto.policies.model.ImportableType;
 import org.eclipse.ditto.policies.model.Label;
@@ -465,6 +467,48 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
             }
         }
         return Optional.empty();
+    }
+
+    // Sentinels for the three-tier allowedAdditions state. Hashed by EntityTag.fromEntity into the
+    // ETag's opaque tag — distinct sentinels guarantee distinct ETags for distinct states. Used by
+    // every strategy that touches /allowedAdditions so prev/next tags are consistent across
+    // Modify, Retrieve, and Delete (and conditional reads/writes work end-to-end).
+    private static final String ETAG_INPUT_ALLOWED_ADDITIONS_ABSENT =
+            "policies:allowedAdditions:absent";
+    private static final String ETAG_INPUT_ALLOWED_ADDITIONS_DENY_ALL =
+            "policies:allowedAdditions:deny-all";
+
+    /**
+     * Returns an {@link EntityTag} for the {@code allowedAdditions} field of the entry on the given
+     * policy. Distinguishes the three semantic tiers: absent (no restriction), present-empty
+     * (deny all), and present-non-empty.
+     */
+    static Optional<EntityTag> allowedAdditionsEntityTag(@Nullable final Policy policy,
+            final Label label) {
+        return Optional.ofNullable(policy)
+                .flatMap(p -> p.getEntryFor(label))
+                .flatMap(entry -> EntityTag.fromEntity(
+                        allowedAdditionsEtagInput(entry.getAllowedAdditions())));
+    }
+
+    /**
+     * Returns an {@link EntityTag} for the value an upcoming Modify would write — same hashing
+     * rules as {@link #allowedAdditionsEntityTag} so a PUT and a subsequent GET yield matching
+     * ETags for the same state.
+     */
+    static Optional<EntityTag> allowedAdditionsEntityTagForModify(final Set<AllowedAddition> additions) {
+        return EntityTag.fromEntity(allowedAdditionsEtagInput(Optional.of(additions)));
+    }
+
+    private static Object allowedAdditionsEtagInput(final Optional<Set<AllowedAddition>> additions) {
+        if (additions.isEmpty()) {
+            return ETAG_INPUT_ALLOWED_ADDITIONS_ABSENT;
+        }
+        final Set<AllowedAddition> set = additions.get();
+        if (set.isEmpty()) {
+            return ETAG_INPUT_ALLOWED_ADDITIONS_DENY_ALL;
+        }
+        return set;
     }
 
     /**

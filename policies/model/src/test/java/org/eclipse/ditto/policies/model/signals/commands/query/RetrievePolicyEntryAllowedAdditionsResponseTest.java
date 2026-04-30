@@ -12,15 +12,18 @@
  */
 package org.eclipse.ditto.policies.model.signals.commands.query;
 
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.policies.model.PolicyEntryInvalidException;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.TestConstants;
 import org.junit.Test;
@@ -72,6 +75,36 @@ public final class RetrievePolicyEntryAllowedAdditionsResponseTest {
 
         assertThat(underTest).isNotNull();
         assertThat(underTest.getAllowedAdditions()).isEqualTo(TestConstants.Policy.ALLOWED_ADDITIONS);
+    }
+
+    @Test
+    public void ofRejectsNonStringAllowedAdditionsArray() {
+        // Validation must fire at construction so a malformed array can't silently outlive the
+        // factory; previously of(JsonArray, ...) accepted anything and only getAllowedAdditions()
+        // would throw on first read.
+        assertThatExceptionOfType(PolicyEntryInvalidException.class)
+                .isThrownBy(() -> RetrievePolicyEntryAllowedAdditionsResponse.of(
+                        TestConstants.Policy.POLICY_ID, TestConstants.Policy.LABEL,
+                        JsonArray.of(JsonValue.of(42)), EMPTY_DITTO_HEADERS));
+    }
+
+    @Test
+    public void setEntityRejectsNonStringAllowedAdditionsArray() {
+        final RetrievePolicyEntryAllowedAdditionsResponse valid =
+                RetrievePolicyEntryAllowedAdditionsResponse.of(TestConstants.Policy.POLICY_ID,
+                        TestConstants.Policy.LABEL, TestConstants.Policy.ALLOWED_ADDITIONS,
+                        EMPTY_DITTO_HEADERS);
+
+        assertThatExceptionOfType(PolicyEntryInvalidException.class)
+                .isThrownBy(() -> valid.setEntity(JsonArray.of(JsonValue.of(7))));
+    }
+
+    @Test
+    public void ofRejectsUnknownAllowedAdditionName() {
+        assertThatExceptionOfType(PolicyEntryInvalidException.class)
+                .isThrownBy(() -> RetrievePolicyEntryAllowedAdditionsResponse.of(
+                        TestConstants.Policy.POLICY_ID, TestConstants.Policy.LABEL,
+                        JsonArray.of(JsonValue.of("not-a-real-addition")), EMPTY_DITTO_HEADERS));
     }
 
 }

@@ -59,33 +59,46 @@ final class DeletePolicyEntryAllowedAdditionsStrategy
         final Label label = command.getLabel();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        if (nonNullPolicy.getEntryFor(label).isPresent()) {
-            final PolicyEntryAllowedAdditionsDeleted event =
-                    PolicyEntryAllowedAdditionsDeleted.of(policyId, label, nextRevision,
-                            getEventTimestamp(), dittoHeaders, metadata);
-            final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                    DeletePolicyEntryAllowedAdditionsResponse.of(policyId, label,
-                            createCommandResponseDittoHeaders(dittoHeaders, nextRevision)),
-                    nonNullPolicy);
-            return ResultFactory.newMutationResult(command, event, response);
-        } else {
+        final Optional<PolicyEntry> entryOpt = nonNullPolicy.getEntryFor(label);
+        if (entryOpt.isEmpty()) {
             return ResultFactory.newErrorResult(
                     policyEntryNotFound(policyId, label, dittoHeaders), command);
         }
+
+        // Idempotent DELETE: when the field is already absent, return 204 without emitting an
+        // event. This avoids journal pollution and false change-feed notifications when callers
+        // retry. The response carries the current revision (no bump) so conditional reads stay
+        // coherent.
+        if (entryOpt.get().getAllowedAdditions().isEmpty()) {
+            final long currentRevision = nextRevision - 1;
+            final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+                    DeletePolicyEntryAllowedAdditionsResponse.of(policyId, label,
+                            createCommandResponseDittoHeaders(dittoHeaders, currentRevision)),
+                    nonNullPolicy);
+            return ResultFactory.newQueryResult(command, response);
+        }
+
+        final PolicyEntryAllowedAdditionsDeleted event =
+                PolicyEntryAllowedAdditionsDeleted.of(policyId, label, nextRevision,
+                        getEventTimestamp(), dittoHeaders, metadata);
+        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+                DeletePolicyEntryAllowedAdditionsResponse.of(policyId, label,
+                        createCommandResponseDittoHeaders(dittoHeaders, nextRevision)),
+                nonNullPolicy);
+        return ResultFactory.newMutationResult(command, event, response);
     }
 
     @Override
     public Optional<EntityTag> previousEntityTag(final DeletePolicyEntryAllowedAdditions command,
             @Nullable final Policy previousEntity) {
-        return Optional.ofNullable(previousEntity)
-                .flatMap(p -> p.getEntryFor(command.getLabel()))
-                .flatMap(PolicyEntry::getAllowedAdditions)
-                .flatMap(EntityTag::fromEntity);
+        return allowedAdditionsEntityTag(previousEntity, command.getLabel());
     }
 
     @Override
     public Optional<EntityTag> nextEntityTag(final DeletePolicyEntryAllowedAdditions command,
             @Nullable final Policy newEntity) {
-        return Optional.empty();
+        // Post-delete state is always "absent". Use the same hashing path as the other
+        // /allowedAdditions strategies so a subsequent GET produces a matching ETag.
+        return allowedAdditionsEntityTag(newEntity, command.getLabel());
     }
 }

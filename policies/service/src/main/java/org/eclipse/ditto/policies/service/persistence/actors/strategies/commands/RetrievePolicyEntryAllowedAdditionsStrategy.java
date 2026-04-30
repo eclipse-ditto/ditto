@@ -80,8 +80,6 @@ final class RetrievePolicyEntryAllowedAdditionsStrategy
     @Override
     public Optional<EntityTag> nextEntityTag(final RetrievePolicyEntryAllowedAdditions command,
             @Nullable final Policy newEntity) {
-        return Optional.ofNullable(newEntity)
-                .flatMap(p -> p.getEntryFor(command.getLabel()))
-                .flatMap(entry -> entry.getAllowedAdditions().flatMap(EntityTag::fromEntity));
+        return allowedAdditionsEntityTag(newEntity, command.getLabel());
     }
 }

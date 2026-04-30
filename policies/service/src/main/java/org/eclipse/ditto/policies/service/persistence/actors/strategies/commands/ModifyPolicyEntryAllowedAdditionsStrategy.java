@@ -78,12 +78,12 @@ final class ModifyPolicyEntryAllowedAdditionsStrategy
     @Override
     public Optional<EntityTag> previousEntityTag(final ModifyPolicyEntryAllowedAdditions command,
             @Nullable final Policy previousEntity) {
-        return Optional.empty();
+        return allowedAdditionsEntityTag(previousEntity, command.getLabel());
     }
 
     @Override
     public Optional<EntityTag> nextEntityTag(final ModifyPolicyEntryAllowedAdditions command,
             @Nullable final Policy newEntity) {
-        return Optional.empty();
+        return allowedAdditionsEntityTagForModify(command.getAllowedAdditions());
     }
 }
