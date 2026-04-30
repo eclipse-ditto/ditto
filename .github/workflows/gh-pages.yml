@@ -21,6 +21,9 @@ on:
   # Enable manually triggering
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
     runs-on: ubuntu-20.04

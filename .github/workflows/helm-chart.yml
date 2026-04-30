@@ -23,6 +23,9 @@ on:
       - '.github/ct.yml'
       - '.github/kubeval.sh'
 
+permissions:
+  contents: read
+
 jobs:
   lint-chart:
     runs-on: ubuntu-latest

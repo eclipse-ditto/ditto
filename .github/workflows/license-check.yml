@@ -14,6 +14,9 @@ on:
   # Run build for any PR
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   check-license-header-year:
     runs-on: ubuntu-latest

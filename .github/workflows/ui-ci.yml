@@ -21,6 +21,9 @@ on:
     paths:
       - 'ui/**'
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest

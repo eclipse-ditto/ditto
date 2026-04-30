@@ -54,9 +54,16 @@ run-name: >-
   System Tests • ${{ inputs.ditto_repo }}@${{ inputs.ditto_branch }}
   • ${{ inputs.ditto_testing_repo }}@${{ inputs.ditto_testing_branch }}
 
+permissions:
+  contents: read
+
 jobs:
   system-tests:
     runs-on: ditto-runner
+    permissions:
+      contents: read
+      # required by dorny/test-reporter to publish results to the GitHub Checks API
+      checks: write
     env:
       DITTO_BRANCH: ${{ github.event.inputs.ditto_branch }}
       DITTO_REPO: ${{ github.event.inputs.ditto_repo }}

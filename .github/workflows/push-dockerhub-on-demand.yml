@@ -30,6 +30,9 @@ on:
           - ditto-connectivity
           - ditto-ui
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
