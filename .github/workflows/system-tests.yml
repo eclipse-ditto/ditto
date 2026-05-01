@@ -126,7 +126,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up JDK 25
-        uses: actions/setup-java@17f84c3641ba7b8f6deff6309fc4c864478f5d62 # v3.14.1
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
         with:
           distribution: 'temurin'
           cache: 'maven'
@@ -363,14 +363,14 @@ jobs:
 
       - name: Upload test results
         if:  env.GITHUB_ACTOR != 'nektos/act'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: system-test-results-${{ env.DITTO_BRANCH_NO_SLASH }}-${{ github.run_number }}
           path: 'ditto-testing/system*/**/target/failsafe-reports/**/*.xml'
           
       - name: Upload services logs
         if:  env.GITHUB_ACTOR != 'nektos/act'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: system-services-logs
           path: 'ditto-testing/docker/*.log'
@@ -382,7 +382,7 @@ jobs:
         working-directory: ditto-testing
 
       - name: Publish Test Results
-        uses: dorny/test-reporter@df6247429542221bc30d46a036ee47af1102c451 # v2.7.0
+        uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2 # v3.0.0
         with:
           name: Test Results | ${{ env.DITTO_BRANCH_NO_SLASH }} ${{ github.run_number }}
           path: ./system*/**/target/failsafe-reports/TEST*.xml
