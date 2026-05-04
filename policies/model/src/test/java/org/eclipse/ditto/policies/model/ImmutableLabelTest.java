@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.policies.model;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.eclipse.ditto.base.model.entity.id.restriction.LengthRestrictionTestBase;
 import org.junit.Test;
 
@@ -57,5 +59,25 @@ public final class ImmutableLabelTest extends LengthRestrictionTestBase {
         // that would re-enable the namespace-policy shadow attack from issue #2431.
         final String invalidLabel = "nsimported-some-root-AUDIT";
         ImmutableLabel.of(invalidLabel);
+    }
+
+    @Test
+    public void ofImportedAcceptsImportedPrefix() {
+        final Label label = Label.ofImported("imported-tenant:base-policy-OWNER");
+        assertThat(label.toString()).isEqualTo("imported-tenant:base-policy-OWNER");
+    }
+
+    @Test
+    public void ofImportedAcceptsNsImportedPrefix() {
+        // The raw-label deserialization path must also accept nsimported- labels that arise
+        // in the resolved view post-#2431.
+        final Label label = Label.ofImported("nsimported-acme:tenant-root-AUDIT");
+        assertThat(label.toString()).isEqualTo("nsimported-acme:tenant-root-AUDIT");
+    }
+
+    @Test
+    public void ofImportedRoundTripsThroughPoliciesModelFactory() {
+        final Label label = PoliciesModelFactory.newImportedRawLabel("imported-tenant:base-OWNER");
+        assertThat(label.toString()).isEqualTo("imported-tenant:base-OWNER");
     }
 }

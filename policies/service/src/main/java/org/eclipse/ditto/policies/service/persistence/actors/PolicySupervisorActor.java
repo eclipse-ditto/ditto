@@ -14,6 +14,9 @@ package org.eclipse.ditto.policies.service.persistence.actors;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
+import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
@@ -24,12 +27,15 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.signals.commands.streaming.SubscribeForPersistedEvents;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
+import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.policies.enforcement.PolicyCacheLoader;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.policies.enforcement.config.NamespacePoliciesConfig;
+import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
@@ -121,7 +127,13 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
 
     @Override
     protected Props getPersistenceEnforcerProps(final PolicyId entityId) {
-        return PolicyEnforcerActor.props(entityId, new PolicyCommandEnforcement(), policyEnforcerProvider,
+        final PolicyCacheLoader cacheLoader = PolicyCacheLoader.getSingletonInstance(getContext().getSystem());
+        final Function<PolicyId, CompletionStage<Optional<Policy>>> policyResolver =
+                policyId -> cacheLoader.asyncLoad(policyId, getContext().getSystem().dispatcher())
+                        .thenApply(Entry::get);
+        return PolicyEnforcerActor.props(entityId,
+                new PolicyCommandEnforcement(policyResolver, namespacePoliciesConfig),
+                policyEnforcerProvider,
                 policiesConfig.getPolicyConfig().getSupervisorConfig().getLocalAskTimeoutConfig(),
                 namespacePoliciesConfig
         );

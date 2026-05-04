@@ -39,6 +39,12 @@
                     <li class="nav-item">
                         <a class="nav-link" data-bs-toggle="tab" data-bs-target="#tabPolicyJson">JSON</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" data-bs-target="#tabPolicyEffective"
+                            title="Effective (resolved) policy: own entries plus entries inherited via imports + namespace-root policies. Read-only.">
+                            Effective
+                        </a>
+                    </li>
                 </ul>
                 <div class="tab-content" style="flex-grow: 1; overflow: hidden;">
                     <div class="tab-pane container active no-margin" id="tabPolicyEntries">
@@ -149,13 +155,29 @@
                             <div class="input-group input-group-sm mb-1">
                                 <label class="input-group-text">Template</label>
                                 <select class="form-select form-select-sm" id="selectPolicyJSONTemplate" disabled></select>
-                            </div>    
+                            </div>
                             <div class="ace_container" style="flex-grow: 1;">
                                 <div>
                                     <div class="script_editor" id="policyEditor"></div>
                                 </div>
                             </div>
                         </crud-toolbar>
+                    </div>
+                    <div class="tab-pane container no-margin" id="tabPolicyEffective">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <small class="text-muted">
+                                Read-only view of the policy after import resolution and namespace-root merge.
+                                Imported entries appear with the prefix
+                                <code>imported-&lt;importedPolicyId&gt;-&lt;label&gt;</code>.
+                            </small>
+                            <button id="buttonRefreshEffectivePolicy" class="btn btn-outline-primary btn-sm"
+                                title="Re-fetch the effective view (cache invalidates lazily on import changes)">
+                                Refresh
+                            </button>
+                        </div>
+                        <div class="ace_container" style="height: calc(80vh - 50px);">
+                            <div class="script_editor" id="effectivePolicyEditor"></div>
+                        </div>
                     </div>
                 </div>
             </div>

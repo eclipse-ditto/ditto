@@ -21,6 +21,7 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.GlobalCommandResponseRegistry;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.TestConstants;
@@ -93,6 +94,26 @@ public final class RetrievePolicyResponseTest {
                 GlobalCommandResponseRegistry.getInstance().parse(jsonObject, TestConstants.DITTO_HEADERS);
 
         assertThat(parsedCommandResponse).isEqualTo(commandResponse);
+    }
+
+    @Test
+    public void getPolicyRoundTripsResolvedViewWithImportedLabels() {
+        final JsonObject ownEntry = TestConstants.Policy.POLICY.getEntriesSet().iterator().next().toJson();
+        final JsonObject resolvedPolicyJson = JsonFactory.newObjectBuilder()
+                .set("policyId", TestConstants.Policy.POLICY_ID.toString())
+                .set("entries", JsonFactory.newObjectBuilder()
+                        .set("OWNER", ownEntry)
+                        .set("imported-tenant:base-policy-OWNER", ownEntry)
+                        .build())
+                .build();
+        final RetrievePolicyResponse underTest = RetrievePolicyResponse.of(TestConstants.Policy.POLICY_ID,
+                resolvedPolicyJson, EMPTY_DITTO_HEADERS);
+
+        final Policy parsed = underTest.getPolicy();
+
+        org.assertj.core.api.Assertions.assertThat(parsed.getEntryFor(Label.of("OWNER"))).isPresent();
+        org.assertj.core.api.Assertions.assertThat(parsed.getEntryFor(Label.ofImported("imported-tenant:base-policy-OWNER")))
+                .isPresent();
     }
 
 }

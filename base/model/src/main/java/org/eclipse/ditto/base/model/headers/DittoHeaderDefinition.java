@@ -679,7 +679,32 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
             JsonObject.class,
             true,
             false,
-            HeaderValueValidators.getJsonObjectValidator());
+            HeaderValueValidators.getJsonObjectValidator()),
+
+    /**
+     * Selects the policy representation returned by retrieval-style commands: {@code "original"}
+     * (default, policy as stored) or {@code "resolved"} (merged view including imports, references
+     * and namespace-root policies). Parsing/validation lives in the policies module.
+     * <p>
+     * Key: {@code "policy-view"}, Java type: {@link String}.
+     * </p>
+     *
+     * @since 3.9.0
+     */
+    POLICY_VIEW("policy-view", String.class, true, false, HeaderValueValidators.getNoOpValidator()),
+
+    /**
+     * Internal-only header threading the original {@code fields=} selector from the gateway route to
+     * {@code PolicyCommandEnforcement} so it can be re-applied to the merged JSON when
+     * {@code policy-view=resolved}.
+     * <p>
+     * Key: {@code "ditto-policy-view-fields-selector"}, Java type: {@link String}.
+     * </p>
+     *
+     * @since 3.9.0
+     */
+    POLICY_VIEW_FIELDS_SELECTOR("ditto-policy-view-fields-selector", String.class, false, false,
+            HeaderValueValidators.getNoOpValidator());
 
     /**
      * Map to speed up lookup of header definition by key.
