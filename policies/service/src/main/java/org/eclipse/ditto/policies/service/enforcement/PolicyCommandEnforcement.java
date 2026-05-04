@@ -13,14 +13,20 @@
 package org.eclipse.ditto.policies.service.enforcement;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandToExceptionRegistry;
@@ -28,16 +34,21 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.enforcement.AbstractEnforcementReloaded;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
+import org.eclipse.ditto.policies.enforcement.config.NamespacePoliciesConfig;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.PoliciesResourceType;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyView;
+import org.eclipse.ditto.policies.model.PolicyViewInvalidException;
 import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
@@ -51,6 +62,8 @@ import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAcc
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommandResponse;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyResponse;
 
 /**
  * Authorizes {@link PolicyCommand}s and filters {@link PolicyCommandResponse}s.
@@ -63,6 +76,19 @@ public final class PolicyCommandEnforcement
      */
     private static final JsonFieldSelector POLICY_QUERY_COMMAND_RESPONSE_ALLOWLIST =
             JsonFactory.newFieldSelector(Policy.JsonFields.ID);
+
+    private static final JsonParseOptions JSON_PARSE_OPTIONS_FOR_FIELDS_SELECTOR =
+            JsonFactory.newParseOptionsBuilder().withoutUrlDecoding().build();
+
+    private final Function<PolicyId, CompletionStage<Optional<Policy>>> policyResolver;
+    private final NamespacePoliciesConfig namespacePoliciesConfig;
+
+    public PolicyCommandEnforcement(
+            final Function<PolicyId, CompletionStage<Optional<Policy>>> policyResolver,
+            final NamespacePoliciesConfig namespacePoliciesConfig) {
+        this.policyResolver = Objects.requireNonNull(policyResolver, "policyResolver");
+        this.namespacePoliciesConfig = Objects.requireNonNull(namespacePoliciesConfig, "namespacePoliciesConfig");
+    }
 
     @Override
     public CompletionStage<Signal<?>> authorizeSignal(final Signal<?> signal,
@@ -94,13 +120,39 @@ public final class PolicyCommandEnforcement
             if (enforcer.hasPartialPermissions(policyResourceKey,
                     authorizationContext,
                     permission)) {
-                authorizedCommand = signal;
+                authorizedCommand = stripConditionalHeadersForResolvedView(signal);
             } else {
                 throw errorForPolicyCommand(signal);
             }
         }
 
         return CompletableFuture.completedFuture(authorizedCommand);
+    }
+
+    // For policy-view=resolved, drop If-Match / If-None-Match so the conditional-header strategy can't 304 on the
+    // importing policy's revision alone (the merged content can change without that revision moving).
+    private static Signal<?> stripConditionalHeadersForResolvedView(final Signal<?> signal) {
+        if (!(signal instanceof RetrievePolicy retrievePolicy) || !isResolvedView(retrievePolicy.getDittoHeaders())) {
+            return signal;
+        }
+        final DittoHeaders headers = retrievePolicy.getDittoHeaders();
+        if (!headers.containsKey(DittoHeaderDefinition.IF_MATCH.getKey())
+                && !headers.containsKey(DittoHeaderDefinition.IF_NONE_MATCH.getKey())) {
+            return signal;
+        }
+        final DittoHeaders stripped = headers.toBuilder()
+                .removeHeader(DittoHeaderDefinition.IF_MATCH.getKey())
+                .removeHeader(DittoHeaderDefinition.IF_NONE_MATCH.getKey())
+                .build();
+        return retrievePolicy.setDittoHeaders(stripped);
+    }
+
+    private static boolean isResolvedView(final DittoHeaders headers) {
+        try {
+            return PolicyView.from(headers).map(PolicyView::isResolved).orElse(false);
+        } catch (final PolicyViewInvalidException e) {
+            throw e.setDittoHeaders(headers);
+        }
     }
 
     private PolicyCommand<?> authorizeCreatePolicy(final Enforcer enforcer,
@@ -141,19 +193,100 @@ public final class PolicyCommandEnforcement
     public CompletionStage<PolicyCommandResponse<?>> filterResponse(final PolicyCommandResponse<?> commandResponse,
             final PolicyEnforcer policyEnforcer) {
 
+        if (commandResponse instanceof RetrievePolicyResponse retrieveResp
+                && isResolvedView(retrieveResp.getDittoHeaders())) {
+            return resolveAndRebuildResponse(retrieveResp)
+                    .thenApply(rebuilt -> applyEnforcerJsonView(rebuilt, policyEnforcer));
+        }
+
         final PolicyCommandResponse<?> result;
         if (commandResponse instanceof PolicyQueryCommandResponse<?> policyQueryCommandResponse) {
-            try {
-                result = buildJsonViewForPolicyQueryCommandResponse(policyQueryCommandResponse,
-                        policyEnforcer.getEnforcer());
-            } catch (final RuntimeException e) {
-                throw reportError("Error after building JsonView", e, commandResponse.getDittoHeaders());
-            }
+            result = applyEnforcerJsonView(policyQueryCommandResponse, policyEnforcer);
         } else {
             // no filtering required for non PolicyQueryCommandResponses:
             result = commandResponse;
         }
         return CompletableFuture.completedFuture(result);
+    }
+
+    private <T extends PolicyQueryCommandResponse<T>> T applyEnforcerJsonView(
+            final PolicyQueryCommandResponse<T> response, final PolicyEnforcer policyEnforcer) {
+        try {
+            return buildJsonViewForPolicyQueryCommandResponse(response, policyEnforcer.getEnforcer());
+        } catch (final DittoRuntimeException dre) {
+            throw dre;
+        } catch (final RuntimeException e) {
+            throw reportError("Error after building JsonView", e, response.getDittoHeaders());
+        }
+    }
+
+    private CompletionStage<RetrievePolicyResponse> resolveAndRebuildResponse(final RetrievePolicyResponse response) {
+        final PolicyId policyId = response.getEntityId();
+        return policyResolver.apply(policyId)
+                .thenCompose(rawPolicyOpt -> {
+                    if (rawPolicyOpt.isEmpty()) {
+                        return CompletableFuture.completedFuture(response);
+                    }
+                    final Policy rawPolicy = rawPolicyOpt.get();
+                    return PolicyEnforcer.withResolvedImportsAndNamespacePolicies(rawPolicy, policyResolver,
+                                    namespacePoliciesConfig)
+                            .thenApply(enforcer -> enforcer.getPolicy().orElse(rawPolicy))
+                            .thenApply(merged -> rebuildResponseWithMergedPolicy(response, merged));
+                })
+                .exceptionally(throwable -> {
+                    final DittoRuntimeException dre = DittoRuntimeException.asDittoRuntimeException(throwable, t -> {
+                        LOGGER.withCorrelationId(response.getDittoHeaders())
+                                .warn("Could not resolve effective policy view for <{}>; returning unresolved view." +
+                                        " Cause: {}", policyId, t.toString());
+                        return null;
+                    });
+                    if (dre != null) {
+                        throw dre;
+                    }
+                    return response;
+                });
+    }
+
+    private static RetrievePolicyResponse rebuildResponseWithMergedPolicy(final RetrievePolicyResponse original,
+            final Policy mergedPolicy) {
+        final JsonSchemaVersion version = original.getImplementedSchemaVersion();
+        final JsonObject mergedJson = mergedPolicy.toJson(version, FieldType.regularOrSpecial());
+        final JsonValue originalEntity = original.getEntity(version);
+        final JsonObject projected = projectMerged(mergedJson, originalEntity, original.getDittoHeaders());
+
+        final DittoHeaders headersWithoutEtag = original.getDittoHeaders().toBuilder()
+                .removeHeader(DittoHeaderDefinition.ETAG.getKey())
+                .build();
+        return RetrievePolicyResponse.of(original.getEntityId(), projected, headersWithoutEtag);
+    }
+
+    private static JsonObject projectMerged(final JsonObject mergedJson,
+            final JsonValue originalEntity,
+            final DittoHeaders headers) {
+        final String selectorString = headers.get(DittoHeaderDefinition.POLICY_VIEW_FIELDS_SELECTOR.getKey());
+        if (selectorString != null && !selectorString.isEmpty()) {
+            // The selector was just constructed by PoliciesRoute from a successful parse; if it fails to
+            // round-trip here, that's an internal bug worth surfacing rather than silently returning a wider view.
+            final JsonFieldSelector selector = JsonFactory.newFieldSelector(selectorString,
+                    JSON_PARSE_OPTIONS_FOR_FIELDS_SELECTOR);
+            return mergedJson.get(selector);
+        }
+        if (!originalEntity.isObject()) {
+            return mergedJson;
+        }
+        final List<JsonKey> originalKeys = originalEntity.asObject().getKeys();
+        if (originalKeys.isEmpty()) {
+            return mergedJson;
+        }
+        final JsonObjectBuilder builder = JsonObject.newBuilder();
+        for (final JsonKey key : originalKeys) {
+            mergedJson.getValue(key).ifPresentOrElse(
+                    value -> builder.set(key.toString(), value),
+                    () -> originalEntity.asObject().getValue(key)
+                            .ifPresent(value -> builder.set(key.toString(), value))
+            );
+        }
+        return builder.build();
     }
 
     @SuppressWarnings("unchecked")

@@ -20,7 +20,12 @@ public enum PoliciesParameter {
     /**
      * Request parameter for including only the selected fields in the Policy JSON document(s).
      */
-    FIELDS("fields");
+    FIELDS("fields"),
+
+    /**
+     * Selects the policy representation: {@code original} (default) or {@code resolved} (merged view).
+     */
+    POLICY_VIEW("policy-view");
 
     private final String parameterValue;
 

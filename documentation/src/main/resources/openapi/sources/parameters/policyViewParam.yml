@@ -1,0 +1,30 @@
+# Copyright (c) 2026 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+name: policy-view
+in: query
+description: |-
+  Selects the policy representation. Accepted values: `original` (default — policy as stored)
+  and `resolved` (merged view including imports, references and namespace-root policies).
+  Imported entries appear under labels of the form `imported-<importedPolicyId>-<originalLabel>`
+  (treat the format as opaque; policy IDs may contain `-`). The `imports` block is preserved
+  unchanged.
+
+  Note on caching: the response ETag reflects only the importing policy's revision, so a `304`
+  may be returned even when imported or namespace-root policies have changed. Treat the
+  resolved view as read-through.
+
+  The resolved view exposes all `importable=implicit` entries from imported policies declared
+  by the importing policy, matching how the enforcer evaluates the policy at runtime.
+required: false
+schema:
+  type: string
+  enum: [original, resolved]
+  default: original

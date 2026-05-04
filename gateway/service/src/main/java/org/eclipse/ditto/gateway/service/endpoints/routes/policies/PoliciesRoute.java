@@ -23,6 +23,7 @@ import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.NamespaceAccessEnforcementDirective;
@@ -32,6 +33,7 @@ import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationR
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationResult;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
@@ -41,6 +43,8 @@ import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PolicyConstants;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyView;
+import org.eclipse.ditto.policies.model.PolicyViewInvalidException;
 import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.SubjectAnnouncement;
 import org.eclipse.ditto.policies.model.SubjectExpiry;
@@ -171,11 +175,34 @@ public final class PoliciesRoute extends AbstractRoute {
     private Route policyId(final RequestContext ctx, final DittoHeaders dittoHeaders, final PolicyId policyId) {
         return pathEndOrSingleSlash(() ->
                 concat(
-                        // GET /policies/<policyId>?fields=<fieldsString>
-                        get(() -> parameterList(PoliciesParameter.FIELDS.toString(), fields ->
-                                handlePerRequest(ctx, RetrievePolicy.of(policyId, dittoHeaders,
-                                        calculateSelectedFields(fields).orElse(null)))
-                        )),
+                        // GET /policies/<policyId>?fields=<fieldsString>&policy-view=<view>
+                        get(() -> parameterOptional(PoliciesParameter.POLICY_VIEW.toString(), policyViewParamOpt -> {
+                            final DittoHeaders headersWithPolicyView;
+                            if (policyViewParamOpt.isPresent()) {
+                                final String raw = policyViewParamOpt.get();
+                                try {
+                                    PolicyView.fromString(raw);
+                                } catch (final PolicyViewInvalidException e) {
+                                    throw e.setDittoHeaders(dittoHeaders);
+                                }
+                                headersWithPolicyView = DittoHeaders.newBuilder(dittoHeaders)
+                                        .putHeader(DittoHeaderDefinition.POLICY_VIEW.getKey(), raw)
+                                        .build();
+                            } else {
+                                headersWithPolicyView = dittoHeaders;
+                            }
+                            return parameterList(PoliciesParameter.FIELDS.toString(), fields -> {
+                                final Optional<JsonFieldSelector> selectedFields = calculateSelectedFields(fields);
+                                final DittoHeaders effectiveHeaders = selectedFields
+                                        .map(sel -> DittoHeaders.newBuilder(headersWithPolicyView)
+                                                .putHeader(DittoHeaderDefinition.POLICY_VIEW_FIELDS_SELECTOR.getKey(),
+                                                        sel.toString())
+                                                .build())
+                                        .orElse(headersWithPolicyView);
+                                return handlePerRequest(ctx, RetrievePolicy.of(policyId, effectiveHeaders,
+                                        selectedFields.orElse(null)));
+                            });
+                        })),
                         put(() -> // PUT /policies/<policyId>
                                 ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
                                         payloadSource ->

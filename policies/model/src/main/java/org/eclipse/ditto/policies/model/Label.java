@@ -37,6 +37,16 @@ public interface Label extends CharSequence {
     }
 
     /**
+     * Returns a Label that bypasses the {@code "imported-"} reserved-prefix check. Used only to deserialize a
+     * resolved-view response on the client side; user-submitted bodies must keep using {@link #of(CharSequence)}.
+     *
+     * @since 3.9.0
+     */
+    static Label ofImported(final CharSequence labelValue) {
+        return PoliciesModelFactory.newImportedRawLabel(labelValue);
+    }
+
+    /**
      * Returns the JsonFieldDefinition for this Label.
      *
      * @return the field definition.

@@ -792,6 +792,41 @@ at <code>org.eclipse.ditto:tenant-root</code> configured for pattern <code>org.e
 namespace <code>org.eclipse.ditto</code> (the pattern requires at least one sub-segment after the dot)."
 %}
 
+## Effective policy view
+
+Since Ditto *3.9.0*, `GET /api/2/policies/{policyId}` accepts an optional `policy-view` query parameter selecting
+the representation returned to the caller:
+
+* `policy-view=original` (default) — returns the policy as stored, unchanged behaviour.
+* `policy-view=resolved` — returns the **merged "effective" policy**: the importing policy's own entries plus
+  entries inherited via declared imports (with `references` resolved) plus entries from configured
+  [namespace root policies](#namespace-root-policies).
+
+The same hint may be sent as the `policy-view` Ditto header, so the resolved view is available uniformly via
+HTTP, WebSocket, server-sent events and the connectivity service.
+
+### Behaviour of the resolved view
+
+* **Imported entry labels** are rewritten as `imported-<importedPolicyId>-<originalLabel>` (declared imports only).
+  The format is informational; treat the label as opaque since policy IDs may themselves contain `-`.
+* **Authorization is preserved.** The merge runs *before* the per-subject `READ` filter, so the resolved view is
+  subject to the same authorization as the unresolved view: a caller only sees entries they have `READ` on.
+* **`fields=` is honoured.** Deep field selectors (e.g. `fields=entries/owner/subjects`) work on the resolved view.
+* **No ETag is returned.** The importing policy's revision does not track changes to imported or namespace-root
+  policies, so a `304 Not Modified` would be unsafe — the resolved view is always read-through.
+* **`If-Match` / `If-None-Match` are ignored** on `policy-view=resolved` requests for the same reason.
+* **Sub-resources** (`/entries`, `/imports`, `/entries/{label}/...`) are not affected — `policy-view` only changes
+  the top-level `GET /policies/{policyId}` representation.
+
+### Example
+
+```
+GET /api/2/policies/com.example:tenant-policy?policy-view=resolved
+```
+
+Returns the same JSON shape as `GET /api/2/policies/{policyId}`, with imported entries listed under the
+`imported-…` prefix in the `entries` map.
+
 ## Tools for editing a Policy
 
 You can edit the Policy with any text editor.
