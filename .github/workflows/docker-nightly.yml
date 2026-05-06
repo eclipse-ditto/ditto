@@ -39,7 +39,7 @@ jobs:
       -
         name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v3.12.0 # setup buildx in order to do build and push multi-architecture images
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0 # setup buildx in order to do build and push multi-architecture images
       -
         name: Inspect buildx builder
         run: |
@@ -165,7 +165,7 @@ jobs:
             eclipse/ditto-ui:${{ env.IMAGE_TAG }}
       - 
         name: Run Trivy vulnerability scanner for ditto-policies
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # 0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: 'docker.io/eclipse/ditto-policies:${{ env.IMAGE_TAG }}'
           format: 'table'
@@ -175,7 +175,7 @@ jobs:
           severity: 'CRITICAL'
       - 
         name: Run Trivy vulnerability scanner for ditto-things
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # 0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: 'docker.io/eclipse/ditto-things:${{ env.IMAGE_TAG }}'
           format: 'table'
@@ -185,7 +185,7 @@ jobs:
           severity: 'CRITICAL'
       - 
         name: Run Trivy vulnerability scanner for ditto-gateway
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # 0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: 'docker.io/eclipse/ditto-gateway:${{ env.IMAGE_TAG }}'
           format: 'table'
@@ -195,7 +195,7 @@ jobs:
           severity: 'CRITICAL'
       - 
         name: Run Trivy vulnerability scanner for ditto-things-search
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # 0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: 'docker.io/eclipse/ditto-things-search:${{ env.IMAGE_TAG }}'
           format: 'table'
@@ -205,7 +205,7 @@ jobs:
           severity: 'CRITICAL'
       - 
         name: Run Trivy vulnerability scanner for ditto-connectivity
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # 0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: 'docker.io/eclipse/ditto-connectivity:${{ env.IMAGE_TAG }}'
           format: 'table'
@@ -215,7 +215,7 @@ jobs:
           severity: 'CRITICAL'
       - 
         name: Run Trivy vulnerability scanner for ditto-ui
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # 0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: 'docker.io/eclipse/ditto-ui:${{ env.IMAGE_TAG }}'
           format: 'table'

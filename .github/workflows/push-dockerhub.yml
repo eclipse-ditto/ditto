@@ -38,7 +38,7 @@ jobs:
       -
         name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v3.12.0 # setup buildx in order to do build and push multi-architecture images
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0 # setup buildx in order to do build and push multi-architecture images
       -
         name: Inspect buildx builder
         run: |
