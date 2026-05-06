@@ -70,6 +70,7 @@ import org.eclipse.ditto.connectivity.api.OutboundSignal.Mapped;
 import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.FilteredTopic;
+import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.model.LogCategory;
 import org.eclipse.ditto.connectivity.model.LogType;
 import org.eclipse.ditto.connectivity.model.MetricDirection;
@@ -103,7 +104,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
-import org.eclipse.ditto.placeholders.HeadersPlaceholder;
 import org.eclipse.ditto.placeholders.PipelineElement;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.PlaceholderResolver;
@@ -149,7 +149,6 @@ public final class OutboundMappingProcessorActor
     private static final ResourcePlaceholder RESOURCE_PLACEHOLDER = ResourcePlaceholder.getInstance();
     private static final TimePlaceholder TIME_PLACEHOLDER = TimePlaceholder.getInstance();
     private static final ThingJsonPlaceholder THING_JSON_PLACEHOLDER = ThingJsonPlaceholder.getInstance();
-    private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
 
     private final ActorRef clientActor;
     private final Connection connection;
@@ -411,61 +410,54 @@ public final class OutboundMappingProcessorActor
      * Create a flow that splits 1 outbound signal into many as follows.
      * <ol>
      * <li>
-     * Targets with matching filtered topics without extra fields are grouped into 1 outbound signal, followed by
+     *     For each target without extra fields, it produces a pair of outbound signal and empty set of topics.
+     *     As these targets have already passed pre-filtering in an early stage, no more filtering is needed.</li>
+     * <li>
+     *     For each target containing any extra field in its topics, it produces a pair of outbound signal and a set of its target topics.
+     *     As the filter could incLude extra fields, an additional filtering must be performed after extracting the extra fields.
+     *     This filtering should pass the first match only to not duplicate the outbound signal for the same target.
+     *     The outbound signal should be enriched with only those extra fields, which are listed in the topic matched the filter.
      * </li>
-     * <li>one outbound signal for each target with a matching filtered topic with extra fields.</li>
-     * </ol>
-     * The matching filtered topic is attached in the latter case.
-     * Consequently, for each outbound signal leaving this flow, if it has a filtered topic attached,
-     * then it has 1 unique target with a matching topic with extra fields.
+     *
      * This satisfies the precondition of {@code this#enrichAndFilterSignal}.
      *
      * @return the flow.
      */
-    private static Flow<OutboundSignalWithSender, Pair<OutboundSignalWithSender, FilteredTopic>, NotUsed> splitByTargetExtraFieldsFlow() {
+    private static Flow<OutboundSignalWithSender, Pair<OutboundSignalWithSender, Set<FilteredTopic>>, NotUsed> splitByTargetExtraFieldsFlow() {
         return Flow.<OutboundSignalWithSender>create()
                 .mapConcat(outboundSignal -> {
-                    final Pair<List<Target>, List<Pair<Target, FilteredTopic>>> splitTargets =
-                            splitTargetsByExtraFields(outboundSignal);
-
-                    final boolean shouldSendSignalWithoutExtraFields =
-                            !splitTargets.first().isEmpty() ||
-                                    isCommandResponseWithReplyTarget(outboundSignal.getSource()) ||
-                                    outboundSignal.getTargets().isEmpty(); // no target - this is an error response
-                    final Stream<Pair<OutboundSignalWithSender, FilteredTopic>> outboundSignalWithoutExtraFields =
-                            shouldSendSignalWithoutExtraFields
-                                    ? Stream.of(Pair.create(outboundSignal.setTargets(splitTargets.first()), null))
-                                    : Stream.empty();
-
-                    final Stream<Pair<OutboundSignalWithSender, FilteredTopic>> outboundSignalWithExtraFields =
-                            splitTargets.second().stream()
-                                    .map(targetAndSelector -> Pair.create(
-                                            outboundSignal.setTargets(
-                                                    Collections.singletonList(targetAndSelector.first())),
-                                            targetAndSelector.second()));
-
-                    return Stream.concat(outboundSignalWithoutExtraFields, outboundSignalWithExtraFields).toList();
+                    final boolean shouldSendSignalDirectly =
+                            isCommandResponseWithReplyTarget(outboundSignal.getSource()) ||
+                            outboundSignal.getTargets().isEmpty(); // no target - this is an error response
+                    return shouldSendSignalDirectly
+                        ? List.of(Pair.create(outboundSignal, Collections.<FilteredTopic>emptySet()))
+                        : pairTargetsWithTopics(outboundSignal).stream()
+                            .map(targetAndSelector -> Pair.create(
+                                    outboundSignal.setTargets(Collections.singletonList(targetAndSelector.first())),
+                                    targetAndSelector.second()))
+                            .toList();
                 });
     }
-
 
     // Called inside stream; must be thread-safe
     // precondition: whenever filteredTopic != null, it contains an extra fields
     private CompletionStage<Collection<OutboundSignalWithSender>> enrichAndFilterSignal(
-            final Pair<OutboundSignalWithSender, FilteredTopic> outboundSignalWithExtraFields) {
-
+            final Pair<OutboundSignalWithSender, Set<FilteredTopic>> outboundSignalWithExtraFields) {
         final OutboundSignalWithSender outboundSignal = outboundSignalWithExtraFields.first();
-        final FilteredTopic filteredTopic = outboundSignalWithExtraFields.second();
-        final ExpressionResolver expressionResolver =
-                Resolvers.forSignal(outboundSignal.getSource(), connection.getId());
-        final Optional<JsonFieldSelector> extraFieldsOptional = getExtraFields(expressionResolver, filteredTopic);
-        if (extraFieldsOptional.isEmpty()) {
+        final Set<FilteredTopic> topics = outboundSignalWithExtraFields.second();
+
+        List<JsonFieldSelector> allExtraFields = topics.stream()
+                .map(FilteredTopic::getExtraFields)
+                .flatMap(Optional::stream)
+                .toList();
+        boolean topicWithNoFilterNoExtraFieldsExists = topics.stream().anyMatch(topic -> topic.getFilter().isEmpty() && topic.getExtraFields().isEmpty());
+        if (allExtraFields.isEmpty() || topicWithNoFilterNoExtraFieldsExists) {
+            // Pre-filtering already did the job
             return CompletableFuture.completedFuture(Collections.singletonList(outboundSignal));
         }
-        final JsonFieldSelector extraFields = extraFieldsOptional.get();
-        final Target target = outboundSignal.getTargets().get(0);
+        boolean topicWithNoFilterExists = topics.stream().anyMatch(topic -> topic.getFilter().isEmpty());
 
-
+        final Target target = outboundSignal.getTargets().getFirst();
         final DittoHeaders headers = DittoHeaders.newBuilder()
                 .authorizationContext(target.getAuthorizationContext())
                 // the correlation-id MUST NOT be set! as the DittoHeaders are used as a caching key in the Caffeine
@@ -474,21 +466,40 @@ public final class OutboundMappingProcessorActor
                 .schemaVersion(JsonSchemaVersion.LATEST)
                 .build();
 
-        return extractEntityId(outboundSignal.delegate.getSource())
+        final ExpressionResolver expressionResolver =
+                Resolvers.forSignal(outboundSignal.getSource(), connection.getId());
+        Optional<JsonFieldSelector> allExtraFieldsOptional = getExtraFields(expressionResolver, allExtraFields);
+
+        // Avoid multiple calls to 'retrievePartialThing' (for each topic with extra fields) by combining extra fields from all topics
+        Optional<CompletionStage<JsonObject>> partialThingOptional = extractEntityId(outboundSignal.delegate.getSource())
                 .filter(ThingId.class::isInstance)
                 .map(ThingId.class::cast)
-                .map(thingId ->
-                        signalEnrichmentFacade.retrievePartialThing(
-                                thingId,
-                                extraFields,
-                                headers,
-                                outboundSignal.getSource())
-                )
-                .map(partialThingCompletionStage -> partialThingCompletionStage
-                        .thenApply(outboundSignal::setExtra)
-                        .thenApply(outboundSignalWithExtra -> applyFilter(outboundSignalWithExtra, filteredTopic)))
-                .orElse(CompletableFuture.completedFuture(outboundSignal)
-                        .thenApply(outboundSignalWithExtra -> applyFilter(outboundSignalWithExtra, filteredTopic)))
+                .flatMap(thingId -> allExtraFieldsOptional
+                        .map(resolvedExtraFields ->
+                                signalEnrichmentFacade.retrievePartialThing(
+                                        thingId,
+                                        resolvedExtraFields,
+                                        headers,
+                                        outboundSignal.getSource())));
+
+        return partialThingOptional
+                .map(partialThing -> partialThing
+                        .<Collection<OutboundSignalWithSender>>thenApply(extra -> {
+                            final Thing enrichedThing = ThingEventToThingConverter.mergeThingWithExtraFields(
+                                    outboundSignal.getSource(),
+                                    allExtraFieldsOptional.get(),
+                                    extra).orElse(null);
+                            return topics.stream()
+                                    .filter(_ -> enrichedThing != null || topicWithNoFilterExists)
+                                    .flatMap(topic -> applyFilter(outboundSignal, enrichedThing, topic)
+                                            .map(signal -> setTrimmedExtra(signal, topic, expressionResolver,
+                                                    extra, allExtraFieldsOptional.get()))
+                                            .stream())
+                                    .findFirst()
+                                    .map(Collections::singletonList)
+                                    .orElse(Collections.emptyList());
+                        }))
+                .orElseGet(() -> CompletableFuture.completedFuture(Collections.singletonList(outboundSignal)))
                 .exceptionally(error -> {
                     logger.withCorrelationId(outboundSignal.getSource())
                             .warning("Could not retrieve extra data due to: {} {}", error.getClass().getSimpleName(),
@@ -498,17 +509,35 @@ public final class OutboundMappingProcessorActor
                 });
     }
 
-    private static Optional<JsonFieldSelector> getExtraFields(final ExpressionResolver expressionResolver,
-            @Nullable final FilteredTopic filteredTopic) {
+    private static OutboundSignalWithSender setTrimmedExtra(final OutboundSignalWithSender signal,
+            final FilteredTopic topic,
+            final ExpressionResolver expressionResolver,
+            final JsonObject extra,
+            final JsonFieldSelector allExtraFields) {
 
-        return Optional.ofNullable(filteredTopic)
-                .flatMap(FilteredTopic::getExtraFields)
-                .map(extraFields -> extraFields.getPointers().stream()
-                        .map(JsonPointer::toString)
-                        .map(expressionResolver::resolve)
-                        .flatMap(PipelineElement::toStream)
-                        .map(JsonPointer::of)
-                        .toList())
+        return topic.getExtraFields()
+                .flatMap(fields -> getExtraFields(expressionResolver, Collections.singletonList(fields)))
+                .map(neededFields -> {
+                    final var builder = extra.toBuilder();
+                    allExtraFields.getPointers().stream()
+                            .filter(pointer -> !neededFields.getPointers().contains(pointer))
+                            .forEach(pointer -> pointer.getRoot().ifPresent(builder::remove));
+                    return signal.setExtra(builder.build());
+                })
+                .orElse(signal);
+    }
+
+    private static Optional<JsonFieldSelector> getExtraFields(final ExpressionResolver expressionResolver,
+            final List<JsonFieldSelector> extraFieldsSelectors) {
+
+        return Optional.of(
+                extraFieldsSelectors.stream()
+                .flatMap(selector -> selector.getPointers().stream())
+                .map(JsonPointer::toString)
+                .map(expressionResolver::resolve)
+                .flatMap(PipelineElement::toStream)
+                .map(JsonPointer::of)
+                .toList())
                 .filter(jsonPointers -> !jsonPointers.isEmpty())
                 .map(JsonFactory::newFieldSelector)
                 .map(ThingFieldSelector::fromJsonFieldSelector);
@@ -736,7 +765,7 @@ public final class OutboundMappingProcessorActor
                                 logger);
                         return List.of();
                     } else {
-                        final ActorRef sender = outboundSignals.get(0).sender;
+                        final ActorRef sender = outboundSignals.getFirst().sender;
                         final List<Target> targetsToPublishAt = outboundSignals.stream()
                                 .map(OutboundSignal::getTargets)
                                 .flatMap(List::stream)
@@ -787,15 +816,22 @@ public final class OutboundMappingProcessorActor
         });
     }
 
-    private Collection<OutboundSignalWithSender> applyFilter(final OutboundSignalWithSender outboundSignalWithExtra,
-            final FilteredTopic filteredTopic) {
+    private Optional<OutboundSignalWithSender> applyFilter(final OutboundSignalWithSender outboundSignal,
+            @Nullable final Thing thing, final FilteredTopic topic) {
 
-        final Optional<String> filter = filteredTopic.getFilter();
-        final Optional<JsonFieldSelector> extraFields = filteredTopic.getExtraFields();
-        if (filter.isPresent() && extraFields.isPresent()) {
+        final Signal<?> signal = outboundSignal.getSource();
+        final TopicPath topicPath = DITTO_PROTOCOL_ADAPTER.toTopicPath(signal);
+
+        if (!topicMatchesTopicPath(topicPath, topic.getTopic())) {
+            return Optional.empty();
+        }
+
+        final Optional<String> filter = topic.getFilter();
+        if (filter.isPresent()) {
+            if (thing == null) {
+                return Optional.empty();
+            }
             // evaluate filter criteria again if signal enrichment is involved.
-            final Signal<?> signal = outboundSignalWithExtra.getSource();
-            final TopicPath topicPath = DITTO_PROTOCOL_ADAPTER.toTopicPath(signal);
             final PlaceholderResolver<TopicPath> topicPathPlaceholderResolver = PlaceholderFactory
                     .newPlaceholderResolver(TOPIC_PATH_PLACEHOLDER, topicPath);
             final PlaceholderResolver<EntityId> entityIdPlaceholderResolver = PlaceholderFactory
@@ -815,25 +851,34 @@ public final class OutboundMappingProcessorActor
                     topicPathPlaceholderResolver, entityIdPlaceholderResolver, thingPlaceholderResolver,
                     featurePlaceholderResolver, resourcePlaceholderResolver, timePlaceholderResolver
             ).filterCriteria(filter.get(), dittoHeaders);
-            return outboundSignalWithExtra.getExtra()
-                    .flatMap(extra -> ThingEventToThingConverter
-                            .mergeThingWithExtraFields(signal, extraFields.get(), extra)
-                            .filter(thing -> {
-                                final PlaceholderResolver<Thing> thingJsonPlaceholderResolver = PlaceholderFactory
-                                        .newPlaceholderResolver(THING_JSON_PLACEHOLDER, thing);
-                                return ThingPredicateVisitor.apply(criteria, topicPathPlaceholderResolver,
-                                                entityIdPlaceholderResolver, thingPlaceholderResolver,
-                                                featurePlaceholderResolver, resourcePlaceholderResolver,
-                                                timePlaceholderResolver, thingJsonPlaceholderResolver)
-                                        .test(thing);
-                            })
-                            .map(thing -> outboundSignalWithExtra))
-                    .map(Collections::singletonList)
-                    .orElse(List.of());
+            final PlaceholderResolver<Thing> thingJsonPlaceholderResolver = PlaceholderFactory
+                    .newPlaceholderResolver(THING_JSON_PLACEHOLDER, thing);
+            final var result = Optional.of(outboundSignal)
+                    .filter(_ -> ThingPredicateVisitor
+                        .apply(criteria, topicPathPlaceholderResolver,
+                                entityIdPlaceholderResolver, thingPlaceholderResolver,
+                                featurePlaceholderResolver, resourcePlaceholderResolver,
+                                timePlaceholderResolver, thingJsonPlaceholderResolver)
+                        .test(thing));
+            return result;
         } else {
             // no signal enrichment: filtering is already done in SignalFilter since there is no ignored field
-            return Collections.singletonList(outboundSignalWithExtra);
+            return Optional.of(outboundSignal);
         }
+    }
+
+    private static boolean topicMatchesTopicPath(final TopicPath topicPath, final Topic topic) {
+        return switch (topic) {
+            case TWIN_EVENTS -> topicPath.isChannel(TopicPath.Channel.TWIN)
+                    && topicPath.isCriterion(TopicPath.Criterion.EVENTS);
+            case LIVE_EVENTS -> topicPath.isChannel(TopicPath.Channel.LIVE)
+                    && topicPath.isCriterion(TopicPath.Criterion.EVENTS);
+            case LIVE_COMMANDS -> topicPath.isChannel(TopicPath.Channel.LIVE)
+                    && topicPath.isCriterion(TopicPath.Criterion.COMMANDS);
+            case LIVE_MESSAGES -> topicPath.isChannel(TopicPath.Channel.LIVE)
+                    && topicPath.isCriterion(TopicPath.Criterion.MESSAGES);
+            default -> false;
+         };
     }
 
     private static String stackTraceAsString(final DittoRuntimeException exception) {
@@ -848,38 +893,39 @@ public final class OutboundMappingProcessorActor
     }
 
     /**
-     * Split the targets of an outbound signal into 2 parts: those without extra fields and those with.
+     * Pairs each target of an outbound signal with its topics, if any with an extra field.
      *
      * @param outboundSignal The outbound signal.
-     * @return A pair of lists. The first list contains targets without matching extra fields.
-     * The second list contains targets together with their extra fields matching the outbound signal.
+     * @return A list of pairs, one per target.
+     * If the target has at least one topic with extra fields, the target is paired with a set of its topics.
+     * Otherwise (no extra fields), it is paired with an empty set.
+     * If the signal has no streaming type, all targets are paired with an empty set.
      */
-    private static Pair<List<Target>, List<Pair<Target, FilteredTopic>>> splitTargetsByExtraFields(
+    private static List<Pair<Target, Set<FilteredTopic>>> pairTargetsWithTopics(
             final OutboundSignal outboundSignal) {
 
         final Optional<StreamingType> streamingTypeOptional = StreamingType.fromSignal(outboundSignal.getSource());
         if (streamingTypeOptional.isPresent()) {
             // Find targets with a matching topic with extra fields
             final StreamingType streamingType = streamingTypeOptional.get();
-            final List<Target> targetsWithoutExtraFields = new ArrayList<>(outboundSignal.getTargets().size());
-            final List<Pair<Target, FilteredTopic>> targetsWithExtraFields =
+            final List<Pair<Target, Set<FilteredTopic>>> targetsPairedWithTopics =
                     new ArrayList<>(outboundSignal.getTargets().size());
+
             for (final Target target : outboundSignal.getTargets()) {
-                final Optional<FilteredTopic> matchingExtraFields = target.getTopics()
-                        .stream()
-                        .filter(filteredTopic -> filteredTopic.getExtraFields().isPresent() &&
-                                streamingType == StreamingType.fromTopic(filteredTopic.getTopic().getPubSubTopic()))
-                        .findAny();
-                if (matchingExtraFields.isPresent()) {
-                    targetsWithExtraFields.add(Pair.create(target, matchingExtraFields.get()));
+                if (target.getTopics().stream()
+                        .anyMatch(filteredTopic -> filteredTopic.getExtraFields().isPresent() &&
+                                streamingType == StreamingType.fromTopic(filteredTopic.getTopic().getPubSubTopic()))) {
+                    targetsPairedWithTopics.add(Pair.create(target, target.getTopics()));
                 } else {
-                    targetsWithoutExtraFields.add(target);
+                    targetsPairedWithTopics.add(Pair.create(target, Collections.emptySet()));
                 }
             }
-            return Pair.create(targetsWithoutExtraFields, targetsWithExtraFields);
+            return targetsPairedWithTopics;
         } else {
             // The outbound signal has no streaming type: Do not attach extra fields.
-            return Pair.create(outboundSignal.getTargets(), Collections.emptyList());
+            return outboundSignal.getTargets().stream()
+                    .map(target -> Pair.create(target, Collections.<FilteredTopic>emptySet()))
+                    .toList();
         }
     }
 

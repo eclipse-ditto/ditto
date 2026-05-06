@@ -176,15 +176,15 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
             proxyActorProbe.reply(
                     RetrieveThingResponse.of(retrieveThing.getEntityId(), extra, retrieveThing.getDittoHeaders()));
 
-            // THEN: a mapped signal without enrichment arrives first
+            // THEN: a mapped signal with enrichment arrives first
             final BaseClientActor.PublishMappedMessage
                     publishMappedMessage = expectMsgClass(BaseClientActor.PublishMappedMessage.class);
             int i = 0;
-            expectPublishedMappedMessage(publishMappedMessage, i++, signal, targetWithoutEnrichment);
-
-            // THEN: Receive an outbound signal with extra fields.
-            expectPublishedMappedMessage(publishMappedMessage, i, signal, targetWithEnrichment,
+            expectPublishedMappedMessage(publishMappedMessage, i++, signal, targetWithEnrichment,
                     mapped -> assertThat(mapped.getAdaptable().getPayload().getExtra()).contains(extra));
+
+            // THEN: Receive an outbound signal without extra fields.
+            expectPublishedMappedMessage(publishMappedMessage, i, signal, targetWithoutEnrichment);
         }};
     }
 
@@ -287,37 +287,14 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                     publishMappedMessage = expectMsgClass(BaseClientActor.PublishMappedMessage.class);
             int i = 0;
 
-            // THEN: the first mapped signal is without enrichment
-            expectPublishedMappedMessage(publishMappedMessage, i++, signal, targetWithoutEnrichment,
-                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).containsOnlyKeys("content-type")
-            );
-
-            // THEN: the second mapped signal is without enrichment and applied 1 payload mapper arrives
-            expectPublishedMappedMessage(publishMappedMessage, i++, signal,
-                    targetWithoutEnrichmentAnd1PayloadMapper,
-                    mapped -> assertThat(mapped.getExternalMessage().getHeaders())
-                            .contains(AddHeaderMessageMapper.OUTBOUND_HEADER)
-            );
-
-            // THEN: a mapped signal without enrichment and applied 2 payload mappers arrives causing 3 messages
-            //  as 1 mapper duplicates the message
-            expectPublishedMappedMessage(publishMappedMessage, i++, signal,
-                    targetWithoutEnrichmentAnd2PayloadMappers,
-                    mapped -> assertThat(mapped.getExternalMessage().getHeaders())
-                            .contains(AddHeaderMessageMapper.OUTBOUND_HEADER)
-            );
-            expectPublishedMappedMessage(publishMappedMessage, i++, signal,
-                    targetWithoutEnrichmentAnd2PayloadMappers,
-                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).containsOnlyKeys("content-type")
-            );
-            expectPublishedMappedMessage(publishMappedMessage, i++, signal,
-                    targetWithoutEnrichmentAnd2PayloadMappers,
-                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).containsOnlyKeys("content-type")
-            );
-
             // THEN: Receive an outbound signal with extra fields.
             expectPublishedMappedMessage(publishMappedMessage, i++, signal, targetWithEnrichment,
                     mapped -> assertThat(mapped.getAdaptable().getPayload().getExtra()).contains(extra),
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).containsOnlyKeys("content-type")
+            );
+
+            // THEN: the first mapped signal is without enrichment
+            expectPublishedMappedMessage(publishMappedMessage, i++, signal, targetWithoutEnrichment,
                     mapped -> assertThat(mapped.getExternalMessage().getHeaders()).containsOnlyKeys("content-type")
             );
 
@@ -325,6 +302,13 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
             expectPublishedMappedMessage(publishMappedMessage, i++, signal,
                     targetWithEnrichmentAnd1PayloadMapper,
                     mapped -> assertThat(mapped.getAdaptable().getPayload().getExtra()).contains(extra),
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders())
+                            .contains(AddHeaderMessageMapper.OUTBOUND_HEADER)
+            );
+
+            // THEN: the second mapped signal is without enrichment and applied 1 payload mapper arrives
+            expectPublishedMappedMessage(publishMappedMessage, i++, signal,
+                    targetWithoutEnrichmentAnd1PayloadMapper,
                     mapped -> assertThat(mapped.getExternalMessage().getHeaders())
                             .contains(AddHeaderMessageMapper.OUTBOUND_HEADER)
             );
@@ -341,11 +325,27 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                     mapped -> assertThat(mapped.getAdaptable().getPayload().getExtra()).contains(extra),
                     mapped -> assertThat(mapped.getExternalMessage().getHeaders()).containsOnlyKeys("content-type")
             );
-            expectPublishedMappedMessage(publishMappedMessage, i, signal,
+            expectPublishedMappedMessage(publishMappedMessage, i++, signal,
                     targetWithEnrichmentAnd2PayloadMappers,
                     mapped -> assertThat(mapped.getAdaptable().getPayload().getExtra()).contains(extra),
                     mapped -> assertThat(mapped.getExternalMessage().getHeaders())
                             .contains(AddHeaderMessageMapper.OUTBOUND_HEADER)
+            );
+
+            // THEN: a mapped signal without enrichment and applied 2 payload mappers arrives causing 3 messages
+            //  as 1 mapper duplicates the message
+            expectPublishedMappedMessage(publishMappedMessage, i++, signal,
+                    targetWithoutEnrichmentAnd2PayloadMappers,
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders())
+                            .contains(AddHeaderMessageMapper.OUTBOUND_HEADER)
+            );
+            expectPublishedMappedMessage(publishMappedMessage, i++, signal,
+                    targetWithoutEnrichmentAnd2PayloadMappers,
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).containsOnlyKeys("content-type")
+            );
+            expectPublishedMappedMessage(publishMappedMessage, i, signal,
+                    targetWithoutEnrichmentAnd2PayloadMappers,
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).containsOnlyKeys("content-type")
             );
         }};
     }
