@@ -25,6 +25,7 @@ import * as Piggyback from './modules/operations/piggyback.js';
 import * as Operations from './modules/operations/servicesLogging.js';
 import * as Templates from './modules/operations/templates.js';
 import * as Policies from './modules/policies/policies.js';
+import * as PoliciesEffective from './modules/policies/policiesEffective.js';
 import * as PoliciesEntries from './modules/policies/policiesEntries.js';
 import * as PoliciesImports from './modules/policies/policiesImports.js';
 import * as PoliciesJSON from './modules/policies/policiesJSON.js';
@@ -73,6 +74,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   PoliciesEntries.ready();
   PoliciesSubjects.ready();
   PoliciesResources.ready();
+  PoliciesEffective.ready();
   Connections.ready();
   ConnectionsCRUD.ready();
   await ConnectionsMonitor.ready();

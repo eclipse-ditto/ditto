@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.policies.model;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.eclipse.ditto.base.model.entity.id.restriction.LengthRestrictionTestBase;
 import org.junit.Test;
 
@@ -49,5 +51,17 @@ public final class ImmutableLabelTest extends LengthRestrictionTestBase {
     public void createBlocklistedLabel() {
         final String invalidLabel = "imported-someLabel";
         ImmutableLabel.of(invalidLabel);
+    }
+
+    @Test
+    public void ofImportedAcceptsImportedPrefix() {
+        final Label label = Label.ofImported("imported-tenant:base-policy-OWNER");
+        assertThat(label.toString()).isEqualTo("imported-tenant:base-policy-OWNER");
+    }
+
+    @Test
+    public void ofImportedRoundTripsThroughPoliciesModelFactory() {
+        final Label label = PoliciesModelFactory.newImportedRawLabel("imported-tenant:base-OWNER");
+        assertThat(label.toString()).isEqualTo("imported-tenant:base-OWNER");
     }
 }

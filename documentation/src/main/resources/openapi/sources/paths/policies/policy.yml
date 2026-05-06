@@ -26,6 +26,7 @@ get:
   parameters:
     - $ref: '../../parameters/policyIdPathParam.yml'
     - $ref: '../../parameters/policyFieldsQueryParam.yml'
+    - $ref: '../../parameters/policyViewParam.yml'
     - $ref: '../../parameters/ifMatchHeaderParam.yml'
     - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
     - $ref: '../../parameters/timeoutParam.yml'

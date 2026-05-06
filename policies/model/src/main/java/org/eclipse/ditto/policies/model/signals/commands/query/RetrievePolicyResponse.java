@@ -161,7 +161,20 @@ public final class RetrievePolicyResponse extends AbstractCommandResponse<Retrie
      * @return the retrieved Policy.
      */
     public Policy getPolicy() {
-        return PoliciesModelFactory.newPolicy(policy);
+        // Only pay the lenient parser when the response actually carries import-resolved labels (i.e. came from
+        // policy-view=resolved). For the common original-view path, keep the strict factory and its validation.
+        return policy.getValue(Policy.JsonFields.ENTRIES)
+                .filter(RetrievePolicyResponse::hasImportedPrefixedLabel)
+                .map(entries -> PoliciesModelFactory.newPolicyAcceptingImportedLabels(policy))
+                .orElseGet(() -> PoliciesModelFactory.newPolicy(policy));
+    }
+
+    // Mirrors ImmutableImportedLabel.IMPORTED_PREFIX (package-private there); kept inline to avoid widening
+    // its visibility for this single read-side check.
+    private static final String IMPORTED_LABEL_PREFIX = "imported-";
+
+    private static boolean hasImportedPrefixedLabel(final JsonObject entries) {
+        return entries.getKeys().stream().anyMatch(k -> k.toString().startsWith(IMPORTED_LABEL_PREFIX));
     }
 
     @Override

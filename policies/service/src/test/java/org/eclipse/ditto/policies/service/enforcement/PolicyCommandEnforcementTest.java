@@ -810,7 +810,11 @@ public final class PolicyCommandEnforcementTest {
 
         @Override
         protected Props getPersistenceEnforcerProps(final PolicyId entityId) {
-            return PolicyEnforcerActor.props(entityId, new PolicyCommandEnforcement(), policyEnforcerProvider,
+            return PolicyEnforcerActor.props(entityId,
+                    new PolicyCommandEnforcement(
+                            id -> CompletableFuture.completedFuture(Optional.empty()),
+                            emptyNamespacePoliciesConfig()),
+                    policyEnforcerProvider,
                     DefaultLocalAskTimeoutConfig.of(ConfigFactory.empty()),
                     emptyNamespacePoliciesConfig());
         }

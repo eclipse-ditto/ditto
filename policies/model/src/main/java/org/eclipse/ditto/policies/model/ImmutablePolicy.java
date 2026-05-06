@@ -143,6 +143,20 @@ final class ImmutablePolicy implements Policy {
      * {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static Policy fromJson(final JsonObject jsonObject) {
+        return fromJson(jsonObject, false);
+    }
+
+    /**
+     * Variant of {@link #fromJson(JsonObject)} for deserializing a resolved-view response: accepts
+     * {@code imported-*} labels. Never use this on user-submitted bodies.
+     *
+     * @since 3.9.0
+     */
+    public static Policy fromJsonAcceptingImportedLabels(final JsonObject jsonObject) {
+        return fromJson(jsonObject, true);
+    }
+
+    private static Policy fromJson(final JsonObject jsonObject, final boolean acceptImportedLabels) {
         final PolicyId policyId = jsonObject.getValue(JsonFields.ID).map(PolicyId::of).orElse(null);
 
         final PolicyLifecycle readLifecycle = jsonObject.getValue(JsonFields.LIFECYCLE)
@@ -174,7 +188,9 @@ final class ImmutablePolicy implements Policy {
                         .message(MessageFormat.format("<{0}> is not a JSON object!", jsonValue))
                         .build());
             }
-            return ImmutablePolicyEntry.fromJson(jsonField.getKey(), jsonValue.asObject());
+            return acceptImportedLabels
+                    ? ImmutablePolicyEntry.fromJsonAcceptingImportedLabels(jsonField.getKey(), jsonValue.asObject())
+                    : ImmutablePolicyEntry.fromJson(jsonField.getKey(), jsonValue.asObject());
         };
 
         final Collection<PolicyEntry> policyEntries = readEntries.stream()
