@@ -12,12 +12,17 @@
  */
 package org.eclipse.ditto.policies.service.enforcement;
 
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
@@ -41,12 +46,16 @@ import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.enforcement.AbstractEnforcementReloaded;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.enforcement.config.NamespacePoliciesConfig;
+import org.eclipse.ditto.policies.model.EffectedImports;
+import org.eclipse.ditto.policies.model.ImportableType;
 import org.eclipse.ditto.policies.model.Label;
+import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.PoliciesResourceType;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyImport;
 import org.eclipse.ditto.policies.model.PolicyView;
 import org.eclipse.ditto.policies.model.PolicyViewInvalidException;
 import org.eclipse.ditto.policies.model.ResourceKey;
@@ -228,10 +237,9 @@ public final class PolicyCommandEnforcement
                         return CompletableFuture.completedFuture(response);
                     }
                     final Policy rawPolicy = rawPolicyOpt.get();
-                    return PolicyEnforcer.withResolvedImportsAndNamespacePolicies(rawPolicy, policyResolver,
-                                    namespacePoliciesConfig)
-                            .thenApply(enforcer -> enforcer.getPolicy().orElse(rawPolicy))
-                            .thenApply(merged -> rebuildResponseWithMergedPolicy(response, merged));
+                    final AuthorizationContext authCtx = response.getDittoHeaders().getAuthorizationContext();
+                    return mergeAndDropUnreadable(rawPolicy, authCtx)
+                            .thenApply(filtered -> rebuildResponseWithMergedPolicy(response, filtered));
                 })
                 .exceptionally(throwable -> {
                     final DittoRuntimeException dre = DittoRuntimeException.asDittoRuntimeException(throwable, t -> {
@@ -245,6 +253,91 @@ public final class PolicyCommandEnforcement
                     }
                     return response;
                 });
+    }
+
+    /**
+     * Builds the merged policy and drops every entry the caller has no READ on within its source. Without this
+     * source-side check, broad READ on the importing policy would expose the contents of every imported and
+     * namespace-root policy, regardless of the caller's permissions on the source.
+     */
+    private CompletionStage<Policy> mergeAndDropUnreadable(final Policy rawPolicy, final AuthorizationContext authCtx) {
+        final Set<Label> rawLabels = rawPolicy.getEntriesSet().stream()
+                .map(PolicyEntry::getLabel)
+                .collect(Collectors.toUnmodifiableSet());
+        final List<PolicyId> nsRootIds = namespacePoliciesConfig.getRootPoliciesForNamespace(
+                rawPolicy.getNamespace().orElse(""));
+
+        final Map<PolicyId, CompletableFuture<Optional<PolicyEnforcer>>> sources = new LinkedHashMap<>();
+        for (final PolicyImport imp : rawPolicy.getPolicyImports()) {
+            sources.computeIfAbsent(imp.getImportedPolicyId(), this::resolveSourceEnforcer);
+        }
+        for (final PolicyId nsRootId : nsRootIds) {
+            sources.computeIfAbsent(nsRootId, this::resolveSourceEnforcer);
+        }
+        final CompletionStage<Policy> mergedStage = PolicyEnforcer
+                .withResolvedImportsAndNamespacePolicies(rawPolicy, policyResolver, namespacePoliciesConfig)
+                .thenApply(enforcer -> enforcer.getPolicy().orElse(rawPolicy));
+        if (sources.isEmpty()) {
+            return mergedStage;
+        }
+        final CompletableFuture<Void> allSources = CompletableFuture.allOf(
+                sources.values().toArray(new CompletableFuture[0]));
+
+        return mergedStage.thenCombine(allSources, (merged, ignored) -> {
+            Policy result = merged;
+            // Declared imports — labels are unique per source via the imported-<sourceId>- prefix, no precedence concern.
+            for (final PolicyImport imp : rawPolicy.getPolicyImports()) {
+                final PolicyEnforcer src = sources.get(imp.getImportedPolicyId()).join().orElse(null);
+                if (src == null) continue;
+                for (final PolicyEntry e : src.getPolicy().orElseThrow()) {
+                    if (isContributedByImport(e, imp) && !hasSourceSideRead(src, e.getLabel(), authCtx)) {
+                        result = result.removeEntry(PoliciesModelFactory.newImportedLabel(
+                                imp.getImportedPolicyId(), e.getLabel()));
+                    }
+                }
+            }
+            // Namespace-roots — first-wins precedence mirrors PolicyEnforcer.mergeImplicitEntries; later ns-roots'
+            // same-label entries are silently dropped from the merge, so checking them would inspect the wrong source.
+            final Set<Label> claimed = new HashSet<>();
+            for (final PolicyId nsRootId : nsRootIds) {
+                final PolicyEnforcer src = sources.get(nsRootId).join().orElse(null);
+                if (src == null) continue;
+                for (final PolicyEntry e : src.getPolicy().orElseThrow()) {
+                    if (!ImportableType.IMPLICIT.equals(e.getImportableType())) continue;
+                    final Label label = e.getLabel();
+                    if (rawLabels.contains(label) || !claimed.add(label)) continue;
+                    if (!hasSourceSideRead(src, label, authCtx)) {
+                        result = result.removeEntry(label);
+                    }
+                }
+            }
+            return result;
+        });
+    }
+
+    private CompletableFuture<Optional<PolicyEnforcer>> resolveSourceEnforcer(final PolicyId sourceId) {
+        return policyResolver.apply(sourceId)
+                .thenCompose(opt -> opt.isPresent()
+                        ? PolicyEnforcer.withResolvedImports(opt.get(), policyResolver).thenApply(Optional::of)
+                        : CompletableFuture.completedFuture(Optional.<PolicyEnforcer>empty()))
+                .toCompletableFuture();
+    }
+
+    private static boolean hasSourceSideRead(final PolicyEnforcer src, final Label label,
+            final AuthorizationContext authCtx) {
+        return src.getEnforcer().hasPartialPermissions(
+                PoliciesResourceType.policyResource("/entries/" + label), authCtx, Permission.READ);
+    }
+
+    private static boolean isContributedByImport(final PolicyEntry sourceEntry, final PolicyImport imp) {
+        return switch (sourceEntry.getImportableType()) {
+            case IMPLICIT -> true;
+            case EXPLICIT -> imp.getEffectedImports()
+                    .map(EffectedImports::getImportedLabels)
+                    .map(labels -> labels.contains(sourceEntry.getLabel()))
+                    .orElse(false);
+            case NEVER -> false;
+        };
     }
 
     private static RetrievePolicyResponse rebuildResponseWithMergedPolicy(final RetrievePolicyResponse original,
