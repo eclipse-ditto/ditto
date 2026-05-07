@@ -19,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -66,7 +67,7 @@ public final class AcknowledgementAggregatorActorStarter {
     private final Collection<CommandResponseAcknowledgementProvider<?>> responseAcknowledgementProviders;
     @Nullable private final Consumer<MatchingValidationResult.Failure> matchingValidationFailureConsumer;
     private final Address selfRemoteAddress;
-    private int childCounter;
+    private final AtomicInteger childCounter;
 
     private AcknowledgementAggregatorActorStarter(final ActorRefFactory actorRefFactory,
             final Duration maxTimeout,
@@ -82,7 +83,7 @@ public final class AcknowledgementAggregatorActorStarter {
         this.ackRequestSetter = ackRequestSetter;
         this.responseAcknowledgementProviders = responseAcknowledgementProviders;
         selfRemoteAddress = Cluster.get(actorRefFactory.systemImpl()).selfUniqueAddress().address();
-        childCounter = 0;
+        childCounter = new AtomicInteger(0);
     }
 
     /**
@@ -301,7 +302,7 @@ public final class AcknowledgementAggregatorActorStarter {
                 .map(cid -> URLEncoder.encode(cid, StandardCharsets.UTF_8))
                 .orElse("_");
 
-        return String.format("ackr%x-%s", childCounter++, correlationId);
+        return String.format("ackr%x-%s", childCounter.getAndIncrement(), correlationId);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})

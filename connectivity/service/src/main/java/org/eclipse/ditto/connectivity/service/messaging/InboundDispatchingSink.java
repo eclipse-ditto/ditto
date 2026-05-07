@@ -539,8 +539,8 @@ public final class InboundDispatchingSink
     }
 
     /**
-     * Handle incoming signals that request acknowledgements in the actor's thread, since creating the necessary
-     * acknowledgement aggregators is not thread-safe.
+     * Handle incoming signals that request acknowledgements. May be invoked concurrently from multiple consumer
+     * actors' inbound mapping streams, so the {@link AcknowledgementAggregatorActorStarter} must remain thread-safe.
      *
      * @param incomingSignal the signal requesting acknowledgements together with its original sender,
      * the response collector actor.
