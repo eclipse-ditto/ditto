@@ -279,7 +279,8 @@ public final class PolicyCommandEnforcement
 
         return mergedStage.thenCombine(allSources, (merged, ignored) -> {
             Policy result = merged;
-            // Declared imports — labels are unique per source via the imported-<sourceId>- prefix, no precedence concern.
+            // Declared imports — labels are unique per source via the imported-<sourceId>- prefix
+            // (transitive imports nest as imported-<B>-imported-<C>-<label>), so no precedence concern.
             for (final PolicyImport imp : rawPolicy.getPolicyImports()) {
                 final PolicyEnforcer src = sources.get(imp.getImportedPolicyId()).join().orElse(null);
                 if (src == null) continue;
