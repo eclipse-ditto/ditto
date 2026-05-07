@@ -105,6 +105,17 @@ public final class PoliciesModelFactory {
     }
 
     /**
+     * Returns a {@link Label} that bypasses the reserved-prefix check (rejects neither {@code imported-} nor
+     * {@code nsimported-}). For deserializing a resolved-view response only; never use this on user-submitted
+     * policy bodies.
+     *
+     * @since 3.9.0
+     */
+    public static Label newImportedRawLabel(final CharSequence labelValue) {
+        return ImmutableLabel.of(labelValue, true);
+    }
+
+    /**
      * Returns a new {@link SubjectIssuer} with the specified {@code subjectIssuer}.
      *
      * @param subjectIssuer the SubjectIssuer char sequence.
@@ -880,6 +891,17 @@ public final class PoliciesModelFactory {
      */
     public static Policy newPolicy(final JsonObject jsonObject) {
         return ImmutablePolicy.fromJson(jsonObject);
+    }
+
+    /**
+     * Variant of {@link #newPolicy(JsonObject)} that accepts {@code imported-*} labels in the JSON.
+     * Used by {@code RetrievePolicyResponse#getPolicy()} to round-trip a {@code policy-view=resolved}
+     * response on the client side; never use it for user-submitted bodies.
+     *
+     * @since 3.9.0
+     */
+    public static Policy newPolicyAcceptingImportedLabels(final JsonObject jsonObject) {
+        return ImmutablePolicy.fromJsonAcceptingImportedLabels(jsonObject);
     }
 
     /**

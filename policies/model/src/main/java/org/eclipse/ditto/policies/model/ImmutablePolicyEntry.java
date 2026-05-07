@@ -198,8 +198,25 @@ final class ImmutablePolicyEntry implements PolicyEntry {
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      */
     public static PolicyEntry fromJson(final CharSequence label, final JsonObject jsonObject) {
+        return fromJson(label, jsonObject, false);
+    }
+
+    /**
+     * Variant of {@link #fromJson(CharSequence, JsonObject)} for deserializing a resolved-view response: accepts
+     * {@code imported-*} labels. Never use this on user-submitted bodies.
+     *
+     * @since 3.9.0
+     */
+    public static PolicyEntry fromJsonAcceptingImportedLabels(final CharSequence label, final JsonObject jsonObject) {
+        return fromJson(label, jsonObject, true);
+    }
+
+    private static PolicyEntry fromJson(final CharSequence label, final JsonObject jsonObject,
+            final boolean acceptImportedLabels) {
         checkNotNull(jsonObject, "JSON object");
-        final Label lbl = Label.of(label);
+        final Label lbl = acceptImportedLabels && label.toString().startsWith(ImmutableImportedLabel.IMPORTED_PREFIX + "-")
+                ? Label.ofImported(label)
+                : Label.of(label);
 
         final Subjects subjectsFromJson = jsonObject.getValue(JsonFields.SUBJECTS)
                 .map(PoliciesModelFactory::newSubjects)

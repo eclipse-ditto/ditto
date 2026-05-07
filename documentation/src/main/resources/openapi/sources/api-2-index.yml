@@ -335,6 +335,8 @@ components:
       $ref: "./parameters/policyFieldsQueryParam.yml"
     PolicyIdPathParam:
       $ref: "./parameters/policyIdPathParam.yml"
+    PolicyViewParam:
+      $ref: "./parameters/policyViewParam.yml"
     PropertiesFieldsQueryParam:
       $ref: "./parameters/propertiesFieldsQueryParam.yml"
     PropertyPathPathParam:

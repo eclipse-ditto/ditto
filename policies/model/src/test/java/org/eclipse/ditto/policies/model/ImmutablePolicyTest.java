@@ -107,6 +107,36 @@ public final class ImmutablePolicyTest {
     }
 
     @Test
+    public void strictFromJsonRejectsImportedLabels() {
+        final JsonObject policyJsonWithImportedLabel = JsonObject.newBuilder()
+                .set("entries", JsonObject.newBuilder()
+                        .set("imported-tenant:base-OWNER", createPolicyEntry1().toJson())
+                        .build())
+                .build();
+
+        assertThatExceptionOfType(LabelInvalidException.class)
+                .isThrownBy(() -> ImmutablePolicy.fromJson(policyJsonWithImportedLabel));
+    }
+
+    @Test
+    public void fromJsonAcceptingImportedLabelsRoundTripsImportedEntries() {
+        final JsonObject ownEntryJson = createPolicyEntry1().toJson();
+        final JsonObject importedEntryJson = createPolicyEntry2().toJson();
+        final JsonObject policyJson = JsonObject.newBuilder()
+                .set("policyId", POLICY_ID.toString())
+                .set("entries", JsonObject.newBuilder()
+                        .set("EndUser", ownEntryJson)
+                        .set("imported-tenant:base-policy-OWNER", importedEntryJson)
+                        .build())
+                .build();
+
+        final Policy parsed = ImmutablePolicy.fromJsonAcceptingImportedLabels(policyJson);
+
+        DittoPolicyAssertions.assertThat(parsed).hasLabel(Label.of("EndUser"));
+        DittoPolicyAssertions.assertThat(parsed).hasLabel(Label.ofImported("imported-tenant:base-policy-OWNER"));
+    }
+
+    @Test
     public void testToAndFromJsonWithSpecialFields() {
         final PolicyEntry policyEntry1 = createPolicyEntry1();
         final PolicyEntry policyEntry2 = createPolicyEntry2();
