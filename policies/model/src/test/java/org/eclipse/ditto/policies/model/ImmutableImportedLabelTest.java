@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.policies.model;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.eclipse.ditto.base.model.entity.id.restriction.LengthRestrictionTestBase;
 import org.junit.Test;
 
@@ -43,6 +45,23 @@ public final class ImmutableImportedLabelTest extends LengthRestrictionTestBase 
     @Test(expected = PolicyEntryInvalidException.class)
     public void createTooLargeLabel() {
         ImmutableImportedLabel.of(PolicyId.of("com.example", "importedPolicy"), generateStringExceedingMaxLength());
+    }
+
+    @Test
+    public void importedLabelFormatIncludesPolicyId() {
+        final Label label = ImmutableImportedLabel.of(PolicyId.of("com.example", "importedPolicy"), "OWNER");
+        assertThat(label.toString()).isEqualTo("imported-com.example:importedPolicy-OWNER");
+    }
+
+    @Test
+    public void nsImportedLabelFormatIncludesPolicyId() {
+        final Label label = ImmutableImportedLabel.ofNsImported(PolicyId.of("acme", "tenant-root"), "audit-team");
+        assertThat(label.toString()).isEqualTo("nsimported-acme:tenant-root-audit-team");
+    }
+
+    @Test(expected = PolicyEntryInvalidException.class)
+    public void nsImportedRejectsInvalidLabelValue() {
+        ImmutableImportedLabel.ofNsImported(PolicyId.of("acme", "tenant-root"), "invalid/label");
     }
 
 }

@@ -31,10 +31,9 @@ import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.enforcement.PolicyCacheLoader;
 import org.eclipse.ditto.policies.enforcement.config.NamespacePoliciesConfig;
-import org.eclipse.ditto.policies.model.ImportableType;
 import org.eclipse.ditto.policies.model.Policy;
-import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyImporter;
 import org.eclipse.ditto.policies.model.PolicyRevision;
 import org.slf4j.Logger;
 
@@ -134,21 +133,12 @@ final class ResolvedPolicyCacheLoader
                                 futures.get(rootId).join();
                         if (rootPolicyOpt.isPresent()) {
                             referencedPolicies.addAll(rootPolicyOpt.get().second());
-                            result = mergeImplicitEntries(rootPolicyOpt.get().first(), result);
+                            result = PolicyImporter.mergeImplicitNamespaceRootEntries(rootPolicyOpt.get().first(),
+                                    rootId, result);
                         }
                     }
                     return result;
                 }, executor);
-    }
-
-    private static Policy mergeImplicitEntries(final Policy rootPolicy, final Policy currentPolicy) {
-        Policy result = currentPolicy;
-        for (final PolicyEntry entry : rootPolicy) {
-            if (ImportableType.IMPLICIT.equals(entry.getImportableType()) && !result.contains(entry.getLabel())) {
-                result = result.setEntry(entry);
-            }
-        }
-        return result;
     }
 
     private static CompletionStage<Policy> resolvePolicyImports(

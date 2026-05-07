@@ -60,7 +60,7 @@ public final class PolicyEnforcerNamespacePoliciesTest {
     private static final Label ROOT_EXPLICIT_LABEL = Label.of("ROOT_EXPLICIT");
 
     @Test
-    public void implicitRootEntryIsMergedIntoChildEnforcer() throws Exception {
+    public void implicitRootEntryIsMergedIntoChildEnforcerUnderNsimportedPrefixedLabel() throws Exception {
         final Policy rootPolicy = policyWithEntry(ROOT_POLICY_ID, ROOT_IMPLICIT_LABEL, ImportableType.IMPLICIT);
         final Policy childPolicy = policyWithEntry(CHILD_POLICY_ID, LOCAL_LABEL, ImportableType.IMPLICIT);
 
@@ -68,7 +68,10 @@ public final class PolicyEnforcerNamespacePoliciesTest {
         final Policy merged = enforcer.getPolicy().orElseThrow();
 
         assertThat(merged.contains(LOCAL_LABEL)).isTrue();
-        assertThat(merged.contains(ROOT_IMPLICIT_LABEL)).isTrue();
+        // Bare original root label must NOT appear; the rewritten nsimported label must.
+        assertThat(merged.contains(ROOT_IMPLICIT_LABEL)).isFalse();
+        assertThat(merged.contains(PoliciesModelFactory.newNsImportedLabel(ROOT_POLICY_ID, ROOT_IMPLICIT_LABEL)))
+                .isTrue();
     }
 
     @Test
@@ -81,6 +84,8 @@ public final class PolicyEnforcerNamespacePoliciesTest {
 
         assertThat(merged.contains(LOCAL_LABEL)).isTrue();
         assertThat(merged.contains(ROOT_NEVER_LABEL)).isFalse();
+        assertThat(merged.contains(PoliciesModelFactory.newNsImportedLabel(ROOT_POLICY_ID, ROOT_NEVER_LABEL)))
+                .isFalse();
     }
 
     @Test
@@ -93,11 +98,15 @@ public final class PolicyEnforcerNamespacePoliciesTest {
 
         assertThat(merged.contains(LOCAL_LABEL)).isTrue();
         assertThat(merged.contains(ROOT_EXPLICIT_LABEL)).isFalse();
+        assertThat(merged.contains(PoliciesModelFactory.newNsImportedLabel(ROOT_POLICY_ID, ROOT_EXPLICIT_LABEL)))
+                .isFalse();
     }
 
     @Test
-    public void localLabelWinsOverNamespaceRootLabelOnConflict() throws Exception {
-        // Both child and root have the same label — local must win (root entry must NOT override it)
+    public void localLabelDoesNotShadowNamespaceRootLabelOnConflict() throws Exception {
+        // Regression test for issue #2431: a tenant who creates a local entry with the same label as a
+        // namespace-root entry must NOT be able to nullify the operator-configured access. Under the fix,
+        // both entries co-exist: local under its bare label, root under the nsimported-prefixed label.
         final var localSubjectId = SubjectId.newInstance(SubjectIssuer.newInstance("local-issuer"), "user");
         final var rootSubjectId = SubjectId.newInstance(SubjectIssuer.newInstance("root-issuer"), "user");
 
@@ -109,13 +118,22 @@ public final class PolicyEnforcerNamespacePoliciesTest {
         final var enforcer = buildEnforcer(childPolicy, ROOT_POLICY_ID, rootPolicy);
         final Policy merged = enforcer.getPolicy().orElseThrow();
 
+        // Local entry preserved under its original label, with only the local subject.
         assertThat(merged.contains(LOCAL_LABEL)).isTrue();
-        final var entry = merged.getEntryFor(LOCAL_LABEL).orElseThrow();
-        // local subject must be present; root subject must not have replaced it
-        assertThat(entry.getSubjects().stream()
+        final var localEntry = merged.getEntryFor(LOCAL_LABEL).orElseThrow();
+        assertThat(localEntry.getSubjects().stream()
                 .anyMatch(s -> s.getId().equals(localSubjectId))).isTrue();
-        assertThat(entry.getSubjects().stream()
+        assertThat(localEntry.getSubjects().stream()
                 .anyMatch(s -> s.getId().equals(rootSubjectId))).isFalse();
+
+        // Namespace-root entry merged in under the nsimported-prefixed label, carrying the root subject.
+        final Label nsimportedLabel = PoliciesModelFactory.newNsImportedLabel(ROOT_POLICY_ID, LOCAL_LABEL);
+        assertThat(merged.contains(nsimportedLabel)).isTrue();
+        final var rootEntry = merged.getEntryFor(nsimportedLabel).orElseThrow();
+        assertThat(rootEntry.getSubjects().stream()
+                .anyMatch(s -> s.getId().equals(rootSubjectId))).isTrue();
+        assertThat(rootEntry.getSubjects().stream()
+                .anyMatch(s -> s.getId().equals(localSubjectId))).isFalse();
     }
 
     @Test
@@ -158,7 +176,10 @@ public final class PolicyEnforcerNamespacePoliciesTest {
     }
 
     @Test
-    public void moreSpecificNamespaceWildcardWinsOnLabelConflict() {
+    public void multipleNamespaceRootsWithOverlappingLabelsBothCompose() {
+        // Regression test for issue #2431: when several namespace-roots match the same namespace and contribute
+        // entries under the same original label, all of their entries must end up in the merged policy under
+        // distinct nsimported-<rootId>-<originalLabel> labels — no silent drop on collision.
         final PolicyId generalRootPolicyId = PolicyId.of("org.example", "tenant-root-general");
         final PolicyId specificRootPolicyId = PolicyId.of("org.example", "tenant-root-devices");
         final PolicyId childPolicyId = PolicyId.of("org.example.devices.alpha", "child-policy");
@@ -188,11 +209,22 @@ public final class PolicyEnforcerNamespacePoliciesTest {
                 .join();
 
         final Policy merged = enforcer.getPolicy().orElseThrow();
-        final var entry = merged.getEntryFor(ROOT_IMPLICIT_LABEL).orElseThrow();
-        assertThat(entry.getSubjects().stream()
+
+        // Bare original label must not be present; both roots' contributions live under distinct nsimported labels.
+        assertThat(merged.contains(ROOT_IMPLICIT_LABEL)).isFalse();
+
+        final Label generalLabel = PoliciesModelFactory.newNsImportedLabel(generalRootPolicyId, ROOT_IMPLICIT_LABEL);
+        final Label specificLabel = PoliciesModelFactory.newNsImportedLabel(specificRootPolicyId, ROOT_IMPLICIT_LABEL);
+        assertThat(merged.contains(generalLabel)).isTrue();
+        assertThat(merged.contains(specificLabel)).isTrue();
+
+        final var generalEntry = merged.getEntryFor(generalLabel).orElseThrow();
+        assertThat(generalEntry.getSubjects().stream()
+                .anyMatch(s -> s.getId().equals(generalSubjectId))).isTrue();
+
+        final var specificEntry = merged.getEntryFor(specificLabel).orElseThrow();
+        assertThat(specificEntry.getSubjects().stream()
                 .anyMatch(s -> s.getId().equals(specificSubjectId))).isTrue();
-        assertThat(entry.getSubjects().stream()
-                .anyMatch(s -> s.getId().equals(generalSubjectId))).isFalse();
     }
 
     @Test
@@ -227,10 +259,21 @@ public final class PolicyEnforcerNamespacePoliciesTest {
                 .join();
 
         final Policy merged = enforcer.getPolicy().orElseThrow();
-        final Label importedMergedLabel = PoliciesModelFactory.newImportedLabel(importedPolicyId, importedLabel);
+        // Root's own implicit entry: merged into child under nsimported-<ROOT>-ROOT_READER.
+        final Label rootEntryInChild = PoliciesModelFactory.newNsImportedLabel(ROOT_POLICY_ID, ROOT_IMPLICIT_LABEL);
+        // Root's transitive import resolves to imported-<importedPolicyId>-<importedLabel> inside the root, then
+        // gets wrapped again with nsimported-<ROOT>- when merged into the child.
+        final Label transitivelyImportedInRoot =
+                PoliciesModelFactory.newImportedLabel(importedPolicyId, importedLabel);
+        final Label transitivelyImportedInChild =
+                PoliciesModelFactory.newNsImportedLabel(ROOT_POLICY_ID, transitivelyImportedInRoot);
+
         assertThat(merged.contains(LOCAL_LABEL)).isTrue();
-        assertThat(merged.contains(ROOT_IMPLICIT_LABEL)).isTrue();
-        assertThat(merged.contains(importedMergedLabel)).isTrue();
+        assertThat(merged.contains(rootEntryInChild)).isTrue();
+        assertThat(merged.contains(transitivelyImportedInChild)).isTrue();
+        // Bare and intermediate labels must not appear in the final merged policy.
+        assertThat(merged.contains(ROOT_IMPLICIT_LABEL)).isFalse();
+        assertThat(merged.contains(transitivelyImportedInRoot)).isFalse();
         assertThat(merged.contains(importedLabel)).isFalse();
     }
 
@@ -257,8 +300,11 @@ public final class PolicyEnforcerNamespacePoliciesTest {
                 .join();
 
         final Policy merged = enforcer.getPolicy().orElseThrow();
+        // ROOT_IMPLICIT_LABEL is the policy-under-test's own local entry — it stays under its bare label.
         assertThat(merged.contains(ROOT_IMPLICIT_LABEL)).isTrue();
-        assertThat(merged.contains(globalLabel)).isTrue();
+        // The catch-all global root is merged in under the nsimported prefix; its bare label must not appear.
+        assertThat(merged.contains(globalLabel)).isFalse();
+        assertThat(merged.contains(PoliciesModelFactory.newNsImportedLabel(globalRootPolicyId, globalLabel))).isTrue();
     }
 
     // ---- helpers ----

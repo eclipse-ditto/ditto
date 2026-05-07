@@ -50,4 +50,12 @@ public final class ImmutableLabelTest extends LengthRestrictionTestBase {
         final String invalidLabel = "imported-someLabel";
         ImmutableLabel.of(invalidLabel);
     }
+
+    @Test(expected = LabelInvalidException.class)
+    public void createNsimportedBlocklistedLabel() {
+        // Tenants must not be allowed to create local labels under the nsimported- prefix —
+        // that would re-enable the namespace-policy shadow attack from issue #2431.
+        final String invalidLabel = "nsimported-some-root-AUDIT";
+        ImmutableLabel.of(invalidLabel);
+    }
 }

@@ -36,13 +36,24 @@ final class ImmutableImportedLabel implements Label {
      */
     static final String IMPORTED_PREFIX = "imported";
 
+    /**
+     * Prefix for Policy labels which were merged in transparently from a configured namespace root policy.
+     * "Normal" Policy labels may not start with this prefix either - that protects operator-configured
+     * namespace root entries from being shadowed by tenants reusing their labels and lets multiple
+     * namespace roots compose without overwriting each other on label collision.
+     *
+     * @since 3.9.0
+     */
+    static final String NSIMPORTED_PREFIX = "nsimported";
+
     private static final String LABEL_MESSAGE_FORMAT_PATTERN = "{0}-{1}-{2}";
 
     private final String labelValue;
 
-    private ImmutableImportedLabel(final PolicyId importedFromPolicyId, final String theLabelValue) {
+    private ImmutableImportedLabel(final String prefix, final PolicyId importedFromPolicyId,
+            final String theLabelValue) {
         checkNotNull(importedFromPolicyId, "importedFromPolicyId");
-        labelValue = MessageFormat.format(LABEL_MESSAGE_FORMAT_PATTERN, IMPORTED_PREFIX, importedFromPolicyId, theLabelValue);
+        labelValue = MessageFormat.format(LABEL_MESSAGE_FORMAT_PATTERN, prefix, importedFromPolicyId, theLabelValue);
     }
 
     /**
@@ -55,6 +66,28 @@ final class ImmutableImportedLabel implements Label {
      * @throws IllegalArgumentException if {@code labelValue} is empty.
      */
     public static Label of(final PolicyId importedFromPolicyId, final CharSequence labelValue) {
+        return ofWithPrefix(IMPORTED_PREFIX, importedFromPolicyId, labelValue);
+    }
+
+    /**
+     * Returns a new Label for an entry merged from a namespace root policy, prefixed with
+     * {@value #NSIMPORTED_PREFIX} and the source policy ID. The resulting label cannot collide with a
+     * user-submitted local label (the {@value #NSIMPORTED_PREFIX} prefix is rejected by
+     * {@link ImmutableLabel#of(CharSequence, boolean)}).
+     *
+     * @param sourcePolicyId the namespace root Policy ID from which the entry originated.
+     * @param labelValue the original label of the entry in the source policy.
+     * @return a new Label of the form {@code nsimported-<sourcePolicyId>-<labelValue>}.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code labelValue} is empty.
+     * @since 3.9.0
+     */
+    public static Label ofNsImported(final PolicyId sourcePolicyId, final CharSequence labelValue) {
+        return ofWithPrefix(NSIMPORTED_PREFIX, sourcePolicyId, labelValue);
+    }
+
+    private static Label ofWithPrefix(final String prefix, final PolicyId sourcePolicyId,
+            final CharSequence labelValue) {
         argumentNotEmpty(labelValue, "label value");
 
         final Validator validator = NoControlCharactersNoSlashesValidator.getInstance(labelValue);
@@ -65,7 +98,7 @@ final class ImmutableImportedLabel implements Label {
                     .build();
         }
 
-        return new ImmutableImportedLabel(importedFromPolicyId, labelValue.toString());
+        return new ImmutableImportedLabel(prefix, sourcePolicyId, labelValue.toString());
     }
 
     @Override

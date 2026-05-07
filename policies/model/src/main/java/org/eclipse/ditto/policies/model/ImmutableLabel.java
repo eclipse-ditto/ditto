@@ -59,8 +59,12 @@ final class ImmutableLabel implements Label {
      */
     public static Label of(final CharSequence labelValue, final boolean importedLabel) {
         argumentNotEmpty(labelValue, "label value");
-        if (!importedLabel && labelValue.toString().startsWith(ImmutableImportedLabel.IMPORTED_PREFIX)) {
-            throw LabelInvalidException.newBuilder(labelValue).build();
+        if (!importedLabel) {
+            final String s = labelValue.toString();
+            if (s.startsWith(ImmutableImportedLabel.IMPORTED_PREFIX)
+                    || s.startsWith(ImmutableImportedLabel.NSIMPORTED_PREFIX)) {
+                throw LabelInvalidException.newBuilder(labelValue).build();
+            }
         }
 
         final Validator validator = NoControlCharactersNoSlashesValidator.getInstance(labelValue);

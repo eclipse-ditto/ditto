@@ -111,10 +111,19 @@ public final class ResolvedPolicyCacheLoaderTest {
         final Policy resolvedPolicy = entry.getValueOrThrow().first();
         final Set<PolicyTag> referencedPolicies = entry.getValueOrThrow().second();
 
+        // Local entry from the child policy stays under its bare label.
         assertThat(resolvedPolicy.contains(LOCAL_LABEL)).isTrue();
-        assertThat(resolvedPolicy.contains(ROOT_LABEL)).isTrue();
+        // Root's direct implicit entry is merged under the nsimported-<rootId>- prefix.
+        assertThat(resolvedPolicy.contains(PoliciesModelFactory.newNsImportedLabel(ROOT_POLICY_ID, ROOT_LABEL)))
+                .isTrue();
+        assertThat(resolvedPolicy.contains(ROOT_LABEL)).isFalse();
+        // Root's own transitive import (imported-<importedId>-...) gets wrapped again with nsimported-<rootId>- on
+        // merge into the child.
+        final Label intermediateImportedLabel =
+                PoliciesModelFactory.newImportedLabel(IMPORTED_POLICY_ID, IMPORTED_LABEL);
         assertThat(resolvedPolicy.contains(
-                PoliciesModelFactory.newImportedLabel(IMPORTED_POLICY_ID, IMPORTED_LABEL))).isTrue();
+                PoliciesModelFactory.newNsImportedLabel(ROOT_POLICY_ID, intermediateImportedLabel))).isTrue();
+        assertThat(resolvedPolicy.contains(intermediateImportedLabel)).isFalse();
         assertThat(referencedPolicies)
                 .contains(PolicyTag.of(ROOT_POLICY_ID, ROOT_POLICY_REVISION),
                         PolicyTag.of(IMPORTED_POLICY_ID, IMPORTED_POLICY_REVISION));
@@ -231,10 +240,95 @@ public final class ResolvedPolicyCacheLoaderTest {
                 .join();
 
         assertThat(entry.exists()).isTrue();
+        // ROOT_LABEL is the policy-under-test's own local entry — it stays under its bare label.
         assertThat(entry.getValueOrThrow().first().contains(ROOT_LABEL)).isTrue();
-        assertThat(entry.getValueOrThrow().first().contains(GLOBAL_ROOT_LABEL)).isTrue();
+        // The catch-all global root is merged in under the nsimported prefix.
+        assertThat(entry.getValueOrThrow().first().contains(GLOBAL_ROOT_LABEL)).isFalse();
+        assertThat(entry.getValueOrThrow().first().contains(
+                PoliciesModelFactory.newNsImportedLabel(GLOBAL_ROOT_POLICY_ID, GLOBAL_ROOT_LABEL))).isTrue();
         verify(cache).get(new PolicyIdResolvingImports(GLOBAL_ROOT_POLICY_ID, true));
         verify(cache, never()).get(new PolicyIdResolvingImports(ROOT_POLICY_ID, true));
+    }
+
+    @Test
+    public void localLabelDoesNotShadowNamespaceRootLabelInSearchIndexResolution() {
+        // Regression test for issue #2431: tenant-controlled local labels must not be able to silently nullify a
+        // namespace-root entry in the search-index resolution path either. Both entries co-exist in the merged
+        // policy under distinct labels.
+        final NamespacePoliciesConfig config = DefaultNamespacePoliciesConfig.of(ConfigFactory.parseString(
+                "ditto.namespace-policies {\n" +
+                "  \"org.example.devices.*\" = [\"org.example:tenant-root\"]\n" +
+                "}"));
+
+        final Label sharedLabel = Label.of("audit-team");
+        final Policy childPolicy = policyWithEntry(CHILD_POLICY_ID, CHILD_POLICY_REVISION, sharedLabel,
+                ImportableType.IMPLICIT);
+        final Policy resolvedRootPolicy = Policy.newBuilder(ROOT_POLICY_ID)
+                .setRevision(ROOT_POLICY_REVISION)
+                .set(policyEntry(sharedLabel, ImportableType.IMPLICIT))
+                .build();
+
+        when(policyCacheLoader.asyncLoad(CHILD_POLICY_ID, DIRECT_EXECUTOR))
+                .thenReturn(CompletableFuture.completedFuture(Entry.of(CHILD_POLICY_REVISION, childPolicy)));
+        when(cache.get(new PolicyIdResolvingImports(ROOT_POLICY_ID, true)))
+                .thenReturn(CompletableFuture.completedFuture(
+                        Optional.of(Entry.of(ROOT_POLICY_REVISION, new Pair<>(resolvedRootPolicy, Set.of())))));
+
+        final ResolvedPolicyCacheLoader underTest =
+                new ResolvedPolicyCacheLoader(policyCacheLoader, CompletableFuture.completedFuture(cache), config);
+
+        final Policy resolvedPolicy = underTest
+                .asyncLoad(new PolicyIdResolvingImports(CHILD_POLICY_ID, true), DIRECT_EXECUTOR)
+                .join().getValueOrThrow().first();
+
+        // Local entry preserved under its bare label (child's own implicit entry).
+        assertThat(resolvedPolicy.contains(sharedLabel)).isTrue();
+        // Root's same-label entry merged in under nsimported-<rootId>- — no silent drop on collision.
+        assertThat(resolvedPolicy.contains(PoliciesModelFactory.newNsImportedLabel(ROOT_POLICY_ID, sharedLabel)))
+                .isTrue();
+    }
+
+    @Test
+    public void multipleNamespaceRootsWithOverlappingLabelsBothComposeInSearchIndexResolution() {
+        // Regression test for issue #2431: when multiple namespace-roots match the same namespace and contribute
+        // entries with the same original label, both must end up in the merged policy under distinct
+        // nsimported-<rootId>-<originalLabel> labels.
+        final NamespacePoliciesConfig config = DefaultNamespacePoliciesConfig.of(ConfigFactory.parseString(
+                "ditto.namespace-policies {\n" +
+                "  \"org.example.devices.*\" = [\"org.example:tenant-root\"]\n" +
+                "  \"*\"                     = [\"global:catch-all\"]\n" +
+                "}"));
+
+        final Label sharedLabel = Label.of("audit-team");
+        final Policy childPolicy =
+                policyWithEntry(CHILD_POLICY_ID, CHILD_POLICY_REVISION, LOCAL_LABEL, ImportableType.IMPLICIT);
+        final Policy specificRoot = policyWithEntry(ROOT_POLICY_ID, ROOT_POLICY_REVISION, sharedLabel,
+                ImportableType.IMPLICIT);
+        final Policy globalRoot = policyWithEntry(GLOBAL_ROOT_POLICY_ID, GLOBAL_ROOT_POLICY_REVISION, sharedLabel,
+                ImportableType.IMPLICIT);
+
+        when(policyCacheLoader.asyncLoad(CHILD_POLICY_ID, DIRECT_EXECUTOR))
+                .thenReturn(CompletableFuture.completedFuture(Entry.of(CHILD_POLICY_REVISION, childPolicy)));
+        when(cache.get(new PolicyIdResolvingImports(ROOT_POLICY_ID, true)))
+                .thenReturn(CompletableFuture.completedFuture(
+                        Optional.of(Entry.of(ROOT_POLICY_REVISION, new Pair<>(specificRoot, Set.of())))));
+        when(cache.get(new PolicyIdResolvingImports(GLOBAL_ROOT_POLICY_ID, true)))
+                .thenReturn(CompletableFuture.completedFuture(
+                        Optional.of(Entry.of(GLOBAL_ROOT_POLICY_REVISION, new Pair<>(globalRoot, Set.of())))));
+
+        final ResolvedPolicyCacheLoader underTest =
+                new ResolvedPolicyCacheLoader(policyCacheLoader, CompletableFuture.completedFuture(cache), config);
+
+        final Policy resolvedPolicy = underTest
+                .asyncLoad(new PolicyIdResolvingImports(CHILD_POLICY_ID, true), DIRECT_EXECUTOR)
+                .join().getValueOrThrow().first();
+
+        // Both namespace-roots' contributions survive under distinct labels.
+        assertThat(resolvedPolicy.contains(sharedLabel)).isFalse();
+        assertThat(resolvedPolicy.contains(PoliciesModelFactory.newNsImportedLabel(ROOT_POLICY_ID, sharedLabel)))
+                .isTrue();
+        assertThat(resolvedPolicy.contains(PoliciesModelFactory.newNsImportedLabel(GLOBAL_ROOT_POLICY_ID, sharedLabel)))
+                .isTrue();
     }
 
     private static Policy policyWithEntry(final PolicyId policyId,
