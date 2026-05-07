@@ -741,8 +741,12 @@ policy enforcement layer when a policy enforcer is built.
    whose patterns match that namespace (e.g. `"org.example.*"` or `"org.example.devices"`).
 3. Only entries with `"importable": "implicit"` from the root policy are merged. Entries marked `"explicit"` or
    `"never"` are skipped.
-4. **Local entries always win on label conflicts**: if the local policy already has an entry with the same label as
-   a root policy entry, the local entry is used unchanged. The root policy cannot override local entries.
+4. **Merged entry labels are rewritten** as `nsimported-<sourcePolicyId>-<originalLabel>` so they cannot collide with
+   local labels. Tenants are not allowed to create local labels starting with `nsimported-` (HTTP 400
+   `policies:label.invalid`). This guarantees:
+    * a local entry cannot shadow an operator-configured namespace-root entry — both coexist under distinct labels;
+    * multiple namespace-root policies that contribute entries with the same `originalLabel` compose additively
+      rather than dropping all but the highest-precedence one.
 5. The merge happens entirely at enforcer-build time — the stored policy document is never modified.
 
 ### Differences from policy imports
@@ -784,8 +788,10 @@ ditto.namespace-policies {
 ```
 
 Then every policy in `org.eclipse.ditto.sensors`, `org.eclipse.ditto.devices`, etc. will automatically have
-`pre:tenant-reader` granted READ access, as if `TENANT_READER` had been declared in each of those policies.
-A local policy in `org.eclipse.ditto.sensors` that already has a `TENANT_READER` entry will keep its own entry.
+`pre:tenant-reader` granted READ access. The merged entry appears under the rewritten label
+`nsimported-org.eclipse.ditto:tenant-root-TENANT_READER`. A local policy that defines its own `TENANT_READER`
+entry keeps that local entry under the bare `TENANT_READER` label, while the root entry remains active under its
+`nsimported-...` label — both compose, neither shadows the other.
 
 {% include note.html content="The namespace root policy itself is never merged into itself. A root policy
 at <code>org.eclipse.ditto:tenant-root</code> configured for pattern <code>org.eclipse.ditto.*</code> does not match

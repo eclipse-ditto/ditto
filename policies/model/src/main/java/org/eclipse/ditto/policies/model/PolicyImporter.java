@@ -77,6 +77,45 @@ public final class PolicyImporter {
     }
 
     /**
+     * Merges {@code importable=implicit} entries from a configured namespace root policy into {@code currentPolicy}.
+     * Each merged entry's label is rewritten as {@code nsimported-<rootPolicyId>-<originalLabel>} via
+     * {@link PoliciesModelFactory#newNsImportedLabel}, mirroring how declared imports rewrite labels with
+     * {@code imported-<sourceId>-<originalLabel>}. The rewritten label cannot collide with a user-submitted local
+     * label (the {@code nsimported-} prefix is rejected by the label validator), so:
+     * <ul>
+     *   <li>tenants cannot shadow a namespace-root entry by reusing its label, and</li>
+     *   <li>multiple namespace roots that contribute the same original label compose additively rather than
+     *       silently dropping all but the highest-precedence one.</li>
+     * </ul>
+     * Entries with {@code importable=never} or {@code importable=explicit} are skipped — namespace-policy merging
+     * only carries {@code implicit} entries.
+     *
+     * @param rootPolicy the namespace root policy contributing entries.
+     * @param rootPolicyId the source policy ID, embedded into the rewritten labels.
+     * @param currentPolicy the policy being assembled; its existing entries are preserved unchanged.
+     * @return a new {@link Policy} with the namespace-imported entries added under their rewritten labels.
+     * @since 3.9.0
+     */
+    public static Policy mergeImplicitNamespaceRootEntries(final Policy rootPolicy, final PolicyId rootPolicyId,
+            final Policy currentPolicy) {
+        Policy result = currentPolicy;
+        for (final PolicyEntry entry : rootPolicy) {
+            if (ImportableType.IMPLICIT.equals(entry.getImportableType())) {
+                final Label rewrittenLabel = PoliciesModelFactory.newNsImportedLabel(rootPolicyId, entry.getLabel());
+                final PolicyEntry rewritten = PoliciesModelFactory.newPolicyEntry(
+                        rewrittenLabel,
+                        entry.getSubjects(),
+                        entry.getResources(),
+                        entry.getNamespaces().orElse(null),
+                        entry.getImportableType(),
+                        entry.getAllowedAdditions().orElse(null));
+                result = result.setEntry(rewritten);
+            }
+        }
+        return result;
+    }
+
+    /**
      * Resolves the given {@code policyImports} using the {@code policyLoader}, merging the resulting entries
      * with the provided {@code baseEntries}. All imports are resolved in parallel; their entry sets are
      * collected in a single pass to avoid O(n²) intermediate copies.

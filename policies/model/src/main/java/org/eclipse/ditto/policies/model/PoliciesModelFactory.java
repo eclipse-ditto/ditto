@@ -87,6 +87,24 @@ public final class PoliciesModelFactory {
     }
 
     /**
+     * Returns a {@link Label} for an entry merged from a configured namespace root policy. The resulting label is
+     * of the form {@code nsimported-<sourcePolicyId>-<labelValue>}, mirroring how declared imports are rewritten
+     * to {@code imported-<sourceId>-<originalLabel>}. The {@code nsimported-} prefix is rejected as a local
+     * label by the validator, so namespace-root entries cannot be shadowed by tenants and multiple namespace
+     * roots compose additively even when they share an original label.
+     *
+     * @param sourcePolicyId the namespace root Policy ID from which the entry originated.
+     * @param labelValue the original label of the entry in the source policy.
+     * @return a new Label of the form {@code nsimported-<sourcePolicyId>-<labelValue>}.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code labelValue} is empty.
+     * @since 3.9.0
+     */
+    public static Label newNsImportedLabel(final PolicyId sourcePolicyId, final CharSequence labelValue) {
+        return ImmutableImportedLabel.ofNsImported(sourcePolicyId, labelValue);
+    }
+
+    /**
      * Returns a new {@link SubjectIssuer} with the specified {@code subjectIssuer}.
      *
      * @param subjectIssuer the SubjectIssuer char sequence.

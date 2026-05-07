@@ -44,7 +44,8 @@ public final class LabelInvalidException extends DittoRuntimeException implement
     private static final String MESSAGE_TEMPLATE = "Label ''{0}'' is not valid!";
 
     private static final String DEFAULT_DESCRIPTION =
-            "It must not start with the blocklisted '" + ImmutableImportedLabel.IMPORTED_PREFIX + "' prefix.";
+            "It must not start with the blocklisted '" + ImmutableImportedLabel.IMPORTED_PREFIX + "' or '"
+                    + ImmutableImportedLabel.NSIMPORTED_PREFIX + "' prefix.";
 
     private static final long serialVersionUID = -7013725864335663680L;
 

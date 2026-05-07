@@ -398,13 +398,18 @@ public final class PolicyEnforcerCacheTest {
         );
         cacheFuture.complete(underTest);
 
+        // The transitive import inside the root resolves to imported-<importedId>-<originalLabel>; when the root
+        // is merged into the child via namespace-policies, the label is wrapped again with nsimported-<rootId>-.
+        final Label initialMergedLabel = PoliciesModelFactory.newNsImportedLabel(rootPolicyId,
+                PoliciesModelFactory.newImportedLabel(importedPolicyId, initialImportedLabel));
+        final Label updatedMergedLabel = PoliciesModelFactory.newNsImportedLabel(rootPolicyId,
+                PoliciesModelFactory.newImportedLabel(importedPolicyId, updatedImportedLabel));
+
         final PolicyEnforcer initialChild = underTest.getBlocking(childPolicyId)
                 .flatMap(Entry::get)
                 .orElseThrow();
-        assertThat(initialChild.getPolicy().orElseThrow()
-                .contains(PoliciesModelFactory.newImportedLabel(importedPolicyId, initialImportedLabel))).isTrue();
-        assertThat(initialChild.getPolicy().orElseThrow()
-                .contains(PoliciesModelFactory.newImportedLabel(importedPolicyId, updatedImportedLabel))).isFalse();
+        assertThat(initialChild.getPolicy().orElseThrow().contains(initialMergedLabel)).isTrue();
+        assertThat(initialChild.getPolicy().orElseThrow().contains(updatedMergedLabel)).isFalse();
 
         policies.put(importedPolicyId, policyWithLabel(importedPolicyId, 2L, updatedImportedLabel));
 
@@ -414,10 +419,8 @@ public final class PolicyEnforcerCacheTest {
         final PolicyEnforcer reloadedChild = underTest.getBlocking(childPolicyId)
                 .flatMap(Entry::get)
                 .orElseThrow();
-        assertThat(reloadedChild.getPolicy().orElseThrow()
-                .contains(PoliciesModelFactory.newImportedLabel(importedPolicyId, initialImportedLabel))).isFalse();
-        assertThat(reloadedChild.getPolicy().orElseThrow()
-                .contains(PoliciesModelFactory.newImportedLabel(importedPolicyId, updatedImportedLabel))).isTrue();
+        assertThat(reloadedChild.getPolicy().orElseThrow().contains(initialMergedLabel)).isFalse();
+        assertThat(reloadedChild.getPolicy().orElseThrow().contains(updatedMergedLabel)).isTrue();
     }
 
     private NamespacePoliciesConfig namespacePoliciesConfigForWildcard(final PolicyId rootPolicyId,
