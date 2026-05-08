@@ -357,7 +357,9 @@ let modalConfirm;
  */
 export function confirm(message: string, action: string, callback) {
   modalConfirm = modalConfirm ?? new Modal('#modalConfirm');
-  dom.modalBodyConfirm.textContent = message;
+  // Callers conventionally embed <br> for line breaks (e.g. "Delete entry<br>'<id>'?"). textContent
+  // would render the markup literally, so sanitise and assign as HTML instead.
+  dom.modalBodyConfirm.innerHTML = sanitizeHTML(message);
   dom.buttonConfirmed.innerText = action;
   dom.buttonConfirmed.onclick = callback;
   modalConfirm.show();

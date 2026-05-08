@@ -116,6 +116,14 @@ function onEditToggleSubject(event: CustomEvent) {
     } else {
       subjectEditor.setValue('');
     }
+  } else if (event.detail.isEditing && !selectedSubject && subjectEditor.getValue() === '') {
+    // Entering edit mode with no row selected = creating a new subject. Seed the editor with the
+    // minimal valid skeleton so the user lands inside the empty "type" string and can start typing
+    // a description without first having to author the JSON shape.
+    subjectEditor.setValue('{\n  "type": ""\n}', -1);
+    // Position the cursor inside the empty "type" value so typing fills the description directly.
+    subjectEditor.gotoLine(2, '  "type": "'.length, false);
+    subjectEditor.focus();
   }
 }
 

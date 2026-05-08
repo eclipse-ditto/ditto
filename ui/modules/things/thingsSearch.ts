@@ -83,7 +83,7 @@ function onThingsTableClicked(event) {
  */
 export function searchTriggered(filter: string, rqlFilterCallback: () => void) {
   ThingsSearchGlobalVars.lastSearch = filter;
-  const regex = /^(eq\(|ne\(|gt\(|ge\(|lt\(|le\(|in\(|like\(|ilike\(|exists\(|and\(|or\(|not\().*/;
+  const regex = /^(eq\(|ne\(|gt\(|ge\(|lt\(|le\(|in\(|like\(|ilike\(|exists\(|empty\(|and\(|or\(|not\().*/;
   if (filter === '' || regex.test(filter)) {
     searchThings(filter);
     rqlFilterCallback();

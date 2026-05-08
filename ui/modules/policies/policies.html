@@ -46,11 +46,11 @@
                         </a>
                     </li>
                 </ul>
-                <div class="tab-content" style="flex-grow: 1; overflow: hidden;">
+                <div class="tab-content" style="flex-grow: 1; overflow-y: auto; height: 80vh;">
                     <div class="tab-pane container active no-margin" id="tabPolicyEntries">
                         <h5>Policy Entries</h5>
                         <hr />
-                        <div class="split-h resizable_pane" style="height: 22vh;" data-split="horizontal" data-split-sizes="[50,50]" data-split-key="policies-entries">
+                        <div class="split-h resizable_pane" style="height: 16vh;" data-split="horizontal" data-split-sizes="[50,50]" data-split-key="policies-entries">
                             <div class="split-panel resizable_flex_column">
                                 <div class="input-group has-validation">
                                     <input class="form-control" id="tableValidationEntries" hidden="true"></input>
@@ -65,53 +65,81 @@
                             <div class="split-panel resizable_flex_column">
                                 <crud-toolbar label="Entry" id="crudEntry">
                                     <div class="input-group input-group-sm mb-1">
-                                        <label class="input-group-text">Importable</label>
+                                        <label class="input-group-text" data-bs-toggle="tooltip"
+                                            title="Whether other policies importing this one inherit this entry. 'implicit' = imported automatically when an importing policy does not specify entry labels; 'explicit' = imported only when the importing policy lists this entry's label; 'never' = cannot be imported.">
+                                            Importable
+                                        </label>
                                         <select class="form-select form-select-sm" id="selectImportable" disabled>
                                             <option selected value="implicit">implicit</option>
                                             <option value="explicit">explicit</option>
                                             <option value="never">never</option>
                                         </select>
-                                    </div>    
+                                    </div>
+                                    <div class="input-group input-group-sm mb-1">
+                                        <label class="input-group-text" data-bs-toggle="tooltip"
+                                            title="Constrains what an entry that references THIS entry may additionally contribute on top of the inherited subjects, resources and namespaces. 'Default' (field absent) = no restriction, referencing entries may add any of the three kinds. 'Deny all' ([]) = referencing entries inherit but may not add anything of their own. 'Allow only:' = whitelist; only the checked kinds may be added by a referencing entry, others are silently stripped at enforcement time.">
+                                            Allowed additions
+                                        </label>
+                                        <select class="form-select form-select-sm" id="selectAllowedAdditionsMode" style="min-width: 10.5em; flex: 1 1 10.5em;" disabled>
+                                            <option value="default">Default</option>
+                                            <option value="denyAll">Deny all</option>
+                                            <option value="allowOnly">Allow only:</option>
+                                        </select>
+                                        <span class="input-group-text gap-1 flex-wrap">
+                                            <input class="form-check-input mt-0" type="checkbox" id="checkboxAdditionSubjects"
+                                                title="subjects — when checked under 'Allow only:', a referencing entry may add subjects on top of those inherited from this entry."
+                                                disabled>
+                                            <label for="checkboxAdditionSubjects" class="me-2"
+                                                title="subjects — when checked under 'Allow only:', a referencing entry may add subjects on top of those inherited from this entry.">subj</label>
+                                            <input class="form-check-input mt-0" type="checkbox" id="checkboxAdditionResources"
+                                                title="resources — when checked under 'Allow only:', a referencing entry may add resources (grant/revoke entries) on top of those inherited."
+                                                disabled>
+                                            <label for="checkboxAdditionResources" class="me-2"
+                                                title="resources — when checked under 'Allow only:', a referencing entry may add resources (grant/revoke entries) on top of those inherited.">res</label>
+                                            <input class="form-check-input mt-0" type="checkbox" id="checkboxAdditionNamespaces"
+                                                title="namespaces — when checked under 'Allow only:', a referencing entry may add namespace patterns on top of those inherited."
+                                                disabled>
+                                            <label for="checkboxAdditionNamespaces"
+                                                title="namespaces — when checked under 'Allow only:', a referencing entry may add namespace patterns on top of those inherited.">ns</label>
+                                        </span>
+                                        <input class="form-control" id="validationAllowedAdditions" hidden="true">
+                                        <div class="invalid-feedback"></div>
+                                    </div>
                                 </crud-toolbar>
                             </div>
-                        </div>                
-                        <h6>Subjects</h6>
-                        <div class="split-h resizable_pane" style="height: 22vh;" data-split="horizontal" data-split-sizes="[50,50]" data-split-key="policies-subjects">
-                            <div class="split-panel resizable_flex_column">
+                        </div>
+                        <small class="text-muted mt-2 d-block">For the entry selected above:</small>
+                        <div class="split-h resizable_pane mb-2" style="height: 32vh;" data-split="horizontal" data-split-sizes="[50,50]" data-split-key="policies-subjects-resources">
+                            <div class="split-panel resizable_flex_column pe-2">
+                                <h6 class="mb-1">Subjects</h6>
                                 <div class="input-group has-validation">
                                     <input class="form-control" id="tableValidationSubjects" hidden="true"></input>
                                     <div class="invalid-feedback"></div>
                                 </div>
-                                <div class="table-wrap">
+                                <div class="table-wrap" style="max-height: 18vh;">
                                     <table class="table table-striped table-hover table-sm">
                                         <tbody id="tbodyPolicySubjects"></tbody>
                                     </table>
                                 </div>
-                            </div>
-                            <div class="split-panel resizable_flex_column">
-                                <crud-toolbar label="Subject" id="crudSubject" style="flex-grow: 1;">
+                                <crud-toolbar label="Subject" id="crudSubject"
+                                    tooltip="The 'type' field is mandatory and serves as a free-text description of the subject (its purpose, owner, source). It is mostly documentational — Ditto does not interpret it for authentication or authorization."
+                                    style="flex-grow: 1;">
                                     <div class="ace_container" style="flex-grow: 1;">
                                         <div class="script_editor" id="subjectEditor"></div>
-                                    </div>        
+                                    </div>
                                 </crud-toolbar>
                             </div>
-                            <!-- <div class="row flex_column_part">
-                            </div> -->
-                        </div>
-                        <h6>Resources</h6>
-                        <div class="split-h resizable_pane" style="height: 22vh;" data-split="horizontal" data-split-sizes="[50,50]" data-split-key="policies-resources">
-                            <div class="split-panel resizable_flex_column">
+                            <div class="split-panel resizable_flex_column ps-2">
+                                <h6 class="mb-1">Resources</h6>
                                 <div class="input-group has-validation">
                                     <input class="form-control" id="tableValidationResources" hidden="true"></input>
                                     <div class="invalid-feedback"></div>
                                 </div>
-                                <div class="table-wrap">
+                                <div class="table-wrap" style="max-height: 13vh;">
                                     <table class="table table-striped table-hover table-sm">
                                         <tbody id="tbodyPolicyResources"></tbody>
                                     </table>
                                 </div>
-                            </div>
-                            <div class="split-panel resizable_flex_column">
                                 <crud-toolbar label="Resource" id="crudResource" style="flex-grow: 1;">
                                     <div class="input-group input-group-sm mb-1">
                                         <label class="input-group-text">Template</label>
@@ -119,17 +147,64 @@
                                     </div>
                                     <div class="ace_container" style="flex-grow: 1;">
                                         <div class="script_editor" id="resourceEditor"></div>
-                                    </div>        
+                                    </div>
+                                </crud-toolbar>
+                            </div>
+                        </div>
+                        <div class="split-h resizable_pane" style="height: 23vh;" data-split="horizontal" data-split-sizes="[50,50]" data-split-key="policies-namespaces-references">
+                            <div class="split-panel resizable_flex_column pe-2">
+                                <h6 class="mb-1">Namespaces</h6>
+                                <div class="input-group has-validation">
+                                    <input class="form-control" id="tableValidationNamespaces" hidden="true"></input>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                                <div class="table-wrap" style="max-height: 13vh;">
+                                    <table class="table table-striped table-hover table-sm">
+                                        <tbody id="tbodyPolicyNamespaces"></tbody>
+                                    </table>
+                                </div>
+                                <crud-toolbar label="Namespace" id="crudNamespace" allowIdChange
+                                    tooltip="Restrict the entry to things in matching namespaces. Leave empty for 'applies to all namespaces'. Patterns: 'com.acme' (exact), 'com.acme.*' (descendants, not the namespace itself)."
+                                    style="flex-grow: 1;">
+                                </crud-toolbar>
+                            </div>
+                            <div class="split-panel resizable_flex_column ps-2">
+                                <h6 class="mb-1">References</h6>
+                                <div class="input-group has-validation">
+                                    <input class="form-control" id="tableValidationReferences" hidden="true"></input>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                                <div class="table-wrap" style="max-height: 13vh;">
+                                    <table class="table table-striped table-hover table-sm">
+                                        <tbody id="tbodyPolicyReferences"></tbody>
+                                    </table>
+                                </div>
+                                <crud-toolbar label="Reference" id="crudReference" style="flex-grow: 1;">
+                                    <div class="input-group input-group-sm mb-1">
+                                        <label class="input-group-text" data-bs-toggle="tooltip"
+                                            title="Where the referenced entry lives. '(local)' points at another entry in this same policy; selecting an imported policy ID points at an entry inside that imported policy. The Entry dropdown below populates from the chosen scope.">
+                                            Import
+                                        </label>
+                                        <select class="form-select form-select-sm" id="selectReferenceImport" disabled></select>
+                                    </div>
+                                    <div class="input-group input-group-sm mb-1">
+                                        <label class="input-group-text" data-bs-toggle="tooltip"
+                                            title="Label of the referenced entry. Its subjects, resources and namespaces are additively merged into the current entry at policy resolution time, subject to the referenced entry's 'allowedAdditions' restriction.">
+                                            Entry
+                                        </label>
+                                        <select class="form-select form-select-sm" id="selectReferenceEntry" disabled></select>
+                                        <input type="text" class="form-control form-control-sm" id="inputReferenceEntryFallback"
+                                            placeholder="Imported policy unreachable — type label" hidden disabled>
+                                    </div>
+                                    <small class="text-muted" id="referenceWarning"></small>
                                 </crud-toolbar>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="tab-content" style="flex-grow: 1; overflow: hidden;">
                     <div class="tab-pane container no-margin" id="tabPolicyImports">
                         <h5>Policy Imports</h5>
                         <hr />
-                        <div class="split-h resizable_pane" style="height: 75vh;" data-split="horizontal" data-split-sizes="[50,50]" data-split-key="policies-imports">
+                        <div class="split-h resizable_pane" style="height: calc(80vh - 50px);" data-split="horizontal" data-split-sizes="[50,50]" data-split-key="policies-imports">
                             <div class="split-panel resizable_flex_column">
                                 <div class="table-wrap">
                                     <table class="table table-striped table-hover table-sm">
@@ -139,17 +214,31 @@
                             </div>
                             <div class="split-panel resizable_flex_column">
                                 <crud-toolbar label="Imported Policy Id" id="crudImport" style="flex-grow: 1;">
-                                    <div class="table-wrap">
+                                    <div class="table-wrap" style="max-height: 35vh;">
                                         <table class="table table-striped table-hover table-sm">
                                             <tbody id="tbodyPolicyImportEntries"></tbody>
                                         </table>
+                                    </div>
+                                    <label class="form-label small mt-2 mb-1" data-bs-toggle="tooltip"
+                                        title="Whitelist of policy IDs from the imported policy's own imports to resolve transitively. By default no transitive imports are resolved.">
+                                        Transitive imports
+                                    </label>
+                                    <div class="table-wrap" id="wrapTransitiveImports" style="max-height: 25vh;">
+                                        <table class="table table-striped table-hover table-sm">
+                                            <tbody id="tbodyPolicyTransitiveImports"></tbody>
+                                        </table>
+                                    </div>
+                                    <div class="input-group input-group-sm mb-1">
+                                        <input type="text" class="form-control form-control-sm"
+                                            id="inputTransitiveImport"
+                                            placeholder="namespace:name" disabled>
+                                        <button class="btn btn-outline-primary btn-sm" type="button"
+                                            id="buttonAddTransitiveImport" disabled>Add</button>
                                     </div>
                                 </crud-toolbar>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="tab-content" style="flex-grow: 1; overflow: hidden; height: 80vh;">
                     <div class="tab-pane container no-margin" id="tabPolicyJson">
                         <crud-toolbar label="PolicyId" id="crudPolicyJson">
                             <div class="input-group input-group-sm mb-1">

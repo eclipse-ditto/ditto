@@ -231,10 +231,13 @@ hr {
   margin: 0.25rem;
 }
 
+// Edit-mode overlay z-indices sit BELOW Bootstrap's modal layer (modal-backdrop: 1050, modal: 1055)
+// so that confirmation/info modals opened from inside an editing crud-toolbar render on top of the
+// edit overlay rather than being faded out behind it.
 .editBackground {
   display: block;
   position: fixed;
-  z-index: 1100;
+  z-index: 1040;
   left: 0;
   top: 0;
   width: 100%;
@@ -245,13 +248,13 @@ hr {
 }
 
 .editForground {
-  z-index: 1200;
+  z-index: 1045;
   position: relative;
   background-color: white;
 }
 
 .editForgroundBig {
-  z-index: 1200;
+  z-index: 1045;
   position: fixed;
   background-color: white;
   top: 0;
