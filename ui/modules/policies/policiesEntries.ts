@@ -163,7 +163,11 @@ function onCreateEntryClick() {
 
 function onUpdateEntryClick() {
   validateAllowedAdditionsSelection();
-  const entry = Policies.thePolicy.entries[selectedEntry];
+  // Spread-copy: never mutate Policies.thePolicy.entries[...] in place. If the PUT 4xx's, an
+  // in-place mutation would leave the cache in a state that doesn't match the server, and a
+  // subsequent Cancel would re-paint the editors from that corrupted state. Mirrors the pattern
+  // already used in policiesNamespaces.ts and policiesReferences.ts.
+  const entry = { ...Policies.thePolicy.entries[selectedEntry] };
   entry.importable = dom.selectImportable.value as Policies.ImportableMode;
   applyAllowedAdditions(entry);
   putOrDeletePolicyEntry(selectedEntry, entry, Policies.finishEditing(dom.crudEntry, CrudOperation.UPDATE));

@@ -48,6 +48,12 @@ let dom: DomElements = {
 let importedPolicyCache: Map<string, Promise<Policies.Policy>> = new Map();
 let cacheOwnerPolicyId: string | null = null;
 
+// Monotonic token guarding loadEntriesForImport against out-of-order resolutions: rapid clicks
+// between import scopes can interleave such that a slower fetch resolves AFTER a faster one and
+// overwrites the dropdown the user is now looking at. Each call captures the token at entry and
+// bails out after every await if a newer call has already incremented it.
+let loadEntriesToken = 0;
+
 export function ready() {
   Utils.getAllElementsById(dom);
   Policies.observable.addChangeListener(onPolicyChanged);
@@ -131,9 +137,11 @@ async function onImportSelectChange() {
 }
 
 async function loadEntriesForImport(importValue: string, preselectEntry?: string) {
+  const myToken = ++loadEntriesToken;
   resetEntrySelect();
   dom.referenceWarning.textContent = '';
   if (importValue === LOCAL_OPTION_VALUE) {
+    // Synchronous path: no await, no need to check token (no other call could interleave).
     const labels = Policies.thePolicy ? Object.keys(Policies.thePolicy.entries) : [];
     populateEntrySelect(labels, preselectEntry);
     if (preselectEntry && !labels.includes(preselectEntry)) {
@@ -147,6 +155,11 @@ async function loadEntriesForImport(importValue: string, preselectEntry?: string
   dom.selectReferenceEntry.disabled = true;
   try {
     const importedPolicy = await getImportedPolicy(importValue);
+    if (myToken !== loadEntriesToken) {
+      // A newer call started while our fetch was in flight — drop our result so we don't paint
+      // labels for the wrong import on the dropdown the user is currently looking at.
+      return;
+    }
     const labels = Object.keys(importedPolicy.entries);
     populateEntrySelect(labels, preselectEntry);
     if (preselectEntry && !labels.includes(preselectEntry)) {
@@ -154,6 +167,9 @@ async function loadEntriesForImport(importValue: string, preselectEntry?: string
           `Entry "${preselectEntry}" not found in imported policy "${importValue}".`;
     }
   } catch (e) {
+    if (myToken !== loadEntriesToken) {
+      return;
+    }
     // Fetch failed — fall back to free-text input so the user can still author/keep the reference.
     dom.selectReferenceEntry.hidden = true;
     dom.inputReferenceEntryFallback.hidden = false;
@@ -162,7 +178,9 @@ async function loadEntriesForImport(importValue: string, preselectEntry?: string
     dom.referenceWarning.textContent =
         `Could not load imported policy "${importValue}": ${formatError(e)}`;
   } finally {
-    dom.selectReferenceEntry.disabled = !dom.crudReference.isEditing;
+    if (myToken === loadEntriesToken) {
+      dom.selectReferenceEntry.disabled = !dom.crudReference.isEditing;
+    }
   }
 }
 
