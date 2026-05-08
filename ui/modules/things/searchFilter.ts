@@ -22,6 +22,7 @@ const filterExamples = [
   'ge(thingId,"myThing1")',
   'gt(_created,"2020-08-05T12:17")',
   'exists(features/featureId)',
+  'empty(features/temperature/properties/list)',
   'and(eq(attributes/location,"kitchen"),eq(attributes/color,"red"))',
   'or(eq(attributes/location,"kitchen"),eq(attributes/location,"living-room"))',
   'like(attributes/key1,"known-chars-at-start*")',

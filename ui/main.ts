@@ -29,6 +29,8 @@ import * as PoliciesEffective from './modules/policies/policiesEffective.js';
 import * as PoliciesEntries from './modules/policies/policiesEntries.js';
 import * as PoliciesImports from './modules/policies/policiesImports.js';
 import * as PoliciesJSON from './modules/policies/policiesJSON.js';
+import * as PoliciesNamespaces from './modules/policies/policiesNamespaces.js';
+import * as PoliciesReferences from './modules/policies/policiesReferences.js';
 import * as PoliciesResources from './modules/policies/policiesResources';
 import * as PoliciesSubjects from './modules/policies/policiesSubjects';
 import * as Attributes from './modules/things/attributes.js';
@@ -74,6 +76,8 @@ document.addEventListener('DOMContentLoaded', async function() {
   PoliciesEntries.ready();
   PoliciesSubjects.ready();
   PoliciesResources.ready();
+  PoliciesNamespaces.ready();
+  PoliciesReferences.ready();
   PoliciesEffective.ready();
   Connections.ready();
   ConnectionsCRUD.ready();

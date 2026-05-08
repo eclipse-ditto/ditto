@@ -38,6 +38,33 @@ let dom : DomElements = {
 
 let resourceEditor: Ace.Editor;
 
+// Pretty-prints a resource body (e.g. {grant:[...], revoke:[...]}) without breaking arrays of
+// primitives across multiple lines — keeps the editor compact since horizontal space is plentiful
+// but vertical space is not. Falls back to standard multiline formatting for arrays containing
+// objects/arrays.
+function stringifyResource(value: any, indent = 2): string {
+  const pad = ' '.repeat(indent);
+  const isPrimitive = (v: any) =>
+      v === null || ['string', 'number', 'boolean'].includes(typeof v);
+  function format(v: any, currentIndent: string): string {
+    if (Array.isArray(v)) {
+      if (v.length === 0) return '[]';
+      if (v.every(isPrimitive)) return '[' + v.map((x) => JSON.stringify(x)).join(', ') + ']';
+      const inner = currentIndent + pad;
+      return '[\n' + v.map((x) => inner + format(x, inner)).join(',\n') + '\n' + currentIndent + ']';
+    }
+    if (v !== null && typeof v === 'object') {
+      const keys = Object.keys(v);
+      if (keys.length === 0) return '{}';
+      const inner = currentIndent + pad;
+      return '{\n' + keys.map((k) =>
+          inner + JSON.stringify(k) + ': ' + format(v[k], inner)).join(',\n') + '\n' + currentIndent + '}';
+    }
+    return JSON.stringify(v);
+  }
+  return format(value, '');
+}
+
 export function ready() {
   Utils.getAllElementsById(dom);
   PolicyEntries.observable.addChangeListener(onEntryChanged);
@@ -61,7 +88,7 @@ export function ready() {
 
 function onSelectResourceTemplateChange(event) {
   dom.crudResource.idValue = event.target.value;
-  resourceEditor.setValue(JSON.stringify(resourceTemplates.resources[event.target.value], null, 2), -1);
+  resourceEditor.setValue(stringifyResource(resourceTemplates.resources[event.target.value]), -1);
 }
 
 function onPolicyResourcesClick(event): any {
@@ -73,7 +100,7 @@ function onPolicyResourcesClick(event): any {
     selectedResource = event.target.parentNode.id;
     dom.crudResource.idValue = selectedResource;
     resourceEditor.setValue(
-      JSON.stringify(Policies.thePolicy.entries[PolicyEntries.selectedEntry].resources[selectedResource], null, 2), -1);
+      stringifyResource(Policies.thePolicy.entries[PolicyEntries.selectedEntry].resources[selectedResource]), -1);
   }
   dom.crudResource.idValue = selectedResource;
 }
@@ -127,7 +154,7 @@ function onEditToggleResource(event: CustomEvent) {
   if (event.detail.isCancel) {
     dom.crudResource.idValue = selectedResource;
     if (Policies.thePolicy && PolicyEntries.selectedEntry && selectedResource) {
-      resourceEditor.setValue(JSON.stringify(Policies.thePolicy.entries[PolicyEntries.selectedEntry].resources[selectedResource], null, 2), -1);
+      resourceEditor.setValue(stringifyResource(Policies.thePolicy.entries[PolicyEntries.selectedEntry].resources[selectedResource]), -1);
     } else {
       resourceEditor.setValue('');
     }
@@ -151,7 +178,7 @@ function onEntryChanged(entryLabel: string) {
       );
       if (key === selectedResource) {
         dom.crudResource.idValue = key;
-        resourceEditor.setValue(JSON.stringify(Policies.thePolicy.entries[entryLabel].resources[key], null, 2), -1);
+        resourceEditor.setValue(stringifyResource(Policies.thePolicy.entries[entryLabel].resources[key]), -1);
       }
     });
   }
