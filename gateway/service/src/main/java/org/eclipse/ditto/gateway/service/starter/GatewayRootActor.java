@@ -53,6 +53,7 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.stats.StatsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.status.OverallStatusRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.thingsearch.ThingSearchRoute;
+import org.eclipse.ditto.gateway.service.endpoints.routes.timeseries.TimeseriesRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.websocket.WebSocketRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.wot.WotDiscoveryThingDirectoryRoute;
@@ -282,6 +283,7 @@ public final class GatewayRootActor extends DittoRootActor {
                         gatewayConfig.getMessageConfig(),
                         gatewayConfig.getClaimMessageConfig(),
                         namespaceAccessDirective))
+                .timeseriesRoute(new TimeseriesRoute(routeBaseProperties))
                 .connectionsRoute(new ConnectionsRoute(routeBaseProperties, devopsAuthenticationDirective))
                 .thingSearchRoute(new ThingSearchRoute(routeBaseProperties, namespaceAccessValidatorFactory))
                 .whoamiRoute(new WhoamiRoute(routeBaseProperties))
