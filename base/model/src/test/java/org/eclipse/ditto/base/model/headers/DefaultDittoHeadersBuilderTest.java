@@ -222,6 +222,21 @@ public final class DefaultDittoHeadersBuilderTest {
     }
 
     @Test
+    public void createInstanceWithMapContainingNullValueForKnownHeaderDoesNotThrow() {
+        // Regression guard for the validateValueTypes(Map, Map) overload introduced in 3.9.0.
+        // Iterating the headers map's entrySet() exposes null values that the old Collection-based
+        // loop implicitly skipped (because headers.get(key) returns null both for absent keys and
+        // for keys mapped to null). The new implementation must skip null values explicitly so
+        // construction does not fail with a NullPointerException on validateValue.
+        final Map<String, String> initialHeaders = new HashMap<>();
+        initialHeaders.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), null);
+        initialHeaders.put(DittoHeaderDefinition.DRY_RUN.getKey(), "true");
+
+        // No exception expected: null value is skipped, "true" for DRY_RUN is valid.
+        of(initialHeaders).build();
+    }
+
+    @Test
     public void tryToCreateInstanceWithMapContainingInvalidHeader() {
         final String readSubjectsKey = DittoHeaderDefinition.READ_SUBJECTS.getKey();
         final String invalidJsonArrayString = "['Frank',42,'Grimes']";

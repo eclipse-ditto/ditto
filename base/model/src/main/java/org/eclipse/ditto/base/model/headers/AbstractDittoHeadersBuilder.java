@@ -124,7 +124,8 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
 
         checkNotNull(initialHeaders, "initial headers");
         checkNotNull(definitions, "header definitions");
-        validateValueTypes(initialHeaders, definitions); // this constructor does validate the known value types
+        checkNotNull(definitionsMap, "definitionsMap");
+        validateValueTypes(initialHeaders, definitionsMap); // this constructor does validate the known value types
         myself = (S) selfType.cast(this);
         headers = preserveCaseSensitivity(initialHeaders);
         metadataHeaders = MetadataHeaders.newInstance();
@@ -194,13 +195,43 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
      *
      * @param headers the key-value-pairs to be validated.
      * @param definitions perform the actual validation.
+     * @deprecated as of 3.9.0 in favour of {@link #validateValueTypes(Map, Map)} which iterates the
+     * (typically small) headers map and looks up each definition by key, yielding O(H) lookups
+     * instead of O(D) where D is the (typically much larger) set of all known header definitions.
+     * Retained for binary compatibility with external subclasses that overrode this method.
      */
+    @Deprecated
     protected void validateValueTypes(final Map<String, String> headers,
             final Collection<? extends HeaderDefinition> definitions) {
 
         for (final HeaderDefinition definition : definitions) {
             final String value = headers.get(definition.getKey());
             if (null != value) {
+                definition.validateValue(value);
+            }
+        }
+    }
+
+    /**
+     * Validates the values of the specified headers with the help of the specified definitions map.
+     * Iterates the headers and looks up each one in {@code definitionsMap} — for the typical case
+     * where the incoming headers carry far fewer entries than the number of known header definitions,
+     * this is O(H) instead of O(D).
+     *
+     * @param headers the key-value-pairs to be validated.
+     * @param definitionsMap the known header definitions keyed by their (lower-case) header key.
+     * @since 3.9.0
+     */
+    protected void validateValueTypes(final Map<String, String> headers,
+            final Map<String, HeaderDefinition> definitionsMap) {
+
+        for (final Map.Entry<String, String> headerEntry : headers.entrySet()) {
+            final String value = headerEntry.getValue();
+            if (null == value) {
+                continue;
+            }
+            final HeaderDefinition definition = definitionsMap.get(headerEntry.getKey());
+            if (null != definition) {
                 definition.validateValue(value);
             }
         }
