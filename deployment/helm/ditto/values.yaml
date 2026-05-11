@@ -382,6 +382,22 @@ dbconfig:
     # awsSessionName is the name of the session when assuming the AWS role.
     #  This can be used to identify the session in logs or IAM policies.
     awsSessionName: "dittoSession"
+  # timeseries the MongoDB configuration for Ditto "timeseries" service
+  timeseries:
+    uri: mongodb://#{PLACEHOLDER_MONGODB_HOSTNAME}#:27017/ditto
+    ssl: false
+    # useAwsIamRole specifies whether to use an AWS IAM Role for Service Accounts (IRSA) which the pod assumes.
+    useAwsIamRole: false
+    # awsRegion defines the AWS region - if this is an empty string, the AWS SDK will attempt to identify the
+    #  region automatically based on the environment and eventually EC2 instances
+    awsRegion: ""
+    # awsRoleArn is the Amazon Resource Name (ARN) of the IAM role to be assumed by the pod.
+    #  This is required if useAwsIamRole is set to true.
+    #  Example: arn:aws:iam::<account-id>:role/<role-name>
+    awsRoleArn: ""
+    # awsSessionName is the name of the session when assuming the AWS role.
+    #  This can be used to identify the session in logs or IAM policies.
+    awsSessionName: "dittoSession"
   ## If following property is set, an existing secret will be used to retrieve the mongodb connectionUris from.
   # uriSecret: my-uri-secret
 
@@ -1735,6 +1751,176 @@ thingsSearch:
         poolSizeMin: 4
         poolSizeMax: 16
 
+
+## ----------------------------------------------------------------------------
+## timeseries configuration
+##  Phase 1 of the timeseries feature (issue #2291) — ingest path from things-service
+##  via cluster pub/sub, per-thing persistent ingest actor, and a query handler that
+##  enforces READ_TS on RetrieveTimeseries.
+timeseries:
+  # enabled controls whether timeseries related resources should be created
+  enabled: false
+  # replicaCount configuration for timeseries
+  replicaCount: 1
+  # updateStrategy configuration for timeseries
+  #  ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#strategy
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  # minReadySeconds configures the minimum number of seconds for which a newly created Pod should be ready without any
+  #  of its containers crashing, for it to be considered available
+  #  ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#min-ready-seconds
+  minReadySeconds: 10
+  # additionalLabels configuration for timeseries
+  additionalLabels: {}
+  # additionalAnnotations configuration for timeseries
+  additionalAnnotations: {}
+  image:
+    # repository for the timeseries docker image
+    repository: docker.io/eclipse/ditto-timeseries
+    # tag for the timeseries docker image - overwrite to specify something else than Chart.AppVersion
+    # tag: 3.3.0
+    # pullPolicy for the timeseries docker image
+    pullPolicy: IfNotPresent
+  # activateGcLogging whether to enable GC logging for the timeseries service
+  activateGcLogging: false
+  # additionalJvmOptions JVM options to put into JAVA_TOOL_OPTIONS
+  additionalJvmOptions: ""
+  # systemProps used to define arbitrary system properties for timeseries service
+  #  ref: https://www.eclipse.dev/ditto/installation-operating.html#configuration
+  systemProps:
+  # extraEnv to add arbitrary environment variable to timeseries container
+  extraEnv:
+  # - name: LOG_LEVEL_APPLICATION
+  #   value: "DEBUG"
+  extraVolumes:
+  extraVolumeMounts:
+  # resources configures the resources available/to use for the timeseries service
+  resources:
+    # cpu defines the "required" CPU of a node so that the service is placed there
+    cpu: 0.5
+    # memoryMi defines the memory in mebibyte (MiB) used as "required" and "limit" in k8s
+    memoryMi: 1024
+    # ephemeralStorageMi defines the storage in mebibyte (MiB) used as "required" and "limit" in k8s
+    ephemeralStorageMi: 2048
+  # jvm contains JVM specific scaling/tuning configuration of e.g. processors and garbage collector settings
+  jvm:
+    # activeProcessorCount defines how many processors the JVM should be configured to use
+    activeProcessorCount: 2
+    # parallelGcThreads defines how many threads the G1 garbage collector should use for parallel GC operations
+    #  if configured < 1, the JVM chooses according to its own logic
+    parallelGcThreads: 0
+    # concGcThreads defines how many threads the G1 garbage collector should use for concurrent GC operations
+    #  if configured < 1, the JVM chooses according to its own logic
+    concGcThreads: 0
+    # heapRamPercentage defines how much memory of the configured "resources.memoryMi" can be used by the JVM heap space
+    heapRamPercentage: 60
+    # maxGcPauseMillis configures the used G1 GC "target for the maximum GC pause time"
+    maxGcPauseMillis: 200
+    # g1ReservePercent configures the used G1 GC "amount of heap to keep free after a mixed GC"
+    g1ReservePercent: 10
+    # initiatingHeapOccupancyPercent configures the G1 GC "heap occupancy threshold" to start a concurrent GC cycle
+    initiatingHeapOccupancyPercent: 45
+    # g1NewSizePercent sets the percentage of the heap size to use as default minimum young (new) generation
+    g1NewSizePercent: 5
+    # g1MaxNewSizePercent sets the maximum percentage of the heap that can be allocated to the young (new) generation
+    g1MaxNewSizePercent: 60
+  # startupProbe configuration for timeseries
+  #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
+  startupProbe:
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 30
+  # readinessProbe configuration for timeseries
+  readinessProbe:
+    periodSeconds: 5
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 6
+  # livenessProbe configuration for timeseries
+  livenessProbe:
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 6
+  # podDisruptionBudget configuration for timeseries
+  podDisruptionBudget:
+    enabled: true
+    # NOTE: You can only set either minAvailable OR maxUnavailable, not both
+    minAvailable: 1
+    maxUnavailable:
+  # priorityClassName configuration for timeseries
+  priorityClassName: ""
+  # nodeSelector configuration for timeseries
+  nodeSelector: {}
+  # tolerations configuration for timeseries
+  tolerations: []
+  # affinity configuration for timeseries
+  affinity: {}
+  # Pod topology spread constraints for timeseries
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: ScheduleAnyway
+  # terminationGracePeriodSeconds how much time to give the application to gracefully leave
+  terminationGracePeriodSeconds: 300
+  # podMonitor configuration for timeseries
+  podMonitor:
+    enabled: false
+    # interval: 30s
+    # scrapeTimeout: 15s
+  # config holds timeseries-specific configuration
+  config:
+    # mongodb holds mongodb-specific configuration of timeseries
+    mongodb:
+      # minPoolSize configures the minimum number of connections in the connection pool
+      minPoolSize: 10
+      # maxPoolSize configures the maximum number of connections in the connection pool
+      maxPoolSize: 200
+      # maxPoolIdleTime configures the maximum amount of time a pooled connection is allowed to idle before closing the connection
+      maxPoolIdleTime: 10m
+      # journalCircuitBreaker configures the circuit breaker for MongoDB operations on the event journal
+      journalCircuitBreaker:
+        maxTries: 10
+        timeout: 10s
+        reset: 5s
+      # snapsCircuitBreaker configures the circuit breaker for MongoDB operations on the snapshots persistence
+      snapsCircuitBreaker:
+        maxTries: 10
+        timeout: 20s
+        reset: 8s
+    # enforcement holds the authorization configuration for the timeseries query path
+    enforcement:
+      # requiredPermission is the policy permission that must be granted on the queried resource path.
+      #  Must be one of "READ" or "READ_TS" (validated at startup, DittoConfigError otherwise).
+      #  Default "READ_TS" — keep the timeseries surface gated by a separate, explicit permission.
+      requiredPermission: "READ_TS"
+    # adapter selects the timeseries storage backend
+    adapter:
+      # type selects the timeseries database adapter implementation. Currently supports "mongodb".
+      type: "mongodb"
+      # mongodb configures the default MongoDB Time Series adapter. URI/credentials reuse the
+      # service-wide MONGO_DB_* settings — these knobs cover only the adapter-specific options.
+      mongodb:
+        # database overrides the MongoDB database for adapter collections (default "ditto_ts").
+        # Leave empty to inherit the timeseries.conf default.
+        database: ""
+        # collectionPrefix is prepended to each per-namespace time-series collection name.
+        # Leave empty to inherit the timeseries.conf default ("ts_").
+        collectionPrefix: ""
+        # granularity is the MongoDB Time Series bucketing granularity for NEW collections.
+        # One of "seconds", "minutes", "hours" — cannot be changed once a collection exists.
+        # Leave empty to inherit the timeseries.conf default ("seconds").
+        granularity: ""
+        # retention sets TimeSeriesOptions.expireAfter on NEW collections (HOCON duration,
+        # e.g. "30d", "8760h"). Empty disables expiration; existing collections need a
+        # collMod migration to pick up changes.
+        retention: ""
 
 ## ----------------------------------------------------------------------------
 ## connectivity configuration

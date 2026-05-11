@@ -13,6 +13,8 @@
 package org.eclipse.ditto.protocol.mappingstrategies;
 
 import org.eclipse.ditto.base.model.signals.ErrorRegistry;
+import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveTimeseries;
+import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveTimeseriesResponse;
 
 /**
  * Factory class to get instances of all {@link MappingStrategies}.
@@ -141,6 +143,27 @@ public final class MappingStrategiesFactory {
     public static CheckPermissionsCommandResponseMappingStrategies
             getCheckPermissionsCommandResponseMappingStrategies() {
         return CheckPermissionsCommandResponseMappingStrategies.getInstance();
+    }
+
+    /**
+     * Mapping strategies for {@code RetrieveTimeseries} commands.
+     *
+     * @return the strategies.
+     * @since 4.0.0
+     */
+    public static MappingStrategies<RetrieveTimeseries> getTimeseriesQueryCommandMappingStrategies() {
+        return TimeseriesQueryCommandMappingStrategies.getInstance();
+    }
+
+    /**
+     * Mapping strategies for {@code RetrieveTimeseriesResponse}.
+     *
+     * @return the strategies.
+     * @since 4.0.0
+     */
+    public static MappingStrategies<RetrieveTimeseriesResponse>
+            getTimeseriesQueryCommandResponseMappingStrategies() {
+        return TimeseriesQueryCommandResponseMappingStrategies.getInstance();
     }
 
 }

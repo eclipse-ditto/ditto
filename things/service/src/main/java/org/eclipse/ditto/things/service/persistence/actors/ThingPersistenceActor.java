@@ -58,6 +58,7 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingHistoryNo
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
+import org.eclipse.ditto.things.service.timeseries.TimeseriesIngestPublisher;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.common.config.ThingConfig;
@@ -95,6 +96,7 @@ public final class ThingPersistenceActor
     private final NamespaceActivityCheckConfigProvider activityCheckConfigProvider;
     private final DistributedPub<ThingEvent<?>> distributedPub;
     @Nullable private final ActorRef searchShardRegionProxy;
+    @Nullable private final ActorRef timeseriesIngestPublisher;
     private final ThingEventEnricher thingEventEnricher;
 
     @SuppressWarnings("unused")
@@ -103,7 +105,8 @@ public final class ThingPersistenceActor
             final ThingConfig thingConfig,
             final DistributedPub<ThingEvent<?>> distributedPub,
             @Nullable final ActorRef searchShardRegionProxy,
-            final PolicyEnforcerProvider policyEnforcerProvider) {
+            final PolicyEnforcerProvider policyEnforcerProvider,
+            @Nullable final ActorRef timeseriesIngestPublisher) {
 
         super(thingId, mongoReadJournal);
         this.thingConfig = thingConfig;
@@ -113,6 +116,7 @@ public final class ThingPersistenceActor
         );
         this.distributedPub = distributedPub;
         this.searchShardRegionProxy = searchShardRegionProxy;
+        this.timeseriesIngestPublisher = timeseriesIngestPublisher;
         this.thingEventEnricher = new ThingEventEnricher(
                 policyEnforcerProvider,
                 thingConfig.getEventConfig().isPartialAccessEventsEnabled(),
@@ -130,7 +134,26 @@ public final class ThingPersistenceActor
      * @param searchShardRegionProxy the proxy of the shard region of search updaters.
      * @param policyEnforcerProvider a provider for the used Policy {@code Enforcer} which "guards" the
      * ThingPersistenceActor for applying access control.
+     * @param timeseriesIngestPublisher local-node publisher that turns selected events into
+     * timeseries data points. May be {@code null} — in which case publishing is skipped.
      * @return the Pekko configuration Props object
+     */
+    public static Props props(final ThingId thingId,
+            final MongoReadJournal mongoReadJournal,
+            final ThingConfig thingConfig,
+            final DistributedPub<ThingEvent<?>> distributedPub,
+            @Nullable final ActorRef searchShardRegionProxy,
+            final PolicyEnforcerProvider policyEnforcerProvider,
+            @Nullable final ActorRef timeseriesIngestPublisher
+    ) {
+        return Props.create(ThingPersistenceActor.class, thingId, mongoReadJournal, thingConfig, distributedPub,
+                searchShardRegionProxy, policyEnforcerProvider, timeseriesIngestPublisher);
+    }
+
+    /**
+     * Convenience overload kept for tests that don't exercise the timeseries integration. Wires
+     * the timeseries publisher to {@code null}, which makes {@link #publishEvent} skip the
+     * forward.
      */
     public static Props props(final ThingId thingId,
             final MongoReadJournal mongoReadJournal,
@@ -139,8 +162,8 @@ public final class ThingPersistenceActor
             @Nullable final ActorRef searchShardRegionProxy,
             final PolicyEnforcerProvider policyEnforcerProvider
     ) {
-        return Props.create(ThingPersistenceActor.class, thingId, mongoReadJournal, thingConfig, distributedPub,
-                searchShardRegionProxy, policyEnforcerProvider);
+        return props(thingId, mongoReadJournal, thingConfig, distributedPub, searchShardRegionProxy,
+                policyEnforcerProvider, null);
     }
 
     @Override
@@ -281,11 +304,18 @@ public final class ThingPersistenceActor
 
     @Override
     protected void publishEvent(@Nullable final Thing previousEntity, final ThingEvent<?> event) {
+        // Snapshot the post-event entity on the actor thread BEFORE registering the async
+        // continuation. The whenComplete lambda below runs on the enrichment stage's executor,
+        // not on this actor's mailbox — by the time it fires, the next command may already
+        // have replaced the live `entity` field. Reading `entity` from inside the callback
+        // (actor-concurrency.md hard rule #1) would forward the wrong post-event Thing to the
+        // timeseries publisher, breaking the WoT annotation lookup.
+        final Thing entitySnapshot = entity;
         final CompletionStage<ThingEvent<?>> stage = thingEventEnricher.enrichWithPredefinedExtraFields(
                 thingConfig.getEventConfig().getPredefinedExtraFieldsConfigs(),
                 entityId,
-                entity,
-                Optional.ofNullable(entity).flatMap(Thing::getPolicyId)
+                entitySnapshot,
+                Optional.ofNullable(entitySnapshot).flatMap(Thing::getPolicyId)
                         .orElse(Optional.ofNullable(previousEntity)
                                 .flatMap(Thing::getPolicyId)
                                 .orElse(null)
@@ -302,6 +332,18 @@ public final class ThingPersistenceActor
             distributedPub.publishWithAcks(eventToPublish, entityId, ACK_EXTRACTOR, getSelf());
             if (searchShardRegionProxy != null) {
                 searchShardRegionProxy.tell(eventToPublish, getSelf());
+            }
+            if (timeseriesIngestPublisher != null) {
+                // Forward to the local-node timeseries publisher. Best-effort tell: the
+                // publisher is responsible for filtering by WoT annotation, building data
+                // points and retrying on the shard-region path. We send the *unenriched*
+                // event so the publisher works against the same view a connectivity
+                // consumer would, and we pass the captured entity snapshot so the publisher
+                // resolves the WoT TM against the post-event Thing rather than against
+                // whatever the live entity field happens to hold by the time this lambda
+                // runs.
+                timeseriesIngestPublisher.tell(
+                        new TimeseriesIngestPublisher.IngestRequest(event, entitySnapshot), getSelf());
             }
         });
     }

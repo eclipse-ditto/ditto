@@ -43,6 +43,8 @@ import org.eclipse.ditto.connectivity.service.messaging.persistence.migration.Mi
 import org.eclipse.ditto.connectivity.service.messaging.persistence.migration.MigrateConnectionEncryptionResponse;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.migration.MigrateConnectionEncryptionStatusResponse;
 import org.eclipse.ditto.things.model.devops.commands.CreateWotValidationConfigResponse;
+import org.eclipse.ditto.timeseries.api.commands.IngestDataPointsResponse;
+import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveTimeseriesResponse;
 
 public final class ConnectivityServiceGlobalCommandResponseRegistryTest extends GlobalCommandResponseRegistryTestCases {
 
@@ -77,7 +79,9 @@ public final class ConnectivityServiceGlobalCommandResponseRegistryTest extends 
                 CheckPermissionsResponse.class,
                 MigrateConnectionEncryptionResponse.class,
                 MigrateConnectionEncryptionStatusResponse.class,
-                MigrateConnectionEncryptionAbortResponse.class
+                MigrateConnectionEncryptionAbortResponse.class,
+                IngestDataPointsResponse.class,
+                RetrieveTimeseriesResponse.class
         );
     }
 

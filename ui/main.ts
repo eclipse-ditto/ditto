@@ -45,6 +45,7 @@ import * as Things from './modules/things/things.js';
 import * as ThingsCRUD from './modules/things/thingsCRUD.js';
 import * as ThingsSearch from './modules/things/thingsSearch.js';
 import * as ThingsSSE from './modules/things/thingsSSE.js';
+import * as Timeseries from './modules/things/timeseries.js';
 import { SubDiff } from './modules/things/subDiff.js';
 import { ThingsDiff } from './modules/things/thingsDiff.js';
 import { WoTDescription } from './modules/things/wotDescription.js';
@@ -69,6 +70,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   await Fields.ready();
   await SearchFilter.ready();
   Features.ready();
+  Timeseries.ready();
   await FeatureMessages.ready();
   Policies.ready();
   PoliciesJSON.ready();
