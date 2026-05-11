@@ -16,7 +16,7 @@
 [Eclipse Ditto](https://www.eclipse.dev/ditto/)™ is a technology in the IoT implementing a software pattern called “digital twins”.  
 A digital twin is a virtual, cloud based, representation of his real world counterpart (real world “Things”, e.g. devices like sensors, smart heating, connected cars, smart grids, EV charging stations, …).
 
-An ever growing list of [adopters](https://iot.eclipse.org/adopters/?#iot.ditto) makes use of Ditto as part of their IoT platforms - if you're as well using it, it would be super nice to show your [adoption here](https://iot.eclipse.org/adopters/how-to-be-listed-as-an-adopter/).
+An ever-growing list of [adopters](https://iot.eclipse.org/adopters/?#iot.ditto) makes use of Ditto as part of their IoT platforms - if you're as well using it, it would be super nice to show your [adoption here](https://iot.eclipse.org/adopters/how-to-be-listed-as-an-adopter/).
 
 ## Documentation
 
@@ -78,7 +78,7 @@ If you plan to develop extensions in Ditto or to contribute some code, the follo
 ### Build and start Ditto locally
 
 In order to build Ditto, you'll need:
-* JDK >= 21 
+* JDK >= 25
 * Apache Maven >= 3.9.x installed.
 * a running Docker daemon
 
