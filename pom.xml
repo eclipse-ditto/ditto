@@ -651,9 +651,9 @@
                                 <configuration>
                                     <force>true</force>
                                     <outputDirectory>./legal</outputDirectory>
-                                    <excludeModules>
+                                    <excludedModules>
                                         <excludedModule>ditto-internal-utils-test</excludedModule>
-                                    </excludeModules>
+                                    </excludedModules>
                                     <excludedGroups>${ditto.thirdPartyLicences.excludedGroups}</excludedGroups>
                                     <includedScopes>compile,runtime</includedScopes>
                                     <failOnMissing>true</failOnMissing>
