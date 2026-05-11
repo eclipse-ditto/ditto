@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2026 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+  -->
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="TimeseriesService" type="Application" factoryName="Application" folderName="Ditto" nameIsGenerated="true">
+    <envs>
+      <env name="LOG_LEVEL_APPLICATION" value="INFO" />
+      <env name="DITTO_TRACING_ENABLED" value="true" />
+      <env name="DITTO_TRACING_SAMPLER" value="always" />
+      <env name="TIMESERIES_MONGODB_URI" value="mongodb://localhost:27017" />
+    </envs>
+    <option name="MAIN_CLASS_NAME" value="org.eclipse.ditto.timeseries.service.starter.TimeseriesService" />
+    <module name="ditto-timeseries-service" />
+    <option name="VM_PARAMETERS" value="-Xms512m -Xmx512m" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

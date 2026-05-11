@@ -44,6 +44,8 @@ tags:
     description: Manage connections
   - name: WoT
     description: WoT (Web of Things) Discovery endpoints
+  - name: Timeseries
+    description: Read historical timeseries data ingested from properties annotated with `ditto:timeseries`
   - name: Devops
     description: Devops APIs to manage log levels and configuration in runtime and send piggyback command
 
@@ -231,6 +233,12 @@ paths:
     $ref: "./paths/wotValidationConfig/dynamicConfigs.yml"
   /devops/wot/config/dynamicConfigs/{scopeId}:
     $ref: "./paths/wotValidationConfig/dynamicConfigScopeId.yml"
+
+  ###
+  ### Timeseries
+  ###
+  '/api/2/timeseries/things/{thingId}/features/{featureId}/properties/{propertyPath}':
+    $ref: "./paths/timeseries/property.yml"
 
 components:
 

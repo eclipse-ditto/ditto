@@ -60,6 +60,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.thingsearch.api.ThingsSearchConstants;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.ThingSearchSudoCommand;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
+import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveTimeseries;
 
 import com.typesafe.config.Config;
 
@@ -168,6 +169,7 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                         this::forwardToConnectivity
                 )
                 .match(WotValidationConfigCommand.class, this::forwardToWotValidationConfig)
+                .match(RetrieveTimeseries.class, this::forwardToTimeseries)
                 .match(Signal.class, this::handleUnknownSignal)
                 .matchAny(m -> log.warning("Got unknown message: {}", m))
                 .build();
@@ -316,6 +318,20 @@ public class EdgeCommandForwarderActor extends AbstractActor {
         // don't use "ask with retry" as the search could take some time and we don't want to stress the search
         // by retrying a query several times if it took long
         pubSubMediator.tell(DistPubSubAccess.send(ThingsSearchConstants.SEARCH_ACTOR_PATH, command), getSender());
+    }
+
+    private void forwardToTimeseries(final RetrieveTimeseries command) {
+        // The feature-toggle gate lives in RetrieveTimeseries' constructor (mirrors MergeThing),
+        // so the command can't even be built on a node with the toggle off — the gateway route's
+        // try/catch surfaces UnsupportedSignalException synchronously to the HTTP client.
+        // Route via the timeseries shard region exactly like forwardToThings — the same per-Thing
+        // sharded entity (TimeseriesIngestActor) handles both the IngestDataPoints write path and
+        // the RetrieveTimeseries read path, so askWithRetryCommandForwarder lands naturally:
+        // shard rebalance / transient node-unavailable retries are handled by the same machinery
+        // that protects writes to ThingPersistenceActor.
+        askWithRetryCommandForwarder.forwardCommand(command,
+                shardRegions.timeseries(),
+                getSender());
     }
 
 

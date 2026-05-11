@@ -1,0 +1,374 @@
+# Copyright (c) 2026 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+#
+# Adapted from things-deployment.yaml. Things-specific env vars (LIMITS_THINGS_*,
+# MERGE_*, THINGS_WOT_TM_MODEL_VALIDATION_*, ENFORCEMENT_*, PEKKO_PERSISTENCE_MONGO_*
+# circuit-breaker tuning, etc.) are intentionally omitted; the timeseries-service
+# does not consume them. The timeseries-specific knobs come from timeseries.conf:
+# TIMESERIES_REQUIRED_PERMISSION, TIMESERIES_ADAPTER_TYPE, TIMESERIES_QUERY_*,
+# TIMESERIES_MONGODB_URI.
+{{- $name := include "ditto.name" . -}}
+{{- if .Values.timeseries.enabled -}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ditto.fullname" . }}-timeseries
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ $name }}-timeseries
+{{ include "ditto.labels" . | indent 4 }}
+spec:
+  replicas: {{ .Values.timeseries.replicaCount }}
+  strategy:
+  {{- with .Values.timeseries.updateStrategy }}
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+  minReadySeconds: {{ .Values.timeseries.minReadySeconds }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $name }}-timeseries
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ $name }}-timeseries
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        actorSystemName: {{ .Values.pekko.actorSystemName }}
+        {{- with .Values.timeseries.additionalLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        {{- if .Values.global.prometheus.enabled }}
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "{{ .Values.global.prometheus.path }}"
+        prometheus.io/port: "{{ .Values.global.prometheus.port }}"
+        {{- end }}
+        checksum/mongodb-config: {{ include (print $.Template.BasePath "/mongodb-secret.yaml") . | sha256sum }}
+        {{- with .Values.global.additionalAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.timeseries.additionalAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- if .Values.rbac.enabled }}
+      serviceAccountName: {{ template "ditto.serviceAccountName" . }}
+      {{- end }}
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        fsGroup: 1000
+      initContainers:
+        {{- if .Values.global.logging.logFiles.enabled }}
+        - name: change-volume-owner
+          image: busybox
+          securityContext:
+            runAsUser: 0
+          command: [ "sh", "-c", "chown -R 1005:1005 /var/log/ditto && echo 'changed ownership of /var/log/ditto to 1005:1005'" ]
+          volumeMounts:
+            - name: ditto-log-files-directory
+              mountPath: /var/log/ditto
+        {{- end }}
+      topologySpreadConstraints:
+      {{- range .Values.timeseries.topologySpreadConstraints }}
+        - maxSkew: {{ .maxSkew }}
+          topologyKey: {{ .topologyKey }}
+          whenUnsatisfiable: {{ .whenUnsatisfiable }}
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ $name }}-timeseries
+      {{- end }}
+      terminationGracePeriodSeconds: {{ .Values.timeseries.terminationGracePeriodSeconds }}
+      containers:
+        - name: {{ .Chart.Name }}-timeseries
+          image: {{ printf "%s:%s" .Values.timeseries.image.repository ( default .Chart.AppVersion ( default .Values.dittoTag .Values.timeseries.image.tag ) ) }}
+          imagePullPolicy: {{ .Values.timeseries.image.pullPolicy }}
+          env:
+            {{- if not .Values.global.logging.customConfigFile.enabled }}
+            - name: DITTO_LOGGING_DISABLE_SYSOUT_LOG
+              value: "{{ not .Values.global.logging.sysout.enabled }}"
+            - name: DITTO_LOGGING_FILE_APPENDER
+              value: "{{ printf "%t" .Values.global.logging.logFiles.enabled }}"
+            {{- end }}
+            - name: DITTO_METRICS_METRIC_PREFIX
+              value: "{{ .Values.global.metrics.metricsPrefix }}"
+            - name: SYSTEM_METRICS_ENABLED
+              value: "{{ .Values.global.metrics.systemMetrics.enabled }}"
+            - name: DITTO_TRACING_ENABLED
+              value: "{{ .Values.global.tracing.enabled }}"
+            - name: DITTO_TRACING_TICK_INTERVAL
+              value: "{{ .Values.global.tracing.tickInterval }}"
+            - name: DITTO_TRACING_REPORTER_QUEUE_SIZE
+              value: "{{ .Values.global.tracing.reporterQueueSize }}"
+            - name: DITTO_TRACING_OTEL_TRACE_REPORTER_ENABLED
+              value: "{{ .Values.global.tracing.otelTraceReporterEnabled }}"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "{{ tpl .Values.global.tracing.otelExporterOtlpEndpoint . }}"
+            - name: DITTO_TRACING_SAMPLER
+              value: "{{ .Values.global.tracing.sampler }}"
+            - name: DITTO_TRACING_RANDOM_SAMPLER_PROBABILITY
+              value: "{{ .Values.global.tracing.randomSampler.probability }}"
+            - name: DITTO_TRACING_ADAPTIVE_SAMPLER_THROUGHPUT
+              value: "{{ .Values.global.tracing.adaptiveSampler.throughput }}"
+            {{- if .Values.global.logging.logstash.enabled }}
+            - name: DITTO_LOGGING_LOGSTASH_SERVER
+              value: "{{ .Values.global.logging.logstash.endpoint }}"
+            - name: LOGSTASH_WRITE_BUFFER_SIZE
+              value: "{{ .Values.global.logging.logstash.writeBufferSize }}"
+            - name: LOGSTASH_RING_BUFFER_SIZE
+              value: "{{ .Values.global.logging.logstash.ringBufferSize }}"
+            {{- end }}
+            - name: POD_LABEL_SELECTOR
+              value: "app.kubernetes.io/name=%s"
+            - name: POD_NAMESPACE
+              value: {{ .Release.Namespace }}
+            - name: INSTANCE_INDEX
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+            - name: DISCOVERY_METHOD
+              value: "kubernetes-api"
+            - name: TZ
+              value: "{{ .Values.global.timezone }}"
+            - name: JAVA_TOOL_OPTIONS
+              value: >
+                {{ .Values.global.jvmOptions }}
+                -XX:ActiveProcessorCount={{ .Values.timeseries.jvm.activeProcessorCount }}
+                {{- if gt (int .Values.timeseries.jvm.parallelGcThreads) 0 }}
+                -XX:ParallelGCThreads={{ .Values.timeseries.jvm.parallelGcThreads }}
+                {{- end }}
+                {{- if gt (int .Values.timeseries.jvm.concGcThreads) 0 }}
+                -XX:ConcGCThreads={{ .Values.timeseries.jvm.concGcThreads }}
+                {{- end }}
+                -XX:MaxRAMPercentage={{ .Values.timeseries.jvm.heapRamPercentage }}
+                -XX:InitialRAMPercentage={{ .Values.timeseries.jvm.heapRamPercentage }}
+                -XX:MaxGCPauseMillis={{ .Values.timeseries.jvm.maxGcPauseMillis }}
+                -XX:G1ReservePercent={{ .Values.timeseries.jvm.g1ReservePercent }}
+                -XX:InitiatingHeapOccupancyPercent={{ .Values.timeseries.jvm.initiatingHeapOccupancyPercent }}
+                -XX:G1NewSizePercent={{ .Values.timeseries.jvm.g1NewSizePercent }}
+                -XX:G1MaxNewSizePercent={{ .Values.timeseries.jvm.g1MaxNewSizePercent }}
+                {{- if .Values.timeseries.activateGcLogging }}
+                {{ .Values.global.gcLoggingConfig }}
+                {{- end }}
+                {{ .Values.timeseries.additionalJvmOptions }}
+                {{ .Values.global.pekkoOptions }}
+                {{- if .Values.global.logging.customConfigFile.enabled }}
+                -Dlogback.configurationFile=/opt/ditto/{{ .Values.global.logging.customConfigFile.fileName }}
+                {{- end }}
+                {{ join " " .Values.timeseries.systemProps }}
+            - name: MONGO_DB_SSL_ENABLED
+              value: "{{ printf "%t" .Values.dbconfig.timeseries.ssl }}"
+            - name: MONGO_DB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.dbconfig.uriSecret | default ( printf "%s-mongodb-secret" ( include "ditto.fullname" . )) }}
+                  key: timeseries-uri
+            - name: MONGO_DB_CONNECTION_MIN_POOL_SIZE
+              value: "{{ .Values.timeseries.config.mongodb.minPoolSize }}"
+            - name: MONGO_DB_CONNECTION_POOL_SIZE
+              value: "{{ .Values.timeseries.config.mongodb.maxPoolSize }}"
+            - name: MONGO_DB_CONNECTION_POOL_IDLE_TIME
+              value: "{{ .Values.timeseries.config.mongodb.maxPoolIdleTime }}"
+            {{- if .Values.global.prometheus.enabled }}
+            - name: PROMETHEUS_PORT
+              value: "{{ .Values.global.prometheus.port }}"
+            {{- end }}
+            - name: CLUSTER_BS_REQUIRED_CONTACTS
+              value: "{{ .Values.global.cluster.requiredContactPoints }}"
+            - name: DITTO_DDATA_NUMBER_OF_SHARDS
+              value: "{{ .Values.global.cluster.ddata.numberOfShards }}"
+            - name: DITTO_DDATA_MAX_DELTA_ELEMENTS
+              value: "{{ .Values.global.cluster.ddata.maxDeltaElements }}"
+            - name: CLUSTER_NUMBER_OF_SHARDS
+              value: "{{ .Values.global.cluster.numberOfShards }}"
+            - name: CLUSTER_DOWNING_STABLE_AFTER
+              value: "{{ .Values.global.cluster.downingStableAfter }}"
+            - name: CLUSTER_DOWNING_DOWN_ALL_WHEN_UNSTABLE
+              value: "{{ .Values.global.cluster.downAllWhenUnstable }}"
+            - name: REMOTE_MAX_FRAMESIZE
+              value: "{{ .Values.global.limits.clusterMaxFramesize }}"
+            # Pekko persistence circuit-breaker tuning for the timeseries journal +
+            # snapshot store (see timeseries.conf). Reuses the same env-var names
+            # the things-service uses; the values come from .Values.timeseries.*.
+            - name: BREAKER_MAXTRIES
+              value: "{{ .Values.timeseries.config.mongodb.journalCircuitBreaker.maxTries }}"
+            - name: BREAKER_TIMEOUT
+              value: "{{ .Values.timeseries.config.mongodb.journalCircuitBreaker.timeout }}"
+            - name: BREAKER_RESET
+              value: "{{ .Values.timeseries.config.mongodb.journalCircuitBreaker.reset }}"
+            - name: SNAPSHOT_BREAKER_MAXTRIES
+              value: "{{ .Values.timeseries.config.mongodb.snapsCircuitBreaker.maxTries }}"
+            - name: SNAPSHOT_BREAKER_TIMEOUT
+              value: "{{ .Values.timeseries.config.mongodb.snapsCircuitBreaker.timeout }}"
+            - name: SNAPSHOT_BREAKER_RESET
+              value: "{{ .Values.timeseries.config.mongodb.snapsCircuitBreaker.reset }}"
+            # Timeseries-specific knobs (timeseries.conf).
+            - name: TIMESERIES_REQUIRED_PERMISSION
+              value: "{{ .Values.timeseries.config.enforcement.requiredPermission }}"
+            - name: TIMESERIES_ADAPTER_TYPE
+              value: "{{ .Values.timeseries.config.adapter.type }}"
+            {{- with .Values.timeseries.config.adapter.mongodb }}
+            {{- if .database }}
+            - name: TIMESERIES_MONGODB_DATABASE
+              value: {{ .database | quote }}
+            {{- end }}
+            {{- if .collectionPrefix }}
+            - name: TIMESERIES_MONGODB_COLLECTION_PREFIX
+              value: {{ .collectionPrefix | quote }}
+            {{- end }}
+            {{- if .granularity }}
+            - name: TIMESERIES_MONGODB_GRANULARITY
+              value: {{ .granularity | quote }}
+            {{- end }}
+            {{- if .retention }}
+            - name: TIMESERIES_MONGODB_RETENTION
+              value: {{ .retention | quote }}
+            {{- end }}
+            {{- end }}
+            {{- if .Values.timeseries.extraEnv }}
+              {{- toYaml .Values.timeseries.extraEnv | nindent 12 }}
+            {{- end }}
+            - name: MONGO_DB_USE_AWS_IAM_ROLE
+              value: "{{ printf "%t" .Values.dbconfig.timeseries.useAwsIamRole }}"
+            {{- if .Values.dbconfig.timeseries.useAwsIamRole }}
+            - name: MONGO_DB_AWS_REGION
+              value: "{{ .Values.dbconfig.timeseries.awsRegion }}"
+            - name: MONGO_DB_AWS_ROLE_ARN
+              value: "{{ .Values.dbconfig.timeseries.awsRoleArn }}"
+            - name: AWS_ROLE_ARN
+              value: "{{ .Values.dbconfig.timeseries.awsRoleArn }}"
+            - name: AWS_WEB_IDENTITY_TOKEN_FILE
+              value: "/var/run/secrets/eks.amazonaws.com/serviceaccount/token"
+            - name: MONGO_DB_AWS_SESSION_NAME
+              value: "{{ .Values.dbconfig.timeseries.awsSessionName }}"
+            {{- end }}
+          ports:
+            - name: remoting
+              containerPort: {{ .Values.pekko.remoting.port }}
+              protocol: TCP
+            - name: management
+              containerPort: {{ .Values.pekko.mgmthttp.port }}
+              protocol: TCP
+            {{- if .Values.global.prometheus.enabled }}
+            - name: prometheus
+              protocol: TCP
+              containerPort: {{ .Values.global.prometheus.port }}
+            {{- end }}
+          startupProbe:
+            httpGet:
+              port: management
+              path: /ready
+            initialDelaySeconds: {{ .Values.timeseries.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.timeseries.startupProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.timeseries.startupProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.timeseries.startupProbe.successThreshold }}
+            failureThreshold: {{ .Values.timeseries.startupProbe.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              port: management
+              path: /ready
+            periodSeconds: {{ .Values.timeseries.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.timeseries.readinessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.timeseries.readinessProbe.successThreshold }}
+            failureThreshold: {{ .Values.timeseries.readinessProbe.failureThreshold }}
+          livenessProbe:
+            httpGet:
+              port: management
+              path: /alive
+            initialDelaySeconds: {{ .Values.timeseries.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.timeseries.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.timeseries.livenessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.timeseries.livenessProbe.successThreshold }}
+            failureThreshold: {{ .Values.timeseries.livenessProbe.failureThreshold }}
+          volumeMounts:
+            {{- if .Values.global.logging.customConfigFile.enabled }}
+            - name: ditto-custom-log-config
+              mountPath: /opt/ditto/{{ .Values.global.logging.customConfigFile.fileName }}
+              subPath: {{ .Values.global.logging.customConfigFile.fileName }}
+            {{- end }}
+            {{- if .Values.global.logging.logFiles.enabled }}
+            - name: ditto-log-files-directory
+              mountPath: /var/log/ditto
+            {{- end }}
+            {{- if .Values.global.extraVolumeMounts }}
+              {{- toYaml .Values.global.extraVolumeMounts | nindent 12 }}
+            {{- end }}
+            {{- if .Values.timeseries.extraVolumeMounts }}
+              {{- toYaml .Values.timeseries.extraVolumeMounts | nindent 12 }}
+            {{- end }}
+            - name: ditto-heap-dumps
+              mountPath: /opt/ditto/dumps
+          resources:
+            requests:
+              cpu: {{ mulf .Values.timeseries.resources.cpu 1000 }}m
+              memory: {{ .Values.timeseries.resources.memoryMi }}Mi
+              ephemeral-storage: {{ .Values.timeseries.resources.ephemeralStorageMi }}Mi
+            limits:
+              # ## no cpu limit to avoid CFS scheduler limits
+              # ref: https://pekko.apache.org/docs/pekko/current/additional/deploying.html#deploying-to-kubernetes
+              # cpu: ""
+              memory: {{ .Values.timeseries.resources.memoryMi }}Mi
+              ephemeral-storage: {{ .Values.timeseries.resources.ephemeralStorageMi }}Mi
+          {{- if .Values.openshift.enabled }}
+          {{- with .Values.openshift.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- else }}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+          {{- end }}
+      priorityClassName: "{{ .Values.timeseries.priorityClassName }}"
+      {{- with .Values.timeseries.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.timeseries.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.timeseries.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        {{- if .Values.global.logging.customConfigFile.enabled }}
+        - name: ditto-custom-log-config
+          configMap:
+            name: {{ .Release.Name }}-logback-config-timeseries-xml
+        {{- end }}
+        {{- if .Values.global.logging.logFiles.enabled }}
+        - name: ditto-log-files-directory
+          hostPath:
+            path: /var/log/ditto
+            type: DirectoryOrCreate
+        {{- end }}
+        {{- if .Values.global.extraVolumes }}
+          {{- toYaml .Values.global.extraVolumes | nindent 8 }}
+        {{- end }}
+        {{- if .Values.timeseries.extraVolumes }}
+          {{- toYaml .Values.timeseries.extraVolumes | nindent 8 }}
+        {{- end }}
+        - name: ditto-heap-dumps
+          emptyDir: {}
+{{- end }}

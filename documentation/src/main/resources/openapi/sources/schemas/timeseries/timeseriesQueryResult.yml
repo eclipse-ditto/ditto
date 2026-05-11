@@ -1,0 +1,92 @@
+# Copyright (c) 2026 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+type: array
+description: |-
+  Per-path timeseries query result. The HTTP route requests exactly one path per
+  call, so the array always contains a single entry; the WebSocket envelope
+  variant of `RetrieveTimeseries` may carry multiple paths and would return one
+  entry per requested path.
+items:
+  type: object
+  required:
+    - thingId
+    - path
+    - query
+    - result
+    - data
+  properties:
+    thingId:
+      type: string
+      description: The thing the data points belong to.
+    path:
+      type: string
+      description: |-
+        The Ditto Protocol path inside the thing whose timeseries was queried,
+        e.g. `/features/environment/properties/temperature`.
+    query:
+      type: object
+      description: Echo of the query parameters that produced this result.
+      properties:
+        thingId:
+          type: string
+        paths:
+          type: array
+          items:
+            type: string
+        from:
+          type: string
+          format: date-time
+        to:
+          type: string
+          format: date-time
+    result:
+      type: object
+      description: Per-path metadata.
+      required:
+        - count
+        - dataType
+      properties:
+        count:
+          type: integer
+          format: int32
+          description: Number of data points returned.
+        dataType:
+          type: string
+          enum:
+            - number
+            - string
+            - boolean
+            - "null"
+          description: |-
+            Inferred scalar type of the returned values. `null` when the result
+            set is empty.
+        unit:
+          type: string
+          description: |-
+            Unit declared on the WoT property the timeseries was ingested from
+            (semantic prefix stripped). Omitted when the property has no `unit`.
+    data:
+      type: array
+      description: |-
+        Returned data points in chronological order (ascending timestamp).
+      items:
+        type: object
+        required:
+          - t
+          - v
+        properties:
+          t:
+            type: string
+            format: date-time
+            description: ISO-8601 timestamp at which the value was observed.
+          v:
+            description: |-
+              The observed scalar value. Type matches the per-path `dataType`.
