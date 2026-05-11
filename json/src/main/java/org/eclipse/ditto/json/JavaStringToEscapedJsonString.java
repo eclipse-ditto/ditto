@@ -60,22 +60,42 @@ final class JavaStringToEscapedJsonString implements UnaryOperator<String> {
     @Override
     public String apply(final String javaString) {
         requireNonNull(javaString, "The Java String to be converted must not be null");
+        final int len = javaString.length();
+        final int firstEscape = indexOfFirstEscape(javaString, len);
+        if (firstEscape < 0) {
+            final StringBuilder stringBuilder = new StringBuilder(len + NUM_ENCLOSING_QUOTES);
+            stringBuilder.append(QUOTE).append(javaString).append(QUOTE);
+            return stringBuilder.toString();
+        }
         final StringBuilder stringBuilder =
-                new StringBuilder((int) (javaString.length() * ESCAPING_BUFFER_FACTOR) + NUM_ENCLOSING_QUOTES);
+                new StringBuilder((int) (len * ESCAPING_BUFFER_FACTOR) + NUM_ENCLOSING_QUOTES);
         stringBuilder.append(QUOTE);
-        stringBuilder.append(javaString);
-        int i = 1; // offset of starting " char
-        for (final char c : javaString.toCharArray()) {
-            @Nullable final String replacement = jsonCharEscaper.apply(c);
+        stringBuilder.append(javaString, 0, firstEscape);
+        int runStart = firstEscape;
+        for (int i = firstEscape; i < len; i++) {
+            @Nullable final String replacement = jsonCharEscaper.apply(javaString.charAt(i));
             if (null != replacement) {
-                stringBuilder.replace(i, i + 1, replacement);
-                i += replacement.length();
-            } else {
-                i++;
+                if (i > runStart) {
+                    stringBuilder.append(javaString, runStart, i);
+                }
+                stringBuilder.append(replacement);
+                runStart = i + 1;
             }
+        }
+        if (runStart < len) {
+            stringBuilder.append(javaString, runStart, len);
         }
         stringBuilder.append(QUOTE);
         return stringBuilder.toString();
+    }
+
+    private int indexOfFirstEscape(final String javaString, final int len) {
+        for (int i = 0; i < len; i++) {
+            if (null != jsonCharEscaper.apply(javaString.charAt(i))) {
+                return i;
+            }
+        }
+        return -1;
     }
 
 }

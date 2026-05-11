@@ -123,7 +123,12 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
 
     protected CompletionStage<Optional<PolicyEnforcer>> loadPolicyEnforcer(final Signal<?> signal) {
         return providePolicyIdForEnforcement(signal)
-                .thenComposeAsync(this::providePolicyEnforcer, enforcementExecutor);
+                .thenComposeAsync(policyId -> {
+                    if (policyId == null) {
+                        return CompletableFuture.completedFuture(Optional.empty());
+                    }
+                    return providePolicyEnforcer(policyId);
+                }, enforcementExecutor);
     }
 
     private void paRecovered(final Control paRecoveredTrigger) {

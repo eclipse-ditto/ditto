@@ -1326,6 +1326,20 @@ things:
           #       enforce:
           #         feature-description-modification: false
         ]
+    # dispatchers contains tuning for the WoT-related Pekko dispatchers in the things service.
+    # Defaults below are the in-jar HOCON defaults and only need overriding under sustained load.
+    dispatchers:
+      # wot dispatcher serves WoT model resolution and validation.
+      wot:
+        # parallelismMin: minimum steady-state ForkJoinPool worker count.
+        # Raised from the legacy default of 4 to 8 to avoid worker churn under bursty load.
+        parallelismMin: 8
+        # parallelismMax: hard cap on workers spawned during load spikes.
+        parallelismMax: 32
+      # wotCacheLoader serves the WoT ThingModel cache loader.
+      wotCacheLoader:
+        parallelismMin: 8
+        parallelismMax: 32
 
 ## ----------------------------------------------------------------------------
 ## things-search configuration

@@ -26,6 +26,8 @@ import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
  */
 public final class JacksonSerializationContext implements SerializationContext {
 
+    private static final CBORFactory DEFAULT_CBOR_FACTORY = new CBORFactory();
+
     private final JsonGenerator jacksonGenerator;
     private final ControllableOutputStream outputStream;
 
@@ -44,7 +46,7 @@ public final class JacksonSerializationContext implements SerializationContext {
     }
 
     JacksonSerializationContext(final OutputStream outputStream) throws IOException {
-        this(new CBORFactory(), outputStream);
+        this(DEFAULT_CBOR_FACTORY, outputStream);
     }
 
     /**
