@@ -101,6 +101,17 @@ public final class FeatureToggle {
             "ditto.devops.feature.stackless-flow-control-exceptions-enabled";
 
     /**
+     * System property name of the property defining whether the timeseries feature
+     * (per-Thing ingest from WoT-annotated property events, RetrieveTimeseries query) is enabled.
+     * When disabled, things-service does not start the {@code TimeseriesIngestPublisher}
+     * (so no per-event WoT-resolution work on the write path) and gateway-routed
+     * {@code RetrieveTimeseries} commands are rejected with {@link UnsupportedSignalException}.
+     *
+     * @since 4.0.0
+     */
+    public static final String TIMESERIES_ENABLED = "ditto.devops.feature.timeseries-enabled";
+
+    /**
      * Resolves the system property {@value MERGE_THINGS_ENABLED}.
      */
     private static final boolean IS_MERGE_THINGS_ENABLED = resolveProperty(MERGE_THINGS_ENABLED);
@@ -147,6 +158,11 @@ public final class FeatureToggle {
      */
     private static final boolean IS_STACKLESS_FLOW_CONTROL_EXCEPTIONS_ENABLED =
             resolveProperty(STACKLESS_FLOW_CONTROL_EXCEPTIONS_ENABLED);
+
+    /**
+     * Resolves the system property {@value TIMESERIES_ENABLED}.
+     */
+    private static final boolean IS_TIMESERIES_ENABLED = resolveProperty(TIMESERIES_ENABLED);
 
     private static boolean resolveProperty(final String propertyName) {
         final String propertyValue = System.getProperty(propertyName, Boolean.TRUE.toString());
@@ -302,5 +318,36 @@ public final class FeatureToggle {
      */
     public static boolean isStacklessFlowControlExceptionsEnabled() {
         return IS_STACKLESS_FLOW_CONTROL_EXCEPTIONS_ENABLED;
+    }
+
+    /**
+     * Checks if the timeseries feature is enabled based on the system property {@value TIMESERIES_ENABLED}.
+     *
+     * @param signal the name of the signal that was supposed to be processed
+     * @param dittoHeaders headers used to build exception
+     * @return the unmodified headers parameters
+     * @throws UnsupportedSignalException if the system property {@value TIMESERIES_ENABLED}
+     * resolves to {@code false}
+     * @since 4.0.0
+     */
+    public static DittoHeaders checkTimeseriesFeatureEnabled(final String signal, final DittoHeaders dittoHeaders) {
+        if (!IS_TIMESERIES_ENABLED) {
+            throw UnsupportedSignalException
+                    .newBuilder(signal)
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+        return dittoHeaders;
+    }
+
+    /**
+     * Returns whether the timeseries feature is enabled based on the system property
+     * {@value TIMESERIES_ENABLED}.
+     *
+     * @return whether the timeseries feature is enabled or not.
+     * @since 4.0.0
+     */
+    public static boolean isTimeseriesFeatureEnabled() {
+        return IS_TIMESERIES_ENABLED;
     }
 }

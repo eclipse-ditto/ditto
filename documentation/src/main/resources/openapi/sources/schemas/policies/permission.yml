@@ -9,7 +9,15 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 type: string
-description: A Permission allows a certain action on an entity
+description: |
+  A Permission allows a certain action on an entity.
+   * `READ` and `WRITE` apply to all resource types (`thing:/`, `policy:/`, `message:/`).
+   * `READ_TS` (since 4.0.0) only applies to `thing:/...` resources and gates retrieval
+     of historical timeseries data via the Timeseries API. Its enforcement is governed
+     by the Timeseries service configuration `ditto.timeseries.enforcement.required-permission`:
+     when set to `READ_TS` (default) an explicit `READ_TS` grant is required; when set to
+     `READ` a `READ` grant on the resource is also sufficient to read timeseries data.
 enum:
   - READ
   - WRITE
+  - READ_TS

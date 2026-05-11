@@ -31,6 +31,9 @@
                 <li class="nav-item">
                     <a class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabCrudFeature">Manage</a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" data-bs-target="#tabTimeseriesFeature">Timeseries</a>
+                </li>
             </ul>
             <div class="tab-content" style="flex-grow: 1;" id="tabContentFeatures">
                 <div class="tab-pane container active no-margin" id="tabCrudFeature">
@@ -49,6 +52,37 @@
                             </div>
                         </div>
                     </crud-toolbar>
+                </div>
+                <div class="tab-pane container no-margin" id="tabTimeseriesFeature">
+                    <div class="input-group input-group-sm mb-1">
+                        <label class="input-group-text" style="width: 7em;">Path</label>
+                        <input type="text" class="form-control" id="inputTimeseriesPath"
+                               placeholder="/features/<feature>/properties/<property>"></input>
+                    </div>
+                    <div class="input-group input-group-sm mb-1">
+                        <label class="input-group-text" style="width: 7em;">From (UTC)</label>
+                        <input type="datetime-local" class="form-control" id="inputTimeseriesFrom" step="1"></input>
+                        <label class="input-group-text" style="width: 5em;">To (UTC)</label>
+                        <input type="datetime-local" class="form-control" id="inputTimeseriesTo" step="1"></input>
+                        <label class="input-group-text" style="width: 5em;">Limit</label>
+                        <input type="number" class="form-control" id="inputTimeseriesLimit" min="1" max="10000"
+                               placeholder="optional" style="max-width: 8em;"></input>
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="buttonTimeseriesRetrieve">
+                            <i class="bi bi-arrow-clockwise"></i> Retrieve
+                        </button>
+                    </div>
+                    <div class="text-muted small mb-1" id="timeseriesStatus" style="min-height: 1em;"></div>
+                    <div class="border rounded p-1 mb-1" style="background-color: var(--bs-body-bg);">
+                        <svg id="timeseriesSparkline" width="100%" height="120" preserveAspectRatio="none"
+                             viewBox="0 0 600 120" xmlns="http://www.w3.org/2000/svg" style="display: block;">
+                        </svg>
+                    </div>
+                    <div class="table-wrap" style="max-height: 30vh; overflow-y: auto;">
+                        <table class="table table-striped table-hover table-sm">
+                            <thead><tr><th style="width: 50%;">Timestamp (UTC)</th><th>Value</th></tr></thead>
+                            <tbody id="tbodyTimeseries"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>

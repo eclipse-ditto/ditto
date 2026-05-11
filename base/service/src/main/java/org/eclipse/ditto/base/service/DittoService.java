@@ -429,6 +429,8 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
         System.setProperty(FeatureToggle.STACKLESS_FLOW_CONTROL_EXCEPTIONS_ENABLED,
                 Boolean.toString(
                         rawConfig.getBoolean(FeatureToggle.STACKLESS_FLOW_CONTROL_EXCEPTIONS_ENABLED)));
+        System.setProperty(FeatureToggle.TIMESERIES_ENABLED,
+                Boolean.toString(rawConfig.getBoolean(FeatureToggle.TIMESERIES_ENABLED)));
         System.setProperty(DittoSystemProperties.DITTO_LIMITS_POLICY_IMPORTS_LIMIT,
                 Integer.toString(limitsConfig.getPolicyImportsLimit()));
         final MetricsConfig metricsConfig = serviceSpecificConfig.getMetricsConfig();

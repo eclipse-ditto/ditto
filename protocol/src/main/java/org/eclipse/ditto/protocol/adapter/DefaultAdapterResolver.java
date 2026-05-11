@@ -30,6 +30,8 @@ import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.adapter.common.CheckPermissionsCommandAdapter;
 import org.eclipse.ditto.protocol.adapter.common.CheckPermissionsCommandResponseAdapter;
 import org.eclipse.ditto.protocol.adapter.connectivity.ConnectivityCommandAdapterProvider;
+import org.eclipse.ditto.protocol.adapter.things.TimeseriesQueryCommandAdapter;
+import org.eclipse.ditto.protocol.adapter.things.TimeseriesQueryCommandResponseAdapter;
 import org.eclipse.ditto.protocol.adapter.provider.AcknowledgementAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.provider.PolicyCommandAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.provider.ThingCommandAdapterProvider;
@@ -49,7 +51,9 @@ final class DefaultAdapterResolver implements AdapterResolver {
             final StreamingSubscriptionCommandAdapter streamingSubscriptionCommandAdapter,
             final StreamingSubscriptionEventAdapter streamingSubscriptionEventAdapter,
             final CheckPermissionsCommandAdapter checkPermissionsCommandAdapter,
-            final CheckPermissionsCommandResponseAdapter checkPermissionsCommandResponseAdapter) {
+            final CheckPermissionsCommandResponseAdapter checkPermissionsCommandResponseAdapter,
+            final TimeseriesQueryCommandAdapter timeseriesQueryCommandAdapter,
+            final TimeseriesQueryCommandResponseAdapter timeseriesQueryCommandResponseAdapter) {
         final List<Adapter<?>> adapters = new ArrayList<>();
         adapters.addAll(thingsAdapters.getAdapters());
         adapters.addAll(policiesAdapters.getAdapters());
@@ -59,10 +63,13 @@ final class DefaultAdapterResolver implements AdapterResolver {
         adapters.add(streamingSubscriptionEventAdapter);
         adapters.add(checkPermissionsCommandAdapter);
         adapters.add(checkPermissionsCommandResponseAdapter);
+        adapters.add(timeseriesQueryCommandAdapter);
+        adapters.add(timeseriesQueryCommandResponseAdapter);
         resolver = computeResolver(adapters);
         resolverBySignal = new AdapterResolverBySignal(thingsAdapters, policiesAdapters, connectivityAdapters,
                 acknowledgementAdapters, streamingSubscriptionCommandAdapter, streamingSubscriptionEventAdapter,
-                checkPermissionsCommandAdapter, checkPermissionsCommandResponseAdapter);
+                checkPermissionsCommandAdapter, checkPermissionsCommandResponseAdapter,
+                timeseriesQueryCommandAdapter, timeseriesQueryCommandResponseAdapter);
     }
 
     @Override

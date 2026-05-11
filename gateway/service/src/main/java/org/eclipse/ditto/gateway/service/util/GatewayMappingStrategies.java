@@ -26,6 +26,7 @@ import org.eclipse.ditto.internal.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.policies.api.PoliciesMappingStrategies;
 import org.eclipse.ditto.things.api.ThingsMappingStrategies;
 import org.eclipse.ditto.thingsearch.api.ThingSearchMappingStrategies;
+import org.eclipse.ditto.timeseries.api.TimeseriesMappingStrategies;
 
 /**
  * {@link MappingStrategies} for the Gateway service containing all {@link Jsonifiable} types known to Gateway.
@@ -69,6 +70,7 @@ public final class GatewayMappingStrategies extends MappingStrategies {
                 .putAll(PoliciesMappingStrategies.getInstance())
                 .putAll(ThingSearchMappingStrategies.getInstance())
                 .putAll(ConnectivityMappingStrategies.getInstance())
+                .putAll(TimeseriesMappingStrategies.getInstance())
                 .putAll(GlobalMappingStrategies.getInstance())
                 .build();
     }

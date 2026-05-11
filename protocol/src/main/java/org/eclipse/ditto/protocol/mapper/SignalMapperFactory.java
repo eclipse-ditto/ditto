@@ -38,6 +38,8 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingMerged;
 import org.eclipse.ditto.things.model.signals.events.ThingDefinitionMigrated;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
+import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveTimeseries;
+import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveTimeseriesResponse;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
 
 /**
@@ -160,6 +162,26 @@ public final class SignalMapperFactory {
 
     public static SignalMapper<ConnectivityAnnouncement<?>> newConnectivityAnnouncementSignalMapper() {
         return new ConnectivityAnnouncementSignalMapper();
+    }
+
+    /**
+     * Signal mapper for {@code RetrieveTimeseries} commands.
+     *
+     * @return the mapper.
+     * @since 4.0.0
+     */
+    public static SignalMapper<RetrieveTimeseries> newTimeseriesQuerySignalMapper() {
+        return new TimeseriesQuerySignalMapper();
+    }
+
+    /**
+     * Signal mapper for {@code RetrieveTimeseriesResponse}.
+     *
+     * @return the mapper.
+     * @since 4.0.0
+     */
+    public static SignalMapper<RetrieveTimeseriesResponse> newTimeseriesQueryResponseSignalMapper() {
+        return new TimeseriesQueryResponseSignalMapper();
     }
 
 }

@@ -254,7 +254,7 @@ final class ImmutableTopicPath implements TopicPath {
     private static final class Builder
             implements TopicPathBuilder, MessagesTopicPathBuilder, EventsTopicPathBuilder, CommandsTopicPathBuilder,
             AcknowledgementTopicPathBuilder, SearchTopicPathBuilder, AnnouncementsTopicPathBuilder,
-            StreamingTopicPathBuilder {
+            StreamingTopicPathBuilder, TimeseriesTopicPathBuilder {
 
         private final String namespace;
         private final String name;
@@ -324,6 +324,12 @@ final class ImmutableTopicPath implements TopicPath {
         @Override
         public CommandsTopicPathBuilder commands() {
             criterion = Criterion.COMMANDS;
+            return this;
+        }
+
+        @Override
+        public TimeseriesTopicPathBuilder timeseries() {
+            criterion = Criterion.TIMESERIES;
             return this;
         }
 
@@ -587,6 +593,7 @@ final class ImmutableTopicPath implements TopicPath {
             switch (topicPathBuilder.criterion) {
                 case COMMANDS:
                 case EVENTS:
+                case TIMESERIES:
                     topicPathBuilder.action = tryToGetActionForName(tryToGetActionName());
                     break;
                 case SEARCH:
