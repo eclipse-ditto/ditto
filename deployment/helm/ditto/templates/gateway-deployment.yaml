@@ -279,6 +279,10 @@ spec:
               value: "{{ .Values.gateway.config.wotDirectory.basePrefix }}"
             - name: GATEWAY_WOT_DIRECTORY_AUTHENTICATION_REQUIRED
               value: "{{ .Values.gateway.config.wotDirectory.authenticationRequired }}"
+            - name: SIGNAL_ENRICHMENT_CACHE_DISPATCHER_POOL_SIZE_MIN
+              value: "{{ .Values.gateway.config.dispatchers.signalEnrichmentCache.poolSizeMin }}"
+            - name: SIGNAL_ENRICHMENT_CACHE_DISPATCHER_POOL_SIZE_MAX
+              value: "{{ .Values.gateway.config.dispatchers.signalEnrichmentCache.poolSizeMax }}"
             {{- if .Values.gateway.extraEnv }}
               {{- toYaml .Values.gateway.extraEnv | nindent 12 }}
             {{- end }}

@@ -2102,6 +2102,15 @@ connectivity:
           #   Medium (100-1000 connections): 100-200
           #   Large (>1000 connections): 50-100
           maxDocumentsPerMinute: 200
+    # dispatchers contains tuning for the connectivity service's Pekko dispatchers.
+    # Defaults below match the in-jar HOCON defaults and only need overriding under sustained load.
+    dispatchers:
+      # signalEnrichmentCache dispatcher serves the signal-enrichment cache loader.
+      signalEnrichmentCache:
+        # poolSizeMin: minimum core threads kept alive across idle periods (allow-core-timeout = off).
+        poolSizeMin: 4
+        # poolSizeMax: hard cap on threads spawned during load spikes.
+        poolSizeMax: 16
 
 ## ----------------------------------------------------------------------------
 ## gateway configuration
@@ -2453,6 +2462,15 @@ gateway:
       # authenticationRequired whether authentication is required to access the WoT Thing Directory endpoint
       #  defaults to false for public access per WoT Discovery specification expectations
       authenticationRequired: false
+    # dispatchers contains tuning for the gateway service's Pekko dispatchers.
+    # Defaults below match the in-jar HOCON defaults and only need overriding under sustained load.
+    dispatchers:
+      # signalEnrichmentCache dispatcher serves the signal-enrichment cache loader.
+      signalEnrichmentCache:
+        # poolSizeMin: minimum core threads kept alive across idle periods (allow-core-timeout = off).
+        poolSizeMin: 4
+        # poolSizeMax: hard cap on threads spawned during load spikes.
+        poolSizeMax: 16
 
 ## ----------------------------------------------------------------------------
 ## nginx configuration
