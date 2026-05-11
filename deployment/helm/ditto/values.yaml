@@ -114,7 +114,13 @@ global:
   #  if false, both OpenID-Connect and basicAuth via nginx (see above "basicAuthUsers" and "hashedBasicAuthUsers") is used
   #  ref: https://www.eclipse.dev/ditto/installation-operating.html#openid-connect
   jwtOnly: false
-  # jvmOptions defines the JVM options applied to all Ditto services running in the JVM, it is put in JAVA_TOOL_OPTIONS
+  # jvmOptions defines the JVM options applied to all Ditto services running in the JVM, it is put in JAVA_TOOL_OPTIONS.
+  # io.netty.leakDetection.level=disabled turns off Netty's ResourceLeakDetector. Netty defaults to SIMPLE
+  # which samples 1/128 buffer allocations and captures a Throwable stack trace per sampled buffer; on the
+  # Pekko remote / Mongo client hot paths this adds measurable allocation pressure. To re-enable for
+  # debugging / canary, append to a service's additionalJvmOptions:
+  #   -Dio.netty.leakDetection.level=simple
+  # (per-service additionalJvmOptions is rendered after global.jvmOptions so the per-service value wins.)
   jvmOptions: >
     -XX:+ExitOnOutOfMemoryError
     -XX:+HeapDumpOnOutOfMemoryError
@@ -129,6 +135,7 @@ global:
     -XX:+UnlockExperimentalVMOptions
     -XX:+UseCompactObjectHeaders
     -Djava.net.preferIPv4Stack=true
+    -Dio.netty.leakDetection.level=disabled
   pekkoOptions: >
     -Dpekko.management.cluster.bootstrap.contact-point-discovery.port-name=management
     -Dpekko.http.client.parsing.max-chunk-size=2m
@@ -1679,6 +1686,19 @@ thingsSearch:
       #   # or as index key spec:
       #   # indexHint:
       #   #   "t.attributes.location": 1
+    # dispatchers contains tuning for the things-search service's Pekko dispatchers.
+    # Defaults below match the in-jar HOCON defaults and only need overriding under sustained load.
+    dispatchers:
+      # thingCache dispatcher serves the thing-cache-loader actor.
+      thingCache:
+        # poolSizeMin: minimum core threads kept alive across idle periods (allow-core-timeout = off).
+        poolSizeMin: 4
+        # poolSizeMax: hard cap on threads spawned during load spikes.
+        poolSizeMax: 16
+      # policyEnforcerCache dispatcher serves the policy-enforcer-cache-loader actor.
+      policyEnforcerCache:
+        poolSizeMin: 4
+        poolSizeMax: 16
 
 
 ## ----------------------------------------------------------------------------
