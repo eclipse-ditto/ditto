@@ -15,6 +15,14 @@ ditto {
         {{- range $key, $value := .Values.gateway.config.authentication.oauth.openidConnectIssuers }}
           {{$key}} = {
             issuer = "{{$value.issuer}}"
+            {{- with $value.issuers }}
+            issuers = [
+              "{{$value.issuer}}"
+            {{- range $index, $issuer := . }}
+              "{{$issuer}}"
+            {{- end }}
+            ]
+            {{- end }}
             auth-subjects = [
             {{- range $index, $subject := $value.authSubjects }}
               "{{$subject}}"
@@ -78,6 +86,14 @@ ditto {
           {{- range $key, $value := .Values.gateway.config.authentication.devops.oauth.openidConnectIssuers }}
             {{$key}} = {
               issuer = "{{$value.issuer}}"
+              {{- with $value.issuers }}
+              issuers = [
+                "{{$value.issuer}}"
+              {{- range $index, $issuer := . }}
+                "{{$issuer}}"
+              {{- end }}
+              ]
+              {{- end }}
               auth-subjects = [
               {{- range $index, $subject := $value.authSubjects }}
                 "{{$subject}}"

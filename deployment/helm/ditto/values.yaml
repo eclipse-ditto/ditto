@@ -2317,10 +2317,17 @@ gateway:
         # allowedClockSkew configures the amount of clock skew in seconds to tolerate when verifying the local time against the exp and nbf claims
         allowedClockSkew: 20s
         # openidConnectIssuers holds a map of issuer-prefixes as key (e.g. "example")
-        #  and OAuth "issuer" and "authSubjects" list containing which claims to extract from a JWT issued by the issuer
+        #  and OAuth "issuer" (or "issuers" list) and "authSubjects" list containing which claims to extract from a JWT
+        #  issued by the issuer
+        #
+        # When using the "issuers" option the "issuer" option is also implicitly added, so only describe additional
+        # issuers in the option
         openidConnectIssuers:
         #  example:
         #    issuer: "example.com"
+        #    issuers:
+        #    - "localhost:9000/one"
+        #    - "localhost:9000/two"
         #    authSubjects:
         #    - "{{ jwt:sub }}"
         #    - "{{ jwt:groups }}"
@@ -2366,9 +2373,15 @@ gateway:
           allowedClockSkew: 20s
           # openidConnectIssuers holds a map of issuer-prefixes as key (e.g. "example")
           #  and OAuth "issuer" and "authSubjects" list containing which claims to extract from a JWT issued by the issuer
+          #
+          # When using the "issuers" option the "issuer" option is also implicitly added, so only describe additional
+          # issuers in the option
           openidConnectIssuers:
           #  example-ops:
           #    issuer: "example.com"
+          #    issuers:
+          #    - "localhost:9000/one"
+          #    - "localhost:9000/two"
           #    authSubjects:
           #    - "{{ jwt:sub }}"
           #    - "{{ jwt:groups }}"
