@@ -22,6 +22,7 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -100,6 +101,7 @@ import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -119,6 +121,7 @@ import org.eclipse.ditto.rql.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.events.ThingEventToThingConverter;
 
@@ -407,7 +410,7 @@ public final class OutboundMappingProcessorActor
     }
 
     /**
-     * Create a flow that splits 1 outbound signal into many as follows.
+     * Create a flow that pairs outbound signal with a set of topics of its targets, when there is a topic with extra fields. When no extra filds, it is paired with an empty set.
      * <ol>
      * <li>
      *     For each target without extra fields, it produces a pair of outbound signal and empty set of topics.
@@ -449,8 +452,7 @@ public final class OutboundMappingProcessorActor
                 .map(FilteredTopic::getExtraFields)
                 .flatMap(Optional::stream)
                 .toList();
-        final boolean topicWithNoFilterNoExtraFieldsExists = topics.stream().anyMatch(topic -> topic.getFilter().isEmpty() && topic.getExtraFields().isEmpty());
-        if (allExtraFields.isEmpty() || topicWithNoFilterNoExtraFieldsExists) {
+        if (allExtraFields.isEmpty()) {
             // Pre-filtering already did the job
             return CompletableFuture.completedFuture(Collections.singletonList(outboundSignal));
         }
@@ -489,10 +491,13 @@ public final class OutboundMappingProcessorActor
                                     allExtraFieldsOptional.get(),
                                     extra).orElse(null);
                             return topics.stream()
+                                    .sorted(Comparator.comparing((FilteredTopic t) -> t.getExtraFields().isEmpty())
+                                            .thenComparing(t ->
+                                                    t.getExtraFields().map(Object::toString).orElse(""))
+                                            .thenComparing(FilteredTopic::toString))
                                     .filter(_ -> enrichedThing != null || topicWithNoFilterExists)
                                     .flatMap(topic -> applyFilter(outboundSignal, enrichedThing, topic)
-                                            .map(signal -> setTrimmedExtra(signal, topic, expressionResolver,
-                                                    extra, allExtraFieldsOptional.get()))
+                                            .map(signal -> enrichWithNeededExtra(signal, topic, expressionResolver, extra))
                                             .stream())
                                     .findFirst()
                                     .map(Collections::singletonList)
@@ -508,22 +513,26 @@ public final class OutboundMappingProcessorActor
                 });
     }
 
-    private static OutboundSignalWithSender setTrimmedExtra(final OutboundSignalWithSender signal,
+    private static OutboundSignalWithSender enrichWithNeededExtra(final OutboundSignalWithSender signal,
             final FilteredTopic topic,
             final ExpressionResolver expressionResolver,
-            final JsonObject extra,
-            final JsonFieldSelector allExtraFields) {
+            final JsonObject extra) {
 
         return topic.getExtraFields()
                 .flatMap(fields -> getExtraFields(expressionResolver, Collections.singletonList(fields)))
-                .map(neededFields -> {
-                    final var builder = extra.toBuilder();
-                    allExtraFields.getPointers().stream()
-                            .filter(pointer -> !neededFields.getPointers().contains(pointer))
-                            .forEach(pointer -> pointer.getRoot().ifPresent(builder::remove));
-                    return signal.setExtra(builder.build());
-                })
+                .map(neededFields -> expandFeatureIdWildcards(extra, neededFields))
+                .map(neededFields -> signal.setExtra(extra.get(neededFields)))
                 .orElse(signal);
+    }
+
+    private static JsonFieldSelector expandFeatureIdWildcards(final JsonObject extra,
+            final JsonFieldSelector selector) {
+        final Collection<JsonKey> featureIds = extra.getValue(Thing.JsonFields.FEATURES.getPointer())
+                .filter(JsonValue::isObject)
+                .map(JsonValue::asObject)
+                .map(features -> features.getKeys().stream().toList())
+                .orElse(Collections.emptyList());
+        return ThingsModelFactory.expandFeatureIdWildcards(featureIds, selector);
     }
 
     private static Optional<JsonFieldSelector> getExtraFields(final ExpressionResolver expressionResolver,
@@ -821,10 +830,6 @@ public final class OutboundMappingProcessorActor
         final Signal<?> signal = outboundSignal.getSource();
         final TopicPath topicPath = DITTO_PROTOCOL_ADAPTER.toTopicPath(signal);
 
-        if (!topicMatchesTopicPath(topicPath, topic.getTopic())) {
-            return Optional.empty();
-        }
-
         final Optional<String> filter = topic.getFilter();
         if (filter.isPresent()) {
             if (thing == null) {
@@ -914,7 +919,11 @@ public final class OutboundMappingProcessorActor
                 if (target.getTopics().stream()
                         .anyMatch(filteredTopic -> filteredTopic.getExtraFields().isPresent() &&
                                 streamingType == StreamingType.fromTopic(filteredTopic.getTopic().getPubSubTopic()))) {
-                    targetsPairedWithTopics.add(Pair.create(target, target.getTopics()));
+                    targetsPairedWithTopics.add(Pair.create(target, target.getTopics().stream()
+                            .filter(filteredTopic -> streamingType ==
+                                    StreamingType.fromTopic(filteredTopic.getTopic().getPubSubTopic()))
+                            .collect(Collectors.toSet())
+                    ));
                 } else {
                     targetsPairedWithTopics.add(Pair.create(target, Collections.emptySet()));
                 }
