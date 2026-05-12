@@ -189,6 +189,13 @@ global:
     #  for policy enforcement. This evaluator trades off higher memory use for higher throughput and lower CPU usage.
     #  The alternative, if configured to false, is a memory-optimized evaluator which uses less memory but more CPU.
     policyEnforcementUseThroughputOptimizedEvaluatorEnabled: true
+    # stacklessFlowControlExceptionsEnabled controls whether DittoRuntimeException subclasses representing flow-control
+    #  (HTTP status < 500, e.g. 404 Not Found, 403 Forbidden, 400 Bad Request) omit their stack trace and
+    #  suppressed-exception list. When enabled (default), these exceptions degenerate Throwable.<init> to a few
+    #  field assignments - eliminating the per-throw fillInStackTrace native call and StackTraceElement[] allocation.
+    #  Exceptions with HTTP status >= 500 always keep their stack trace, regardless of this toggle. Set this to
+    #  false to restore the legacy behaviour where every Ditto exception captures a writable stack trace.
+    stacklessFlowControlExceptionsEnabled: true
   # logging the logging configuration for Ditto
   logging:
     # sysout holds the logging to SYSOUT config

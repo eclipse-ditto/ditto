@@ -84,6 +84,23 @@ public final class FeatureToggle {
             "ditto.devops.feature.wot-td-permission-filtering-enabled";
 
     /**
+     * System property name of the property defining whether {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException}
+     * subclasses representing flow-control (HTTP status &lt; 500) suppress their stack trace and suppressed-exception
+     * list. When enabled (default), such exceptions degenerate {@code Throwable.<init>} to a few field assignments —
+     * eliminating the per-throw {@code fillInStackTrace()} native call and {@code StackTraceElement[]} allocation.
+     * When disabled, every Ditto exception captures a writable stack trace as in earlier releases.
+     * <p>
+     * 5xx ({@link org.eclipse.ditto.base.model.common.HttpStatus#INTERNAL_SERVER_ERROR} and above) are unaffected and
+     * always keep their stack trace, regardless of this toggle.
+     * <p>
+     * Resolved once at JVM start (static-final). Changing the system property after class load has no effect.
+     *
+     * @since 3.9.0
+     */
+    public static final String STACKLESS_FLOW_CONTROL_EXCEPTIONS_ENABLED =
+            "ditto.devops.feature.stackless-flow-control-exceptions-enabled";
+
+    /**
      * Resolves the system property {@value MERGE_THINGS_ENABLED}.
      */
     private static final boolean IS_MERGE_THINGS_ENABLED = resolveProperty(MERGE_THINGS_ENABLED);
@@ -124,6 +141,12 @@ public final class FeatureToggle {
      */
     private static final boolean IS_WOT_TD_PERMISSION_FILTERING_ENABLED =
             resolveProperty(WOT_TD_PERMISSION_FILTERING_ENABLED);
+
+    /**
+     * Resolves the system property {@value STACKLESS_FLOW_CONTROL_EXCEPTIONS_ENABLED}.
+     */
+    private static final boolean IS_STACKLESS_FLOW_CONTROL_EXCEPTIONS_ENABLED =
+            resolveProperty(STACKLESS_FLOW_CONTROL_EXCEPTIONS_ENABLED);
 
     private static boolean resolveProperty(final String propertyName) {
         final String propertyValue = System.getProperty(propertyName, Boolean.TRUE.toString());
@@ -267,5 +290,17 @@ public final class FeatureToggle {
      */
     public static boolean isWotTdPermissionFilteringEnabled() {
         return IS_WOT_TD_PERMISSION_FILTERING_ENABLED;
+    }
+
+    /**
+     * Returns whether stack-trace suppression for flow-control (HTTP status &lt; 500)
+     * {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException} subclasses is enabled, based on the system
+     * property {@value STACKLESS_FLOW_CONTROL_EXCEPTIONS_ENABLED}.
+     *
+     * @return whether stackless flow-control exceptions are enabled.
+     * @since 3.9.0
+     */
+    public static boolean isStacklessFlowControlExceptionsEnabled() {
+        return IS_STACKLESS_FLOW_CONTROL_EXCEPTIONS_ENABLED;
     }
 }

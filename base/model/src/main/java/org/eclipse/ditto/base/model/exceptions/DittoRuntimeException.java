@@ -34,6 +34,7 @@ import org.eclipse.ditto.base.model.headers.WithManifest;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -56,6 +57,12 @@ public abstract class DittoRuntimeException extends RuntimeException
 
     /**
      * Constructs a new {@code DittoRuntimeException} object.
+     * <p>
+     * Whether the resulting exception captures a writable stack trace depends on the {@code httpStatus} and the system
+     * property {@value org.eclipse.ditto.base.model.signals.FeatureToggle#STACKLESS_FLOW_CONTROL_EXCEPTIONS_ENABLED}:
+     * exceptions with HTTP status &ge; 500 always capture a stack trace; exceptions with HTTP status &lt; 500 omit
+     * the stack trace and suppressed-exception list when the toggle is enabled (default). Subclasses needing explicit
+     * control can use {@link #DittoRuntimeException(String, HttpStatus, DittoHeaders, String, String, Throwable, URI, boolean)}.
      *
      * @param errorCode a code which uniquely identifies the exception.
      * @param httpStatus the HTTP status.
@@ -75,12 +82,54 @@ public abstract class DittoRuntimeException extends RuntimeException
             @Nullable final Throwable cause,
             @Nullable final URI href) {
 
-        super(message, cause);
+        this(errorCode, httpStatus, dittoHeaders, message, description, cause, href,
+                computeWritableStackTrace(httpStatus));
+    }
+
+    /**
+     * Constructs a new {@code DittoRuntimeException} object with explicit control over stack-trace capture.
+     * <p>
+     * When {@code writableStackTrace} is {@code false}, both {@link Throwable#fillInStackTrace()} and the
+     * suppressed-exception machinery are disabled — eliminating the per-throw native stack walk and
+     * {@code StackTraceElement[]} allocation. Use this overload only when subclassing requires explicit override
+     * of the default policy applied by {@link #DittoRuntimeException(String, HttpStatus, DittoHeaders, String, String, Throwable, URI)}.
+     *
+     * @param errorCode a code which uniquely identifies the exception.
+     * @param httpStatus the HTTP status.
+     * @param dittoHeaders the headers with which this Exception should be reported back to the user.
+     * @param message the detail message for later retrieval with {@link #getMessage()}.
+     * @param description a description with further information about the exception.
+     * @param cause the cause of the exception for later retrieval with {@link #getCause()}.
+     * @param href a link to a resource which provides further information about the exception.
+     * @param writableStackTrace whether the resulting exception captures a writable stack trace and supports
+     * suppressed exceptions ({@code true}) or omits both for performance ({@code false}).
+     * @throws NullPointerException if {@code errorCode}, {@code httpStatus} or {@code dittoHeaders} is {@code null}.
+     * @since 3.9.0
+     */
+    protected DittoRuntimeException(final String errorCode,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href,
+            final boolean writableStackTrace) {
+
+        super(message, cause, writableStackTrace, writableStackTrace);
         this.errorCode = checkNotNull(errorCode, "error code");
         this.httpStatus = checkNotNull(httpStatus, "httpStatus");
         this.dittoHeaders = checkNotNull(dittoHeaders, "Ditto headers");
         this.description = description;
         this.href = href;
+    }
+
+    /**
+     * Decides whether an exception with the given {@code httpStatus} should capture a writable stack trace.
+     * HTTP status &ge; 500 always returns {@code true}; HTTP status &lt; 500 returns {@code true} only when the
+     * stackless feature toggle is disabled.
+     */
+    private static boolean computeWritableStackTrace(final HttpStatus httpStatus) {
+        return httpStatus.getCode() >= 500 || !FeatureToggle.isStacklessFlowControlExceptionsEnabled();
     }
 
     /**
