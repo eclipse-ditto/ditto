@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadLocalRandom;
@@ -53,6 +54,7 @@ import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.base.model.exceptions.EnforcementTimeoutException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
@@ -914,9 +916,18 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     private DittoRuntimeException getEnforcementExceptionAsRuntimeException(final Throwable throwable,
             final WithDittoHeaders signal) {
 
+        final Throwable rootCause = unwrapCompletionException(throwable);
         final DittoRuntimeException dre;
-        if (throwable instanceof DittoRuntimeException dittoRuntimeException) {
+        if (rootCause instanceof DittoRuntimeException dittoRuntimeException) {
             dre = dittoRuntimeException;
+        } else if (rootCause instanceof AskTimeoutException) {
+            log.withCorrelationId(signal)
+                    .warning("Enforcement of signal for entity <{}> timed out: {}",
+                            entityId, rootCause.getMessage());
+            dre = EnforcementTimeoutException.newBuilder()
+                    .dittoHeaders(signal.getDittoHeaders())
+                    .cause(rootCause)
+                    .build();
         } else {
             dre = DittoRuntimeException.asDittoRuntimeException(throwable, t -> {
                 log.withCorrelationId(signal)
@@ -929,6 +940,13 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
             });
         }
         return dre;
+    }
+
+    static Throwable unwrapCompletionException(final Throwable throwable) {
+        if (throwable instanceof CompletionException && throwable.getCause() != null) {
+            return unwrapCompletionException(throwable.getCause());
+        }
+        return throwable;
     }
 
     /**
