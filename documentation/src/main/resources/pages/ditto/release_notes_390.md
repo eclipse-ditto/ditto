@@ -3,7 +3,7 @@ title: Release notes 3.9.0
 tags: [release_notes]
 published: true
 keywords: release notes, announcements, changelog
-summary: "Version 3.9.0 of Eclipse Ditto, released on 12.05.2026"
+summary: "Version 3.9.0 of Eclipse Ditto, released on 13.05.2026"
 permalink: release_notes_390.html
 ---
 
@@ -29,6 +29,7 @@ Eclipse Ditto 3.9.0 focuses on the following areas:
 * **WoT Discovery** "Thing Directory" endpoint exposing Ditto's Thing collection following the W3C WoT Discovery specification
 * **Dynamically scoping a WoT Thing Description** to the requesting user's policy permissions, removing properties/actions/events the user cannot access
 * **Encryption key rotation** for connectivity service secrets, including DevOps-triggered re-encryption of stored credentials
+* **X509 client-certificate authentication** to MongoDB, with a configurable CA root certificate for the TLS connection
 * **`empty()` RQL filter** to match absent or empty fields in search and event filters
 * **`fn:format()` placeholder pipeline function** for correlated field extraction from JSON arrays
 * **Slow search query logging** with configurable threshold to identify expensive queries
@@ -49,6 +50,9 @@ The following non-functional work is also included:
 * **Building and running Ditto with Java 25**
 * Updating dependencies to their latest versions
 * **Optimizing the `MongoReadJournal` aggregation pipelines** and the `ThingEventEnricher` → `TreeBasedPolicyEnforcer` hot path
+* **JFR-guided CPU optimisations** in the things, things-search, gateway and connectivity services — addressing dispatcher misconfiguration, hot-path allocations and Netty leak-detection overhead
+* **Stackless 4xx exceptions** (feature-toggled): `DittoRuntimeException` subclasses with HTTP status `< 500` no longer capture a stack trace by default, since they signal flow control rather than bugs
+* **Configurable SSE publisher backpressure buffer size** to suppress noisy backpressure WARN logs from slow SSE consumers
 * **Comprehensive JavaDoc** for the public WoT model interfaces
 * **Helm chart bumped to `4.0.0`** — the bundled `ingress-nginx` controller was **removed** so users can plug in their own ingress controller, and the chart now follows its **own semantic version**, decoupled from Ditto's `appVersion`
 * **Adding global `extraVolumes` / `extraVolumeMounts`** support to all Helm services
@@ -65,6 +69,8 @@ The following notable fixes are included:
 * Fixing **MQTT 5 enforcement validation** rejecting valid header placeholders in the `input` field
 * **Redacting sensitive header values** in `DittoHeaders.toString()` to prevent accidental log leaks
 * Fixing **subscription handling for multiple topics combined with extra fields** in connectivity outbound mapping
+* Converting transient **enforcement `AskTimeoutException` to HTTP 503** instead of 500 during rolling restarts, so clients see a retryable error
+* Fixing **`ssl-config` not being picked up** for self-signed certificates against the OpenID Connect issuer
 * Closing a **shadowing vulnerability in namespace-policies** by routing namespace-policy entries through rewritten labels
 
 
@@ -215,6 +221,12 @@ without service interruption.
 
 The documentation of the feature can be found [here](installation-operating.html#encryption-key-rotation).
 
+#### X509 authentication for MongoDB connection
+
+PR [#2445](https://github.com/eclipse-ditto/ditto/pull/2445) adds support for using X509 client-certificate
+authentication when Ditto connects to MongoDB, and additionally allows configuring the CA root certificate
+used in the TLS connection to MongoDB.
+
 #### `empty()` RQL filter
 
 Issue [#2377](https://github.com/eclipse-ditto/ditto/issues/2377) / PR [#2397](https://github.com/eclipse-ditto/ditto/pull/2397)
@@ -343,6 +355,40 @@ used by `MongoReadJournal` and bumps related dependency versions.
 
 PR [#2344](https://github.com/eclipse-ditto/ditto/pull/2344) reduces overhead in the high-traffic
 `ThingEventEnricher` → `TreeBasedPolicyEnforcer` code path involved in event enrichment.
+
+#### Service CPU optimisations from JFR profiling
+
+PR [#2440](https://github.com/eclipse-ditto/ditto/pull/2440) addresses a series of CPU hotspots identified
+by Java Flight Recorder captures on the things, things-search, gateway and connectivity services. Highlights
+include an O(k) forward index in `PolicyEnforcerCache.deregisterImportMappings` instead of O(N) full-map
+scans, a null-PolicyId short-circuit in `AbstractEnforcerActor.loadPolicyEnforcer`, static `CBORFactory`
+reuse in `JacksonSerializationContext`, parsing long-then-downcast in `DefaultDittoJsonHandler` to avoid
+~113 `NumberFormatException`/s on 64-bit pub/sub hashes, a bulk-copy fast path in
+`JavaStringToEscapedJsonString`, an O(H) `validateValueTypes` overload that iterates the (typically small)
+header map instead of all known header definitions, and adding the missing `thread-pool-executor` block
+(with `allow-core-timeout = off`) to several Pekko dispatchers so idle core threads are no longer killed
+every 60 s. Netty's leak detection is disabled by default in the Helm chart values to avoid the per-sampled-buffer
+`Throwable` capture.
+
+#### Stackless flow-control exceptions
+
+PR [#2446](https://github.com/eclipse-ditto/ditto/pull/2446) makes `DittoRuntimeException` subclasses with
+HTTP status `< 500` (e.g. `ThingNotAccessibleException`, `PolicyNotAccessibleException`,
+`WotThingModelPayloadValidationException`, `MessageSendNotAllowedException`) omit their stack trace and
+suppressed-exception list by default. JFR profiling showed `fillInStackTrace()` and `StackTraceElement[]`
+allocation dominating the exception path on gateway pods. Exceptions with status `>= 500` always keep their
+stack trace because they signal real bugs or infrastructure problems. The behaviour is governed by the
+feature toggle `ditto.devops.feature.stackless-flow-control-exceptions-enabled` (default `true`); flipping
+it off restores the legacy stack-capturing behaviour.
+
+#### Configurable SSE publisher backpressure buffer size
+
+PR [#2447](https://github.com/eclipse-ditto/ditto/pull/2447) makes the source-queue buffer of the SSE
+publisher in `ThingsSseRouteBuilder` configurable, with the default raised from `10` to `100`. The previous
+hard-coded value of 10 caused frequent Pekko `Backpressuring because buffer is full` WARN logs whenever a
+client consumed server-sent events slower than upstream production. The new HOCON setting is
+`ditto.gateway.streaming.sse.publisher.backpressure-buffer-size`, also exposed via the Helm chart value
+`gateway.config.sse.publisher.backpressureBufferSize`.
 
 #### Comprehensive JavaDoc on the public WoT model API
 
@@ -473,6 +519,23 @@ PR [#2362](https://github.com/eclipse-ditto/ditto/pull/2362) prevents sensitive 
 tokens from leaking into logs whenever objects containing `DittoHeaders` are logged. The set of redacted
 keys defaults to `authorization` and is configurable via `ditto.headers.redacted-in-log`.
 
+#### Convert enforcement `AskTimeoutException` to HTTP 503
+
+Issue [#2439](https://github.com/eclipse-ditto/ditto/issues/2439) / PR [#2441](https://github.com/eclipse-ditto/ditto/pull/2441)
+fixes that an `AskTimeoutException` from an enforcer child during rolling restarts was wrapped as
+`DittoInternalErrorException` (HTTP 500), which misled clients into treating a transient timeout as a
+permanent error. A new `EnforcementTimeoutException` (HTTP 503) is returned instead, signalling that the
+operation can be retried. The fix also unwraps `CompletionException` wrappers from async chains before
+checking the exception type.
+
+#### Fix `ssl-config` not being picked up for the OpenID Connect HTTP client
+
+Issue [#2443](https://github.com/eclipse-ditto/ditto/issues/2443) / PR [#2444](https://github.com/eclipse-ditto/ditto/pull/2444)
+restores `ssl-config` handling for the OpenID Connect HTTP client, which had broken after an upstream
+Pekko HTTP change in which `defaultClientHttpsContext()` stopped applying `ssl-config`. Ditto now uses
+`createDefaultClientHttpsContext()` so self-signed certificates configured via `ssl-config` against the
+OpenID Connect issuer are honoured again.
+
 
 ### Helm Chart
 
@@ -497,6 +560,8 @@ In addition to the configuration options for the new features of this release, t
   `extraVolumeMounts`** options that are merged with per-service settings on every Ditto service.
 * PR [#2399](https://github.com/eclipse-ditto/ditto/pull/2399) exposes additional Helm values, including
   `redacted-headers-in-logs`.
+* PR [#2442](https://github.com/eclipse-ditto/ditto/pull/2442) exposes the OpenID Connect **`issuers`**
+  option in the Helm chart values, so OIDC issuers can be configured directly from `values.yaml`.
 
 
 ## Migration notes

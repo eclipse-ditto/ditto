@@ -1,7 +1,7 @@
 ---
 title: "Announcing Eclipse Ditto Release 3.9.0"
 published: true
-permalink: 2026-05-12-release-announcement-390.html
+permalink: 2026-05-13-release-announcement-390.html
 layout: post
 author: thomas_jaeckle
 tags: [blog]
@@ -75,6 +75,7 @@ The main improvements and additions of Ditto 3.9.0 are:
 * **WoT Discovery** "Thing Directory" endpoint following the W3C WoT Discovery specification
 * **Dynamically scoping a WoT Thing Description** to the requesting user's policy permissions
 * **Encryption key rotation** for connectivity service secrets, including DevOps-triggered re-encryption of stored credentials
+* **X509 client-certificate authentication** to MongoDB, with a configurable CA root certificate for the TLS connection
 * **`empty()` RQL filter** to match absent or empty fields in search and event filters
 * **`fn:format()` placeholder pipeline function** for correlated field extraction from JSON arrays
 * **Slow search query logging** with configurable threshold to identify expensive queries
@@ -90,6 +91,9 @@ The following non-functional work is also included:
 
 * **Building and running Ditto with Java 25**
 * **Optimizing the `MongoReadJournal` aggregation pipelines** and the `ThingEventEnricher` hot path
+* **JFR-guided CPU optimisations** in the things, things-search, gateway and connectivity services
+* **Stackless 4xx exceptions** (feature-toggled) to eliminate stack-capture overhead on flow-control errors
+* **Configurable SSE publisher backpressure buffer size** to suppress noisy backpressure WARN logs from slow SSE consumers
 * **Comprehensive JavaDoc** for the public WoT model interfaces
 * **Helm chart bumped to `4.0.0`** with the bundled `ingress-nginx` controller **removed** — operators provide their own ingress controller; the chart now uses its own semantic version, decoupled from Ditto's `appVersion`
 * Updating dependencies to their latest versions
@@ -105,6 +109,8 @@ The following notable fixes are included:
 * Fixing a **Fluency thread leak** in the connection logger publisher
 * Fixing **subscription handling for multiple topics combined with extra fields** in connectivity outbound mapping
 * **Redacting sensitive header values** in `DittoHeaders.toString()` to prevent accidental log leaks
+* Converting transient **enforcement `AskTimeoutException` to HTTP 503** instead of 500 during rolling restarts, so clients see a retryable error
+* Fixing **`ssl-config` not being picked up** for self-signed certificates against the OpenID Connect issuer
 * Closing a **shadowing vulnerability in namespace-policies** by routing namespace-policy entries through rewritten labels
 
 Please have a look at the [3.9.0 release notes](release_notes_390.html) for more detailed information on the release.
