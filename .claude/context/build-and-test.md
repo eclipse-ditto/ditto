@@ -9,6 +9,12 @@ mvn clean install
 # Build without tests (faster)
 mvn clean install -DskipTests
 
+# Compile a single module with its dependencies (no install, no tests)
+mvn compile -pl gateway/service -am -DskipTests
+
+# Skip japicmp API compatibility checks (e.g. on branches with intentional breaking API changes in wot/model)
+mvn clean install -DskipTests -Djapicmp.skip=true
+
 # Build Docker images locally
 ./build-images.sh
 
