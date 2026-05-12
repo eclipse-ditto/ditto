@@ -655,6 +655,77 @@ public final class OutboundMappingProcessorActorTest {
         }};
     }
 
+    @Test
+    public void crossStreamingTypeCatchAllDoesNotShortCircuitEnrichment() {
+        new TestKit(actorSystemResource.getActorSystem()) {{
+            // Target with a TWIN_EVENTS extras-topic plus a LIVE_EVENTS catch-all (no filter, no extras).
+            // A TWIN_EVENTS signal must still be enriched via the TWIN_EVENTS topic — the LIVE_EVENTS
+            // catch-all is irrelevant to a TWIN_EVENTS signal and must not short-circuit enrichment.
+            final List<Target> targets =
+                    List.of(createTestTargetMultiTopics(Set.of(topic4(), liveEventsCatchAll())));
+            final Connection connection = CONNECTION.toBuilder().setTargets(targets).build();
+            final ActorRef underTest = getTestActorRef(connection);
+
+            final OutboundSignal outboundSignal = outboundFeatureTwinEvent(THING,
+                    Feature.newBuilder().withId("feature4")
+                            .build().setProperties(FeatureProperties.newBuilder().set("size", "large").build()),
+                    List.of("crossStreamingType"), targets, getRef());
+
+            underTest.tell(outboundSignal, getRef());
+            partialRetrieveAndResponse();
+
+            final BaseClientActor.PublishMappedMessage publishWithPolicy =
+                    clientActorProbe.expectMsgClass(BaseClientActor.PublishMappedMessage.class);
+
+            assertThat(publishWithPolicy.getOutboundSignal().first().getTargets())
+                    .contains(targets.getFirst());
+
+            // Verify the TWIN_EVENTS extras-topic enriched the signal with "definition"
+            assertThat(publishWithPolicy.getOutboundSignal().first().getAdaptable().getPayload().getExtra())
+                    .as("TWIN_EVENTS extras-topic must enrich the outbound signal despite a LIVE_EVENTS catch-all")
+                    .isPresent()
+                    .hasValueSatisfying(extra ->
+                            assertThat(extra.getValue(JsonPointer.of("definition")))
+                                    .as("Expected 'definition' extra field from topic4")
+                                    .isPresent());
+        }};
+    }
+
+    @Test
+    public void crossStreamingTypeCatchAllDoesNotLeakIntoOtherStreamingType() {
+        new TestKit(actorSystemResource.getActorSystem()) {{
+            // Target with a TWIN_EVENTS catch-all (no filter, no extras) plus a LIVE_EVENTS extras-topic.
+            // A LIVE_EVENTS signal must be enriched via the LIVE_EVENTS topic — the TWIN_EVENTS
+            // catch-all belongs to a different streaming type and must not short-circuit enrichment.
+            final List<Target> targets =
+                    List.of(createTestTargetMultiTopics(Set.of(twinEventsCatchAll(), liveEventsExtras())));
+            final Connection connection = CONNECTION.toBuilder().setTargets(targets).build();
+            final ActorRef underTest = getTestActorRef(connection);
+
+            final OutboundSignal outboundSignal = outboundLiveEvent(
+                    Attributes.newBuilder().set("attr1", "value1").build(),
+                    List.of("crossStreamingType"), targets, getRef());
+
+            underTest.tell(outboundSignal, getRef());
+            partialRetrieveAndResponse();
+
+            final BaseClientActor.PublishMappedMessage publishWithPolicy =
+                    clientActorProbe.expectMsgClass(BaseClientActor.PublishMappedMessage.class);
+
+            assertThat(publishWithPolicy.getOutboundSignal().first().getTargets())
+                    .contains(targets.getFirst());
+
+            // Verify the LIVE_EVENTS extras-topic enriched the signal with "definition"
+            assertThat(publishWithPolicy.getOutboundSignal().first().getAdaptable().getPayload().getExtra())
+                    .as("LIVE_EVENTS extras-topic must enrich the outbound signal despite a TWIN_EVENTS catch-all")
+                    .isPresent()
+                    .hasValueSatisfying(extra ->
+                            assertThat(extra.getValue(JsonPointer.of("definition")))
+                                    .as("Expected 'definition' extra field from LIVE_EVENTS extras-topic")
+                                    .isPresent());
+        }};
+    }
+
     private void partialRetrieveAndResponse() {
         // Expect enrichment request for all fields in all topics
         final RetrieveThing retrieveEnrichedThing = proxyActorProbe.expectMsgClass(RetrieveThing.class);
@@ -807,6 +878,19 @@ public final class OutboundMappingProcessorActorTest {
                 .withFilter("and(eq(topic:action,\"modified\"),eq(resource:path,\"/features/featureW\"))")
                 .withExtraFields(ThingFieldSelector.fromString("features/*")).build();
 
+    }
+
+    private static FilteredTopic liveEventsCatchAll() {
+        return ConnectivityModelFactory.newFilteredTopicBuilder(Topic.LIVE_EVENTS).build();
+    }
+
+    private static FilteredTopic twinEventsCatchAll() {
+        return ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS).build();
+    }
+
+    private static FilteredTopic liveEventsExtras() {
+        return ConnectivityModelFactory.newFilteredTopicBuilder(Topic.LIVE_EVENTS)
+                .withExtraFields(ThingFieldSelector.fromString("definition")).build();
     }
 
     private static @NonNull Target createTestTargetMultiTopics(Set<FilteredTopic> topics) {
