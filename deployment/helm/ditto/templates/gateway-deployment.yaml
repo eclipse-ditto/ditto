@@ -261,6 +261,8 @@ spec:
               value: "{{ .Values.gateway.config.websocket.throttling.interval }}"
             - name: GATEWAY_WEBSOCKET_THROTTLING_LIMIT
               value: "{{ .Values.gateway.config.websocket.throttling.limit }}"
+            - name: GATEWAY_SSE_PUBLISHER_BACKPRESSURE
+              value: "{{ .Values.gateway.config.sse.publisher.backpressureBufferSize }}"
             - name: GATEWAY_SSE_THROTTLING_ENABLED
               value: "{{ .Values.gateway.config.sse.throttling.enabled }}"
             - name: GATEWAY_SSE_THROTTLING_INTERVAL

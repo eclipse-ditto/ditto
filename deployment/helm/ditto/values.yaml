@@ -2422,6 +2422,11 @@ gateway:
         limit: 100
     # websocket contains the gateway SSE (server sent events) configuration
     sse:
+      # publisher contains the configuration for sending/publishing data via SSE
+      publisher:
+        # backpressureBufferSize is the max buffer size of how many outstanding events a single SSE client can have -
+        #  when the buffer is full, the upstream is backpressured (no events are dropped)
+        backpressureBufferSize: 100
       # throttling contains the throttling configuration of a single SSE session (only applies for search via SSE)
       throttling:
         # enabled whether throttling message publishing via a single websocket session is enabled
