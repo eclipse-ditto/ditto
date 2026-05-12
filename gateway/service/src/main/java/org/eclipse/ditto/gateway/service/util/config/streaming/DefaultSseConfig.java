@@ -29,9 +29,12 @@ import com.typesafe.config.Config;
 final class DefaultSseConfig implements SseConfig {
 
     private final ThrottlingConfig throttlingConfig;
+    private final int publisherBackpressureBufferSize;
 
     private DefaultSseConfig(final ScopedConfig scopedConfig) {
         throttlingConfig = ThrottlingConfig.of(scopedConfig);
+        publisherBackpressureBufferSize =
+                scopedConfig.getPositiveIntOrThrow(SseConfigValue.PUBLISHER_BACKPRESSURE_BUFFER_SIZE);
     }
 
     /**
@@ -52,22 +55,29 @@ final class DefaultSseConfig implements SseConfig {
     }
 
     @Override
+    public int getPublisherBackpressureBufferSize() {
+        return publisherBackpressureBufferSize;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         final DefaultSseConfig that = (DefaultSseConfig) o;
-        return Objects.equals(throttlingConfig, that.throttlingConfig);
+        return publisherBackpressureBufferSize == that.publisherBackpressureBufferSize &&
+                Objects.equals(throttlingConfig, that.throttlingConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(throttlingConfig);
+        return Objects.hash(throttlingConfig, publisherBackpressureBufferSize);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "throttlingConfig=" + throttlingConfig +
+                ", publisherBackpressureBufferSize=" + publisherBackpressureBufferSize +
                 "]";
     }
 

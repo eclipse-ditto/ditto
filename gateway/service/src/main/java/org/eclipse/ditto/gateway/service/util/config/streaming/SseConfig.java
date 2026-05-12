@@ -32,8 +32,21 @@ public interface SseConfig {
      */
     ThrottlingConfig getThrottlingConfig();
 
+    /**
+     * Returns the max buffer size of how many outstanding events a single SSE client can have.
+     * When the buffer is full, the upstream is backpressured.
+     *
+     * @return the buffer size.
+     */
+    int getPublisherBackpressureBufferSize();
+
     enum SseConfigValue implements KnownConfigValue {
-        ;
+
+        /**
+         * The max buffer size of how many outstanding events a single SSE client can have.
+         */
+        PUBLISHER_BACKPRESSURE_BUFFER_SIZE("publisher.backpressure-buffer-size", 100);
+
         private final String path;
         private final Object defaultValue;
 

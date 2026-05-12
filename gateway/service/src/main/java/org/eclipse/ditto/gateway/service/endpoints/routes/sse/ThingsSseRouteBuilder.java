@@ -439,7 +439,8 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                         }
 
                         final Source<SessionedJsonifiable, SupervisedStream.WithQueue> publisherSource =
-                                SupervisedStream.sourceQueue(10);
+                                SupervisedStream.sourceQueue(
+                                        streamingConfig.getSseConfig().getPublisherBackpressureBufferSize());
 
                         return publisherSource.viaMat(KillSwitches.single(), Keep.both())
                                 .mapMaterializedValue(pair -> {
@@ -509,7 +510,8 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                         sseAuthorizationEnforcer.checkAuthorization(ctx, dittoHeaders).thenApply(unused -> {
 
                             final Source<SessionedJsonifiable, SupervisedStream.WithQueue> publisherSource =
-                                    SupervisedStream.sourceQueue(10);
+                                    SupervisedStream.sourceQueue(
+                                            streamingConfig.getSseConfig().getPublisherBackpressureBufferSize());
 
                             return publisherSource.viaMat(KillSwitches.single(), Keep.both())
                                     .mapMaterializedValue(pair -> {
