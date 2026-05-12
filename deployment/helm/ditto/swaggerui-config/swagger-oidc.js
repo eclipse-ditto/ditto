@@ -167,6 +167,13 @@
                     res.data = res.data.replaceAll(OIDC_DISCOVERY_PLACEHOLDER, oidcConfig.openIdConnectUrl);
                 }
             }
+            // filter ".well-known/openid-configuration" responses to only keep "authorization_code" as grant type
+            if (res.url?.includes('openid-configuration')) {
+                const body = JSON.parse(res.text);
+                body.grant_types_supported = ['authorization_code'];
+                res.text = JSON.stringify(body);
+                res.body = body;
+            }
             return res;
         };
     }
@@ -210,6 +217,11 @@
                 if (typeof opts.onComplete === "function") {
                     opts.onComplete(ui, oidcConfig);
                 }
+            },
+            requestInterceptor: (req) => {
+                // removing this header so that we have a "simple" CORS request to the IdP - not requiring configured allowed origins
+                delete req.headers['X-Requested-With'];
+                return req;
             }
         };
 

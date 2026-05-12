@@ -32,6 +32,28 @@
         #swagger-ui .swagger-ui.swagger-container .topbar .topbar-wrapper a {
             display: none;
         }
+
+        /* Hide auth-container intro text */
+        #swagger-ui .auth-container .scope-def {
+            display: none;
+        }
+
+        /* Hide auth-container client_secret row */
+        #swagger-ui .auth-container label[for="client_secret_authorization_code"],
+        #swagger-ui .auth-container label[for="client_secret_authorization_code"] + section {
+            display: none;
+        }
+
+        /* Hide auth-container scopes section */
+        #swagger-ui .auth-container .scopes {
+            display: none;
+        }
+
+        /* Make auth-container client_id read-only */
+        #swagger-ui .auth-container input[data-name="clientId"] {
+            pointer-events: none;
+            opacity: 0.7;
+        }
     </style>
 </head>
 

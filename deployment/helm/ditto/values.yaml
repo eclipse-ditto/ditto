@@ -2506,7 +2506,7 @@ nginx:
     # repository for the nginx docker image
     repository: public.ecr.aws/nginx/nginx
     # tag for the nginx docker image
-    tag: 1.27
+    tag: 1.28.2
     # pullPolicy for the nginx docker image
     pullPolicy: IfNotPresent
   # extraEnv to add arbitrary environment variables to nginx container
@@ -2653,7 +2653,7 @@ swaggerui:
     # repository for the swagger ui docker image
     repository: docker.io/swaggerapi/swagger-ui
     # tag for the swagger ui docker image
-    tag: v5.29.1
+    tag: v5.32.6
     # pullPolicy for the swagger ui docker image
     pullPolicy: IfNotPresent
   # extraEnv to add arbitrary environment variable to swagger ui container
