@@ -17,6 +17,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,6 +43,7 @@ import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
+import org.eclipse.ditto.connectivity.model.FilteredTopic;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.Topic;
@@ -48,14 +51,21 @@ import org.eclipse.ditto.internal.utils.pekko.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.things.model.Attributes;
+import org.eclipse.ditto.things.model.Feature;
+import org.eclipse.ditto.things.model.FeatureProperties;
+import org.eclipse.ditto.things.model.Features;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
+import org.eclipse.ditto.things.model.signals.events.FeatureModified;
 import org.eclipse.ditto.things.model.signals.events.ThingModified;
+import org.jspecify.annotations.NonNull;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.FixMethodOrder;
@@ -75,6 +85,7 @@ public final class OutboundMappingProcessorActorTest {
             DittoTracingInitResource.disableDittoTracing();
 
     private static final Connection CONNECTION = createTestConnection();
+    public static final Thing THING = createTestThing();
 
     @Rule
     public final ActorSystemResource actorSystemResource = ActorSystemResource.newInstance(
@@ -100,10 +111,7 @@ public final class OutboundMappingProcessorActorTest {
     @Test
     public void sendWeakAckForAllSourcesAndTargetsWhenDroppedByAllTargets() {
         new TestKit(actorSystemResource.getActorSystem()) {{
-            final Props props =
-                    OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessors(), CONNECTION,
-                            TestConstants.CONNECTIVITY_CONFIG, 3);
-            final ActorRef underTest = actorSystemResource.newActor(props);
+            final ActorRef underTest = getTestActorRef(CONNECTION);
 
             // WHEN: mapping processor actor receives outbound signal whose every authorized target is filtered out
             final OutboundSignal outboundSignal = outboundTwinEvent(
@@ -129,12 +137,7 @@ public final class OutboundMappingProcessorActorTest {
     @Test
     public void eventsWithFailedEnrichmentIssueFailedAcks() {
         new TestKit(actorSystemResource.getActorSystem()) {{
-            final Props props = OutboundMappingProcessorActor.props(clientActorProbe.ref(),
-                    getProcessors(),
-                    CONNECTION,
-                    TestConstants.CONNECTIVITY_CONFIG,
-                    3);
-            final ActorRef underTest = actorSystemResource.newActor(props);
+            final ActorRef underTest = getTestActorRef(CONNECTION);
 
             final OutboundSignal outboundSignal = outboundTwinEvent(
                     Attributes.newBuilder().set("target2", "wayne").build(),
@@ -156,12 +159,7 @@ public final class OutboundMappingProcessorActorTest {
     @Test
     public void sendWeakAckWhenDroppedBySomeTarget() {
         new TestKit(actorSystemResource.getActorSystem()) {{
-            final Props props = OutboundMappingProcessorActor.props(clientActorProbe.ref(),
-                    getProcessors(),
-                    CONNECTION,
-                    TestConstants.CONNECTIVITY_CONFIG,
-                    3);
-            final ActorRef underTest = actorSystemResource.newActor(props);
+            final ActorRef underTest = getTestActorRef(CONNECTION);
 
             // WHEN: mapping processor actor receives outbound signal with 2 authorized targets,
             // 1 of which drops it via RQL filter after enrichment
@@ -188,12 +186,7 @@ public final class OutboundMappingProcessorActorTest {
     @Test
     public void sendWeakAckWhenDroppedByMapper() {
         new TestKit(actorSystemResource.getActorSystem()) {{
-            final Props props = OutboundMappingProcessorActor.props(clientActorProbe.ref(),
-                    getProcessors(),
-                    CONNECTION,
-                    TestConstants.CONNECTIVITY_CONFIG,
-                    3);
-            final ActorRef underTest = actorSystemResource.newActor(props);
+            final ActorRef underTest = getTestActorRef(CONNECTION);
 
             // WHEN: mapping processor actor receives outbound signal with 2 authorized targets,
             // 1 of which drops it via payload mapping
@@ -218,12 +211,7 @@ public final class OutboundMappingProcessorActorTest {
     @Test
     public void doNotSendWeakAckForLiveResponse() {
         new TestKit(actorSystemResource.getActorSystem()) {{
-            final Props props = OutboundMappingProcessorActor.props(clientActorProbe.ref(),
-                    getProcessors(),
-                    CONNECTION,
-                    TestConstants.CONNECTIVITY_CONFIG,
-                    3);
-            final ActorRef underTest = actorSystemResource.newActor(props);
+            final ActorRef underTest = getTestActorRef(CONNECTION);
 
             // WHEN: mapping processor actor receives outbound signal with 3 authorized targets,
             // 2 of which drops it via payload mapping, 1 of which issues live-response
@@ -248,12 +236,7 @@ public final class OutboundMappingProcessorActorTest {
     @Test
     public void expectNoTargetIssuedAckRequestInPublishedSignals() {
         new TestKit(actorSystemResource.getActorSystem()) {{
-            final Props props = OutboundMappingProcessorActor.props(clientActorProbe.ref(),
-                    getProcessors(),
-                    CONNECTION,
-                    TestConstants.CONNECTIVITY_CONFIG,
-                    3);
-            final ActorRef underTest = actorSystemResource.newActor(props);
+            final ActorRef underTest = getTestActorRef(CONNECTION);
 
             // WHEN: mapping processor actor receives outbound signal
             // with requests for source-declared and target-issued acks
@@ -274,13 +257,453 @@ public final class OutboundMappingProcessorActorTest {
         }};
     }
 
-    private List<OutboundMappingProcessor> getProcessors() {
+    private List<OutboundMappingProcessor> getProcessors(Connection connection) {
         return List.of(
-                OutboundMappingProcessor.of(CONNECTION,
-                TestConstants.CONNECTIVITY_CONFIG, actorSystemResource.getActorSystem(),
-                protocolAdapterProvider.getProtocolAdapter("test"),
-                AbstractMessageMappingProcessorActorTest.mockLoggingAdapter(), null)
+                OutboundMappingProcessor.of(connection,
+                        TestConstants.CONNECTIVITY_CONFIG, actorSystemResource.getActorSystem(),
+                        protocolAdapterProvider.getProtocolAdapter("test"),
+                        AbstractMessageMappingProcessorActorTest.mockLoggingAdapter(), null)
         );
+    }
+
+    @Test
+    public void multipleTopicsWithExtraFieldsFirstTopic() {
+        new TestKit(actorSystemResource.getActorSystem()) {{
+            // Create a target with multiple FilteredTopics for the same streaming type with different extraFields
+            final List<Target> targets = List.of(createTestTargetMultiTopics(Set.of(topic4(), topic3(), topic5())));
+            final Connection connection = CONNECTION.toBuilder().setTargets(targets).build();
+            final ActorRef underTest = getTestActorRef(connection);
+
+            // Now test a signal that should match the second subscription (no extraFields)
+            final OutboundSignal outboundSignal = outboundFeatureTwinEvent(THING,
+                    Feature.newBuilder().withId("feature4")
+                            .build().setProperties(FeatureProperties.newBuilder().set("size", "large").build()),
+                    List.of("multipleExtraFields"), targets, getRef());
+
+            underTest.tell(outboundSignal, getRef());
+            partialRetrieveAndResponse();
+
+            // Expect a publish message with enriched signal
+            final BaseClientActor.PublishMappedMessage publishWithPolicy =
+                    clientActorProbe.expectMsgClass(BaseClientActor.PublishMappedMessage.class);
+
+            // Verify this is for the target with extraFields
+            assertThat(publishWithPolicy.getOutboundSignal().first().getTargets())
+                    .contains(targets.getFirst());
+
+            assertThat(publishWithPolicy.getOutboundSignal().first().getAdaptable().getPayload().getExtra())
+                    .isPresent()
+                    .hasValueSatisfying(extra -> {
+                        assertThat(extra.getValue(JsonPointer.of("definition")))
+                                .as("Outbound signal does not contain the requested extra fields.")
+                                .isPresent();
+                        assertThat(extra.getValue(JsonPointer.of("features/featureA")))
+                                .as("Redundant extra fields exists, which must not exist.")
+                                .isNotPresent();
+                    });
+        }};
+    }
+
+    @Test
+    public void multipleTopicsWithExtraFieldsMidTopic() {
+        new TestKit(actorSystemResource.getActorSystem()) {{
+            // Create a target with multiple FilteredTopics for the same streaming type with different extraFields
+            final List<Target> targets = List.of(createTestTargetMultiTopics(Set.of(topic4(), topic3(), topic5())));
+            final Connection connection = CONNECTION.toBuilder().setTargets(targets).build();
+            final ActorRef underTest = getTestActorRef(connection);
+
+            // Now test a signal that should match the second subscription (no extraFields)
+            final OutboundSignal outboundSignal = outboundFeatureTwinEvent(THING,
+                    Feature.newBuilder().withId("feature3")
+                            .build().setProperties(FeatureProperties.newBuilder().set("level", "full").build()),
+                    List.of("multipleExtraFields"), targets, getRef());
+
+            underTest.tell(outboundSignal, getRef());
+            partialRetrieveAndResponse();
+
+            // Expect a publish message
+            final BaseClientActor.PublishMappedMessage publishWithPolicy =
+                    clientActorProbe.expectMsgClass(BaseClientActor.PublishMappedMessage.class);
+
+            // Verify the target
+            assertThat(publishWithPolicy.getOutboundSignal().first().getTargets())
+                    .contains(targets.getFirst());
+
+            // Verify no extra fields are present
+            assertThat(publishWithPolicy.getOutboundSignal().first().getAdaptable().getPayload().getExtra())
+                    .as("Outbound signal must not contain any extra field.")
+                    .isEmpty();
+        }};
+    }
+
+    @Test
+    public void multipleTopicsWithExtraFieldsLastTopic() {
+            new TestKit(actorSystemResource.getActorSystem()) {{
+            // Create a target with multiple FilteredTopics for the same streaming type with different extraFields
+            final List<Target> targets = List.of(createTestTargetMultiTopics(Set.of(topic4(), topic3(), topic5())));
+            final Connection connection = CONNECTION.toBuilder().setTargets(targets).build();
+            final ActorRef underTest = getTestActorRef(connection);
+
+            final OutboundSignal outboundSignal = outboundFeatureTwinEvent(THING,
+                    Feature.newBuilder().withId("feature5")
+                            .build().setProperties(FeatureProperties.newBuilder().set("level", "full").build()),
+                    List.of("multipleExtraFields"), targets, getRef());
+
+            underTest.tell(outboundSignal, getRef());
+            partialRetrieveAndResponse();
+
+            final BaseClientActor.PublishMappedMessage publishWithPolicy =
+                    clientActorProbe.expectMsgClass(BaseClientActor.PublishMappedMessage.class);
+
+            // Verify the target
+            assertThat(publishWithPolicy.getOutboundSignal().first().getTargets())
+                    .contains(targets.getFirst());
+
+            // Verify extra fields are present only from the last topic
+            assertThat(publishWithPolicy.getOutboundSignal().first().getAdaptable().getPayload().getExtra())
+                    .isPresent()
+                    .hasValueSatisfying(extra -> {
+                        assertThat(extra.getValue(JsonPointer.of("features/featureA")))
+                                 .as("Outbound signal does not contain the requested extra fields.")
+                                .isPresent().hasValueSatisfying(v -> assertThat(v.asObject().formatAsString()).isEqualTo("{\"properties\":{\"FAP1\":\"FAP1Value\"}}"));
+                        assertThat(extra.getValue(JsonPointer.of("definition")))
+                                .as("Redundant extra fields exists, which must not exist.")
+                                .isNotPresent();
+                    });
+        }};
+    }
+
+    @Test
+    public void multipleTopicsWithoutExtraFieldsFastProcessed() {
+        new TestKit(actorSystemResource.getActorSystem()) {{
+            // Create a target with multiple topics all without extra fields.
+            // Must send outbound signal, skipping filtering as the pre-filtering has already done the job
+            final List<Target> targets = List.of(createTestTargetMultiTopics(Set.of(topic3(), topic3a())));
+            final Connection connection = CONNECTION.toBuilder().targets(targets).build();
+            final ActorRef underTest = getTestActorRef(connection);
+
+            final OutboundSignal outboundSignal = outboundFeatureTwinEvent(THING,
+                    Feature.newBuilder().withId("random-featureId").build(),
+                    List.of("multipleWithoutExtraFields"), targets, getRef());
+            underTest.tell(outboundSignal, getRef());
+
+            // Signal published ignoring filters
+            final BaseClientActor.PublishMappedMessage publishWithPolicy =
+                    clientActorProbe.expectMsgClass(BaseClientActor.PublishMappedMessage.class);
+
+            // No RetrieveThing call is made
+
+            assertThat(publishWithPolicy.getOutboundSignal().first().getTargets())
+                    .contains(targets.getFirst());
+
+            assertThat(publishWithPolicy.getOutboundSignal().first().getAdaptable().getPayload().getExtra())
+                    .isEmpty();
+        }};
+    }
+
+    @Test
+    public void multipleTopicsDoubleMatchEnriched() {
+        new TestKit(actorSystemResource.getActorSystem()) {{
+            // Create a target with one topic with extra fields and one without extra fields.
+            // Create another target with the same topics in opposite order.
+            // Must send outbound signals on both targets with extra fields
+            final List<Target> targets = List.of(
+                    createTestTargetMultiTopics(Collections.unmodifiableSet(new LinkedHashSet<>(List.of(topic4(), topic3a())))),
+                    createTestTargetMultiTopics(Collections.unmodifiableSet(new LinkedHashSet<>(List.of(topic3a(), topic4())))));
+            final Connection connection = CONNECTION.toBuilder().targets(targets).build();
+            final ActorRef underTest = getTestActorRef(connection);
+
+            final OutboundSignal outboundSignal = outboundFeatureTwinEvent(THING,
+                    Feature.newBuilder().withId("feature4").build(),
+                    List.of("multipleWithoutExtraFields"), targets, getRef());
+            underTest.tell(outboundSignal, getRef());
+            partialRetrieveAndResponse();
+            partialRetrieveAndResponse();
+
+            final BaseClientActor.PublishMappedMessage publishWithPolicy =
+                    clientActorProbe.expectMsgClass(BaseClientActor.PublishMappedMessage.class);
+
+            assertThat(publishWithPolicy.getOutboundSignal().first().getTargets())
+                    .contains(targets.getFirst());
+
+            // Verify extra fields are sent on first target
+            assertThat(publishWithPolicy.getOutboundSignal().first().getAdaptable().getPayload().getExtra())
+                    .isPresent()
+                    .hasValueSatisfying(extra ->
+                            assertThat(extra.getValue(JsonPointer.of("definition")))
+                                    .as("Outbound signal does not contain the requested extra fields.")
+                                    .isPresent());
+            assertThat(publishWithPolicy.getOutboundSignal().getMappedOutboundSignals().get(1).getTargets())
+                    .contains(targets.get(1));
+
+            // Verify extra fields are sent on second target
+            assertThat(publishWithPolicy.getOutboundSignal().getMappedOutboundSignals().get(1).getAdaptable().getPayload().getExtra())
+                    .isPresent()
+                    .hasValueSatisfying(extra ->
+                            assertThat(extra.getValue(JsonPointer.of("definition")))
+                                    .as("Outbound signal does not contain the requested extra fields.")
+                                    .isPresent());
+        }};
+    }
+
+    @Test
+    public void multipleTopicsExtraFieldsFilterless() {
+        new TestKit(actorSystemResource.getActorSystem()) {{
+            // Create a target with multiple topics with some extra fields, but with a topic without a filter
+            // Must send outbound signal, skipping filtering but enriching with the requested extra fields
+            final List<Target> targets = List.of(createTestTargetMultiTopics(Set.of(topic3(), topic5(), topic2())));
+            final Connection connection = CONNECTION.toBuilder().targets(targets).build();
+            final ActorRef underTest = getTestActorRef(connection);
+
+            final OutboundSignal outboundSignal = outboundFeatureTwinEvent(THING,
+                    Feature.newBuilder().withId("random-featureId").build(),
+                    List.of("multipleWithExtraFields"), targets, getRef());
+            underTest.tell(outboundSignal, getRef());
+            partialRetrieveAndResponse();
+
+            final BaseClientActor.PublishMappedMessage publishWithPolicy =
+                    clientActorProbe.expectMsgClass(BaseClientActor.PublishMappedMessage.class);
+
+            assertThat(publishWithPolicy.getOutboundSignal().first().getTargets())
+                    .contains(targets.getFirst());
+
+            // Verify extra fields from filterless topic
+            assertThat(publishWithPolicy.getOutboundSignal().first().getAdaptable().getPayload().getExtra())
+                    .isPresent()
+                    .hasValueSatisfying(extra ->
+                            assertThat(extra.getValue(JsonPointer.of("definition")))
+                                .as("Outbound signal does not contain the requested extra fields.")
+                                .isPresent());
+
+        }};
+    }
+
+    @Test
+    public void multipleTopicsWithCommonRootExtraFields() {
+        new TestKit(actorSystemResource.getActorSystem()) {{
+            // Create a target with multiple FilteredTopics for the same streaming type with different extraFields
+            final List<Target> targets = List.of(createTestTargetMultiTopics(Set.of(topic4(), topic1(), topic5())));
+            final Connection connection = CONNECTION.toBuilder().setTargets(targets).build();
+            final ActorRef underTest = getTestActorRef(connection);
+
+            final OutboundSignal outboundSignal = outboundFeatureTwinEvent(THING,
+                    Feature.newBuilder().withId("feature5")
+                            .build().setProperties(FeatureProperties.newBuilder().set("level", "full").build()),
+                    List.of("multipleExtraFields"), targets, getRef());
+
+            underTest.tell(outboundSignal, getRef());
+            partialRetrieveAndResponse();
+
+            final BaseClientActor.PublishMappedMessage publishWithPolicy =
+                    clientActorProbe.expectMsgClass(BaseClientActor.PublishMappedMessage.class);
+
+            assertThat(publishWithPolicy.getOutboundSignal().first().getTargets())
+                    .contains(targets.getFirst());
+
+            // Verify extra fields are not trimmed despite common root with trimmed fields from other topics
+            assertThat(publishWithPolicy.getOutboundSignal().first().getAdaptable().getPayload().getExtra())
+                    .isPresent()
+                    .hasValueSatisfying(extra -> {
+                        assertThat(extra.getValue(JsonPointer.of("features/featureA")))
+                                .as("Outbound signal does not contain the requested extra fields.")
+                                .isPresent().hasValueSatisfying(v -> assertThat(v.asObject().formatAsString()).isEqualTo("{\"properties\":{\"FAP1\":\"FAP1Value\"}}"));
+                        assertThat(extra.getValue(JsonPointer.of("features/featureB")))
+                                .as("Redundant extra fields exists, which must not exist.")
+                                .isNotPresent();
+                        assertThat(extra.getValue(JsonPointer.of("definition")))
+                                .as("Redundant extra fields exists, which must not exist.")
+                                .isNotPresent();
+                    });
+        }};
+    }
+
+    @Test
+    public void multipleTopicsDoubleMatchDeterministicExtraFields() {
+        new TestKit(actorSystemResource.getActorSystem()) {{
+            // Create 2 targets with 2 matching multiple FilteredTopics with different extraFields, ordered differently
+            final List<Target> targets = List.of(
+                    createTestTargetMultiTopics(Collections.unmodifiableSet(new LinkedHashSet<>(List.of(topic4(), topic1(), topic5())))),
+                    createTestTargetMultiTopics(Collections.unmodifiableSet(new LinkedHashSet<>(List.of(topic1(), topic4(), topic5())))));
+            final Connection connection = CONNECTION.toBuilder().setTargets(targets).build();
+            final ActorRef underTest = getTestActorRef(connection);
+
+            final OutboundSignal outboundSignal = outboundFeatureTwinEvent(THING,
+                    Feature.newBuilder().withId("feature4")
+                            .build().setProperties(FeatureProperties.newBuilder().set("level", "full").build()),
+                    List.of("multipleExtraFields"), targets, getRef());
+
+            for (int i = 0; i < 10; i++) {
+                underTest.tell(outboundSignal, getRef());
+                partialRetrieveAndResponse();
+                partialRetrieveAndResponse();
+
+                final BaseClientActor.PublishMappedMessage publishWithPolicy =
+                        clientActorProbe.expectMsgClass(BaseClientActor.PublishMappedMessage.class);
+
+                assertThat(publishWithPolicy.getOutboundSignal().first().getTargets())
+                        .contains(targets.getFirst());
+
+                // Verify extra fields are present only from one and the same topic on first target
+                assertThat(publishWithPolicy.getOutboundSignal().first().getAdaptable().getPayload().getExtra())
+                        .isPresent()
+                        .hasValueSatisfying(extra -> {
+                            assertThat(extra.getValue(JsonPointer.of("definition")))
+                                    .as("Outbound signal does not contain the requested extra fields.")
+                                    .isPresent();
+                            assertThat(extra.getValue(JsonPointer.of("features/featureA")))
+                                    .as("Redundant extra fields exists, which must not exist.")
+                                    .isNotPresent();
+                            assertThat(extra.getValue(JsonPointer.of("features/featureB")))
+                                    .as("Redundant extra fields exists, which must not exist.")
+                                    .isNotPresent();
+                        });
+
+                assertThat(publishWithPolicy.getOutboundSignal().getMappedOutboundSignals().get(1).getTargets())
+                        .contains(targets.getFirst());
+
+                // Verify extra fields are present only from one and the same topic on second target
+                assertThat(publishWithPolicy.getOutboundSignal()
+                        .getMappedOutboundSignals()
+                        .get(1)
+                        .getAdaptable()
+                        .getPayload()
+                        .getExtra())
+                        .isPresent()
+                        .hasValueSatisfying(extra -> {
+                            assertThat(extra.getValue(JsonPointer.of("definition")))
+                                    .as("Outbound signal does not contain the requested extra fields.")
+                                    .isPresent();
+                            assertThat(extra.getValue(JsonPointer.of("features/featureA")))
+                                    .as("Redundant extra fields exists, which must not exist.")
+                                    .isNotPresent();
+                            assertThat(extra.getValue(JsonPointer.of("features/featureB")))
+                                    .as("Redundant extra fields exists, which must not exist.")
+                                    .isNotPresent();
+                        });
+            }
+        }};
+    }
+
+    @Test
+    public void multipleTopicsWithWildcardExtraFields() {
+        new TestKit(actorSystemResource.getActorSystem()) {{
+            // Create a target with multiple FilteredTopics for the same streaming type with different extraFields
+            final List<Target> targets = List.of(createTestTargetMultiTopics(Set.of(topic4(), topicWildcard())));
+            final Connection connection = CONNECTION.toBuilder().setTargets(targets).build();
+            final ActorRef underTest = getTestActorRef(connection);
+
+            final OutboundSignal outboundSignal = outboundFeatureTwinEvent(THING,
+                    Feature.newBuilder().withId("featureW")
+                            .build().setProperties(FeatureProperties.newBuilder().set("level", "full").build()),
+                    List.of("multipleExtraFields"), targets, getRef());
+
+            underTest.tell(outboundSignal, getRef());
+            partialRetrieveAndResponse();
+
+            final BaseClientActor.PublishMappedMessage publishWithPolicy =
+                    clientActorProbe.expectMsgClass(BaseClientActor.PublishMappedMessage.class);
+
+            assertThat(publishWithPolicy.getOutboundSignal().first().getTargets())
+                    .contains(targets.getFirst());
+
+            // Verify all features extra fields are present due to wildcard selection
+            assertThat(publishWithPolicy.getOutboundSignal().first().getAdaptable().getPayload().getExtra())
+                    .isPresent()
+                    .hasValueSatisfying(extra -> {
+                        assertThat(extra.getValue(JsonPointer.of("features/featureA")))
+                                .as("Outbound signal does not contain the requested extra fields.")
+                                .isPresent().hasValueSatisfying(v -> assertThat(v.asObject().formatAsString()).isEqualTo("{\"properties\":{\"FAP1\":\"FAP1Value\"}}"));
+                        assertThat(extra.getValue(JsonPointer.of("features/featureB")))
+                                .as("Redundant extra fields exists, which must not exist.")
+                                .isPresent().hasValueSatisfying(v -> assertThat(v.asObject().formatAsString()).isEqualTo("{\"properties\":{\"FBP1\":\"FBP1Value\"}}"));
+                        assertThat(extra.getValue(JsonPointer.of("definition")))
+                                .as("Redundant extra fields exists, which must not exist.")
+                                .isNotPresent();
+                    });
+        }};
+    }
+
+    @Test
+    public void multipleTopicsOneFilterlessNoExtraFields() {
+        new TestKit(actorSystemResource.getActorSystem()) {{
+            // Create a target with one filterless and with no extra fields topic and another with extra fields
+            final List<Target> targets = List.of(createTestTargetMultiTopics(Set.of(topic0(), topic4())));
+            final Connection connection = CONNECTION.toBuilder().setTargets(targets).build();
+            final ActorRef underTest = getTestActorRef(connection);
+
+            final OutboundSignal outboundSignal = outboundFeatureTwinEvent(THING,
+                    Feature.newBuilder().withId("feature4")
+                            .build().setProperties(FeatureProperties.newBuilder().set("level", "full").build()),
+                    List.of("multipleExtraFields"), targets, getRef());
+
+            underTest.tell(outboundSignal, getRef());
+            partialRetrieveAndResponse();
+
+            final BaseClientActor.PublishMappedMessage publishWithPolicy =
+                    clientActorProbe.expectMsgClass(BaseClientActor.PublishMappedMessage.class);
+
+            assertThat(publishWithPolicy.getOutboundSignal().first().getTargets())
+                    .contains(targets.getFirst());
+
+            // Verify extra field is present
+            assertThat(publishWithPolicy.getOutboundSignal().first().getAdaptable().getPayload().getExtra())
+                    .isPresent()
+                    .hasValueSatisfying(extra ->
+                            assertThat(extra.getValue(JsonPointer.of("definition")))
+                                    .as("Outbound signal does not contain the requested extra fields.")
+                                    .isPresent());
+        }};
+    }
+
+    private void partialRetrieveAndResponse() {
+        // Expect enrichment request for all fields in all topics
+        final RetrieveThing retrieveEnrichedThing = proxyActorProbe.expectMsgClass(RetrieveThing.class);
+        assertThat(retrieveEnrichedThing.getSelectedFields()).isPresent();
+
+        final Attributes attributes = Attributes.newBuilder().set("newAttribute", "attrValue").build();
+        final FeatureProperties propertiesA = FeatureProperties.newBuilder().set("FAP1", "FAP1Value").build();
+        final FeatureProperties propertiesB = FeatureProperties.newBuilder().set("FBP1", "FBP1Value").build();
+        final Feature featureA = Feature.newBuilder().properties(propertiesA).withId("featureA").build();
+        final Feature featureB = Feature.newBuilder().properties(propertiesB).withId("featureB").build();
+        final Features features = Features.newBuilder().set(featureA).set(featureB).build();
+
+        // Reply with enriched Thing
+        final Thing enrichedThing = Thing.newBuilder()
+                .setAttributes(attributes)
+                .setFeatures(features)
+                .setDefinition(ThingsModelFactory.newDefinition("testNamespace:TestDefinition:1.2.3"))
+                .build();
+        proxyActorProbe.reply(RetrieveThingResponse.of(thingId(), enrichedThing, null, null, DittoHeaders.empty()));
+    }
+
+    private ActorRef getTestActorRef(Connection connection) {
+        final Props props = OutboundMappingProcessorActor.props(clientActorProbe.ref(),
+                getProcessors(connection),
+                connection,
+                TestConstants.CONNECTIVITY_CONFIG,
+                3);
+        return actorSystemResource.newActor(props);
+    }
+
+    private static OutboundSignal outboundFeatureTwinEvent(final Thing thing, final Feature feature, final Collection<String> requestedAcks,
+            final List<Target> targets, final ActorRef testRef) {
+        final List<AuthorizationSubject> readGrantedSubjects = targets.stream()
+                .map(Target::getAuthorizationContext)
+                .flatMap(authContext -> authContext.getAuthorizationSubjects().stream())
+                .distinct()
+                .toList();
+
+        final FeatureModified featureModified = FeatureModified.of(thing.getEntityId().get(), feature, 2L, Instant.EPOCH,
+                DittoHeaders.newBuilder()
+                        .acknowledgementRequests(requestedAcks.stream()
+                                .map(AcknowledgementRequest::parseAcknowledgementRequest)
+                                .toList())
+                        .readGrantedSubjects(readGrantedSubjects)
+                        .putHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(),
+                                testRef.path().toSerializationFormat())
+                        .build(),
+                Metadata.newMetadata(JsonObject.empty()));
+        return OutboundSignalFactory.newOutboundSignal(featureModified, targets);
     }
 
     private static OutboundSignal outboundTwinEvent(final Attributes attributes, final Collection<String> requestedAcks,
@@ -330,6 +753,68 @@ public final class OutboundMappingProcessorActorTest {
                                 "outgoingScript", "function mapFromDittoProtocolMsg() { return null; }"
                         ))
                 )))
+                .build();
+    }
+
+    private static @NonNull Thing createTestThing() {
+        return Thing.newBuilder().setId(thingId()).build();
+    }
+
+    private static FilteredTopic topic0() {
+        return ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS).build();
+    }
+
+    private static FilteredTopic topic1() {
+        return ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                .withFilter("and(eq(topic:action,\"modified\"),eq(resource:path,\"/features/feature4\"))")
+                .withExtraFields(ThingFieldSelector.fromString("features/featureA,features/featureB"))
+                .build();
+
+    }
+
+    private static FilteredTopic topic2() {
+        return ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                .withExtraFields(ThingFieldSelector.fromString("definition")).build();
+
+    }
+
+    private static FilteredTopic topic3() {
+        return ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                .withFilter("and(eq(topic:action,\"modified\"),eq(resource:path,\"/features/feature3\"))").build();
+    }
+
+    private static FilteredTopic topic3a() {
+        return ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                .withFilter("and(eq(topic:action,\"modified\"),eq(resource:path,\"/features/feature4\"))").build();
+    }
+
+    private static FilteredTopic topic4() {
+        return ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                .withFilter("and(eq(topic:action,\"modified\"),eq(resource:path,\"/features/feature4\"))")
+                .withExtraFields(ThingFieldSelector.fromString("definition")).build();
+
+    }
+
+    private static FilteredTopic topic5() {
+        return ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                .withFilter("and(eq(topic:action,\"modified\"),eq(resource:path,\"/features/feature5\"))")
+                .withExtraFields(ThingFieldSelector.fromString("features/featureA")).build();
+
+    }
+
+    private static FilteredTopic topicWildcard() {
+        return ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                .withFilter("and(eq(topic:action,\"modified\"),eq(resource:path,\"/features/featureW\"))")
+                .withExtraFields(ThingFieldSelector.fromString("features/*")).build();
+
+    }
+
+    private static @NonNull Target createTestTargetMultiTopics(Set<FilteredTopic> topics) {
+        return ConnectivityModelFactory.newTargetBuilder()
+                .address("multipleExtraFieldsTarget")
+                .authorizationContext(singletonContext(target1Subject()))
+                .topics(topics)
+                .issuedAcknowledgementLabel(AcknowledgementLabel.of("multipleExtraFields"))
                 .build();
     }
 
