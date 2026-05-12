@@ -286,6 +286,14 @@ spec:
               value: "{{ .Values.thingsSearch.config.updater.backgroundSync.throttle.throughput }}"
             - name: BACKGROUND_SYCN_THROTTLE_PERIOD
               value: "{{ .Values.thingsSearch.config.updater.backgroundSync.throttle.period }}"
+            - name: THING_CACHE_DISPATCHER_POOL_SIZE_MIN
+              value: "{{ .Values.thingsSearch.config.dispatchers.thingCache.poolSizeMin }}"
+            - name: THING_CACHE_DISPATCHER_POOL_SIZE_MAX
+              value: "{{ .Values.thingsSearch.config.dispatchers.thingCache.poolSizeMax }}"
+            - name: POLICY_ENFORCER_CACHE_DISPATCHER_POOL_SIZE_MIN
+              value: "{{ .Values.thingsSearch.config.dispatchers.policyEnforcerCache.poolSizeMin }}"
+            - name: POLICY_ENFORCER_CACHE_DISPATCHER_POOL_SIZE_MAX
+              value: "{{ .Values.thingsSearch.config.dispatchers.policyEnforcerCache.poolSizeMax }}"
             {{- if .Values.thingsSearch.extraEnv }}
               {{- toYaml .Values.thingsSearch.extraEnv | nindent 12 }}
             {{- end }}

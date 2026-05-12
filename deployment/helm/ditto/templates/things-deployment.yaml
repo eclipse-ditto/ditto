@@ -386,6 +386,14 @@ spec:
               value: "{{ index .Values.things.config.wot.tmValidation.feature.forbid "non-modeled-desired-properties" }}"
             - name: THINGS_WOT_TM_MODEL_VALIDATION_FEATURE_FORBID_NON_MODELED_OUTBOX_MESSAGES
               value: "{{ index .Values.things.config.wot.tmValidation.feature.forbid "non-modeled-outbox-messages" }}"
+            - name: WOT_DISPATCHER_PARALLELISM_MIN
+              value: "{{ .Values.things.config.dispatchers.wot.parallelismMin }}"
+            - name: WOT_DISPATCHER_PARALLELISM_MAX
+              value: "{{ .Values.things.config.dispatchers.wot.parallelismMax }}"
+            - name: WOT_DISPATCHER_CACHE_LOADER_PARALLELISM_MIN
+              value: "{{ .Values.things.config.dispatchers.wotCacheLoader.parallelismMin }}"
+            - name: WOT_DISPATCHER_CACHE_LOADER_PARALLELISM_MAX
+              value: "{{ .Values.things.config.dispatchers.wotCacheLoader.parallelismMax }}"
             {{- if .Values.things.extraEnv }}
               {{- toYaml .Values.things.extraEnv | nindent 12 }}
             {{- end }}

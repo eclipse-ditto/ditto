@@ -374,6 +374,10 @@ spec:
               value: "{{ .Values.connectivity.config.connections.encryption.migration.batchSize }}"
             - name: CONNECTIVITY_ENCRYPTION_MIGRATION_MAX_DOCS_PER_MINUTE
               value: "{{ .Values.connectivity.config.connections.encryption.migration.maxDocumentsPerMinute }}"
+            - name: SIGNAL_ENRICHMENT_CACHE_DISPATCHER_POOL_SIZE_MIN
+              value: "{{ .Values.connectivity.config.dispatchers.signalEnrichmentCache.poolSizeMin }}"
+            - name: SIGNAL_ENRICHMENT_CACHE_DISPATCHER_POOL_SIZE_MAX
+              value: "{{ .Values.connectivity.config.dispatchers.signalEnrichmentCache.poolSizeMax }}"
             {{- if .Values.connectivity.extraEnv }}
               {{- toYaml .Values.connectivity.extraEnv | nindent 12 }}
             {{- end }}

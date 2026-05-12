@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.policies.enforcement;
 
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
@@ -30,7 +29,6 @@ import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.policies.enforcement.config.NamespacePoliciesConfig;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.model.PolicyImport;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
@@ -39,7 +37,12 @@ import scala.concurrent.ExecutionContextExecutor;
 final class PolicyEnforcerCache implements Cache<PolicyId, Entry<PolicyEnforcer>> {
 
     private final Cache<PolicyId, Entry<PolicyEnforcer>> delegate;
+    // Reverse index: importedPolicyId -> set of policies that import it.
+    // Used to cascade invalidation from imported policies to their importers.
     private final Map<PolicyId, Set<PolicyId>> policyIdToImportingMap;
+    // Forward index: importingPolicyId -> set of policies it imports.
+    // Lets deregisterImportMappings run in O(k) (k = imports of this policy) instead of O(N) over the full reverse map.
+    private final Map<PolicyId, Set<PolicyId>> importingPolicyIdToImportedMap;
     private final NamespacePoliciesConfig namespacePoliciesConfig;
 
     PolicyEnforcerCache(final AsyncCacheLoader<PolicyId, Entry<PolicyEnforcer>> policyEnforcerCacheLoader,
@@ -47,6 +50,7 @@ final class PolicyEnforcerCache implements Cache<PolicyId, Entry<PolicyEnforcer>
             final CacheConfig cacheConfig,
             final NamespacePoliciesConfig namespacePoliciesConfig) {
         policyIdToImportingMap = new ConcurrentHashMap<>();
+        importingPolicyIdToImportedMap = new ConcurrentHashMap<>();
         this.namespacePoliciesConfig = namespacePoliciesConfig;
         this.delegate = CacheFactory.createCache(
                 (policyId, executor) -> policyEnforcerCacheLoader.asyncLoad(policyId, executor)
@@ -88,12 +92,16 @@ final class PolicyEnforcerCache implements Cache<PolicyId, Entry<PolicyEnforcer>
      * (e.g. from removed imports or transitive imports) don't accumulate.
      */
     private void deregisterImportMappings(final PolicyId importingPolicyId) {
-        policyIdToImportingMap.forEach((importedId, importingSet) ->
-                policyIdToImportingMap.computeIfPresent(importedId, (id, set) -> {
-                    set.remove(importingPolicyId);
-                    return set.isEmpty() ? null : set;
-                })
-        );
+        final Set<PolicyId> previouslyImported = importingPolicyIdToImportedMap.remove(importingPolicyId);
+        if (previouslyImported == null) {
+            return;
+        }
+        for (final PolicyId importedPolicyId : previouslyImported) {
+            policyIdToImportingMap.computeIfPresent(importedPolicyId, (id, set) -> {
+                set.remove(importingPolicyId);
+                return set.isEmpty() ? null : set;
+            });
+        }
     }
 
     private void registerImportMapping(final PolicyId importedPolicyId, final PolicyId importingPolicyId) {
@@ -102,6 +110,12 @@ final class PolicyEnforcerCache implements Cache<PolicyId, Entry<PolicyEnforcer>
                     importingPolicyIds == null ? new HashSet<>() : importingPolicyIds;
             newImportingPolicyIds.add(importingPolicyId);
             return newImportingPolicyIds;
+        });
+        importingPolicyIdToImportedMap.compute(importingPolicyId, (id, importedPolicyIds) -> {
+            final Set<PolicyId> newImportedPolicyIds =
+                    importedPolicyIds == null ? new HashSet<>() : importedPolicyIds;
+            newImportedPolicyIds.add(importedPolicyId);
+            return newImportedPolicyIds;
         });
     }
 

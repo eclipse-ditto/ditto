@@ -120,19 +120,11 @@ public final class DefaultDittoJsonHandler extends DittoJsonHandler<List<JsonVal
     }
 
     private static JsonNumber parseToIntegerOrLong(final String string) {
-        try {
-            return parseToInteger(string);
-        } catch (final NumberFormatException e) {
-            return parseToLong(string);
+        final long longValue = Long.parseLong(string);
+        if (longValue >= Integer.MIN_VALUE && longValue <= Integer.MAX_VALUE) {
+            return ImmutableJsonInt.of((int) longValue);
         }
-    }
-
-    private static ImmutableJsonInt parseToInteger(final String string) {
-        return ImmutableJsonInt.of(Integer.parseInt(string));
-    }
-
-    private static ImmutableJsonLong parseToLong(final String string) {
-        return ImmutableJsonLong.of(Long.parseLong(string));
+        return ImmutableJsonLong.of(longValue);
     }
 
     @Override
