@@ -72,8 +72,9 @@ public final class DefaultHttpClientFacade implements HttpClientFacade {
 
     @Override
     public CompletionStage<HttpResponse> createSingleHttpRequest(final HttpRequest request) {
+        // https://github.com/apache/pekko-http/commit/53365087aa1fe029fb4522c9d40045673cb23b6e
         return Http.get(actorSystem)
-                .singleRequest(request, Http.get(actorSystem).defaultClientHttpsContext(),
+                .singleRequest(request, Http.get(actorSystem).createDefaultClientHttpsContext(),
                         connectionPoolSettings,
                         actorSystem.log()
                 );
