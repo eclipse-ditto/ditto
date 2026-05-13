@@ -93,6 +93,21 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
         extraUriOptions = Collections.unmodifiableMap(new HashMap<>(
                 configToMap(config.getConfig(OptionsConfigValue.EXTRA_URI_OPTIONS.getConfigPath()))
         ));
+
+        if (useAwsIamRole && useX509Authentication) {
+            throw new DittoConfigError("MongoDB authentication: at most one of '" +
+                    OptionsConfigValue.USE_AWS_IAM_ROLE.getConfigPath() + "' or '" +
+                    OptionsConfigValue.USE_X509_AUTHENTICATION.getConfigPath() + "' may be enabled, but both are set");
+        }
+        if (useX509Authentication && !sslEnabled) {
+            throw new DittoConfigError("MongoDB X509 authentication requires '" +
+                    OptionsConfigValue.SSL_ENABLED.getConfigPath() + "=true'");
+        }
+        if (useX509Authentication && (sslClientCertFile.isBlank() || sslClientKeyFile.isBlank())) {
+            throw new DittoConfigError("MongoDB X509 authentication requires both '" +
+                    OptionsConfigValue.SSL_CLIENT_CERT_FILE.getConfigPath() + "' and '" +
+                    OptionsConfigValue.SSL_CLIENT_KEY_FILE.getConfigPath() + "' to be configured");
+        }
     }
 
     /**
@@ -211,12 +226,18 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
 
     @Override
     public String toString() {
+        // NOTE: sslClientKeyPassword is intentionally rendered as "***" — the actual value must never reach logs.
         return getClass().getSimpleName() + " [" +
                 "useAwsIamRole=" + useAwsIamRole +
                 ", awsRegion=" + awsRegion +
                 ", awsArnRole=" + awsArnRole +
                 ", awsSessionName=" + awsSessionName +
                 ", sslEnabled=" + sslEnabled +
+                ", sslCaFile=" + sslCaFile +
+                ", useX509Authentication=" + useX509Authentication +
+                ", sslClientCertFile=" + sslClientCertFile +
+                ", sslClientKeyFile=" + sslClientKeyFile +
+                ", sslClientKeyPassword=***" +
                 ", readPreference=" + readPreference +
                 ", readConcern=" + readConcern +
                 ", writeConcern=" + writeConcern +

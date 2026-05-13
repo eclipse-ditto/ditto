@@ -618,13 +618,17 @@ public final class MongoClientWrapper implements DittoMongoClient {
         }
 
         private void buildAndApplySslSettings() {
-            eventLoopGroup = new NioEventLoopGroup();
-            mongoClientSettingsBuilder
-                    .transportSettings(TransportSettings.nettyBuilder()
-                            .eventLoopGroup(eventLoopGroup)
-                            .sslContext(tryToCreateAndInitSslContext(sslCa, sslClientCert, sslClientKey, sslClientKeyPassword))
-                            .build())
-                    .applyToSslSettings(builder -> builder.enabled(sslEnabled));
+            if (sslEnabled) {
+                eventLoopGroup = new NioEventLoopGroup();
+                mongoClientSettingsBuilder
+                        .transportSettings(TransportSettings.nettyBuilder()
+                                .eventLoopGroup(eventLoopGroup)
+                                .sslContext(tryToCreateAndInitSslContext(sslCa, sslClientCert, sslClientKey, sslClientKeyPassword))
+                                .build())
+                        .applyToSslSettings(builder -> builder.enabled(true));
+            } else {
+                mongoClientSettingsBuilder.applyToSslSettings(builder -> builder.enabled(false));
+            }
         }
 
         private static SslContext tryToCreateAndInitSslContext(String sslCa, String sslClientCert, String sslClientKey, String sslClientKeyPassword) {
@@ -637,7 +641,8 @@ public final class MongoClientWrapper implements DittoMongoClient {
 
         private static SslContext createAndInitSslContext(String sslCa, String sslClientCert, String sslClientKey, String sslClientKeyPassword)
                 throws SSLException {
-            final var builder = SslContextBuilder.forClient();
+            final var builder = SslContextBuilder.forClient()
+                    .protocols("TLSv1.3", "TLSv1.2");
 
             if (sslCa != null && !sslCa.isEmpty()) {
                 final var sslCaFile = new File(sslCa);
@@ -645,10 +650,14 @@ public final class MongoClientWrapper implements DittoMongoClient {
             }
 
             if (sslClientCert != null && !sslClientCert.isEmpty()) {
+                if (sslClientKey == null || sslClientKey.isEmpty()) {
+                    throw new IllegalArgumentException("sslClientKeyFile must be set when sslClientCertFile is set");
+                }
                 final var sslClientCertFile = new File(sslClientCert);
                 final var sslClientKeyFile = new File(sslClientKey);
-                builder.keyManager(sslClientCertFile, sslClientKeyFile,
-                        sslClientKeyPassword.isEmpty() ? null : sslClientKeyPassword);
+                final String password = (sslClientKeyPassword == null || sslClientKeyPassword.isEmpty())
+                        ? null : sslClientKeyPassword;
+                builder.keyManager(sslClientCertFile, sslClientKeyFile, password);
             }
 
             return builder.build();

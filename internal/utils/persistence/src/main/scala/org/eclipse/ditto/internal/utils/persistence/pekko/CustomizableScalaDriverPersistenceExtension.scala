@@ -46,6 +46,8 @@ class CustomizableScalaDriverPersistenceExtension(val actorSystem: ActorSystem)
       val mongoDbConfig = DefaultMongoDbConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings.config))
       val optionsConfig = mongoDbConfig.getOptionsConfig
 
+      // DefaultOptionsConfig rejects "both flags set" at config load time, so the if/else if here
+      // can never silently pick a winner; if both were enabled, the service would already have failed to start.
       val mongoCredential = if (optionsConfig.isUseAwsIamRole) {
         AwsAuthenticationHelper.provideAwsIamBasedMongoCredential(
           optionsConfig.awsRegion(),
@@ -63,11 +65,15 @@ class CustomizableScalaDriverPersistenceExtension(val actorSystem: ActorSystem)
           builder.credential(mongoCredential)
         }
 
-        builder.applyToSslSettings(sslBuilder => sslBuilder.enabled(optionsConfig.isSslEnabled))
-          .transportSettings(TransportSettings.nettyBuilder()
-            .sslContext(tryToCreateAndInitSslContext(optionsConfig.sslCaFile(), optionsConfig.sslClientCertFile(),
-                optionsConfig.sslClientKeyFile(), optionsConfig.sslClientKeyPassword()))
-            .build())
+        if (optionsConfig.isSslEnabled) {
+          builder.applyToSslSettings(sslBuilder => sslBuilder.enabled(true))
+            .transportSettings(TransportSettings.nettyBuilder()
+              .sslContext(tryToCreateAndInitSslContext(optionsConfig.sslCaFile(), optionsConfig.sslClientCertFile(),
+                  optionsConfig.sslClientKeyFile(), optionsConfig.sslClientKeyPassword()))
+              .build())
+        } else {
+          builder.applyToSslSettings(sslBuilder => sslBuilder.enabled(false))
+        }
 
         builder
       })
@@ -91,16 +97,21 @@ class CustomizableScalaDriverPersistenceExtension(val actorSystem: ActorSystem)
     @throws[SSLException]
     private def createAndInitSslContext(sslCa: String, sslClientCert: String, sslClientKey: String, sslClientKeyPassword: String) = {
       val builder = SslContextBuilder.forClient
+        .protocols("TLSv1.3", "TLSv1.2")
       if (sslCa != null && sslCa.nonEmpty) {
         val sslCaFile = new File(sslCa)
         builder.trustManager(sslCaFile)
       }
 
       if (sslClientCert != null && sslClientCert.nonEmpty) {
+        if (sslClientKey == null || sslClientKey.isEmpty) {
+          throw new IllegalArgumentException("sslClientKeyFile must be set when sslClientCertFile is set")
+        }
         val sslClientCertFile = new File(sslClientCert)
         val sslClientKeyFile = new File(sslClientKey)
-        builder.keyManager(sslClientCertFile, sslClientKeyFile,
-          if (sslClientKeyPassword.isEmpty) null else sslClientKeyPassword)
+        val password: String =
+          if (sslClientKeyPassword == null || sslClientKeyPassword.isEmpty) null else sslClientKeyPassword
+        builder.keyManager(sslClientCertFile, sslClientKeyFile, password)
       }
 
       builder.build
