@@ -699,6 +699,9 @@ entries:
       - title: Release Notes
         output: web
         folderitems:
+          - title: 3.9.0
+            url: /release_notes_390.html
+            output: web
           - title: 3.8.12
             url: /release_notes_3812.html
             output: web
@@ -738,32 +741,32 @@ entries:
           - title: 3.8.0
             url: /release_notes_380.html
             output: web
-          - title: 3.7.6
-            url: /release_notes_376.html
-            output: web
-          - title: 3.7.5
-            url: /release_notes_375.html
-            output: web
-          - title: 3.7.4
-            url: /release_notes_374.html
-            output: web
-          - title: 3.7.3
-            url: /release_notes_373.html
-            output: web
-          - title: 3.7.2
-            url: /release_notes_372.html
-            output: web
-          - title: 3.7.1
-            url: /release_notes_371.html
-            output: web
-          - title: 3.7.0
-            url: /release_notes_370.html
-            output: web
 
             subfolders:
               - title: Archive
                 output: web
                 subfolderitems:
+                  - title: 3.7.6
+                    url: /release_notes_376.html
+                    output: web
+                  - title: 3.7.5
+                    url: /release_notes_375.html
+                    output: web
+                  - title: 3.7.4
+                    url: /release_notes_374.html
+                    output: web
+                  - title: 3.7.3
+                    url: /release_notes_373.html
+                    output: web
+                  - title: 3.7.2
+                    url: /release_notes_372.html
+                    output: web
+                  - title: 3.7.1
+                    url: /release_notes_371.html
+                    output: web
+                  - title: 3.7.0
+                    url: /release_notes_370.html
+                    output: web
                   - title: 3.6.11
                     url: /release_notes_3611.html
                     output: web
