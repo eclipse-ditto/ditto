@@ -1,7 +1,7 @@
 ---
 title: "Helm chart now ingress controller agnostic"
 published: true
-permalink: 2026-04-01-ingress-controller-agnostic-helm-chart.html
+permalink: 2026-05-13-ingress-controller-agnostic-helm-chart.html
 layout: post
 author: kalin_kostashki
 tags: [blog, kubernetes, helm]

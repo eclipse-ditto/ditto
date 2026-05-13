@@ -295,7 +295,7 @@ The documentation of the feature can be found [here](installation-operating.html
 #### Placeholder replacement in `migrateDefinition`
 
 Issue [#2319](https://github.com/eclipse-ditto/ditto/issues/2319) / PR [#2321](https://github.com/eclipse-ditto/ditto/pull/2321)
-adds support for `{{ thing-json:<json-path> }}` placeholder replacement inside the `migrationPayload` of the
+adds support for `{%raw%}{{ thing-json:<json-path> }}{%endraw%}` placeholder replacement inside the `migrationPayload` of the
 `migrateDefinition` API, so migrations can refer to fields of the existing Thing being migrated.
 
 The documentation of the feature can be found [here](httpapi-concepts.html).
@@ -490,7 +490,7 @@ consumer crash loop on the same poison message under QoS 1. The fix skips blank 
 #### Fix MQTT 5 enforcement validation rejecting header placeholders
 
 Issue [#2388](https://github.com/eclipse-ditto/ditto/issues/2388) / PR [#2389](https://github.com/eclipse-ditto/ditto/pull/2389)
-fixes that `AbstractMqttValidator` incorrectly rejected header placeholders (e.g. `{{ header:device }}`) in
+fixes that `AbstractMqttValidator` incorrectly rejected header placeholders (e.g. `{%raw%}{{ header:device }}{%endraw%}`) in
 the enforcement `input` field for MQTT 5 connections, even though the runtime fully supported them.
 
 #### Fix MongoDB aggregation pipeline performance regression
@@ -555,7 +555,7 @@ In addition to the configuration options for the new features of this release, t
   controller** from the Helm chart. As `ingress-nginx` is deprecated as of 31.03.2026, the choice of ingress
   controller is now left to the operator. All `ingress-nginx`-specific annotations and the
   `nginx-ingress-auth.yaml` / `nginx-ingress.yaml` templates have been removed. See the
-  [blog post](2026-04-01-ingress-controller-agnostic-helm-chart.html) for migration guidance.
+  [blog post](2026-05-13-ingress-controller-agnostic-helm-chart.html) for migration guidance.
 * PR [#2387](https://github.com/eclipse-ditto/ditto/pull/2387) adds **global `extraVolumes` and
   `extraVolumeMounts`** options that are merged with per-service settings on every Ditto service.
 * PR [#2399](https://github.com/eclipse-ditto/ditto/pull/2399) exposes additional Helm values, including
@@ -573,4 +573,4 @@ sync, and the chart now follows its own independent semantic versioning. Chart `
 If you currently use a Helm chart deployment relying on the bundled `ingress-nginx` controller, the
 controller has been removed and you need to provide your own ingress controller before upgrading. See
 PR [#2386](https://github.com/eclipse-ditto/ditto/pull/2386) and the corresponding
-[blog post](2026-04-01-ingress-controller-agnostic-helm-chart.html) for migration guidance.
+[blog post](2026-05-13-ingress-controller-agnostic-helm-chart.html) for migration guidance.
