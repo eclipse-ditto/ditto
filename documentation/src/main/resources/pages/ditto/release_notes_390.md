@@ -223,9 +223,9 @@ The documentation of the feature can be found [here](installation-operating.html
 
 #### X509 authentication for MongoDB connection
 
-PR [#2445](https://github.com/eclipse-ditto/ditto/pull/2445) adds support for using X509 client-certificate
-authentication when Ditto connects to MongoDB, and additionally allows configuring the CA root certificate
-used in the TLS connection to MongoDB.
+PR [#2449](https://github.com/eclipse-ditto/ditto/pull/2449) (superseding [#2445](https://github.com/eclipse-ditto/ditto/pull/2445))
+adds support for using X509 client-certificate authentication when Ditto connects to MongoDB, and
+additionally allows configuring the CA root certificate used in the TLS connection to MongoDB.
 
 #### `empty()` RQL filter
 
@@ -560,8 +560,6 @@ In addition to the configuration options for the new features of this release, t
   `extraVolumeMounts`** options that are merged with per-service settings on every Ditto service.
 * PR [#2399](https://github.com/eclipse-ditto/ditto/pull/2399) exposes additional Helm values, including
   `redacted-headers-in-logs`.
-* PR [#2442](https://github.com/eclipse-ditto/ditto/pull/2442) exposes the OpenID Connect **`issuers`**
-  option in the Helm chart values, so OIDC issuers can be configured directly from `values.yaml`.
 
 
 ## Migration notes
