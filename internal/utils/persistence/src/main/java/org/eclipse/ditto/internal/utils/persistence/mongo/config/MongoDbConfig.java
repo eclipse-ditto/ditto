@@ -138,6 +138,13 @@ public interface MongoDbConfig {
         boolean isSslEnabled();
 
         /**
+         * Gets the Ceritificate Authority root certificate file for use in SSL.
+         *
+         * @return the CA root certificate file path.
+         */
+        String sslCaFile();
+
+        /**
          * Gets the desired read preference that should be used for accessing MongoDB.
          *
          * @return the desired read preference.
@@ -196,6 +203,34 @@ public interface MongoDbConfig {
         String awsSessionName();
 
         /**
+         * Indicates whether to use X509 certificates for authentication.
+         *
+         * @return {@code true} if X509 Authentication should be used, {@code false} otherwise.
+         */
+        boolean isUseX509Authentication();
+
+        /**
+         * Gets the client certificate file for use in X509 authentication.
+         *
+         * @return The client certificate file path.
+         */
+        String sslClientCertFile();
+
+        /**
+         * Gets the client key file for use in X509 authentication.
+         *
+         * @return The client key file path.
+         */
+        String sslClientKeyFile();
+
+        /**
+         * Gets the client key file's encryption password.
+         *
+         * @return The client key file's encryption password.
+         */
+        String sslClientKeyPassword();
+
+        /**
          * Gets the extra options to add to the configured MongoDB {@code uri}.
          *
          * @return the extra options.
@@ -211,6 +246,11 @@ public interface MongoDbConfig {
              * Determines whether SSL should be enabled for the configured MongoDB source.
              */
             SSL_ENABLED("ssl", false),
+
+            /**
+             * Specifies the CA root certificate file to use for SSL.
+             */
+            SSL_CA_FILE("sslCAFile", ""),
 
             /**
              * Determines the read preference used for MongoDB connections. See {@link ReadPreference} for available options.
@@ -252,6 +292,26 @@ public interface MongoDbConfig {
              * Specifies the AWS session name to be used when assuming the IAM role.
              */
             AWS_SESSION_NAME("awsSessionName", "dittoSession"),
+
+            /**
+             * Determines whether X509 certificates should be used for authentication.
+             */
+            USE_X509_AUTHENTICATION("useX509Authentication", false),
+
+            /**
+             * Specifies the client certificate file for use in X509 authentication.
+             */
+            SSL_CLIENT_CERT_FILE("sslClientCertFile", ""),
+
+            /**
+             * Specifies the client key file for use in X509 authentication.
+             */
+            SSL_CLIENT_KEY_FILE("sslClientKeyFile", ""),
+
+            /**
+             * Specifies the client key file's encryption password.
+             */
+            SSL_CLIENT_KEY_PASSWORD("sslClientKeyPassword", ""),
 
             /**
              * The extra options to add to the configured MongoDB {@code uri}.

@@ -12,7 +12,10 @@
  */
 package org.eclipse.ditto.internal.utils.persistence.mongo.config;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.assertj.core.api.JUnitSoftAssertions;
+import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -54,8 +57,52 @@ public final class DefaultOptionsConfigTest {
         final DefaultOptionsConfig underTest = DefaultOptionsConfig.of(rawMongoDbConfig);
 
         softly.assertThat(underTest.toString()).contains(underTest.getClass().getSimpleName())
-                .contains("sslEnabled", "readPreference", "readConcern", "writeConcern",
-                        "retryWrites");
+                .contains("sslEnabled", "sslCaFile", "useX509Authentication", "sslClientCertFile",
+                        "sslClientKeyFile", "sslClientKeyPassword=***", "readPreference", "readConcern",
+                        "writeConcern", "retryWrites");
+    }
+
+    @Test
+    public void rejectsEnablingBothAwsIamAndX509Authentication() {
+        final Config invalid = ConfigFactory.parseString(
+                "options.useAwsIamRole = true\n" +
+                        "options.useX509Authentication = true\n" +
+                        "options.ssl = true\n" +
+                        "options.sslClientCertFile = \"/path/to/cert.pem\"\n" +
+                        "options.sslClientKeyFile = \"/path/to/key.pem\"\n");
+
+        assertThatThrownBy(() -> DefaultOptionsConfig.of(invalid))
+                .isInstanceOf(DittoConfigError.class)
+                .hasMessageContaining("useAwsIamRole")
+                .hasMessageContaining("useX509Authentication");
+    }
+
+    @Test
+    public void rejectsX509AuthenticationWithoutSsl() {
+        final Config invalid = ConfigFactory.parseString(
+                "options.useX509Authentication = true\n" +
+                        "options.ssl = false\n" +
+                        "options.sslClientCertFile = \"/path/to/cert.pem\"\n" +
+                        "options.sslClientKeyFile = \"/path/to/key.pem\"\n");
+
+        assertThatThrownBy(() -> DefaultOptionsConfig.of(invalid))
+                .isInstanceOf(DittoConfigError.class)
+                .hasMessageContaining("X509")
+                .hasMessageContaining("ssl");
+    }
+
+    @Test
+    public void rejectsX509AuthenticationWithoutClientCertOrKey() {
+        final Config invalid = ConfigFactory.parseString(
+                "options.useX509Authentication = true\n" +
+                        "options.ssl = true\n" +
+                        "options.sslClientCertFile = \"\"\n" +
+                        "options.sslClientKeyFile = \"\"\n");
+
+        assertThatThrownBy(() -> DefaultOptionsConfig.of(invalid))
+                .isInstanceOf(DittoConfigError.class)
+                .hasMessageContaining("sslClientCertFile")
+                .hasMessageContaining("sslClientKeyFile");
     }
 
     @Test
