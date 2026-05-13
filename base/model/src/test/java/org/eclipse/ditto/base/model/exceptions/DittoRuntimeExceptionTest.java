@@ -91,9 +91,9 @@ public final class DittoRuntimeExceptionTest {
         // The wire format must be identical regardless of whether the source exception is stackless.
         final org.eclipse.ditto.json.JsonObject json = original.toJson();
 
-        assertThat(json.getValue(DittoRuntimeException.JsonFields.STATUS).orElseThrow().intValue())
+        assertThat(json.getValue(DittoRuntimeException.JsonFields.STATUS).get().intValue())
                 .isEqualTo(HttpStatus.NOT_FOUND.getCode());
-        assertThat(json.getValue(DittoRuntimeException.JsonFields.ERROR_CODE).orElseThrow())
+        assertThat(json.getValue(DittoRuntimeException.JsonFields.ERROR_CODE).get())
                 .isEqualTo(TestDittoRuntimeException.ERROR_CODE);
         // No stack-trace-related field in the JSON.
         assertThat(json.contains(org.eclipse.ditto.json.JsonKey.of("stackTrace"))).isFalse();
