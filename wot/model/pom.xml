@@ -109,7 +109,6 @@
                     <parameter>
                         <excludes>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
-                            <exclude>org.eclipse.ditto.wot.model.FormElementAdditionalResponse$Builder#build()</exclude>
                         </excludes>
                     </parameter>
                 </configuration>
