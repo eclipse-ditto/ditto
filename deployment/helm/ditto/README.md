@@ -122,6 +122,36 @@ things:
 ```
 
 
+## Versioning and changelog
+
+Since Ditto 3.9.0 the Helm chart version (`Chart.yaml` → `version`) is tracked **independently** of
+the Ditto application version (`Chart.yaml` → `appVersion`). The chart follows
+[Semantic Versioning](https://semver.org/):
+
+- **MAJOR** — incompatible changes to `values.yaml` keys, removed templates, or required user action on upgrade.
+- **MINOR** — backwards-compatible new configuration options or templates.
+- **PATCH** — backwards-compatible fixes or dependency bumps without behavior change.
+
+All chart changes are recorded in [CHANGELOG.md](CHANGELOG.md) and mirrored into the
+`artifacthub.io/changes` annotation of `Chart.yaml` for the corresponding release, so the entries
+also render on the [Artifact Hub chart page](https://artifacthub.io/).
+
+### Contributor workflow
+
+When opening a chart-affecting PR:
+
+1. Apply the `Helm chart` label to the PR.
+2. Assign the PR to the chart milestone it targets (e.g. `helm-chart-4.1.0`); create the milestone
+   if it does not yet exist.
+3. Bump `Chart.yaml` → `version` according to SemVer (the release job may override the final value,
+   but the intended bump should be visible in the diff).
+4. Add an entry under `## [Unreleased]` in [CHANGELOG.md](CHANGELOG.md) using one of the Artifact
+   Hub change kinds (`added`, `changed`, `deprecated`, `removed`, `fixed`, `security`) and linking
+   the PR.
+5. On release, the `[Unreleased]` block is renamed to the new chart version, mirrored into
+   `Chart.yaml` → `annotations.artifacthub.io/changes`, and a fresh `[Unreleased]` section is added
+   on top.
+
 ## Troubleshooting
 
 If you experience high resource consumption (either CPU or RAM or both), you can limit the resource usage by
