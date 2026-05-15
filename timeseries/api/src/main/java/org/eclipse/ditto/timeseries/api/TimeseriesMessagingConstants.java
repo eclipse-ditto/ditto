@@ -17,6 +17,8 @@ import javax.annotation.concurrent.Immutable;
 /**
  * Constants for the Timeseries service messaging — service name, Pekko cluster role, root-actor
  * path.
+ *
+ * @since 4.0.0
  */
 @Immutable
 public final class TimeseriesMessagingConstants {

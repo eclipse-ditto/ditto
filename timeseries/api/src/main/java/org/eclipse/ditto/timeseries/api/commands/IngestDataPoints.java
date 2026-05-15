@@ -55,9 +55,12 @@ import org.eclipse.ditto.timeseries.model.TimeseriesDataPoint;
  *
  * <h2>Idempotency</h2>
  * The {@link DittoHeaders#getCorrelationId() correlation-id} doubles as the publisher's delivery
- * identifier. A retry carries the same correlation-id, letting the receiver distinguish a retry
- * from a genuinely new batch when (Phase 2) write-side dedup is added. Phase 1 writes
- * unconditionally and accepts a small duplicate-row window during publisher retries.
+ * identifier. A retry carries the same correlation-id; the receiver's in-memory
+ * {@code recentlyApplied} ring uses it to recognise replays within an actor lifetime and ack
+ * idempotently. A cross-passivation retry can still produce one duplicate row — closing that
+ * window is tracked as adapter-side {@code (thingId, path, timestamp)} dedup in a later phase.
+ *
+ * @since 4.0.0
  */
 @Immutable
 @JsonParsableCommand(typePrefix = IngestDataPoints.TYPE_PREFIX, name = IngestDataPoints.NAME)
