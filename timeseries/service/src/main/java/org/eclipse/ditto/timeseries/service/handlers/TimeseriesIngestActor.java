@@ -29,27 +29,21 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.AbstractActorWithTimers;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.PoisonPill;
 import org.apache.pekko.actor.Props;
 import org.apache.pekko.actor.Status;
 import org.apache.pekko.cluster.sharding.ShardRegion;
 import org.apache.pekko.pattern.Patterns;
-import org.apache.pekko.persistence.RecoveryCompleted;
-import org.apache.pekko.persistence.SaveSnapshotFailure;
-import org.apache.pekko.persistence.SaveSnapshotSuccess;
-import org.apache.pekko.persistence.SnapshotOffer;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.internal.utils.cluster.PekkoJacksonCborSerializable;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
-import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistentActorWithTimersAndCleanup;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
@@ -70,50 +64,58 @@ import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveTimeseries;
 import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveTimeseriesResponse;
 
 /**
- * Per-Thing sharded <em>persistent</em> entity that journals each {@link IngestDataPoints}
- * batch before writing it to the configured {@link TimeseriesAdapter}, mirroring the
- * shape of {@code ThingPersistenceActor} on the things-service side.
+ * Per-Thing sharded entity that forwards each {@link IngestDataPoints} batch to the
+ * configured {@link TimeseriesAdapter} and serves {@link RetrieveTimeseries} reads for
+ * the same Thing.
  *
- * <h2>Why persistent</h2>
- * Without a journal, a node crash between {@code adapter.writeBatch} starting and
- * completing silently loses the batch — the publisher's {@code Patterns.ask} times out
- * and retries, but if the publisher itself has crashed too, the data is gone. With a
- * journal, the entity survives node failure: on restart, replay reveals batches that
- * were received but not applied, and the actor retries the MongoDB write itself
- * (no publisher needed). This matches the durability guarantee
- * {@code ThingPersistenceActor} gives Thing entities.
+ * <h2>No Pekko Persistence</h2>
+ * Unlike {@code ThingPersistenceActor}, this actor has no entity state that evolves over
+ * events: the durable truth is the MongoDB Time Series collection itself. The publisher
+ * ({@code TimeseriesIngestPublisher}) already retries failed batches with bounded
+ * {@code MAX_ATTEMPTS}, which covers the same crash window an event-sourced journal
+ * would have protected. Pekko Persistence was therefore intentionally dropped to avoid
+ * paying an extra MongoDB write per batch plus snapshot churn for redundant protection.
  *
- * <h2>Event sequence per batch</h2>
+ * <h2>Write path</h2>
  * <ol>
- *   <li>Receive {@link IngestDataPoints} command. If the {@code correlation-id} is
- *       already in the in-flight map, treat as a publisher replay — re-trigger the
- *       MongoDB write but don't journal again.</li>
- *   <li>Otherwise persist {@link IngestReceivedEvent} carrying the JSON-encoded batch,
- *       then trigger {@code adapter.writeBatch}.</li>
- *   <li>On write success: persist {@link IngestAppliedEvent} (clears the in-flight
- *       entry), then reply {@link IngestDataPointsResponse} to the original sender.</li>
- *   <li>On write failure: <em>do not</em> journal applied; tell sender
- *       {@link Status.Failure} so its retry timer fires. The in-flight entry stays —
- *       on the next replay (publisher retry or actor restart) we'll try MongoDB again.</li>
+ *   <li>Receive {@link IngestDataPoints}. If empty, ack immediately without calling the
+ *       adapter.</li>
+ *   <li>If the {@code correlation-id} is in the {@link #recentlyApplied} ring, the batch
+ *       was already written; ack idempotently (covers the race where the publisher's
+ *       ask times out at 5s but our adapter write completed in the same tick).</li>
+ *   <li>If the {@code correlation-id} is already in {@link #liveSenders}, a write is
+ *       in flight for that batch; replace the sender reference so the eventual reply
+ *       reaches the most recent retry, but do not start a second write.</li>
+ *   <li>Otherwise register the sender and call {@code adapter.writeBatch}.</li>
+ *   <li>On {@code writeBatch} success: ack the sender, record the correlation-id in
+ *       {@link #recentlyApplied}, and clear the live-sender entry.</li>
+ *   <li>On {@code writeBatch} failure: clear the live-sender entry and reply with
+ *       {@link Status.Failure}; the publisher's retry timer fires and re-asks with the
+ *       same correlation-id.</li>
  * </ol>
  *
- * <h2>Idempotency</h2>
- * The publisher carries the same {@code correlation-id} across retries. Receiving an
- * already-in-flight correlation-id short-circuits to "re-trigger write only". On
- * recovery from journal, batches without a matching {@code IngestAppliedEvent} are
- * retried against MongoDB. Phase 2 accepts that a crash window between
- * {@code writeBatch} success and {@code IngestAppliedEvent} persist can produce one
- * duplicate row in the time-series collection — Phase 3 closes that with
- * (thingId, path, timestamp) dedup against MongoDB before insert.
+ * <h2>Idempotency window</h2>
+ * The bounded {@link #recentlyApplied} LRU covers the duplicate-on-success window only
+ * within the current actor lifetime. After passivation or actor restart the ring is
+ * empty, so a duplicate retry that lands across a restart can produce one duplicate row
+ * in the time-series collection. A later phase closes that gap with
+ * {@code (thingId, path, timestamp)} dedup inside the MongoDB adapter.
  *
- * <h2>Snapshots and passivation</h2>
- * Snapshots are taken every {@value #SNAPSHOT_THRESHOLD} events to keep journal-replay
- * bounded. The actor passivates after {@value #PASSIVATION_TIMEOUT_SECONDS}s of idle —
- * sends {@link ShardRegion.Passivate} to the parent (the shard) so the entity stops and
- * its memory is released. Cluster sharding re-creates the actor on the next message
- * for this Thing.
+ * <h2>Read path</h2>
+ * Co-located on the same per-Thing entity so the edge forwarder can route
+ * {@link RetrieveTimeseries} via the timeseries shard region with
+ * {@code AskWithRetryCommandForwarder} (same shape as {@code forwardToThings}). The
+ * read path resolves the Thing's policy id via {@link SudoRetrieveThing}, loads the
+ * cached enforcer, verifies the configured permission on every requested path, then
+ * asks the adapter for results. Authorization failures surface as
+ * {@link ThingNotAccessibleException} (404-not-403).
+ *
+ * <h2>Passivation</h2>
+ * The actor passivates after {@value #PASSIVATION_TIMEOUT_SECONDS}s of idle (no
+ * in-flight writes). Cluster sharding re-creates it on the next message for this
+ * Thing.
  */
-public final class TimeseriesIngestActor extends AbstractPersistentActorWithTimersAndCleanup {
+public final class TimeseriesIngestActor extends AbstractActorWithTimers {
 
     /**
      * Thread-safe logger for the read path: the enforcement chain
@@ -121,33 +123,11 @@ public final class TimeseriesIngestActor extends AbstractPersistentActorWithTime
      * {@code adapter.query(...)}) executes on stages off the actor's mailbox thread, so any log
      * statement reached from one of those callbacks must use a thread-safe logger rather than
      * the inherited single-threaded {@code log} ({@code DittoDiagnosticLoggingAdapter}). The
-     * inherited {@code log} is still used for on-actor-thread call sites (receive handlers,
-     * recovery, snapshot bookkeeping) where its MDC integration is helpful.
+     * inherited {@code log} is still used for on-actor-thread call sites (receive handlers)
+     * where its MDC integration is helpful.
      */
     private static final ThreadSafeDittoLogger LOGGER =
             DittoLoggerFactory.getThreadSafeLogger(TimeseriesIngestActor.class);
-
-    /**
-     * Pekko persistence journal plugin id. The matching block in {@code timeseries.conf}
-     * declares the MongoDB-backed journal collection.
-     */
-    public static final String JOURNAL_PLUGIN_ID =
-            "pekko-contrib-mongodb-persistence-timeseries-journal";
-
-    /**
-     * Pekko persistence snapshot plugin id; snapshots go to the matching
-     * {@code timeseries_snaps} collection.
-     */
-    public static final String SNAPSHOT_PLUGIN_ID =
-            "pekko-contrib-mongodb-persistence-timeseries-snapshots";
-
-    /**
-     * Take a snapshot every N events. Matches the order-of-magnitude that
-     * {@code ThingPersistenceActor}'s default snapshot threshold targets — we'd rather
-     * take a few extra snapshots than have replays cross thousands of events on
-     * recovery.
-     */
-    static final int SNAPSHOT_THRESHOLD = 50;
 
     /**
      * Idle period before the entity passivates. Cluster sharding re-creates it on the
@@ -169,11 +149,19 @@ public final class TimeseriesIngestActor extends AbstractPersistentActorWithTime
 
     /**
      * Bound on the in-memory ring of recently-applied correlation-ids. Sized for typical
-     * publisher retry windows: the publisher's MAX_ATTEMPTS=3 retries with 5s ask-timeout
-     * fits inside ~15s, and a busy entity processes ~hundreds of writes/sec at most. 256
-     * entries comfortably covers that without unbounded memory growth.
+     * publisher retry windows: with MAX_ATTEMPTS=3 retries × 5 s ask-timeout the publisher
+     * can re-ask up to ~15 s after the original send. At 1024 entries the ring covers ~68
+     * sustained events/sec for that whole window — enough headroom for a single Thing
+     * pushing ~50 properties/sec each at 1 Hz, which exceeds realistic IoT workloads. The
+     * memory cost is bounded: ~1024 × (UUID-string + Boolean) ≈ ~100 KB per entity.
+     * <p>
+     * If an entity sustains a higher rate than that, retries arriving after the entry has
+     * been evicted fall through to a fresh {@code triggerWrite}, producing one duplicate
+     * row in MongoDB for the affected batch. Cross-passivation duplicates are a separate
+     * concern, addressed by adapter-side {@code (thingId, path, timestamp)} dedup in a
+     * later phase.
      */
-    private static final int APPLIED_RING_CAPACITY = 256;
+    private static final int APPLIED_RING_CAPACITY = 1024;
 
     /**
      * Default permission required to read timeseries data when none is configured. Must match the
@@ -188,6 +176,9 @@ public final class TimeseriesIngestActor extends AbstractPersistentActorWithTime
      */
     private static final Duration THING_LOOKUP_TIMEOUT = Duration.ofSeconds(5);
 
+    private final DittoDiagnosticLoggingAdapter log =
+            DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
+
     private final TimeseriesAdapter adapter;
     private final ThingId thingId;
 
@@ -199,53 +190,27 @@ public final class TimeseriesIngestActor extends AbstractPersistentActorWithTime
     private final String requiredPermission;
 
     /**
-     * In-memory mirror of journaled {@code IngestReceivedEvent} entries that have not
-     * yet had a matching {@code IngestAppliedEvent}. Insertion-ordered so on recovery
-     * we retry writes in the order they were received.
+     * Senders awaiting acks for in-flight adapter writes, keyed by correlation-id. A
+     * publisher retry that arrives while a write is still in flight replaces the entry
+     * (most recent sender wins) rather than triggering a second write.
      */
-    private final LinkedHashMap<String, IngestDataPoints> inflight = new LinkedHashMap<>();
+    private final Map<String, ActorRef> liveSenders = new HashMap<>();
 
     /**
-     * Bounded LRU ring of correlation-ids whose batches have been fully applied during
-     * the current actor lifetime. Lets us recognise a publisher retry that arrives after
-     * we journaled {@code IngestApplied} but the publisher's ask never saw the response
-     * (GC pause, network reorder) — without this ring, that retry would re-journal a
-     * fresh {@code IngestReceived} and produce a duplicate write to MongoDB Time Series.
-     * Phase 2 trade-off: state is in-memory only and lost on actor restart, so a retry
-     * crossing a restart can still produce one duplicate; Phase 3 closes that with
-     * (thingId, path, timestamp) dedup at the MongoDB layer.
+     * Bounded LRU of correlation-ids whose batches have been successfully written during
+     * the current actor lifetime. Covers the duplicate-on-success race where the
+     * publisher's {@code Patterns.ask} times out before our reply arrives, the publisher
+     * retries with the same id, and we'd otherwise issue a second {@code writeBatch}. The
+     * ring is in-memory only — across passivation / restart this protection is lost; a
+     * later adapter-side {@code (thingId, path, timestamp)} dedup closes that window.
      */
     private final LinkedHashMap<String, Boolean> recentlyApplied =
-            new LinkedHashMap<>(APPLIED_RING_CAPACITY, 0.75f, false) {
+            new LinkedHashMap<>(APPLIED_RING_CAPACITY + 1, 0.75f, true) {
                 @Override
                 protected boolean removeEldestEntry(final Map.Entry<String, Boolean> eldest) {
                     return size() > APPLIED_RING_CAPACITY;
                 }
             };
-
-    /**
-     * Senders captured during the current actor lifetime so we can reply to live
-     * publishers. Never journaled — on recovery this map is empty and we silently retry
-     * MongoDB writes without acking.
-     */
-    private final Map<String, ActorRef> liveSenders = new HashMap<>();
-
-    /**
-     * Sequence-number bookkeeping for snapshot scheduling. Bumped on each persist; when
-     * it crosses {@link #SNAPSHOT_THRESHOLD} we save a snapshot and reset the
-     * counter. Pekko's {@code lastSequenceNr()} would also work but is mutated by
-     * snapshot deletion too, which is harder to reason about.
-     */
-    private long eventsSinceSnapshot = 0;
-
-    /**
-     * Latest sequence number confirmed durable by the snapshot store. Required by
-     * {@link AbstractPersistentActorWithTimersAndCleanup#getLatestSnapshotSequenceNumber()}
-     * so the {@code CleanupPersistence} command can determine which journal entries are
-     * safe to delete (everything up to and including this sequence number is covered by
-     * the snapshot and can be pruned).
-     */
-    private long lastSavedSnapshotSequenceNr = 0L;
 
     @SuppressWarnings("unused")
     private TimeseriesIngestActor(final TimeseriesAdapter adapter,
@@ -304,205 +269,80 @@ public final class TimeseriesIngestActor extends AbstractPersistentActorWithTime
     }
 
     @Override
-    public String persistenceId() {
-        return "timeseries:" + thingId;
-    }
-
-    @Override
-    public String journalPluginId() {
-        return JOURNAL_PLUGIN_ID;
-    }
-
-    @Override
-    public String snapshotPluginId() {
-        return SNAPSHOT_PLUGIN_ID;
-    }
-
-    @Override
     public void preStart() throws Exception {
         super.preStart();
-        timers().startTimerWithFixedDelay(PASSIVATE_TICK, PASSIVATE_TICK,
+        getTimers().startTimerWithFixedDelay(PASSIVATE_TICK, PASSIVATE_TICK,
                 Duration.ofSeconds(PASSIVATION_TIMEOUT_SECONDS));
     }
 
     @Override
-    public Receive createReceiveRecover() {
-        return receiveBuilder()
-                .match(IngestReceivedEvent.class, this::recoverReceived)
-                .match(IngestAppliedEvent.class, this::recoverApplied)
-                .match(SnapshotOffer.class, this::recoverFromSnapshot)
-                .match(RecoveryCompleted.class, this::onRecoveryCompleted)
-                .build();
-    }
-
-    @Override
     public Receive createReceive() {
-        // Compose with the parent's Receive so CleanupPersistence (and the
-        // delete-snapshots / delete-messages responses it produces) reach the parent's
-        // handlers. orElse-pattern is the standard Ditto idiom for layering custom
-        // commands on top of the base behaviour.
         return receiveBuilder()
                 .match(IngestDataPoints.class, this::handleIngest)
                 .match(RetrieveTimeseries.class, this::handleRetrieveTimeseries)
                 .match(WriteCompleted.class, this::handleWriteCompleted)
-                .match(SaveSnapshotSuccess.class, this::handleSnapshotSuccess)
-                .match(SaveSnapshotFailure.class, ssf -> log.warning("Snapshot failed: {}", ssf.cause()))
                 .matchEquals(PASSIVATE_TICK, t -> maybePassivate())
-                .build()
-                .orElse(super.createReceive());
-    }
-
-    @Override
-    protected long getLatestSnapshotSequenceNumber() {
-        return lastSavedSnapshotSequenceNr;
-    }
-
-    private void handleSnapshotSuccess(final SaveSnapshotSuccess sss) {
-        lastSavedSnapshotSequenceNr = sss.metadata().sequenceNr();
+                .build();
     }
 
     private void handleIngest(final IngestDataPoints command) {
+        if (command.getDataPoints().isEmpty()) {
+            // Empty batch is a no-op — ack without touching the adapter (can happen if
+            // the publisher's WoT logic produces an empty result list).
+            getSender().tell(IngestDataPointsResponse.of(thingId, command.getDittoHeaders()), getSelf());
+            return;
+        }
+
         final String corrId = correlationIdOf(command);
         if (recentlyApplied.containsKey(corrId)) {
-            // Replay arriving AFTER we already journaled IngestApplied — the publisher's
-            // ask must have raced with the response (GC pause, network reorder). Don't
-            // re-journal and don't re-write; just ack so the publisher's retry queue
-            // drains. The bounded recentlyApplied ring covers the typical 15s retry
-            // window without unbounded memory growth.
+            // Duplicate retry landing after we already wrote + acked this batch — the
+            // publisher's ask must have raced with the response. Ack idempotently
+            // without re-writing.
             getSender().tell(IngestDataPointsResponse.of(thingId, command.getDittoHeaders()), getSelf());
             return;
         }
-        if (inflight.containsKey(corrId)) {
-            // Replay from the publisher's retry path. The journal already records
-            // IngestReceivedEvent for this correlation-id; re-trigger the MongoDB
-            // write without journaling again. Track the live sender so the eventual
-            // ack reaches the retrying publisher.
+
+        if (liveSenders.containsKey(corrId)) {
+            // Retry while the original write is still in flight — keep one writeBatch
+            // call open and ack the most recent retry when it completes.
             liveSenders.put(corrId, getSender());
-            triggerWrite(corrId, command);
             return;
         }
 
-        if (command.getDataPoints().isEmpty()) {
-            // Empty batch is a no-op — ack without journaling so the journal stays
-            // bounded for the empty case (which can happen if the publisher's WoT
-            // logic ever produces an empty result list).
-            getSender().tell(IngestDataPointsResponse.of(thingId, command.getDittoHeaders()), getSelf());
-            return;
-        }
-
-        final ActorRef sender = getSender();
-        persist(new IngestReceivedEvent(corrId, command.toJsonString()), event -> {
-            inflight.put(event.correlationId(), command);
-            liveSenders.put(event.correlationId(), sender);
-            eventsSinceSnapshot++;
-            triggerWrite(event.correlationId(), command);
-            maybeSnapshot();
-        });
+        liveSenders.put(corrId, getSender());
+        triggerWrite(corrId, command);
     }
 
     private void triggerWrite(final String correlationId, final IngestDataPoints command) {
         // Capture the correlation-id locally so the CompletionStage callback doesn't
         // close over actor state (which is forbidden by Ditto's actor-concurrency rules).
         adapter.writeBatch(command.getDataPoints()).whenComplete((ignored, throwable) ->
-                getSelf().tell(new WriteCompleted(correlationId, throwable), getSelf()));
+                getSelf().tell(new WriteCompleted(correlationId, command.getDittoHeaders(), throwable),
+                        getSelf()));
     }
 
     private void handleWriteCompleted(final WriteCompleted msg) {
-        final IngestDataPoints command = inflight.get(msg.correlationId());
-        if (command == null) {
-            // Already applied (e.g. raced with a duplicate handleIngest replay that
-            // landed first). Nothing to do.
-            return;
-        }
         final ActorRef sender = liveSenders.remove(msg.correlationId());
         if (msg.failure() != null) {
             final Throwable cause = unwrap(msg.failure());
             WRITE_FAILURES.increment();
-            log.warning("Failed to persist <{}> data points for thing <{}>: {}",
-                    command.getDataPoints().size(), thingId, cause.getMessage());
-            // Don't journal Applied — leave inflight so a subsequent replay
-            // (publisher retry or actor restart) tries again.
+            log.warning("Failed to persist data points for thing <{}>: {}",
+                    thingId, cause.getMessage());
             if (sender != null) {
                 sender.tell(new Status.Failure(cause), getSelf());
             }
             return;
         }
-
-        persist(new IngestAppliedEvent(msg.correlationId()), event -> {
-            inflight.remove(event.correlationId());
-            // Mark applied in the LRU ring so a publisher retry that arrives after this
-            // ack is dispatched is recognised and ack'd idempotently. The ring is
-            // in-memory only — see field javadoc for the Phase 3 follow-up that closes
-            // the across-restart duplicate window.
-            recentlyApplied.put(event.correlationId(), Boolean.TRUE);
-            eventsSinceSnapshot++;
-            if (sender != null) {
-                sender.tell(IngestDataPointsResponse.of(thingId, command.getDittoHeaders()), getSelf());
-            }
-            maybeSnapshot();
-        });
-    }
-
-    private void recoverReceived(final IngestReceivedEvent event) {
-        final IngestDataPoints command = parseCommand(event.commandJson());
-        if (command != null) {
-            inflight.put(event.correlationId(), command);
+        recentlyApplied.put(msg.correlationId(), Boolean.TRUE);
+        if (sender != null) {
+            sender.tell(IngestDataPointsResponse.of(thingId, msg.headers()), getSelf());
         }
-    }
-
-    private void recoverApplied(final IngestAppliedEvent event) {
-        inflight.remove(event.correlationId());
-        // Repopulate the LRU ring on recovery too so a retry that arrives shortly after
-        // restart is still recognised — within the bounds of the ring's capacity. (Older
-        // applied ids are evicted as new ones land; see APPLIED_RING_CAPACITY.)
-        recentlyApplied.put(event.correlationId(), Boolean.TRUE);
-    }
-
-    @SuppressWarnings("unchecked")
-    private void recoverFromSnapshot(final SnapshotOffer offer) {
-        if (!(offer.snapshot() instanceof IngestStateSnapshot snap)) {
-            log.warning("Unexpected snapshot type <{}>; ignoring", offer.snapshot().getClass());
-            return;
-        }
-        inflight.clear();
-        for (final Map.Entry<String, String> entry : snap.inflight().entrySet()) {
-            final IngestDataPoints command = parseCommand(entry.getValue());
-            if (command != null) {
-                inflight.put(entry.getKey(), command);
-            }
-        }
-    }
-
-    private void onRecoveryCompleted(final RecoveryCompleted ignored) {
-        if (inflight.isEmpty()) {
-            return;
-        }
-        log.info("Recovery complete; replaying <{}> in-flight batches for thing <{}>",
-                inflight.size(), thingId);
-        // Senders from before the crash are gone — we silently retry MongoDB writes
-        // without acking. The original publisher will have given up by now anyway, but
-        // the data still needs to land for chronological completeness.
-        for (final Map.Entry<String, IngestDataPoints> entry : inflight.entrySet()) {
-            triggerWrite(entry.getKey(), entry.getValue());
-        }
-    }
-
-    private void maybeSnapshot() {
-        if (eventsSinceSnapshot < SNAPSHOT_THRESHOLD) {
-            return;
-        }
-        final Map<String, String> snapInflight = new LinkedHashMap<>();
-        for (final Map.Entry<String, IngestDataPoints> e : inflight.entrySet()) {
-            snapInflight.put(e.getKey(), e.getValue().toJsonString());
-        }
-        saveSnapshot(new IngestStateSnapshot(snapInflight));
-        eventsSinceSnapshot = 0;
     }
 
     private void maybePassivate() {
         // Don't passivate while writes are in flight — the WriteCompleted callback
         // would arrive at a stopped actor and end up in dead letters.
-        if (inflight.isEmpty()) {
+        if (liveSenders.isEmpty()) {
             getContext().getParent().tell(new ShardRegion.Passivate(PoisonPill.getInstance()), getSelf());
         }
     }
@@ -512,19 +352,6 @@ public final class TimeseriesIngestActor extends AbstractPersistentActorWithTime
         // Unique-per-message so two batches without an id don't collide in the
         // in-flight map.
         return command.getDittoHeaders().getCorrelationId().orElseGet(() -> UUID.randomUUID().toString());
-    }
-
-    @Nullable
-    private IngestDataPoints parseCommand(final String json) {
-        try {
-            final JsonObject jsonObject = JsonFactory.newObject(json);
-            return IngestDataPoints.fromJson(jsonObject, DittoHeaders.empty());
-        } catch (final RuntimeException e) {
-            // A corrupt journal entry should not stop the whole entity from recovering.
-            // Log and skip — the missing batch is lost, but everything else proceeds.
-            log.error(e, "Could not parse journaled IngestDataPoints; skipping. JSON: {}", json);
-            return null;
-        }
     }
 
     @Nullable
@@ -686,31 +513,6 @@ public final class TimeseriesIngestActor extends AbstractPersistentActorWithTime
      * Internal callback message piped from the {@link TimeseriesAdapter}'s
      * {@link java.util.concurrent.CompletionStage} back to the actor thread.
      */
-    private record WriteCompleted(String correlationId, @Nullable Throwable failure) {}
-
-    /**
-     * Journal event recording that an {@link IngestDataPoints} batch was received and
-     * is pending durable write. Carries the JSON-stringified command (rather than the
-     * command object directly) so Jackson CBOR serialization stays straightforward —
-     * Signal subclasses don't have Jackson annotations and the JSON representation is
-     * the canonical wire format anyway.
-     */
-    public record IngestReceivedEvent(String correlationId, String commandJson)
-            implements PekkoJacksonCborSerializable {}
-
-    /**
-     * Journal event recording that the batch with the given correlation-id has been
-     * successfully written to MongoDB Time Series. The pair {@code IngestReceivedEvent}
-     * + {@code IngestAppliedEvent} marks a batch's lifecycle in the journal; absence of
-     * the second signals "retry me on recovery".
-     */
-    public record IngestAppliedEvent(String correlationId) implements PekkoJacksonCborSerializable {}
-
-    /**
-     * Snapshot payload — the in-flight map serialized as
-     * {@code correlationId -> commandJson}. Restoring snaps reconstructs the in-memory
-     * state without replaying journal events that are older than the snapshot.
-     */
-    public record IngestStateSnapshot(Map<String, String> inflight)
-            implements PekkoJacksonCborSerializable {}
+    private record WriteCompleted(String correlationId, DittoHeaders headers,
+                                  @Nullable Throwable failure) {}
 }

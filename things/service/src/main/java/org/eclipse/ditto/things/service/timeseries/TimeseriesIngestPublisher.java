@@ -68,17 +68,27 @@ import org.eclipse.ditto.wot.model.ThingModel;
  * annotation, and a Thing without the annotation receives no traffic regardless.
  *
  * <h2>Delivery model</h2>
- * The publisher itself is non-persistent: it does not survive a Things-service node crash
- * between {@code ThingPersistenceActor} delivering an {@link IngestRequest} and the ask
- * round-trip. Stronger durability lives on the receiving side — the Timeseries shard
- * region's entity is a Pekko-persistent actor that journals each batch before writing to
- * MongoDB Time Series. So once the publisher's ask has reached the shard region (which
- * cluster sharding buffers across rebalances and short network blips), durability is
- * the entity's responsibility.
- * <p>
- * The publisher retries on missing acks up to {@link #MAX_ATTEMPTS} times with the same
- * correlation-id. The entity uses that correlation-id to recognise replays and skip
- * duplicate writes (idempotent ingestion).
+ * Best-effort at-least-once with a bounded retry budget. Two crash domains to keep in mind:
+ * <ul>
+ *   <li><b>Timeseries-side crashes</b> (entity host node, MongoDB unavailable, network partition
+ *   between Things and Timeseries) are covered by this publisher's retry loop: up to
+ *   {@link #MAX_ATTEMPTS} attempts with the same correlation-id, which the receiving entity uses
+ *   to recognise replays and avoid duplicate writes (`recentlyApplied` LRU on the entity side).</li>
+ *   <li><b>Things-side crashes</b> between {@code ThingPersistenceActor.publishEvent} firing the
+ *   {@link IngestRequest} and the publisher's ask completing are <em>not</em> covered. The
+ *   publisher is non-persistent; its mailbox, in-flight WoT-resolution stages and in-flight asks
+ *   are in-memory only. A Things-service JVM crash in that window loses the affected batches.
+ *   The Things journal records the originating {@code FeaturePropertyModified} event durably, but
+ *   {@code publishEvent} is a post-persist hook that only fires for new events going forward —
+ *   recovery does not re-fire it. Closing this gap would require either a persistent local
+ *   publisher journal or a Timeseries-side replay against {@code MongoReadJournal}; neither is
+ *   in Phase 1 scope, and the IoT property-stream use case tolerates the resulting occasional
+ *   gaps.</li>
+ * </ul>
+ * The receiving entity is intentionally non-persistent (see {@code TimeseriesIngestActor}
+ * Javadoc, "No Pekko Persistence" section): the MongoDB Time Series collection is the durable
+ * truth, and this publisher's retry already covers the Timeseries-side crash window the journal
+ * would have protected.
  *
  * <h2>WoT resolution</h2>
  * The {@link WotThingModelResolver} caches resolved ThingModels and submodel maps
@@ -178,10 +188,20 @@ public final class TimeseriesIngestPublisher extends AbstractActor {
             return;
         }
         if (thing == null) {
+            // The persistence actor was operating on a non-existent or just-deleted entity. Nothing
+            // to ingest. Logged at DEBUG so grep-for-gaps debugging has a trail without flooding
+            // the steady-state log.
+            LOGGER.debug("Dropping ingest request for event <{}>: post-event Thing snapshot was null.",
+                    event.getType());
             return;
         }
         final Optional<IRI> tmIri = thing.getDefinition().map(TimeseriesIngestPublisher::toTmIri);
         if (tmIri.isEmpty()) {
+            // The Thing has no `definition` field pointing at a WoT TM. ditto:timeseries lives in
+            // the TM, so without one there's nothing to evaluate. Logged at DEBUG for the same
+            // grep-for-gaps reason.
+            LOGGER.debug("Dropping ingest request for thing <{}>: no `definition` field on the Thing.",
+                    thing.getEntityId().orElse(null));
             return;
         }
 
@@ -241,8 +261,8 @@ public final class TimeseriesIngestPublisher extends AbstractActor {
                                 command.getEntityId(), attempt + 1, MAX_ATTEMPTS, failureSubject);
                         // Schedule the retry on the actor thread so it doesn't race the
                         // next mailbox message. Same correlation-id signals "logical
-                        // replay" to the persistent entity, which dedups against its
-                        // last-applied table.
+                        // replay" to the receiving entity, which dedups against its
+                        // bounded in-memory `recentlyApplied` ring.
                         getSelf().tell(new RetrySend(command, attempt + 1), getSelf());
                     } else {
                         DROPPED_BATCHES.increment();

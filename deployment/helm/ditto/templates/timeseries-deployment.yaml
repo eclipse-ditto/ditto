@@ -173,19 +173,18 @@ spec:
                 -Dlogback.configurationFile=/opt/ditto/{{ .Values.global.logging.customConfigFile.fileName }}
                 {{- end }}
                 {{ join " " .Values.timeseries.systemProps }}
-            - name: MONGO_DB_SSL_ENABLED
-              value: "{{ printf "%t" .Values.dbconfig.timeseries.ssl }}"
-            - name: MONGO_DB_URI
+            # The timeseries-service does not use the shared `ditto.mongodb.*` config —
+            # the MongoDB-backed timeseries adapter has its own URI under
+            # `ditto.timeseries.adapter.mongodb.uri`, sourced from TIMESERIES_MONGODB_URI.
+            # The sibling-service env vars MONGO_DB_URI / MONGO_DB_CONNECTION_* / MONGO_DB_SSL_ENABLED
+            # would be silently ignored here; instead we wire the secret's `timeseries-uri`
+            # value directly into TIMESERIES_MONGODB_URI. Pool sizing / SSL knobs are encoded
+            # in the URI itself (`?maxPoolSize=&minPoolSize=&ssl=true`).
+            - name: TIMESERIES_MONGODB_URI
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.dbconfig.uriSecret | default ( printf "%s-mongodb-secret" ( include "ditto.fullname" . )) }}
                   key: timeseries-uri
-            - name: MONGO_DB_CONNECTION_MIN_POOL_SIZE
-              value: "{{ .Values.timeseries.config.mongodb.minPoolSize }}"
-            - name: MONGO_DB_CONNECTION_POOL_SIZE
-              value: "{{ .Values.timeseries.config.mongodb.maxPoolSize }}"
-            - name: MONGO_DB_CONNECTION_POOL_IDLE_TIME
-              value: "{{ .Values.timeseries.config.mongodb.maxPoolIdleTime }}"
             {{- if .Values.global.prometheus.enabled }}
             - name: PROMETHEUS_PORT
               value: "{{ .Values.global.prometheus.port }}"
@@ -204,21 +203,6 @@ spec:
               value: "{{ .Values.global.cluster.downAllWhenUnstable }}"
             - name: REMOTE_MAX_FRAMESIZE
               value: "{{ .Values.global.limits.clusterMaxFramesize }}"
-            # Pekko persistence circuit-breaker tuning for the timeseries journal +
-            # snapshot store (see timeseries.conf). Reuses the same env-var names
-            # the things-service uses; the values come from .Values.timeseries.*.
-            - name: BREAKER_MAXTRIES
-              value: "{{ .Values.timeseries.config.mongodb.journalCircuitBreaker.maxTries }}"
-            - name: BREAKER_TIMEOUT
-              value: "{{ .Values.timeseries.config.mongodb.journalCircuitBreaker.timeout }}"
-            - name: BREAKER_RESET
-              value: "{{ .Values.timeseries.config.mongodb.journalCircuitBreaker.reset }}"
-            - name: SNAPSHOT_BREAKER_MAXTRIES
-              value: "{{ .Values.timeseries.config.mongodb.snapsCircuitBreaker.maxTries }}"
-            - name: SNAPSHOT_BREAKER_TIMEOUT
-              value: "{{ .Values.timeseries.config.mongodb.snapsCircuitBreaker.timeout }}"
-            - name: SNAPSHOT_BREAKER_RESET
-              value: "{{ .Values.timeseries.config.mongodb.snapsCircuitBreaker.reset }}"
             # Timeseries-specific knobs (timeseries.conf).
             - name: TIMESERIES_REQUIRED_PERMISSION
               value: "{{ .Values.timeseries.config.enforcement.requiredPermission }}"
@@ -245,6 +229,14 @@ spec:
             {{- if .Values.timeseries.extraEnv }}
               {{- toYaml .Values.timeseries.extraEnv | nindent 12 }}
             {{- end }}
+            # AWS IAM auth (IRSA). The MongoDB Java driver since 4.4 handles MONGODB-AWS auth
+            # natively — it calls STS:AssumeRoleWithWebIdentity using AWS_ROLE_ARN +
+            # AWS_WEB_IDENTITY_TOKEN_FILE and obtains short-lived credentials. The URI must
+            # carry `?authMechanism=MONGODB-AWS&authSource=$external`, which mongodb-secret.yaml
+            # appends to `timeseries-uri` when `dbconfig.timeseries.useAwsIamRole` is true.
+            # MONGO_DB_USE_AWS_IAM_ROLE / MONGO_DB_AWS_* are kept for symmetry with sibling
+            # services (DefaultMongoDbConfig reads them); the timeseries adapter only consumes
+            # the standard AWS_* env vars below, which the driver's auth chain picks up.
             - name: MONGO_DB_USE_AWS_IAM_ROLE
               value: "{{ printf "%t" .Values.dbconfig.timeseries.useAwsIamRole }}"
             {{- if .Values.dbconfig.timeseries.useAwsIamRole }}
@@ -252,8 +244,12 @@ spec:
               value: "{{ .Values.dbconfig.timeseries.awsRegion }}"
             - name: MONGO_DB_AWS_ROLE_ARN
               value: "{{ .Values.dbconfig.timeseries.awsRoleArn }}"
+            - name: AWS_REGION
+              value: "{{ .Values.dbconfig.timeseries.awsRegion }}"
             - name: AWS_ROLE_ARN
               value: "{{ .Values.dbconfig.timeseries.awsRoleArn }}"
+            - name: AWS_ROLE_SESSION_NAME
+              value: "{{ .Values.dbconfig.timeseries.awsSessionName }}"
             - name: AWS_WEB_IDENTITY_TOKEN_FILE
               value: "/var/run/secrets/eks.amazonaws.com/serviceaccount/token"
             - name: MONGO_DB_AWS_SESSION_NAME

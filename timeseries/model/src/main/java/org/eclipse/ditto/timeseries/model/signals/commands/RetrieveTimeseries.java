@@ -134,6 +134,11 @@ public final class RetrieveTimeseries extends AbstractCommand<RetrieveTimeseries
 
     @Override
     public RetrieveTimeseries setDittoHeaders(final DittoHeaders dittoHeaders) {
+        // Goes through the public constructor, which re-evaluates
+        // FeatureToggle.checkTimeseriesFeatureEnabled. Matches MergeThing.setDittoHeaders:
+        // because the toggle is uniformly distributed via DittoService.injectSystemPropertiesLimits
+        // across all services, re-checking here is a defence-in-depth gate (e.g. a node whose
+        // sysprop wasn't injected for some reason cannot accidentally pass the command through).
         return of(query, dittoHeaders);
     }
 
