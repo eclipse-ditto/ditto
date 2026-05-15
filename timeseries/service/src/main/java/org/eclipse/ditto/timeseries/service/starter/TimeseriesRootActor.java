@@ -28,11 +28,10 @@ import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.base.service.config.DittoServiceConfig;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionCreator;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionProxyActorFactory;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
-import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
-import org.eclipse.ditto.internal.utils.persistentactors.cleanup.CleanupConfig;
-import org.eclipse.ditto.internal.utils.persistentactors.cleanup.PersistenceCleanupActor;
+import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory;
+import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
+import org.eclipse.ditto.internal.utils.health.config.DefaultHealthCheckConfig;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
@@ -136,28 +135,15 @@ public final class TimeseriesRootActor extends DittoRootActor {
         // via DittoConfigError rather than silently denying every query.
         final String requiredPermission = resolveRequiredPermission(rootConfig);
 
-        // Wire the persistence-cleanup actor so journaled IngestReceived/IngestApplied
-        // events are deleted up to the latest snapshot once each entity passes its
-        // cleanup threshold. Without this, the timeseries_journal grows monotonically
-        // for high-throughput Things — we'd be storing every batch's full lifecycle in
-        // MongoDB forever even though the in-memory state only needs the snapshot.
-        // Mirrors the things-service pattern at ThingsRootActor:220-222.
-        final CleanupConfig cleanupConfig = CleanupConfig.of(
-                DefaultScopedConfig.dittoScoped(rootConfig));
-        final MongoReadJournal mongoReadJournal = MongoReadJournal.newInstance(getContext().getSystem());
-        startChildActor(PersistenceCleanupActor.ACTOR_NAME,
-                PersistenceCleanupActor.props(cleanupConfig, mongoReadJournal,
-                        TimeseriesMessagingConstants.CLUSTER_ROLE));
-
-        // Start the timeseries shard region. Each entity is a per-Thing persistent actor
-        // (TimeseriesIngestActor) that journals each IngestDataPoints batch before writing to
-        // MongoDB Time Series — same backbone as ThingPersistenceActor on the things-service
-        // side. The same entity also handles the RetrieveTimeseries read path (mirrors
-        // ThingPersistenceActor handling both writes and reads), which is what lets the edge
-        // forwarder route via askWithRetryCommandForwarder against this shard region instead
-        // of a separate pub/sub-registered handler. Cluster sharding routes each command to
-        // the deterministic owner node and handles entity migration on cluster topology
-        // changes (entity actor restarts on the new owner with its journal intact).
+        // Start the timeseries shard region. Each entity is a per-Thing non-persistent actor
+        // (TimeseriesIngestActor) that forwards each IngestDataPoints batch to the configured
+        // adapter and serves RetrieveTimeseries reads for the same Thing. Co-locating reads on
+        // the write entity lets the edge forwarder route via askWithRetryCommandForwarder
+        // against this shard region instead of a separate pub/sub-registered handler. Cluster
+        // sharding routes each command to the deterministic owner node and handles entity
+        // migration on cluster topology changes; the publisher's retry covers in-flight batches
+        // across migration (no journal needed — the durable truth lives in the MongoDB Time
+        // Series collection itself).
         final int numberOfShards = timeseriesConfig.getClusterConfig().getNumberOfShards();
         ShardRegionCreator.start(getContext().getSystem(),
                 TimeseriesMessagingConstants.SHARD_REGION,
@@ -165,6 +151,19 @@ public final class TimeseriesRootActor extends DittoRootActor {
                         requiredPermission),
                 numberOfShards,
                 TimeseriesMessagingConstants.CLUSTER_ROLE);
+
+        // Wire the health-check actor + HTTP /status route so Kubernetes liveness/readiness probes
+        // resolve. The persistence checker is null because timeseries-service has no shared MongoDB
+        // persistence — the adapter manages its own connection (a future phase can surface
+        // adapter.getHealth() here as an additional checker). The health-check section is read
+        // under ditto.timeseries.health-check, falling back to library defaults if absent.
+        final var healthCheckConfig = DefaultHealthCheckConfig.of(timeseriesConfig);
+        final var healthCheckingActorOptions = HealthCheckingActorOptions
+                .getBuilder(healthCheckConfig.isEnabled(), healthCheckConfig.getInterval())
+                .build();
+        final ActorRef healthCheckingActor = startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
+                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, null));
+        bindHttpStatusRoute(timeseriesConfig.getHttpConfig(), healthCheckingActor);
 
         // Initialise the adapter asynchronously and pipe the outcome back as an internal message
         // so that init failures are visible in the root actor's log without blocking the actor

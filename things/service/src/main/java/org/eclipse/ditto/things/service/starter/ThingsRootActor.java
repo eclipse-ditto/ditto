@@ -129,12 +129,13 @@ public final class ThingsRootActor extends DittoRootActor {
         final ActorRef timeseriesIngestPublisher;
         if (FeatureToggle.isTimeseriesFeatureEnabled()) {
             // Build a proxy to the timeseries shard region. The shard region hosts per-Thing
-            // persistent IngestActor entities; cluster sharding routes each IngestDataPoints
-            // batch to the deterministic owner of the Thing's shard, where the entity
-            // journals it before writing to MongoDB Time Series. When no node with role
-            // "timeseries" has joined yet, sharded sends buffer at the proxy until the role
-            // becomes available — so deploying timeseries-service can be deferred without
-            // breaking things-service startup.
+            // non-persistent IngestActor entities; cluster sharding routes each IngestDataPoints
+            // batch to the deterministic owner of the Thing's shard, where the entity writes
+            // it through to MongoDB Time Series (the durable source of truth for timeseries
+            // data — there's no per-entity journal). When no node with role "timeseries" has
+            // joined yet, sharded sends buffer at the proxy until the role becomes available,
+            // so deploying timeseries-service can be deferred without breaking things-service
+            // startup.
             final ActorRef timeseriesShardRegionProxy = ShardRegionProxyActorFactory
                     .newInstance(actorSystem, clusterConfig)
                     .getShardRegionProxyActor(TimeseriesMessagingConstants.CLUSTER_ROLE,

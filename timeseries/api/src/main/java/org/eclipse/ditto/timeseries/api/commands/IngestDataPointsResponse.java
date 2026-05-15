@@ -37,15 +37,16 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.things.model.ThingId;
 
 /**
- * Acknowledgement reply to an {@link IngestDataPoints} command. Sent by the persistent
- * {@code TimeseriesIngestActor} entity to the publisher only after the batch has been
- * journaled <em>and</em> written to the MongoDB Time Series collection — receipt by the
- * publisher confirms the batch is durable on both layers, so the publisher can drop it
- * from its retry queue.
+ * Acknowledgement reply to an {@link IngestDataPoints} command. Sent by the
+ * {@code TimeseriesIngestActor} entity to the publisher only after the batch has been written
+ * to the MongoDB Time Series collection — receipt by the publisher confirms the batch is
+ * durable in the time-series store, so the publisher can drop it from its retry queue.
  * <p>
  * Carries no payload other than the {@link ThingId} and an HTTP 200 status. The
  * publisher matches the response to its in-flight request via the {@code correlation-id}
  * which {@code Patterns.ask} propagates automatically.
+ *
+ * @since 4.0.0
  */
 @Immutable
 @JsonParsableCommandResponse(type = IngestDataPointsResponse.TYPE)

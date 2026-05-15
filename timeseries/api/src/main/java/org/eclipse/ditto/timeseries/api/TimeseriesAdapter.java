@@ -40,6 +40,8 @@ import org.eclipse.ditto.timeseries.model.TimeseriesQueryResult;
  * {@link CompletionStage} that completes on a thread the caller should not block. Per Ditto's
  * actor-concurrency rules, callers route the result back through {@code Patterns.pipe(...)}
  * before mutating actor state.
+ *
+ * @since 4.0.0
  */
 public interface TimeseriesAdapter {
 

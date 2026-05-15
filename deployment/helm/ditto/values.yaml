@@ -382,21 +382,35 @@ dbconfig:
     # awsSessionName is the name of the session when assuming the AWS role.
     #  This can be used to identify the session in logs or IAM policies.
     awsSessionName: "dittoSession"
-  # timeseries the MongoDB configuration for Ditto "timeseries" service
+  # timeseries the MongoDB configuration for Ditto "timeseries" service.
+  # Authentication note: the timeseries adapter uses the MongoDB Java driver directly
+  # (not Ditto's shared DefaultMongoDbConfig path). The driver supports MONGODB-AWS auth
+  # natively since v4.4. When `useAwsIamRole: true`, the mongodb-secret template appends
+  # `?authMechanism=MONGODB-AWS&authSource=$external` to this URI before base64-encoding,
+  # and the deployment template injects the standard AWS_ROLE_ARN +
+  # AWS_WEB_IDENTITY_TOKEN_FILE + AWS_REGION + AWS_ROLE_SESSION_NAME env vars. The driver's
+  # built-in AWS auth chain assumes the role via STS:AssumeRoleWithWebIdentity using the
+  # IRSA-mounted token; no additional Ditto code path is needed. For non-IAM auth, encode
+  # credentials in the URI directly (e.g. `mongodb://user:pass@host:27017/ditto_ts`).
   timeseries:
     uri: mongodb://#{PLACEHOLDER_MONGODB_HOSTNAME}#:27017/ditto
     ssl: false
-    # useAwsIamRole specifies whether to use an AWS IAM Role for Service Accounts (IRSA) which the pod assumes.
+    # useAwsIamRole — when true, the URI is augmented with MONGODB-AWS authMechanism params
+    # in mongodb-secret.yaml and the deployment template sets the AWS_* env vars the driver
+    # consumes. Requires `serviceAccount.assumeAwsIamRole: true` so the IRSA token file is
+    # mounted into the pod, and the assumed role must have IAM auth granted on the Atlas /
+    # DocumentDB user (via the Atlas database-user IAM mapping).
     useAwsIamRole: false
-    # awsRegion defines the AWS region - if this is an empty string, the AWS SDK will attempt to identify the
-    #  region automatically based on the environment and eventually EC2 instances
+    # awsRegion — passed as both MONGO_DB_AWS_REGION (informational) and AWS_REGION (consumed
+    # by the MongoDB driver's bundled AWS auth chain for STS endpoint selection). Empty string
+    # lets the AWS SDK resolve from IMDS / pod metadata — usually works in EKS but can be flaky.
     awsRegion: ""
-    # awsRoleArn is the Amazon Resource Name (ARN) of the IAM role to be assumed by the pod.
-    #  This is required if useAwsIamRole is set to true.
-    #  Example: arn:aws:iam::<account-id>:role/<role-name>
+    # awsRoleArn — the IAM role the pod assumes for MongoDB access. Required when
+    # useAwsIamRole is true. Set as AWS_ROLE_ARN in the pod env so the driver's STS call
+    # targets this role. Example: arn:aws:iam::<account-id>:role/<role-name>
     awsRoleArn: ""
-    # awsSessionName is the name of the session when assuming the AWS role.
-    #  This can be used to identify the session in logs or IAM policies.
+    # awsSessionName — session name attached to the assumed-role identity; appears in
+    # CloudTrail and IAM-policy `aws:RoleSessionName` conditions. Set as AWS_ROLE_SESSION_NAME.
     awsSessionName: "dittoSession"
   ## If following property is set, an existing secret will be used to retrieve the mongodb connectionUris from.
   # uriSecret: my-uri-secret
@@ -1876,24 +1890,11 @@ timeseries:
     # scrapeTimeout: 15s
   # config holds timeseries-specific configuration
   config:
-    # mongodb holds mongodb-specific configuration of timeseries
-    mongodb:
-      # minPoolSize configures the minimum number of connections in the connection pool
-      minPoolSize: 10
-      # maxPoolSize configures the maximum number of connections in the connection pool
-      maxPoolSize: 200
-      # maxPoolIdleTime configures the maximum amount of time a pooled connection is allowed to idle before closing the connection
-      maxPoolIdleTime: 10m
-      # journalCircuitBreaker configures the circuit breaker for MongoDB operations on the event journal
-      journalCircuitBreaker:
-        maxTries: 10
-        timeout: 10s
-        reset: 5s
-      # snapsCircuitBreaker configures the circuit breaker for MongoDB operations on the snapshots persistence
-      snapsCircuitBreaker:
-        maxTries: 10
-        timeout: 20s
-        reset: 8s
+    # NOTE: the timeseries-service does NOT use Ditto's shared `ditto.mongodb.*` connection
+    # config. Pool sizing, SSL, and AWS-IAM are encoded directly in the MongoDB URI string
+    # (e.g. `mongodb://host:27017/?maxPoolSize=200&minPoolSize=10&ssl=true`) read from the
+    # `timeseries-uri` secret key into `TIMESERIES_MONGODB_URI`. Use `dbconfig.timeseries.uri`
+    # to control that URI.
     # enforcement holds the authorization configuration for the timeseries query path
     enforcement:
       # requiredPermission is the policy permission that must be granted on the queried resource path.
