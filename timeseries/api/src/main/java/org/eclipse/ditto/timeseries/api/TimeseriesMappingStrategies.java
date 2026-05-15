@@ -40,6 +40,8 @@ import org.eclipse.ditto.policies.api.PoliciesMappingStrategies;
  * permission to an existing policy never takes effect on the timeseries-service until restart).
  * Other Ditto services that use the caching enforcer (things, connectivity, search, gateway)
  * include the same pull for the same reason.
+ *
+ * @since 4.0.0
  */
 @Immutable
 public final class TimeseriesMappingStrategies extends MappingStrategies {

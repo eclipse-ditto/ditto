@@ -22,6 +22,8 @@ package org.eclipse.ditto.timeseries.api;
  * <p>
  * No methods are declared on this interface yet; it exists to make the SPI contract explicit and
  * to give a single type-token for adapter-config classes to share.
+ *
+ * @since 4.0.0
  */
 public interface TimeseriesAdapterConfig {
 }

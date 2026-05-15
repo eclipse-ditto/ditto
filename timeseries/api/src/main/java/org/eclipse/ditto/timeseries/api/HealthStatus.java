@@ -17,6 +17,8 @@ import javax.annotation.concurrent.Immutable;
 /**
  * Health status of a timeseries adapter as exposed by
  * {@link TimeseriesAdapter#getHealth()}.
+ *
+ * @since 4.0.0
  */
 @Immutable
 public enum HealthStatus {

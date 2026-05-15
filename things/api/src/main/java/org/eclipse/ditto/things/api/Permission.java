@@ -54,6 +54,7 @@ public final class Permission {
      * timeseries access is opt-in via policy.
      *
      * @see <a href="https://github.com/eclipse-ditto/ditto/issues/2291">Ditto issue #2291</a>
+     * @since 4.0.0
      */
     public static final String READ_TS = "READ_TS";
 

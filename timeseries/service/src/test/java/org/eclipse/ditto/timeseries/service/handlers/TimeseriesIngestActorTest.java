@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
@@ -46,15 +45,11 @@ import org.junit.Test;
 import com.typesafe.config.ConfigFactory;
 
 /**
- * Unit tests for the persistent sharded {@link TimeseriesIngestActor}. The actor's
- * lifecycle is non-trivial (journal-then-write-then-journal-applied), so each test
- * exercises one slice of the contract.
- * <p>
- * Persistence uses an in-memory journal (see {@code test.conf}) keyed by the
- * persistenceId, which means restarting the actor under the same name within one
- * {@link ActorSystem} replays its journal. Tests that exercise replay use this
- * property by stopping the actor with a {@code PoisonPill} and starting a new one
- * pointing at the same entity name.
+ * Unit tests for the sharded {@link TimeseriesIngestActor}. The actor is intentionally
+ * non-persistent — writes go directly to the configured adapter; the publisher's
+ * retry loop covers crash windows. Each test exercises one slice of the contract:
+ * happy-path ack, empty-batch no-op, adapter failure surfaces as Status.Failure,
+ * idempotent ack for duplicate retries, and the read path.
  */
 public final class TimeseriesIngestActorTest {
 
@@ -97,9 +92,8 @@ public final class TimeseriesIngestActorTest {
 
     @Test
     public void emptyBatchAcksWithoutWriting() {
-        // The actor's contract: empty batches ack without journaling and without
-        // calling the adapter, so the journal stays bounded for the empty case (which
-        // can happen if the publisher's WoT logic ever yields an empty list).
+        // Empty batches ack without calling the adapter (can happen if the publisher's
+        // WoT logic produces an empty result list).
         new TestKit(actorSystem) {{
             final RecordingAdapter adapter = new RecordingAdapter();
             final ActorRef ingest = startEntity(adapter, ThingId.of("org.eclipse.ditto", "empty-1"));
@@ -115,12 +109,10 @@ public final class TimeseriesIngestActorTest {
     }
 
     @Test
-    public void adapterFailureSurfacesAsStatusFailureWithoutJournalingApplied() {
-        // On adapter failure the actor must NOT journal IngestApplied — that's what
-        // lets recovery retry the batch. We can't directly observe the journal here,
-        // but we can observe (a) the publisher receives Status.Failure (its retry
-        // signal), and (b) a follow-up retry with the same correlation-id triggers
-        // another adapter call (proving inflight state was preserved).
+    public void adapterFailureSurfacesAsStatusFailure() {
+        // On adapter failure the actor replies with Status.Failure — the publisher's retry
+        // signal. A follow-up retry with the same correlation-id triggers another adapter
+        // call (the failed write cleared the in-flight slot, so we don't dedupe).
         new TestKit(actorSystem) {{
             final RuntimeException backendError = new RuntimeException("mongo unavailable");
             final RecordingAdapter adapter = new RecordingAdapter().failingWith(backendError);
@@ -134,9 +126,7 @@ public final class TimeseriesIngestActorTest {
             assertThat(failure.cause().getMessage()).contains("mongo unavailable");
             assertThat(adapter.writtenBatches).hasSize(1);
 
-            // Now simulate the publisher's retry — same correlation-id. The actor
-            // recognises it as inflight (journaled but not applied) and re-issues the
-            // adapter call rather than re-journaling.
+            // Publisher's retry with same correlation-id triggers a fresh adapter call.
             adapter.clearFailure();
             ingest.tell(IngestDataPoints.of(tid, sampleBatch(tid),
                     DittoHeaders.newBuilder().correlationId(corrId).build()), getRef());
@@ -147,12 +137,10 @@ public final class TimeseriesIngestActorTest {
 
     @Test
     public void retryAfterApplyIsAckedIdempotentlyWithoutRewriting() {
-        // The ack-lost-in-transit dedup window: first batch is fully applied (we get
-        // the ack), then the publisher re-sends with the same correlation-id (because
-        // its Patterns.ask raced with a GC pause / network reorder). The actor must
-        // recognise the replay against its bounded recently-applied ring and ack
-        // idempotently — re-journaling and re-writing would corrupt the timeseries
-        // collection with a duplicate row.
+        // The ack-lost-in-transit dedup window: first batch is applied (we get the ack),
+        // then the publisher re-sends with the same correlation-id (its Patterns.ask raced
+        // with a GC pause / network reorder). The bounded in-memory recently-applied ring
+        // recognises the replay and acks without a second adapter call.
         new TestKit(actorSystem) {{
             final RecordingAdapter adapter = new RecordingAdapter();
             final ThingId tid = ThingId.of("org.eclipse.ditto", "applied-retry-1");
@@ -171,53 +159,6 @@ public final class TimeseriesIngestActorTest {
             ingest.tell(command, getRef());
             expectMsgClass(IngestDataPointsResponse.class);
             assertThat(adapter.writtenBatches).hasSize(1);
-        }};
-    }
-
-    @Test
-    public void replayFromJournalRetriesUnappliedBatches() {
-        // The core durability test: a batch is journaled (IngestReceived) but not
-        // applied (because adapter failed). On actor restart, the journal replay
-        // rebuilds the inflight map and the actor retries the adapter call without
-        // any external trigger.
-        new TestKit(actorSystem) {{
-            final ThingId tid = ThingId.of("org.eclipse.ditto", "replay-1");
-            final RecordingAdapter failingAdapter = new RecordingAdapter()
-                    .failingWith(new RuntimeException("transient"));
-            final ActorRef firstInstance = startEntity(failingAdapter, tid);
-
-            final String corrId = "replay-test-" + UUID.randomUUID();
-            firstInstance.tell(IngestDataPoints.of(tid, sampleBatch(tid),
-                    DittoHeaders.newBuilder().correlationId(corrId).build()), getRef());
-            expectMsgClass(Status.Failure.class);
-            assertThat(failingAdapter.writtenBatches).hasSize(1);
-
-            // Stop the first instance — its in-memory state is gone but the journal
-            // entries persist within the test ActorSystem's in-memory plugin.
-            watch(firstInstance);
-            firstInstance.tell(org.apache.pekko.actor.PoisonPill.getInstance(), ActorRef.noSender());
-            expectTerminated(firstInstance);
-
-            // Bring up a new instance (same entity name → same persistenceId) with a
-            // working adapter. Recovery should retry the unapplied batch.
-            final RecordingAdapter healingAdapter = new RecordingAdapter();
-            final ActorRef secondInstance = startEntity(healingAdapter, tid);
-
-            // No external message; we just wait for the recovery-driven retry to land.
-            // Generous window because recovery + journal read + adapter call are all async.
-            within(java.time.Duration.ofSeconds(5), () -> {
-                while (healingAdapter.writtenBatches.isEmpty()) {
-                    try {
-                        Thread.sleep(50);
-                    } catch (final InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        throw new RuntimeException(ie);
-                    }
-                }
-                return null;
-            });
-            assertThat(healingAdapter.writtenBatches).hasSize(1);
-            assertThat(healingAdapter.writtenBatches.get(0)).hasSize(2);
         }};
     }
 
@@ -274,42 +215,9 @@ public final class TimeseriesIngestActorTest {
         }};
     }
 
-    @Test
-    public void replayDoesNotRetryAlreadyAppliedBatches() {
-        // Symmetric to the previous test: when the journal contains both
-        // IngestReceived and IngestApplied for a batch, recovery removes it from
-        // inflight and does NOT re-call the adapter. This is what bounds duplicate
-        // writes — without IngestApplied bookkeeping, every restart would re-write
-        // the entire journal.
-        new TestKit(actorSystem) {{
-            final ThingId tid = ThingId.of("org.eclipse.ditto", "applied-1");
-            final RecordingAdapter firstAdapter = new RecordingAdapter();
-            final ActorRef firstInstance = startEntity(firstAdapter, tid);
-
-            firstInstance.tell(IngestDataPoints.of(tid, sampleBatch(tid),
-                    DittoHeaders.newBuilder().correlationId("done").build()), getRef());
-            expectMsgClass(IngestDataPointsResponse.class);
-
-            watch(firstInstance);
-            firstInstance.tell(org.apache.pekko.actor.PoisonPill.getInstance(), ActorRef.noSender());
-            expectTerminated(firstInstance);
-
-            // Restart with a new adapter. Recovery should NOT call this adapter for
-            // the already-applied batch.
-            final RecordingAdapter secondAdapter = new RecordingAdapter();
-            final ActorRef secondInstance = startEntity(secondAdapter, tid);
-
-            // Brief settle then assert. expectNoMessage on our test ref doubles as a
-            // wait window (we don't expect any reply back at this ref because the
-            // recovery doesn't ack).
-            expectNoMessage(scala.concurrent.duration.Duration.create(500, TimeUnit.MILLISECONDS));
-            assertThat(secondAdapter.writtenBatches).isEmpty();
-        }};
-    }
-
     private ActorRef startEntity(final TimeseriesAdapter adapter, final ThingId thingId) {
-        // Cluster sharding sets the entity actor name to the entityId. We mimic that
-        // for tests so persistenceId is determined by the actor name.
+        // Cluster sharding sets the entity actor name to the entityId; we mimic that
+        // for tests so the actor's thingId is consistent with production wiring.
         return actorSystem.actorOf(TimeseriesIngestActor.propsForTest(adapter), thingId.toString());
     }
 
