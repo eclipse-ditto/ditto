@@ -1874,12 +1874,17 @@ timeseries:
     # (e.g. `mongodb://host:27017/?maxPoolSize=200&minPoolSize=10&ssl=true`) read from the
     # `timeseries-uri` secret key into `TIMESERIES_MONGODB_URI`. Use `dbconfig.timeseries.uri`
     # to control that URI.
-    # enforcement holds the authorization configuration for the timeseries query path
-    enforcement:
-      # requiredPermission is the policy permission that must be granted on the queried resource path.
-      #  Must be one of "READ" or "READ_TS" (validated at startup, DittoConfigError otherwise).
-      #  Default "READ_TS" — keep the timeseries surface gated by a separate, explicit permission.
-      requiredPermission: "READ_TS"
+    # simplifiedReadPermission selects the read-permission mode (two-mode contract, issue #2291
+    # Section 6.1):
+    #   - false (default, strict): read-path enforcer requires an explicit READ_TS grant on every
+    #     requested path. Historical access can be granted separately from live access.
+    #   - true (simplified): the enforcer instead checks the standard READ permission. Useful for
+    #     deployments preferring "if you can read the current value, you can read its history",
+    #     without rewriting existing policies to add READ_TS grants.
+    # A boolean rather than a permission-name string — the contract is binary; any other value
+    # would be a deployment footgun (typo'd permissions are silently treated as "no permission"
+    # by the policy enforcer).
+    simplifiedReadPermission: false
     # adapter selects the timeseries storage backend
     adapter:
       # type selects the timeseries database adapter implementation. Currently supports "mongodb".
