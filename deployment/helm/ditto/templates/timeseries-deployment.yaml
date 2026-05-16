@@ -13,7 +13,7 @@
 # MERGE_*, THINGS_WOT_TM_MODEL_VALIDATION_*, ENFORCEMENT_*, PEKKO_PERSISTENCE_MONGO_*
 # circuit-breaker tuning, etc.) are intentionally omitted; the timeseries-service
 # does not consume them. The timeseries-specific knobs come from timeseries.conf:
-# TIMESERIES_REQUIRED_PERMISSION, TIMESERIES_ADAPTER_TYPE, TIMESERIES_QUERY_*,
+# TIMESERIES_SIMPLIFIED_READ_PERMISSION, TIMESERIES_ADAPTER_TYPE, TIMESERIES_QUERY_*,
 # TIMESERIES_MONGODB_URI.
 {{- $name := include "ditto.name" . -}}
 {{- if .Values.timeseries.enabled -}}
@@ -204,8 +204,8 @@ spec:
             - name: REMOTE_MAX_FRAMESIZE
               value: "{{ .Values.global.limits.clusterMaxFramesize }}"
             # Timeseries-specific knobs (timeseries.conf).
-            - name: TIMESERIES_REQUIRED_PERMISSION
-              value: "{{ .Values.timeseries.config.enforcement.requiredPermission }}"
+            - name: TIMESERIES_SIMPLIFIED_READ_PERMISSION
+              value: "{{ printf "%t" .Values.timeseries.config.simplifiedReadPermission }}"
             - name: TIMESERIES_ADAPTER_TYPE
               value: "{{ .Values.timeseries.config.adapter.type }}"
             {{- with .Values.timeseries.config.adapter.mongodb }}

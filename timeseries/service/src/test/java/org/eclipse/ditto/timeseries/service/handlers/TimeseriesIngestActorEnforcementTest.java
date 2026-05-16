@@ -104,7 +104,7 @@ public final class TimeseriesIngestActorEnforcementTest {
             final TestProbe thingsShard = new TestProbe(actorSystem);
             final PolicyEnforcerProvider provider = stubProvider(policyEnforcerWithGrant(Permission.READ_TS));
             final ActorRef actor = startEntity(thingsShard.ref(), provider, recordingAdapter(),
-                    Permission.READ_TS, "granted-thing");
+                    false, "granted-thing");
 
             actor.tell(retrieveTimeseries(authHeaders("granted-cid")), getRef());
 
@@ -126,10 +126,10 @@ public final class TimeseriesIngestActorEnforcementTest {
         // never 403 — 403 would leak existence to a subject that can't read the resource.
         new TestKit(actorSystem) {{
             final TestProbe thingsShard = new TestProbe(actorSystem);
-            // Policy grants READ but not READ_TS — under the default required-permission this is denial.
+            // Policy grants READ but not READ_TS — under strict mode (default) this is denial.
             final PolicyEnforcerProvider provider = stubProvider(policyEnforcerWithGrant(Permission.READ));
             final ActorRef actor = startEntity(thingsShard.ref(), provider, recordingAdapter(),
-                    Permission.READ_TS, "denied-thing");
+                    false, "denied-thing");
 
             actor.tell(retrieveTimeseries(authHeaders("denied-cid")), getRef());
 
@@ -145,14 +145,14 @@ public final class TimeseriesIngestActorEnforcementTest {
 
     @Test
     public void simplifiedReadPermissionUnlocksTimeseriesWhenConfigured() {
-        // When the deployment opts into required-permission=READ, a plain READ grant suffices —
-        // documented as the "simplified" mode in Permission.READ_TS Javadoc. Verifies that the
-        // configured permission name actually drives the check (no hard-coded READ_TS).
+        // When the deployment opts into simplifiedReadPermission=true, a plain READ grant
+        // suffices — the "simplified" mode in the two-mode contract. Verifies that the
+        // boolean toggle actually drives the check (no hard-coded READ_TS).
         new TestKit(actorSystem) {{
             final TestProbe thingsShard = new TestProbe(actorSystem);
             final PolicyEnforcerProvider provider = stubProvider(policyEnforcerWithGrant(Permission.READ));
             final ActorRef actor = startEntity(thingsShard.ref(), provider, recordingAdapter(),
-                    Permission.READ, "simplified-thing");
+                    true, "simplified-thing");
 
             actor.tell(retrieveTimeseries(authHeaders("simplified-cid")), getRef());
 
@@ -172,7 +172,7 @@ public final class TimeseriesIngestActorEnforcementTest {
             final TestProbe thingsShard = new TestProbe(actorSystem);
             final PolicyEnforcerProvider provider = stubProvider(policyEnforcerWithGrant(Permission.READ_TS));
             final ActorRef actor = startEntity(thingsShard.ref(), provider, recordingAdapter(),
-                    Permission.READ_TS, "not-found-thing");
+                    false, "not-found-thing");
 
             actor.tell(retrieveTimeseries(authHeaders("nf-cid")), getRef());
 
@@ -193,7 +193,7 @@ public final class TimeseriesIngestActorEnforcementTest {
             final TestProbe thingsShard = new TestProbe(actorSystem);
             final PolicyEnforcerProvider provider = stubProvider(policyEnforcerWithGrant(Permission.READ_TS));
             final ActorRef actor = startEntity(thingsShard.ref(), provider, recordingAdapter(),
-                    Permission.READ_TS, "no-policy-thing");
+                    false, "no-policy-thing");
 
             actor.tell(retrieveTimeseries(authHeaders("nopol-cid")), getRef());
 
@@ -217,7 +217,7 @@ public final class TimeseriesIngestActorEnforcementTest {
             final PolicyEnforcerProvider provider =
                     policyId -> CompletableFuture.completedFuture(Optional.empty());
             final ActorRef actor = startEntity(thingsShard.ref(), provider, recordingAdapter(),
-                    Permission.READ_TS, "empty-enforcer-thing");
+                    false, "empty-enforcer-thing");
 
             actor.tell(retrieveTimeseries(authHeaders("empty-cid")), getRef());
 
@@ -236,15 +236,15 @@ public final class TimeseriesIngestActorEnforcementTest {
     private ActorRef startEntity(final ActorRef thingsShard,
             final PolicyEnforcerProvider provider,
             final TimeseriesAdapter adapter,
-            final String requiredPermission,
+            final boolean simplifiedReadPermission,
             final String actorNameSuffix) {
 
         // Cluster sharding sets the entity actor name to the entityId, and the actor URL-decodes
         // its own name to recover the ThingId — so the actor name must be a valid namespaced ID.
-        // Each scenario gets a unique suffix to keep the in-memory persistence journal isolated.
+        // Each scenario gets a unique suffix so the test fixtures stay isolated.
         final ThingId entityId = ThingId.of("org.eclipse.ditto", "sensor-" + actorNameSuffix);
         return actorSystem.actorOf(
-                Props.create(TimeseriesIngestActor.class, adapter, thingsShard, provider, requiredPermission),
+                Props.create(TimeseriesIngestActor.class, adapter, thingsShard, provider, simplifiedReadPermission),
                 entityId.toString());
     }
 

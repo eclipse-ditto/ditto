@@ -14,9 +14,9 @@ description: |
    * `READ` and `WRITE` apply to all resource types (`thing:/`, `policy:/`, `message:/`).
    * `READ_TS` (since 4.0.0) only applies to `thing:/...` resources and gates retrieval
      of historical timeseries data via the Timeseries API. Its enforcement is governed
-     by the Timeseries service configuration `ditto.timeseries.enforcement.required-permission`:
-     when set to `READ_TS` (default) an explicit `READ_TS` grant is required; when set to
-     `READ` a `READ` grant on the resource is also sufficient to read timeseries data.
+     by the boolean Timeseries service setting `ditto.timeseries.simplified-read-permission`:
+     when `false` (default, strict) an explicit `READ_TS` grant is required on every requested
+     path; when `true` (simplified) a standard `READ` grant on the resource is also sufficient.
 enum:
   - READ
   - WRITE
