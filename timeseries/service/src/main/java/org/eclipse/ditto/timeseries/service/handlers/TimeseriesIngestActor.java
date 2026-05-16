@@ -52,6 +52,7 @@ import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
+import org.eclipse.ditto.things.api.Permission;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.things.model.Thing;
@@ -164,13 +165,6 @@ public final class TimeseriesIngestActor extends AbstractActorWithTimers {
     private static final int APPLIED_RING_CAPACITY = 1024;
 
     /**
-     * Default permission required to read timeseries data when none is configured. Must match the
-     * default declared in {@code timeseries.conf}
-     * ({@code ditto.timeseries.enforcement.required-permission}).
-     */
-    public static final String DEFAULT_REQUIRED_PERMISSION = "READ_TS";
-
-    /**
      * Timeout for the {@link SudoRetrieveThing} ask. Kept conservative: this is an in-cluster
      * request to a sharded actor that should respond promptly; longer timeouts only mask issues.
      */
@@ -184,10 +178,15 @@ public final class TimeseriesIngestActor extends AbstractActorWithTimers {
 
     /** Things-shard proxy used by the read path to resolve the thing's policyId via SudoRetrieveThing. */
     @Nullable private final ActorRef thingsShardRegion;
-    /** Provider of the (cached) policy enforcer used to check READ_TS on each requested path. */
+    /** Provider of the (cached) policy enforcer used to check the configured read-permission. */
     @Nullable private final PolicyEnforcerProvider policyEnforcerProvider;
-    /** Permission name verified per path (e.g. "READ_TS" or "READ"). */
-    private final String requiredPermission;
+    /**
+     * When {@code false} (default, strict): the per-path enforcement check requires
+     * {@link Permission#READ_TS}. When {@code true} (simplified mode): the check requires
+     * {@link Permission#READ} on the resource instead. Two-mode contract — see
+     * {@code TimeseriesRootActor.SIMPLIFIED_READ_PERMISSION_CONFIG_PATH}.
+     */
+    private final boolean simplifiedReadPermission;
 
     /**
      * Senders awaiting acks for in-flight adapter writes, keyed by correlation-id. A
@@ -216,11 +215,11 @@ public final class TimeseriesIngestActor extends AbstractActorWithTimers {
     private TimeseriesIngestActor(final TimeseriesAdapter adapter,
             @Nullable final ActorRef thingsShardRegion,
             @Nullable final PolicyEnforcerProvider policyEnforcerProvider,
-            final String requiredPermission) {
+            final boolean simplifiedReadPermission) {
         this.adapter = checkNotNull(adapter, "adapter");
         this.thingsShardRegion = thingsShardRegion;
         this.policyEnforcerProvider = policyEnforcerProvider;
-        this.requiredPermission = checkNotNull(requiredPermission, "requiredPermission");
+        this.simplifiedReadPermission = simplifiedReadPermission;
         // The shard-region extractor names entity actors after their entityId (the
         // ThingId). URL-decode because cluster sharding URL-encodes entity names that
         // contain reserved characters.
@@ -230,15 +229,15 @@ public final class TimeseriesIngestActor extends AbstractActorWithTimers {
     /**
      * Test-only {@code Props} variant that skips authorization (read path returns adapter results
      * directly). Package-private so production wiring cannot reach it; production must use
-     * {@link #props(TimeseriesAdapter, ActorRef, PolicyEnforcerProvider, String)}, which requires
-     * a shard region + enforcer provider and enforces the configured permission per resource path.
+     * {@link #props(TimeseriesAdapter, ActorRef, PolicyEnforcerProvider, boolean)}, which requires
+     * a shard region + enforcer provider and enforces the configured read permission per resource
+     * path.
      *
      * @param adapter the timeseries adapter shared by all entities on this node.
      * @return the props.
      */
     static Props propsForTest(final TimeseriesAdapter adapter) {
-        return Props.create(TimeseriesIngestActor.class, adapter, null, null,
-                DEFAULT_REQUIRED_PERMISSION);
+        return Props.create(TimeseriesIngestActor.class, adapter, null, null, false);
     }
 
     /**
@@ -253,19 +252,19 @@ public final class TimeseriesIngestActor extends AbstractActorWithTimers {
      * authorization.
      * @param policyEnforcerProvider provider that loads the (cached)
      * {@link PolicyEnforcer} for the Thing's policy id.
-     * @param requiredPermission the permission name (e.g. {@code READ_TS} or {@code READ})
-     * that the requesting subject must hold on every requested resource path.
+     * @param simplifiedReadPermission when {@code false} the per-path enforcement check requires
+     * {@link Permission#READ_TS}; when {@code true} the check requires {@link Permission#READ}.
      * @return the props.
      */
     public static Props props(final TimeseriesAdapter adapter,
             final ActorRef thingsShardRegion,
             final PolicyEnforcerProvider policyEnforcerProvider,
-            final String requiredPermission) {
+            final boolean simplifiedReadPermission) {
         return Props.create(TimeseriesIngestActor.class,
                 adapter,
                 checkNotNull(thingsShardRegion, "thingsShardRegion"),
                 checkNotNull(policyEnforcerProvider, "policyEnforcerProvider"),
-                checkNotNull(requiredPermission, "requiredPermission"));
+                simplifiedReadPermission);
     }
 
     @Override
@@ -462,6 +461,11 @@ public final class TimeseriesIngestActor extends AbstractActorWithTimers {
 
     private void verifyPaths(final EnforcerWithContext enforcerWithContext,
             final RetrieveTimeseries command) {
+        // Two-mode contract per `simplifiedReadPermission`: strict (default) checks READ_TS;
+        // simplified checks READ. The selection is fixed for the lifetime of this entity (it's
+        // a constructor-injected boolean) so there's no per-request branching surprise.
+        final String requiredPermission =
+                simplifiedReadPermission ? Permission.READ : Permission.READ_TS;
         final Permissions required = Permissions.newInstance(requiredPermission);
         final List<JsonPointer> paths = command.getQuery().getPaths();
         for (final JsonPointer path : paths) {

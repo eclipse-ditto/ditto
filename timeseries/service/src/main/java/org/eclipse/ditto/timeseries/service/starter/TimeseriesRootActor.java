@@ -13,7 +13,6 @@
 package org.eclipse.ditto.timeseries.service.starter;
 
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -67,22 +66,25 @@ public final class TimeseriesRootActor extends DittoRootActor {
     static final String MONGODB_CONFIG_PATH = "ditto.timeseries.adapter.mongodb";
 
     /**
-     * Config path used to look up the permission a subject must hold on a resource to read its
-     * timeseries data. Mirrors the section in {@code timeseries.conf}; falling back to
-     * {@link TimeseriesIngestActor#DEFAULT_REQUIRED_PERMISSION} keeps the actor wiring tolerant
-     * to simplified test configurations that don't override this section.
+     * Config path used to look up whether timeseries reads accept the standard {@code READ}
+     * permission as a stand-in for {@code READ_TS}. Two-mode contract:
+     * <ul>
+     *   <li>{@code false} (default): the read-path enforcer requires an explicit
+     *       {@link Permission#READ_TS READ_TS} grant on every requested path. This is the
+     *       fine-grained model — historical data access can be granted separately from live
+     *       access.</li>
+     *   <li>{@code true}: the enforcer instead checks {@link Permission#READ}. Useful for
+     *       deployments preferring "if you can read the current value, you can read its
+     *       history" semantics, without rewriting existing policies to add READ_TS grants.</li>
+     * </ul>
+     * A boolean rather than a free-form permission-name string deliberately constrains the
+     * config surface to the two modes the design contract permits — any other permission value
+     * would have been a deployment footgun (typo'd or unrelated permissions would be silently
+     * treated as "no permission" by the enforcer, locking every caller out — see auth-authz.md
+     * "Mistyped names are silently ignored — the #1 footgun").
      */
-    static final String REQUIRED_PERMISSION_CONFIG_PATH = "ditto.timeseries.enforcement.required-permission";
-
-    /**
-     * Permission names accepted at {@value #REQUIRED_PERMISSION_CONFIG_PATH}. Validated at
-     * start-up — anything else throws {@link DittoConfigError} so a misconfigured deployment
-     * crashes fast rather than silently disabling enforcement (typo'd permission names are
-     * silently ignored by the policy enforcer; see auth-authz.md, "Mistyped names are silently
-     * ignored — the #1 footgun").
-     */
-    private static final Set<String> ALLOWED_REQUIRED_PERMISSIONS =
-            Set.of(Permission.READ, Permission.READ_TS);
+    static final String SIMPLIFIED_READ_PERMISSION_CONFIG_PATH =
+            "ditto.timeseries.simplified-read-permission";
 
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
@@ -128,12 +130,8 @@ public final class TimeseriesRootActor extends DittoRootActor {
         final PolicyEnforcerProvider policyEnforcerProvider =
                 PolicyEnforcerProviderExtension.get(getContext().system()).getPolicyEnforcerProvider();
 
-        // Read and validate the configured timeseries-read permission (default READ_TS). A
-        // typo'd permission name is silently treated as "no permission" by the policy enforcer
-        // (auth-authz.md, "Mistyped names are silently ignored — the #1 footgun"), so we
-        // validate against a known-good set at start-up; an unknown value crashes the service
-        // via DittoConfigError rather than silently denying every query.
-        final String requiredPermission = resolveRequiredPermission(rootConfig);
+        // Resolve the read-permission mode (default: false → require READ_TS).
+        final boolean simplifiedReadPermission = resolveSimplifiedReadPermission(rootConfig);
 
         // Start the timeseries shard region. Each entity is a per-Thing non-persistent actor
         // (TimeseriesIngestActor) that forwards each IngestDataPoints batch to the configured
@@ -148,7 +146,7 @@ public final class TimeseriesRootActor extends DittoRootActor {
         ShardRegionCreator.start(getContext().getSystem(),
                 TimeseriesMessagingConstants.SHARD_REGION,
                 TimeseriesIngestActor.props(adapter, thingsShardRegion, policyEnforcerProvider,
-                        requiredPermission),
+                        simplifiedReadPermission),
                 numberOfShards,
                 TimeseriesMessagingConstants.CLUSTER_ROLE);
 
@@ -201,26 +199,15 @@ public final class TimeseriesRootActor extends DittoRootActor {
     }
 
     /**
-     * Reads {@value #REQUIRED_PERMISSION_CONFIG_PATH} from the root config, falling back to
-     * {@link TimeseriesIngestActor#DEFAULT_REQUIRED_PERMISSION} when the section is absent
-     * (simplified test configs). Throws {@link DittoConfigError} when the configured value is
-     * not in {@link #ALLOWED_REQUIRED_PERMISSIONS} — a typo would be silently treated as
-     * "no permission" downstream and lock every caller out, which is worse than a deterministic
-     * crash at start-up.
+     * Reads {@value #SIMPLIFIED_READ_PERMISSION_CONFIG_PATH} from the root config, falling back
+     * to {@code false} (= strict mode, require READ_TS) when the section is absent. The boolean
+     * cast is HOCON-strict — a malformed value (e.g. {@code "READ"} left over from a pre-4.0
+     * configuration) throws {@link com.typesafe.config.ConfigException} at start-up rather than
+     * silently defaulting.
      */
-    private static String resolveRequiredPermission(final Config rootConfig) {
-        final String configured = rootConfig.hasPath(REQUIRED_PERMISSION_CONFIG_PATH)
-                ? rootConfig.getString(REQUIRED_PERMISSION_CONFIG_PATH)
-                : TimeseriesIngestActor.DEFAULT_REQUIRED_PERMISSION;
-        if (!ALLOWED_REQUIRED_PERMISSIONS.contains(configured)) {
-            throw new DittoConfigError(
-                    "Configured " + REQUIRED_PERMISSION_CONFIG_PATH + " <" + configured +
-                            "> is not one of " + ALLOWED_REQUIRED_PERMISSIONS +
-                            ". Mistyped permission names are silently ignored by the policy " +
-                            "enforcer — failing fast to avoid a deployment that locks every " +
-                            "caller out of the timeseries API.");
-        }
-        return configured;
+    private static boolean resolveSimplifiedReadPermission(final Config rootConfig) {
+        return rootConfig.hasPath(SIMPLIFIED_READ_PERMISSION_CONFIG_PATH)
+                && rootConfig.getBoolean(SIMPLIFIED_READ_PERMISSION_CONFIG_PATH);
     }
 
     /**
