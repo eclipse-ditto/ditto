@@ -15,24 +15,27 @@ package org.eclipse.ditto.timeseries.mongodb;
 import java.time.Duration;
 import java.util.Optional;
 
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.timeseries.api.TimeseriesAdapterConfig;
 
 /**
  * Configuration for the MongoDB Time Series adapter — the default Ditto-shipped implementation of
  * {@link org.eclipse.ditto.timeseries.api.TimeseriesAdapter}.
+ * <p>
+ * The connection itself (URI, IAM auth, pool sizing, SSL) is delegated to {@link MongoDbConfig}
+ * via {@link #getMongoDbConfig()} — same code path as Ditto's sibling services (things, policies,
+ * connectivity, …) which feed the {@code pekko-persistence-mongodb} plugin from the same source.
+ * Only the timeseries-specific tuning (database name lives on {@code MongoDbConfig#getMongoDbDatabaseName()},
+ * collection prefix, granularity, retention) is surfaced here.
  */
 public interface MongoDbTimeseriesAdapterConfig extends TimeseriesAdapterConfig {
 
     /**
-     * @return the MongoDB connection URI (e.g. {@code mongodb://localhost:27017}).
+     * @return the shared Ditto MongoDB connection configuration. Carries the URI, IAM settings,
+     * pool / circuit-breaker / SSL options and is consumed by {@code MongoClientWrapper.newInstance(…)}
+     * to build the actual MongoDB client.
      */
-    String getUri();
-
-    /**
-     * @return the MongoDB database name in which timeseries collections are created
-     * (default {@code "ditto_ts"}).
-     */
-    String getDatabase();
+    MongoDbConfig getMongoDbConfig();
 
     /**
      * @return the prefix used when deriving a per-namespace collection name

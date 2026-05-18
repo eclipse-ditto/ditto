@@ -22,21 +22,20 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 
 import com.typesafe.config.Config;
 
 /**
- * Default implementation of {@link MongoDbTimeseriesAdapterConfig}. Loads from a Typesafe
- * {@link Config} — typically the {@code ditto.timeseries.adapter.mongodb} sub-tree — falling back
- * to documented defaults when keys are absent.
+ * Default implementation of {@link MongoDbTimeseriesAdapterConfig}.
+ * <p>
+ * Connection settings (URI / IAM / pool / SSL) come from the shared {@link MongoDbConfig} that
+ * the sibling Ditto services also use. Only the time-series-specific tuning
+ * ({@code collection-prefix}, {@code granularity}, {@code retention}) is loaded from the
+ * {@code ditto.timeseries.adapter.mongodb} sub-tree of HOCON.
  */
 @Immutable
 public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimeseriesAdapterConfig {
-
-    /**
-     * Default database name when {@code database} is not set in HOCON.
-     */
-    public static final String DEFAULT_DATABASE = "ditto_ts";
 
     /**
      * Default collection-name prefix when {@code collection-prefix} is not set in HOCON.
@@ -48,26 +47,21 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
      */
     public static final Granularity DEFAULT_GRANULARITY = Granularity.SECONDS;
 
-    private static final String KEY_URI = "uri";
-    private static final String KEY_DATABASE = "database";
     private static final String KEY_COLLECTION_PREFIX = "collection-prefix";
     private static final String KEY_GRANULARITY = "granularity";
     private static final String KEY_RETENTION = "retention";
 
-    private final String uri;
-    private final String database;
+    private final MongoDbConfig mongoDbConfig;
     private final String collectionPrefix;
     private final Granularity granularity;
     @Nullable private final Duration retention;
 
-    private DefaultMongoDbTimeseriesAdapterConfig(final String uri,
-            final String database,
+    private DefaultMongoDbTimeseriesAdapterConfig(final MongoDbConfig mongoDbConfig,
             final String collectionPrefix,
             final Granularity granularity,
             @Nullable final Duration retention) {
 
-        this.uri = uri;
-        this.database = database;
+        this.mongoDbConfig = mongoDbConfig;
         this.collectionPrefix = collectionPrefix;
         this.granularity = granularity;
         this.retention = retention;
@@ -76,21 +70,18 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
     /**
      * Returns a config with the given values and no retention configured.
      *
-     * @param uri the MongoDB connection URI.
-     * @param database the database name.
+     * @param mongoDbConfig the shared Ditto MongoDB connection config (URI, IAM, pool, SSL).
      * @param collectionPrefix the collection-name prefix.
      * @param granularity the time-series granularity.
      * @return the config.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static DefaultMongoDbTimeseriesAdapterConfig of(final String uri,
-            final String database,
+    public static DefaultMongoDbTimeseriesAdapterConfig of(final MongoDbConfig mongoDbConfig,
             final String collectionPrefix,
             final Granularity granularity) {
 
         return new DefaultMongoDbTimeseriesAdapterConfig(
-                checkNotNull(uri, "uri"),
-                checkNotNull(database, "database"),
+                checkNotNull(mongoDbConfig, "mongoDbConfig"),
                 checkNotNull(collectionPrefix, "collectionPrefix"),
                 checkNotNull(granularity, "granularity"),
                 null);
@@ -99,62 +90,52 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
     /**
      * Returns a config with the given values, including an explicit retention duration.
      *
-     * @param uri the MongoDB connection URI.
-     * @param database the database name.
+     * @param mongoDbConfig the shared Ditto MongoDB connection config.
      * @param collectionPrefix the collection-name prefix.
      * @param granularity the time-series granularity.
      * @param retention retention duration; {@code null} disables expiration.
      * @return the config.
-     * @throws NullPointerException if {@code uri}, {@code database}, {@code collectionPrefix} or
+     * @throws NullPointerException if {@code mongoDbConfig}, {@code collectionPrefix} or
      * {@code granularity} is {@code null}.
      */
-    public static DefaultMongoDbTimeseriesAdapterConfig of(final String uri,
-            final String database,
+    public static DefaultMongoDbTimeseriesAdapterConfig of(final MongoDbConfig mongoDbConfig,
             final String collectionPrefix,
             final Granularity granularity,
             @Nullable final Duration retention) {
 
         return new DefaultMongoDbTimeseriesAdapterConfig(
-                checkNotNull(uri, "uri"),
-                checkNotNull(database, "database"),
+                checkNotNull(mongoDbConfig, "mongoDbConfig"),
                 checkNotNull(collectionPrefix, "collectionPrefix"),
                 checkNotNull(granularity, "granularity"),
                 retention);
     }
 
     /**
-     * Loads the config from the given Typesafe {@link Config} sub-tree, applying defaults for any
-     * absent keys. The {@code uri} key is required.
+     * Loads the config from the {@code ditto.timeseries.adapter.mongodb} sub-tree, applying
+     * defaults for any absent keys.
      *
-     * @param config the {@code mongodb} sub-tree (e.g. {@code ditto.timeseries.adapter.mongodb}).
+     * @param mongoDbConfig the shared Ditto MongoDB connection config (built from
+     * {@code ditto.mongodb} by {@code DefaultMongoDbConfig.of(…)}).
+     * @param adapterConfig the {@code mongodb} sub-tree of {@code ditto.timeseries.adapter}.
      * @return the loaded config.
-     * @throws NullPointerException if {@code config} is {@code null}.
-     * @throws IllegalArgumentException if {@code uri} is missing or {@code granularity} is set to
-     * an unknown value.
+     * @throws NullPointerException if either argument is {@code null}.
+     * @throws DittoConfigError if {@code granularity} is set to an unknown value.
      */
-    public static DefaultMongoDbTimeseriesAdapterConfig of(final Config config) {
-        checkNotNull(config, "config");
+    public static DefaultMongoDbTimeseriesAdapterConfig of(final MongoDbConfig mongoDbConfig,
+            final Config adapterConfig) {
 
-        if (!config.hasPath(KEY_URI)) {
-            throw new DittoConfigError(
-                    "Required config key <timeseries.adapter.mongodb.uri> is missing.");
-        }
-        final String uri = config.getString(KEY_URI);
-        final String database = stringOrDefault(config, KEY_DATABASE, DEFAULT_DATABASE);
+        checkNotNull(mongoDbConfig, "mongoDbConfig");
+        checkNotNull(adapterConfig, "adapterConfig");
+
         final String collectionPrefix =
-                stringOrDefault(config, KEY_COLLECTION_PREFIX, DEFAULT_COLLECTION_PREFIX);
-        final Granularity granularity = parseGranularity(config);
-        final Duration retention = config.hasPath(KEY_RETENTION)
-                ? config.getDuration(KEY_RETENTION)
+                stringOrDefault(adapterConfig, KEY_COLLECTION_PREFIX, DEFAULT_COLLECTION_PREFIX);
+        final Granularity granularity = parseGranularity(adapterConfig);
+        final Duration retention = adapterConfig.hasPath(KEY_RETENTION)
+                ? adapterConfig.getDuration(KEY_RETENTION)
                 : null;
 
-        return new DefaultMongoDbTimeseriesAdapterConfig(uri, database, collectionPrefix, granularity,
-                retention);
-    }
-
-    @Override
-    public String getUri() {
-        return uri;
+        return new DefaultMongoDbTimeseriesAdapterConfig(mongoDbConfig, collectionPrefix,
+                granularity, retention);
     }
 
     private static String stringOrDefault(final Config config, final String key,
@@ -174,8 +155,8 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
     }
 
     @Override
-    public String getDatabase() {
-        return database;
+    public MongoDbConfig getMongoDbConfig() {
+        return mongoDbConfig;
     }
 
     @Override
@@ -202,8 +183,7 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
             return false;
         }
         final DefaultMongoDbTimeseriesAdapterConfig that = (DefaultMongoDbTimeseriesAdapterConfig) o;
-        return Objects.equals(uri, that.uri) &&
-                Objects.equals(database, that.database) &&
+        return Objects.equals(mongoDbConfig, that.mongoDbConfig) &&
                 Objects.equals(collectionPrefix, that.collectionPrefix) &&
                 granularity == that.granularity &&
                 Objects.equals(retention, that.retention);
@@ -211,14 +191,13 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
 
     @Override
     public int hashCode() {
-        return Objects.hash(uri, database, collectionPrefix, granularity, retention);
+        return Objects.hash(mongoDbConfig, collectionPrefix, granularity, retention);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "uri=" + uri +
-                ", database=" + database +
+                "mongoDbConfig=" + mongoDbConfig +
                 ", collectionPrefix=" + collectionPrefix +
                 ", granularity=" + granularity +
                 ", retention=" + retention +

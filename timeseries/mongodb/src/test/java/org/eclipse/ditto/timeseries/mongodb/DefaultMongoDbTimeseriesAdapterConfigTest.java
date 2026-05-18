@@ -15,11 +15,13 @@ package org.eclipse.ditto.timeseries.mongodb;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import static org.mockito.Mockito.mock;
 
 import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -32,8 +34,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class DefaultMongoDbTimeseriesAdapterConfigTest {
 
-    private static final String URI = "mongodb://localhost:27017";
-
     @Test
     public void hashCodeAndEqualsContract() {
         EqualsVerifier.forClass(DefaultMongoDbTimeseriesAdapterConfig.class)
@@ -43,105 +43,105 @@ public final class DefaultMongoDbTimeseriesAdapterConfigTest {
 
     @Test
     public void factoryCreatesInstanceWithGivenValues() {
-        final DefaultMongoDbTimeseriesAdapterConfig underTest =
-                DefaultMongoDbTimeseriesAdapterConfig.of(URI, "custom_db", "x_", Granularity.MINUTES);
+        final MongoDbConfig mongoDbConfig = mock(MongoDbConfig.class);
 
-        assertThat(underTest.getUri()).isEqualTo(URI);
-        assertThat(underTest.getDatabase()).isEqualTo("custom_db");
+        final DefaultMongoDbTimeseriesAdapterConfig underTest =
+                DefaultMongoDbTimeseriesAdapterConfig.of(mongoDbConfig, "x_", Granularity.MINUTES);
+
+        assertThat(underTest.getMongoDbConfig()).isSameAs(mongoDbConfig);
         assertThat(underTest.getCollectionPrefix()).isEqualTo("x_");
         assertThat(underTest.getGranularity()).isEqualTo(Granularity.MINUTES);
+        assertThat(underTest.getRetention()).isEmpty();
     }
 
     @Test
-    public void factoryRejectsNullUri() {
+    public void factoryRejectsNullMongoDbConfig() {
         assertThatNullPointerException().isThrownBy(() ->
-                DefaultMongoDbTimeseriesAdapterConfig.of(null, "db", "ts_", Granularity.SECONDS));
-    }
-
-    @Test
-    public void factoryRejectsNullDatabase() {
-        assertThatNullPointerException().isThrownBy(() ->
-                DefaultMongoDbTimeseriesAdapterConfig.of(URI, null, "ts_", Granularity.SECONDS));
+                DefaultMongoDbTimeseriesAdapterConfig.of(null, "ts_", Granularity.SECONDS));
     }
 
     @Test
     public void factoryRejectsNullCollectionPrefix() {
+        final MongoDbConfig mongoDbConfig = mock(MongoDbConfig.class);
+
         assertThatNullPointerException().isThrownBy(() ->
-                DefaultMongoDbTimeseriesAdapterConfig.of(URI, "db", null, Granularity.SECONDS));
+                DefaultMongoDbTimeseriesAdapterConfig.of(mongoDbConfig, null, Granularity.SECONDS));
     }
 
     @Test
     public void factoryRejectsNullGranularity() {
+        final MongoDbConfig mongoDbConfig = mock(MongoDbConfig.class);
+
         assertThatNullPointerException().isThrownBy(() ->
-                DefaultMongoDbTimeseriesAdapterConfig.of(URI, "db", "ts_", null));
+                DefaultMongoDbTimeseriesAdapterConfig.of(mongoDbConfig, "ts_", null));
     }
 
     @Test
-    public void ofConfigAppliesDefaultsWhenOnlyUriIsPresent() {
-        final Config config = ConfigFactory.parseString("uri = \"" + URI + "\"");
+    public void ofConfigAppliesDefaultsWhenAdapterConfigIsEmpty() {
+        final MongoDbConfig mongoDbConfig = mock(MongoDbConfig.class);
+        final Config adapterConfig = ConfigFactory.empty();
 
         final DefaultMongoDbTimeseriesAdapterConfig underTest =
-                DefaultMongoDbTimeseriesAdapterConfig.of(config);
+                DefaultMongoDbTimeseriesAdapterConfig.of(mongoDbConfig, adapterConfig);
 
-        assertThat(underTest.getUri()).isEqualTo(URI);
-        assertThat(underTest.getDatabase())
-                .isEqualTo(DefaultMongoDbTimeseriesAdapterConfig.DEFAULT_DATABASE);
+        assertThat(underTest.getMongoDbConfig()).isSameAs(mongoDbConfig);
         assertThat(underTest.getCollectionPrefix())
                 .isEqualTo(DefaultMongoDbTimeseriesAdapterConfig.DEFAULT_COLLECTION_PREFIX);
         assertThat(underTest.getGranularity())
                 .isEqualTo(DefaultMongoDbTimeseriesAdapterConfig.DEFAULT_GRANULARITY);
+        assertThat(underTest.getRetention()).isEmpty();
     }
 
     @Test
     public void ofConfigReadsAllValuesWhenPresent() {
+        final MongoDbConfig mongoDbConfig = mock(MongoDbConfig.class);
         final Map<String, Object> map = new HashMap<>();
-        map.put("uri", URI);
-        map.put("database", "my_ts");
         map.put("collection-prefix", "tsd_");
         map.put("granularity", "hours");
-        final Config config = ConfigFactory.parseMap(map);
+        map.put("retention", "30d");
+        final Config adapterConfig = ConfigFactory.parseMap(map);
 
         final DefaultMongoDbTimeseriesAdapterConfig underTest =
-                DefaultMongoDbTimeseriesAdapterConfig.of(config);
+                DefaultMongoDbTimeseriesAdapterConfig.of(mongoDbConfig, adapterConfig);
 
-        assertThat(underTest.getUri()).isEqualTo(URI);
-        assertThat(underTest.getDatabase()).isEqualTo("my_ts");
         assertThat(underTest.getCollectionPrefix()).isEqualTo("tsd_");
         assertThat(underTest.getGranularity()).isEqualTo(Granularity.HOURS);
-    }
-
-    @Test
-    public void ofConfigRejectsMissingUri() {
-        final Config config = ConfigFactory.empty();
-
-        assertThatExceptionOfType(DittoConfigError.class)
-                .isThrownBy(() -> DefaultMongoDbTimeseriesAdapterConfig.of(config))
-                .withMessageContaining("uri");
+        assertThat(underTest.getRetention()).isPresent();
     }
 
     @Test
     public void ofConfigRejectsUnknownGranularity() {
-        final Config config = ConfigFactory.parseString(
-                "uri = \"" + URI + "\", granularity = \"days\"");
+        final MongoDbConfig mongoDbConfig = mock(MongoDbConfig.class);
+        final Config adapterConfig = ConfigFactory.parseString("granularity = \"days\"");
 
         assertThatExceptionOfType(DittoConfigError.class)
-                .isThrownBy(() -> DefaultMongoDbTimeseriesAdapterConfig.of(config))
+                .isThrownBy(() -> DefaultMongoDbTimeseriesAdapterConfig.of(mongoDbConfig, adapterConfig))
                 .withMessageContaining("days");
     }
 
     @Test
-    public void ofConfigRejectsNullInput() {
+    public void ofConfigRejectsNullMongoDbConfig() {
         assertThatNullPointerException()
-                .isThrownBy(() -> DefaultMongoDbTimeseriesAdapterConfig.of((Config) null));
+                .isThrownBy(() -> DefaultMongoDbTimeseriesAdapterConfig.of(null, ConfigFactory.empty()));
+    }
+
+    @Test
+    public void ofConfigRejectsNullAdapterConfig() {
+        final MongoDbConfig mongoDbConfig = mock(MongoDbConfig.class);
+
+        assertThatNullPointerException()
+                .isThrownBy(() -> DefaultMongoDbTimeseriesAdapterConfig.of(mongoDbConfig, (Config) null));
     }
 
     @Test
     public void toStringIncludesAllFields() {
+        final MongoDbConfig mongoDbConfig = mock(MongoDbConfig.class);
+
         final DefaultMongoDbTimeseriesAdapterConfig underTest =
-                DefaultMongoDbTimeseriesAdapterConfig.of(URI, "a", "b", Granularity.SECONDS);
+                DefaultMongoDbTimeseriesAdapterConfig.of(mongoDbConfig, "b", Granularity.SECONDS);
 
         final String s = underTest.toString();
 
-        assertThat(s).contains(URI).contains("a").contains("b").contains("seconds");
+        assertThat(s).contains("collectionPrefix=b").contains("granularity=seconds");
     }
 }

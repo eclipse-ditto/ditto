@@ -17,7 +17,6 @@
       <env name="LOG_LEVEL_APPLICATION" value="INFO" />
       <env name="DITTO_TRACING_ENABLED" value="true" />
       <env name="DITTO_TRACING_SAMPLER" value="always" />
-      <env name="TIMESERIES_MONGODB_URI" value="mongodb://localhost:27017" />
     </envs>
     <option name="MAIN_CLASS_NAME" value="org.eclipse.ditto.timeseries.service.starter.TimeseriesService" />
     <module name="ditto-timeseries-service" />

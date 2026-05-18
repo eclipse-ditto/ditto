@@ -21,12 +21,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.timeseries.model.TimeseriesDataPoint;
 import org.eclipse.ditto.timeseries.model.TimeseriesQuery;
 import org.eclipse.ditto.timeseries.model.TimeseriesQueryResult;
+
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 /**
  * Standalone demo for exercising {@link MongoDbTimeseriesAdapter} against a real local MongoDB.
@@ -68,8 +74,12 @@ public final class TimeseriesAdapterDemo {
                 "sensor-" + UUID.randomUUID().toString().substring(0, 8));
         final JsonPointer path = JsonPointer.of("/features/environment/properties/temperature");
 
+        final Config rootConfig = ConfigFactory.parseString(String.format(
+                "ditto.mongodb.uri = \"%s\"\nditto.mongodb.database = \"%s\"\n", uri, DATABASE));
+        final MongoDbConfig mongoDbConfig =
+                DefaultMongoDbConfig.of(DefaultScopedConfig.dittoScoped(rootConfig));
         final MongoDbTimeseriesAdapterConfig config = DefaultMongoDbTimeseriesAdapterConfig.of(
-                uri, DATABASE, "ts_", Granularity.SECONDS);
+                mongoDbConfig, "ts_", Granularity.SECONDS);
         final MongoDbTimeseriesAdapter adapter = new MongoDbTimeseriesAdapter();
 
         System.out.println("=== Connecting to MongoDB at " + uri + " ===");

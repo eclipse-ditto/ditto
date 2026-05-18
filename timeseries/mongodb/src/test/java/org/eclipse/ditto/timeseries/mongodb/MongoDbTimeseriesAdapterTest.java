@@ -33,6 +33,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 
 import org.bson.Document;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.ThingId;
@@ -81,8 +82,10 @@ public final class MongoDbTimeseriesAdapterTest {
 
     @Before
     public void setUp() {
-        config = DefaultMongoDbTimeseriesAdapterConfig.of(
-                "mongodb://localhost:27017", "ditto_ts", "ts_", Granularity.SECONDS);
+        // Adapter never calls into the mongoDbConfig during these tests — initialize is bypassed
+        // via forTesting() — so a Mockito mock is sufficient.
+        final MongoDbConfig mongoDbConfig = mock(MongoDbConfig.class);
+        config = DefaultMongoDbTimeseriesAdapterConfig.of(mongoDbConfig, "ts_", Granularity.SECONDS);
 
         mongoClient = mock(MongoClient.class);
         mongoDatabase = mock(MongoDatabase.class);
@@ -414,7 +417,7 @@ public final class MongoDbTimeseriesAdapterTest {
     @Test
     public void collectionNameForUsesConfiguredPrefix() {
         final MongoDbTimeseriesAdapterConfig customPrefix = DefaultMongoDbTimeseriesAdapterConfig.of(
-                "mongodb://localhost:27017", "db", "x_", Granularity.SECONDS);
+                mock(MongoDbConfig.class), "x_", Granularity.SECONDS);
 
         final String name =
                 MongoDbTimeseriesAdapter.collectionNameFor(customPrefix, THING_ID);

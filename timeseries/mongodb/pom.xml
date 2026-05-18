@@ -33,6 +33,14 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-utils-config</artifactId>
         </dependency>
+        <!-- DefaultMongoDbConfig + MongoClientWrapper: handles IAM auth uniformly with the
+             sibling services (pekko-persistence-mongodb plugin uses the same code path),
+             so the adapter inherits AWS IAM (IRSA), pool sizing, SSL, and the dynamic
+             credential-refresh supplier without re-implementing any of it locally. -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-persistence</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>com.typesafe</groupId>
