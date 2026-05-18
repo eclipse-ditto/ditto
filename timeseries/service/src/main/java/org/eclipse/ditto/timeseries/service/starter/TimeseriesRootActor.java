@@ -27,11 +27,14 @@ import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.base.service.config.DittoServiceConfig;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionCreator;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionProxyActorFactory;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.internal.utils.health.config.DefaultHealthCheckConfig;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProviderExtension;
@@ -166,8 +169,16 @@ public final class TimeseriesRootActor extends DittoRootActor {
         // Initialise the adapter asynchronously and pipe the outcome back as an internal message
         // so that init failures are visible in the root actor's log without blocking the actor
         // thread (per actor-concurrency rules).
-        final MongoDbTimeseriesAdapterConfig mongoConfig =
-                DefaultMongoDbTimeseriesAdapterConfig.of(rootConfig.getConfig(MONGODB_CONFIG_PATH));
+        //
+        // Connection setup (URI / IAM / pool / SSL) is loaded via DefaultMongoDbConfig against the
+        // `ditto.mongodb.*` HOCON sub-tree — same path the sibling services (things, policies,
+        // connectivity, …) use to feed the pekko-persistence-mongodb plugin. The timeseries-specific
+        // tuning (`collection-prefix`, `granularity`, `retention`) is loaded from
+        // `ditto.timeseries.adapter.mongodb` and combined into the adapter config.
+        final var dittoScopedConfig = DefaultScopedConfig.dittoScoped(rootConfig);
+        final MongoDbConfig mongoDbConfig = DefaultMongoDbConfig.of(dittoScopedConfig);
+        final MongoDbTimeseriesAdapterConfig mongoConfig = DefaultMongoDbTimeseriesAdapterConfig.of(
+                mongoDbConfig, rootConfig.getConfig(MONGODB_CONFIG_PATH));
         final CompletionStage<Object> initStage = adapter.initialize(mongoConfig)
                 .<Object>thenApply(ignored -> AdapterInitialised.INSTANCE)
                 .exceptionally(AdapterInitFailed::new);

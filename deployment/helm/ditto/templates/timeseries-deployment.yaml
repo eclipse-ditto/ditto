@@ -14,7 +14,9 @@
 # circuit-breaker tuning, etc.) are intentionally omitted; the timeseries-service
 # does not consume them. The timeseries-specific knobs come from timeseries.conf:
 # TIMESERIES_SIMPLIFIED_READ_PERMISSION, TIMESERIES_ADAPTER_TYPE, TIMESERIES_QUERY_*,
-# TIMESERIES_MONGODB_URI.
+# TIMESERIES_MONGODB_COLLECTION_PREFIX, TIMESERIES_MONGODB_GRANULARITY, TIMESERIES_MONGODB_RETENTION.
+# MongoDB connection settings come from `ditto.mongodb.*` via DefaultMongoDbConfig (same as the
+# sibling services); see the MONGO_DB_* env vars in the spec.template.spec.containers env block.
 {{- $name := include "ditto.name" . -}}
 {{- if .Values.timeseries.enabled -}}
 ---
@@ -173,18 +175,22 @@ spec:
                 -Dlogback.configurationFile=/opt/ditto/{{ .Values.global.logging.customConfigFile.fileName }}
                 {{- end }}
                 {{ join " " .Values.timeseries.systemProps }}
-            # The timeseries-service does not use the shared `ditto.mongodb.*` config —
-            # the MongoDB-backed timeseries adapter has its own URI under
-            # `ditto.timeseries.adapter.mongodb.uri`, sourced from TIMESERIES_MONGODB_URI.
-            # The sibling-service env vars MONGO_DB_URI / MONGO_DB_CONNECTION_* / MONGO_DB_SSL_ENABLED
-            # would be silently ignored here; instead we wire the secret's `timeseries-uri`
-            # value directly into TIMESERIES_MONGODB_URI. Pool sizing / SSL knobs are encoded
-            # in the URI itself (`?maxPoolSize=&minPoolSize=&ssl=true`).
-            - name: TIMESERIES_MONGODB_URI
+            # MongoDB connection settings — read by DefaultMongoDbConfig (same code path the
+            # sibling services use). MongoClientWrapper handles AWS IAM, pool sizing, SSL and
+            # circuit-breaker tuning internally based on these env vars.
+            - name: MONGO_DB_SSL_ENABLED
+              value: "{{ printf "%t" .Values.dbconfig.timeseries.ssl }}"
+            - name: MONGO_DB_URI
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.dbconfig.uriSecret | default ( printf "%s-mongodb-secret" ( include "ditto.fullname" . )) }}
                   key: timeseries-uri
+            - name: MONGO_DB_CONNECTION_MIN_POOL_SIZE
+              value: "{{ .Values.timeseries.config.mongodb.minPoolSize }}"
+            - name: MONGO_DB_CONNECTION_POOL_SIZE
+              value: "{{ .Values.timeseries.config.mongodb.maxPoolSize }}"
+            - name: MONGO_DB_CONNECTION_POOL_IDLE_TIME
+              value: "{{ .Values.timeseries.config.mongodb.maxPoolIdleTime }}"
             {{- if .Values.global.prometheus.enabled }}
             - name: PROMETHEUS_PORT
               value: "{{ .Values.global.prometheus.port }}"
@@ -209,10 +215,6 @@ spec:
             - name: TIMESERIES_ADAPTER_TYPE
               value: "{{ .Values.timeseries.config.adapter.type }}"
             {{- with .Values.timeseries.config.adapter.mongodb }}
-            {{- if .database }}
-            - name: TIMESERIES_MONGODB_DATABASE
-              value: {{ .database | quote }}
-            {{- end }}
             {{- if .collectionPrefix }}
             - name: TIMESERIES_MONGODB_COLLECTION_PREFIX
               value: {{ .collectionPrefix | quote }}
@@ -229,14 +231,9 @@ spec:
             {{- if .Values.timeseries.extraEnv }}
               {{- toYaml .Values.timeseries.extraEnv | nindent 12 }}
             {{- end }}
-            # AWS IAM auth (IRSA). The MongoDB Java driver since 4.4 handles MONGODB-AWS auth
-            # natively — it calls STS:AssumeRoleWithWebIdentity using AWS_ROLE_ARN +
-            # AWS_WEB_IDENTITY_TOKEN_FILE and obtains short-lived credentials. The URI must
-            # carry `?authMechanism=MONGODB-AWS&authSource=$external`, which mongodb-secret.yaml
-            # appends to `timeseries-uri` when `dbconfig.timeseries.useAwsIamRole` is true.
-            # MONGO_DB_USE_AWS_IAM_ROLE / MONGO_DB_AWS_* are kept for symmetry with sibling
-            # services (DefaultMongoDbConfig reads them); the timeseries adapter only consumes
-            # the standard AWS_* env vars below, which the driver's auth chain picks up.
+            # AWS IAM (IRSA) — identical wiring to sibling services. DefaultMongoDbConfig reads
+            # MONGO_DB_USE_AWS_IAM_ROLE + MONGO_DB_AWS_* and assumeRoleWithWebIdentity's the
+            # role internally; the resulting credential supplier is given to MongoClientWrapper.
             - name: MONGO_DB_USE_AWS_IAM_ROLE
               value: "{{ printf "%t" .Values.dbconfig.timeseries.useAwsIamRole }}"
             {{- if .Values.dbconfig.timeseries.useAwsIamRole }}
@@ -244,12 +241,8 @@ spec:
               value: "{{ .Values.dbconfig.timeseries.awsRegion }}"
             - name: MONGO_DB_AWS_ROLE_ARN
               value: "{{ .Values.dbconfig.timeseries.awsRoleArn }}"
-            - name: AWS_REGION
-              value: "{{ .Values.dbconfig.timeseries.awsRegion }}"
             - name: AWS_ROLE_ARN
               value: "{{ .Values.dbconfig.timeseries.awsRoleArn }}"
-            - name: AWS_ROLE_SESSION_NAME
-              value: "{{ .Values.dbconfig.timeseries.awsSessionName }}"
             - name: AWS_WEB_IDENTITY_TOKEN_FILE
               value: "/var/run/secrets/eks.amazonaws.com/serviceaccount/token"
             - name: MONGO_DB_AWS_SESSION_NAME
