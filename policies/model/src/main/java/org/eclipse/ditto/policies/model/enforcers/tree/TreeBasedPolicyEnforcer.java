@@ -263,9 +263,14 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
         final Set<JsonPointer> revokedResources = extractJsonPointers(effectedResources.getRevokedResources());
 
         final JsonPointer resourcePath = resourceKey.getResourcePath();
-        final List<PointerAndValue> prefixedPointers = flatPointers.stream()
-                .map(pv -> new PointerAndValue(resourcePath.append(pv.pointer), pv.value))
-                .collect(Collectors.toList());
+        // When the resource path is empty (the thing-root case), `resourcePath.append(pv.pointer)`
+        // returns an equivalent pointer but allocates a fresh ImmutableJsonPointer and a new
+        // PointerAndValue wrapper for every flat pointer. Skip the per-element rebuild.
+        final List<PointerAndValue> prefixedPointers = resourcePath.isEmpty()
+                ? flatPointers
+                : flatPointers.stream()
+                        .map(pv -> new PointerAndValue(resourcePath.append(pv.pointer), pv.value))
+                        .collect(Collectors.toList());
         return filterEntries(prefixedPointers, grantedResources, revokedResources, resourcePath);
     }
 
@@ -295,9 +300,14 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
         final Set<JsonPointer> revokedResources = extractJsonPointers(effectedResources.getRevokedResources());
 
         final JsonPointer resourcePath = resourceKey.getResourcePath();
-        final List<PointerAndValue> prefixedPointers = flatPointers.stream()
-                .map(pv -> new PointerAndValue(resourcePath.append(pv.pointer), pv.value))
-                .collect(Collectors.toList());
+        // When the resource path is empty (the thing-root case), `resourcePath.append(pv.pointer)`
+        // returns an equivalent pointer but allocates a fresh ImmutableJsonPointer and a new
+        // PointerAndValue wrapper for every flat pointer. Skip the per-element rebuild.
+        final List<PointerAndValue> prefixedPointers = resourcePath.isEmpty()
+                ? flatPointers
+                : flatPointers.stream()
+                        .map(pv -> new PointerAndValue(resourcePath.append(pv.pointer), pv.value))
+                        .collect(Collectors.toList());
         return extractAccessiblePaths(prefixedPointers, grantedResources, revokedResources, resourcePath);
     }
 
@@ -318,9 +328,14 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
         final List<PointerAndValue> flatPointers = new ArrayList<>();
         jsonFields.forEach(jf -> collectFlatPointers(jf.getKey().asPointer(), jf, flatPointers));
         final JsonPointer resourcePath = resourceKey.getResourcePath();
-        final List<PointerAndValue> prefixedPointers = flatPointers.stream()
-                .map(pv -> new PointerAndValue(resourcePath.append(pv.pointer), pv.value))
-                .collect(Collectors.toList());
+        // When the resource path is empty (the thing-root case), `resourcePath.append(pv.pointer)`
+        // returns an equivalent pointer but allocates a fresh ImmutableJsonPointer and a new
+        // PointerAndValue wrapper for every flat pointer. Skip the per-element rebuild.
+        final List<PointerAndValue> prefixedPointers = resourcePath.isEmpty()
+                ? flatPointers
+                : flatPointers.stream()
+                        .map(pv -> new PointerAndValue(resourcePath.append(pv.pointer), pv.value))
+                        .collect(Collectors.toList());
 
         // 2. Per-subject: tree walk + filter (reusing prefixedPointers)
         final Map<AuthorizationSubject, Set<JsonPointer>> result = new HashMap<>();
@@ -377,17 +392,23 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
             final Collection<JsonPointer> revokedResources,
             final JsonPointer resourcePath) {
 
+        final boolean emptyResourcePath = resourcePath.isEmpty();
         final int levelCount = resourcePath.getLevelCount();
+        final PathTrie accessTrie = PathTrie.build(grantedResources, revokedResources);
         final JsonObjectBuilder builder = JsonFactory.newObjectBuilder();
         candidates.stream()
                 .filter(pointerAndValue -> pointerStartsWith(pointerAndValue.pointer, resourcePath))
-                .filter(pointerAndValue -> isAccessible(pointerAndValue.pointer, grantedResources, revokedResources))
+                .filter(pointerAndValue -> isAccessible(pointerAndValue.pointer, accessTrie))
                 .forEach(pointerAndValue -> {
-                    final JsonPointer subPointer = pointerAndValue.pointer.getSubPointer(levelCount).orElseThrow(() -> {
-                        final String msgPattern = "JsonPointer did not contain a sub-pointer for level <{0}>!";
-                        return new IllegalStateException(MessageFormat.format(msgPattern, levelCount));
-                    });
-                    builder.set(resourcePath.append(subPointer), pointerAndValue.value);
+                    if (emptyResourcePath) {
+                        builder.set(pointerAndValue.pointer, pointerAndValue.value);
+                    } else {
+                        final JsonPointer subPointer = pointerAndValue.pointer.getSubPointer(levelCount).orElseThrow(() -> {
+                            final String msgPattern = "JsonPointer did not contain a sub-pointer for level <{0}>!";
+                            return new IllegalStateException(MessageFormat.format(msgPattern, levelCount));
+                        });
+                        builder.set(resourcePath.append(subPointer), pointerAndValue.value);
+                    }
                 });
 
         return builder.build()
@@ -424,43 +445,70 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
     }
 
     /**
-     * Checks if a pointer is accessible based on granted and revoked resources.
-     * Optimized to cache prefix pointers and use efficient set lookups.
+     * Tests whether {@code pointer} is accessible given the {@code accessTrie} of granted+revoked
+     * resource paths for the subject. Walks the trie alongside the pointer's segments — O(depth)
+     * with no per-call allocation, replacing the previous variant that allocated a new prefix
+     * pointer + did a {@code HashSet.contains} (with a full pointer hash) at every depth level.
      *
-     * @param pointer the pointer to check
-     * @param grantedResources the set of granted resource pointers
-     * @param revokedResources the set of revoked resource pointers
-     * @return true if the pointer is accessible, false otherwise
+     * @param pointer the pointer to check.
+     * @param accessTrie the precomputed trie of granted+revoked paths for a single subject.
+     * @return {@code true} iff the pointer is accessible to that subject.
      */
-    private static boolean isAccessible(final JsonPointer pointer,
-            final Collection<JsonPointer> grantedResources,
-            final Collection<JsonPointer> revokedResources) {
-        boolean accessible = grantedResources.contains(ROOT_RESOURCE_POINTER) &&
-                !revokedResources.contains(ROOT_RESOURCE_POINTER);
-
-        final int levelCount = pointer.getLevelCount();
-        if (levelCount > 0) {
-            final Set<JsonPointer> grantedSet = grantedResources instanceof Set
-                    ? (Set<JsonPointer>) grantedResources
-                    : new HashSet<>(grantedResources);
-            final Set<JsonPointer> revokedSet = revokedResources instanceof Set
-                    ? (Set<JsonPointer>) revokedResources
-                    : new HashSet<>(revokedResources);
-
-            for (int i = 1; i <= levelCount; i++) {
-                final Optional<JsonPointer> prefixOpt = pointer.getPrefixPointer(i);
-                if (prefixOpt.isPresent()) {
-                    final JsonPointer prefix = prefixOpt.get();
-                    if (grantedSet.contains(prefix)) {
-                        accessible = true;
-                    }
-                    if (revokedSet.contains(prefix)) {
-                        accessible = false;
-                    }
-                }
+    private static boolean isAccessible(final JsonPointer pointer, final PathTrie accessTrie) {
+        boolean accessible = accessTrie.granted && !accessTrie.revoked;
+        PathTrie node = accessTrie;
+        for (final JsonKey key : pointer) {
+            node = node.children.get(key.toString());
+            if (node == null) {
+                break;
+            }
+            if (node.granted) {
+                accessible = true;
+            }
+            if (node.revoked) {
+                accessible = false;
             }
         }
         return accessible;
+    }
+
+    /**
+     * Compact prefix tree of granted/revoked resource paths for a single subject. Built once per
+     * {@code extractAccessiblePaths}/{@code filterEntries} invocation and consulted O(depth)-per-
+     * candidate by {@link #isAccessible(JsonPointer, PathTrie)}.
+     */
+    private static final class PathTrie {
+
+        final Map<String, PathTrie> children = new HashMap<>();
+        boolean granted;
+        boolean revoked;
+
+        static PathTrie build(final Collection<JsonPointer> grantedPaths,
+                final Collection<JsonPointer> revokedPaths) {
+
+            final PathTrie root = new PathTrie();
+            for (final JsonPointer path : grantedPaths) {
+                markPath(root, path).granted = true;
+            }
+            for (final JsonPointer path : revokedPaths) {
+                markPath(root, path).revoked = true;
+            }
+            return root;
+        }
+
+        private static PathTrie markPath(final PathTrie root, final JsonPointer path) {
+            PathTrie node = root;
+            for (final JsonKey key : path) {
+                final String keyStr = key.toString();
+                PathTrie child = node.children.get(keyStr);
+                if (child == null) {
+                    child = new PathTrie();
+                    node.children.put(keyStr, child);
+                }
+                node = child;
+            }
+            return node;
+        }
     }
 
     private static Set<JsonPointer> extractAccessiblePaths(
@@ -469,19 +517,26 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
             final Collection<JsonPointer> revokedResources,
             final JsonPointer resourcePath) {
 
+        final boolean emptyResourcePath = resourcePath.isEmpty();
         final int levelCount = resourcePath.getLevelCount();
+        final PathTrie accessTrie = PathTrie.build(grantedResources, revokedResources);
         final Set<JsonPointer> accessiblePaths = new HashSet<>();
-        
+
         final Set<JsonPointer> candidatePaths = new HashSet<>();
         candidates.stream()
                 .filter(pointerAndValue -> pointerStartsWith(pointerAndValue.pointer, resourcePath))
-                .filter(pointerAndValue -> isAccessible(pointerAndValue.pointer, grantedResources, revokedResources))
+                .filter(pointerAndValue -> isAccessible(pointerAndValue.pointer, accessTrie))
                 .forEach(pointerAndValue -> {
-                    final JsonPointer subPointer = pointerAndValue.pointer.getSubPointer(levelCount).orElseThrow(() -> {
-                        final String msgPattern = "JsonPointer did not contain a sub-pointer for level <{0}>!";
-                        return new IllegalStateException(MessageFormat.format(msgPattern, levelCount));
-                    });
-                    candidatePaths.add(resourcePath.append(subPointer));
+                    if (emptyResourcePath) {
+                        // resourcePath empty → getSubPointer(0) is the pointer itself, append is identity.
+                        candidatePaths.add(pointerAndValue.pointer);
+                    } else {
+                        final JsonPointer subPointer = pointerAndValue.pointer.getSubPointer(levelCount).orElseThrow(() -> {
+                            final String msgPattern = "JsonPointer did not contain a sub-pointer for level <{0}>!";
+                            return new IllegalStateException(MessageFormat.format(msgPattern, levelCount));
+                        });
+                        candidatePaths.add(resourcePath.append(subPointer));
+                    }
                 });
         
         final int resourcePathLevels = resourcePath.getLevelCount();
@@ -504,10 +559,7 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
                 final JsonPointer revokedRelative = revokedRelativeOpt.get();
                 final String revokedPathStr = revokedRelative.toString();
                 
-                if (revokedPathStr.equals(candidatePathStr)) {
-                    hasRevokedChild = true;
-                    break;
-                } else if (revokedPathStr.startsWith(candidatePathStr + "/")) {
+                if (revokedPathStr.equals(candidatePathStr) || revokedPathStr.startsWith(candidatePathStr + "/")) {
                     hasRevokedChild = true;
                     break;
                 }
@@ -615,9 +667,10 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
                 traverseSubtreeForPermissionAccess(permission, resource, type, nodeChildOptional.get(),
                         grantedResources, revokedResources, level, true);
             } else {
-                resource.get(level).ifPresent(jsonKey -> policyTreeNode.getChild(jsonKey.toString())
+                resource.get(level)
+                        .flatMap(jsonKey -> policyTreeNode.getChild(jsonKey.toString()))
                         .ifPresent(child -> traverseSubtreeForPermissionAccess(permission, resource, type, child,
-                                grantedResources, revokedResources, level + 1, true)));
+                                grantedResources, revokedResources, level + 1, true));
             }
         } else {
             final ResourceNode resourceNode = (ResourceNode) policyTreeNode;
