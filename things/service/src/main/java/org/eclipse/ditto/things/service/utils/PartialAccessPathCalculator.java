@@ -12,7 +12,11 @@
  */
 package org.eclipse.ditto.things.service.utils;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -28,6 +32,7 @@ import org.eclipse.ditto.json.JsonArrayBuilder;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
@@ -117,10 +122,13 @@ public final class PartialAccessPathCalculator {
             return Map.of();
         }
 
-        final Enforcer enforcer = policyEnforcer.getEnforcer();
-        final ResourceKey rootResourceKey = PoliciesResourceType.thingResource(ROOT_RESOURCE_POINTER);
+        // Memoized on the PolicyEnforcer instance: paid once per policy revision, not per event.
+        final SubjectClassification classification = policyEnforcer.getRootResourceReadClassification();
 
-        final SubjectClassification classification = enforcer.classifySubjects(rootResourceKey, READ_PERMISSIONS);
+        // Common-case fast path: no subject has any READ grant on the root resource → nothing to do.
+        if (classification.getPartialOnly().isEmpty() && classification.getUnrestricted().isEmpty()) {
+            return Map.of();
+        }
 
         // Reconstruct "restricted" = partial - (effectedGranted ∩ unrestricted)
         final Set<AuthorizationSubject> allPartial = new LinkedHashSet<>(classification.getPartialOnly());
@@ -134,7 +142,8 @@ public final class PartialAccessPathCalculator {
             return Map.of();
         }
 
-        return calculateAccessiblePathsForSubjects(subjectsWithRestrictedAccess, thingJson, enforcer);
+        return calculateAccessiblePathsForSubjects(subjectsWithRestrictedAccess, thingJson,
+                policyEnforcer.getEnforcer());
     }
 
     /**
@@ -200,8 +209,14 @@ public final class PartialAccessPathCalculator {
         if (leaves.isEmpty()) {
             return Set.of();
         }
-        final Set<JsonPointer> result = new LinkedHashSet<>();
-        final boolean allAccessible = collapseRecursive(thingJson, ROOT_RESOURCE_POINTER, leaves, result);
+        // Build a trie of the leaf segments once; navigating the trie alongside the JSON walk
+        // replaces the per-field `leaves.contains(JsonPointer)` lookup (which hashed a freshly
+        // allocated ImmutableJsonPointer per visit). A null trie node means "no leaf has this
+        // prefix" → we can early-exit recursion without descending.
+        final LeafTrie trie = LeafTrie.build(leaves);
+        final List<JsonPointer> result = new ArrayList<>();
+        final Deque<JsonKey> pathStack = new ArrayDeque<>();
+        final boolean allAccessible = collapseRecursive(thingJson, trie, pathStack, result);
         if (allAccessible && result.isEmpty()) {
             // Every leaf in the Thing is accessible to this subject — emit the root pointer so the
             // consumer filter short-circuits to "unrestricted". The subject should normally have
@@ -209,52 +224,107 @@ public final class PartialAccessPathCalculator {
             // union of all leaves without granting the root would otherwise be flattened here.
             result.add(ROOT_RESOURCE_POINTER);
         }
-        return result;
+        return new LinkedHashSet<>(result);
     }
 
     /**
-     * Walks the Thing JSON and emits into {@code result} the minimal pointer set that still
-     * covers every leaf of {@code leaves} when the consumer filter is applied. A fully-accessible
-     * subtree collapses to a single ancestor pointer.
+     * Walks the Thing JSON in lockstep with the leaf trie, accumulating into {@code result} the
+     * minimal pointer set that still covers every accessible leaf when the consumer filter is
+     * applied. A fully-accessible subtree collapses to a single ancestor pointer.
+     * <p>
+     * The current JSON path is tracked on {@code pathStack} as a mutable {@code Deque<JsonKey>};
+     * a {@link JsonPointer} is materialized only at emission time, not per field visited.
      *
-     * @return {@code true} iff every leaf descendant of {@code node} at {@code currentPath} is
-     * present in {@code leaves} — signalling to the caller that it may collapse further up.
+     * @return {@code true} iff every leaf descendant of {@code node} at the current path is
+     * present in the trie — signalling to the caller that it may collapse further up.
      */
-    private static boolean collapseRecursive(final JsonValue node, final JsonPointer currentPath,
-            final Set<JsonPointer> leaves, final Set<JsonPointer> result) {
+    private static boolean collapseRecursive(final JsonValue node, @Nullable final LeafTrie trieNode,
+            final Deque<JsonKey> pathStack, final List<JsonPointer> result) {
 
+        // No leaf in the trie has this prefix → nothing under this JSON subtree can match.
+        if (trieNode == null) {
+            return false;
+        }
         if (!node.isObject() || node.isNull()) {
-            if (leaves.contains(currentPath)) {
-                result.add(currentPath);
+            if (trieNode.isLeaf) {
+                result.add(materializePointer(pathStack));
                 return true;
             }
             return false;
         }
         final JsonObject obj = node.asObject();
         if (obj.isEmpty()) {
-            if (leaves.contains(currentPath)) {
-                result.add(currentPath);
+            if (trieNode.isLeaf) {
+                result.add(materializePointer(pathStack));
                 return true;
             }
             return false;
         }
 
-        final Set<JsonPointer> childEmissions = new LinkedHashSet<>();
+        // Track the size of `result` before descending so that, if every child is fully
+        // accessible and we collapse to an ancestor pointer, we can roll back the children's
+        // emissions cheaply via subList.clear() (avoids a per-call LinkedHashSet allocation).
+        final int sizeBeforeChildren = result.size();
         boolean allChildrenAccessible = true;
         for (final JsonField field : obj) {
-            final JsonPointer childPath = currentPath.addLeaf(field.getKey());
-            final boolean childAll = collapseRecursive(field.getValue(), childPath, leaves, childEmissions);
+            final JsonKey key = field.getKey();
+            final LeafTrie childTrie = trieNode.children.get(key.toString());
+            pathStack.addLast(key);
+            final boolean childAll = collapseRecursive(field.getValue(), childTrie, pathStack, result);
+            pathStack.removeLast();
             if (!childAll) {
                 allChildrenAccessible = false;
             }
         }
-        if (allChildrenAccessible && !currentPath.isEmpty()) {
-            // Collapse: replace all descendant emissions with a single ancestor pointer.
-            result.add(currentPath);
+        if (allChildrenAccessible && !pathStack.isEmpty()) {
+            // Collapse: discard child emissions and emit a single ancestor pointer.
+            if (result.size() > sizeBeforeChildren) {
+                result.subList(sizeBeforeChildren, result.size()).clear();
+            }
+            result.add(materializePointer(pathStack));
             return true;
         }
-        result.addAll(childEmissions);
         return allChildrenAccessible;
+    }
+
+    private static JsonPointer materializePointer(final Deque<JsonKey> pathStack) {
+        if (pathStack.isEmpty()) {
+            return ROOT_RESOURCE_POINTER;
+        }
+        final Iterator<JsonKey> it = pathStack.iterator();
+        final JsonKey first = it.next();
+        if (!it.hasNext()) {
+            return JsonPointer.empty().addLeaf(first);
+        }
+        final JsonKey[] rest = new JsonKey[pathStack.size() - 1];
+        int i = 0;
+        while (it.hasNext()) {
+            rest[i++] = it.next();
+        }
+        return JsonFactory.newPointer(first, rest);
+    }
+
+    /**
+     * Compact prefix tree of leaf pointers. Built once per {@link #collapseLeavesToAncestors}
+     * invocation and walked in parallel with the Thing-JSON descent — replaces the original
+     * O(leaves) per-node {@code Set<JsonPointer>.contains} lookup.
+     */
+    private static final class LeafTrie {
+
+        final Map<String, LeafTrie> children = new HashMap<>();
+        boolean isLeaf;
+
+        static LeafTrie build(final Set<JsonPointer> leaves) {
+            final LeafTrie root = new LeafTrie();
+            for (final JsonPointer leaf : leaves) {
+                LeafTrie node = root;
+                for (final JsonKey key : leaf) {
+                    node = node.children.computeIfAbsent(key.toString(), k -> new LeafTrie());
+                }
+                node.isLeaf = true;
+            }
+            return root;
+        }
     }
 
     /**
