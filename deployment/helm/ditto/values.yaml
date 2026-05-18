@@ -1890,11 +1890,17 @@ timeseries:
     # scrapeTimeout: 15s
   # config holds timeseries-specific configuration
   config:
-    # NOTE: the timeseries-service does NOT use Ditto's shared `ditto.mongodb.*` connection
-    # config. Pool sizing, SSL, and AWS-IAM are encoded directly in the MongoDB URI string
-    # (e.g. `mongodb://host:27017/?maxPoolSize=200&minPoolSize=10&ssl=true`) read from the
-    # `timeseries-uri` secret key into `TIMESERIES_MONGODB_URI`. Use `dbconfig.timeseries.uri`
-    # to control that URI.
+    # mongodb holds the MongoDB connection-tuning knobs read by DefaultMongoDbConfig (same as
+    # sibling services). The URI itself (with IAM auth metadata) comes from the
+    # `timeseries-uri` secret key → MONGO_DB_URI env var. The database segment of that URI sets
+    # the timeseries database (default `ditto_ts`).
+    mongodb:
+      # minPoolSize configures the minimum number of connections in the connection pool
+      minPoolSize: 10
+      # maxPoolSize configures the maximum number of connections in the connection pool
+      maxPoolSize: 200
+      # maxPoolIdleTime configures the maximum amount of time a pooled connection is allowed to idle before closing
+      maxPoolIdleTime: 10m
     # simplifiedReadPermission selects the read-permission mode (two-mode contract, issue #2291
     # Section 6.1):
     #   - false (default, strict): read-path enforcer requires an explicit READ_TS grant on every
@@ -1910,12 +1916,10 @@ timeseries:
     adapter:
       # type selects the timeseries database adapter implementation. Currently supports "mongodb".
       type: "mongodb"
-      # mongodb configures the default MongoDB Time Series adapter. URI/credentials reuse the
-      # service-wide MONGO_DB_* settings — these knobs cover only the adapter-specific options.
+      # mongodb carries adapter-specific tuning for the MongoDB Time Series implementation.
+      # The connection (URI, IAM, pool, SSL) comes from dbconfig.timeseries.* + timeseries.config.mongodb
+      # above via DefaultMongoDbConfig — same code path as the sibling services use.
       mongodb:
-        # database overrides the MongoDB database for adapter collections (default "ditto_ts").
-        # Leave empty to inherit the timeseries.conf default.
-        database: ""
         # collectionPrefix is prepended to each per-namespace time-series collection name.
         # Leave empty to inherit the timeseries.conf default ("ts_").
         collectionPrefix: ""

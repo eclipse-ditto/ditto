@@ -53,6 +53,14 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-utils-config</artifactId>
         </dependency>
+        <!-- DefaultMongoDbConfig + MongoDbConfig — same path the sibling services use for
+             MongoDB connection setup. Re-introduced (Phase 2 alignment) so the timeseries
+             adapter's auth / pool / SSL handling is uniform with things, policies, etc.
+             instead of bypassing it via direct MongoClients.create(). -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-persistence</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-things-api</artifactId>

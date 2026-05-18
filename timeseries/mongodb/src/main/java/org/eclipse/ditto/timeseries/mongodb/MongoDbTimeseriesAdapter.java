@@ -29,6 +29,8 @@ import javax.annotation.concurrent.ThreadSafe;
 
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
+import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.ThingId;
@@ -44,7 +46,6 @@ import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
-import com.mongodb.ConnectionString;
 import com.mongodb.client.model.CreateCollectionOptions;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Sorts;
@@ -52,7 +53,6 @@ import com.mongodb.client.model.TimeSeriesGranularity;
 import com.mongodb.client.model.TimeSeriesOptions;
 import com.mongodb.reactivestreams.client.FindPublisher;
 import com.mongodb.reactivestreams.client.MongoClient;
-import com.mongodb.reactivestreams.client.MongoClients;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 
@@ -106,11 +106,16 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
         }
         final MongoDbTimeseriesAdapterConfig mongoConfig = (MongoDbTimeseriesAdapterConfig) config;
 
-        final MongoClient client;
+        // Reuse Ditto's shared connection-setup path: MongoClientWrapper handles AWS IAM
+        // (assumeRoleWithWebIdentity via AwsAuthenticationHelper, credential refresh),
+        // pool sizing, SSL and circuit-breaker tuning — same code the sibling services'
+        // pekko-persistence-mongodb plugin uses. The default database segment comes from
+        // `ditto.mongodb.database` and is exposed via getDefaultDatabase().
+        final DittoMongoClient client;
         final MongoDatabase database;
         try {
-            client = MongoClients.create(new ConnectionString(mongoConfig.getUri()));
-            database = client.getDatabase(mongoConfig.getDatabase());
+            client = MongoClientWrapper.newInstance(mongoConfig.getMongoDbConfig());
+            database = client.getDefaultDatabase();
         } catch (final RuntimeException e) {
             return failedStage(e);
         }

@@ -25,6 +25,9 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.bson.Document;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.ThingId;
@@ -46,6 +49,8 @@ import com.mongodb.reactivestreams.client.MongoClient;
 import com.mongodb.reactivestreams.client.MongoClients;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 /**
  * Integration test for {@link MongoDbTimeseriesAdapter} against a real MongoDB instance.
@@ -82,8 +87,15 @@ public final class MongoDbTimeseriesAdapterIT {
         thingId = ThingId.of("it.timeseries.test",
                 "sensor-" + UUID.randomUUID().toString().substring(0, 8));
 
+        // Build a MongoDbConfig from a Typesafe Config rooted at "ditto" — same shape as
+        // DefaultMongoDbConfig consumes at runtime. Production code reads `ditto.mongodb.uri`
+        // and `ditto.mongodb.database`; the IT does the same here.
+        final Config rootConfig = ConfigFactory.parseString(String.format(
+                "ditto.mongodb.uri = \"%s\"\nditto.mongodb.database = \"%s\"\n", uri, DATABASE));
+        final MongoDbConfig mongoDbConfig =
+                DefaultMongoDbConfig.of(DefaultScopedConfig.dittoScoped(rootConfig));
         final MongoDbTimeseriesAdapterConfig config = DefaultMongoDbTimeseriesAdapterConfig.of(
-                uri, DATABASE, "ts_", Granularity.SECONDS);
+                mongoDbConfig, "ts_", Granularity.SECONDS);
         adapter.initialize(config).toCompletableFuture().get();
     }
 
