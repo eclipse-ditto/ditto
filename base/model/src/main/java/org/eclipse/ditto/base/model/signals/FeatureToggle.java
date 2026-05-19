@@ -101,6 +101,24 @@ public final class FeatureToggle {
             "ditto.devops.feature.stackless-flow-control-exceptions-enabled";
 
     /**
+     * System property name of the property defining whether the policy lockout prevention check performed by
+     * {@code PoliciesValidator} is enabled. The check rejects any create or modify operation whose resulting policy
+     * lacks at least one permanent subject with {@code WRITE} permission on resource {@code policy:/}.
+     * <p>
+     * With namespace-scoped root policies (since 3.9.0), the implicitly imported global policy may already supply
+     * the required permission, in which case the persistence-side check is overly strict (it does not see the
+     * namespace root). Setting this toggle to {@code false} disables the validator's lockout-prevention
+     * short-circuit so the policy is accepted regardless of its own subjects' permissions on {@code policy:/}.
+     * <p>
+     * The enforcement-side check in {@code PolicyCommandEnforcement.authorizeCreatePolicy} is unaffected by this
+     * toggle — it operates on an enforcer that already includes namespace-scoped root policies.
+     *
+     * @since 3.9.1
+     */
+    public static final String POLICY_LOCKOUT_PREVENTION_ENABLED =
+            "ditto.devops.feature.policy-lockout-prevention-enabled";
+
+    /**
      * Resolves the system property {@value MERGE_THINGS_ENABLED}.
      */
     private static final boolean IS_MERGE_THINGS_ENABLED = resolveProperty(MERGE_THINGS_ENABLED);
@@ -147,6 +165,12 @@ public final class FeatureToggle {
      */
     private static final boolean IS_STACKLESS_FLOW_CONTROL_EXCEPTIONS_ENABLED =
             resolveProperty(STACKLESS_FLOW_CONTROL_EXCEPTIONS_ENABLED);
+
+    /**
+     * Resolves the system property {@value POLICY_LOCKOUT_PREVENTION_ENABLED}.
+     */
+    private static final boolean IS_POLICY_LOCKOUT_PREVENTION_ENABLED =
+            resolveProperty(POLICY_LOCKOUT_PREVENTION_ENABLED);
 
     private static boolean resolveProperty(final String propertyName) {
         final String propertyValue = System.getProperty(propertyName, Boolean.TRUE.toString());
@@ -302,5 +326,17 @@ public final class FeatureToggle {
      */
     public static boolean isStacklessFlowControlExceptionsEnabled() {
         return IS_STACKLESS_FLOW_CONTROL_EXCEPTIONS_ENABLED;
+    }
+
+    /**
+     * Returns whether the policy lockout prevention check in {@code PoliciesValidator} is enabled, based on the system
+     * property {@value POLICY_LOCKOUT_PREVENTION_ENABLED}. When {@code false}, the validator's "at least one permanent
+     * subject must have WRITE on policy:/" check is bypassed.
+     *
+     * @return whether policy lockout prevention is enabled.
+     * @since 3.9.1
+     */
+    public static boolean isPolicyLockoutPreventionEnabled() {
+        return IS_POLICY_LOCKOUT_PREVENTION_ENABLED;
     }
 }

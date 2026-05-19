@@ -19,6 +19,10 @@ release. Each entry uses one of the Artifact Hub change kinds: `added`, `changed
 ### Added
 - Allow configuring `issuers` for OpenID Connect in Helm values
   ([#2442](https://github.com/eclipse-ditto/ditto/pull/2442))
+- New `global.featureFlags.policyLockoutPreventionEnabled` to disable the policy:/-WRITE
+  lockout-prevention check in `PoliciesValidator` (useful when namespace-scoped root
+  policies supply the required permission)
+  ([#2456](https://github.com/eclipse-ditto/ditto/pull/2456))
 
 ## [4.0.0]
 

@@ -203,6 +203,13 @@ global:
     #  Exceptions with HTTP status >= 500 always keep their stack trace, regardless of this toggle. Set this to
     #  false to restore the legacy behaviour where every Ditto exception captures a writable stack trace.
     stacklessFlowControlExceptionsEnabled: true
+    # policyLockoutPreventionEnabled controls whether the PoliciesValidator rejects create/modify operations
+    #  whose resulting policy lacks at least one permanent subject with WRITE permission on resource policy:/.
+    #  When enabled (default), the legacy lockout-prevention check is active. When disabled, the check is bypassed -
+    #  useful in deployments using namespace-scoped root policies (since 3.9.0) where the implicitly imported global
+    #  policy can supply the required permission. The enforcement-side authorize-create-policy check already
+    #  considers namespace-scoped root policies and is unaffected by this toggle.
+    policyLockoutPreventionEnabled: true
   # logging the logging configuration for Ditto
   logging:
     # sysout holds the logging to SYSOUT config
