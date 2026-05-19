@@ -222,6 +222,8 @@ spec:
               value: "{{ .Values.global.featureFlags.policyEnforcementUseThroughputOptimizedEvaluatorEnabled }}"
             - name: DITTO_DEVOPS_FEATURE_STACKLESS_FLOW_CONTROL_EXCEPTIONS_ENABLED
               value: "{{ .Values.global.featureFlags.stacklessFlowControlExceptionsEnabled }}"
+            - name: DITTO_DEVOPS_FEATURE_POLICY_LOCKOUT_PREVENTION_ENABLED
+              value: "{{ .Values.global.featureFlags.policyLockoutPreventionEnabled }}"
             - name: DITTO_METRICS_LIVE_ENTITIES_METRICS_ENABLED
               value: "{{ .Values.global.metrics.liveEntities.enabled }}"
             - name: DITTO_METRICS_LIVE_ENTITIES_METRICS_REFRESH_INTERVAL

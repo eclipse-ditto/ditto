@@ -23,6 +23,7 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.common.Validator;
+import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.policies.model.PoliciesResourceType;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
@@ -100,6 +101,13 @@ public final class PoliciesValidator implements Validator {
 
     @Override
     public boolean isValid() {
+        // Operator-level opt-out: with namespace-scoped root policies (since 3.9.0), the implicitly imported global
+        // policy may supply the required WRITE on policy:/ that this validator would otherwise demand from the
+        // policy's own entries. The validator has no access to the namespace-policies config, so we short-circuit
+        // when the operator has disabled lockout prevention globally.
+        if (!FeatureToggle.isPolicyLockoutPreventionEnabled()) {
+            return true;
+        }
         if (containsPolicyImport) {
             return true;
         } else {

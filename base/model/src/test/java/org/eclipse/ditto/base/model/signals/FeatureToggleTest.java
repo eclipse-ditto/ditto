@@ -35,4 +35,15 @@ public final class FeatureToggleTest {
                 .isEqualTo("ditto.devops.feature.stackless-flow-control-exceptions-enabled");
     }
 
+    @Test
+    public void policyLockoutPreventionToggleDefaultsToTrue() {
+        assertThat(FeatureToggle.isPolicyLockoutPreventionEnabled()).isTrue();
+    }
+
+    @Test
+    public void policyLockoutPreventionPropertyNameIsStable() {
+        assertThat(FeatureToggle.POLICY_LOCKOUT_PREVENTION_ENABLED)
+                .isEqualTo("ditto.devops.feature.policy-lockout-prevention-enabled");
+    }
+
 }
