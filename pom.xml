@@ -891,32 +891,6 @@
                             <waitUntil>published</waitUntil>
                             <centralSnapshotsUrl>https://central.sonatype.com/repository/maven-snapshots/</centralSnapshotsUrl>
                             <deploymentName>Ditto ${revision}</deploymentName>
-                            <!-- Exclude "allinone" artifacts from publication to Maven Central as they are too big.
-                              - The Docker image build downloads them from the Eclipse Ditto Maven repository and not from Maven Central,
-                              - so they don't need to be published to Maven Central.
-                             -->
-                            <excludeArtifacts>
-                                <excludeArtifact>
-                                    <artifactId>ditto-thingsearch-service</artifactId>
-                                    <classifier>allinone</classifier>
-                                </excludeArtifact>
-                                <excludeArtifact>
-                                    <artifactId>ditto-things-service</artifactId>
-                                    <classifier>allinone</classifier>
-                                </excludeArtifact>
-                                <excludeArtifact>
-                                    <artifactId>ditto-policies-service</artifactId>
-                                    <classifier>allinone</classifier>
-                                </excludeArtifact>
-                                <excludeArtifact>
-                                    <artifactId>ditto-gateway-service</artifactId>
-                                    <classifier>allinone</classifier>
-                                </excludeArtifact>
-                                <excludeArtifact>
-                                    <artifactId>ditto-connectivity-service</artifactId>
-                                    <classifier>allinone</classifier>
-                                </excludeArtifact>
-                            </excludeArtifacts>
                         </configuration>
                     </plugin>
                 </plugins>
