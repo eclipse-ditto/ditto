@@ -644,7 +644,10 @@ public abstract class AbstractPersistenceActor<
      * @param message the check-for-activity message.
      */
     protected void checkForActivity(final CheckForActivity message) {
-        scheduleCheckForActivity(getActivityCheckConfig().getDeletedInterval());
+        final Duration nextCheckInterval = isEntityActive()
+                ? getActivityCheckConfig().getInactiveInterval()
+                : getActivityCheckConfig().getDeletedInterval();
+        scheduleCheckForActivity(nextCheckInterval);
         if (entityExistsAsDeleted() && lastSnapshotRevision < getRevisionNumber()) {
             // take a snapshot after a period of inactivity if:
             // - entity is deleted,
