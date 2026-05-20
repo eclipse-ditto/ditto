@@ -275,7 +275,7 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
                 <artifactId>maven-shade-plugin</artifactId>
                 <executions>
                     <execution>
-                        <phase>package</phase>
+                        <phase>${shade.phase}</phase>
                         <goals>
                             <goal>shade</goal>
                         </goals>
