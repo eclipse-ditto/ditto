@@ -19,6 +19,8 @@ on:
   pull_request:
     paths:
       - 'deployment/helm/**'
+      - '!deployment/helm/**/CHANGELOG.md'
+      - '!deployment/helm/**/README.md'
       - '.github/workflows/helm-chart.yml'
       - '.github/ct.yml'
       - '.github/kubeval.sh'

@@ -10,11 +10,12 @@ version (`Chart.yaml` → `appVersion`) since Ditto 3.9.0. The chart follows
 - **MINOR** — backwards-compatible new configuration options or templates.
 - **PATCH** — backwards-compatible fixes, doc-only changes, dependency bumps without behavior change.
 
-Entries below mirror the `artifacthub.io/changes` annotation in `Chart.yaml` for the corresponding
-release. Each entry uses one of the Artifact Hub change kinds: `added`, `changed`, `deprecated`,
-`removed`, `fixed`, `security`.
+Each entry is grouped under one of the standard [Keep a Changelog](https://keepachangelog.com/)
+sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 
 ## [Unreleased]
+
+## [4.1.0]
 
 ### Added
 - Allow configuring `issuers` for OpenID Connect in Helm values
@@ -24,6 +25,11 @@ release. Each entry uses one of the Artifact Hub change kinds: `added`, `changed
   policies supply the required permission)
   ([#2456](https://github.com/eclipse-ditto/ditto/pull/2456))
 
+### Fixed
+- Service account template: fix annotation indentation (multiple annotations previously
+  failed to render) and move labels to the appropriate key
+  ([#2455](https://github.com/eclipse-ditto/ditto/pull/2455))
+
 ## [4.0.0]
 
 _First chart release after decoupling the Helm chart version from the Ditto application version.
@@ -31,5 +37,6 @@ For changes prior to this changelog being introduced, see the
 [GitHub PR history](https://github.com/eclipse-ditto/ditto/pulls?q=is%3Apr+label%3A%22Helm+chart%22+is%3Aclosed)
 filtered by the `Helm chart` label._
 
-[Unreleased]: https://github.com/eclipse-ditto/ditto/compare/helm-chart-4.0.0...HEAD
+[Unreleased]: https://github.com/eclipse-ditto/ditto/compare/helm-chart-4.1.0...HEAD
+[4.1.0]: https://github.com/eclipse-ditto/ditto/compare/helm-chart-4.0.0...helm-chart-4.1.0
 [4.0.0]: https://github.com/eclipse-ditto/ditto/releases/tag/helm-chart-4.0.0
