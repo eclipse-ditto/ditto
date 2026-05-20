@@ -26,7 +26,12 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.stream.StreamSupport;
 
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.policies.model.enforcers.Enforcer;
+import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
 import org.junit.Test;
 
 /**
@@ -1276,6 +1281,179 @@ public final class PolicyImporterTest {
                 .map(s -> s.getId().toString())
                 .collect(java.util.stream.Collectors.toSet());
         assertThat(subjectIds).contains("google:alice", "google:bob", "google:charlie");
+    }
+
+    /**
+     * Customer-shaped 3-level scenario combining transitiveImports, import references and local
+     * references in a single policy graph:
+     * <ul>
+     *   <li><b>template</b> — defines per-resource access entries (READ on a thing path + WRITE on a
+     *       message path), each {@code importable=implicit} with {@code allowedAdditions=[SUBJECTS]}
+     *       so consumers may attach subjects but not extra resources.</li>
+     *   <li><b>main</b> — imports template (full). Holds a single subject-bearing entry
+     *       ({@code importable=explicit}, so it is not pulled along by implicit imports), plus one
+     *       implicit per-resource entry per template entry. Each implicit entry has no own subjects
+     *       or resources; it only declares two references: one local to the subject-bearing entry,
+     *       and one import-reference to the matching template entry.</li>
+     *   <li><b>leaf</b> — imports main with {@code entries: []} and
+     *       {@code transitiveImports: [template]}, no entries of its own. Models a downstream
+     *       policy that only wants main's resolved access entries.</li>
+     * </ul>
+     *
+     * Verifies that leaf's effective policy contains the per-resource entries from main with
+     * template's resources merged in AND main's subject attached via the local reference, and that
+     * the resulting policy actually grants those permissions to the configured subject while
+     * denying everyone else.
+     */
+    @Test
+    public void testTransitiveImportWithLocalAndImportReferencesAppliesPermissions() {
+        final PolicyId templateId = PolicyId.of("com.example", "template");
+        final PolicyId mainId = PolicyId.of("com.example", "main");
+        final PolicyId leafId = PolicyId.of("com.example", "leaf");
+
+        final Label roomAccessLabel = Label.of("ROOM_ACCESS");
+        final Label buildingAccessLabel = Label.of("BUILDING_ACCESS");
+        final Label managerLabel = Label.of("MANAGER");
+
+        final ResourceKey roomThing = ResourceKey.newInstance("thing", JsonPointer.of("features/room"));
+        final ResourceKey roomInbox = ResourceKey.newInstance("message", JsonPointer.of("features/room/inbox"));
+        final ResourceKey buildingThing = ResourceKey.newInstance("thing", JsonPointer.of("features/building"));
+        final ResourceKey unrelatedThing = ResourceKey.newInstance("thing", JsonPointer.of("features/secret"));
+
+        // --- template: resource-bearing entries, no subjects, allowedAdditions = [SUBJECTS] ---
+        final PolicyEntry templateRoomAccess = PoliciesModelFactory.newPolicyEntry(roomAccessLabel,
+                PoliciesModelFactory.emptySubjects(),
+                Resources.newInstance(
+                        Resource.newInstance(roomThing, EffectedPermissions.newInstance(
+                                Permissions.newInstance(TestConstants.Policy.PERMISSION_READ),
+                                Permissions.none())),
+                        Resource.newInstance(roomInbox, EffectedPermissions.newInstance(
+                                Permissions.newInstance(TestConstants.Policy.PERMISSION_WRITE),
+                                Permissions.none()))),
+                null, ImportableType.IMPLICIT,
+                Collections.singleton(AllowedAddition.SUBJECTS), null);
+
+        final PolicyEntry templateBuildingAccess = PoliciesModelFactory.newPolicyEntry(buildingAccessLabel,
+                PoliciesModelFactory.emptySubjects(),
+                Resources.newInstance(
+                        Resource.newInstance(buildingThing, EffectedPermissions.newInstance(
+                                Permissions.newInstance(TestConstants.Policy.PERMISSION_READ),
+                                Permissions.none()))),
+                null, ImportableType.IMPLICIT,
+                Collections.singleton(AllowedAddition.SUBJECTS), null);
+
+        final Policy templatePolicy = PoliciesModelFactory.newPolicyBuilder(templateId)
+                .set(templateRoomAccess)
+                .set(templateBuildingAccess)
+                .build();
+
+        // --- main: imports template, holds the subject in an EXPLICIT local entry, then declares
+        //     per-resource IMPLICIT entries that only reference (local subject + template entry). ---
+        final SubjectId managerSubjectId = SubjectId.newInstance(SubjectIssuer.GOOGLE, "facilityManager");
+        final PolicyEntry mainManager = ImmutablePolicyEntry.of(managerLabel,
+                Subjects.newInstance(Subject.newInstance(managerSubjectId)),
+                PoliciesModelFactory.emptyResources(),
+                ImportableType.EXPLICIT);
+
+        final PolicyEntry mainRoomAccess = PoliciesModelFactory.newPolicyEntry(roomAccessLabel,
+                PoliciesModelFactory.emptySubjects(),
+                PoliciesModelFactory.emptyResources(),
+                null, ImportableType.IMPLICIT, null,
+                Arrays.asList(
+                        PoliciesModelFactory.newLocalEntryReference(managerLabel),
+                        PoliciesModelFactory.newEntryReference(templateId, roomAccessLabel)));
+
+        final PolicyEntry mainBuildingAccess = PoliciesModelFactory.newPolicyEntry(buildingAccessLabel,
+                PoliciesModelFactory.emptySubjects(),
+                PoliciesModelFactory.emptyResources(),
+                null, ImportableType.IMPLICIT, null,
+                Arrays.asList(
+                        PoliciesModelFactory.newLocalEntryReference(managerLabel),
+                        PoliciesModelFactory.newEntryReference(templateId, buildingAccessLabel)));
+
+        final Policy mainPolicy = PoliciesModelFactory.newPolicyBuilder(mainId)
+                .set(mainManager)
+                .set(mainRoomAccess)
+                .set(mainBuildingAccess)
+                .setPolicyImport(PoliciesModelFactory.newPolicyImport(templateId, (EffectedImports) null))
+                .build();
+
+        // --- leaf: imports main with transitiveImports=[template], no entries of its own. ---
+        final EffectedImports leafImportOfMain = PoliciesModelFactory.newEffectedImportedLabels(
+                Collections.emptyList(), Collections.singletonList(templateId));
+        final Policy leafPolicy = PoliciesModelFactory.newPolicyBuilder(leafId)
+                .setPolicyImport(PoliciesModelFactory.newPolicyImport(mainId, leafImportOfMain))
+                .build();
+
+        final Function<PolicyId, CompletionStage<Optional<Policy>>> loader = id -> {
+            if (templateId.equals(id)) {
+                return CompletableFuture.completedFuture(Optional.of(templatePolicy));
+            } else if (mainId.equals(id)) {
+                return CompletableFuture.completedFuture(Optional.of(mainPolicy));
+            }
+            return CompletableFuture.completedFuture(Optional.empty());
+        };
+
+        // --- Resolve leaf's effective policy. ---
+        final Policy resolved = leafPolicy.withResolvedImports(loader).toCompletableFuture().join();
+
+        // EXPLICIT manager entry must not leak through implicit-only import.
+        final Label mainPrefixedManager = PoliciesModelFactory.newImportedLabel(mainId, managerLabel);
+        assertThat(resolved.getEntryFor(mainPrefixedManager)).isNotPresent();
+
+        // Per-resource entries from main must appear under the main-import prefix
+        // with template's resources merged in via the import-reference, and the
+        // manager's subject merged in via the local reference.
+        final Label mainPrefixedRoom = PoliciesModelFactory.newImportedLabel(mainId, roomAccessLabel);
+        final PolicyEntry resolvedRoom = resolved.getEntryFor(mainPrefixedRoom)
+                .orElseThrow(() -> new AssertionError("Expected ROOM_ACCESS entry not found"));
+        final Set<String> roomSubjectIds = StreamSupport.stream(resolvedRoom.getSubjects().spliterator(), false)
+                .map(s -> s.getId().toString())
+                .collect(java.util.stream.Collectors.toSet());
+        assertThat(roomSubjectIds).containsExactly(managerSubjectId.toString());
+        assertThat(resolvedRoom.getResources().getResource(roomThing)).isPresent();
+        assertThat(resolvedRoom.getResources().getResource(roomInbox)).isPresent();
+
+        final Label mainPrefixedBuilding = PoliciesModelFactory.newImportedLabel(mainId, buildingAccessLabel);
+        final PolicyEntry resolvedBuilding = resolved.getEntryFor(mainPrefixedBuilding)
+                .orElseThrow(() -> new AssertionError("Expected BUILDING_ACCESS entry not found"));
+        final Set<String> buildingSubjectIds = StreamSupport.stream(resolvedBuilding.getSubjects().spliterator(), false)
+                .map(s -> s.getId().toString())
+                .collect(java.util.stream.Collectors.toSet());
+        assertThat(buildingSubjectIds).containsExactly(managerSubjectId.toString());
+        assertThat(resolvedBuilding.getResources().getResource(buildingThing)).isPresent();
+
+        // --- Verify the resolved policy actually enforces these permissions. ---
+        final Enforcer enforcer = PolicyEnforcers.defaultEvaluator(resolved);
+        final AuthorizationContext managerCtx = AuthorizationContext.newInstance(
+                DittoAuthorizationContextType.UNSPECIFIED,
+                AuthorizationSubject.newInstance(managerSubjectId.toString()));
+        final AuthorizationContext strangerCtx = AuthorizationContext.newInstance(
+                DittoAuthorizationContextType.UNSPECIFIED,
+                AuthorizationSubject.newInstance("google:stranger"));
+
+        assertThat(enforcer.hasUnrestrictedPermissions(roomThing, managerCtx,
+                TestConstants.Policy.PERMISSION_READ)).isTrue();
+        assertThat(enforcer.hasUnrestrictedPermissions(roomInbox, managerCtx,
+                TestConstants.Policy.PERMISSION_WRITE)).isTrue();
+        assertThat(enforcer.hasUnrestrictedPermissions(buildingThing, managerCtx,
+                TestConstants.Policy.PERMISSION_READ)).isTrue();
+
+        // Permissions not granted by the template must not be available.
+        assertThat(enforcer.hasUnrestrictedPermissions(roomThing, managerCtx,
+                TestConstants.Policy.PERMISSION_WRITE)).isFalse();
+        assertThat(enforcer.hasUnrestrictedPermissions(buildingThing, managerCtx,
+                TestConstants.Policy.PERMISSION_WRITE)).isFalse();
+        assertThat(enforcer.hasUnrestrictedPermissions(unrelatedThing, managerCtx,
+                TestConstants.Policy.PERMISSION_READ)).isFalse();
+
+        // A different subject must not be authorized by any of the resolved entries.
+        assertThat(enforcer.hasUnrestrictedPermissions(roomThing, strangerCtx,
+                TestConstants.Policy.PERMISSION_READ)).isFalse();
+        assertThat(enforcer.hasUnrestrictedPermissions(roomInbox, strangerCtx,
+                TestConstants.Policy.PERMISSION_WRITE)).isFalse();
+        assertThat(enforcer.hasUnrestrictedPermissions(buildingThing, strangerCtx,
+                TestConstants.Policy.PERMISSION_READ)).isFalse();
     }
 
     /**
