@@ -134,6 +134,13 @@
 
         <argLine>-Dfile.encoding=${project.build.sourceEncoding}</argLine>
 
+        <!-- Phase for the maven-shade-plugin executions in the service modules.
+             Default `package` builds and attaches the *-allinone.jar as a Maven artifact.
+             Overridden to `none` in the `publishToMavenCentral` profile so the (very large)
+             allinone jars are NOT uploaded to Maven Central — they're only needed in the
+             Eclipse Maven repo (consumed by the Docker image build). -->
+        <shade.phase>package</shade.phase>
+
         <!-- globally set version for checking binary compatibility against -->
         <!-- whoever changes this to ${revision} or ${project.version} is responsible for API breakage caused by this! -->
         <!-- in other words: never do that here! exclude the 'breakages' locally in the japicmp maven plugin if you intentionally break something -->
@@ -851,6 +858,13 @@
                     <value>true</value>
                 </property>
             </activation>
+            <properties>
+                <!-- Skip the maven-shade-plugin executions so the *-allinone.jar is NOT
+                     attached and therefore not staged/uploaded to Maven Central.
+                     The allinone is still produced in the `publishToEclipseMavenRepo`
+                     run, which uploads it to repo.eclipse.org for the Docker build. -->
+                <shade.phase>none</shade.phase>
+            </properties>
             <distributionManagement>
                 <repository>
                     <id>central</id>
