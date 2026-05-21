@@ -3,7 +3,7 @@ title: Release notes 3.9.1
 tags: [release_notes]
 published: true
 keywords: release notes, announcements, changelog
-summary: "Version 3.9.1 of Eclipse Ditto, released on 20.05.2026"
+summary: "Version 3.9.1 of Eclipse Ditto, released on 21.05.2026"
 permalink: release_notes_391.html
 ---
 
