@@ -49,6 +49,18 @@ fired every 5 minutes and the actor was shut down as soon as no command arrived 
 than the configured `inactive-interval` would suggest. The fix affects all subclasses of `AbstractPersistenceActor`
 (Thing, Policy, Connection); behavior for deleted entities is unchanged.
 
+#### Fix resolved policy view dropping imports when source-side READ comes via namespace-root
+
+PR [#2458](https://github.com/eclipse-ditto/ditto/pull/2458) fixes a regression in the `?policy-view=resolved`
+response where every entry contributed by a declared import was silently stripped when the caller's READ on the
+imported policy came solely from an operator-configured namespace-root policy. `PolicyCommandEnforcement` built each
+source enforcer with `withResolvedImports` — without merging namespace-root entries — so the source-side READ filter
+evaluated `policy:/entries/<label>` against the source policy's own subjects only. A caller whose access to the
+source came only via the namespace-root (e.g. a global devops admin) lost every `imported-<srcId>-…` entry from the
+resolved view, while imports that happened to contain a directly-authenticating subject still worked. Source
+enforcers now use `withResolvedImportsAndNamespacePolicies`, mirroring the importing-policy evaluation; the existing
+security tests still pass — a caller with no legitimate path to the source still loses the entries.
+
 ### Helm Chart
 
 The following changes were included via the `helm-chart-4.1.0` milestone (see the complete list of

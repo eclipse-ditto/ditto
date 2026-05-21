@@ -309,9 +309,15 @@ public final class PolicyCommandEnforcement
     }
 
     private CompletableFuture<Optional<PolicyEnforcer>> resolveSourceEnforcer(final PolicyId sourceId) {
+        // Source-side READ checks must see the same effective grants the caller has on the source policy at
+        // enforcement time, which includes operator-configured namespace-root entries. Without the ns-policy
+        // merge, a caller whose READ on the source comes only via the namespace-root (e.g. a global devops
+        // admin) fails hasSourceSideRead for every entry in the source and silently loses all imported
+        // entries in the resolved view.
         return policyResolver.apply(sourceId)
                 .thenCompose(opt -> opt.isPresent()
-                        ? PolicyEnforcer.withResolvedImports(opt.get(), policyResolver).thenApply(Optional::of)
+                        ? PolicyEnforcer.withResolvedImportsAndNamespacePolicies(opt.get(), policyResolver,
+                                namespacePoliciesConfig).thenApply(Optional::of)
                         : CompletableFuture.completedFuture(Optional.<PolicyEnforcer>empty()))
                 .toCompletableFuture();
     }

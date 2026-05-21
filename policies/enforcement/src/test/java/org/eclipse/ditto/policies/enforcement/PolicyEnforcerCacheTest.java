@@ -22,28 +22,41 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executor;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.eclipse.ditto.internal.utils.cache.config.DefaultCacheConfig;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.policies.enforcement.config.DefaultNamespacePoliciesConfig;
 import org.eclipse.ditto.policies.enforcement.config.NamespacePoliciesConfig;
+import org.eclipse.ditto.policies.model.AllowedAddition;
+import org.eclipse.ditto.policies.model.EffectedImports;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.ImportableType;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyImport;
+import org.eclipse.ditto.policies.model.PolicyRevision;
 import org.eclipse.ditto.policies.model.Resource;
+import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.Resources;
 import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.SubjectId;
@@ -274,6 +287,189 @@ public final class PolicyEnforcerCacheTest {
             // Leaf is still cached — template change no longer cascades to it
             verifyLoadedFromCache(leafPolicyWithoutTransitive, underTest, cacheLoader);
         }};
+    }
+
+    /**
+     * Integration-style cache test for the customer-shaped 3-policy graph (template / main-with-references /
+     * leaf-with-transitiveImports). Unlike the other tests in this file, this one wires a real
+     * {@link com.github.benmanes.caffeine.cache.AsyncCacheLoader} that actually runs
+     * {@link PolicyEnforcer#withResolvedImportsAndNamespacePolicies} against an in-memory map of raw policies,
+     * so the test exercises both:
+     * <ol>
+     *   <li>that the model layer's reference resolution materializes main's {@code importable=implicit}
+     *       entries with subjects merged in from a locally-referenced {@code importable=explicit} entry
+     *       (the symptom that motivated this test — entries were observed missing in the resolved leaf view), and</li>
+     *   <li>that {@code invalidate(mainId)} cascades to the leaf and the subsequent cache load actually re-resolves
+     *       leaf against the updated main, so a change to main's MANAGER subject is observable in leaf's
+     *       resolved view without restart.</li>
+     * </ol>
+     */
+    @Test
+    public void transitiveImportWithLocalReferenceIsResolvedAndCacheReloadsOnMainChange() throws Exception {
+        // ===== Build the 3-policy customer-shaped graph =====
+        final PolicyId templateId = PolicyId.of("test.cache", "template");
+        final PolicyId mainId = PolicyId.of("test.cache", "main");
+        final PolicyId leafId = PolicyId.of("test.cache", "leaf");
+
+        final Label roomAccessLabel = Label.of("ROOM_ACCESS");
+        final Label managerLabel = Label.of("MANAGER");
+        final ResourceKey roomThing = ResourceKey.newInstance("thing", JsonPointer.of("features/room"));
+
+        // template: IMPLICIT ROOM_ACCESS with READ on thing:/features/room, no subjects,
+        // allowedAdditions=[SUBJECTS] so consumers may attach subjects but not extra resources.
+        final PolicyEntry templateRoom = PoliciesModelFactory.newPolicyEntry(roomAccessLabel,
+                PoliciesModelFactory.emptySubjects(),
+                Resources.newInstance(Resource.newInstance(roomThing,
+                        EffectedPermissions.newInstance(Permissions.newInstance("READ"), Permissions.none()))),
+                null, ImportableType.IMPLICIT,
+                Collections.singleton(AllowedAddition.SUBJECTS), null);
+        final Policy template = PoliciesModelFactory.newPolicyBuilder(templateId)
+                .setRevision(1L)
+                .set(templateRoom)
+                .build();
+
+        // main: imports template; carries the manager subject in an EXPLICIT entry (not pulled into the leaf
+        // because leaf imports main with entries:[]); plus a per-resource IMPLICIT ROOM_ACCESS entry that only
+        // declares references — one local to MANAGER (for subjects), one import-ref to template's ROOM_ACCESS
+        // (for resources). This is the entry the customer observed missing in the resolved leaf view.
+        final SubjectId aliceId = SubjectId.newInstance(SubjectIssuer.GOOGLE, "alice");
+        final PolicyEntry mainManager = PoliciesModelFactory.newPolicyEntry(managerLabel,
+                Subjects.newInstance(Subject.newInstance(aliceId)),
+                PoliciesModelFactory.emptyResources(),
+                ImportableType.EXPLICIT);
+        final PolicyEntry mainRoom = PoliciesModelFactory.newPolicyEntry(roomAccessLabel,
+                PoliciesModelFactory.emptySubjects(),
+                PoliciesModelFactory.emptyResources(),
+                null, ImportableType.IMPLICIT, null,
+                Arrays.asList(
+                        PoliciesModelFactory.newLocalEntryReference(managerLabel),
+                        PoliciesModelFactory.newEntryReference(templateId, roomAccessLabel)));
+        final Policy main = PoliciesModelFactory.newPolicyBuilder(mainId)
+                .setRevision(1L)
+                .set(mainManager)
+                .set(mainRoom)
+                .setPolicyImport(PoliciesModelFactory.newPolicyImport(templateId, (EffectedImports) null))
+                .build();
+
+        // leaf: imports main with empty entries list + transitiveImports=[template], no own entries.
+        final EffectedImports leafImportOfMain = PoliciesModelFactory.newEffectedImportedLabels(
+                Collections.emptyList(), Collections.singletonList(templateId));
+        final Policy leaf = PoliciesModelFactory.newPolicyBuilder(leafId)
+                .setRevision(1L)
+                .setPolicyImport(PoliciesModelFactory.newPolicyImport(mainId, leafImportOfMain))
+                .build();
+
+        // ===== Wire the cache with a map-backed loader that runs real reference resolution =====
+        final ConcurrentMap<PolicyId, Policy> policies = new ConcurrentHashMap<>();
+        policies.put(templateId, template);
+        policies.put(mainId, main);
+        policies.put(leafId, leaf);
+
+        final NamespacePoliciesConfig nsConfig =
+                DefaultNamespacePoliciesConfig.of(actorSystem.settings().config());
+        final AsyncCacheLoader<PolicyId, Entry<PolicyEnforcer>> loader =
+                new MapBackedPolicyEnforcerCacheLoader(policies, nsConfig);
+        final ExecutionContextExecutor executor = actorSystem.dispatcher();
+        final PolicyEnforcerCache cache = new PolicyEnforcerCache(
+                loader, executor,
+                DefaultCacheConfig.of(actorSystem.settings().config(), "ditto.policies-enforcer-cache"),
+                nsConfig);
+
+        new TestKit(actorSystem) {{
+            // ===== Phase 1: First read of leaf — verify entries with merged references are present =====
+            final Optional<Entry<PolicyEnforcer>> leafEntry1 = cache.get(leafId).toCompletableFuture().join();
+            final Policy leafResolved1 = leafEntry1
+                    .flatMap(Entry::get)
+                    .flatMap(PolicyEnforcer::getPolicy)
+                    .orElseThrow(() -> new AssertionError("leaf failed to load"));
+
+            final Label mainPrefixedRoom = PoliciesModelFactory.newImportedLabel(mainId, roomAccessLabel);
+            final PolicyEntry roomEntry1 = leafResolved1.getEntryFor(mainPrefixedRoom)
+                    .orElseThrow(() -> new AssertionError(
+                            "imported-<mainId>-ROOM_ACCESS missing from leaf's resolved view — " +
+                                    "the IMPLICIT entry with a local reference to an EXPLICIT MANAGER " +
+                                    "entry must survive the import + reference resolution"));
+
+            assertThat(subjectIdsOf(roomEntry1))
+                    .as("local reference to EXPLICIT MANAGER must merge alice into ROOM_ACCESS")
+                    .contains(aliceId.toString());
+            assertThat(roomEntry1.getResources().getResource(roomThing))
+                    .as("import reference to template:ROOM_ACCESS must merge template's resource")
+                    .isPresent();
+
+            // ===== Phase 2: Update main — replace MANAGER's alice subject with bob =====
+            final SubjectId bobId = SubjectId.newInstance(SubjectIssuer.GOOGLE, "bob");
+            final PolicyEntry mainManagerUpdated = PoliciesModelFactory.newPolicyEntry(managerLabel,
+                    Subjects.newInstance(Subject.newInstance(bobId)),
+                    PoliciesModelFactory.emptyResources(),
+                    ImportableType.EXPLICIT);
+            final Policy mainUpdated = PoliciesModelFactory.newPolicyBuilder(mainId)
+                    .setRevision(2L)
+                    .set(mainManagerUpdated)
+                    .set(mainRoom)
+                    .setPolicyImport(PoliciesModelFactory.newPolicyImport(templateId, (EffectedImports) null))
+                    .build();
+            policies.put(mainId, mainUpdated);
+
+            // ===== Phase 3: Invalidate main — must cascade to leaf via the main → leaf edge =====
+            cache.invalidate(mainId);
+
+            // ===== Phase 4: Re-read leaf — must reflect updated MANAGER subject =====
+            final Optional<Entry<PolicyEnforcer>> leafEntry2 = cache.get(leafId).toCompletableFuture().join();
+            final Policy leafResolved2 = leafEntry2
+                    .flatMap(Entry::get)
+                    .flatMap(PolicyEnforcer::getPolicy)
+                    .orElseThrow(() -> new AssertionError("leaf failed to reload"));
+
+            final PolicyEntry roomEntry2 = leafResolved2.getEntryFor(mainPrefixedRoom)
+                    .orElseThrow(() -> new AssertionError(
+                            "imported-<mainId>-ROOM_ACCESS missing from leaf after main invalidation"));
+            assertThat(subjectIdsOf(roomEntry2))
+                    .as("after invalidate(mainId), reloaded leaf must reflect MANAGER's new subject")
+                    .contains(bobId.toString())
+                    .doesNotContain(aliceId.toString());
+        }};
+    }
+
+    private static Set<String> subjectIdsOf(final PolicyEntry entry) {
+        return StreamSupport.stream(entry.getSubjects().spliterator(), false)
+                .map(s -> s.getId().toString())
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Map-backed {@link AsyncCacheLoader} that mirrors the production {@link PolicyEnforcerCacheLoader}:
+     * fetches the raw policy from an in-memory map, then resolves imports + references via the same map.
+     * The resolver is rebuilt on every load and reads the current map state, so updates published into the
+     * map are picked up by the next cache miss.
+     */
+    private static final class MapBackedPolicyEnforcerCacheLoader
+            implements AsyncCacheLoader<PolicyId, Entry<PolicyEnforcer>> {
+
+        private final ConcurrentMap<PolicyId, Policy> policies;
+        private final NamespacePoliciesConfig namespacePoliciesConfig;
+
+        MapBackedPolicyEnforcerCacheLoader(final ConcurrentMap<PolicyId, Policy> policies,
+                final NamespacePoliciesConfig namespacePoliciesConfig) {
+            this.policies = policies;
+            this.namespacePoliciesConfig = namespacePoliciesConfig;
+        }
+
+        @Override
+        public CompletableFuture<Entry<PolicyEnforcer>> asyncLoad(final PolicyId policyId,
+                final Executor executor) {
+            final Policy policy = policies.get(policyId);
+            if (policy == null) {
+                return CompletableFuture.completedFuture(Entry.nonexistent());
+            }
+            final Function<PolicyId, CompletionStage<Optional<Policy>>> resolver =
+                    id -> CompletableFuture.completedFuture(Optional.ofNullable(policies.get(id)));
+            final long revision = policy.getRevision().map(PolicyRevision::toLong).orElse(1L);
+            return PolicyEnforcer
+                    .withResolvedImportsAndNamespacePolicies(policy, resolver, namespacePoliciesConfig)
+                    .thenApply(enforcer -> Entry.of(revision, enforcer))
+                    .toCompletableFuture();
+        }
     }
 
     @Test
