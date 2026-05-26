@@ -202,15 +202,24 @@ public final class CborJsonTest {
 
     @Test
     public void validateImmutableJsonObjectInternalCachingBehaviour() throws IOException {
-        final JsonObject objectWithSelfGeneratedCache = JsonFactory.newObjectBuilder(KNOWN_FIELDS.values()).build();
-        assertInternalCachesAreAsExpected(objectWithSelfGeneratedCache, true, false);
+        // After the lazy-encoding refactor, a JsonObject produced by the builder holds neither
+        // representation until the first toString() / writeValue() / size-validating call.
+        final JsonObject objectFromBuilder = JsonFactory.newObjectBuilder(KNOWN_FIELDS.values()).build();
+        assertInternalCachesAreAsExpected(objectFromBuilder, false, false);
 
-        final ByteBuffer byteBuffer = cborFactory.toByteBuffer(objectWithSelfGeneratedCache);
+        // toByteBuffer triggers two materialisations on the same object:
+        //   determineSize -> getUpperBoundForStringSize -> asJsonObjectString  (string rep)
+        //   writeToOutputStream -> writeValue -> createCborRepresentation       (cbor rep)
+        // Both are cached on the source object as a side effect of serialising it.
+        final ByteBuffer byteBuffer = cborFactory.toByteBuffer(objectFromBuilder);
         final JsonObject objectWithCborCache = cborFactory.readFrom(byteBuffer).asObject();
-        assertInternalCachesAreAsExpected(objectWithSelfGeneratedCache, true, false);
-        final JsonObject objectWithJsonCache = JsonFactory.newObject(objectWithSelfGeneratedCache.toString());
-        assertInternalCachesAreAsExpected(objectWithSelfGeneratedCache, true, true);
+        assertInternalCachesAreAsExpected(objectFromBuilder, true, true);
+        // toString() now hits the already-cached string rep, no additional materialisation.
+        final JsonObject objectWithJsonCache = JsonFactory.newObject(objectFromBuilder.toString());
+        assertInternalCachesAreAsExpected(objectFromBuilder, true, true);
 
+        // Constructing from CBOR / JSON inputs continues to pass that representation through
+        // to the field map unchanged (no lazy materialisation needed).
         assertInternalCachesAreAsExpected(objectWithCborCache, true, false);
         assertInternalCachesAreAsExpected(objectWithJsonCache, false, true);
     }
