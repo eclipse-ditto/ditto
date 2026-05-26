@@ -1516,43 +1516,69 @@ public final class ImmutableJsonObjectTest {
     }
 
     @Test
-    public void validateSoftReferenceStrategy() throws IllegalAccessException, NoSuchFieldException {
+    public void buildingDoesNotEagerlyEncodeAnyRepresentation() throws Exception {
         final ImmutableJsonObject jsonObject = ImmutableJsonObject.of(KNOWN_FIELDS);
-        assertInternalCachesAreAsExpected(jsonObject, true);
 
-        final Field valueListField = jsonObject.getClass().getDeclaredField("fieldMap");
-        valueListField.setAccessible(true);
-        final ImmutableJsonObject.SoftReferencedFieldMap
-                valueList = (ImmutableJsonObject.SoftReferencedFieldMap) valueListField.get(jsonObject);
+        assertThat(getInternalField(jsonObject, "jsonObjectStringRepresentation"))
+                .as("string representation must not be eagerly created on construction")
+                .isNull();
+        assertThat(getInternalField(jsonObject, "cborObjectRepresentation"))
+                .as("CBOR representation must not be eagerly created on construction")
+                .isNull();
+        assertThat(getInternalField(jsonObject, "fieldsRef"))
+                .as("field map must be held strongly while no representation has been materialised")
+                .isInstanceOf(Map.class);
+    }
 
-        final Field softReferenceField = valueList.getClass().getDeclaredField("fieldsReference");
-        softReferenceField.setAccessible(true);
-        SoftReference softReference = (SoftReference) softReferenceField.get(valueList);
+    @Test
+    public void toStringMaterialisesStringRepAndSoftensFieldMap() throws Exception {
+        final ImmutableJsonObject jsonObject = ImmutableJsonObject.of(KNOWN_FIELDS);
 
-        softReference.clear();
+        // Trigger lazy materialisation.
+        jsonObject.toString();
 
+        assertThat(getInternalField(jsonObject, "jsonObjectStringRepresentation"))
+                .as("string representation is cached after first toString()")
+                .isNotNull();
+        assertThat(getInternalField(jsonObject, "fieldsRef"))
+                .as("field map is softened once a recoverable representation is cached")
+                .isInstanceOf(SoftReference.class);
+    }
+
+    @Test
+    public void upperBoundForStringSizeMaterialisesStringRepLazily() throws Exception {
+        final ImmutableJsonObject jsonObject = ImmutableJsonObject.of(KNOWN_FIELDS);
+
+        // Size-validation callers (Modify commands, CBOR sizing) need a real bound.
+        assertThat(jsonObject.getUpperBoundForStringSize()).isPositive();
+        assertThat(getInternalField(jsonObject, "jsonObjectStringRepresentation"))
+                .as("upperBoundForStringSize triggers lazy materialisation of the string representation")
+                .isNotNull();
+    }
+
+    @Test
+    public void softReferenceClearedAfterSerialisationRecoversFields() throws Exception {
+        final ImmutableJsonObject jsonObject = ImmutableJsonObject.of(KNOWN_FIELDS);
+        // Materialise so the field map is softened and we have a representation to recover from.
+        jsonObject.toString();
+
+        @SuppressWarnings("rawtypes")
+        final SoftReference softRef = (SoftReference) getInternalField(jsonObject, "fieldsRef");
+        softRef.clear();
+
+        // recoverFields() must parse the cached string representation back into a usable map.
         assertThat(jsonObject.getValue(KNOWN_KEY_FOO)).isPresent();
     }
 
-    private void assertInternalCachesAreAsExpected(final JsonObject jsonObject, final boolean jsonExpected) {
-        try {
-            final Field valueListField = jsonObject.getClass().getDeclaredField("fieldMap");
-            valueListField.setAccessible(true);
-            final ImmutableJsonObject.SoftReferencedFieldMap
-                    fieldMap = (ImmutableJsonObject.SoftReferencedFieldMap) valueListField.get(jsonObject);
-
-            final Field jsonStringField = fieldMap.getClass().getDeclaredField("jsonObjectStringRepresentation");
-            jsonStringField.setAccessible(true);
-            String jsonString = (String) jsonStringField.get(fieldMap);
-
-            assertThat(jsonString != null).isEqualTo(jsonExpected);
-        } catch (IllegalAccessException | NoSuchFieldException e) {
-            System.err.println(
-                    "Failed to access internal caching fields in JsonObject using reflection. " +
-                            "This might just be a bug in the test."
-            );
-            e.printStackTrace();
-        }
+    private static Object getInternalField(final JsonObject jsonObject, final String fieldName)
+            throws Exception {
+        final Field fieldMapField = jsonObject.getClass().getDeclaredField("fieldMap");
+        fieldMapField.setAccessible(true);
+        final ImmutableJsonObject.SoftReferencedFieldMap softFieldMap =
+                (ImmutableJsonObject.SoftReferencedFieldMap) fieldMapField.get(jsonObject);
+        final Field target = softFieldMap.getClass().getDeclaredField(fieldName);
+        target.setAccessible(true);
+        return target.get(softFieldMap);
     }
 
 }
