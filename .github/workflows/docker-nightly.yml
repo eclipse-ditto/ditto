@@ -73,7 +73,7 @@ jobs:
         name: Branch name
         id: branch_name
         run: |
-          echo "IMAGE_TAG=nightly" >> $GITHUB_ENV
+          echo "IMAGE_TAG=nightly-ts" >> $GITHUB_ENV
       -
         name: Building + pushing Docker images for tag
         run: |
