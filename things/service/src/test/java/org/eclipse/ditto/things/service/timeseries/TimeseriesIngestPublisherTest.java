@@ -30,6 +30,7 @@ import org.apache.pekko.actor.Status;
 import org.apache.pekko.testkit.TestProbe;
 import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -38,6 +39,8 @@ import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.events.FeaturePropertyModified;
+import org.eclipse.ditto.things.model.signals.events.ThingMerged;
+import org.eclipse.ditto.things.model.signals.events.ThingModified;
 import org.eclipse.ditto.timeseries.api.commands.IngestDataPoints;
 import org.eclipse.ditto.timeseries.api.commands.IngestDataPointsResponse;
 import org.eclipse.ditto.wot.api.resolver.ThingSubmodel;
@@ -64,6 +67,16 @@ public final class TimeseriesIngestPublisherTest {
     private static final IRI TM_IRI = IRI.of("https://example.com/sensor-1.tm.jsonld");
     private static final String FEATURE_ID = "env";
     private static final String PROPERTY_NAME = "temperature";
+    private static final String NESTED_FEATURE_PROPERTY = "status";
+
+    // Mirrors a real ThingModel @context: the Ditto WoT extension bound to the "ditto" prefix,
+    // so the publisher's getAtContext().determinePrefixFor(...) resolves it.
+    private static final JsonArray DITTO_CONTEXT = JsonFactory.newArrayBuilder()
+            .add("https://www.w3.org/2022/wot/td/v1.1")
+            .add(JsonFactory.newObjectBuilder()
+                    .set("ditto", "https://ditto.eclipseprojects.io/wot/ditto-extension#")
+                    .build())
+            .build();
 
     private static ActorSystem actorSystem;
 
@@ -210,6 +223,110 @@ public final class TimeseriesIngestPublisherTest {
         }};
     }
 
+    @Test
+    public void nestedScalarAnnotationIngestsOnlyAnnotatedLeaf() {
+        // The object property `status` is set in one go to {temperature, updatedAt}; only
+        // the nested `temperature` carries the annotation, so `updatedAt` must be skipped.
+        new TestKit(actorSystem) {{
+            final TestProbe shardProbe = new TestProbe(actorSystem);
+            final WotThingModelResolver resolver = resolverWith(nestedAnnotatedSubmodel());
+
+            final ActorRef publisher = actorSystem.actorOf(
+                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, Duration.ofSeconds(2)));
+
+            final FeaturePropertyModified event = FeaturePropertyModified.of(THING_ID, FEATURE_ID,
+                    JsonPointer.of(NESTED_FEATURE_PROPERTY), statusValue(), 1L,
+                    Instant.parse("2026-01-01T00:00:00Z"), DittoHeaders.empty(), null);
+            publisher.tell(new TimeseriesIngestPublisher.IngestRequest(event, thingWithNestedStatus()), getRef());
+
+            final IngestDataPoints command = shardProbe.expectMsgClass(IngestDataPoints.class);
+            shardProbe.reply(IngestDataPointsResponse.of(THING_ID, command.getDittoHeaders()));
+
+            assertThat(command.getDataPoints()).hasSize(1);
+            assertThat((Object) command.getDataPoints().get(0).getPath())
+                    .isEqualTo(JsonPointer.of("/features/env/properties/status/temperature"));
+            assertThat(command.getDataPoints().get(0).getValue()).isEqualTo(JsonValue.of(55.0));
+        }};
+    }
+
+    @Test
+    public void mergeEventProducesIngestDataPoints() {
+        // A merge command targeting features/env/properties/status produces a ThingMerged;
+        // the publisher must decompose the merged object and ingest the annotated leaf.
+        new TestKit(actorSystem) {{
+            final TestProbe shardProbe = new TestProbe(actorSystem);
+            final WotThingModelResolver resolver = resolverWith(nestedAnnotatedSubmodel());
+
+            final ActorRef publisher = actorSystem.actorOf(
+                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, Duration.ofSeconds(2)));
+
+            final ThingMerged event = ThingMerged.of(THING_ID,
+                    JsonPointer.of("/features/env/properties/status"), statusValue(), 1L,
+                    Instant.parse("2026-01-01T00:00:00Z"), DittoHeaders.empty(), null);
+            publisher.tell(new TimeseriesIngestPublisher.IngestRequest(event, thingWithNestedStatus()), getRef());
+
+            final IngestDataPoints command = shardProbe.expectMsgClass(IngestDataPoints.class);
+            shardProbe.reply(IngestDataPointsResponse.of(THING_ID, command.getDittoHeaders()));
+
+            assertThat(command.getDataPoints()).hasSize(1);
+            assertThat((Object) command.getDataPoints().get(0).getPath())
+                    .isEqualTo(JsonPointer.of("/features/env/properties/status/temperature"));
+            assertThat(command.getDataPoints().get(0).getValue()).isEqualTo(JsonValue.of(55.0));
+        }};
+    }
+
+    @Test
+    public void thingModifiedReplaceProducesIngestDataPoints() {
+        // A full-Thing replace fires ThingModified; the publisher must walk every feature's
+        // properties and ingest the annotated leaf.
+        new TestKit(actorSystem) {{
+            final TestProbe shardProbe = new TestProbe(actorSystem);
+            final WotThingModelResolver resolver = resolverWith(nestedAnnotatedSubmodel());
+
+            final ActorRef publisher = actorSystem.actorOf(
+                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, Duration.ofSeconds(2)));
+
+            final Thing thing = thingWithNestedStatus();
+            final ThingModified event = ThingModified.of(thing, 1L,
+                    Instant.parse("2026-01-01T00:00:00Z"), DittoHeaders.empty(), null);
+            publisher.tell(new TimeseriesIngestPublisher.IngestRequest(event, thing), getRef());
+
+            final IngestDataPoints command = shardProbe.expectMsgClass(IngestDataPoints.class);
+            shardProbe.reply(IngestDataPointsResponse.of(THING_ID, command.getDittoHeaders()));
+
+            assertThat(command.getDataPoints()).hasSize(1);
+            assertThat((Object) command.getDataPoints().get(0).getPath())
+                    .isEqualTo(JsonPointer.of("/features/env/properties/status/temperature"));
+            assertThat(command.getDataPoints().get(0).getValue()).isEqualTo(JsonValue.of(55.0));
+        }};
+    }
+
+    @Test
+    public void categorisedNestedAnnotationResolvesUnderCategorySegment() {
+        // flowTemperature declares ditto:category "status", so its data lives under
+        // status/flowTemperature/...; the annotated nested temperature must still resolve.
+        new TestKit(actorSystem) {{
+            final TestProbe shardProbe = new TestProbe(actorSystem);
+            final WotThingModelResolver resolver = resolverWith(categorisedAnnotatedSubmodel());
+
+            final ActorRef publisher = actorSystem.actorOf(
+                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, Duration.ofSeconds(2)));
+
+            final FeaturePropertyModified event = FeaturePropertyModified.of(THING_ID, FEATURE_ID,
+                    JsonPointer.of("status/flowTemperature"), statusValue(), 1L,
+                    Instant.parse("2026-01-01T00:00:00Z"), DittoHeaders.empty(), null);
+            publisher.tell(new TimeseriesIngestPublisher.IngestRequest(event, thingWithNestedStatus()), getRef());
+
+            final IngestDataPoints command = shardProbe.expectMsgClass(IngestDataPoints.class);
+            shardProbe.reply(IngestDataPointsResponse.of(THING_ID, command.getDittoHeaders()));
+
+            assertThat(command.getDataPoints()).hasSize(1);
+            assertThat((Object) command.getDataPoints().get(0).getPath())
+                    .isEqualTo(JsonPointer.of("/features/env/properties/status/flowTemperature/temperature"));
+            assertThat(command.getDataPoints().get(0).getValue()).isEqualTo(JsonValue.of(55.0));
+        }};
+    }
+
     // --- WoT TM construction helpers ---
 
     private static WotThingModelResolver resolverWith(final ThingModel submodel) {
@@ -244,9 +361,97 @@ public final class TimeseriesIngestPublisherTest {
                 .set(PROPERTY_NAME, propertyJson)
                 .build();
         return ThingModel.fromJson(JsonObject.newBuilder()
+                .set("@context", DITTO_CONTEXT)
                 .set("@type", "tm:ThingModel")
                 .set("properties", properties)
                 .build());
+    }
+
+    private static ThingModel nestedAnnotatedSubmodel() {
+        // An object property `status` with an annotated nested `temperature` scalar and an
+        // un-annotated `updatedAt` sibling — mirrors the heatsense WoT temperature submodels.
+        final JsonObject annotation = JsonFactory.newObjectBuilder()
+                .set("ingest", "ALL")
+                .build();
+        final JsonObject temperatureSchema = JsonFactory.newObjectBuilder()
+                .set("type", "number")
+                .set("unit", "Cel")
+                .set("ditto:timeseries", annotation)
+                .build();
+        final JsonObject updatedAtSchema = JsonFactory.newObjectBuilder()
+                .set("type", "string")
+                .set("format", "date-time")
+                .build();
+        final JsonObject nestedProperties = JsonFactory.newObjectBuilder()
+                .set("temperature", temperatureSchema)
+                .set("updatedAt", updatedAtSchema)
+                .build();
+        final JsonObject statusSchema = JsonFactory.newObjectBuilder()
+                .set("type", "object")
+                .set("properties", nestedProperties)
+                .build();
+        final JsonObject properties = JsonFactory.newObjectBuilder()
+                .set(NESTED_FEATURE_PROPERTY, statusSchema)
+                .build();
+        return ThingModel.fromJson(JsonObject.newBuilder()
+                .set("@context", DITTO_CONTEXT)
+                .set("@type", "tm:ThingModel")
+                .set("properties", properties)
+                .build());
+    }
+
+    private static ThingModel categorisedAnnotatedSubmodel() {
+        // flowTemperature is an object property grouped under ditto:category "status", with an
+        // annotated nested temperature scalar — mirrors the heatsense circuit submodel.
+        final JsonObject annotation = JsonFactory.newObjectBuilder()
+                .set("ingest", "ALL")
+                .build();
+        final JsonObject temperatureSchema = JsonFactory.newObjectBuilder()
+                .set("type", "number")
+                .set("unit", "Cel")
+                .set("ditto:timeseries", annotation)
+                .build();
+        final JsonObject updatedAtSchema = JsonFactory.newObjectBuilder()
+                .set("type", "string")
+                .set("format", "date-time")
+                .build();
+        final JsonObject nestedProperties = JsonFactory.newObjectBuilder()
+                .set("temperature", temperatureSchema)
+                .set("updatedAt", updatedAtSchema)
+                .build();
+        final JsonObject flowTemperatureSchema = JsonFactory.newObjectBuilder()
+                .set("type", "object")
+                .set("ditto:category", "status")
+                .set("properties", nestedProperties)
+                .build();
+        final JsonObject properties = JsonFactory.newObjectBuilder()
+                .set("flowTemperature", flowTemperatureSchema)
+                .build();
+        return ThingModel.fromJson(JsonObject.newBuilder()
+                .set("@context", DITTO_CONTEXT)
+                .set("@type", "tm:ThingModel")
+                .set("properties", properties)
+                .build());
+    }
+
+    private static JsonObject statusValue() {
+        return JsonFactory.newObjectBuilder()
+                .set("temperature", JsonValue.of(55.0))
+                .set("updatedAt", JsonValue.of("2026-01-01T00:00:00Z"))
+                .build();
+    }
+
+    private static Thing thingWithNestedStatus() {
+        return ThingsModelFactory.newThingBuilder()
+                .setId(THING_ID)
+                .setDefinition(ThingsModelFactory.newDefinition(TM_IRI.toString()))
+                .setFeature(ThingsModelFactory.newFeatureBuilder()
+                        .properties(ThingsModelFactory.newFeaturePropertiesBuilder()
+                                .set(NESTED_FEATURE_PROPERTY, statusValue())
+                                .build())
+                        .withId(FEATURE_ID)
+                        .build())
+                .build();
     }
 
     private static ThingModel submodelWithoutAnnotation() {
@@ -257,6 +462,7 @@ public final class TimeseriesIngestPublisherTest {
                 .set(PROPERTY_NAME, propertyJson)
                 .build();
         return ThingModel.fromJson(JsonObject.newBuilder()
+                .set("@context", DITTO_CONTEXT)
                 .set("@type", "tm:ThingModel")
                 .set("properties", properties)
                 .build());

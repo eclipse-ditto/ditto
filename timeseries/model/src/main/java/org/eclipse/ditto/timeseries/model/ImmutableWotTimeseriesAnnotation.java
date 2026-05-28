@@ -72,9 +72,11 @@ final class ImmutableWotTimeseriesAnnotation implements WotTimeseriesAnnotation 
                 ingest, Collections.unmodifiableMap(new LinkedHashMap<>(tags)));
     }
 
-    static Optional<WotTimeseriesAnnotation> findInProperty(final JsonObject propertySchema) {
+    static Optional<WotTimeseriesAnnotation> findInProperty(final JsonObject propertySchema,
+            final CharSequence extensionKey) {
         checkNotNull(propertySchema, "propertySchema");
-        return propertySchema.getValue(EXTENSION_KEY)
+        checkNotNull(extensionKey, "extensionKey");
+        return propertySchema.getValue(extensionKey.toString())
                 .filter(JsonValue::isObject)
                 .map(JsonValue::asObject)
                 .map(ImmutableWotTimeseriesAnnotation::fromJson);
