@@ -35,9 +35,18 @@ import org.eclipse.ditto.json.JsonObject;
 public interface WotTimeseriesAnnotation extends Jsonifiable<JsonObject> {
 
     /**
-     * The WoT extension key under which this annotation lives in a property schema.
+     * The local (un-prefixed) name of the WoT extension term under which this annotation lives in
+     * a property schema. The actual key is {@code <prefix>:timeseries}, where {@code <prefix>} is
+     * whatever the ThingModel's {@code @context} binds the Ditto WoT extension IRI to.
      */
-    String EXTENSION_KEY = "ditto:timeseries";
+    String EXTENSION_LOCAL_NAME = "timeseries";
+
+    /**
+     * The WoT extension key under the conventional {@code ditto} prefix. Use
+     * {@link #findInProperty(org.eclipse.ditto.json.JsonObject, CharSequence)} with a prefix
+     * resolved from the model's {@code @context} when the prefix may differ.
+     */
+    String EXTENSION_KEY = "ditto:" + EXTENSION_LOCAL_NAME;
 
     /**
      * Returns a new {@code WotTimeseriesAnnotation}.
@@ -77,7 +86,23 @@ public interface WotTimeseriesAnnotation extends Jsonifiable<JsonObject> {
      * @throws NullPointerException if {@code propertySchema} is {@code null}.
      */
     static Optional<WotTimeseriesAnnotation> findInProperty(final JsonObject propertySchema) {
-        return ImmutableWotTimeseriesAnnotation.findInProperty(propertySchema);
+        return ImmutableWotTimeseriesAnnotation.findInProperty(propertySchema, EXTENSION_KEY);
+    }
+
+    /**
+     * Like {@link #findInProperty(JsonObject)}, but reads the annotation under an explicit
+     * extension key. Use this with a key built from the prefix the ThingModel's {@code @context}
+     * binds the Ditto WoT extension to (e.g. {@code "ditto:timeseries"}), so models that alias the
+     * extension to a non-default prefix still resolve.
+     *
+     * @param propertySchema the WoT property schema JSON.
+     * @param extensionKey the fully-qualified extension key to look up.
+     * @return the parsed annotation, or empty.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    static Optional<WotTimeseriesAnnotation> findInProperty(final JsonObject propertySchema,
+            final CharSequence extensionKey) {
+        return ImmutableWotTimeseriesAnnotation.findInProperty(propertySchema, extensionKey);
     }
 
     /**
