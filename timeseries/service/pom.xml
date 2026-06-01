@@ -78,6 +78,21 @@
             <artifactId>ditto-policies-enforcement</artifactId>
         </dependency>
 
+        <!-- Logging — required in the allinone jar so the logback JSON console appender can be
+             instantiated. Without logstash-logback-encoder on the classpath, logback fails to
+             load net.logstash.logback.encoder.LogstashEncoder, leaves the appender with no
+             encoder, and the service emits no application logs. janino enables the conditional
+             logback config used by the sibling services. -->
+        <dependency>
+            <groupId>org.codehaus.janino</groupId>
+            <artifactId>janino</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>net.logstash.logback</groupId>
+            <artifactId>logstash-logback-encoder</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- ### Testing ### -->
         <dependency>
             <groupId>org.apache.pekko</groupId>

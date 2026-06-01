@@ -55,6 +55,7 @@ spec:
         prometheus.io/port: "{{ .Values.global.prometheus.port }}"
         {{- end }}
         checksum/mongodb-config: {{ include (print $.Template.BasePath "/mongodb-secret.yaml") . | sha256sum }}
+        checksum/config: {{ include (print $.Template.BasePath "/timeseries-configmap.yaml") . | sha256sum }}
         {{- with .Values.global.additionalAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -287,6 +288,9 @@ spec:
             successThreshold: {{ .Values.timeseries.livenessProbe.successThreshold }}
             failureThreshold: {{ .Values.timeseries.livenessProbe.failureThreshold }}
           volumeMounts:
+            - name: timeseries-extension-conf
+              mountPath: /opt/ditto/timeseries-extension.conf
+              subPath: timeseries-extension.conf
             {{- if .Values.global.logging.customConfigFile.enabled }}
             - name: ditto-custom-log-config
               mountPath: /opt/ditto/{{ .Values.global.logging.customConfigFile.fileName }}
@@ -341,6 +345,9 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       volumes:
+        - name: timeseries-extension-conf
+          configMap:
+            name: {{ .Release.Name }}-service-config-timeseries-extension-conf
         {{- if .Values.global.logging.customConfigFile.enabled }}
         - name: ditto-custom-log-config
           configMap:
