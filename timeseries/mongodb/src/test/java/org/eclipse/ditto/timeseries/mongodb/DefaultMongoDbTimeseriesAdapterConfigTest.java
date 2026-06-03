@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mockito.Mockito.mock;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -52,6 +53,10 @@ public final class DefaultMongoDbTimeseriesAdapterConfigTest {
         assertThat(underTest.getCollectionPrefix()).isEqualTo("x_");
         assertThat(underTest.getGranularity()).isEqualTo(Granularity.MINUTES);
         assertThat(underTest.getRetention()).isEmpty();
+        assertThat(underTest.getMaxQueryResultSize())
+                .isEqualTo(DefaultMongoDbTimeseriesAdapterConfig.DEFAULT_MAX_QUERY_RESULT_SIZE);
+        assertThat(underTest.getQueryTimeout())
+                .isEqualTo(DefaultMongoDbTimeseriesAdapterConfig.DEFAULT_QUERY_TIMEOUT);
     }
 
     @Test
@@ -90,6 +95,10 @@ public final class DefaultMongoDbTimeseriesAdapterConfigTest {
         assertThat(underTest.getGranularity())
                 .isEqualTo(DefaultMongoDbTimeseriesAdapterConfig.DEFAULT_GRANULARITY);
         assertThat(underTest.getRetention()).isEmpty();
+        assertThat(underTest.getMaxQueryResultSize())
+                .isEqualTo(DefaultMongoDbTimeseriesAdapterConfig.DEFAULT_MAX_QUERY_RESULT_SIZE);
+        assertThat(underTest.getQueryTimeout())
+                .isEqualTo(DefaultMongoDbTimeseriesAdapterConfig.DEFAULT_QUERY_TIMEOUT);
     }
 
     @Test
@@ -99,6 +108,8 @@ public final class DefaultMongoDbTimeseriesAdapterConfigTest {
         map.put("collection-prefix", "tsd_");
         map.put("granularity", "hours");
         map.put("retention", "30d");
+        map.put("max-query-result-size", 500_000);
+        map.put("query-timeout", "30s");
         final Config adapterConfig = ConfigFactory.parseMap(map);
 
         final DefaultMongoDbTimeseriesAdapterConfig underTest =
@@ -107,6 +118,28 @@ public final class DefaultMongoDbTimeseriesAdapterConfigTest {
         assertThat(underTest.getCollectionPrefix()).isEqualTo("tsd_");
         assertThat(underTest.getGranularity()).isEqualTo(Granularity.HOURS);
         assertThat(underTest.getRetention()).isPresent();
+        assertThat(underTest.getMaxQueryResultSize()).isEqualTo(500_000);
+        assertThat(underTest.getQueryTimeout()).isEqualTo(Duration.ofSeconds(30));
+    }
+
+    @Test
+    public void ofConfigRejectsNonPositiveMaxQueryResultSize() {
+        final MongoDbConfig mongoDbConfig = mock(MongoDbConfig.class);
+        final Config adapterConfig = ConfigFactory.parseString("max-query-result-size = 0");
+
+        assertThatExceptionOfType(DittoConfigError.class)
+                .isThrownBy(() -> DefaultMongoDbTimeseriesAdapterConfig.of(mongoDbConfig, adapterConfig))
+                .withMessageContaining("max-query-result-size");
+    }
+
+    @Test
+    public void ofConfigRejectsNonPositiveQueryTimeout() {
+        final MongoDbConfig mongoDbConfig = mock(MongoDbConfig.class);
+        final Config adapterConfig = ConfigFactory.parseString("query-timeout = \"0s\"");
+
+        assertThatExceptionOfType(DittoConfigError.class)
+                .isThrownBy(() -> DefaultMongoDbTimeseriesAdapterConfig.of(mongoDbConfig, adapterConfig))
+                .withMessageContaining("query-timeout");
     }
 
     @Test

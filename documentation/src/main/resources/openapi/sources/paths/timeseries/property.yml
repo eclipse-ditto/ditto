@@ -24,9 +24,9 @@ get:
     requested resource path receives a `404` (per Ditto's "404-not-403" discipline:
     a `403` would leak existence).
 
-    The Phase 1 read path is raw — no aggregation, downsampling, or fill strategy
-    is applied. Cross-thing aggregation queries use a separate WebSocket envelope
-    and are not exposed via this REST endpoint.
+    When `step` and `agg` are supplied the points are downsampled into `step`-sized
+    buckets and aggregated per bucket; otherwise the raw points are returned. Cross-thing
+    aggregation queries use a separate endpoint and are not exposed here.
   tags:
     - Timeseries
   parameters:
@@ -35,31 +35,90 @@ get:
     - $ref: '../../parameters/propertyPathPathParam.yml'
     - name: from
       in: query
-      description: ISO-8601 inclusive lower bound of the queried time range.
+      description: |-
+        Inclusive lower bound of the queried time range. Either an ISO-8601 instant or a
+        relative expression (`now`, `now-24h`, `now-30m`, `now-7d`).
       required: true
       schema:
         type: string
-        format: date-time
-        example: '2026-01-15T00:00:00Z'
+        example: 'now-24h'
     - name: to
       in: query
-      description: ISO-8601 exclusive upper bound of the queried time range.
+      description: |-
+        Exclusive upper bound of the queried time range. ISO-8601 instant or relative
+        expression (e.g. `now`).
       required: true
       schema:
         type: string
-        format: date-time
-        example: '2026-01-16T00:00:00Z'
+        example: 'now'
+    - name: step
+      in: query
+      description: |-
+        Downsampling interval. Short form (`30s`, `5m`, `1h`, `1d`) or ISO-8601 duration
+        (`PT1H`). Required for the per-bucket aggregations (`avg`, `min`, `max`, `sum`,
+        `count`, `first`, `last`, `stddev`); optional for the window functions.
+      required: false
+      schema:
+        type: string
+        example: '1h'
+    - name: agg
+      in: query
+      description: |-
+        Aggregation function applied per `step` bucket (or, for the window functions,
+        over the fetched points).
+      required: false
+      schema:
+        type: string
+        enum: [avg, min, max, sum, count, first, last, stddev, derivative, rate, integral, percentile]
+        example: avg
+    - name: percentile
+      in: query
+      description: 'Percentile in `[0, 100]`. Required when `agg=percentile`.'
+      required: false
+      schema:
+        type: number
+        minimum: 0
+        maximum: 100
+        example: 95
+    - name: fill
+      in: query
+      description: |-
+        Gap-fill strategy for empty buckets when downsampling. `null` emits a gap marker,
+        `previous` carries the last value forward, `zero` fills with 0. (`linear` is reserved.)
+      required: false
+      schema:
+        type: string
+        enum: [null, previous, zero]
+        example: previous
+    - name: tz
+      in: query
+      description: IANA time-zone ID used to align `step` bucket boundaries (default UTC).
+      required: false
+      schema:
+        type: string
+        example: 'Europe/Berlin'
     - name: limit
       in: query
       description: |-
-        Maximum number of data points to return. When omitted, all matching points
-        within the requested time range are returned.
+        Maximum number of data points to return for raw queries. When omitted, all matching
+        points within the requested time range are returned (subject to a server-side ceiling).
       required: false
       schema:
         type: integer
         format: int32
         minimum: 1
         example: 1000
+    - name: timeFormat
+      in: query
+      description: |-
+        How timestamps are rendered in the response `data` array: `iso` (default, ISO-8601 string)
+        or `ms` (epoch milliseconds, compact and convenient for charting libraries).
+      required: false
+      schema:
+        type: string
+        enum: [iso, ms]
+        default: iso
+        example: ms
   responses:
     '200':
       description: Timeseries data points for the requested path.
@@ -69,9 +128,12 @@ get:
             $ref: '../../schemas/timeseries/timeseriesQueryResult.yml'
     '400':
       description: |-
-        The request could not be completed. Possible reasons:
+        The request could not be completed (`timeseries:query.invalid`). Possible reasons:
           * the `thingId` does not conform to the namespaced entity ID notation.
-          * `from` or `to` is not a valid ISO-8601 instant.
+          * `from`/`to` is not a valid ISO-8601 instant or relative expression.
+          * `step` is not a valid duration, or `agg`/`fill` is not a recognised value.
+          * a per-bucket aggregation was requested without a `step`.
+          * `agg=percentile` without a `percentile`, or `percentile` outside `[0, 100]`.
           * `limit` is not a valid integer.
       content:
         application/json:
