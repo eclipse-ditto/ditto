@@ -53,6 +53,7 @@ public final class ImmutableTimeseriesQueryTest {
     private static final FillStrategy FILL_STRATEGY = FillStrategy.PREVIOUS;
     private static final Integer LIMIT = 1000;
     private static final ZoneId TIMEZONE = ZoneId.of("Europe/Berlin");
+    private static final Double PERCENTILE = 95.0;
 
     @Test
     public void hashCodeAndEqualsContract() {
@@ -301,6 +302,79 @@ public final class ImmutableTimeseriesQueryTest {
                 .contains(FILL_STRATEGY.toString())
                 .contains(String.valueOf(LIMIT))
                 .contains(TIMEZONE.toString());
+    }
+
+    @Test
+    public void factoryCreatesInstanceWithPercentile() {
+        final TimeseriesQuery underTest = TimeseriesQuery.of(
+                THING_ID, PATHS, FROM, TO, STEP, Aggregation.PERCENTILE, null, null, null, PERCENTILE);
+
+        assertThat(underTest.getPercentile()).contains(PERCENTILE);
+        assertThat(underTest.getAggregation()).contains(Aggregation.PERCENTILE);
+    }
+
+    @Test
+    public void percentileRoundTripsThroughJson() {
+        final TimeseriesQuery original = TimeseriesQuery.of(
+                THING_ID, PATHS, FROM, TO, STEP, Aggregation.PERCENTILE, null, null, null, PERCENTILE);
+
+        final JsonObject json = original.toJson();
+        assertThat(json.getValue("percentile")).contains(JsonValue.of(PERCENTILE));
+
+        final TimeseriesQuery reconstructed = TimeseriesQuery.fromJson(json);
+        assertThat(reconstructed).isEqualTo(original);
+        assertThat(reconstructed.getPercentile()).contains(PERCENTILE);
+    }
+
+    @Test
+    public void toJsonOmitsPercentileWhenAbsent() {
+        final TimeseriesQuery underTest = TimeseriesQuery.of(THING_ID, PATHS, FROM, TO);
+
+        assertThat(underTest.toJson().contains("percentile")).isFalse();
+    }
+
+    @Test
+    public void factoryRejectsPerBucketAggregationWithoutStep() {
+        assertThatExceptionOfType(TimeseriesQueryInvalidException.class).isThrownBy(() ->
+                TimeseriesQuery.of(THING_ID, PATHS, FROM, TO, null, Aggregation.AVG, null, null, null, null));
+    }
+
+    @Test
+    public void factoryRejectsPercentileAggregationWithoutValue() {
+        assertThatExceptionOfType(TimeseriesQueryInvalidException.class).isThrownBy(() ->
+                TimeseriesQuery.of(THING_ID, PATHS, FROM, TO, STEP, Aggregation.PERCENTILE, null, null, null, null));
+    }
+
+    @Test
+    public void factoryRejectsOutOfRangePercentile() {
+        assertThatExceptionOfType(TimeseriesQueryInvalidException.class).isThrownBy(() ->
+                TimeseriesQuery.of(THING_ID, PATHS, FROM, TO, STEP, Aggregation.PERCENTILE, null, null, null, 150.0));
+    }
+
+    @Test
+    public void fromJsonRejectsPerBucketAggregationWithoutStep() {
+        final JsonObject json = baseJson().set("aggregation", "avg").build();
+
+        assertThatExceptionOfType(TimeseriesQueryInvalidException.class)
+                .isThrownBy(() -> TimeseriesQuery.fromJson(json));
+    }
+
+    @Test
+    public void factoryRejectsLinearFillUntilSupported() {
+        assertThatExceptionOfType(TimeseriesQueryInvalidException.class).isThrownBy(() ->
+                TimeseriesQuery.of(THING_ID, PATHS, FROM, TO, STEP, Aggregation.AVG, FillStrategy.LINEAR,
+                        null, null, null));
+    }
+
+    @Test
+    public void factoryRejectsTooManyPaths() {
+        final List<JsonPointer> tooMany = new ArrayList<>();
+        for (int i = 0; i <= 100; i++) {
+            tooMany.add(JsonPointer.of("/features/env/properties/p" + i));
+        }
+
+        assertThatExceptionOfType(TimeseriesQueryInvalidException.class).isThrownBy(() ->
+                TimeseriesQuery.of(THING_ID, tooMany, FROM, TO, null, null, null, null, null, null));
     }
 
     private static JsonObjectBuilder baseJson() {

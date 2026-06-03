@@ -1,0 +1,149 @@
+# Copyright (c) 2026 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+get:
+  summary: Retrieve historical timeseries data for multiple paths of a Thing
+  description: |-
+    Returns the chronological sequence of values for several feature properties and/or attributes
+    of one Thing in a single request. The paths are given explicitly via the required `paths`
+    query parameter (comma-separated JSON pointers).
+
+    The same downsampling / aggregation / fill / timezone / percentile / timeFormat parameters as the
+    single-property endpoint apply, and they apply uniformly to every requested path. The response is
+    an array with one entry (`path`, `result`, `data`) per requested path.
+
+    Only paths whose property is annotated with `ditto:timeseries.ingest = "ALL"` produce data; the
+    others come back with `count = 0`. Authorization is enforced per path (`READ_TS` by default); a
+    path the caller cannot read is reported as having no data rather than leaking its existence.
+  tags:
+    - Timeseries
+  parameters:
+    - $ref: '../../parameters/thingIdPathParam.yml'
+    - name: paths
+      in: query
+      description: |-
+        Comma-separated list of JSON pointers (relative to the Thing root) to retrieve, e.g.
+        `/features/environment/properties/temperature,/attributes/batteryExchangeDate`.
+      required: true
+      schema:
+        type: string
+        example: '/features/environment/properties/temperature,/features/environment/properties/humidity'
+    - name: from
+      in: query
+      description: 'Inclusive lower bound — ISO-8601 instant or relative expression (`now`, `now-24h`).'
+      required: true
+      schema:
+        type: string
+        example: 'now-24h'
+    - name: to
+      in: query
+      description: 'Exclusive upper bound — ISO-8601 instant or relative expression (e.g. `now`).'
+      required: true
+      schema:
+        type: string
+        example: 'now'
+    - name: step
+      in: query
+      description: 'Downsampling interval (`30s`, `5m`, `1h`, `1d` or ISO-8601 `PT1H`).'
+      required: false
+      schema:
+        type: string
+        example: '1h'
+    - name: agg
+      in: query
+      description: 'Aggregation function applied per `step` bucket (or over fetched points for window functions).'
+      required: false
+      schema:
+        type: string
+        enum: [avg, min, max, sum, count, first, last, stddev, derivative, rate, integral, percentile]
+        example: avg
+    - name: percentile
+      in: query
+      description: 'Percentile in `[0, 100]`. Required when `agg=percentile`.'
+      required: false
+      schema:
+        type: number
+        minimum: 0
+        maximum: 100
+        example: 95
+    - name: fill
+      in: query
+      description: 'Gap-fill strategy for empty buckets when downsampling.'
+      required: false
+      schema:
+        type: string
+        enum: [null, previous, zero]
+        example: previous
+    - name: tz
+      in: query
+      description: IANA time-zone ID used to align `step` bucket boundaries (default UTC).
+      required: false
+      schema:
+        type: string
+        example: 'Europe/Berlin'
+    - name: limit
+      in: query
+      description: Maximum number of data points per path for raw queries (subject to a server-side ceiling).
+      required: false
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+        example: 1000
+    - name: timeFormat
+      in: query
+      description: 'Timestamp rendering in the response: `iso` (default) or `ms` (epoch milliseconds).'
+      required: false
+      schema:
+        type: string
+        enum: [iso, ms]
+        default: iso
+        example: ms
+  responses:
+    '200':
+      description: One timeseries result entry per requested path.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '../../schemas/timeseries/timeseriesQueryResult.yml'
+    '400':
+      description: |-
+        The request could not be completed (`timeseries:query.invalid`). Possible reasons:
+          * `paths` is missing or contains no valid JSON pointer.
+          * `from`/`to` is not a valid ISO-8601 instant or relative expression.
+          * `step` is not a valid duration, or `agg`/`fill`/`timeFormat` is not a recognised value.
+          * a per-bucket aggregation was requested without a `step`.
+          * `agg=percentile` without a `percentile`, or `percentile` outside `[0, 100]`.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '404':
+      description: |-
+        The Thing with the given ID was not found, or the requesting subject lacks the configured
+        `READ_TS` permission. The two cases return the same error to avoid leaking existence.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '5XX':
+      description: The Timeseries service is temporarily unavailable or the timeseries database is degraded.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'

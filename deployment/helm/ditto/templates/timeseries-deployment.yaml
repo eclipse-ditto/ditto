@@ -228,6 +228,14 @@ spec:
             - name: TIMESERIES_MONGODB_RETENTION
               value: {{ .retention | quote }}
             {{- end }}
+            {{- if .maxQueryResultSize }}
+            - name: TIMESERIES_MONGODB_MAX_QUERY_RESULT_SIZE
+              value: "{{ .maxQueryResultSize }}"
+            {{- end }}
+            {{- if .queryTimeout }}
+            - name: TIMESERIES_MONGODB_QUERY_TIMEOUT
+              value: {{ .queryTimeout | quote }}
+            {{- end }}
             {{- end }}
             {{- if .Values.timeseries.extraEnv }}
               {{- toYaml .Values.timeseries.extraEnv | nindent 12 }}

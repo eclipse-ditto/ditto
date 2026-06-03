@@ -20,10 +20,13 @@ import * as Things from './things.js';
 /**
  * Backing module for the "Timeseries" tab inside the feature pane.
  * <p>
- * Wires up four DOM controls (path / from / to / limit) and a Retrieve button, fetches
- * timeseries data via {@code GET /api/2/things/<id>/timeseries?...}, then renders the result
- * into a (timestamp, value) table plus a hand-rolled SVG sparkline so the user gets a visual
- * cue without pulling in a chart library.
+ * Wires up the tab's controls (path(s) / from / to / limit / aggregation / step / fill /
+ * percentile) and a Retrieve button. A single path fetches the first-class single-property
+ * resource {@code GET /api/2/timeseries/things/<id>/features/<f>/properties/<p>}; comma-separated
+ * paths fetch the multi-property endpoint {@code GET /api/2/timeseries/things/<id>?paths=...}.
+ * Each returned series renders as its own stacked block (heading + hand-rolled SVG sparkline +
+ * (timestamp, value) table) inside a scrollable results region, so several paths don't fight over
+ * one chart and no chart library is pulled in.
  * <p>
  * The path input is auto-prefilled with {@code /features/<currentFeatureId>/properties/} on
  * feature selection so the typical case is a single keystroke ({@code temperature}, etc.). The
@@ -36,15 +39,26 @@ const dom = {
   inputTimeseriesFrom: null as HTMLInputElement | null,
   inputTimeseriesTo: null as HTMLInputElement | null,
   inputTimeseriesLimit: null as HTMLInputElement | null,
+  selectTimeseriesAgg: null as HTMLSelectElement | null,
+  selectTimeseriesStep: null as HTMLSelectElement | null,
+  selectTimeseriesFill: null as HTMLSelectElement | null,
+  inputTimeseriesPercentile: null as HTMLInputElement | null,
+  labelTimeseriesPercentile: null as HTMLElement | null,
   buttonTimeseriesRetrieve: null as HTMLButtonElement | null,
   timeseriesStatus: null as HTMLElement | null,
-  timeseriesSparkline: null as SVGSVGElement | null,
-  tbodyTimeseries: null as HTMLTableSectionElement | null,
+  timeseriesResults: null as HTMLElement | null,
 };
+
+/** Aggregations computed as one $group accumulator per bucket — these require a Step. */
+const GROUP_AGGREGATIONS = ['avg', 'min', 'max', 'sum', 'count', 'first', 'last', 'stddev'];
+
+/** Last feature the tab rendered for; used to drop stale series only on an actual context switch. */
+let lastFeatureId: string | null = null;
 
 interface TimeseriesPoint {
   t: string;
   v: unknown;
+  _gap?: boolean;
 }
 
 interface TimeseriesSeries {
@@ -71,6 +85,11 @@ export function ready(): void {
 
   dom.buttonTimeseriesRetrieve?.addEventListener('click', onRetrieveClick);
 
+  // Show the percentile input only when the percentile aggregation is selected, so the row stays
+  // uncluttered for every other function.
+  dom.selectTimeseriesAgg?.addEventListener('change', updatePercentileVisibility);
+  updatePercentileVisibility();
+
   Features.addChangeListener(onFeatureChanged);
   // Clear the previous thing's results when a different thing is selected — otherwise the
   // sparkline + table + status text from the previous thing carry over and mislead the user
@@ -79,14 +98,27 @@ export function ready(): void {
   // view in place.
   Things.addChangeListener((_thing: unknown, isNewThingId: boolean) => {
     if (isNewThingId) {
-      clearTable();
-      clearSparkline();
+      clearResults();
       setStatus('');
     }
   });
 }
 
+function updatePercentileVisibility(): void {
+  const show = (dom.selectTimeseriesAgg?.value ?? '') === 'percentile';
+  if (dom.labelTimeseriesPercentile) dom.labelTimeseriesPercentile.hidden = !show;
+  if (dom.inputTimeseriesPercentile) dom.inputTimeseriesPercentile.hidden = !show;
+}
+
 function onFeatureChanged(featureId: string): void {
+  // Drop stale series only when the feature actually changes (incl. when a different Thing is
+  // selected) — NOT on every in-place refresh, so a live-updating graph the user is watching is
+  // not wiped each time new data arrives via SSE.
+  if (featureId !== lastFeatureId) {
+    lastFeatureId = featureId;
+    clearResults();
+    setStatus('');
+  }
   if (!dom.inputTimeseriesPath) return;
   const currentValue = dom.inputTimeseriesPath.value;
   const looksLikePrefix = !currentValue || /^\/features\/[^/]*\/properties\/?$/.test(currentValue);
@@ -103,26 +135,28 @@ async function onRetrieveClick(): Promise<void> {
   const fromLocal = dom.inputTimeseriesFrom?.value ?? '';
   const toLocal = dom.inputTimeseriesTo?.value ?? '';
   const limit = (dom.inputTimeseriesLimit?.value ?? '').trim();
+  const agg = (dom.selectTimeseriesAgg?.value ?? '').trim();
+  const step = (dom.selectTimeseriesStep?.value ?? '').trim();
+  const fill = (dom.selectTimeseriesFill?.value ?? '').trim();
+  const percentile = (dom.inputTimeseriesPercentile?.value ?? '').trim();
   Utils.assert(path, 'Path must not be empty', dom.inputTimeseriesPath);
   Utils.assert(fromLocal, 'From must not be empty', dom.inputTimeseriesFrom);
   Utils.assert(toLocal, 'To must not be empty', dom.inputTimeseriesTo);
+  // Per-bucket aggregations are computed over Step-sized windows, so a Step is required for them;
+  // the advanced functions (derivative/rate/integral/percentile) also work on raw points.
+  Utils.assert(!(GROUP_AGGREGATIONS.includes(agg) && !step),
+      `Aggregation "${agg}" needs a Step (pick e.g. 1h).`, dom.selectTimeseriesStep);
+  Utils.assert(!(agg === 'percentile' && !percentile),
+      'The percentile aggregation needs a percentile value (0-100).', dom.inputTimeseriesPercentile);
 
-  // The path the user types is the full Ditto pointer
-  // (e.g. /features/<feature>/properties/<property>); the new URL shape splits it back into
-  // {featureId, propertyPointer} so timeseries reads sit at /api/2/timeseries/... as a
-  // first-class resource (matching IOT-495 Phase 1). Reject any path that doesn't fit so the
-  // user gets feedback at the form rather than a 400 from the gateway.
-  const split = splitFullPath(path);
-  if (!split) {
-    Utils.assert(false,
-        'Path must look like /features/<featureId>/properties/<propertyPointer>',
+  // Comma-separated paths -> several series in one call (multi-property endpoint); a single path
+  // keeps the original single-property URL shape. Each path must be a full Ditto pointer.
+  const paths = path.split(',').map((p) => p.trim()).filter((p) => p.length > 0);
+  for (const p of paths) {
+    Utils.assert(/^\/(features\/[^/]+\/properties|attributes)\/.+$/.test(p),
+        `Path "${p}" must look like /features/<feature>/properties/<property> or /attributes/<path>`,
         dom.inputTimeseriesPath);
-    return;
   }
-
-  setStatus('Loading…');
-  clearTable();
-  clearSparkline();
 
   const params = new URLSearchParams();
   params.append('from', toUtcIso(fromLocal));
@@ -130,14 +164,38 @@ async function onRetrieveClick(): Promise<void> {
   if (limit) {
     params.append('limit', limit);
   }
-  const url = `/timeseries/things/${encodeURIComponent(Things.theThing.thingId)}` +
-      `/features/${encodeURIComponent(split.featureId)}` +
-      `/properties/${encodePointer(split.propertyPointer)}` +
-      `?${params.toString()}`;
+  if (agg) {
+    params.append('agg', agg);
+  }
+  if (step) {
+    params.append('step', step);
+  }
+  if (fill) {
+    params.append('fill', fill);
+  }
+  if (agg === 'percentile' && percentile) {
+    params.append('percentile', percentile);
+  }
+
+  const thingId = encodeURIComponent(Things.theThing.thingId);
+  const split = paths.length === 1 ? splitFullPath(paths[0]) : null;
+  let url: string;
+  if (split) {
+    // Single feature property -> first-class single-property resource.
+    url = `/timeseries/things/${thingId}/features/${encodeURIComponent(split.featureId)}` +
+        `/properties/${encodePointer(split.propertyPointer)}?${params.toString()}`;
+  } else {
+    // Multiple paths, or a single attribute path -> multi-property endpoint with ?paths=.
+    params.append('paths', paths.join(','));
+    url = `/timeseries/things/${thingId}?${params.toString()}`;
+  }
+
+  setStatus('Loading…');
+  clearResults();
 
   try {
     const response = await API.callDittoREST('GET', url);
-    renderResults(response, path);
+    renderResults(response);
   } catch (err) {
     // callDittoREST already toasts the error via Utils.showError; we just blank the status.
     setStatus('');
@@ -164,53 +222,143 @@ function encodePointer(pointer: string): string {
   return pointer.split('/').map(encodeURIComponent).join('/');
 }
 
-function renderResults(response: unknown, requestedPath: string): void {
-  // The timeseries-service returns RetrieveTimeseriesResponse#getResults() — a JSON array of
-  // per-path series. callDittoREST returns the parsed JSON envelope directly, so we expect
-  // either an array of series or a single envelope with a `results` field; tolerate both.
+function renderResults(response: unknown): void {
+  // The timeseries-service returns a JSON array of per-path series (one entry per requested path);
+  // tolerate both a bare array and a `{results: [...]}` envelope. Each series renders as its own
+  // stacked block (heading + sparkline + table) so multiple paths don't fight over one chart.
   const seriesList: TimeseriesSeries[] = Array.isArray(response)
       ? (response as TimeseriesSeries[])
       : (((response as { results?: TimeseriesSeries[] }).results) ?? []);
-  const matching = seriesList.find((s) => s.path === requestedPath) ?? seriesList[0];
-  if (!matching || !matching.data || matching.data.length === 0) {
-    setStatus(matching ? 'No data points in range.' : 'Empty response.');
+  clearResults();
+  if (seriesList.length === 0) {
+    setStatus('Empty response.');
     return;
   }
-
-  renderTable(matching.data);
-  renderSparkline(matching.data);
-  const meta = matching.result;
-  setStatus(`${matching.data.length} point(s)` +
-    (meta?.unit ? ` · unit ${meta.unit}` : '') +
-    (meta?.dataType ? ` · type ${meta.dataType}` : ''));
+  let totalPoints = 0;
+  for (const series of seriesList) {
+    totalPoints += (series.data ?? []).length;
+    renderSeriesBlock(series);
+  }
+  setStatus(`${seriesList.length} series · ${totalPoints} point(s)`);
 }
 
-function renderTable(points: TimeseriesPoint[]): void {
-  if (!dom.tbodyTimeseries) return;
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+function renderSeriesBlock(series: TimeseriesSeries): void {
+  if (!dom.timeseriesResults) return;
+  const points = series.data ?? [];
+
+  const block = document.createElement('div');
+  block.className = 'mb-2';
+
+  const heading = document.createElement('div');
+  heading.className = 'small fw-semibold text-truncate';
+  heading.textContent = series.path ?? '(unknown path)';
+  heading.title = series.path ?? '';
+  block.appendChild(heading);
+
+  const meta = document.createElement('div');
+  meta.className = 'text-muted small mb-1';
+  const m = series.result;
+  meta.textContent = `${points.length} point(s)` +
+      (m?.unit ? ` · unit ${m.unit}` : '') +
+      (m?.dataType ? ` · type ${m.dataType}` : '');
+  block.appendChild(meta);
+
+  const svgWrap = document.createElement('div');
+  svgWrap.className = 'border rounded p-1 mb-1';
+  svgWrap.style.backgroundColor = 'var(--bs-body-bg)';
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('width', '100%');
+  svg.setAttribute('height', '120');
+  svg.setAttribute('preserveAspectRatio', 'none');
+  svg.setAttribute('viewBox', '0 0 600 120');
+  svg.style.display = 'block';
+  svgWrap.appendChild(svg);
+  block.appendChild(svgWrap);
+
+  const tableWrap = document.createElement('div');
+  tableWrap.className = 'table-wrap';
+  // Keep each per-series table compact so several series' charts stay visible in the scroll
+  // region rather than one long table pushing the next chart out of view.
+  tableWrap.style.maxHeight = '140px';
+  tableWrap.style.overflowY = 'auto';
+  const table = document.createElement('table');
+  table.className = 'table table-striped table-hover table-sm';
+  const thead = document.createElement('thead');
+  const headRow = document.createElement('tr');
+  const thT = document.createElement('th');
+  thT.style.width = '50%';
+  thT.textContent = 'Timestamp (UTC)';
+  const thV = document.createElement('th');
+  thV.textContent = 'Value';
+  headRow.appendChild(thT);
+  headRow.appendChild(thV);
+  thead.appendChild(headRow);
+  const tbody = document.createElement('tbody');
+  table.appendChild(thead);
+  table.appendChild(tbody);
+  tableWrap.appendChild(table);
+  block.appendChild(tableWrap);
+
+  dom.timeseriesResults.appendChild(block);
+
+  renderSparklineInto(svg, points);
+  renderTableInto(tbody, points);
+}
+
+function renderTableInto(tbody: HTMLTableSectionElement, points: TimeseriesPoint[]): void {
   // textContent on every cell — no innerHTML — so user-controlled values can't escape the cell.
   const rows = points.map((p) => {
     const tr = document.createElement('tr');
     const tdT = document.createElement('td');
-    tdT.textContent = p.t;
+    tdT.textContent = String(p.t);
     const tdV = document.createElement('td');
     tdV.textContent = formatValue(p.v);
+    if (p._gap) {
+      // Gap-filled point (fill strategy): mute the row and tag it so it's distinguishable from a
+      // real observation.
+      tr.classList.add('text-muted', 'fst-italic');
+      const badge = document.createElement('span');
+      badge.className = 'badge bg-secondary ms-1';
+      badge.textContent = 'gap';
+      tdV.appendChild(document.createTextNode(' '));
+      tdV.appendChild(badge);
+    }
     tr.appendChild(tdT);
     tr.appendChild(tdV);
     return tr;
   });
-  dom.tbodyTimeseries.replaceChildren(...rows);
+  tbody.replaceChildren(...rows);
 }
 
-function renderSparkline(points: TimeseriesPoint[]): void {
-  if (!dom.timeseriesSparkline) return;
-  // Inline SVG path — works for numeric data; non-numeric series produce NaN, which we filter
-  // out so the line stays continuous through gaps. ViewBox is fixed at 600x120 and the SVG
-  // uses preserveAspectRatio="none" + width:100% so it stretches to the container.
+function renderSparklineInto(svg: SVGSVGElement, points: TimeseriesPoint[]): void {
+  // Inline SVG path — works for numeric data; non-numeric / gap (null) points produce NaN, which
+  // we filter out. ViewBox is fixed at 600x120 and the SVG uses preserveAspectRatio="none" so it
+  // stretches to the container.
   const numeric: { t: number; v: number }[] = points
-      .map((p) => ({ t: Date.parse(p.t), v: Number(p.v) }))
+      .map((p) => ({ t: Date.parse(String(p.t)), v: Number(p.v) }))
       .filter((p) => Number.isFinite(p.t) && Number.isFinite(p.v));
-  if (numeric.length < 2) {
-    clearSparkline();
+  svg.replaceChildren();
+  if (numeric.length === 0) {
+    return;
+  }
+  if (numeric.length === 1) {
+    // A single aggregated value (e.g. one downsample bucket) can't form a line — draw a labelled
+    // dot so the panel isn't blank and the user still sees the value plotted.
+    const circle = document.createElementNS(SVG_NS, 'circle');
+    circle.setAttribute('cx', '300');
+    circle.setAttribute('cy', '60');
+    circle.setAttribute('r', '3');
+    circle.setAttribute('fill', 'var(--bs-primary, #0d6efd)');
+    svg.appendChild(circle);
+    const lbl = document.createElementNS(SVG_NS, 'text');
+    lbl.setAttribute('x', '309');
+    lbl.setAttribute('y', '63');
+    lbl.setAttribute('font-size', '9');
+    lbl.setAttribute('fill', 'currentColor');
+    lbl.textContent = formatNumeric(numeric[0].v);
+    svg.appendChild(lbl);
     return;
   }
   const minT = numeric[0].t;
@@ -235,10 +383,7 @@ function renderSparkline(points: TimeseriesPoint[]): void {
     return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
   }).join(' ');
 
-  const ns = 'http://www.w3.org/2000/svg';
-  const svg = dom.timeseriesSparkline;
-  svg.replaceChildren();
-  const path = document.createElementNS(ns, 'path');
+  const path = document.createElementNS(SVG_NS, 'path');
   path.setAttribute('d', d);
   path.setAttribute('fill', 'none');
   path.setAttribute('stroke', 'var(--bs-primary, #0d6efd)');
@@ -246,14 +391,14 @@ function renderSparkline(points: TimeseriesPoint[]): void {
   svg.appendChild(path);
   // Min/max value labels at top-left and bottom-left so the user can read the range without
   // adding axis ticks (which would balloon scope for what's meant to be a sparkline).
-  const lblMax = document.createElementNS(ns, 'text');
+  const lblMax = document.createElementNS(SVG_NS, 'text');
   lblMax.setAttribute('x', String(padX));
   lblMax.setAttribute('y', String(padY + 4));
   lblMax.setAttribute('font-size', '9');
   lblMax.setAttribute('fill', 'currentColor');
   lblMax.textContent = formatNumeric(maxV);
   svg.appendChild(lblMax);
-  const lblMin = document.createElementNS(ns, 'text');
+  const lblMin = document.createElementNS(SVG_NS, 'text');
   lblMin.setAttribute('x', String(padX));
   lblMin.setAttribute('y', String(h - padY));
   lblMin.setAttribute('font-size', '9');
@@ -262,12 +407,8 @@ function renderSparkline(points: TimeseriesPoint[]): void {
   svg.appendChild(lblMin);
 }
 
-function clearTable(): void {
-  if (dom.tbodyTimeseries) dom.tbodyTimeseries.replaceChildren();
-}
-
-function clearSparkline(): void {
-  if (dom.timeseriesSparkline) dom.timeseriesSparkline.replaceChildren();
+function clearResults(): void {
+  if (dom.timeseriesResults) dom.timeseriesResults.replaceChildren();
 }
 
 function setStatus(text: string): void {

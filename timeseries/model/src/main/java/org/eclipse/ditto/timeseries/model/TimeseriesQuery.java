@@ -69,7 +69,40 @@ public interface TimeseriesQuery extends Jsonifiable<JsonObject> {
             @Nullable final ZoneId timezone) {
 
         return ImmutableTimeseriesQuery.of(
-                thingId, paths, from, to, step, aggregation, fillStrategy, limit, timezone);
+                thingId, paths, from, to, step, aggregation, fillStrategy, limit, timezone, null);
+    }
+
+    /**
+     * Returns a new {@code TimeseriesQuery} including the {@code percentile} parameter (required when
+     * {@code aggregation} is {@link Aggregation#PERCENTILE}). Optional fields may be {@code null}.
+     *
+     * @param thingId the Thing to query.
+     * @param paths the paths within the Thing whose timeseries are requested.
+     * @param from inclusive lower bound of the time range.
+     * @param to exclusive upper bound of the time range.
+     * @param step downsampling interval; may be {@code null} for raw queries.
+     * @param aggregation the aggregation function to apply per bucket; may be {@code null}.
+     * @param fillStrategy how empty buckets are filled when downsampling; may be {@code null}.
+     * @param limit a maximum number of data points to return; may be {@code null}.
+     * @param timezone the timezone used to align step boundaries; may be {@code null} (UTC is used).
+     * @param percentile the percentile in {@code [0, 100]} for {@link Aggregation#PERCENTILE}; may be
+     * {@code null} for other aggregations.
+     * @return the new query.
+     * @throws NullPointerException if any non-{@code @Nullable} argument is {@code null}.
+     */
+    static TimeseriesQuery of(final ThingId thingId,
+            final List<JsonPointer> paths,
+            final Instant from,
+            final Instant to,
+            @Nullable final Duration step,
+            @Nullable final Aggregation aggregation,
+            @Nullable final FillStrategy fillStrategy,
+            @Nullable final Integer limit,
+            @Nullable final ZoneId timezone,
+            @Nullable final Double percentile) {
+
+        return ImmutableTimeseriesQuery.of(
+                thingId, paths, from, to, step, aggregation, fillStrategy, limit, timezone, percentile);
     }
 
     /**
@@ -87,7 +120,7 @@ public interface TimeseriesQuery extends Jsonifiable<JsonObject> {
             final Instant from,
             final Instant to) {
 
-        return ImmutableTimeseriesQuery.of(thingId, paths, from, to, null, null, null, null, null);
+        return ImmutableTimeseriesQuery.of(thingId, paths, from, to, null, null, null, null, null, null);
     }
 
     /**
@@ -148,6 +181,11 @@ public interface TimeseriesQuery extends Jsonifiable<JsonObject> {
      * @return the timezone used for step alignment if set; UTC is the default when absent.
      */
     Optional<ZoneId> getTimezone();
+
+    /**
+     * @return the percentile in {@code [0, 100]} for {@link Aggregation#PERCENTILE}, if set.
+     */
+    Optional<Double> getPercentile();
 
     @Override
     default JsonSchemaVersion[] getSupportedSchemaVersions() {
@@ -212,6 +250,12 @@ public interface TimeseriesQuery extends Jsonifiable<JsonObject> {
          */
         public static final JsonFieldDefinition<String> TIMEZONE =
                 JsonFactory.newStringFieldDefinition("timezone", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        /**
+         * The percentile value (0-100) for the {@code percentile} aggregation. Optional.
+         */
+        public static final JsonFieldDefinition<Double> PERCENTILE =
+                JsonFactory.newDoubleFieldDefinition("percentile", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

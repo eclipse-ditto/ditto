@@ -45,6 +45,15 @@ import org.eclipse.ditto.things.model.ThingId;
 @Immutable
 final class ImmutableTimeseriesQuery implements TimeseriesQuery {
 
+    /**
+     * Upper bound on the number of paths a single query may request. A multi-path read fans out to
+     * one scan per path, each bounded independently by the adapter's per-path ceiling, so the
+     * request-level memory is the path count times that ceiling. This cap keeps a pathological
+     * request from multiplying the ceiling without limit; legitimate multi-property reads are well
+     * under it.
+     */
+    private static final int MAX_PATHS = 100;
+
     private final ThingId thingId;
     private final List<JsonPointer> paths;
     private final Instant from;
@@ -54,6 +63,7 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
     @Nullable private final FillStrategy fillStrategy;
     @Nullable private final Integer limit;
     @Nullable private final ZoneId timezone;
+    @Nullable private final Double percentile;
 
     private ImmutableTimeseriesQuery(final ThingId thingId,
             final List<JsonPointer> paths,
@@ -63,7 +73,8 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
             @Nullable final Aggregation aggregation,
             @Nullable final FillStrategy fillStrategy,
             @Nullable final Integer limit,
-            @Nullable final ZoneId timezone) {
+            @Nullable final ZoneId timezone,
+            @Nullable final Double percentile) {
 
         this.thingId = thingId;
         this.paths = paths;
@@ -74,6 +85,7 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
         this.fillStrategy = fillStrategy;
         this.limit = limit;
         this.timezone = timezone;
+        this.percentile = percentile;
     }
 
     static TimeseriesQuery of(final ThingId thingId,
@@ -84,18 +96,65 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
             @Nullable final Aggregation aggregation,
             @Nullable final FillStrategy fillStrategy,
             @Nullable final Integer limit,
-            @Nullable final ZoneId timezone) {
+            @Nullable final ZoneId timezone,
+            @Nullable final Double percentile) {
 
         checkNotNull(thingId, "thingId");
         checkNotNull(paths, "paths");
         checkNotNull(from, "from");
         checkNotNull(to, "to");
+        validateSemantics(paths, aggregation, step, fillStrategy, percentile);
 
         final List<JsonPointer> defensivePaths =
                 Collections.unmodifiableList(new ArrayList<>(paths));
 
         return new ImmutableTimeseriesQuery(
-                thingId, defensivePaths, from, to, step, aggregation, fillStrategy, limit, timezone);
+                thingId, defensivePaths, from, to, step, aggregation, fillStrategy, limit, timezone,
+                percentile);
+    }
+
+    /**
+     * Enforces the semantic contract of the aggregation parameters at the model layer (so every
+     * transport rejects the same inputs identically) by throwing a {@link TimeseriesQueryInvalidException}
+     * (HTTP 400). Parse-level errors (bad enum names, malformed durations) are handled earlier, at the
+     * transport boundary.
+     */
+    private static void validateSemantics(final List<JsonPointer> paths,
+            @Nullable final Aggregation aggregation,
+            @Nullable final Duration step,
+            @Nullable final FillStrategy fillStrategy,
+            @Nullable final Double percentile) {
+
+        if (paths.size() > MAX_PATHS) {
+            throw TimeseriesQueryInvalidException.newBuilder(
+                    "A query may request at most <" + MAX_PATHS + "> paths but <" + paths.size() +
+                            "> were given. Split the request into smaller batches.").build();
+        }
+        if (percentile != null && (percentile < 0.0 || percentile > 100.0)) {
+            throw TimeseriesQueryInvalidException.newBuilder(
+                    "Parameter <percentile> must be between 0 and 100 but was <" + percentile + ">.")
+                    .build();
+        }
+        if (aggregation != null) {
+            if (aggregation.requiresStep() && step == null) {
+                throw TimeseriesQueryInvalidException.newBuilder(
+                        "Aggregation <" + aggregation.getName() +
+                                "> requires a <step> parameter for downsampling.").build();
+            }
+            if (aggregation == Aggregation.PERCENTILE && percentile == null) {
+                throw TimeseriesQueryInvalidException.newBuilder(
+                        "Aggregation <percentile> requires a <percentile> value between 0 and 100.")
+                        .build();
+            }
+        }
+        if (fillStrategy == FillStrategy.LINEAR) {
+            // The enum constant exists for forward compatibility, but linear interpolation is not
+            // implemented yet (it lands with the fill/tz refinement). Reject explicitly rather than
+            // silently degrading to null-fill, which would mislead callers about the returned shape.
+            throw TimeseriesQueryInvalidException.newBuilder(
+                    "Fill strategy <linear> is not yet supported. Use <null>, <previous> or <zero>.")
+                    .build();
+        }
     }
 
     static TimeseriesQuery fromJson(final JsonObject jsonObject) {
@@ -119,8 +178,9 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
         final ZoneId timezone = jsonObject.getValue(JsonFields.TIMEZONE)
                 .map(s -> parseZoneId(s))
                 .orElse(null);
+        final Double percentile = jsonObject.getValue(JsonFields.PERCENTILE).orElse(null);
 
-        return of(thingId, paths, from, to, step, aggregation, fillStrategy, limit, timezone);
+        return of(thingId, paths, from, to, step, aggregation, fillStrategy, limit, timezone, percentile);
     }
 
     private static List<JsonPointer> pathsFromJson(final JsonArray array) {
@@ -232,6 +292,11 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
     }
 
     @Override
+    public Optional<Double> getPercentile() {
+        return Optional.ofNullable(percentile);
+    }
+
+    @Override
     public JsonObject toJson() {
         final JsonObjectBuilder builder = JsonFactory.newObjectBuilder()
                 .set(JsonFields.THING_ID, thingId.toString())
@@ -253,6 +318,9 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
         }
         if (timezone != null) {
             builder.set(JsonFields.TIMEZONE, timezone.toString());
+        }
+        if (percentile != null) {
+            builder.set(JsonFields.PERCENTILE, percentile);
         }
 
         return builder.build();
@@ -283,12 +351,14 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
                 aggregation == that.aggregation &&
                 fillStrategy == that.fillStrategy &&
                 Objects.equals(limit, that.limit) &&
-                Objects.equals(timezone, that.timezone);
+                Objects.equals(timezone, that.timezone) &&
+                Objects.equals(percentile, that.percentile);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(thingId, paths, from, to, step, aggregation, fillStrategy, limit, timezone);
+        return Objects.hash(thingId, paths, from, to, step, aggregation, fillStrategy, limit, timezone,
+                percentile);
     }
 
     @Override
@@ -303,6 +373,7 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
                 ", fillStrategy=" + fillStrategy +
                 ", limit=" + limit +
                 ", timezone=" + timezone +
+                ", percentile=" + percentile +
                 "]";
     }
 }

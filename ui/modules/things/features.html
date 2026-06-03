@@ -55,9 +55,9 @@
                 </div>
                 <div class="tab-pane container no-margin" id="tabTimeseriesFeature">
                     <div class="input-group input-group-sm mb-1">
-                        <label class="input-group-text" style="width: 7em;">Path</label>
+                        <label class="input-group-text" style="width: 7em;">Path(s)</label>
                         <input type="text" class="form-control" id="inputTimeseriesPath"
-                               placeholder="/features/<feature>/properties/<property>"></input>
+                               placeholder="/features/<feature>/properties/<property> (comma-separate for several)"></input>
                     </div>
                     <div class="input-group input-group-sm mb-1">
                         <label class="input-group-text" style="width: 7em;">From (UTC)</label>
@@ -71,18 +71,53 @@
                             <i class="bi bi-arrow-clockwise"></i> Retrieve
                         </button>
                     </div>
+                    <div class="input-group input-group-sm mb-1">
+                        <label class="input-group-text" style="width: 7em;">Aggregation</label>
+                        <select class="form-select" id="selectTimeseriesAgg" title="Aggregation function">
+                            <option value="">Raw (none)</option>
+                            <optgroup label="Per-bucket (needs Step)">
+                                <option value="avg">avg</option>
+                                <option value="min">min</option>
+                                <option value="max">max</option>
+                                <option value="sum">sum</option>
+                                <option value="count">count</option>
+                                <option value="first">first</option>
+                                <option value="last">last</option>
+                                <option value="stddev">stddev</option>
+                            </optgroup>
+                            <optgroup label="Advanced">
+                                <option value="derivative">derivative</option>
+                                <option value="rate">rate</option>
+                                <option value="integral">integral</option>
+                                <option value="percentile">percentile</option>
+                            </optgroup>
+                        </select>
+                        <label class="input-group-text">Step</label>
+                        <select class="form-select" id="selectTimeseriesStep" title="Downsampling interval">
+                            <option value="">none</option>
+                            <option value="1m">1m</option>
+                            <option value="5m">5m</option>
+                            <option value="15m">15m</option>
+                            <option value="1h">1h</option>
+                            <option value="6h">6h</option>
+                            <option value="1d">1d</option>
+                        </select>
+                        <label class="input-group-text">Fill</label>
+                        <select class="form-select" id="selectTimeseriesFill" title="Gap fill strategy">
+                            <option value="">none</option>
+                            <option value="null">null</option>
+                            <option value="previous">previous</option>
+                            <option value="zero">zero</option>
+                        </select>
+                        <label class="input-group-text" id="labelTimeseriesPercentile" hidden>p</label>
+                        <input type="number" class="form-control" id="inputTimeseriesPercentile" min="0" max="100"
+                               step="1" placeholder="0-100" style="max-width: 6em;" hidden></input>
+                    </div>
                     <div class="text-muted small mb-1" id="timeseriesStatus" style="min-height: 1em;"></div>
-                    <div class="border rounded p-1 mb-1" style="background-color: var(--bs-body-bg);">
-                        <svg id="timeseriesSparkline" width="100%" height="120" preserveAspectRatio="none"
-                             viewBox="0 0 600 120" xmlns="http://www.w3.org/2000/svg" style="display: block;">
-                        </svg>
-                    </div>
-                    <div class="table-wrap" style="max-height: 30vh; overflow-y: auto;">
-                        <table class="table table-striped table-hover table-sm">
-                            <thead><tr><th style="width: 50%;">Timestamp (UTC)</th><th>Value</th></tr></thead>
-                            <tbody id="tbodyTimeseries"></tbody>
-                        </table>
-                    </div>
+                    <!-- One block per returned series is rendered here by timeseries.ts.
+                         Self-contained scroll region so every series is reachable even when the
+                         feature pane itself doesn't scroll. -->
+                    <div id="timeseriesResults" style="max-height: 55vh; overflow-y: auto;"></div>
                 </div>
             </div>
         </div>

@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doAnswer;
@@ -351,14 +352,16 @@ public final class MongoDbTimeseriesAdapterTest {
     }
 
     @Test
-    public void queryDoesNotApplyLimitWhenAbsent() {
+    public void queryAppliesScanCeilingWhenNoLimitSet() {
         final FindPublisher<org.bson.Document> finder = stubFindReturning(mongoCollection,
                 docFor(Instant.parse("2026-01-14T10:00:00Z"), JsonValue.of(22.0)));
         final MongoDbTimeseriesAdapter adapter = newInitialisedAdapter();
 
         adapter.query(buildQuery()).toCompletableFuture().join();
 
-        verify(finder, never()).limit(anyInt());
+        // No caller limit -> the configured safety ceiling is applied so an over-broad range
+        // cannot exhaust the heap.
+        verify(finder).limit(DefaultMongoDbTimeseriesAdapterConfig.DEFAULT_MAX_QUERY_RESULT_SIZE);
     }
 
     @Test
@@ -456,6 +459,7 @@ public final class MongoDbTimeseriesAdapterTest {
 
         final FindPublisher<org.bson.Document> finder = mock(FindPublisher.class);
         when(finder.sort(any())).thenReturn(finder);
+        when(finder.maxTime(anyLong(), any(java.util.concurrent.TimeUnit.class))).thenReturn(finder);
         when(finder.limit(anyInt())).thenReturn(finder);
         doAnswer(invocation -> {
             final org.reactivestreams.Subscriber<org.bson.Document> sub = invocation.getArgument(0);

@@ -55,4 +55,18 @@ public interface MongoDbTimeseriesAdapterConfig extends TimeseriesAdapterConfig 
      * value changes; the {@code collMod} migration is operator-driven.
      */
     Optional<Duration> getRetention();
+
+    /**
+     * @return the maximum number of data points pulled into application memory per path on the raw
+     * and window-function read paths. Acts as a safety ceiling so an over-broad time range cannot
+     * exhaust the heap; results that hit it are truncated (and logged). Callers should narrow the
+     * range, add a {@code limit}, or downsample with a {@code step}.
+     */
+    int getMaxQueryResultSize();
+
+    /**
+     * @return the server-side time budget for a single read (find or aggregation), applied as the
+     * MongoDB {@code maxTime}. Bounds the blast radius of a pathological query.
+     */
+    Duration getQueryTimeout();
 }

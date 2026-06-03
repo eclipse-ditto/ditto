@@ -15,6 +15,7 @@ package org.eclipse.ditto.timeseries.model;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
@@ -94,6 +95,10 @@ public enum Aggregation implements CharSequence {
      */
     PERCENTILE("percentile");
 
+    /** The per-bucket aggregations — those expressible as a single {@code $group} accumulator. */
+    private static final EnumSet<Aggregation> BUCKETED =
+            EnumSet.of(AVG, MIN, MAX, SUM, COUNT, FIRST, LAST, STDDEV);
+
     private final String name;
 
     Aggregation(final String name) {
@@ -107,6 +112,19 @@ public enum Aggregation implements CharSequence {
      */
     public String getName() {
         return name;
+    }
+
+    /**
+     * Whether this aggregation is computed per {@code step} bucket via a single {@code $group}
+     * accumulator and therefore requires a {@code step} to be set. The window-style functions
+     * ({@link #DERIVATIVE}, {@link #RATE}, {@link #INTEGRAL}, {@link #PERCENTILE}) return
+     * {@code false} — they operate on raw points (and {@code step} is optional for them).
+     *
+     * @return {@code true} for the per-bucket aggregations (avg, min, max, sum, count, first, last,
+     * stddev); {@code false} for the window-style functions.
+     */
+    public boolean requiresStep() {
+        return BUCKETED.contains(this);
     }
 
     /**

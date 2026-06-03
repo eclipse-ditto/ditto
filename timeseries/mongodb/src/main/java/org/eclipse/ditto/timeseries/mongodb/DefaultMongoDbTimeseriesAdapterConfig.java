@@ -47,24 +47,42 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
      */
     public static final Granularity DEFAULT_GRANULARITY = Granularity.SECONDS;
 
+    /**
+     * Default scan ceiling (per path) when {@code max-query-result-size} is not set in HOCON.
+     */
+    public static final int DEFAULT_MAX_QUERY_RESULT_SIZE = 1_000_000;
+
+    /**
+     * Default per-read server-side time budget when {@code query-timeout} is not set in HOCON.
+     */
+    public static final Duration DEFAULT_QUERY_TIMEOUT = Duration.ofSeconds(60);
+
     private static final String KEY_COLLECTION_PREFIX = "collection-prefix";
     private static final String KEY_GRANULARITY = "granularity";
     private static final String KEY_RETENTION = "retention";
+    private static final String KEY_MAX_QUERY_RESULT_SIZE = "max-query-result-size";
+    private static final String KEY_QUERY_TIMEOUT = "query-timeout";
 
     private final MongoDbConfig mongoDbConfig;
     private final String collectionPrefix;
     private final Granularity granularity;
     @Nullable private final Duration retention;
+    private final int maxQueryResultSize;
+    private final Duration queryTimeout;
 
     private DefaultMongoDbTimeseriesAdapterConfig(final MongoDbConfig mongoDbConfig,
             final String collectionPrefix,
             final Granularity granularity,
-            @Nullable final Duration retention) {
+            @Nullable final Duration retention,
+            final int maxQueryResultSize,
+            final Duration queryTimeout) {
 
         this.mongoDbConfig = mongoDbConfig;
         this.collectionPrefix = collectionPrefix;
         this.granularity = granularity;
         this.retention = retention;
+        this.maxQueryResultSize = maxQueryResultSize;
+        this.queryTimeout = queryTimeout;
     }
 
     /**
@@ -84,7 +102,9 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
                 checkNotNull(mongoDbConfig, "mongoDbConfig"),
                 checkNotNull(collectionPrefix, "collectionPrefix"),
                 checkNotNull(granularity, "granularity"),
-                null);
+                null,
+                DEFAULT_MAX_QUERY_RESULT_SIZE,
+                DEFAULT_QUERY_TIMEOUT);
     }
 
     /**
@@ -107,7 +127,9 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
                 checkNotNull(mongoDbConfig, "mongoDbConfig"),
                 checkNotNull(collectionPrefix, "collectionPrefix"),
                 checkNotNull(granularity, "granularity"),
-                retention);
+                retention,
+                DEFAULT_MAX_QUERY_RESULT_SIZE,
+                DEFAULT_QUERY_TIMEOUT);
     }
 
     /**
@@ -133,9 +155,27 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
         final Duration retention = adapterConfig.hasPath(KEY_RETENTION)
                 ? adapterConfig.getDuration(KEY_RETENTION)
                 : null;
+        final int maxQueryResultSize = adapterConfig.hasPath(KEY_MAX_QUERY_RESULT_SIZE)
+                ? adapterConfig.getInt(KEY_MAX_QUERY_RESULT_SIZE)
+                : DEFAULT_MAX_QUERY_RESULT_SIZE;
+        final Duration queryTimeout = adapterConfig.hasPath(KEY_QUERY_TIMEOUT)
+                ? adapterConfig.getDuration(KEY_QUERY_TIMEOUT)
+                : DEFAULT_QUERY_TIMEOUT;
+
+        // Both are safety ceilings, and both have a value that MongoDB reinterprets as "no limit"
+        // (limit(0) returns all documents; maxTime(0) disables the time budget). Reject those — a
+        // mis-set guard that silently turns itself off is worse than a clear startup failure.
+        if (maxQueryResultSize <= 0) {
+            throw new DittoConfigError("Configuration <" + KEY_MAX_QUERY_RESULT_SIZE +
+                    "> must be a positive number of data points but was <" + maxQueryResultSize + ">.");
+        }
+        if (queryTimeout.isZero() || queryTimeout.isNegative()) {
+            throw new DittoConfigError("Configuration <" + KEY_QUERY_TIMEOUT +
+                    "> must be a positive duration but was <" + queryTimeout + ">.");
+        }
 
         return new DefaultMongoDbTimeseriesAdapterConfig(mongoDbConfig, collectionPrefix,
-                granularity, retention);
+                granularity, retention, maxQueryResultSize, queryTimeout);
     }
 
     private static String stringOrDefault(final Config config, final String key,
@@ -175,6 +215,16 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
     }
 
     @Override
+    public int getMaxQueryResultSize() {
+        return maxQueryResultSize;
+    }
+
+    @Override
+    public Duration getQueryTimeout() {
+        return queryTimeout;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -186,12 +236,15 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
         return Objects.equals(mongoDbConfig, that.mongoDbConfig) &&
                 Objects.equals(collectionPrefix, that.collectionPrefix) &&
                 granularity == that.granularity &&
-                Objects.equals(retention, that.retention);
+                Objects.equals(retention, that.retention) &&
+                maxQueryResultSize == that.maxQueryResultSize &&
+                Objects.equals(queryTimeout, that.queryTimeout);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(mongoDbConfig, collectionPrefix, granularity, retention);
+        return Objects.hash(mongoDbConfig, collectionPrefix, granularity, retention,
+                maxQueryResultSize, queryTimeout);
     }
 
     @Override
@@ -201,6 +254,8 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
                 ", collectionPrefix=" + collectionPrefix +
                 ", granularity=" + granularity +
                 ", retention=" + retention +
+                ", maxQueryResultSize=" + maxQueryResultSize +
+                ", queryTimeout=" + queryTimeout +
                 "]";
     }
 }

@@ -14,14 +14,18 @@ package org.eclipse.ditto.timeseries.mongodb;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nullable;
@@ -37,15 +41,23 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.timeseries.api.HealthStatus;
 import org.eclipse.ditto.timeseries.api.TimeseriesAdapter;
 import org.eclipse.ditto.timeseries.api.TimeseriesAdapterConfig;
+import org.eclipse.ditto.timeseries.model.Aggregation;
+import org.eclipse.ditto.timeseries.model.FillStrategy;
 import org.eclipse.ditto.timeseries.model.TimeseriesDataPoint;
 import org.eclipse.ditto.timeseries.model.TimeseriesDataValue;
 import org.eclipse.ditto.timeseries.model.TimeseriesQuery;
+import org.eclipse.ditto.timeseries.model.TimeseriesQueryInvalidException;
 import org.eclipse.ditto.timeseries.model.TimeseriesQueryResult;
 import org.eclipse.ditto.timeseries.model.TimeseriesResultMeta;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import com.mongodb.client.model.Accumulators;
+import com.mongodb.client.model.Aggregates;
+import com.mongodb.client.model.BsonField;
 import com.mongodb.client.model.CreateCollectionOptions;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Sorts;
@@ -70,6 +82,8 @@ import com.mongodb.reactivestreams.client.MongoDatabase;
  */
 @ThreadSafe
 public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(MongoDbTimeseriesAdapter.class);
 
     /**
      * MongoDB field name for the time-series timestamp axis. Stored as the {@code timeField} in the
@@ -232,10 +246,11 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
             return CompletableFuture.completedFuture(Collections.emptyList());
         }
 
-        // Issue one find() per requested path. The Phase 1 read path is raw — no aggregation, no
-        // downsampling — so we collect documents and map them to TimeseriesDataValue in memory.
-        // Step / aggregation / fillStrategy on the query are ignored at this phase and will be
-        // honoured when the aggregation-pipeline path lands in Phase 2.
+        // Issue one query per requested path and collect the per-path results in request order.
+        // queryOnePath picks the read strategy from the query: a raw find() when no step/aggregation
+        // is set, otherwise the $dateTrunc/$group downsampling pipeline or a window-function path
+        // (derivative/rate/integral/percentile). The fan-out runs the paths concurrently; each path's
+        // scan is bounded independently by the adapter's per-path ceiling (max-query-result-size).
         final List<CompletionStage<TimeseriesQueryResult>> perPath = new ArrayList<>(paths.size());
         for (final JsonPointer path : paths) {
             perPath.add(queryOnePath(current, query, path));
@@ -243,17 +258,41 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
         return collectInOrder(perPath);
     }
 
+    private static Bson pathFilter(final ThingId thingId, final JsonPointer path,
+            final TimeseriesQuery query) {
+        return Filters.and(
+                Filters.eq("meta." + TimeseriesBsonMapper.META_THING_ID, thingId.toString()),
+                Filters.eq("meta." + TimeseriesBsonMapper.META_PATH, path.toString()),
+                Filters.gte(TimeseriesBsonMapper.FIELD_TIMESTAMP, Date.from(query.getFrom())),
+                Filters.lt(TimeseriesBsonMapper.FIELD_TIMESTAMP, Date.from(query.getTo())));
+    }
+
     private CompletionStage<TimeseriesQueryResult> queryOnePath(final State current,
+            final TimeseriesQuery query,
+            final JsonPointer path) {
+
+        final Optional<Duration> stepOpt = query.getStep();
+        final Optional<Aggregation> aggOpt = query.getAggregation();
+        if (aggOpt.isPresent()) {
+            final Aggregation agg = aggOpt.get();
+            // group-aggregation-requires-step is enforced at the model layer (TimeseriesQuery.of);
+            // by the time a command reaches here the invariant holds, so stepOpt is present.
+            if (agg.requiresStep() && stepOpt.isPresent()) {
+                return aggregateOnePath(current, query, path, stepOpt.get(), agg);
+            }
+            // derivative / rate / integral / percentile — computed from fetched points.
+            return aggregateAdvancedOnePath(current, query, path, agg);
+        }
+        return queryOnePathRaw(current, query, path);
+    }
+
+    private CompletionStage<TimeseriesQueryResult> queryOnePathRaw(final State current,
             final TimeseriesQuery query,
             final JsonPointer path) {
 
         final ThingId thingId = query.getThingId();
 
-        final Bson filter = Filters.and(
-                Filters.eq("meta." + TimeseriesBsonMapper.META_THING_ID, thingId.toString()),
-                Filters.eq("meta." + TimeseriesBsonMapper.META_PATH, path.toString()),
-                Filters.gte(TimeseriesBsonMapper.FIELD_TIMESTAMP, Date.from(query.getFrom())),
-                Filters.lt(TimeseriesBsonMapper.FIELD_TIMESTAMP, Date.from(query.getTo())));
+        final Bson filter = pathFilter(thingId, path, query);
         final Optional<Integer> limitOpt = query.getLimit();
 
         // Use getCollection() directly — do NOT call ensureCollection() on the read path. An
@@ -262,14 +301,444 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
         // MongoDB's find() against a non-existent collection returns an empty cursor without
         // erroring, which is exactly the user-facing semantics we want for "no data yet".
         // Collection creation stays scoped to the write path.
+        // Bound both runtime (maxTime) and heap (scan ceiling). The effective limit is the smaller of
+        // the caller's limit and MAX_SCAN_POINTS, so an unbounded range can't OOM the service.
+        final int maxPoints = current.config.getMaxQueryResultSize();
+        final int effectiveLimit = limitOpt.map(l -> Math.min(l, maxPoints)).orElse(maxPoints);
         final MongoCollection<Document> collection = getCollection(current, thingId);
-        FindPublisher<Document> findPublisher = collection.find(filter)
-                .sort(Sorts.ascending(TimeseriesBsonMapper.FIELD_TIMESTAMP));
-        if (limitOpt.isPresent()) {
-            findPublisher = findPublisher.limit(limitOpt.get());
-        }
+        final FindPublisher<Document> findPublisher = collection.find(filter)
+                .sort(Sorts.ascending(TimeseriesBsonMapper.FIELD_TIMESTAMP))
+                .maxTime(current.config.getQueryTimeout().toMillis(), TimeUnit.MILLISECONDS)
+                .limit(effectiveLimit);
         return collectAll(findPublisher)
-                .thenApply(documents -> buildResult(thingId, path, query, documents));
+                .thenApply(documents -> {
+                    warnIfScanCeilingHit(documents.size(), limitOpt.orElse(null), maxPoints, thingId, path);
+                    return buildResult(thingId, path, query, documents);
+                });
+    }
+
+    /**
+     * Downsamples one path into {@code step}-sized buckets using a {@code $dateTrunc} + {@code $group}
+     * aggregation pipeline, then applies the requested {@link FillStrategy} to interior gaps.
+     */
+    private CompletionStage<TimeseriesQueryResult> aggregateOnePath(final State current,
+            final TimeseriesQuery query,
+            final JsonPointer path,
+            final Duration step,
+            final Aggregation agg) {
+
+        final ThingId thingId = query.getThingId();
+        final Bson filter = pathFilter(thingId, path, query);
+        final Document dateTrunc =
+                dateTruncSpec(step, query.getTimezone().map(Object::toString).orElse(null));
+        final BsonField valueAccumulator =
+                accumulatorFor(agg, "v", "$" + TimeseriesBsonMapper.FIELD_VALUE);
+        final BsonField unitAccumulator =
+                Accumulators.first("unit", "$meta." + TimeseriesBsonMapper.META_UNIT);
+
+        final List<Bson> pipeline = new ArrayList<>();
+        pipeline.add(Aggregates.match(filter));
+        // Pre-sort so $first/$last reflect chronological order rather than storage order.
+        pipeline.add(Aggregates.sort(Sorts.ascending(TimeseriesBsonMapper.FIELD_TIMESTAMP)));
+        pipeline.add(Aggregates.group(dateTrunc, valueAccumulator, unitAccumulator));
+        pipeline.add(Aggregates.sort(Sorts.ascending("_id")));
+
+        final MongoCollection<Document> collection = getCollection(current, thingId);
+        return collectAll(collection.aggregate(pipeline)
+                        .allowDiskUse(true)
+                        .maxTime(current.config.getQueryTimeout().toMillis(), TimeUnit.MILLISECONDS))
+                // Bucket assembly + gap fill is CPU work — keep it off the reactive driver thread.
+                .thenApplyAsync(buckets -> buildAggregatedResult(thingId, path, query, step, buckets));
+    }
+
+    /**
+     * Builds the {@code $dateTrunc} expression for a step. The {@code (unit, binSize)} pair is derived
+     * from the step duration; {@code timezone} (when set) aligns bucket boundaries to that zone.
+     */
+    private static Document dateTruncSpec(final Duration step, @Nullable final String timezone) {
+        final long seconds = step.getSeconds();
+        final String unit;
+        final long binSize;
+        if (seconds % 86400 == 0) {
+            unit = "day";
+            binSize = seconds / 86400;
+        } else if (seconds % 3600 == 0) {
+            unit = "hour";
+            binSize = seconds / 3600;
+        } else if (seconds % 60 == 0) {
+            unit = "minute";
+            binSize = seconds / 60;
+        } else {
+            unit = "second";
+            binSize = seconds;
+        }
+        final Document spec = new Document("date", "$" + TimeseriesBsonMapper.FIELD_TIMESTAMP)
+                .append("unit", unit)
+                .append("binSize", binSize);
+        if (timezone != null) {
+            spec.append("timezone", timezone);
+        }
+        return new Document("$dateTrunc", spec);
+    }
+
+    private static BsonField accumulatorFor(final Aggregation agg, final String field,
+            final String valueExpr) {
+        return switch (agg) {
+            case AVG -> Accumulators.avg(field, valueExpr);
+            case MIN -> Accumulators.min(field, valueExpr);
+            case MAX -> Accumulators.max(field, valueExpr);
+            case SUM -> Accumulators.sum(field, valueExpr);
+            case COUNT -> Accumulators.sum(field, 1);
+            case FIRST -> Accumulators.first(field, valueExpr);
+            case LAST -> Accumulators.last(field, valueExpr);
+            case STDDEV -> Accumulators.stdDevSamp(field, valueExpr);
+            default -> throw new IllegalStateException("Unsupported group aggregation: " + agg);
+        };
+    }
+
+    private static TimeseriesQueryResult buildAggregatedResult(final ThingId thingId,
+            final JsonPointer path,
+            final TimeseriesQuery query,
+            final Duration step,
+            final List<Document> buckets) {
+
+        // Bucket-start -> aggregated value, preserving Mongo's $dateTrunc alignment (incl. timezone).
+        final LinkedHashMap<Instant, JsonValue> byBucket = new LinkedHashMap<>();
+        String unit = null;
+        for (final Document bucket : buckets) {
+            final Object id = bucket.get("_id");
+            if (!(id instanceof Date)) {
+                continue;
+            }
+            final Document shaped = new Document(TimeseriesBsonMapper.FIELD_TIMESTAMP, id)
+                    .append(TimeseriesBsonMapper.FIELD_VALUE, bucket.get("v"));
+            final TimeseriesDataValue dv = TimeseriesBsonMapper.toDataValue(shaped);
+            byBucket.put(((Date) id).toInstant(), dv.getValue().orElse(null));
+            if (unit == null) {
+                unit = bucket.getString("unit");
+            }
+        }
+
+        FillStrategy fill = query.getFillStrategy().orElse(null);
+        if (fill != null && query.getTimezone().isPresent() && step.toDays() >= 1) {
+            // The in-memory grid steps by a fixed Duration; in a DST zone a "day" bucket is 23/25h,
+            // so fixed stepping would drift off Mongo's tz-aligned bucket starts and mark every
+            // bucket as a gap. Until DST-aware stepping lands, return unfilled buckets instead.
+            LOGGER.warn("Gap fill with a >= 1 day step and an explicit timezone is DST-sensitive and " +
+                    "not yet supported (thing <{}> path <{}>); returning unfilled buckets. " +
+                    "Use UTC or a sub-day step.", thingId, path);
+            fill = null;
+        }
+        final List<TimeseriesDataValue> data = fillBuckets(byBucket, step, fill);
+        final TimeseriesResultMeta meta =
+                TimeseriesResultMeta.of(data.size(), unit, inferAggregatedDataType(data));
+        return TimeseriesQueryResult.of(thingId, path, query, meta, data);
+    }
+
+    /**
+     * Materialises the bucket grid. With no fill strategy only populated buckets are emitted; with a
+     * strategy, interior gaps in {@code [first, last]} are filled.
+     * <p>
+     * Note: stepping by a fixed {@link Duration} is exact for UTC and for minute/hour/day buckets
+     * without DST transitions. Timezone/DST-aware boundary stepping is a follow-up refinement.
+     */
+    private static List<TimeseriesDataValue> fillBuckets(
+            final LinkedHashMap<Instant, JsonValue> byBucket,
+            final Duration step,
+            @Nullable final FillStrategy fill) {
+
+        final List<TimeseriesDataValue> data = new ArrayList<>();
+        if (byBucket.isEmpty()) {
+            return data;
+        }
+        final List<Instant> present = new ArrayList<>(byBucket.keySet());
+        if (fill == null) {
+            for (final Instant bucket : present) {
+                data.add(toValue(bucket, byBucket.get(bucket)));
+            }
+            return data;
+        }
+
+        final Instant last = present.get(present.size() - 1);
+        JsonValue previous = null;
+        Instant cursor = present.get(0);
+        while (!cursor.isAfter(last)) {
+            if (byBucket.containsKey(cursor)) {
+                final JsonValue v = byBucket.get(cursor);
+                data.add(toValue(cursor, v));
+                previous = v;
+            } else {
+                data.add(fillValue(cursor, fill, previous));
+            }
+            cursor = cursor.plus(step);
+        }
+        return data;
+    }
+
+    private static TimeseriesDataValue toValue(final Instant t, @Nullable final JsonValue v) {
+        return v == null ? TimeseriesDataValue.gap(t, null) : TimeseriesDataValue.of(t, v);
+    }
+
+    private static TimeseriesDataValue fillValue(final Instant t, final FillStrategy fill,
+            @Nullable final JsonValue previous) {
+        return switch (fill) {
+            case ZERO -> TimeseriesDataValue.gap(t, JsonValue.of(0));
+            case PREVIOUS -> TimeseriesDataValue.gap(t, previous);
+            // LINEAR is implemented in the fill/tz refinement increment; until then behaves as NULL.
+            case LINEAR, NULL -> TimeseriesDataValue.gap(t, null);
+        };
+    }
+
+    private static String inferAggregatedDataType(final List<TimeseriesDataValue> data) {
+        for (final TimeseriesDataValue v : data) {
+            final Optional<String> type = inferDataType(v);
+            if (type.isPresent()) {
+                return type.get();
+            }
+        }
+        return "number";
+    }
+
+    /**
+     * Dispatches the window-function-style aggregations that are computed from fetched points rather
+     * than a single {@code $group} accumulator: {@code derivative}, {@code rate}, {@code integral},
+     * {@code percentile}. Semantics follow the design doc (§7.3).
+     */
+    private CompletionStage<TimeseriesQueryResult> aggregateAdvancedOnePath(final State current,
+            final TimeseriesQuery query,
+            final JsonPointer path,
+            final Aggregation agg) {
+
+        return switch (agg) {
+            case DERIVATIVE -> derivativeOnePath(current, query, path, false);
+            case RATE -> derivativeOnePath(current, query, path, true);
+            case INTEGRAL -> integralOnePath(current, query, path);
+            case PERCENTILE -> percentileOnePath(current, query, path);
+            default -> failedStage(new UnsupportedOperationException(
+                    "Aggregation <" + agg.getName() + "> is not supported."));
+        };
+    }
+
+    /**
+     * {@code derivative} = (v[n]-v[n-1])/dt (seconds); {@code rate} is the non-negative variant that
+     * treats a value decrease as a counter reset ({@code v[n]/dt}). When {@code step} is present the
+     * series is first downsampled to the {@code last} value per bucket, then differenced between
+     * buckets; otherwise consecutive raw points are differenced. The first point has no predecessor,
+     * so the result has one fewer point than the source.
+     */
+    private CompletionStage<TimeseriesQueryResult> derivativeOnePath(final State current,
+            final TimeseriesQuery query,
+            final JsonPointer path,
+            final boolean rate) {
+
+        final ThingId thingId = query.getThingId();
+        final CompletionStage<List<TimedValue>> pointsStage = query.getStep().isPresent()
+                ? fetchBucketLast(current, query, path, query.getStep().get())
+                : fetchRawTimedValues(current, query, path);
+        // Differencing is CPU work over the fetched points — keep it off the reactive driver thread.
+        return pointsStage.thenApplyAsync(points -> {
+            final List<TimeseriesDataValue> data = new ArrayList<>();
+            for (int i = 1; i < points.size(); i++) {
+                final TimedValue prev = points.get(i - 1);
+                final TimedValue cur = points.get(i);
+                final double dt = (cur.time.toEpochMilli() - prev.time.toEpochMilli()) / 1000.0;
+                if (dt <= 0) {
+                    continue;
+                }
+                final double d = (rate && cur.value < prev.value)
+                        ? cur.value / dt
+                        : (cur.value - prev.value) / dt;
+                data.add(TimeseriesDataValue.of(cur.time, JsonValue.of(d)));
+            }
+            final TimeseriesResultMeta meta = TimeseriesResultMeta.of(data.size(), null, "number");
+            return TimeseriesQueryResult.of(thingId, path, query, meta, data);
+        });
+    }
+
+    /**
+     * {@code integral} = trapezoidal area under the curve over consecutive raw points, in
+     * value-seconds. A single whole-range result is emitted, stamped at the last observation.
+     * (The design doc reports it as {@code result.integral}; here it is the single data point.)
+     */
+    private CompletionStage<TimeseriesQueryResult> integralOnePath(final State current,
+            final TimeseriesQuery query,
+            final JsonPointer path) {
+
+        final ThingId thingId = query.getThingId();
+        return fetchRawTimedValues(current, query, path).thenApplyAsync(points -> {
+            double integral = 0;
+            for (int i = 1; i < points.size(); i++) {
+                final TimedValue prev = points.get(i - 1);
+                final TimedValue cur = points.get(i);
+                final double dt = (cur.time.toEpochMilli() - prev.time.toEpochMilli()) / 1000.0;
+                integral += (cur.value + prev.value) / 2.0 * dt;
+            }
+            final List<TimeseriesDataValue> data = new ArrayList<>();
+            if (!points.isEmpty()) {
+                data.add(TimeseriesDataValue.of(points.get(points.size() - 1).time,
+                        JsonValue.of(integral)));
+            }
+            final TimeseriesResultMeta meta = TimeseriesResultMeta.of(data.size(), null, "number");
+            return TimeseriesQueryResult.of(thingId, path, query, meta, data);
+        });
+    }
+
+    /**
+     * {@code percentile} = the Nth percentile of values per {@code step} bucket (or the whole range
+     * when no {@code step} is given). Values are gathered per bucket with {@code $push}; the
+     * percentile is computed in memory via linear interpolation, which is portable across MongoDB
+     * versions (the {@code $percentile} accumulator is only available on 7.0+).
+     */
+    private CompletionStage<TimeseriesQueryResult> percentileOnePath(final State current,
+            final TimeseriesQuery query,
+            final JsonPointer path) {
+
+        final ThingId thingId = query.getThingId();
+        // Defensive: the model layer (TimeseriesQuery.of) already guarantees a percentile is present
+        // for the percentile aggregation, so this maps to a 400 rather than ever surfacing a 500.
+        final double p = query.getPercentile().orElseThrow(() -> TimeseriesQueryInvalidException.newBuilder(
+                "The percentile aggregation requires a percentile value (0-100).").build());
+        final Bson filter = pathFilter(thingId, path, query);
+        final Object groupId = query.getStep()
+                .map(step -> (Object) dateTruncSpec(step,
+                        query.getTimezone().map(Object::toString).orElse(null)))
+                .orElse(null);
+
+        final List<Bson> pipeline = new ArrayList<>();
+        pipeline.add(Aggregates.match(filter));
+        pipeline.add(Aggregates.group(groupId,
+                Accumulators.push("vals", "$" + TimeseriesBsonMapper.FIELD_VALUE)));
+        pipeline.add(Aggregates.sort(Sorts.ascending("_id")));
+
+        // allowDiskUse lifts the 100 MB pipeline memory limit for the $push/$group; the per-bucket
+        // value array can still hit the 16 MB BSON document cap for an enormous single bucket — a
+        // step bounds it. Percentile sorting runs off the driver thread via thenApplyAsync.
+        return collectAll(getCollection(current, thingId).aggregate(pipeline)
+                        .allowDiskUse(true)
+                        .maxTime(current.config.getQueryTimeout().toMillis(), TimeUnit.MILLISECONDS)).thenApplyAsync(buckets -> {
+            final List<TimeseriesDataValue> data = new ArrayList<>();
+            for (final Document bucket : buckets) {
+                final Object id = bucket.get("_id");
+                final Instant t = (id instanceof Date) ? ((Date) id).toInstant() : query.getFrom();
+                final List<?> rawVals = bucket.get("vals", List.class);
+                final List<Double> nums = new ArrayList<>();
+                if (rawVals != null) {
+                    for (final Object o : rawVals) {
+                        if (o instanceof Number) {
+                            nums.add(((Number) o).doubleValue());
+                        }
+                    }
+                }
+                if (!nums.isEmpty()) {
+                    data.add(TimeseriesDataValue.of(t, JsonValue.of(computePercentile(nums, p))));
+                }
+            }
+            final TimeseriesResultMeta meta = TimeseriesResultMeta.of(data.size(), null, "number");
+            return TimeseriesQueryResult.of(thingId, path, query, meta, data);
+        });
+    }
+
+    private static double computePercentile(final List<Double> values, final double p) {
+        final List<Double> sorted = new ArrayList<>(values);
+        Collections.sort(sorted);
+        if (sorted.size() == 1) {
+            return sorted.get(0);
+        }
+        final double rank = (p / 100.0) * (sorted.size() - 1);
+        final int lo = (int) Math.floor(rank);
+        final int hi = (int) Math.ceil(rank);
+        if (lo == hi) {
+            return sorted.get(lo);
+        }
+        return sorted.get(lo) + (rank - lo) * (sorted.get(hi) - sorted.get(lo));
+    }
+
+    /** Fetches the raw numeric points for a path, ascending by timestamp. */
+    private CompletionStage<List<TimedValue>> fetchRawTimedValues(final State current,
+            final TimeseriesQuery query,
+            final JsonPointer path) {
+
+        final ThingId thingId = query.getThingId();
+        final int maxPoints = current.config.getMaxQueryResultSize();
+        final Bson filter = pathFilter(thingId, path, query);
+        final FindPublisher<Document> find = getCollection(current, thingId).find(filter)
+                .sort(Sorts.ascending(TimeseriesBsonMapper.FIELD_TIMESTAMP))
+                .maxTime(current.config.getQueryTimeout().toMillis(), TimeUnit.MILLISECONDS)
+                .limit(maxPoints);
+        return collectAll(find).thenApplyAsync(docs -> {
+            warnIfScanCeilingHit(docs.size(), null, maxPoints, thingId, path);
+            final List<TimedValue> out = new ArrayList<>(docs.size());
+            for (final Document d : docs) {
+                final Object ts = d.get(TimeseriesBsonMapper.FIELD_TIMESTAMP);
+                final Object v = d.get(TimeseriesBsonMapper.FIELD_VALUE);
+                if (ts instanceof Date && v instanceof Number) {
+                    out.add(new TimedValue(((Date) ts).toInstant(), ((Number) v).doubleValue()));
+                }
+            }
+            if (out.size() < docs.size()) {
+                LOGGER.debug("Skipped {} non-numeric point(s) computing a window aggregation for " +
+                        "thing <{}> path <{}>.", docs.size() - out.size(), thingId, path);
+            }
+            return out;
+        });
+    }
+
+    /** Downsamples a path to the {@code last} numeric value per {@code step} bucket, ascending. */
+    private CompletionStage<List<TimedValue>> fetchBucketLast(final State current,
+            final TimeseriesQuery query,
+            final JsonPointer path,
+            final Duration step) {
+
+        final Bson filter = pathFilter(query.getThingId(), path, query);
+        final Document dateTrunc =
+                dateTruncSpec(step, query.getTimezone().map(Object::toString).orElse(null));
+        final List<Bson> pipeline = new ArrayList<>();
+        pipeline.add(Aggregates.match(filter));
+        pipeline.add(Aggregates.sort(Sorts.ascending(TimeseriesBsonMapper.FIELD_TIMESTAMP)));
+        pipeline.add(Aggregates.group(dateTrunc,
+                Accumulators.last("v", "$" + TimeseriesBsonMapper.FIELD_VALUE)));
+        pipeline.add(Aggregates.sort(Sorts.ascending("_id")));
+        return collectAll(getCollection(current, query.getThingId()).aggregate(pipeline)
+                        .allowDiskUse(true)
+                        .maxTime(current.config.getQueryTimeout().toMillis(), TimeUnit.MILLISECONDS))
+                .thenApplyAsync(docs -> {
+                    final List<TimedValue> out = new ArrayList<>();
+                    for (final Document d : docs) {
+                        final Object id = d.get("_id");
+                        final Object v = d.get("v");
+                        if (id instanceof Date && v instanceof Number) {
+                            out.add(new TimedValue(((Date) id).toInstant(), ((Number) v).doubleValue()));
+                        }
+                    }
+                    return out;
+                });
+    }
+
+    /** Immutable (timestamp, numeric value) pair used by the advanced aggregations. */
+    private static final class TimedValue {
+
+        private final Instant time;
+        private final double value;
+
+        private TimedValue(final Instant time, final double value) {
+            this.time = time;
+            this.value = value;
+        }
+    }
+
+    /**
+     * Logs a warning when a read returned exactly the scan ceiling and the caller did not request a
+     * smaller {@code limit} — i.e. the result was very likely truncated by the safety cap.
+     */
+    private static void warnIfScanCeilingHit(final int returned, @Nullable final Integer userLimit,
+            final int maxPoints, final ThingId thingId, final JsonPointer path) {
+
+        final boolean cappedByUser = userLimit != null && userLimit < maxPoints;
+        if (returned >= maxPoints && !cappedByUser) {
+            LOGGER.warn("Timeseries read for thing <{}> path <{}> hit the {}-point scan ceiling and " +
+                    "was truncated. Narrow the time range, add a limit, or downsample with a step.",
+                    thingId, path, maxPoints);
+        }
     }
 
     private static TimeseriesQueryResult buildResult(final ThingId thingId,
