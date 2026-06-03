@@ -239,6 +239,8 @@ paths:
   ###
   '/api/2/timeseries/things/{thingId}/features/{featureId}/properties/{propertyPath}':
     $ref: "./paths/timeseries/property.yml"
+  '/api/2/timeseries/things/{thingId}':
+    $ref: "./paths/timeseries/thing.yml"
 
 components:
 

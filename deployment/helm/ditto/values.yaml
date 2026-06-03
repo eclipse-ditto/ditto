@@ -1931,6 +1931,13 @@ timeseries:
         # e.g. "30d", "8760h"). Empty disables expiration; existing collections need a
         # collMod migration to pick up changes.
         retention: ""
+        # maxQueryResultSize is the safety ceiling on data points read into memory per path on the
+        # raw / window-function read paths (guards against OOM on over-broad ranges). Empty inherits
+        # the timeseries.conf default (1000000).
+        maxQueryResultSize: ""
+        # queryTimeout is the server-side time budget per read, applied as MongoDB maxTime (HOCON
+        # duration, e.g. "60s"). Empty inherits the timeseries.conf default ("60s").
+        queryTimeout: ""
 
 ## ----------------------------------------------------------------------------
 ## connectivity configuration
