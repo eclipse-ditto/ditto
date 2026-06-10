@@ -16,6 +16,8 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -352,33 +354,63 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
     }
 
     /**
+     * The {@code (unit, binSize)} pair MongoDB's {@code $dateTrunc} bins by, derived from a step
+     * {@link Duration}. The same pair drives the in-memory gap-fill grid (see {@link #nextBucket})
+     * so the two stay aligned.
+     */
+    private record StepUnit(String unit, long binSize) {}
+
+    private static StepUnit stepUnitFor(final Duration step) {
+        final long seconds = step.getSeconds();
+        if (seconds % 86400 == 0) {
+            return new StepUnit("day", seconds / 86400);
+        } else if (seconds % 3600 == 0) {
+            return new StepUnit("hour", seconds / 3600);
+        } else if (seconds % 60 == 0) {
+            return new StepUnit("minute", seconds / 60);
+        } else {
+            return new StepUnit("second", seconds);
+        }
+    }
+
+    /**
      * Builds the {@code $dateTrunc} expression for a step. The {@code (unit, binSize)} pair is derived
      * from the step duration; {@code timezone} (when set) aligns bucket boundaries to that zone.
      */
     private static Document dateTruncSpec(final Duration step, @Nullable final String timezone) {
-        final long seconds = step.getSeconds();
-        final String unit;
-        final long binSize;
-        if (seconds % 86400 == 0) {
-            unit = "day";
-            binSize = seconds / 86400;
-        } else if (seconds % 3600 == 0) {
-            unit = "hour";
-            binSize = seconds / 3600;
-        } else if (seconds % 60 == 0) {
-            unit = "minute";
-            binSize = seconds / 60;
-        } else {
-            unit = "second";
-            binSize = seconds;
-        }
+        final StepUnit stepUnit = stepUnitFor(step);
         final Document spec = new Document("date", "$" + TimeseriesBsonMapper.FIELD_TIMESTAMP)
-                .append("unit", unit)
-                .append("binSize", binSize);
+                .append("unit", stepUnit.unit())
+                .append("binSize", stepUnit.binSize());
         if (timezone != null) {
             spec.append("timezone", timezone);
         }
         return new Document("$dateTrunc", spec);
+    }
+
+    /**
+     * Advances {@code cursor} to the next bucket start. Without a timezone the step is a fixed
+     * {@link Duration} (exact for UTC). With a timezone the step is taken in that zone's calendar, so
+     * day/hour boundaries track wall-clock time across DST transitions — mirroring how MongoDB's
+     * tz-aware {@code $dateTrunc} aligns buckets (a "day" bucket spans 23h or 25h around a transition,
+     * not a fixed 24h). The fill grid is driven off real bucket starts (see {@link #fillBuckets}), so
+     * even if a sub-day step's calendar boundary diverges from {@code $dateTrunc} at the transition
+     * hour, the grid re-syncs at the next populated bucket rather than dropping it.
+     */
+    private static Instant nextBucket(final Instant cursor, final Duration step,
+            @Nullable final ZoneId zone) {
+        if (zone == null) {
+            return cursor.plus(step);
+        }
+        final StepUnit stepUnit = stepUnitFor(step);
+        final ZonedDateTime zoned = cursor.atZone(zone);
+        final ZonedDateTime next = switch (stepUnit.unit()) {
+            case "day" -> zoned.plusDays(stepUnit.binSize());
+            case "hour" -> zoned.plusHours(stepUnit.binSize());
+            case "minute" -> zoned.plusMinutes(stepUnit.binSize());
+            default -> zoned.plusSeconds(stepUnit.binSize());
+        };
+        return next.toInstant();
     }
 
     private static BsonField accumulatorFor(final Aggregation agg, final String field,
@@ -419,17 +451,9 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
             }
         }
 
-        FillStrategy fill = query.getFillStrategy().orElse(null);
-        if (fill != null && query.getTimezone().isPresent() && step.toDays() >= 1) {
-            // The in-memory grid steps by a fixed Duration; in a DST zone a "day" bucket is 23/25h,
-            // so fixed stepping would drift off Mongo's tz-aligned bucket starts and mark every
-            // bucket as a gap. Until DST-aware stepping lands, return unfilled buckets instead.
-            LOGGER.warn("Gap fill with a >= 1 day step and an explicit timezone is DST-sensitive and " +
-                    "not yet supported (thing <{}> path <{}>); returning unfilled buckets. " +
-                    "Use UTC or a sub-day step.", thingId, path);
-            fill = null;
-        }
-        final List<TimeseriesDataValue> data = fillBuckets(byBucket, step, fill);
+        final FillStrategy fill = query.getFillStrategy().orElse(null);
+        final ZoneId zone = query.getTimezone().orElse(null);
+        final List<TimeseriesDataValue> data = fillBuckets(byBucket, step, fill, zone);
         final TimeseriesResultMeta meta =
                 TimeseriesResultMeta.of(data.size(), unit, inferAggregatedDataType(data));
         return TimeseriesQueryResult.of(thingId, path, query, meta, data);
@@ -437,15 +461,22 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
 
     /**
      * Materialises the bucket grid. With no fill strategy only populated buckets are emitted; with a
-     * strategy, interior gaps in {@code [first, last]} are filled.
+     * strategy, interior gaps between populated buckets are filled per {@link FillStrategy}.
      * <p>
-     * Note: stepping by a fixed {@link Duration} is exact for UTC and for minute/hour/day buckets
-     * without DST transitions. Timezone/DST-aware boundary stepping is a follow-up refinement.
+     * The grid is driven off the populated bucket starts rather than a free-running cursor: each
+     * {@code [present[i-1], present[i]]} segment is walked by {@link #nextBucket} and always closed by
+     * emitting {@code present[i]} exactly. This keeps the grid locked to MongoDB's {@code $dateTrunc}
+     * alignment — including tz/DST-aware boundaries — so a populated bucket is never skipped even if a
+     * calendar step would otherwise drift around a transition.
+     *
+     * @param zone the timezone the buckets were aligned to ({@code null} for UTC); controls whether
+     * stepping is calendar-aware (see {@link #nextBucket}).
      */
     private static List<TimeseriesDataValue> fillBuckets(
             final LinkedHashMap<Instant, JsonValue> byBucket,
             final Duration step,
-            @Nullable final FillStrategy fill) {
+            @Nullable final FillStrategy fill,
+            @Nullable final ZoneId zone) {
 
         final List<TimeseriesDataValue> data = new ArrayList<>();
         if (byBucket.isEmpty()) {
@@ -459,18 +490,22 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
             return data;
         }
 
-        final Instant last = present.get(present.size() - 1);
-        JsonValue previous = null;
-        Instant cursor = present.get(0);
-        while (!cursor.isAfter(last)) {
-            if (byBucket.containsKey(cursor)) {
-                final JsonValue v = byBucket.get(cursor);
-                data.add(toValue(cursor, v));
-                previous = v;
-            } else {
-                data.add(fillValue(cursor, fill, previous));
+        data.add(toValue(present.get(0), byBucket.get(present.get(0))));
+        for (int i = 1; i < present.size(); i++) {
+            final Instant segmentStart = present.get(i - 1);
+            final Instant segmentEnd = present.get(i);
+            final JsonValue startValue = byBucket.get(segmentStart);
+            final JsonValue endValue = byBucket.get(segmentEnd);
+            Instant cursor = nextBucket(segmentStart, step, zone);
+            while (cursor.isBefore(segmentEnd)) {
+                if (fill == FillStrategy.LINEAR) {
+                    data.add(linearFill(cursor, segmentStart, startValue, segmentEnd, endValue));
+                } else {
+                    data.add(fillValue(cursor, fill, startValue));
+                }
+                cursor = nextBucket(cursor, step, zone);
             }
-            cursor = cursor.plus(step);
+            data.add(toValue(segmentEnd, endValue));
         }
         return data;
     }
@@ -484,9 +519,31 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
         return switch (fill) {
             case ZERO -> TimeseriesDataValue.gap(t, JsonValue.of(0));
             case PREVIOUS -> TimeseriesDataValue.gap(t, previous);
-            // LINEAR is implemented in the fill/tz refinement increment; until then behaves as NULL.
-            case LINEAR, NULL -> TimeseriesDataValue.gap(t, null);
+            case NULL -> TimeseriesDataValue.gap(t, null);
+            // LINEAR needs both surrounding anchors, so it is interpolated in fillBuckets directly.
+            case LINEAR -> throw new IllegalStateException(
+                    "LINEAR fill is interpolated in fillBuckets and must not reach fillValue.");
         };
+    }
+
+    /**
+     * Linearly interpolates the value at gap instant {@code t} between the surrounding populated
+     * buckets {@code (t0, v0)} and {@code (t1, v1)}. Interpolation is only defined for numeric
+     * endpoints; for non-numeric or missing neighbours it falls back to a {@code null} gap (the same
+     * shape {@link FillStrategy#NULL} would produce) rather than fabricating a value.
+     */
+    private static TimeseriesDataValue linearFill(final Instant t,
+            final Instant t0, @Nullable final JsonValue v0,
+            final Instant t1, @Nullable final JsonValue v1) {
+
+        if (v0 == null || v1 == null || !v0.isNumber() || !v1.isNumber()) {
+            return TimeseriesDataValue.gap(t, null);
+        }
+        final double spanMillis = Duration.between(t0, t1).toMillis();
+        final double fraction = spanMillis == 0.0 ? 0.0 : Duration.between(t0, t).toMillis() / spanMillis;
+        final double y0 = v0.asDouble();
+        final double y1 = v1.asDouble();
+        return TimeseriesDataValue.gap(t, JsonValue.of(y0 + (y1 - y0) * fraction));
     }
 
     private static String inferAggregatedDataType(final List<TimeseriesDataValue> data) {
