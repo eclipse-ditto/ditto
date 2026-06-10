@@ -103,7 +103,7 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
         checkNotNull(paths, "paths");
         checkNotNull(from, "from");
         checkNotNull(to, "to");
-        validateSemantics(paths, aggregation, step, fillStrategy, percentile);
+        validateSemantics(paths, aggregation, step, percentile);
 
         final List<JsonPointer> defensivePaths =
                 Collections.unmodifiableList(new ArrayList<>(paths));
@@ -122,7 +122,6 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
     private static void validateSemantics(final List<JsonPointer> paths,
             @Nullable final Aggregation aggregation,
             @Nullable final Duration step,
-            @Nullable final FillStrategy fillStrategy,
             @Nullable final Double percentile) {
 
         if (paths.size() > MAX_PATHS) {
@@ -146,14 +145,6 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
                         "Aggregation <percentile> requires a <percentile> value between 0 and 100.")
                         .build();
             }
-        }
-        if (fillStrategy == FillStrategy.LINEAR) {
-            // The enum constant exists for forward compatibility, but linear interpolation is not
-            // implemented yet (it lands with the fill/tz refinement). Reject explicitly rather than
-            // silently degrading to null-fill, which would mislead callers about the returned shape.
-            throw TimeseriesQueryInvalidException.newBuilder(
-                    "Fill strategy <linear> is not yet supported. Use <null>, <previous> or <zero>.")
-                    .build();
         }
     }
 

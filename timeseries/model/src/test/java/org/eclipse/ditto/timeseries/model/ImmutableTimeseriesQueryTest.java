@@ -360,10 +360,12 @@ public final class ImmutableTimeseriesQueryTest {
     }
 
     @Test
-    public void factoryRejectsLinearFillUntilSupported() {
-        assertThatExceptionOfType(TimeseriesQueryInvalidException.class).isThrownBy(() ->
+    public void factoryAcceptsLinearFill() {
+        final TimeseriesQuery underTest =
                 TimeseriesQuery.of(THING_ID, PATHS, FROM, TO, STEP, Aggregation.AVG, FillStrategy.LINEAR,
-                        null, null, null));
+                        null, null, null);
+
+        assertThat(underTest.getFillStrategy()).contains(FillStrategy.LINEAR);
     }
 
     @Test

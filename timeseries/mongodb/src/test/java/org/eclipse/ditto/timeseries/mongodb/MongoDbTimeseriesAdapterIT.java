@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.within;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -321,6 +322,87 @@ public final class MongoDbTimeseriesAdapterIT {
         assertThat(data.get(1).isGap()).isTrue();
         assertThat(data.get(1).getValue().orElseThrow().asDouble()).isEqualTo(15.0);
         assertThat(data.get(2).getValue().orElseThrow().asDouble()).isEqualTo(55.0);
+    }
+
+    @Test
+    public void fillLinearInterpolatesAcrossInteriorGap() throws Exception {
+        // Buckets: bucket1 [10:00,10:20)=avg(10,20)=15, bucket2 [10:20,10:40) empty,
+        // bucket3 [10:40,11:00)=avg(50,60)=55. Linear fill of the midpoint bucket = (15+55)/2 = 35.
+        adapter.writeBatch(Arrays.asList(
+                dataPoint(BUCKET_HOUR.plus(5, ChronoUnit.MINUTES), 10.0),
+                dataPoint(BUCKET_HOUR.plus(15, ChronoUnit.MINUTES), 20.0),
+                dataPoint(BUCKET_HOUR.plus(45, ChronoUnit.MINUTES), 50.0),
+                dataPoint(BUCKET_HOUR.plus(55, ChronoUnit.MINUTES), 60.0))).toCompletableFuture().get();
+
+        final TimeseriesQuery query = TimeseriesQuery.of(thingId, Collections.singletonList(PATH),
+                BUCKET_HOUR, BUCKET_HOUR_END, Duration.ofMinutes(20), Aggregation.AVG,
+                FillStrategy.LINEAR, null, null);
+        final List<TimeseriesDataValue> data =
+                adapter.query(query).toCompletableFuture().get().get(0).getData();
+
+        assertThat(data).hasSize(3);
+        assertThat(data.get(0).getValue().orElseThrow().asDouble()).isEqualTo(15.0);
+        assertThat(data.get(1).isGap()).isTrue();
+        assertThat(data.get(1).getValue().orElseThrow().asDouble()).isEqualTo(35.0);
+        assertThat(data.get(2).getValue().orElseThrow().asDouble()).isEqualTo(55.0);
+    }
+
+    @Test
+    public void fillWithTimezoneDayStepAlignsBucketsAcrossDstTransition() throws Exception {
+        // Europe/Berlin springs forward on 2026-03-29 (01:00 UTC), making that local day 23h long.
+        // Daily buckets must stay pinned to local midnight, so their UTC instants shift from +01:00
+        // to +02:00 across the transition. A point on 2026-03-28 and 2026-03-31 leaves the 03-29 and
+        // 03-30 local days empty; previous-fill carries 10 forward onto both gap days.
+        final ZoneId berlin = ZoneId.of("Europe/Berlin");
+        adapter.writeBatch(Arrays.asList(
+                dataPoint(Instant.parse("2026-03-28T12:00:00Z"), 10.0),
+                dataPoint(Instant.parse("2026-03-31T12:00:00Z"), 40.0))).toCompletableFuture().get();
+
+        final TimeseriesQuery query = TimeseriesQuery.of(thingId, Collections.singletonList(PATH),
+                Instant.parse("2026-03-27T00:00:00Z"), Instant.parse("2026-04-01T00:00:00Z"),
+                Duration.ofDays(1), Aggregation.AVG, FillStrategy.PREVIOUS, null, berlin);
+        final List<TimeseriesDataValue> data =
+                adapter.query(query).toCompletableFuture().get().get(0).getData();
+
+        // Local-midnight bucket starts: 03-28 → 03-27T23:00Z (+01:00), 03-29 → 03-28T23:00Z (+01:00),
+        // 03-30 → 03-29T22:00Z (+02:00, post-DST), 03-31 → 03-30T22:00Z (+02:00). A fixed-24h stepper
+        // would place the third bucket at 03-29T23:00Z and never realign — the assertion below pins
+        // it to the tz-correct 03-29T22:00Z.
+        assertThat(data).hasSize(4);
+        assertThat(data.get(0).getTimestamp()).isEqualTo(Instant.parse("2026-03-27T23:00:00Z"));
+        assertThat(data.get(0).getValue().orElseThrow().asDouble()).isEqualTo(10.0);
+        assertThat(data.get(1).getTimestamp()).isEqualTo(Instant.parse("2026-03-28T23:00:00Z"));
+        assertThat(data.get(1).isGap()).isTrue();
+        assertThat(data.get(1).getValue().orElseThrow().asDouble()).isEqualTo(10.0);
+        assertThat(data.get(2).getTimestamp()).isEqualTo(Instant.parse("2026-03-29T22:00:00Z"));
+        assertThat(data.get(2).isGap()).isTrue();
+        assertThat(data.get(2).getValue().orElseThrow().asDouble()).isEqualTo(10.0);
+        assertThat(data.get(3).getTimestamp()).isEqualTo(Instant.parse("2026-03-30T22:00:00Z"));
+        assertThat(data.get(3).getValue().orElseThrow().asDouble()).isEqualTo(40.0);
+    }
+
+    @Test
+    public void fillLinearWithTimezoneDayStepInterpolatesByActualBucketSpacing() throws Exception {
+        // Same DST setup, linear fill. Interpolation weights by the real wall-clock spacing of the
+        // tz-aligned bucket starts, not a uniform 1/3 per bucket. Spans from 03-27T23:00Z: gap1 is
+        // +24h, gap2 is +47h (the 03-29 day is only 23h), total span 71h. So the gap values are
+        // 10+30*(24/71)≈20.14 and 10+30*(47/71)≈29.86 — non-uniform, which proves DST-aware spacing.
+        final ZoneId berlin = ZoneId.of("Europe/Berlin");
+        adapter.writeBatch(Arrays.asList(
+                dataPoint(Instant.parse("2026-03-28T12:00:00Z"), 10.0),
+                dataPoint(Instant.parse("2026-03-31T12:00:00Z"), 40.0))).toCompletableFuture().get();
+
+        final TimeseriesQuery query = TimeseriesQuery.of(thingId, Collections.singletonList(PATH),
+                Instant.parse("2026-03-27T00:00:00Z"), Instant.parse("2026-04-01T00:00:00Z"),
+                Duration.ofDays(1), Aggregation.AVG, FillStrategy.LINEAR, null, berlin);
+        final List<TimeseriesDataValue> data =
+                adapter.query(query).toCompletableFuture().get().get(0).getData();
+
+        assertThat(data).hasSize(4);
+        assertThat(data.get(1).isGap()).isTrue();
+        assertThat(data.get(1).getValue().orElseThrow().asDouble()).isCloseTo(20.14, within(0.01));
+        assertThat(data.get(2).isGap()).isTrue();
+        assertThat(data.get(2).getValue().orElseThrow().asDouble()).isCloseTo(29.86, within(0.01));
     }
 
     private void writeRampSeries() throws Exception {

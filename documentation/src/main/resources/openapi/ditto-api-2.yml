@@ -9400,7 +9400,9 @@ paths:
           in: query
           description: |-
             Gap-fill strategy for empty buckets when downsampling. `null` emits a gap marker,
-            `previous` carries the last value forward, `zero` fills with 0. (`linear` is reserved.)
+            `previous` carries the last value forward, `zero` fills with 0, and `linear` linearly
+            interpolates between the surrounding non-empty buckets (numeric series only; non-numeric
+            neighbours fall back to a `null` gap).
           required: false
           schema:
             type: string
@@ -9408,6 +9410,7 @@ paths:
               - null
               - previous
               - zero
+              - linear
             example: previous
         - name: tz
           in: query
@@ -9644,7 +9647,10 @@ paths:
             example: 95
         - name: fill
           in: query
-          description: Gap-fill strategy for empty buckets when downsampling.
+          description: |-
+            Gap-fill strategy for empty buckets when downsampling. `null` emits a gap marker,
+            `previous` carries the last value forward, `zero` fills with 0, and `linear` linearly
+            interpolates between the surrounding non-empty buckets (numeric series only).
           required: false
           schema:
             type: string
@@ -9652,6 +9658,7 @@ paths:
               - null
               - previous
               - zero
+              - linear
             example: previous
         - name: tz
           in: query
