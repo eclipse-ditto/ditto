@@ -19,4 +19,13 @@ ditto {
   {{- end }}
   }
   {{- end }}
+
+  {{- with .Values.timeseries.config.adapter.mongodb.retentionOverrides }}
+  # Per-namespace timeseries retention overrides (env vars can't carry a map; rendered here).
+  timeseries.adapter.mongodb.retention-overrides {
+  {{- range $namespace, $duration := . }}
+    "{{ $namespace }}" = "{{ $duration }}"
+  {{- end }}
+  }
+  {{- end }}
 }

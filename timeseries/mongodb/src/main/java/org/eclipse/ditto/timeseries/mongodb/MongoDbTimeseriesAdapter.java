@@ -882,9 +882,10 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
             final ThingId thingId) {
 
         final String name = collectionNameFor(current.config, thingId);
+        final String namespace = thingId.getNamespace();
         final MongoCollection<Document> coll = current.database.getCollection(name, Document.class);
         final CompletionStage<Void> ensure = ensuredCollections.computeIfAbsent(name, n ->
-                createTimeseriesCollectionIfMissing(current, n)
+                ensureCollectionConfigured(current, n, namespace)
                         .whenComplete((v, ex) -> {
                             if (ex != null) {
                                 ensuredCollections.remove(n);
@@ -893,34 +894,60 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
         return ensure.thenApply(ignored -> coll);
     }
 
-    private static CompletionStage<Void> createTimeseriesCollectionIfMissing(final State current,
-            final String name) {
+    /**
+     * Ensures the per-namespace collection exists and its retention matches the configured
+     * (per-namespace, else default) value. A missing collection is created with the right
+     * {@code expireAfter}; an existing one is reconciled via {@code collMod} so a changed retention
+     * config takes effect without a manual migration. Both branches are idempotent and run at most
+     * once per collection per JVM (gated by the {@code ensuredCollections} cache).
+     */
+    private static CompletionStage<Void> ensureCollectionConfigured(final State current,
+            final String name, final String namespace) {
 
+        final Optional<Duration> retention = current.config.getRetention(namespace);
         return collectAllNames(current.database).thenCompose(existing -> {
             if (existing.contains(name)) {
-                return CompletableFuture.completedFuture(null);
+                return reconcileRetention(current, name, retention);
             }
             final TimeSeriesOptions tsOptions = new TimeSeriesOptions(TIME_FIELD)
                     .metaField(META_FIELD)
                     .granularity(toDriverGranularity(current.config.getGranularity()));
             final CreateCollectionOptions opts = new CreateCollectionOptions().timeSeriesOptions(tsOptions);
-            current.config.getRetention()
-                    .map(java.time.Duration::toSeconds)
+            retention.map(Duration::toSeconds)
                     .ifPresent(seconds -> opts.expireAfter(seconds, java.util.concurrent.TimeUnit.SECONDS));
             return asVoidStage(current.database.createCollection(name, opts))
-                    // Tolerate the "another writer beat us to it" race — the collection now exists,
-                    // which is the post-condition we wanted. Other errors propagate so the cache
-                    // entry is evicted and the caller can retry.
-                    .exceptionally(throwable -> {
+                    // Tolerate the "another writer beat us to it" race — the collection now exists.
+                    // Reconcile its retention so the loser still converges to the configured value;
+                    // other errors propagate so the cache entry is evicted and the caller can retry.
+                    .handle((ignored, throwable) -> throwable)
+                    .thenCompose(throwable -> {
+                        if (throwable == null) {
+                            return CompletableFuture.completedFuture(null);
+                        }
                         final Throwable cause = throwable instanceof java.util.concurrent.CompletionException
                                 && throwable.getCause() != null ? throwable.getCause() : throwable;
                         if (cause instanceof com.mongodb.MongoCommandException mce
                                 && (mce.getErrorCode() == 48 || mce.getErrorCode() == 17399)) {
-                            return null;
+                            return reconcileRetention(current, name, retention);
                         }
-                        throw new java.util.concurrent.CompletionException(cause);
+                        return CompletableFuture.failedFuture(cause);
                     });
         });
+    }
+
+    /**
+     * Aligns an existing collection's {@code expireAfter} with {@code retention} via {@code collMod}.
+     * A present duration sets {@code expireAfterSeconds}; an empty one passes {@code "off"} to remove
+     * any TTL. Idempotent — re-applying the same value is a no-op on the server.
+     */
+    private static CompletionStage<Void> reconcileRetention(final State current, final String name,
+            final Optional<Duration> retention) {
+
+        final Object expireAfterSeconds = retention.map(d -> (Object) d.toSeconds()).orElse("off");
+        final Document collMod = new Document("collMod", name).append("expireAfterSeconds", expireAfterSeconds);
+        LOGGER.info("Reconciling timeseries collection <{}> retention to expireAfterSeconds=<{}>.",
+                name, expireAfterSeconds);
+        return asVoidStage(current.database.runCommand(collMod));
     }
 
     private static CompletionStage<List<String>> collectAllNames(final MongoDatabase database) {
