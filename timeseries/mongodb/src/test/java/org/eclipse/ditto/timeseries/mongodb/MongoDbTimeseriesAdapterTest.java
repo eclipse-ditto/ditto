@@ -248,6 +248,22 @@ public final class MongoDbTimeseriesAdapterTest {
         assertThatNullPointerException().isThrownBy(() -> adapter.write(null));
     }
 
+    @Test
+    public void writeSucceedsEvenWhenRetentionReconcileFails() {
+        // The collection already exists -> the ensure path reconciles retention via collMod. Make
+        // collMod (runCommand) fail, as it does when the DB user lacks the privilege, and assert the
+        // write still completes: retention reconciliation is best-effort and must never break — or
+        // retry-storm — the data path.
+        stubListCollectionNamesReturning("ts_org_eclipse_ditto");
+        when(mongoDatabase.runCommand(any(Bson.class)))
+                .thenReturn(failingPublisher(new RuntimeException("not authorized to execute command collMod")));
+        final MongoDbTimeseriesAdapter adapter = newInitialisedAdapter();
+
+        adapter.write(sampleDataPoint(THING_ID)).toCompletableFuture().join();
+
+        verify(mongoCollection).insertOne(any(Document.class));
+    }
+
     // --- Write-batch path ---
 
     @Test
@@ -485,6 +501,34 @@ public final class MongoDbTimeseriesAdapterTest {
         }).when(finder).subscribe(any(org.reactivestreams.Subscriber.class));
         when(collection.find(any(Bson.class))).thenReturn(finder);
         return finder;
+    }
+
+    private void stubListCollectionNamesReturning(final String... names) {
+        @SuppressWarnings("unchecked")
+        final ListCollectionNamesPublisher publisher = mock(ListCollectionNamesPublisher.class);
+        doAnswer(invocation -> {
+            final Subscriber<? super String> sub = invocation.getArgument(0);
+            sub.onSubscribe(new Subscription() {
+                private boolean delivered = false;
+
+                @Override
+                public void request(final long n) {
+                    if (delivered) {
+                        return;
+                    }
+                    delivered = true;
+                    for (final String name : names) {
+                        sub.onNext(name);
+                    }
+                    sub.onComplete();
+                }
+
+                @Override
+                public void cancel() { /* no-op */ }
+            });
+            return null;
+        }).when(publisher).subscribe(any());
+        when(mongoDatabase.listCollectionNames()).thenReturn(publisher);
     }
 
     private static TimeseriesDataPoint sampleDataPoint(final ThingId thingId) {
