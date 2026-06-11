@@ -342,9 +342,12 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
             thingPersistenceActorProbe.reply(retrieveThingResponseWithAttr);
 
             final JsonObject jsonObjectWithoutAttr = JsonObject.newBuilder()
-                    .set("thingId", "thing:id") // this is re-added as first field being a "special" field always visible after enforcement
-                    .set("_revision", 1)
+                    // thingId, _namespace, _revision are re-added by the entity-identity/audit
+                    // allowlist (THING_QUERY_COMMAND_RESPONSE_ALLOWLIST); ordering follows the
+                    // allowlist declaration order in ThingCommandEnforcement.
+                    .set("thingId", "thing:id")
                     .set("_namespace", "thing")
+                    .set("_revision", 1)
                     .set("policyId","policy:id")
                     .set("attributes",JsonObject.empty())
                     .build();

@@ -723,6 +723,96 @@ public final class AdaptablePartialAccessFilterTest {
         assertThat(extraObj.getValue(JsonPointer.of("/attributes/private"))).isEmpty();
     }
 
+    @Test
+    public void payloadFilterPreservesIdentityAndAuditFieldsForPartialAccess() {
+        // GIVEN: a ThingMerged-style event at path "/" carrying the full thing in the payload,
+        // and a partial reader granted only /attributes/public.
+        final DittoHeaders headers = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey(), PARTIAL_ACCESS_HEADER)
+                .readGrantedSubjects(Set.of(SUBJECT_PARTIAL))
+                .build();
+
+        final JsonObject fullThingPayload = JsonFactory.newObjectBuilder()
+                .set("thingId", JsonValue.of("org.eclipse.ditto.test:thing"))
+                .set("_namespace", JsonValue.of("org.eclipse.ditto.test"))
+                .set("_revision", JsonValue.of(7L))
+                .set("_modified", JsonValue.of("2026-06-01T12:00:00Z"))
+                .set("_created", JsonValue.of("2026-01-01T00:00:00Z"))
+                .set("policyId", JsonValue.of("org.eclipse.ditto.test:policy"))
+                .set("attributes", JsonFactory.newObjectBuilder()
+                        .set("public", JsonValue.of("public-value"))
+                        .set("private", JsonValue.of("private-value"))
+                        .build())
+                .build();
+
+        final Adaptable adaptable = createThingEventAdaptable(fullThingPayload, headers);
+        final AuthorizationContext context = authContext(SUBJECT_PARTIAL);
+
+        // WHEN
+        final Adaptable result = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(adaptable, context);
+
+        // THEN: identity + audit fields survive in the payload even though the policy only
+        // grants /attributes/public.
+        final JsonObject filteredPayload = result.getPayload().getValue()
+                .filter(JsonValue::isObject)
+                .map(JsonValue::asObject)
+                .orElse(JsonFactory.newObject());
+        assertThat(filteredPayload.getValue("thingId")).contains(JsonValue.of("org.eclipse.ditto.test:thing"));
+        assertThat(filteredPayload.getValue("_namespace")).contains(JsonValue.of("org.eclipse.ditto.test"));
+        assertThat(filteredPayload.getValue("_revision")).contains(JsonValue.of(7L));
+        assertThat(filteredPayload.getValue("_modified")).contains(JsonValue.of("2026-06-01T12:00:00Z"));
+        assertThat(filteredPayload.getValue("_created")).contains(JsonValue.of("2026-01-01T00:00:00Z"));
+        // policyId is NOT in the allowlist — must remain filtered out.
+        assertThat(filteredPayload.getValue("policyId")).isEmpty();
+        // The actually-granted path is present, the ungranted sibling is dropped.
+        assertThat(filteredPayload.getValue(JsonPointer.of("/attributes/public"))).isPresent();
+        assertThat(filteredPayload.getValue(JsonPointer.of("/attributes/private"))).isEmpty();
+    }
+
+    @Test
+    public void extrasFilterPreservesIdentityAndAuditFieldsForPartialAccess() {
+        // GIVEN: partial reader is granted only /attributes/public, and explicitly requested
+        // extraFields covering thingId, audit metadata, the granted path, and a non-granted path.
+        final DittoHeaders headers = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey(), PARTIAL_ACCESS_HEADER)
+                .readGrantedSubjects(Set.of(SUBJECT_PARTIAL))
+                .build();
+
+        final JsonObject extraFields = JsonFactory.newObjectBuilder()
+                .set("thingId", JsonValue.of("org.eclipse.ditto.test:thing"))
+                .set("_namespace", JsonValue.of("org.eclipse.ditto.test"))
+                .set("_revision", JsonValue.of(7L))
+                .set("_modified", JsonValue.of("2026-06-01T12:00:00Z"))
+                .set("_created", JsonValue.of("2026-01-01T00:00:00Z"))
+                .set("policyId", JsonValue.of("org.eclipse.ditto.test:policy"))
+                .set("attributes", JsonFactory.newObjectBuilder()
+                        .set("public", JsonValue.of("public-value"))
+                        .set("private", JsonValue.of("private-value"))
+                        .build())
+                .build();
+
+        final Adaptable adaptable = createThingEventAdaptableWithExtra(createThingPayload(), extraFields, headers);
+        final AuthorizationContext context = authContext(SUBJECT_PARTIAL);
+
+        // WHEN
+        final Adaptable result = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(adaptable, context);
+
+        // THEN: identity + audit extras pass through despite the policy only granting /attributes/public.
+        final Optional<JsonObject> filteredExtra = result.getPayload().getExtra();
+        assertThat(filteredExtra).isPresent();
+        final JsonObject extraObj = filteredExtra.get();
+        assertThat(extraObj.getValue("thingId")).contains(JsonValue.of("org.eclipse.ditto.test:thing"));
+        assertThat(extraObj.getValue("_namespace")).contains(JsonValue.of("org.eclipse.ditto.test"));
+        assertThat(extraObj.getValue("_revision")).contains(JsonValue.of(7L));
+        assertThat(extraObj.getValue("_modified")).contains(JsonValue.of("2026-06-01T12:00:00Z"));
+        assertThat(extraObj.getValue("_created")).contains(JsonValue.of("2026-01-01T00:00:00Z"));
+        // policyId is NOT in the allowlist — must remain filtered out.
+        assertThat(extraObj.getValue("policyId")).isEmpty();
+        // The actually-granted path is present, the ungranted sibling is dropped.
+        assertThat(extraObj.getValue(JsonPointer.of("/attributes/public"))).isPresent();
+        assertThat(extraObj.getValue(JsonPointer.of("/attributes/private"))).isEmpty();
+    }
+
     private static Adaptable createThingEventAdaptableWithExtra(
             final JsonObject payload,
             final JsonObject extraFields,
