@@ -365,7 +365,12 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
 
         final JsonObject filtered = filterJsonByPartialAccessPaths(thing, event, subscriberAuthContext);
 
-        assertThat(filtered.getValue("thingId")).isEmpty(); // Not in accessible paths
+        // thingId is an entity-identity field that must always be visible to any subscriber
+        // holding at least partial read access. _namespace/_revision/_modified/_created are
+        // verified separately in filterJsonByPartialAccessPathsPreservesAuditFieldsForPartialReader
+        // (they only appear in the SSE payload when the user explicitly selects them via
+        // ?fields=... since they are HIDDEN fields by default).
+        assertThat(filtered.getValue("thingId")).contains(JsonValue.of("test:thing"));
         assertThat(filtered.getValue("attributes")).isPresent();
         assertThat(filtered.getValue("attributes").get().asObject().getValue("foo")).isPresent();
         assertThat(filtered.getValue("features")).isPresent();
@@ -375,6 +380,49 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                 .getValue("properties").get().asObject()
                 .getValue("baz")).isPresent();
         assertThat(filtered.getValue("policyId")).isEmpty();
+    }
+
+    @Test
+    public void filterJsonByPartialAccessPathsPreservesAuditFieldsForPartialReader() throws Exception {
+        final java.time.Instant created = java.time.Instant.parse("2026-01-01T00:00:00Z");
+        final java.time.Instant modified = java.time.Instant.parse("2026-06-01T12:00:00Z");
+        final Thing thing = Thing.newBuilder()
+                .setId(ThingId.of("test:thing"))
+                .setPolicyId(org.eclipse.ditto.policies.model.PolicyId.of("test:policy"))
+                .setRevision(42L)
+                .setCreated(created)
+                .setModified(modified)
+                .setAttributes(Attributes.newBuilder().set("foo", "bar").build())
+                .build();
+        final AuthorizationSubject partialReader = AuthorizationSubject.newInstance("test:partial-reader");
+
+        final DittoHeaders headers = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey(),
+                        "{\"subjects\":[\"test:partial-reader\"],\"paths\":{\"attributes\":[0]}}")
+                .readGrantedSubjects(Collections.singletonList(partialReader))
+                .build();
+
+        final ThingModifiedEvent<?> event = ThingModified.of(thing, 42L, modified, headers, null);
+
+        final AuthorizationContext subscriberAuthContext = AuthorizationContext.newInstance(
+                DittoAuthorizationContextType.UNSPECIFIED, partialReader);
+
+        // Build the thing JSON with SPECIAL fields included, mirroring the production path where a
+        // caller has explicitly opted into hidden identity/audit fields via ?fields=_revision,...
+        final JsonObject thingJson = thing.toJson(org.eclipse.ditto.base.model.json.JsonSchemaVersion.LATEST,
+                org.eclipse.ditto.base.model.json.FieldType.regularOrSpecial());
+        final JsonObject filtered = filterJsonByPartialAccessPaths(thingJson, event, subscriberAuthContext);
+
+        // Identity + audit fields must pass through even though the policy only grants /attributes:
+        assertThat(filtered.getValue("thingId")).contains(JsonValue.of("test:thing"));
+        assertThat(filtered.getValue("_namespace")).contains(JsonValue.of("test"));
+        assertThat(filtered.getValue("_revision")).contains(JsonValue.of(42L));
+        assertThat(filtered.getValue("_modified")).contains(JsonValue.of(modified.toString()));
+        assertThat(filtered.getValue("_created")).contains(JsonValue.of(created.toString()));
+        // policyId is not allowlisted and must remain filtered out:
+        assertThat(filtered.getValue("policyId")).isEmpty();
+        // The actually-granted resource is present:
+        assertThat(filtered.getValue("attributes")).isPresent();
     }
 
     @Test
@@ -480,6 +528,12 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
     private JsonObject filterJsonByPartialAccessPaths(final Thing thing,
             final ThingModifiedEvent<?> event,
             final AuthorizationContext subscriberAuthContext) throws Exception {
+        return filterJsonByPartialAccessPaths(thing.toJson(), event, subscriberAuthContext);
+    }
+
+    private JsonObject filterJsonByPartialAccessPaths(final JsonObject thingJson,
+            final ThingModifiedEvent<?> event,
+            final AuthorizationContext subscriberAuthContext) throws Exception {
         final ThingsSseRouteBuilder routeBuilder = ThingsSseRouteBuilder.getInstance(
                 actorSystem, streamingActor.ref(), streamingConfig, proxyActor.ref(), HeaderTranslator.empty());
         final Method filterMethod = ThingsSseRouteBuilder.class.getDeclaredMethod(
@@ -489,7 +543,6 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                 AuthorizationContext.class);
         filterMethod.setAccessible(true);
 
-        final JsonObject thingJson = thing.toJson();
         return (JsonObject) filterMethod.invoke(routeBuilder, thingJson, event, subscriberAuthContext);
     }
 

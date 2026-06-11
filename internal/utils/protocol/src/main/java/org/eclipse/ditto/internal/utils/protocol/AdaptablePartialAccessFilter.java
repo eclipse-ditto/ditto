@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.internal.utils.protocol;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -36,6 +37,22 @@ import org.eclipse.ditto.protocol.TopicPath;
  * Utility for filtering {@link Adaptable} payloads based on partial access paths.
  */
 public final class AdaptablePartialAccessFilter {
+
+    /**
+     * Thing identity and audit fields ({@code thingId}, {@code _namespace}, {@code _revision},
+     * {@code _modified}, {@code _created}) that must remain visible to any subscriber holding at
+     * least partial read access on the thing. These are field names from the Ditto Protocol
+     * (see {@code org.eclipse.ditto.things.model.Thing.JsonFields}) — they are hardcoded here
+     * rather than imported to keep the {@code internal/utils/protocol} module free of a
+     * dependency on {@code things/model}.
+     */
+    public static final Set<JsonPointer> ALWAYS_INCLUDED_THING_FIELDS = Set.of(
+            JsonPointer.of("thingId"),
+            JsonPointer.of("_namespace"),
+            JsonPointer.of("_revision"),
+            JsonPointer.of("_modified"),
+            JsonPointer.of("_created")
+    );
 
     private AdaptablePartialAccessFilter() {
         // No instantiation
@@ -162,8 +179,11 @@ public final class AdaptablePartialAccessFilter {
                 .map(JsonValue::asObject)
                 .orElse(JsonFactory.newObject());
 
-        final JsonObject filteredPayload = JsonPartialAccessFilter.filterJsonByPaths(
-                originalPayload, accessiblePaths);
+        // ThingCreated/ThingModified/ThingMerged events at path "/" carry the full thing JSON
+        // here; stripping the identity/audit fields would make the protocol message hard to use
+        // for the partial reader. For events with non-thing-rooted object payloads the allowlist
+        // pointers simply don't exist in the payload and the addition is a no-op.
+        final JsonObject filteredPayload = filterJsonByPathsWithAllowlist(originalPayload, accessiblePaths);
 
         final PayloadBuilder payloadBuilder = Payload.newBuilder(adaptable.getPayload())
                 .withValue(filteredPayload);
@@ -172,6 +192,18 @@ public final class AdaptablePartialAccessFilter {
         return ProtocolFactory.newAdaptableBuilder(adaptable)
                 .withPayload(payloadBuilder.build())
                 .build();
+    }
+
+    /**
+     * Filters {@code jsonObject} by {@code accessiblePaths}, with the thing-identity/audit
+     * allowlist ({@link #ALWAYS_INCLUDED_THING_FIELDS}) implicitly added. Used for both the
+     * payload value of full-thing events and for user-requested extra fields.
+     */
+    private static JsonObject filterJsonByPathsWithAllowlist(final JsonObject jsonObject,
+            final Set<JsonPointer> accessiblePaths) {
+        final Set<JsonPointer> pathsWithAllowlist = new HashSet<>(accessiblePaths);
+        pathsWithAllowlist.addAll(ALWAYS_INCLUDED_THING_FIELDS);
+        return JsonPartialAccessFilter.filterJsonByPaths(jsonObject, pathsWithAllowlist);
     }
 
 
@@ -198,8 +230,11 @@ public final class AdaptablePartialAccessFilter {
             return;
         }
 
-        final JsonObject filteredExtra = JsonPartialAccessFilter.filterJsonByPaths(
-                originalExtra.get(), accessiblePaths);
+        // The user explicitly opted into receiving these extra fields via the extraFields/fields
+        // parameter; identity and audit fields the subscriber would otherwise lose to per-path
+        // filtering must still come through (matches the SSE Thing-JSON contract and pre-3.9.0
+        // behaviour for WebSocket extras).
+        final JsonObject filteredExtra = filterJsonByPathsWithAllowlist(originalExtra.get(), accessiblePaths);
 
         if (filteredExtra.isEmpty()) {
             return;
