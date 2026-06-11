@@ -939,6 +939,12 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
      * Aligns an existing collection's {@code expireAfter} with {@code retention} via {@code collMod}.
      * A present duration sets {@code expireAfterSeconds}; an empty one passes {@code "off"} to remove
      * any TTL. Idempotent — re-applying the same value is a no-op on the server.
+     * <p>
+     * Best-effort: retention reconciliation is maintenance, never a precondition for reading or
+     * writing data. A failure (e.g. the DB user lacks the {@code collMod} privilege) leaves the
+     * existing retention untouched, is logged at WARN, and resolves to success so it cannot fail —
+     * or worse, retry-storm — the ingest/read path that triggered the ensure. The next process
+     * restart retries it once the cause is fixed.
      */
     private static CompletionStage<Void> reconcileRetention(final State current, final String name,
             final Optional<Duration> retention) {
@@ -947,7 +953,17 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
         final Document collMod = new Document("collMod", name).append("expireAfterSeconds", expireAfterSeconds);
         LOGGER.info("Reconciling timeseries collection <{}> retention to expireAfterSeconds=<{}>.",
                 name, expireAfterSeconds);
-        return asVoidStage(current.database.runCommand(collMod));
+        return asVoidStage(current.database.runCommand(collMod))
+                .exceptionally(throwable -> {
+                    final Throwable cause =
+                            throwable instanceof java.util.concurrent.CompletionException
+                                    && throwable.getCause() != null ? throwable.getCause() : throwable;
+                    LOGGER.warn("Failed to reconcile retention for timeseries collection <{}> to " +
+                            "expireAfterSeconds=<{}>; leaving the existing retention unchanged and " +
+                            "continuing (data flow is unaffected). Cause: {}",
+                            name, expireAfterSeconds, cause.getMessage());
+                    return null;
+                });
     }
 
     private static CompletionStage<List<String>> collectAllNames(final MongoDatabase database) {
