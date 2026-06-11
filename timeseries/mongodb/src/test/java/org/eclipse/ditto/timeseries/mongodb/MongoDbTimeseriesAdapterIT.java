@@ -405,6 +405,87 @@ public final class MongoDbTimeseriesAdapterIT {
         assertThat(data.get(2).getValue().orElseThrow().asDouble()).isCloseTo(29.86, within(0.01));
     }
 
+    @Test
+    public void retentionAppliesOnCreateAndReconcilesExistingCollectionOnRestart() throws Exception {
+        final String collectionName = MongoDbTimeseriesAdapter.collectionNameFor(
+                DefaultMongoDbTimeseriesAdapterConfig.of(mongoDbConfig(), "ts_", Granularity.SECONDS),
+                thingId);
+
+        // First adapter run with a 1h retention: creates the collection (or reconciles an existing
+        // one) so expireAfterSeconds == 3600.
+        final MongoDbTimeseriesAdapter first = newAdapterWithRetention(Duration.ofHours(1));
+        try {
+            first.write(dataPoint(Instant.parse("2026-01-14T10:00:00Z"), 1.0))
+                    .toCompletableFuture().get();
+        } finally {
+            first.shutdown().toCompletableFuture().get();
+        }
+        assertThat(readExpireAfterSeconds(collectionName)).isEqualTo(3600L);
+
+        // Second adapter run (fresh instance = fresh ensured-collection cache) with a 2h retention:
+        // the collection now exists, so it is reconciled via collMod to expireAfterSeconds == 7200.
+        final MongoDbTimeseriesAdapter second = newAdapterWithRetention(Duration.ofHours(2));
+        try {
+            second.write(dataPoint(Instant.parse("2026-01-14T10:05:00Z"), 2.0))
+                    .toCompletableFuture().get();
+        } finally {
+            second.shutdown().toCompletableFuture().get();
+        }
+        assertThat(readExpireAfterSeconds(collectionName)).isEqualTo(7200L);
+    }
+
+    private MongoDbConfig mongoDbConfig() {
+        final Config rootConfig = ConfigFactory.parseString(String.format(
+                "ditto.mongodb.uri = \"%s\"\nditto.mongodb.database = \"%s\"\n", uri, DATABASE));
+        return DefaultMongoDbConfig.of(DefaultScopedConfig.dittoScoped(rootConfig));
+    }
+
+    private MongoDbTimeseriesAdapter newAdapterWithRetention(final Duration retention)
+            throws Exception {
+        final MongoDbTimeseriesAdapterConfig config = DefaultMongoDbTimeseriesAdapterConfig.of(
+                mongoDbConfig(), "ts_", Granularity.SECONDS, retention);
+        final MongoDbTimeseriesAdapter newAdapter = new MongoDbTimeseriesAdapter();
+        newAdapter.initialize(config).toCompletableFuture().get();
+        return newAdapter;
+    }
+
+    private static Long readExpireAfterSeconds(final String collectionName) throws Exception {
+        final MongoClient client = MongoClients.create(new ConnectionString(uri));
+        try {
+            final List<Document> infos = collectDocuments(client.getDatabase(DATABASE)
+                    .listCollections()
+                    .filter(com.mongodb.client.model.Filters.eq("name", collectionName)));
+            assertThat(infos).hasSize(1);
+            final Document info = infos.get(0);
+            // TTL on a time series collection surfaces as expireAfterSeconds, either top-level or
+            // under options depending on server version — accept whichever carries it.
+            final Object topLevel = info.get("expireAfterSeconds");
+            if (topLevel instanceof Number number) {
+                return number.longValue();
+            }
+            final Document options = info.get("options", Document.class);
+            final Object inOptions = options == null ? null : options.get("expireAfterSeconds");
+            return inOptions instanceof Number number ? number.longValue() : null;
+        } finally {
+            client.close();
+        }
+    }
+
+    private static List<Document> collectDocuments(final org.reactivestreams.Publisher<Document> pub)
+            throws Exception {
+        final List<Document> collected = new ArrayList<>();
+        final java.util.concurrent.CompletableFuture<Void> done =
+                new java.util.concurrent.CompletableFuture<>();
+        pub.subscribe(new Subscriber<Document>() {
+            @Override public void onSubscribe(final Subscription s) { s.request(Long.MAX_VALUE); }
+            @Override public void onNext(final Document d) { collected.add(d); }
+            @Override public void onError(final Throwable t) { done.completeExceptionally(t); }
+            @Override public void onComplete() { done.complete(null); }
+        });
+        done.get();
+        return collected;
+    }
+
     private void writeRampSeries() throws Exception {
         final int[] minutes = {5, 15, 25, 35, 45, 55};
         final double[] values = {10, 20, 30, 40, 50, 60};

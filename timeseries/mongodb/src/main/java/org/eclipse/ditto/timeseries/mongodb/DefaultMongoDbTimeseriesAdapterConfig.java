@@ -15,6 +15,8 @@ package org.eclipse.ditto.timeseries.mongodb;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.time.Duration;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -25,6 +27,8 @@ import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigUtil;
+import com.typesafe.config.ConfigValue;
 
 /**
  * Default implementation of {@link MongoDbTimeseriesAdapterConfig}.
@@ -60,13 +64,19 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
     private static final String KEY_COLLECTION_PREFIX = "collection-prefix";
     private static final String KEY_GRANULARITY = "granularity";
     private static final String KEY_RETENTION = "retention";
+    private static final String KEY_RETENTION_OVERRIDES = "retention-overrides";
     private static final String KEY_MAX_QUERY_RESULT_SIZE = "max-query-result-size";
     private static final String KEY_QUERY_TIMEOUT = "query-timeout";
+
+    /** Sentinel values that disable expiration (mapped to no {@code expireAfter} / {@code collMod off}). */
+    private static final java.util.Set<String> UNLIMITED_TOKENS =
+            java.util.Set.of("", "unlimited", "off", "none");
 
     private final MongoDbConfig mongoDbConfig;
     private final String collectionPrefix;
     private final Granularity granularity;
     @Nullable private final Duration retention;
+    private final Map<String, Duration> retentionOverrides;
     private final int maxQueryResultSize;
     private final Duration queryTimeout;
 
@@ -74,6 +84,7 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
             final String collectionPrefix,
             final Granularity granularity,
             @Nullable final Duration retention,
+            final Map<String, Duration> retentionOverrides,
             final int maxQueryResultSize,
             final Duration queryTimeout) {
 
@@ -81,6 +92,7 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
         this.collectionPrefix = collectionPrefix;
         this.granularity = granularity;
         this.retention = retention;
+        this.retentionOverrides = Map.copyOf(retentionOverrides);
         this.maxQueryResultSize = maxQueryResultSize;
         this.queryTimeout = queryTimeout;
     }
@@ -103,6 +115,7 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
                 checkNotNull(collectionPrefix, "collectionPrefix"),
                 checkNotNull(granularity, "granularity"),
                 null,
+                Map.of(),
                 DEFAULT_MAX_QUERY_RESULT_SIZE,
                 DEFAULT_QUERY_TIMEOUT);
     }
@@ -128,6 +141,7 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
                 checkNotNull(collectionPrefix, "collectionPrefix"),
                 checkNotNull(granularity, "granularity"),
                 retention,
+                Map.of(),
                 DEFAULT_MAX_QUERY_RESULT_SIZE,
                 DEFAULT_QUERY_TIMEOUT);
     }
@@ -152,9 +166,8 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
         final String collectionPrefix =
                 stringOrDefault(adapterConfig, KEY_COLLECTION_PREFIX, DEFAULT_COLLECTION_PREFIX);
         final Granularity granularity = parseGranularity(adapterConfig);
-        final Duration retention = adapterConfig.hasPath(KEY_RETENTION)
-                ? adapterConfig.getDuration(KEY_RETENTION)
-                : null;
+        final Duration retention = parseRetention(adapterConfig, KEY_RETENTION);
+        final Map<String, Duration> retentionOverrides = parseRetentionOverrides(adapterConfig);
         final int maxQueryResultSize = adapterConfig.hasPath(KEY_MAX_QUERY_RESULT_SIZE)
                 ? adapterConfig.getInt(KEY_MAX_QUERY_RESULT_SIZE)
                 : DEFAULT_MAX_QUERY_RESULT_SIZE;
@@ -175,13 +188,71 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
         }
 
         return new DefaultMongoDbTimeseriesAdapterConfig(mongoDbConfig, collectionPrefix,
-                granularity, retention, maxQueryResultSize, queryTimeout);
+                granularity, retention, retentionOverrides, maxQueryResultSize, queryTimeout);
     }
 
     private static String stringOrDefault(final Config config, final String key,
             final String fallback) {
 
         return config.hasPath(key) ? config.getString(key) : fallback;
+    }
+
+    /**
+     * Parses the default retention. Absent or a sentinel token ({@code unlimited}/{@code off}/
+     * {@code none}/empty) means no expiration ({@code null}); otherwise a HOCON duration that must
+     * be strictly positive (MongoDB treats {@code expireAfterSeconds: 0} as "expire immediately").
+     */
+    @Nullable
+    private static Duration parseRetention(final Config config, final String key) {
+        if (!config.hasPath(key)) {
+            return null;
+        }
+        if (isUnlimitedToken(config, key)) {
+            return null;
+        }
+        final Duration duration = config.getDuration(key);
+        requirePositiveRetention(key, duration);
+        return duration;
+    }
+
+    private static Map<String, Duration> parseRetentionOverrides(final Config adapterConfig) {
+        if (!adapterConfig.hasPath(KEY_RETENTION_OVERRIDES)) {
+            return Map.of();
+        }
+        final Config overridesConfig = adapterConfig.getConfig(KEY_RETENTION_OVERRIDES);
+        final Map<String, Duration> overrides = new LinkedHashMap<>();
+        for (final Map.Entry<String, ConfigValue> entry : overridesConfig.root().entrySet()) {
+            // Namespace keys contain dots, which HOCON treats as path separators — quote them so the
+            // whole namespace is read as a single key rather than a nested path.
+            final String namespace = entry.getKey();
+            final String path = ConfigUtil.quoteString(namespace);
+            final String overrideKey = KEY_RETENTION_OVERRIDES + "." + namespace;
+            if (isUnlimitedToken(overridesConfig, path)) {
+                throw new DittoConfigError("Configuration <" + overrideKey + "> must be a positive " +
+                        "duration; per-namespace \"unlimited\" is not supported — set the default " +
+                        "<" + KEY_RETENTION + "> to unlimited instead.");
+            }
+            final Duration duration = overridesConfig.getDuration(path);
+            requirePositiveRetention(overrideKey, duration);
+            overrides.put(namespace, duration);
+        }
+        return Map.copyOf(overrides);
+    }
+
+    private static boolean isUnlimitedToken(final Config config, final String path) {
+        try {
+            return UNLIMITED_TOKENS.contains(config.getString(path).trim().toLowerCase(java.util.Locale.ROOT));
+        } catch (final com.typesafe.config.ConfigException.WrongType e) {
+            // Not a string (e.g. a number-of-seconds) — let the duration parser handle it.
+            return false;
+        }
+    }
+
+    private static void requirePositiveRetention(final String key, final Duration duration) {
+        if (duration.isZero() || duration.isNegative()) {
+            throw new DittoConfigError("Configuration <" + key + "> must be a positive duration " +
+                    "(or \"unlimited\" to disable expiration) but was <" + duration + ">.");
+        }
     }
 
     private static Granularity parseGranularity(final Config config) {
@@ -215,6 +286,11 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
     }
 
     @Override
+    public Map<String, Duration> getRetentionOverrides() {
+        return retentionOverrides;
+    }
+
+    @Override
     public int getMaxQueryResultSize() {
         return maxQueryResultSize;
     }
@@ -237,6 +313,7 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
                 Objects.equals(collectionPrefix, that.collectionPrefix) &&
                 granularity == that.granularity &&
                 Objects.equals(retention, that.retention) &&
+                Objects.equals(retentionOverrides, that.retentionOverrides) &&
                 maxQueryResultSize == that.maxQueryResultSize &&
                 Objects.equals(queryTimeout, that.queryTimeout);
     }
@@ -244,7 +321,7 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
     @Override
     public int hashCode() {
         return Objects.hash(mongoDbConfig, collectionPrefix, granularity, retention,
-                maxQueryResultSize, queryTimeout);
+                retentionOverrides, maxQueryResultSize, queryTimeout);
     }
 
     @Override
@@ -254,6 +331,7 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
                 ", collectionPrefix=" + collectionPrefix +
                 ", granularity=" + granularity +
                 ", retention=" + retention +
+                ", retentionOverrides=" + retentionOverrides +
                 ", maxQueryResultSize=" + maxQueryResultSize +
                 ", queryTimeout=" + queryTimeout +
                 "]";
