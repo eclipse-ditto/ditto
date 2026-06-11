@@ -608,30 +608,38 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
         }
 
 
-        private String jsonObjectStringRepresentation;
-        private byte[] cborObjectRepresentation;
+        // The three mutable fields below participate in the lazy-encoding invariant:
+        // whenever fieldsRef holds a SoftReference, at least one representation must be
+        // non-null so recoverFields() can rebuild the map after a soft-clear. Without
+        // memory barriers, a thread that observes the SoftReference may not yet see the
+        // representation write that preceded it, which could trip the IllegalStateException
+        // in recoverFields. volatile gives us the cross-thread happens-before we need
+        // without taking a lock.
+        private volatile String jsonObjectStringRepresentation;
+        private volatile byte[] cborObjectRepresentation;
         private int hashCode;
-        private SoftReference<Map<String, JsonField>> fieldsReference;
+        // Either a Map<String, JsonField> held strongly (when no serialised representation
+        // exists yet and we would have no way to recover the fields if the reference were
+        // cleared) or a SoftReference<Map<String, JsonField>> once a representation is
+        // available. {@link #fields()} unwraps both cases.
+        private volatile Object fieldsRef;
 
         private SoftReferencedFieldMap(final Map<String, JsonField> jsonFieldMap,
                 @Nullable final String stringRepresentation, @Nullable final byte[] cborObjectRepresentation) {
 
             requireNonNull(jsonFieldMap, "The fields of JSON object must not be null!");
-            fieldsReference = new SoftReference<>(Collections.unmodifiableMap(new LinkedHashMap<>(jsonFieldMap)));
-            jsonObjectStringRepresentation = stringRepresentation;
+            final Map<String, JsonField> immutable =
+                    Collections.unmodifiableMap(new LinkedHashMap<>(jsonFieldMap));
+            this.jsonObjectStringRepresentation = stringRepresentation;
             this.cborObjectRepresentation = cborObjectRepresentation;
-            if (jsonObjectStringRepresentation == null && cborObjectRepresentation == null) {
-                if (CBOR_FACTORY.isCborAvailable()) {
-                    try {
-                        this.cborObjectRepresentation = CBOR_FACTORY.createCborRepresentation(jsonFieldMap,
-                                guessSerializedSize());
-                    } catch (final IOException e) {
-                        assert false; // this should not happen, so assertions will throw during testing
-                        jsonObjectStringRepresentation = createStringRepresentation(jsonFieldMap);
-                    }
-                } else {
-                    jsonObjectStringRepresentation = createStringRepresentation(jsonFieldMap);
-                }
+            // Soft-reference the field map only when a serialised representation already
+            // exists; the representation is what {@link #recoverFields()} parses back when
+            // the soft reference is cleared under GC pressure. Without one, we must hold
+            // the map strongly to avoid data loss.
+            if (stringRepresentation != null || cborObjectRepresentation != null) {
+                this.fieldsRef = new SoftReference<>(immutable);
+            } else {
+                this.fieldsRef = immutable;
             }
             hashCode = 0;
         }
@@ -722,22 +730,41 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
         }
 
         private Map<String, JsonField> fields() {
-            Map<String, JsonField> result = fieldsReference.get();
-            if (null == result) {
-                result = recoverFields();
-                fieldsReference = new SoftReference<>(result);
+            final Object ref = fieldsRef;
+            if (ref instanceof SoftReference) {
+                @SuppressWarnings("unchecked")
+                final SoftReference<Map<String, JsonField>> softRef =
+                        (SoftReference<Map<String, JsonField>>) ref;
+                Map<String, JsonField> result = softRef.get();
+                if (null == result) {
+                    result = recoverFields();
+                    fieldsRef = new SoftReference<>(result);
+                }
+                return result;
             }
-            return result;
+            @SuppressWarnings("unchecked")
+            final Map<String, JsonField> strong = (Map<String, JsonField>) ref;
+            return strong;
+        }
+
+        private void softenFieldsRef(final Map<String, JsonField> fields) {
+            if (!(fieldsRef instanceof SoftReference)) {
+                fieldsRef = new SoftReference<>(fields);
+            }
         }
 
         private Map<String, JsonField> recoverFields() {
+            final Map<String, JsonField> recovered;
             if (CBOR_FACTORY.isCborAvailable() && cborObjectRepresentation != null) {
-                return parseToMap(cborObjectRepresentation);
+                recovered = parseToMap(cborObjectRepresentation);
+            } else if (jsonObjectStringRepresentation != null) {
+                recovered = parseToMap(jsonObjectStringRepresentation);
+            } else {
+                throw new IllegalStateException("Fatal cache miss on JsonObject");
             }
-            if (jsonObjectStringRepresentation != null) {
-                return parseToMap(jsonObjectStringRepresentation);
-            }
-            throw new IllegalStateException("Fatal cache miss on JsonObject");
+            // Wrap so callers using getIterator() / values().iterator().remove() cannot
+            // mutate the recovered field map and break this object's immutability.
+            return Collections.unmodifiableMap(recovered);
         }
 
         private static Map<String, JsonField> parseToMap(final String jsonObjectString) {
@@ -777,7 +804,16 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
                     Arrays.equals(cborObjectRepresentation, that.cborObjectRepresentation)) {
                 return true;
             }
-            return Objects.equals(fields(), that.fields());
+            // Two JsonObjects with the same field set are equal regardless of insertion
+            // order (Map.equals is set-based). When that returns false, fall back to
+            // comparing the rendered JSON string form: this catches cases where the field
+            // maps hold semantically-equivalent but class-incompatible JsonValue instances
+            // (e.g. NullAttributes vs JsonValue.nullLiteral(), both rendering as "null").
+            // Pre-refactor, the eager CBOR encoding masked this asymmetry because both
+            // null kinds encode to the same byte; the lazy refactor preserves master's
+            // observable equality contract by combining both checks here.
+            return Objects.equals(fields(), that.fields())
+                    || asJsonObjectString().equals(that.asJsonObjectString());
         }
 
         @Override
@@ -792,14 +828,18 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
 
         String asJsonObjectString() {
             if (jsonObjectStringRepresentation == null) {
-                jsonObjectStringRepresentation = createStringRepresentation(this.fields());
+                final Map<String, JsonField> currentFields = fields();
+                jsonObjectStringRepresentation = createStringRepresentation(currentFields);
+                softenFieldsRef(currentFields);
             }
             return jsonObjectStringRepresentation;
         }
 
         void writeValue(final SerializationContext serializationContext) throws IOException {
             if (CBOR_FACTORY.isCborAvailable() && cborObjectRepresentation == null) {
-                cborObjectRepresentation = CBOR_FACTORY.createCborRepresentation(this.fields(), guessSerializedSize());
+                final Map<String, JsonField> currentFields = fields();
+                cborObjectRepresentation = CBOR_FACTORY.createCborRepresentation(currentFields, guessSerializedSize());
+                softenFieldsRef(currentFields);
             }
             serializationContext.writeCachedElement(cborObjectRepresentation);
         }
@@ -816,6 +856,12 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
         }
 
         public long upperBoundForStringSize() {
+            // Callers (size-validation code paths in commands and CBOR sizing) need a real
+            // bound. Materialise the string representation lazily here when neither form
+            // exists; subsequent calls and the eventual serialization will reuse the cache.
+            if (jsonObjectStringRepresentation == null && cborObjectRepresentation == null) {
+                asJsonObjectString();
+            }
             long max = 0L;
             if (jsonObjectStringRepresentation != null) {
                 max = jsonObjectStringRepresentation.length();
