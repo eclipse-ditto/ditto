@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -90,6 +91,7 @@ import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
+import org.eclipse.ditto.internal.utils.protocol.AdaptablePartialAccessFilter;
 import org.eclipse.ditto.internal.utils.protocol.JsonPartialAccessFilter;
 import org.eclipse.ditto.internal.utils.protocol.PartialAccessPathResolver;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
@@ -914,7 +916,8 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
             return JsonFactory.newObject();
         }
 
-        final Set<JsonPointer> accessiblePaths = result.getAccessiblePaths();
+        final Set<JsonPointer> accessiblePaths = new HashSet<>(result.getAccessiblePaths());
+        accessiblePaths.addAll(AdaptablePartialAccessFilter.ALWAYS_INCLUDED_THING_FIELDS);
         return JsonPartialAccessFilter.filterJsonByPaths(thingJson, accessiblePaths);
     }
 

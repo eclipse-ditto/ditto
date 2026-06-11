@@ -100,10 +100,20 @@ final class ThingCommandEnforcement
             DittoLoggerFactory.getThreadSafeLogger(ThingCommandEnforcement.class.getName());
 
     /**
-     * Json fields that are always shown regardless of authorization.
+     * Json fields that are always shown regardless of authorization, provided the subject has at
+     * least partial read permissions on the thing. Covers entity identity ({@code thingId},
+     * {@code _namespace}) and audit metadata ({@code _revision}, {@code _modified},
+     * {@code _created}) which do not carry user data and which subscribers need in order to make
+     * sense of the response.
      */
     private static final JsonFieldSelector THING_QUERY_COMMAND_RESPONSE_ALLOWLIST =
-            JsonFactory.newFieldSelector(Thing.JsonFields.ID);
+            JsonFactory.newFieldSelector(
+                    Thing.JsonFields.ID,
+                    Thing.JsonFields.NAMESPACE,
+                    Thing.JsonFields.REVISION,
+                    Thing.JsonFields.MODIFIED,
+                    Thing.JsonFields.CREATED
+            );
     private final ActorSystem actorSystem;
     private final ActorRef policiesShardRegion;
     private final AskWithRetryConfig askWithRetryConfig;
