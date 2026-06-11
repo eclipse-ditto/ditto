@@ -283,4 +283,100 @@ public final class ImmutableJsonPointerTest {
         assertThat(underTest.toString()).hasToString("/foo/~0dum/~0die/~0dum/baz");
     }
 
+    @Test
+    public void toStringEscapesLeadingTildeInKey() {
+        final JsonPointer underTest = ImmutableJsonPointer.of(JsonFactory.newKey("~foo"));
+        assertThat(underTest.toString()).hasToString("/~0foo");
+    }
+
+    @Test
+    public void toStringEscapesTrailingTildeInKey() {
+        final JsonPointer underTest = ImmutableJsonPointer.of(JsonFactory.newKey("foo~"));
+        assertThat(underTest.toString()).hasToString("/foo~0");
+    }
+
+    @Test
+    public void toStringEscapesLoneTildeKey() {
+        final JsonPointer underTest = ImmutableJsonPointer.of(JsonFactory.newKey("~"));
+        assertThat(underTest.toString()).hasToString("/~0");
+    }
+
+    @Test
+    public void toStringEscapesAdjacentTildes() {
+        final JsonPointer underTest = ImmutableJsonPointer.of(JsonFactory.newKey("~~~"));
+        assertThat(underTest.toString()).hasToString("/~0~0~0");
+    }
+
+    @Test
+    public void toStringRendersDeepPointerWithoutTilde() {
+        // Exercises the no-tilde branch of escapeTilde across all five keys of the rendered pointer.
+        final JsonPointer underTest = ImmutableJsonPointer.ofParsed("/features/coolant/properties/value");
+        assertThat(underTest.toString()).hasToString("/features/coolant/properties/value");
+    }
+
+    @Test
+    public void ofParsedDecodesAdjacentEscapedTildes() {
+        final JsonPointer underTest = ImmutableJsonPointer.ofParsed("/~0~0");
+        assertThat(underTest).hasLevelCount(1);
+        assertThat(underTest.get(0)).contains(JsonFactory.newKey("~~"));
+    }
+
+    @Test
+    public void ofParsedLeavesLoneTildeUnchanged() {
+        // A raw "~" not followed by '0' is not an escape sequence per RFC 6901 and must be
+        // preserved verbatim (matches the previous regex-based implementation).
+        final JsonPointer underTest = ImmutableJsonPointer.ofParsed("/foo~bar");
+        assertThat(underTest).hasLevelCount(1);
+        assertThat(underTest.get(0)).contains(JsonFactory.newKey("foo~bar"));
+    }
+
+    @Test
+    public void ofParsedLeavesTrailingTildeUnchanged() {
+        final JsonPointer underTest = ImmutableJsonPointer.ofParsed("/foo~");
+        assertThat(underTest).hasLevelCount(1);
+        assertThat(underTest.get(0)).contains(JsonFactory.newKey("foo~"));
+    }
+
+    @Test
+    public void ofParsedHandlesTildeBeforeNonZeroDigit() {
+        // "~1" is not unescaped by this implementation (intentional, matches prior behaviour).
+        final JsonPointer underTest = ImmutableJsonPointer.ofParsed("/foo~1bar");
+        assertThat(underTest).hasLevelCount(1);
+        assertThat(underTest.get(0)).contains(JsonFactory.newKey("foo~1bar"));
+    }
+
+    @Test
+    public void ofParsedHandlesTildeBeforeNonDigitChar() {
+        final JsonPointer underTest = ImmutableJsonPointer.ofParsed("/foo~abc");
+        assertThat(underTest).hasLevelCount(1);
+        assertThat(underTest.get(0)).contains(JsonFactory.newKey("foo~abc"));
+    }
+
+    @Test
+    public void escapeAndParseRoundTripsKeyContainingTilde() {
+        final JsonKey original = JsonFactory.newKey("an~odd~name");
+        final JsonPointer pointer = ImmutableJsonPointer.of(original);
+        final JsonPointer reparsed = ImmutableJsonPointer.ofParsed(pointer.toString());
+        assertThat(reparsed).hasLevelCount(1);
+        assertThat(reparsed.get(0)).contains(original);
+    }
+
+    @Test
+    public void ofParsedRejectsLeadingDoubleSlash() {
+        assertThatExceptionOfType(JsonPointerInvalidException.class)
+                .isThrownBy(() -> ImmutableJsonPointer.ofParsed("//foo"));
+    }
+
+    @Test
+    public void ofParsedRejectsTrailingDoubleSlash() {
+        assertThatExceptionOfType(JsonPointerInvalidException.class)
+                .isThrownBy(() -> ImmutableJsonPointer.ofParsed("/foo//"));
+    }
+
+    @Test
+    public void ofParsedRejectsTripleSlash() {
+        assertThatExceptionOfType(JsonPointerInvalidException.class)
+                .isThrownBy(() -> ImmutableJsonPointer.ofParsed("/foo///bar"));
+    }
+
 }
