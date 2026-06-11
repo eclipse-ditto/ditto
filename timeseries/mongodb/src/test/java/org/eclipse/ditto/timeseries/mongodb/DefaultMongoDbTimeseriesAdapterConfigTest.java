@@ -15,6 +15,7 @@ package org.eclipse.ditto.timeseries.mongodb;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.Mockito.mock;
 
 import java.time.Duration;
@@ -150,6 +151,79 @@ public final class DefaultMongoDbTimeseriesAdapterConfigTest {
         assertThatExceptionOfType(DittoConfigError.class)
                 .isThrownBy(() -> DefaultMongoDbTimeseriesAdapterConfig.of(mongoDbConfig, adapterConfig))
                 .withMessageContaining("days");
+    }
+
+    @Test
+    public void ofConfigTreatsUnlimitedRetentionAsNoExpiration() {
+        final MongoDbConfig mongoDbConfig = mock(MongoDbConfig.class);
+        final Config adapterConfig = ConfigFactory.parseString("retention = \"unlimited\"");
+
+        final DefaultMongoDbTimeseriesAdapterConfig underTest =
+                DefaultMongoDbTimeseriesAdapterConfig.of(mongoDbConfig, adapterConfig);
+
+        assertThat(underTest.getRetention()).isEmpty();
+    }
+
+    @Test
+    public void ofConfigRejectsNonPositiveRetention() {
+        final MongoDbConfig mongoDbConfig = mock(MongoDbConfig.class);
+        final Config adapterConfig = ConfigFactory.parseString("retention = \"0s\"");
+
+        assertThatExceptionOfType(DittoConfigError.class)
+                .isThrownBy(() -> DefaultMongoDbTimeseriesAdapterConfig.of(mongoDbConfig, adapterConfig))
+                .withMessageContaining("retention");
+    }
+
+    @Test
+    public void ofConfigReadsRetentionOverridesAndResolvesPerNamespace() {
+        final MongoDbConfig mongoDbConfig = mock(MongoDbConfig.class);
+        final Config adapterConfig = ConfigFactory.parseString(
+                "retention = 90d\n" +
+                        "retention-overrides { \"com.acme.hifreq\" = 7d, \"org.eclipse.ditto\" = 365d }");
+
+        final DefaultMongoDbTimeseriesAdapterConfig underTest =
+                DefaultMongoDbTimeseriesAdapterConfig.of(mongoDbConfig, adapterConfig);
+
+        assertThat(underTest.getRetentionOverrides())
+                .containsOnly(entry("com.acme.hifreq", Duration.ofDays(7)),
+                        entry("org.eclipse.ditto", Duration.ofDays(365)));
+        // Override wins for a listed namespace; others fall back to the default.
+        assertThat(underTest.getRetention("com.acme.hifreq")).contains(Duration.ofDays(7));
+        assertThat(underTest.getRetention("org.eclipse.ditto")).contains(Duration.ofDays(365));
+        assertThat(underTest.getRetention("other.namespace")).contains(Duration.ofDays(90));
+    }
+
+    @Test
+    public void getRetentionForNamespaceIsEmptyWhenNeitherOverrideNorDefaultSet() {
+        final MongoDbConfig mongoDbConfig = mock(MongoDbConfig.class);
+
+        final DefaultMongoDbTimeseriesAdapterConfig underTest =
+                DefaultMongoDbTimeseriesAdapterConfig.of(mongoDbConfig, ConfigFactory.empty());
+
+        assertThat(underTest.getRetentionOverrides()).isEmpty();
+        assertThat(underTest.getRetention("any.namespace")).isEmpty();
+    }
+
+    @Test
+    public void ofConfigRejectsNonPositiveRetentionOverride() {
+        final MongoDbConfig mongoDbConfig = mock(MongoDbConfig.class);
+        final Config adapterConfig =
+                ConfigFactory.parseString("retention-overrides { \"com.acme\" = \"0s\" }");
+
+        assertThatExceptionOfType(DittoConfigError.class)
+                .isThrownBy(() -> DefaultMongoDbTimeseriesAdapterConfig.of(mongoDbConfig, adapterConfig))
+                .withMessageContaining("com.acme");
+    }
+
+    @Test
+    public void ofConfigRejectsPerNamespaceUnlimitedOverride() {
+        final MongoDbConfig mongoDbConfig = mock(MongoDbConfig.class);
+        final Config adapterConfig =
+                ConfigFactory.parseString("retention-overrides { \"com.acme\" = \"unlimited\" }");
+
+        assertThatExceptionOfType(DittoConfigError.class)
+                .isThrownBy(() -> DefaultMongoDbTimeseriesAdapterConfig.of(mongoDbConfig, adapterConfig))
+                .withMessageContaining("unlimited");
     }
 
     @Test

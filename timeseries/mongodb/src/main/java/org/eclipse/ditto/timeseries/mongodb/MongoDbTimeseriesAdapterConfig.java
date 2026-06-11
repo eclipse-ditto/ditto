@@ -13,6 +13,7 @@
 package org.eclipse.ditto.timeseries.mongodb;
 
 import java.time.Duration;
+import java.util.Map;
 import java.util.Optional;
 
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
@@ -49,12 +50,36 @@ public interface MongoDbTimeseriesAdapterConfig extends TimeseriesAdapterConfig 
     Granularity getGranularity();
 
     /**
-     * @return the retention applied to new MongoDB Time Series collections, mapped to
+     * @return the default retention applied to MongoDB Time Series collections, mapped to
      * {@code TimeSeriesOptions.expireAfter(seconds)}. Empty disables expiration — documents are
-     * kept until manually purged. Existing collections are <em>not</em> reconfigured when this
-     * value changes; the {@code collMod} migration is operator-driven.
+     * kept until manually purged. The adapter reconciles existing collections to this value on
+     * startup via {@code collMod}, so a changed value takes effect without manual migration.
+     * Per-namespace overrides take precedence; see {@link #getRetentionOverrides()} and
+     * {@link #getRetention(CharSequence)}.
      */
     Optional<Duration> getRetention();
+
+    /**
+     * @return per-namespace retention overrides, keyed by Thing namespace (e.g.
+     * {@code "com.acme.hifreq"}). A namespace present here uses its own retention instead of the
+     * default from {@link #getRetention()}; absent namespaces fall back to the default. Each value
+     * is a positive duration. Never {@code null}; may be empty.
+     */
+    Map<String, Duration> getRetentionOverrides();
+
+    /**
+     * Resolves the effective retention for a Thing namespace: the per-namespace override from
+     * {@link #getRetentionOverrides()} if present, otherwise the default {@link #getRetention()}.
+     *
+     * @param namespace the Thing namespace (the part of the collection identity that selects an
+     * override).
+     * @return the effective retention, or empty when neither an override nor a default is set
+     * (i.e. expiration disabled for that namespace).
+     */
+    default Optional<Duration> getRetention(final CharSequence namespace) {
+        final Duration override = getRetentionOverrides().get(String.valueOf(namespace));
+        return override != null ? Optional.of(override) : getRetention();
+    }
 
     /**
      * @return the maximum number of data points pulled into application memory per path on the raw

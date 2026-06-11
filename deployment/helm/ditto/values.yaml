@@ -1906,10 +1906,19 @@ timeseries:
         # One of "seconds", "minutes", "hours" — cannot be changed once a collection exists.
         # Leave empty to inherit the timeseries.conf default ("seconds").
         granularity: ""
-        # retention sets TimeSeriesOptions.expireAfter on NEW collections (HOCON duration,
-        # e.g. "30d", "8760h"). Empty disables expiration; existing collections need a
-        # collMod migration to pick up changes.
+        # retention is the default expiry for time-series collections (HOCON duration, e.g. "30d",
+        # "8760h"); "unlimited" disables expiration. Empty inherits the timeseries.conf default
+        # ("90d") — timeseries is append-only, so leaving it unbounded grows storage forever. The
+        # adapter reconciles EXISTING collections to this value on startup via collMod, so changes
+        # take effect without a manual migration.
         retention: ""
+        # retentionOverrides sets per-namespace retention, keyed by Thing namespace. A listed
+        # namespace uses its own duration instead of `retention` above; others fall back to it.
+        # Reconciled onto existing collections on startup, same as the default. Example:
+        #   retentionOverrides:
+        #     com.acme.hifreq: "7d"
+        #     org.eclipse.ditto: "365d"
+        retentionOverrides: {}
         # maxQueryResultSize is the safety ceiling on data points read into memory per path on the
         # raw / window-function read paths (guards against OOM on over-broad ranges). Empty inherits
         # the timeseries.conf default (1000000).
