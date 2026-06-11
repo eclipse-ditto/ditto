@@ -21,7 +21,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -34,12 +33,12 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 final class ImmutableJsonPointer implements JsonPointer {
 
-    private static final Pattern DOUBLE_SLASH_PATTERN = Pattern.compile("//");
+    private static final char TILDE = '~';
+    private static final char SLASH_CHAR = '/';
     private static final String SLASH = "/";
+    private static final String ESCAPED_TILDE = "~0";
     private static final String SLASH_REGEX = "/(?!/)"; // a SLASH which is not followed by another slash
     private static final Pattern SINGLE_SLASH_REGEX_PATTERN = Pattern.compile(SLASH_REGEX);
-    private static final Pattern ESCAPED_TILDE_PATTERN = Pattern.compile("~0");
-    private static final Pattern DECODED_TILDE_PATTERN = Pattern.compile("~");
 
     private static final ImmutableJsonPointer EMPTY = new ImmutableJsonPointer(Collections.emptyList());
 
@@ -80,7 +79,7 @@ final class ImmutableJsonPointer implements JsonPointer {
             result = newInstance(Collections.singletonList(((JsonKey) slashDelimitedCharSequence)));
         } else if (0 == slashDelimitedCharSequence.length()) {
             result = empty();
-        } else if (DOUBLE_SLASH_PATTERN.matcher(slashDelimitedCharSequence).find()) {
+        } else if (containsConsecutiveSlashes(slashDelimitedCharSequence)) {
             throw JsonPointerInvalidException.newBuilderForConsecutiveSlashes(slashDelimitedCharSequence)
                     .build();
         } else {
@@ -96,9 +95,45 @@ final class ImmutableJsonPointer implements JsonPointer {
         return result;
     }
 
+    /**
+     * Decodes the JSON Pointer escape sequence {@code ~0} back to {@code ~} per RFC 6901.
+     * Returns the input unchanged when no {@code ~0} is present &mdash; including inputs
+     * that contain a {@code ~} not followed by {@code 0}, which RFC 6901 leaves verbatim.
+     */
     private static String decodeTilde(final CharSequence keyString) {
-        final Matcher matcher = ESCAPED_TILDE_PATTERN.matcher(keyString);
-        return matcher.replaceAll(DECODED_TILDE_PATTERN.toString());
+        final int len = keyString.length();
+        int firstEscape = -1;
+        for (int i = 0; i + 1 < len; i++) {
+            if (TILDE == keyString.charAt(i) && '0' == keyString.charAt(i + 1)) {
+                firstEscape = i;
+                break;
+            }
+        }
+        if (firstEscape < 0) {
+            return keyString.toString();
+        }
+        final StringBuilder sb = new StringBuilder(len);
+        sb.append(keyString, 0, firstEscape);
+        for (int i = firstEscape; i < len; i++) {
+            final char c = keyString.charAt(i);
+            if (TILDE == c && i + 1 < len && '0' == keyString.charAt(i + 1)) {
+                sb.append(TILDE);
+                i++;
+            } else {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
+    }
+
+    private static boolean containsConsecutiveSlashes(final CharSequence cs) {
+        final int len = cs.length();
+        for (int i = 1; i < len; i++) {
+            if (SLASH_CHAR == cs.charAt(i) && SLASH_CHAR == cs.charAt(i - 1)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static ImmutableJsonPointer newInstance(final List<JsonKey> jsonKeyHierarchy) {
@@ -335,10 +370,28 @@ final class ImmutableJsonPointer implements JsonPointer {
         return stringRepresentation;
     }
 
+    /**
+     * Escapes {@code ~} to {@code ~0} per RFC 6901. Manual single-pass scan; returns the
+     * input unchanged when no {@code ~} is present (the dominant production case).
+     */
     private static String escapeTilde(final JsonKey jsonKey) {
         final String keyString = jsonKey.toString();
-        final Matcher matcher = DECODED_TILDE_PATTERN.matcher(keyString);
-        return matcher.replaceAll(ESCAPED_TILDE_PATTERN.toString());
+        final int firstTilde = keyString.indexOf(TILDE);
+        if (firstTilde < 0) {
+            return keyString;
+        }
+        final int len = keyString.length();
+        final StringBuilder sb = new StringBuilder(len + 4);
+        sb.append(keyString, 0, firstTilde);
+        for (int i = firstTilde; i < len; i++) {
+            final char c = keyString.charAt(i);
+            if (TILDE == c) {
+                sb.append(ESCAPED_TILDE);
+            } else {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
     }
 
 }
