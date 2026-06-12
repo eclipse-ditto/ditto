@@ -15,7 +15,13 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 
 ## [Unreleased]
 
+## [4.2.0]
+
+Bumped Ditto `appVersion` to `3.9.2`.
+
 ## [4.1.0]
+
+Bumped Ditto `appVersion` to `3.9.1`.
 
 ### Added
 - Allow configuring `issuers` for OpenID Connect in Helm values
@@ -32,11 +38,14 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 
 ## [4.0.0]
 
+Bumped Ditto `appVersion` to `3.9.0`.
+
 _First chart release after decoupling the Helm chart version from the Ditto application version.
 For changes prior to this changelog being introduced, see the
 [GitHub PR history](https://github.com/eclipse-ditto/ditto/pulls?q=is%3Apr+label%3A%22Helm+chart%22+is%3Aclosed)
 filtered by the `Helm chart` label._
 
-[Unreleased]: https://github.com/eclipse-ditto/ditto/compare/helm-chart-4.1.0...HEAD
+[Unreleased]: https://github.com/eclipse-ditto/ditto/compare/helm-chart-4.2.0...HEAD
+[4.2.0]: https://github.com/eclipse-ditto/ditto/compare/helm-chart-4.1.0...helm-chart-4.2.0
 [4.1.0]: https://github.com/eclipse-ditto/ditto/compare/helm-chart-4.0.0...helm-chart-4.1.0
 [4.0.0]: https://github.com/eclipse-ditto/ditto/releases/tag/helm-chart-4.0.0
