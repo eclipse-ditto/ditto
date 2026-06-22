@@ -43,7 +43,10 @@ final class ImmutableDefinitionIdentifier implements DefinitionIdentifier {
     private final String namespace;
     private final String name;
     private final String version;
-    @Nullable private final URL url;
+    // The URL is kept in its String form (not as java.net.URL) on purpose: URL.equals()/URL.hashCode() perform
+    // blocking DNS resolution and are non-deterministic, so they must not be used for equality. getUrl() reconstructs
+    // the java.net.URL on demand from this (always valid) string.
+    @Nullable private final String urlString;
     private final String stringRepresentation;
 
     private ImmutableDefinitionIdentifier(final CharSequence theNamespace, final CharSequence theName,
@@ -53,13 +56,13 @@ final class ImmutableDefinitionIdentifier implements DefinitionIdentifier {
             namespace = "";
             name = "";
             version = "";
-            url = theUrl;
-            stringRepresentation = url.toString();
+            urlString = theUrl.toString();
+            stringRepresentation = urlString;
         } else {
             namespace = argumentNotEmpty(theNamespace, "namespace").toString();
             name = argumentNotEmpty(theName, "name").toString();
             version = argumentNotEmpty(theVersion, "version").toString();
-            url = null;
+            urlString = null;
             stringRepresentation = namespace + COLON + name + COLON + version;
         }
     }
@@ -160,7 +163,15 @@ final class ImmutableDefinitionIdentifier implements DefinitionIdentifier {
 
     @Override
     public Optional<URL> getUrl() {
-        return Optional.ofNullable(url);
+        if (null == urlString) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(new URL(urlString));
+        } catch (final MalformedURLException e) {
+            // cannot happen: urlString always originates from a previously valid java.net.URL
+            return Optional.empty();
+        }
     }
 
     @Override
@@ -175,12 +186,12 @@ final class ImmutableDefinitionIdentifier implements DefinitionIdentifier {
         return Objects.equals(namespace, that.namespace) &&
                 Objects.equals(name, that.name) &&
                 Objects.equals(version, that.version) &&
-                Objects.equals(url, that.url);
+                Objects.equals(urlString, that.urlString);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(namespace, name, version, url);
+        return Objects.hash(namespace, name, version, urlString);
     }
 
     @Override
