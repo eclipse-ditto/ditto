@@ -298,6 +298,9 @@ entries:
                   - title: Authentication
                     url: /operating-authentication.html
                     output: web
+                  - title: Security Hardening
+                    url: /operating-security-hardening.html
+                    output: web
                   - title: MongoDB
                     url: /operating-mongodb.html
                     output: web
