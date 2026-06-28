@@ -130,10 +130,16 @@ spec:
             - name: swaggerui-index
               mountPath: /usr/share/nginx/html/index.html
               subPath: index.html
+            - name: swaggerui-oidc
+              mountPath: /usr/share/nginx/html/swagger-oidc.js
+              subPath: swagger-oidc.js
       volumes:
         - name: swagger-ui-init-config
           emptyDir: {}
         - name: swaggerui-index
           configMap:
             name: {{ .Release.Name }}-swaggerui-config-index-html
+        - name: swaggerui-oidc
+          configMap:
+            name: {{ .Release.Name }}-swaggerui-config-swagger-oidc-js
 {{- end }}
