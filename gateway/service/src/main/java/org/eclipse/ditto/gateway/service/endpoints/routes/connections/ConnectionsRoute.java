@@ -104,7 +104,7 @@ public final class ConnectionsRoute extends AbstractRoute {
      * @return the {@code /connections} route.
      */
     public Route buildConnectionsRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
-        return rawPathPrefix(PathMatchers.slash().concat(PATH_CONNECTIONS), () ->  // /connections
+        return rawPathPrefixSegment(PATH_CONNECTIONS, () ->  // /connections
                 Optional.ofNullable(devOpsAuthenticationDirective)
                         .orElse((realm, dh, route) -> route)
                         .authenticateDevOps(DevOpsOAuth2AuthenticationDirective.REALM_DEVOPS, dittoHeaders,

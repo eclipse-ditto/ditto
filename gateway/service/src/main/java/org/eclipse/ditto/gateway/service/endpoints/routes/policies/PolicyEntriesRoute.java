@@ -215,7 +215,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
             final PolicyId policyId) {
 
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), label ->
-                rawPathPrefix(PathMatchers.slash().concat(PATH_SUFFIX_SUBJECTS), () ->
+                rawPathPrefixSegment(PATH_SUFFIX_SUBJECTS, () ->
                         pathEndOrSingleSlash(() ->
                                 concat(
                                         get(() -> // GET /entries/<label>/subjects
@@ -250,7 +250,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
             final PolicyId policyId) {
 
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), label ->
-                rawPathPrefix(PathMatchers.slash().concat(PATH_SUFFIX_SUBJECTS), () ->
+                rawPathPrefixSegment(PATH_SUFFIX_SUBJECTS, () ->
                         rawPathPrefix(PathMatchers.slash().concat(PathMatchers.remaining()), subjectId ->
                                 concat(
                                         get(() -> // GET /entries/<label>/subjects/<subjectId>
@@ -298,7 +298,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
             final PolicyId policyId) {
 
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), label ->
-                rawPathPrefix(PathMatchers.slash().concat(PATH_SUFFIX_RESOURCES), () ->
+                rawPathPrefixSegment(PATH_SUFFIX_RESOURCES, () ->
                         pathEndOrSingleSlash(() ->
                                 concat(
                                         get(() -> // GET /entries/<label>/resources
@@ -335,7 +335,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
             final PolicyId policyId) {
 
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), label ->
-                rawPathPrefix(PathMatchers.slash().concat(PATH_SUFFIX_RESOURCES), () ->
+                rawPathPrefixSegment(PATH_SUFFIX_RESOURCES, () ->
                         extractUnmatchedPath(resource ->
                                 concat(
                                         get(() -> // GET /entries/<label>/resources/<resource>
@@ -541,9 +541,9 @@ final class PolicyEntriesRoute extends AbstractRoute {
             final PolicyId policyId, final AuthenticationResult authResult) {
 
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), label ->
-                rawPathPrefix(PathMatchers.slash().concat(PATH_ACTIONS), () -> concat(
+                rawPathPrefixSegment(PATH_ACTIONS, () -> concat(
                         // POST /entries/<label>/actions/activateTokenIntegration
-                        rawPathPrefix(PathMatchers.slash().concat(ActivateTokenIntegration.NAME), () ->
+                        rawPathPrefixSegment(ActivateTokenIntegration.NAME, () ->
                                 pathEndOrSingleSlash(() ->
                                         PoliciesRoute.extractJwt(dittoHeaders,
                                                 authResult,
@@ -561,7 +561,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
                                         )
                                 )),
                         // POST /entries/<label>/actions/deactivateTokenIntegration
-                        rawPathPrefix(PathMatchers.slash().concat(DeactivateTokenIntegration.NAME), () ->
+                        rawPathPrefixSegment(DeactivateTokenIntegration.NAME, () ->
                                 pathEndOrSingleSlash(() ->
                                         PoliciesRoute.extractJwt(dittoHeaders,
                                                 authResult,

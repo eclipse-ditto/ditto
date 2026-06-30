@@ -22,8 +22,6 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
-import org.apache.pekko.http.javadsl.server.Directives;
-import org.apache.pekko.http.javadsl.server.PathMatchers;
 import org.apache.pekko.http.javadsl.server.RequestContext;
 import org.apache.pekko.http.javadsl.server.Route;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
@@ -79,8 +77,8 @@ public final class ThingSearchRoute extends AbstractRoute {
      * @return the {@code /search}} route.
      */
     public Route buildSearchRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
-        return Directives.rawPathPrefix(PathMatchers.slash().concat(PATH_SEARCH), () ->
-                Directives.rawPathPrefix(PathMatchers.slash().concat(PATH_THINGS),
+        return rawPathPrefixSegment(PATH_SEARCH, () ->
+                rawPathPrefixSegment(PATH_THINGS,
                         () -> // /search/things
                                 concat(
                                         // /search/things/count

@@ -81,7 +81,7 @@ final class FeaturesRoute extends AbstractRoute {
      * @return the {@code /features} route.
      */
     public Route buildFeaturesRoute(final RequestContext ctx, final DittoHeaders dittoHeaders, final ThingId thingId) {
-        return rawPathPrefix(PathMatchers.slash().concat(PATH_FEATURES), () ->
+        return rawPathPrefixSegment(PATH_FEATURES, () ->
                 concat(
                         features(ctx, dittoHeaders, thingId),
                         featuresEntry(ctx, dittoHeaders, thingId),
@@ -185,7 +185,7 @@ final class FeaturesRoute extends AbstractRoute {
     private Route featuresEntryDefinition(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final ThingId thingId) {
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), featureId ->
-                rawPathPrefix(PathMatchers.slash().concat(PATH_DEFINITION), () ->
+                rawPathPrefixSegment(PATH_DEFINITION, () ->
                         pathEndOrSingleSlash(() ->
                                 concat(
                                         // GET /features/{featureId}/definition
@@ -230,7 +230,7 @@ final class FeaturesRoute extends AbstractRoute {
     private Route featuresEntryProperties(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final ThingId thingId) {
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), featureId ->
-                rawPathPrefix(PathMatchers.slash().concat(PATH_PROPERTIES), () ->
+                rawPathPrefixSegment(PATH_PROPERTIES, () ->
                         pathEndOrSingleSlash(() ->
                                 concat(
                                         // GET /features/{featureId}/properties?fields=<fieldsString>
@@ -337,7 +337,7 @@ final class FeaturesRoute extends AbstractRoute {
     private Route featuresEntryDesiredProperties(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final ThingId thingId) {
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), featureId ->
-                rawPathPrefix(PathMatchers.slash().concat(PATH_DESIRED_PROPERTIES), () ->
+                rawPathPrefixSegment(PATH_DESIRED_PROPERTIES, () ->
                         pathEndOrSingleSlash(() ->
                                 concat(
                                         // GET /features/{featureId}/desiredProperties?fields=<fieldsString>
