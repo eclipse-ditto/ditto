@@ -160,7 +160,7 @@ public final class ThingsRoute extends AbstractRoute {
      * @return the {@code /things} route.
      */
     public Route buildThingsRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
-        return rawPathPrefix(PathMatchers.slash().concat(PATH_THINGS), () ->
+        return rawPathPrefixSegment(PATH_THINGS, () ->
                 concat(
                         things(ctx, dittoHeaders),
                         rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()),
@@ -515,7 +515,7 @@ public final class ThingsRoute extends AbstractRoute {
      */
     private Route thingsEntryAttributes(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final ThingId thingId) {
-        return rawPathPrefix(PathMatchers.slash().concat(PATH_ATTRIBUTES), () ->
+        return rawPathPrefixSegment(PATH_ATTRIBUTES, () ->
                 pathEndOrSingleSlash(() ->
                         concat(
                                 // GET /things/<thingId>/attributes?fields=<fieldsString>
@@ -619,7 +619,7 @@ public final class ThingsRoute extends AbstractRoute {
      */
     private Route thingsEntryDefinition(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final ThingId thingId) {
-        return rawPathPrefix(PathMatchers.slash().concat(PATH_THING_DEFINITION), () ->
+        return rawPathPrefixSegment(PATH_THING_DEFINITION, () ->
                 pathEndOrSingleSlash(() ->
                         concat(
                                 // GET /things/<thingId>/definition
@@ -657,7 +657,7 @@ public final class ThingsRoute extends AbstractRoute {
     private Route thingsEntryMigrateDefinition(final RequestContext ctx,
             final DittoHeaders dittoHeaders,
             final ThingId thingId) {
-        return rawPathPrefix(PathMatchers.slash().concat(PATH_MIGRATE_DEFINITION), () ->
+        return rawPathPrefixSegment(PATH_MIGRATE_DEFINITION, () ->
                 pathEndOrSingleSlash(() ->
                         // POST /things/<thingId>/migrateDefinition
                         ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,

@@ -128,8 +128,8 @@ final class MessagesRoute extends AbstractRoute {
      * @return route for claim messages resource.
      */
     private Route claimMessages(final RequestContext ctx, final DittoHeaders dittoHeaders, final ThingId thingId) {
-        return rawPathPrefix(PathMatchers.slash().concat(PATH_INBOX), () -> // /inbox
-                rawPathPrefix(PathMatchers.slash().concat(PATH_CLAIM), () -> // /inbox/claim
+        return rawPathPrefixSegment(PATH_INBOX, () -> // /inbox
+                rawPathPrefixSegment(PATH_CLAIM, () -> // /inbox/claim
                         post(() ->
                                 pathEndOrSingleSlash(() ->
                                         withCustomRequestTimeout(dittoHeaders.getTimeout().orElse(null),

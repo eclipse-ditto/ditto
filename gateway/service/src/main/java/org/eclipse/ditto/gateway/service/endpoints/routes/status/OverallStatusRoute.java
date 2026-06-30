@@ -12,13 +12,14 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.routes.status;
 
+import static org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute.rawPathPrefixSegment;
+
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
 import org.apache.pekko.http.javadsl.model.ContentTypes;
 import org.apache.pekko.http.javadsl.model.HttpResponse;
 import org.apache.pekko.http.javadsl.model.StatusCodes;
-import org.apache.pekko.http.javadsl.server.PathMatchers;
 import org.apache.pekko.http.javadsl.server.Route;
 import org.apache.pekko.http.javadsl.server.directives.RouteDirectives;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -67,14 +68,14 @@ public final class OverallStatusRoute extends RouteDirectives {
      * @return the {@code /status} route.
      */
     public Route buildOverallStatusRoute(final String correlationId) {
-        return rawPathPrefix(PathMatchers.slash().concat(PATH_OVERALL), () ->  // /overall/*
+        return rawPathPrefixSegment(PATH_OVERALL, () ->  // /overall/*
             devOpsAuthenticationDirective.authenticateDevOps(DevOpsOAuth2AuthenticationDirective.REALM_STATUS,
                     DittoHeaders.newBuilder().correlationId(correlationId).build(),
                     get(() -> // GET
                             // /overall/status
                             // /overall/status/health
                             // /overall/status/cluster
-                            rawPathPrefix(PathMatchers.slash().concat(PATH_STATUS), () -> concat(
+                            rawPathPrefixSegment(PATH_STATUS, () -> concat(
                                     // /status
                                     pathEndOrSingleSlash(() -> completeWithFuture(createOverallStatusResponse())),
                                     // /status/health

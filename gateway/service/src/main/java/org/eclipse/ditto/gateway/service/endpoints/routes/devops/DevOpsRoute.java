@@ -117,23 +117,23 @@ public final class DevOpsRoute extends AbstractRoute {
         checkNotNull(ctx, "ctx");
         checkNotNull(queryParameters, "queryParameters");
 
-        return rawPathPrefix(PathMatchers.slash().concat(PATH_DEVOPS), () ->  // /devops
+        return rawPathPrefixSegment(PATH_DEVOPS, () ->  // /devops
                 devOpsAuthenticationDirective.authenticateDevOps(DevOpsOAuth2AuthenticationDirective.REALM_DEVOPS,
                         DittoHeaders.newBuilder().correlationId(correlationId).build(),
                         concat(
-                                rawPathPrefix(PathMatchers.slash().concat(PATH_LOGGING),
+                                rawPathPrefixSegment(PATH_LOGGING,
                                         () -> // /devops/logging
                                                 logging(ctx, createHeaders(queryParameters))
                                 ),
-                                rawPathPrefix(PathMatchers.slash().concat(PATH_PIGGYBACK),
+                                rawPathPrefixSegment(PATH_PIGGYBACK,
                                         () -> // /devops/piggyback
                                                 piggyback(ctx, createHeaders(queryParameters))
                                 ),
-                                rawPathPrefix(PathMatchers.slash().concat(PATH_CONFIG),
+                                rawPathPrefixSegment(PATH_CONFIG,
                                         () -> // /devops/config
                                                 config(ctx, createHeaders(queryParameters))
                                 ),
-                                rawPathPrefix(PathMatchers.slash().concat(PATH_WOT),
+                                rawPathPrefixSegment(PATH_WOT,
                                         () -> // /devops/wot
                                                 wotRoutes(ctx, createHeaders(queryParameters))
                                 )
@@ -146,7 +146,7 @@ public final class DevOpsRoute extends AbstractRoute {
      * @return {@code /devops/wot/config} route.
      */
     private Route wotRoutes(final RequestContext ctx, final DittoHeaders dittoHeaders) {
-        return rawPathPrefix(PathMatchers.slash().concat(PATH_WOT_CONFIG), () -> concat(
+        return rawPathPrefixSegment(PATH_WOT_CONFIG, () -> concat(
             // /devops/wot/config
             pathEndOrSingleSlash(() -> concat(
                 get(() -> handlePerRequest(ctx, RetrieveWotValidationConfig.of(WotValidationConfigId.GLOBAL, dittoHeaders))),
@@ -166,7 +166,7 @@ public final class DevOpsRoute extends AbstractRoute {
                 get(() -> handlePerRequest(ctx, RetrieveMergedWotValidationConfig.of(WotValidationConfigId.GLOBAL, dittoHeaders)))
             ),
             // /devops/wot/config/dynamicConfigs/{scopeId}
-            pathPrefix(PATH_WOT_DYNAMIC_CONFIGS, () -> concat(
+            rawPathPrefixSegment(PATH_WOT_DYNAMIC_CONFIGS, () -> concat(
                 // /devops/wot/config/dynamicConfigs/{scopeId}
                 pathPrefix(PathMatchers.segment(), scopeId ->
                     pathEndOrSingleSlash(() -> concat(

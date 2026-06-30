@@ -26,6 +26,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -38,6 +39,8 @@ import org.apache.pekko.actor.Status;
 import org.apache.pekko.http.javadsl.model.HttpResponse;
 import org.apache.pekko.http.javadsl.model.MediaTypes;
 import org.apache.pekko.http.javadsl.server.AllDirectives;
+import org.apache.pekko.http.javadsl.server.Directives;
+import org.apache.pekko.http.javadsl.server.PathMatchers;
 import org.apache.pekko.http.javadsl.server.RequestContext;
 import org.apache.pekko.http.javadsl.server.Route;
 import org.apache.pekko.stream.ActorAttributes;
@@ -97,6 +100,29 @@ public abstract class AbstractRoute extends AllDirectives {
     private final HttpRequestActorPropsFactory httpRequestActorPropsFactory;
     private final Attributes supervisionStrategy;
     private final Set<String> mediaTypeJsonWithFallbacks;
+
+    /**
+     * Matches a leading {@code /<pathSegment>} only if the next path segment equals {@code pathSegment}
+     * <em>completely</em> (not merely as a prefix), then delegates to {@code inner}; otherwise the request is
+     * rejected so that sibling routes get a chance to match.
+     * <p>
+     * This must be used instead of {@code rawPathPrefix(slash().concat(PathMatchers.segment(constant)), ...)}:
+     * the Pekko {@link PathMatchers#segment(String)} matcher matches the given constant only as a <em>prefix</em>
+     * of the next path segment (it is implemented via {@code Path.startsWith}), so e.g. a {@code "logging"} matcher
+     * would also match {@code /loggingh}, leaving the trailing characters dangling and silently mis-routing the
+     * request. Capturing the full segment and comparing it for equality enforces a proper segment boundary.
+     *
+     * @param pathSegment the constant path segment which must be matched in its entirety.
+     * @param inner supplies the route to apply once the segment matched.
+     * @return the route matching {@code /<pathSegment>} followed by {@code inner}.
+     */
+    public static Route rawPathPrefixSegment(final String pathSegment, final Supplier<Route> inner) {
+        // Equivalent to the framework's own pathPrefix(PathMatchers.Segment){...} but with a plain synchronous
+        // equality check instead of an Unmarshaller: consume a leading slash, capture the whole next segment and
+        // compare it for equality.
+        return Directives.pathPrefix(PathMatchers.segment(), segment ->
+                pathSegment.equals(segment) ? inner.get() : Directives.reject());
+    }
 
     /**
      * Constructs a {@code AbstractRoute} object.

@@ -13,6 +13,7 @@
 package org.eclipse.ditto.gateway.service.endpoints.routes.sse;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute.rawPathPrefixSegment;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -291,7 +292,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
             final Supplier<CompletionStage<DittoHeaders>> dittoHeadersSupplier) {
 
         // /things
-        return rawPathPrefix(PathMatchers.slash().concat(PATH_THINGS), () -> {
+        return rawPathPrefixSegment(PATH_THINGS, () -> {
             final CompletionStage<DittoHeaders> dhcs = dittoHeadersSupplier.get()
                     .thenApply(ThingsSseRouteBuilder::getDittoHeadersWithCorrelationId);
 
@@ -342,12 +343,14 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
     private Route buildSearchSseRoute(final RequestContext ctx,
             final Supplier<CompletionStage<DittoHeaders>> dittoHeadersSupplier) {
 
-        return rawPathPrefix(PathMatchers.slash().concat(PATH_SEARCH).slash().concat(PATH_THINGS), () ->
-                pathEndOrSingleSlash(() -> {
-                    final CompletionStage<DittoHeaders> dittoHeaders = dittoHeadersSupplier.get()
-                            .thenApply(ThingsSseRouteBuilder::getDittoHeadersWithCorrelationId);
-                    return parameterMap(parameters -> createSearchSseRoute(ctx, dittoHeaders, parameters));
-                })
+        return rawPathPrefixSegment(PATH_SEARCH, () ->
+                rawPathPrefixSegment(PATH_THINGS, () ->
+                        pathEndOrSingleSlash(() -> {
+                            final CompletionStage<DittoHeaders> dittoHeaders = dittoHeadersSupplier.get()
+                                    .thenApply(ThingsSseRouteBuilder::getDittoHeadersWithCorrelationId);
+                            return parameterMap(parameters -> createSearchSseRoute(ctx, dittoHeaders, parameters));
+                        })
+                )
         );
     }
 

@@ -89,6 +89,15 @@ public final class DevOpsRouteTest extends EndpointTestBase {
         result.assertStatusCode(StatusCodes.BAD_REQUEST);
     }
 
+    @Test
+    public void testLoggingWithTypoInPathSegmentIsRejected() {
+        // "loggingh" must not be matched as a prefix of the "logging" route segment;
+        // a malformed segment must be rejected (404) instead of being silently treated
+        // as a logger-config request to all services.
+        final var result = underTest.run(HttpRequest.GET("/devops/loggingh/gateway"));
+        result.assertStatusCode(StatusCodes.NOT_FOUND);
+    }
+
     private static DevOpsConfig getInsecureDevopsConfig() {
         return DefaultDevOpsConfig.of(ConfigFactory.parseString("devops.secured=false"));
     }
