@@ -41,7 +41,7 @@ public final class WhoamiRoute extends AbstractRoute {
     }
 
     public Route buildWhoamiRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
-        return rawPathPrefix(PathMatchers.slash().concat(PATH_WHOAMI), () -> whoami(ctx, dittoHeaders));
+        return rawPathPrefixSegment(PATH_WHOAMI, () -> whoami(ctx, dittoHeaders));
     }
 
     private Route whoami(final RequestContext ctx, final DittoHeaders dittoHeaders) {

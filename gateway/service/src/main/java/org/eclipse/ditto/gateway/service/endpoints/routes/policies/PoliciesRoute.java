@@ -124,7 +124,7 @@ public final class PoliciesRoute extends AbstractRoute {
      */
     public Route buildPoliciesRoute(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final AuthenticationResult authenticationResult) {
-        return rawPathPrefix(PathMatchers.slash().concat(PATH_POLICIES), () ->
+        return rawPathPrefixSegment(PATH_POLICIES, () ->
                 concat(
                         policies(ctx, dittoHeaders),
                         rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), policyId ->
@@ -251,7 +251,7 @@ public final class PoliciesRoute extends AbstractRoute {
      * @return {@code /policies/<policyId>/imports} route.
      */
     private Route policyImports(final RequestContext ctx, final DittoHeaders dittoHeaders, final PolicyId policyId) {
-        return rawPathPrefix(PathMatchers.slash().concat(PATH_IMPORTS), () -> // /policies/<policyId>/imports
+        return rawPathPrefixSegment(PATH_IMPORTS, () -> // /policies/<policyId>/imports
                 policyImportsRoute.buildPolicyImportsRoute(ctx, dittoHeaders, policyId)
         );
     }
@@ -263,7 +263,7 @@ public final class PoliciesRoute extends AbstractRoute {
      */
     private Route policyEntries(final RequestContext ctx, final DittoHeaders dittoHeaders, final PolicyId policyId,
             final AuthenticationResult authResult) {
-        return rawPathPrefix(PathMatchers.slash().concat(PATH_ENTRIES), () -> // /policies/<policyId>/entries
+        return rawPathPrefixSegment(PATH_ENTRIES, () -> // /policies/<policyId>/entries
                 policyEntriesRoute.buildPolicyEntriesRoute(ctx, dittoHeaders, policyId, authResult)
         );
     }
@@ -274,9 +274,9 @@ public final class PoliciesRoute extends AbstractRoute {
     private Route policyActions(final RequestContext ctx, final DittoHeaders dittoHeaders, final PolicyId policyId,
             final AuthenticationResult authenticationResult) {
 
-        return rawPathPrefix(PathMatchers.slash().concat(PATH_ACTIONS), () -> concat(
+        return rawPathPrefixSegment(PATH_ACTIONS, () -> concat(
                 // POST /policies/<policyId>/actions/activateTokenIntegration
-                rawPathPrefix(PathMatchers.slash().concat(ActivateTokenIntegration.NAME), () ->
+                rawPathPrefixSegment(ActivateTokenIntegration.NAME, () ->
                         pathEndOrSingleSlash(() ->
                                 extractJwt(dittoHeaders, authenticationResult, ActivateTokenIntegration.NAME, jwt ->
                                         post(() -> handleSubjectAnnouncement(this, dittoHeaders, sa ->
@@ -286,7 +286,7 @@ public final class PoliciesRoute extends AbstractRoute {
                         )
                 ),
                 // POST /policies/<policyId>/actions/deactivateTokenIntegration
-                rawPathPrefix(PathMatchers.slash().concat(DeactivateTokenIntegration.NAME), () ->
+                rawPathPrefixSegment(DeactivateTokenIntegration.NAME, () ->
                         pathEndOrSingleSlash(() ->
                                 extractJwt(dittoHeaders, authenticationResult, DeactivateTokenIntegration.NAME, jwt ->
                                         post(() -> handlePerRequest(ctx, topLevelDeactivateTokenIntegration(
