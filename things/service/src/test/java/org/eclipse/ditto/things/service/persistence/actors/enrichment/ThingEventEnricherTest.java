@@ -70,6 +70,15 @@ public final class ThingEventEnricherTest {
             .setAttribute(JsonPointer.of("folder/private"), JsonValue.of(false))
             .build();
 
+    // Same as KNOWN_THING but with the "public2" attribute removed → a structural change.
+    private static final Thing THING_WITHOUT_PUBLIC2 = Thing.newBuilder().setId(KNOWN_THING_ID)
+            .setDefinition(ThingsModelFactory.newDefinition(KNOWN_DEFINITION))
+            .setAttribute(JsonPointer.of("public1"), JsonValue.of(true))
+            .setAttribute(JsonPointer.of("private"), JsonValue.of(false))
+            .setAttribute(JsonPointer.of("folder/public"), JsonValue.of(true))
+            .setAttribute(JsonPointer.of("folder/private"), JsonValue.of(false))
+            .build();
+
     private static final PolicyId KNOWN_POLICY_ID = PolicyId.of("known:policy");
     private static final String KNOWN_LABEL_FULL = "full-access";
     private static final String KNOWN_LABEL_RESTRICTED = "restricted-access";
@@ -118,7 +127,7 @@ public final class ThingEventEnricherTest {
     @Test
     public void ensureDefinitionIsEnrichedAsPreDefinedFromConfiguration() {
         // GIVEN: the configuration to enrich all things with their definition
-        final var sut = new ThingEventEnricher(policyEnforcerProvider, true);
+        final var sut = new ThingEventEnricher(policyEnforcerProvider, true, true);
         final var configs = getPreDefinedExtraFieldsConfigs(
                 "namespaces = []\n" +
                 "extra-fields = [\"definition\"]"
@@ -141,7 +150,7 @@ public final class ThingEventEnricherTest {
 
     @Test
     public void ensureDefinitionAndAdditionalNamespaceSpecificIsEnrichedAsPreDefinedFromConfiguration() {
-        final var sut = new ThingEventEnricher(policyEnforcerProvider, true);
+        final var sut = new ThingEventEnricher(policyEnforcerProvider, true, true);
         final var configs = getPreDefinedExtraFieldsConfigs(
                 "namespaces = [\"org.eclipse.ditto.some\"]\n" +
                 "extra-fields = [\"definition\", \"attributes/public1\", \"attributes/private\"]"
@@ -179,7 +188,7 @@ public final class ThingEventEnricherTest {
 
     @Test
     public void addsPartialAccessHeaderWhenPartialSubjectsExist() {
-        final ThingEventEnricher sut = new ThingEventEnricher(policyEnforcerProvider, true);
+        final ThingEventEnricher sut = new ThingEventEnricher(policyEnforcerProvider, true, true);
 
         final CompletionStage<JsonObject> partialHeaderStage = calculateEnrichedSignalHeaders(sut, List.of())
                 .thenApply(headers -> {
@@ -223,7 +232,7 @@ public final class ThingEventEnricherTest {
 
     @Test
     public void skipsPartialAccessHeaderWhenFeatureDisabled() {
-        final ThingEventEnricher sut = new ThingEventEnricher(policyEnforcerProvider, false);
+        final ThingEventEnricher sut = new ThingEventEnricher(policyEnforcerProvider, false, true);
 
         final CompletionStage<DittoHeaders> headersStage = calculateEnrichedSignalHeaders(sut, List.of());
 
@@ -239,7 +248,7 @@ public final class ThingEventEnricherTest {
         when(fullAccessProvider.getPolicyEnforcer(KNOWN_POLICY_ID))
                 .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(FULL_ACCESS_POLICY))));
 
-        final ThingEventEnricher sut = new ThingEventEnricher(fullAccessProvider, true);
+        final ThingEventEnricher sut = new ThingEventEnricher(fullAccessProvider, true, true);
 
         final CompletionStage<DittoHeaders> headersStage = calculateEnrichedSignalHeaders(sut, List.of());
 
@@ -252,7 +261,7 @@ public final class ThingEventEnricherTest {
     @Test
     public void ensureConditionBasedEnrichmentAsPreDefinedFromConfiguration() {
         // GIVEN: the configuration to enrich all things with their definition and some with an attribute public1
-        final var sut = new ThingEventEnricher(policyEnforcerProvider, true);
+        final var sut = new ThingEventEnricher(policyEnforcerProvider, true, true);
         final var configs = getPreDefinedExtraFieldsConfigs(
                 "namespaces = [\"org.eclipse.ditto.some\"]\n" +
                 "condition = \"exists(attributes/public1)\"\n" +
@@ -300,7 +309,7 @@ public final class ThingEventEnricherTest {
         final PolicyEnforcerProvider fullAccessProvider = mock(PolicyEnforcerProvider.class);
         when(fullAccessProvider.getPolicyEnforcer(KNOWN_POLICY_ID))
                 .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(FULL_ACCESS_POLICY))));
-        final ThingEventEnricher sut = new ThingEventEnricher(fullAccessProvider, true);
+        final ThingEventEnricher sut = new ThingEventEnricher(fullAccessProvider, true, true);
         final var configs = getPreDefinedExtraFieldsConfigs(
                 "namespaces = [\"org.eclipse.ditto.some\"]\n" +
                 "extra-fields = [\"attributes\"]"
@@ -328,6 +337,100 @@ public final class ThingEventEnricherTest {
         });
         // Verify the specific subject is present for /attributes
         assertThat(readGrantHeader).contains(KNOWN_ISSUER_FULL_SUBJECT);
+    }
+
+    @Test
+    public void cacheServesStoredResultForSamePolicyRevisionAndStructure() {
+        final PolicyEnforcerProvider provider = mock(PolicyEnforcerProvider.class);
+        // Both enforcers carry revision 1 but the second grants fewer paths; a cache hit (keyed on
+        // policyId + revision + structure) must reuse the first result and ignore the second enforcer.
+        when(provider.getPolicyEnforcer(KNOWN_POLICY_ID)).thenReturn(
+                enforcerFuture(restrictedPolicy(1L, "/attributes/public1", "/attributes/public2")),
+                enforcerFuture(restrictedPolicy(1L, "/attributes/public1")));
+        final ThingEventEnricher sut = new ThingEventEnricher(provider, true, true);
+
+        final JsonObject header1 = partialAccessHeader(sut, KNOWN_THING);
+        final JsonObject header2 = partialAccessHeader(sut, KNOWN_THING);
+
+        assertThat(header1.toString()).contains("attributes/public2");
+        assertThat(header2).isEqualTo(header1); // reused despite the second, narrower enforcer
+    }
+
+    @Test
+    public void cacheRecomputesWhenThingStructureChanges() {
+        final PolicyEnforcerProvider provider = mock(PolicyEnforcerProvider.class);
+        when(provider.getPolicyEnforcer(KNOWN_POLICY_ID)).thenReturn(
+                enforcerFuture(restrictedPolicy(1L, "/attributes/public1", "/attributes/public2")));
+        final ThingEventEnricher sut = new ThingEventEnricher(provider, true, true);
+
+        final JsonObject header1 = partialAccessHeader(sut, KNOWN_THING);           // public2 accessible
+        final JsonObject header2 = partialAccessHeader(sut, THING_WITHOUT_PUBLIC2); // public2 removed
+
+        assertThat(header1.toString()).contains("attributes/public2");
+        assertThat(header2.toString()).doesNotContain("attributes/public2");
+        assertThat(header2).isNotEqualTo(header1);
+    }
+
+    @Test
+    public void cacheRecomputesWhenPolicyRevisionChanges() {
+        final PolicyEnforcerProvider provider = mock(PolicyEnforcerProvider.class);
+        when(provider.getPolicyEnforcer(KNOWN_POLICY_ID)).thenReturn(
+                enforcerFuture(restrictedPolicy(1L, "/attributes/public1")),
+                enforcerFuture(restrictedPolicy(2L, "/attributes/public1", "/attributes/public2")));
+        final ThingEventEnricher sut = new ThingEventEnricher(provider, true, true);
+
+        final JsonObject header1 = partialAccessHeader(sut, KNOWN_THING); // rev 1: public1 only
+        final JsonObject header2 = partialAccessHeader(sut, KNOWN_THING); // rev 2: public1 + public2
+
+        assertThat(header1.toString()).doesNotContain("attributes/public2");
+        assertThat(header2.toString()).contains("attributes/public2");
+        assertThat(header2).isNotEqualTo(header1);
+    }
+
+    @Test
+    public void cacheDisabledRecomputesEachTime() {
+        final PolicyEnforcerProvider provider = mock(PolicyEnforcerProvider.class);
+        when(provider.getPolicyEnforcer(KNOWN_POLICY_ID)).thenReturn(
+                enforcerFuture(restrictedPolicy(1L, "/attributes/public1", "/attributes/public2")),
+                enforcerFuture(restrictedPolicy(1L, "/attributes/public1")));
+        final ThingEventEnricher sut = new ThingEventEnricher(provider, true, false); // cache disabled
+
+        final JsonObject header1 = partialAccessHeader(sut, KNOWN_THING); // policy A: public1 + public2
+        final JsonObject header2 = partialAccessHeader(sut, KNOWN_THING); // policy B: public1 (recomputed)
+
+        assertThat(header1.toString()).contains("attributes/public2");
+        assertThat(header2.toString()).doesNotContain("attributes/public2");
+        assertThat(header2).isNotEqualTo(header1);
+    }
+
+    private static Policy restrictedPolicy(final long revision, final String... restrictedGrantThingPaths) {
+        final var builder = Policy.newBuilder(KNOWN_POLICY_ID)
+                .setRevision(revision)
+                .setSubjectFor(KNOWN_LABEL_FULL, Subject.newInstance(
+                        SubjectId.newInstance(KNOWN_ISSUER_FULL_SUBJECT), SubjectType.GENERATED))
+                .setGrantedPermissionsFor(KNOWN_LABEL_FULL, ResourceKey.newInstance("thing", "/"), "READ", "WRITE")
+                .setSubjectFor(KNOWN_LABEL_RESTRICTED, Subject.newInstance(
+                        SubjectId.newInstance(KNOWN_ISSUER_RESTRICTED_SUBJECT), SubjectType.GENERATED));
+        for (final String path : restrictedGrantThingPaths) {
+            builder.setGrantedPermissionsFor(KNOWN_LABEL_RESTRICTED, ResourceKey.newInstance("thing", path), "READ");
+        }
+        return builder.build();
+    }
+
+    private static CompletableFuture<Optional<PolicyEnforcer>> enforcerFuture(final Policy policy) {
+        return CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy)));
+    }
+
+    private static JsonObject partialAccessHeader(final ThingEventEnricher sut, final Thing thing) {
+        final AttributeModified event = AttributeModified.of(
+                KNOWN_THING_ID, JsonPointer.of("something"), JsonValue.of(true), 4L,
+                Instant.now(), DittoHeaders.empty(), null);
+        final DittoHeaders headers = sut.enrichWithPredefinedExtraFields(
+                        List.of(), KNOWN_THING_ID, thing, KNOWN_POLICY_ID, event)
+                .thenApply(AttributeModified::getDittoHeaders)
+                .toCompletableFuture().join();
+        final String value = headers.get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey());
+        return value == null ? JsonFactory.newObject() : JsonFactory.readFrom(value).asObject();
     }
 
     private List<PreDefinedExtraFieldsConfig> getPreDefinedExtraFieldsConfigs(final String... configurations) {

@@ -15,6 +15,7 @@ package org.eclipse.ditto.things.service.persistence.actors.enrichment;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -45,7 +46,9 @@ import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
+import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyRevision;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
@@ -72,19 +75,30 @@ public final class ThingEventEnricher {
 
     private final PolicyEnforcerProvider policyEnforcerProvider;
     private final boolean partialAccessEventsEnabled;
+    private final boolean partialAccessPathsCacheEnabled;
+
+    // Memoizes the last computed partial-access-paths result for this (per-thing) enricher. The result
+    // is a pure function of (policy revision, Thing structure), so it is reused across value-only Thing
+    // updates. Held as a single immutable snapshot behind a volatile reference: enrichment may complete
+    // on a policy-enforcer-provider thread rather than the actor thread, so a cache hit must observe a
+    // consistent (policyId, revision, structureHash, result) tuple. Races merely cause a recompute.
+    @Nullable private volatile PartialAccessPathsCacheEntry partialAccessPathsCache;
 
     /**
      * Constructs a new enricher for ThingEvents based on the provided policy enforcer.
      *
      * @param policyEnforcerProvider the policy enforcer to use in order to check permissions for enriching extraFields
      * @param partialAccessEventsEnabled whether partial access events should be emitted
+     * @param partialAccessPathsCacheEnabled whether the per-thing partial-access-paths cache is enabled
      */
     public ThingEventEnricher(
             final PolicyEnforcerProvider policyEnforcerProvider,
-            final boolean partialAccessEventsEnabled
+            final boolean partialAccessEventsEnabled,
+            final boolean partialAccessPathsCacheEnabled
     ) {
         this.policyEnforcerProvider = policyEnforcerProvider;
         this.partialAccessEventsEnabled = partialAccessEventsEnabled;
+        this.partialAccessPathsCacheEnabled = partialAccessPathsCacheEnabled;
     }
 
     /**
@@ -304,19 +318,71 @@ public final class ThingEventEnricher {
                                         policyId);
                         return createEmptyPartialAccessPathsJson();
                     }
+                    final PolicyEnforcer policyEnforcer = policyEnforcerOpt.get();
+
+                    // The result depends only on (policy revision, Thing structure), so it can be reused
+                    // across value-only Thing updates. Cache only when we have a policy id + revision to key on.
+                    final Long policyRevision = policyEnforcer.getPolicy()
+                            .flatMap(Policy::getRevision)
+                            .map(PolicyRevision::toLong)
+                            .orElse(null);
+                    final boolean cacheable =
+                            partialAccessPathsCacheEnabled && policyId != null && policyRevision != null;
+                    final long structureHash =
+                            cacheable ? PartialAccessPathCalculator.structureHash(effectiveThingJson) : 0L;
+                    if (cacheable) {
+                        final PartialAccessPathsCacheEntry cached = partialAccessPathsCache;
+                        if (cached != null && cached.matches(policyId, policyRevision, structureHash)) {
+                            LOGGER.withCorrelationId(dittoHeaders)
+                                    .debug("Reusing cached partial access paths for event '{}' (thingId: {})",
+                                            thingEvent.getType(), thingEvent.getEntityId());
+                            return cached.result;
+                        }
+                    }
+
                     final Map<String, List<JsonPointer>> partialAccessPaths =
                             PartialAccessPathCalculator.calculatePartialAccessPaths(
-                                    thing, policyEnforcerOpt.get(), effectiveThingJson);
+                                    thing, policyEnforcer, effectiveThingJson);
                     // Return consistent empty structure (will be filtered out in caller)
-                    if (partialAccessPaths.isEmpty()) {
-                        return createEmptyPartialAccessPathsJson();
-                    }
-                    final JsonObject result = PartialAccessPathCalculator.toIndexedJsonObject(partialAccessPaths);
+                    final JsonObject result = partialAccessPaths.isEmpty()
+                            ? createEmptyPartialAccessPathsJson()
+                            : PartialAccessPathCalculator.toIndexedJsonObject(partialAccessPaths);
                     LOGGER.withCorrelationId(dittoHeaders)
                             .debug("Calculated partial access paths for event '{}' (thingId: {}): {} subjects with partial access",
                                     thingEvent.getType(), thingEvent.getEntityId(), partialAccessPaths.size());
+                    if (cacheable) {
+                        partialAccessPathsCache =
+                                new PartialAccessPathsCacheEntry(policyId, policyRevision, structureHash, result);
+                    }
                     return result;
                 });
+    }
+
+    /**
+     * Immutable snapshot of a computed partial-access-paths result together with the key it is valid for.
+     * Stored behind a single volatile reference so readers always see a consistent tuple.
+     */
+    private static final class PartialAccessPathsCacheEntry {
+
+        private final PolicyId policyId;
+        private final long policyRevision;
+        private final long structureHash;
+        private final JsonObject result;
+
+        private PartialAccessPathsCacheEntry(final PolicyId policyId, final long policyRevision,
+                final long structureHash, final JsonObject result) {
+            this.policyId = policyId;
+            this.policyRevision = policyRevision;
+            this.structureHash = structureHash;
+            this.result = result;
+        }
+
+        private boolean matches(final PolicyId otherPolicyId, final long otherPolicyRevision,
+                final long otherStructureHash) {
+            return policyRevision == otherPolicyRevision
+                    && structureHash == otherStructureHash
+                    && Objects.equals(policyId, otherPolicyId);
+        }
     }
 
     /**
