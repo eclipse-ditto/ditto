@@ -37,6 +37,15 @@ public interface ThingEventConfig extends EventConfig {
     boolean isPartialAccessEventsEnabled();
 
     /**
+     * Indicates whether the per-thing cache of computed partial-access-paths (reused across value-only
+     * Thing updates while the policy and Thing structure are unchanged) is enabled. Acts as a safety
+     * valve; the result is identical to recomputing.
+     *
+     * @return {@code true} if the partial-access-paths cache is enabled.
+     */
+    boolean isPartialAccessEventsCacheEnabled();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code ThingEventConfig}.
      */
@@ -50,7 +59,12 @@ public interface ThingEventConfig extends EventConfig {
         /**
          * Whether partial access events should be emitted.
          */
-        PARTIAL_ACCESS_EVENTS_ENABLED("partial-access-events.enabled", Boolean.TRUE);
+        PARTIAL_ACCESS_EVENTS_ENABLED("partial-access-events.enabled", Boolean.TRUE),
+
+        /**
+         * Whether the per-thing partial-access-paths cache is enabled.
+         */
+        PARTIAL_ACCESS_EVENTS_CACHE_ENABLED("partial-access-events.cache.enabled", Boolean.TRUE);
 
         private final String path;
         private final Object defaultValue;

@@ -147,6 +147,65 @@ public final class PartialAccessPathCalculator {
     }
 
     /**
+     * Computes a 64-bit hash of the Thing JSON's <em>structure</em> — the set of leaf paths — while
+     * ignoring all scalar values. Two Thing JSONs with the same structure but different values hash
+     * equally; any structural difference (added/removed/renamed field, scalar-vs-object,
+     * empty-vs-populated object) changes the hash with overwhelming probability.
+     * <p>
+     * The output of {@link #calculatePartialAccessPaths} depends only on the policy and this structure,
+     * so callers can memoize the result keyed on {@code (policy revision, structureHash)} and reuse it
+     * across value-only Thing updates.
+     * <p>
+     * <strong>Coupling:</strong> the notion of "leaf" here mirrors
+     * {@code TreeBasedPolicyEnforcer.collectFlatPointers} exactly — recurse into non-empty JSON objects;
+     * treat scalars, arrays, and empty objects as leaves. Iteration follows {@link JsonObject} field
+     * order, which is deterministic for a given structure. If the two ever diverge, hits would return a
+     * stale structure result; the equivalence test in {@code PartialAccessPathCalculatorTest} guards this.
+     *
+     * @param thingJson the Thing JSON to hash.
+     * @return a structure-only 64-bit hash.
+     */
+    public static long structureHash(final JsonObject thingJson) {
+        return hashObject(thingJson, FNV_OFFSET_BASIS);
+    }
+
+    private static final long FNV_OFFSET_BASIS = 0xcbf29ce484222325L;
+    private static final long FNV_PRIME = 0x100000001b3L;
+    // Distinct structural tokens folded into the hash to encode tree shape (so that e.g.
+    // {a:{b}, c} and {a:{b, c}} — same key sequence, different nesting — hash differently).
+    private static final int TOKEN_DESCEND = 0x01;
+    private static final int TOKEN_ASCEND = 0x02;
+    private static final int TOKEN_LEAF = 0x03;
+
+    private static long hashObject(final JsonObject object, long hash) {
+        for (final JsonField field : object) {
+            hash = hashChars(field.getKey().toString(), hash);
+            final JsonValue value = field.getValue();
+            if (value.isObject() && !value.asObject().isEmpty()) {
+                hash = fnv(hash, TOKEN_DESCEND);
+                hash = hashObject(value.asObject(), hash);
+                hash = fnv(hash, TOKEN_ASCEND);
+            } else {
+                hash = fnv(hash, TOKEN_LEAF);
+            }
+        }
+        return hash;
+    }
+
+    private static long hashChars(final String string, long hash) {
+        for (int i = 0; i < string.length(); i++) {
+            final char c = string.charAt(i);
+            hash = fnv(hash, c & 0xff);
+            hash = fnv(hash, (c >> 8) & 0xff);
+        }
+        return fnv(hash, 0); // key terminator, so "ab","c" cannot collide with "a","bc"
+    }
+
+    private static long fnv(final long hash, final int nextByte) {
+        return (hash ^ (nextByte & 0xff)) * FNV_PRIME;
+    }
+
+    /**
      * Calculates accessible paths for a set of subjects with restricted access using a batch call.
      * <p>
      * The {@link Enforcer#getAccessiblePathsForSubjects} call returns a per-subject set of

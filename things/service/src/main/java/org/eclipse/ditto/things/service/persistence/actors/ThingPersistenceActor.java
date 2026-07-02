@@ -115,7 +115,8 @@ public final class ThingPersistenceActor
         this.searchShardRegionProxy = searchShardRegionProxy;
         this.thingEventEnricher = new ThingEventEnricher(
                 policyEnforcerProvider,
-                thingConfig.getEventConfig().isPartialAccessEventsEnabled()
+                thingConfig.getEventConfig().isPartialAccessEventsEnabled(),
+                thingConfig.getEventConfig().isPartialAccessEventsCacheEnabled()
         );
     }
 
