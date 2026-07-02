@@ -82,6 +82,46 @@ public final class PolicyEnforcerTest {
     }
 
     @Test
+    public void forNamespaceMemoizesResultForRepeatedCalls() {
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(PolicyId.of("test:policy"))
+                .set(newScopedEntry("restricted", "google:tenant-user",
+                        Arrays.asList("com.acme", "com.acme.*")))
+                .set(newScopedEntry("global", "google:global-user", Collections.emptyList()))
+                .build();
+        final PolicyEnforcer original = PolicyEnforcer.of(policy);
+
+        // "org.example" filters out the restricted entry, so a new (filtered) enforcer is built the first
+        // time. A second call for the same namespace must return the memoized instance, not rebuild the tree.
+        final PolicyEnforcer first = original.forNamespace("org.example");
+        final PolicyEnforcer second = original.forNamespace("org.example");
+
+        assertThat(first).isNotSameAs(original);
+        assertThat(second).isSameAs(first);
+    }
+
+    @Test
+    public void forNamespaceReturnsDistinctEnforcersForDistinctNamespaces() {
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(PolicyId.of("test:policy"))
+                .set(newScopedEntry("restricted", "google:tenant-user",
+                        Arrays.asList("com.acme", "com.acme.*")))
+                .set(newScopedEntry("global", "google:global-user", Collections.emptyList()))
+                .build();
+        final PolicyEnforcer original = PolicyEnforcer.of(policy);
+
+        // "org.example" excludes the restricted entry; "com.acme.vehicles" keeps it.
+        final PolicyEnforcer excluding = original.forNamespace("org.example");
+        final PolicyEnforcer including = original.forNamespace("com.acme.vehicles");
+
+        assertThat(excluding).isNotSameAs(including);
+        assertThat(excluding.getEnforcer().getSubjectsWithUnrestrictedPermission(
+                PoliciesResourceType.thingResource("/"), Permission.READ))
+                .doesNotContain(AuthorizationSubject.newInstance("google:tenant-user"));
+        assertThat(including.getEnforcer().getSubjectsWithUnrestrictedPermission(
+                PoliciesResourceType.thingResource("/"), Permission.READ))
+                .contains(AuthorizationSubject.newInstance("google:tenant-user"));
+    }
+
+    @Test
     public void forNamespaceWithNullPolicyReturnsSameInstance() {
         final PolicyEnforcer enforcer = PolicyEnforcer.embed(
                 org.eclipse.ditto.internal.utils.cache.entry.Entry.of(0L,
