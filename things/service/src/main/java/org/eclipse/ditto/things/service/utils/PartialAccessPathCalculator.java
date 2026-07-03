@@ -122,12 +122,36 @@ public final class PartialAccessPathCalculator {
             return Map.of();
         }
 
+        final Set<AuthorizationSubject> subjectsWithRestrictedAccess = subjectsWithRestrictedAccess(policyEnforcer);
+        if (subjectsWithRestrictedAccess.isEmpty()) {
+            return Map.of();
+        }
+
+        return calculateAccessiblePathsForSubjects(subjectsWithRestrictedAccess, thingJson,
+                policyEnforcer.getEnforcer());
+    }
+
+    /**
+     * Cheap check — uses only the memoized root-READ {@link SubjectClassification} and small set operations,
+     * with <em>no</em> Thing JSON walk — for whether the given enforcer grants any subject <em>restricted</em>
+     * (partial) READ on the thing. When this is {@code false}, {@link #calculatePartialAccessPaths} returns an
+     * empty map, so callers can skip the (comparatively expensive) {@link #structureHash} computation and caching
+     * entirely for the common full-access / no-restricted-subject case.
+     *
+     * @param policyEnforcer the enforcer to inspect.
+     * @return {@code true} iff at least one subject has partial (not full-root) READ access.
+     */
+    public static boolean hasSubjectsWithRestrictedAccess(final PolicyEnforcer policyEnforcer) {
+        return !subjectsWithRestrictedAccess(policyEnforcer).isEmpty();
+    }
+
+    private static Set<AuthorizationSubject> subjectsWithRestrictedAccess(final PolicyEnforcer policyEnforcer) {
         // Memoized on the PolicyEnforcer instance: paid once per policy revision, not per event.
         final SubjectClassification classification = policyEnforcer.getRootResourceReadClassification();
 
         // Common-case fast path: no subject has any READ grant on the root resource → nothing to do.
         if (classification.getPartialOnly().isEmpty() && classification.getUnrestricted().isEmpty()) {
-            return Map.of();
+            return Set.of();
         }
 
         // Reconstruct "restricted" = partial - (effectedGranted ∩ unrestricted)
@@ -137,13 +161,7 @@ public final class PartialAccessPathCalculator {
         fullAccessOnRoot.retainAll(classification.getUnrestricted());
         final Set<AuthorizationSubject> subjectsWithRestrictedAccess = new LinkedHashSet<>(allPartial);
         subjectsWithRestrictedAccess.removeAll(fullAccessOnRoot);
-
-        if (subjectsWithRestrictedAccess.isEmpty()) {
-            return Map.of();
-        }
-
-        return calculateAccessiblePathsForSubjects(subjectsWithRestrictedAccess, thingJson,
-                policyEnforcer.getEnforcer());
+        return subjectsWithRestrictedAccess;
     }
 
     /**
