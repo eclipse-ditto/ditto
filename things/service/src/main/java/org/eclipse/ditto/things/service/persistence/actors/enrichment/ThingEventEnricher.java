@@ -72,19 +72,30 @@ public final class ThingEventEnricher {
 
     private final PolicyEnforcerProvider policyEnforcerProvider;
     private final boolean partialAccessEventsEnabled;
+    private final boolean partialAccessPathsCacheEnabled;
+
+    // Memoizes the last computed partial-access-paths result for this (per-thing) enricher. The result
+    // is a pure function of (policy revision, Thing structure), so it is reused across value-only Thing
+    // updates. Held as a single immutable snapshot behind a volatile reference: enrichment may complete
+    // on a policy-enforcer-provider thread rather than the actor thread, so a cache hit must observe a
+    // consistent (policyId, revision, structureHash, result) tuple. Races merely cause a recompute.
+    @Nullable private volatile PartialAccessPathsCacheEntry partialAccessPathsCache;
 
     /**
      * Constructs a new enricher for ThingEvents based on the provided policy enforcer.
      *
      * @param policyEnforcerProvider the policy enforcer to use in order to check permissions for enriching extraFields
      * @param partialAccessEventsEnabled whether partial access events should be emitted
+     * @param partialAccessPathsCacheEnabled whether the per-thing partial-access-paths cache is enabled
      */
     public ThingEventEnricher(
             final PolicyEnforcerProvider policyEnforcerProvider,
-            final boolean partialAccessEventsEnabled
+            final boolean partialAccessEventsEnabled,
+            final boolean partialAccessPathsCacheEnabled
     ) {
         this.policyEnforcerProvider = policyEnforcerProvider;
         this.partialAccessEventsEnabled = partialAccessEventsEnabled;
+        this.partialAccessPathsCacheEnabled = partialAccessPathsCacheEnabled;
     }
 
     /**
@@ -304,19 +315,78 @@ public final class ThingEventEnricher {
                                         policyId);
                         return createEmptyPartialAccessPathsJson();
                     }
-                    final Map<String, List<JsonPointer>> partialAccessPaths =
-                            PartialAccessPathCalculator.calculatePartialAccessPaths(
-                                    thing, policyEnforcerOpt.get(), effectiveThingJson);
-                    // Return consistent empty structure (will be filtered out in caller)
-                    if (partialAccessPaths.isEmpty()) {
+                    final PolicyEnforcer policyEnforcer = policyEnforcerOpt.get();
+
+                    // Cheap fast path (memoized classification, no Thing walk): with no restricted subjects
+                    // there is no partial-access header to emit. Bail out before hashing the Thing structure so
+                    // full-access things — the common case — cost the same as before this cache was added.
+                    if (partialAccessPathsCacheEnabled
+                            && !PartialAccessPathCalculator.hasSubjectsWithRestrictedAccess(policyEnforcer)) {
                         return createEmptyPartialAccessPathsJson();
                     }
-                    final JsonObject result = PartialAccessPathCalculator.toIndexedJsonObject(partialAccessPaths);
+
+                    // The result depends only on (effective policy grants, Thing structure). Key the memo on
+                    // the PolicyEnforcer *instance* (not its policy revision): CachingPolicyEnforcerProvider
+                    // replaces the instance wholesale whenever the effective grants change from ANY source —
+                    // the policy itself, an imported policy, or a namespace-root policy (cascade invalidation
+                    // in PolicyEnforcerCache). The importing policy's own revision does NOT move when an
+                    // imported / ns-root policy changes, so keying on revision would serve a stale allowlist
+                    // and leak a revoked field to a restricted subject. Identity comparison avoids that.
+                    final boolean cacheable = partialAccessPathsCacheEnabled;
+                    final long structureHash =
+                            cacheable ? PartialAccessPathCalculator.structureHash(effectiveThingJson) : 0L;
+                    if (cacheable) {
+                        final PartialAccessPathsCacheEntry cached = partialAccessPathsCache;
+                        if (cached != null && cached.matches(policyEnforcer, structureHash)) {
+                            LOGGER.withCorrelationId(dittoHeaders)
+                                    .debug("Reusing cached partial access paths for event '{}' (thingId: {})",
+                                            thingEvent.getType(), thingEvent.getEntityId());
+                            return cached.result;
+                        }
+                    }
+
+                    final Map<String, List<JsonPointer>> partialAccessPaths =
+                            PartialAccessPathCalculator.calculatePartialAccessPaths(
+                                    thing, policyEnforcer, effectiveThingJson);
+                    // Return consistent empty structure (will be filtered out in caller)
+                    final JsonObject result = partialAccessPaths.isEmpty()
+                            ? createEmptyPartialAccessPathsJson()
+                            : PartialAccessPathCalculator.toIndexedJsonObject(partialAccessPaths);
                     LOGGER.withCorrelationId(dittoHeaders)
                             .debug("Calculated partial access paths for event '{}' (thingId: {}): {} subjects with partial access",
                                     thingEvent.getType(), thingEvent.getEntityId(), partialAccessPaths.size());
+                    if (cacheable) {
+                        partialAccessPathsCache =
+                                new PartialAccessPathsCacheEntry(policyEnforcer, structureHash, result);
+                    }
                     return result;
                 });
+    }
+
+    /**
+     * Immutable snapshot of a computed partial-access-paths result together with the key it is valid for.
+     * Stored behind a single volatile reference so readers always see a consistent tuple. The key is the
+     * {@link PolicyEnforcer} <em>instance</em> (compared by identity): it is replaced whenever the effective
+     * grants change (including via imported / namespace-root policies), so identity captures every grant change.
+     */
+    private static final class PartialAccessPathsCacheEntry {
+
+        private final PolicyEnforcer policyEnforcer;
+        private final long structureHash;
+        private final JsonObject result;
+
+        private PartialAccessPathsCacheEntry(final PolicyEnforcer policyEnforcer, final long structureHash,
+                final JsonObject result) {
+            this.policyEnforcer = policyEnforcer;
+            this.structureHash = structureHash;
+            this.result = result;
+        }
+
+        private boolean matches(final PolicyEnforcer otherPolicyEnforcer, final long otherStructureHash) {
+            // Reference equality on purpose: a new enforcer instance means the effective grants may have
+            // changed (own policy, import, or ns-root), so the cached result must not be reused.
+            return policyEnforcer == otherPolicyEnforcer && structureHash == otherStructureHash;
+        }
     }
 
     /**

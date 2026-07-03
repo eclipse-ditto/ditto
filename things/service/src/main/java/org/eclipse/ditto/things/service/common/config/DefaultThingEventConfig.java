@@ -31,6 +31,7 @@ public final class DefaultThingEventConfig implements ThingEventConfig {
     private final DefaultEventConfig defaultEventConfigDelegated;
     private final List<PreDefinedExtraFieldsConfig> preDefinedExtraFieldsConfigs;
     private final boolean partialAccessEventsEnabled;
+    private final boolean partialAccessEventsCacheEnabled;
 
     private DefaultThingEventConfig(final DefaultEventConfig delegate, final ScopedConfig config) {
         this.defaultEventConfigDelegated = delegate;
@@ -42,6 +43,8 @@ public final class DefaultThingEventConfig implements ThingEventConfig {
                         .toList();
         partialAccessEventsEnabled =
                 config.getBoolean(ThingEventConfigValue.PARTIAL_ACCESS_EVENTS_ENABLED.getConfigPath());
+        partialAccessEventsCacheEnabled =
+                config.getBoolean(ThingEventConfigValue.PARTIAL_ACCESS_EVENTS_CACHE_ENABLED.getConfigPath());
     }
 
     /**
@@ -72,18 +75,25 @@ public final class DefaultThingEventConfig implements ThingEventConfig {
     }
 
     @Override
+    public boolean isPartialAccessEventsCacheEnabled() {
+        return partialAccessEventsCacheEnabled;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (!(o instanceof final DefaultThingEventConfig that)) {
             return false;
         }
         return Objects.equals(defaultEventConfigDelegated, that.defaultEventConfigDelegated) &&
                 Objects.equals(preDefinedExtraFieldsConfigs, that.preDefinedExtraFieldsConfigs) &&
-                partialAccessEventsEnabled == that.partialAccessEventsEnabled;
+                partialAccessEventsEnabled == that.partialAccessEventsEnabled &&
+                partialAccessEventsCacheEnabled == that.partialAccessEventsCacheEnabled;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(defaultEventConfigDelegated, preDefinedExtraFieldsConfigs, partialAccessEventsEnabled);
+        return Objects.hash(defaultEventConfigDelegated, preDefinedExtraFieldsConfigs, partialAccessEventsEnabled,
+                partialAccessEventsCacheEnabled);
     }
 
     @Override
@@ -92,6 +102,7 @@ public final class DefaultThingEventConfig implements ThingEventConfig {
                 "defaultEventConfigDelegated=" + defaultEventConfigDelegated +
                 ", preDefinedExtraFieldsConfigs=" + preDefinedExtraFieldsConfigs +
                 ", partialAccessEventsEnabled=" + partialAccessEventsEnabled +
+                ", partialAccessEventsCacheEnabled=" + partialAccessEventsCacheEnabled +
                 "]";
     }
 }

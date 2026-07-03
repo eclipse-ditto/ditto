@@ -309,6 +309,83 @@ public final class PartialAccessPathCalculatorTest {
         assertThat(sharedArray).contains(JsonValue.of(attributesIndex), JsonValue.of(featuresIndex));
     }
 
+    @Test
+    public void structureHashIgnoresScalarValues() {
+        final JsonObject a = JsonFactory.newObjectBuilder()
+                .set("attributes", JsonFactory.newObjectBuilder().set("x", 1).set("y", "foo").build()).build();
+        final JsonObject b = JsonFactory.newObjectBuilder()
+                .set("attributes", JsonFactory.newObjectBuilder().set("x", 999).set("y", "bar").build()).build();
+        assertThat(PartialAccessPathCalculator.structureHash(a))
+                .isEqualTo(PartialAccessPathCalculator.structureHash(b));
+    }
+
+    @Test
+    public void structureHashDiffersWhenLeafAddedOrRemoved() {
+        final JsonObject a = JsonFactory.newObjectBuilder()
+                .set("attributes", JsonFactory.newObjectBuilder().set("x", 1).build()).build();
+        final JsonObject b = JsonFactory.newObjectBuilder()
+                .set("attributes", JsonFactory.newObjectBuilder().set("x", 1).set("y", 2).build()).build();
+        assertThat(PartialAccessPathCalculator.structureHash(a))
+                .isNotEqualTo(PartialAccessPathCalculator.structureHash(b));
+    }
+
+    @Test
+    public void structureHashDiffersWhenLeafRenamed() {
+        final JsonObject a = JsonFactory.newObjectBuilder().set("x", 1).build();
+        final JsonObject b = JsonFactory.newObjectBuilder().set("z", 1).build();
+        assertThat(PartialAccessPathCalculator.structureHash(a))
+                .isNotEqualTo(PartialAccessPathCalculator.structureHash(b));
+    }
+
+    @Test
+    public void structureHashDistinguishesScalarFromNestedObject() {
+        final JsonObject a = JsonFactory.newObjectBuilder().set("x", 1).build();
+        final JsonObject b = JsonFactory.newObjectBuilder()
+                .set("x", JsonFactory.newObjectBuilder().set("y", 1).build()).build();
+        assertThat(PartialAccessPathCalculator.structureHash(a))
+                .isNotEqualTo(PartialAccessPathCalculator.structureHash(b));
+    }
+
+    @Test
+    public void structureHashDistinguishesNestingBoundaries() {
+        // {a:{b}, c} vs {a:{b, c}} — identical key sequence, different nesting.
+        final JsonObject a = JsonFactory.newObjectBuilder()
+                .set("a", JsonFactory.newObjectBuilder().set("b", 1).build())
+                .set("c", 2).build();
+        final JsonObject b = JsonFactory.newObjectBuilder()
+                .set("a", JsonFactory.newObjectBuilder().set("b", 1).set("c", 2).build()).build();
+        assertThat(PartialAccessPathCalculator.structureHash(a))
+                .isNotEqualTo(PartialAccessPathCalculator.structureHash(b));
+    }
+
+    @Test
+    public void structureHashTreatsEmptyObjectAsLeafDistinctFromPopulated() {
+        final JsonObject a = JsonFactory.newObjectBuilder()
+                .set("x", JsonFactory.newObjectBuilder().build()).build();
+        final JsonObject b = JsonFactory.newObjectBuilder()
+                .set("x", JsonFactory.newObjectBuilder().set("y", 1).build()).build();
+        assertThat(PartialAccessPathCalculator.structureHash(a))
+                .isNotEqualTo(PartialAccessPathCalculator.structureHash(b));
+    }
+
+    @Test
+    public void hasSubjectsWithRestrictedAccessFalseForFullAccess() {
+        assertThat(PartialAccessPathCalculator.hasSubjectsWithRestrictedAccess(
+                PolicyEnforcer.of(createPolicyWithFullAccess()))).isFalse();
+    }
+
+    @Test
+    public void hasSubjectsWithRestrictedAccessTrueForPartialAccess() {
+        assertThat(PartialAccessPathCalculator.hasSubjectsWithRestrictedAccess(
+                PolicyEnforcer.of(createPolicyWithPartialAccess()))).isTrue();
+    }
+
+    @Test
+    public void hasSubjectsWithRestrictedAccessTrueForMixedAccess() {
+        assertThat(PartialAccessPathCalculator.hasSubjectsWithRestrictedAccess(
+                PolicyEnforcer.of(createPolicyWithMixedAccess()))).isTrue();
+    }
+
     private static Thing createThingWithAttributesAndFeatures() {
         return ThingsModelFactory.newThingBuilder()
                 .setId(KNOWN_THING_ID)
