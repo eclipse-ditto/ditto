@@ -15,7 +15,6 @@ package org.eclipse.ditto.things.service.persistence.actors.enrichment;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -46,9 +45,7 @@ import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
-import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.model.PolicyRevision;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
@@ -320,19 +317,19 @@ public final class ThingEventEnricher {
                     }
                     final PolicyEnforcer policyEnforcer = policyEnforcerOpt.get();
 
-                    // The result depends only on (policy revision, Thing structure), so it can be reused
-                    // across value-only Thing updates. Cache only when we have a policy id + revision to key on.
-                    final Long policyRevision = policyEnforcer.getPolicy()
-                            .flatMap(Policy::getRevision)
-                            .map(PolicyRevision::toLong)
-                            .orElse(null);
-                    final boolean cacheable =
-                            partialAccessPathsCacheEnabled && policyId != null && policyRevision != null;
+                    // The result depends only on (effective policy grants, Thing structure). Key the memo on
+                    // the PolicyEnforcer *instance* (not its policy revision): CachingPolicyEnforcerProvider
+                    // replaces the instance wholesale whenever the effective grants change from ANY source —
+                    // the policy itself, an imported policy, or a namespace-root policy (cascade invalidation
+                    // in PolicyEnforcerCache). The importing policy's own revision does NOT move when an
+                    // imported / ns-root policy changes, so keying on revision would serve a stale allowlist
+                    // and leak a revoked field to a restricted subject. Identity comparison avoids that.
+                    final boolean cacheable = partialAccessPathsCacheEnabled;
                     final long structureHash =
                             cacheable ? PartialAccessPathCalculator.structureHash(effectiveThingJson) : 0L;
                     if (cacheable) {
                         final PartialAccessPathsCacheEntry cached = partialAccessPathsCache;
-                        if (cached != null && cached.matches(policyId, policyRevision, structureHash)) {
+                        if (cached != null && cached.matches(policyEnforcer, structureHash)) {
                             LOGGER.withCorrelationId(dittoHeaders)
                                     .debug("Reusing cached partial access paths for event '{}' (thingId: {})",
                                             thingEvent.getType(), thingEvent.getEntityId());
@@ -352,7 +349,7 @@ public final class ThingEventEnricher {
                                     thingEvent.getType(), thingEvent.getEntityId(), partialAccessPaths.size());
                     if (cacheable) {
                         partialAccessPathsCache =
-                                new PartialAccessPathsCacheEntry(policyId, policyRevision, structureHash, result);
+                                new PartialAccessPathsCacheEntry(policyEnforcer, structureHash, result);
                     }
                     return result;
                 });
@@ -360,28 +357,27 @@ public final class ThingEventEnricher {
 
     /**
      * Immutable snapshot of a computed partial-access-paths result together with the key it is valid for.
-     * Stored behind a single volatile reference so readers always see a consistent tuple.
+     * Stored behind a single volatile reference so readers always see a consistent tuple. The key is the
+     * {@link PolicyEnforcer} <em>instance</em> (compared by identity): it is replaced whenever the effective
+     * grants change (including via imported / namespace-root policies), so identity captures every grant change.
      */
     private static final class PartialAccessPathsCacheEntry {
 
-        private final PolicyId policyId;
-        private final long policyRevision;
+        private final PolicyEnforcer policyEnforcer;
         private final long structureHash;
         private final JsonObject result;
 
-        private PartialAccessPathsCacheEntry(final PolicyId policyId, final long policyRevision,
-                final long structureHash, final JsonObject result) {
-            this.policyId = policyId;
-            this.policyRevision = policyRevision;
+        private PartialAccessPathsCacheEntry(final PolicyEnforcer policyEnforcer, final long structureHash,
+                final JsonObject result) {
+            this.policyEnforcer = policyEnforcer;
             this.structureHash = structureHash;
             this.result = result;
         }
 
-        private boolean matches(final PolicyId otherPolicyId, final long otherPolicyRevision,
-                final long otherStructureHash) {
-            return policyRevision == otherPolicyRevision
-                    && structureHash == otherStructureHash
-                    && Objects.equals(policyId, otherPolicyId);
+        private boolean matches(final PolicyEnforcer otherPolicyEnforcer, final long otherStructureHash) {
+            // Reference equality on purpose: a new enforcer instance means the effective grants may have
+            // changed (own policy, import, or ns-root), so the cached result must not be reused.
+            return policyEnforcer == otherPolicyEnforcer && structureHash == otherStructureHash;
         }
     }
 
