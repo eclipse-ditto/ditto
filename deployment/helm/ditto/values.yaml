@@ -844,6 +844,9 @@ policies:
         enabled: true
         # maxSize the maximum size of policy enforcers to keep in the cache
         maxSize: 1000
+        # namespaceFilteredMaxSize bounds the per-enforcer cache of namespace-filtered enforcers, avoiding
+        # rebuilding the enforcer tree per signal for policies with namespace-scoped entries
+        namespaceFilteredMaxSize: 100
         # expireAfterWrite the maximum duration of inconsistency after losing a cache invalidation
         expireAfterWrite: 4h
         # expireAfterAccess prolonged on each cache access by that duration
@@ -1212,6 +1215,9 @@ things:
         enabled: true
         # maxSize the maximum size of policy enforcers to keep in the cache
         maxSize: 2000
+        # namespaceFilteredMaxSize bounds the per-enforcer cache of namespace-filtered enforcers, avoiding
+        # rebuilding the enforcer tree per signal for policies with namespace-scoped entries
+        namespaceFilteredMaxSize: 100
         # expireAfterWrite the maximum duration of inconsistency after losing a cache invalidation
         expireAfterWrite: 4h
         # expireAfterAccess prolonged on each cache access by that duration
@@ -1920,6 +1926,9 @@ connectivity:
         enabled: true
         # maxSize the maximum size of policy enforcers to keep in the cache
         maxSize: 1000
+        # namespaceFilteredMaxSize bounds the per-enforcer cache of namespace-filtered enforcers, avoiding
+        # rebuilding the enforcer tree per signal for policies with namespace-scoped entries
+        namespaceFilteredMaxSize: 100
         # expireAfterWrite the maximum duration of inconsistency after losing a cache invalidation
         expireAfterWrite: 4h
         # expireAfterAccess prolonged on each cache access by that duration

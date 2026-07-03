@@ -315,10 +315,14 @@ public final class PolicyCommandEnforcement
         // admin) fails hasSourceSideRead for every entry in the source and silently loses all imported
         // entries in the resolved view.
         return policyResolver.apply(sourceId)
-                .thenCompose(opt -> opt.isPresent()
-                        ? PolicyEnforcer.withResolvedImportsAndNamespacePolicies(opt.get(), policyResolver,
+                .thenCompose(opt -> opt
+                        .map(policyEntries -> PolicyEnforcer.withResolvedImportsAndNamespacePolicies(
+                                policyEntries,
+                                policyResolver,
                                 namespacePoliciesConfig).thenApply(Optional::of)
-                        : CompletableFuture.completedFuture(Optional.<PolicyEnforcer>empty()))
+                        )
+                        .orElseGet(() -> CompletableFuture.completedFuture(Optional.empty()))
+                )
                 .toCompletableFuture();
     }
 
@@ -476,27 +480,38 @@ public final class PolicyCommandEnforcement
      */
     private static DittoRuntimeException errorForPolicyCommand(final Signal<?> policySignal) {
 
-        if (policySignal instanceof PolicyCommand<?> policyCommand) {
-            final CommandToExceptionRegistry<PolicyCommand<?>, DittoRuntimeException> registry;
-            if (policyCommand instanceof PolicyActionCommand) {
-                registry = PolicyCommandToActionsExceptionRegistry.getInstance();
-            } else if (policyCommand instanceof PolicyModifyCommand) {
-                registry = PolicyCommandToModifyExceptionRegistry.getInstance();
-            } else {
-                registry = PolicyCommandToAccessExceptionRegistry.getInstance();
+        switch (policySignal) {
+            case PolicyCommand<?> policyCommand -> {
+                final CommandToExceptionRegistry<PolicyCommand<?>, DittoRuntimeException> registry =
+                        getPolicyCommandDittoRuntimeExceptionCommandToExceptionRegistry(policyCommand);
+                return registry.exceptionFrom(policyCommand);
             }
-            return registry.exceptionFrom(policyCommand);
-        } else if (policySignal instanceof WithEntityId withEntityId) {
-            return PolicyNotAccessibleException.newBuilder(PolicyId.of(withEntityId.getEntityId()))
-                    .dittoHeaders(policySignal.getDittoHeaders())
-                    .build();
-        } else {
-            LOGGER.error("Received signal for which no DittoRuntimeException due to lack of access " +
-                    "could be determined: {}", policySignal);
-            return DittoInternalErrorException.newBuilder()
-                    .dittoHeaders(policySignal.getDittoHeaders())
-                    .build();
+            case WithEntityId withEntityId -> {
+                return PolicyNotAccessibleException.newBuilder(PolicyId.of(withEntityId.getEntityId()))
+                        .dittoHeaders(policySignal.getDittoHeaders())
+                        .build();
+            }
+            default -> {
+                LOGGER.error("Received signal for which no DittoRuntimeException due to lack of access " +
+                        "could be determined: {}", policySignal);
+                return DittoInternalErrorException.newBuilder()
+                        .dittoHeaders(policySignal.getDittoHeaders())
+                        .build();
+            }
         }
+    }
+
+    private static CommandToExceptionRegistry<PolicyCommand<?>, DittoRuntimeException>
+    getPolicyCommandDittoRuntimeExceptionCommandToExceptionRegistry(final PolicyCommand<?> policyCommand) {
+        final CommandToExceptionRegistry<PolicyCommand<?>, DittoRuntimeException> registry;
+        if (policyCommand instanceof PolicyActionCommand) {
+            registry = PolicyCommandToActionsExceptionRegistry.getInstance();
+        } else if (policyCommand instanceof PolicyModifyCommand) {
+            registry = PolicyCommandToModifyExceptionRegistry.getInstance();
+        } else {
+            registry = PolicyCommandToAccessExceptionRegistry.getInstance();
+        }
+        return registry;
     }
 
     /**

@@ -36,9 +36,14 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<PolicyI
 
     public static final String ENFORCEMENT_CACHE_DISPATCHER = "enforcement-cache-dispatcher";
 
+    /** Config key (relative to {@link PolicyEnforcerProvider#ENFORCER_CACHE_CONFIG_KEY}) for the per-enforcer
+     * namespace-filtered-enforcer cache size; default provided by reference.conf. */
+    private static final String NAMESPACE_FILTERED_ENFORCER_MAX_SIZE_KEY = "namespace-filtered-enforcer-max-size";
+
     private final PolicyCacheLoader delegate;
     private final Executor enforcementCacheExecutor;
     private final NamespacePoliciesConfig namespacePoliciesConfig;
+    private final long namespaceFilteredEnforcerCacheMaxSize;
     @Nullable
     private final CompletableFuture<Cache<PolicyId, Entry<PolicyEnforcer>>> cacheFuture;
 
@@ -75,6 +80,9 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<PolicyI
         delegate = policyCacheLoader;
         enforcementCacheExecutor = actorSystem.dispatchers().lookup(ENFORCEMENT_CACHE_DISPATCHER);
         this.namespacePoliciesConfig = namespacePoliciesConfig;
+        this.namespaceFilteredEnforcerCacheMaxSize = actorSystem.settings().config()
+                .getLong(PolicyEnforcerProvider.ENFORCER_CACHE_CONFIG_KEY + "." +
+                        NAMESPACE_FILTERED_ENFORCER_MAX_SIZE_KEY);
         this.cacheFuture = cacheFuture;
     }
 
@@ -106,7 +114,7 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<PolicyI
             final var revision = entry.getRevision();
             final var policy = entry.getValueOrThrow();
             return PolicyEnforcer.withResolvedImportsAndNamespacePolicies(policy, policyResolver,
-                            namespacePoliciesConfig)
+                            namespacePoliciesConfig, namespaceFilteredEnforcerCacheMaxSize)
                     .thenApply(enforcer -> Entry.of(revision, enforcer));
         } else {
             return CompletableFuture.completedFuture(Entry.nonexistent());
