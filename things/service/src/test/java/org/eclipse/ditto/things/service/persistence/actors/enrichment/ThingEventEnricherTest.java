@@ -340,20 +340,38 @@ public final class ThingEventEnricherTest {
     }
 
     @Test
-    public void cacheServesStoredResultForSamePolicyRevisionAndStructure() {
+    public void cacheReusesResultForSameEnforcerInstanceAndStructure() {
         final PolicyEnforcerProvider provider = mock(PolicyEnforcerProvider.class);
-        // Both enforcers carry revision 1 but the second grants fewer paths; a cache hit (keyed on
-        // policyId + revision + structure) must reuse the first result and ignore the second enforcer.
-        when(provider.getPolicyEnforcer(KNOWN_POLICY_ID)).thenReturn(
-                enforcerFuture(restrictedPolicy(1L, "/attributes/public1", "/attributes/public2")),
-                enforcerFuture(restrictedPolicy(1L, "/attributes/public1")));
+        // Same enforcer instance returned for every call (value-only Thing update, no policy change).
+        when(provider.getPolicyEnforcer(KNOWN_POLICY_ID))
+                .thenReturn(enforcerFuture(restrictedPolicy(1L, "/attributes/public1", "/attributes/public2")));
         final ThingEventEnricher sut = new ThingEventEnricher(provider, true, true);
 
         final JsonObject header1 = partialAccessHeader(sut, KNOWN_THING);
         final JsonObject header2 = partialAccessHeader(sut, KNOWN_THING);
 
         assertThat(header1.toString()).contains("attributes/public2");
-        assertThat(header2).isEqualTo(header1); // reused despite the second, narrower enforcer
+        assertThat(header2).isEqualTo(header1); // reused for the identical enforcer instance + structure
+    }
+
+    @Test
+    public void cacheRecomputesWhenGrantsChangeWithSameRevisionViaNewEnforcerInstance() {
+        // Reproduces the imported / namespace-root-policy revoke scenario reported in review: the enforcer is
+        // rebuilt with narrower grants (a NEW instance, via cascade invalidation) while the importing policy's
+        // own revision does NOT move. Keying on the enforcer instance must treat this as a miss so a revoked
+        // field is never served from the stale cache (security regression guard).
+        final PolicyEnforcerProvider provider = mock(PolicyEnforcerProvider.class);
+        when(provider.getPolicyEnforcer(KNOWN_POLICY_ID)).thenReturn(
+                enforcerFuture(restrictedPolicy(1L, "/attributes/public1", "/attributes/public2")),
+                enforcerFuture(restrictedPolicy(1L, "/attributes/public1"))); // same revision 1, public2 revoked
+        final ThingEventEnricher sut = new ThingEventEnricher(provider, true, true);
+
+        final JsonObject header1 = partialAccessHeader(sut, KNOWN_THING); // public2 still granted
+        final JsonObject header2 = partialAccessHeader(sut, KNOWN_THING); // public2 revoked -> must be withheld
+
+        assertThat(header1.toString()).contains("attributes/public2");
+        assertThat(header2.toString()).doesNotContain("attributes/public2");
+        assertThat(header2).isNotEqualTo(header1);
     }
 
     @Test
