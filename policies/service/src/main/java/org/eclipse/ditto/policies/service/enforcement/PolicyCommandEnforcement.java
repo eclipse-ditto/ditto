@@ -70,7 +70,6 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyComm
 import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyResponse;
-import org.jspecify.annotations.NonNull;
 
 /**
  * Authorizes {@link PolicyCommand}s and filters {@link PolicyCommandResponse}s.
@@ -503,7 +502,7 @@ public final class PolicyCommandEnforcement
     }
 
     private static CommandToExceptionRegistry<PolicyCommand<?>, DittoRuntimeException>
-    getPolicyCommandDittoRuntimeExceptionCommandToExceptionRegistry(PolicyCommand<?> policyCommand) {
+    getPolicyCommandDittoRuntimeExceptionCommandToExceptionRegistry(final PolicyCommand<?> policyCommand) {
         final CommandToExceptionRegistry<PolicyCommand<?>, DittoRuntimeException> registry;
         if (policyCommand instanceof PolicyActionCommand) {
             registry = PolicyCommandToActionsExceptionRegistry.getInstance();
