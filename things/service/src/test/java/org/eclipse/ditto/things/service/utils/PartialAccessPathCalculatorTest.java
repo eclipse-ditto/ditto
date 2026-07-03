@@ -368,6 +368,24 @@ public final class PartialAccessPathCalculatorTest {
                 .isNotEqualTo(PartialAccessPathCalculator.structureHash(b));
     }
 
+    @Test
+    public void hasSubjectsWithRestrictedAccessFalseForFullAccess() {
+        assertThat(PartialAccessPathCalculator.hasSubjectsWithRestrictedAccess(
+                PolicyEnforcer.of(createPolicyWithFullAccess()))).isFalse();
+    }
+
+    @Test
+    public void hasSubjectsWithRestrictedAccessTrueForPartialAccess() {
+        assertThat(PartialAccessPathCalculator.hasSubjectsWithRestrictedAccess(
+                PolicyEnforcer.of(createPolicyWithPartialAccess()))).isTrue();
+    }
+
+    @Test
+    public void hasSubjectsWithRestrictedAccessTrueForMixedAccess() {
+        assertThat(PartialAccessPathCalculator.hasSubjectsWithRestrictedAccess(
+                PolicyEnforcer.of(createPolicyWithMixedAccess()))).isTrue();
+    }
+
     private static Thing createThingWithAttributesAndFeatures() {
         return ThingsModelFactory.newThingBuilder()
                 .setId(KNOWN_THING_ID)

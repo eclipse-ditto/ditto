@@ -317,6 +317,14 @@ public final class ThingEventEnricher {
                     }
                     final PolicyEnforcer policyEnforcer = policyEnforcerOpt.get();
 
+                    // Cheap fast path (memoized classification, no Thing walk): with no restricted subjects
+                    // there is no partial-access header to emit. Bail out before hashing the Thing structure so
+                    // full-access things — the common case — cost the same as before this cache was added.
+                    if (partialAccessPathsCacheEnabled
+                            && !PartialAccessPathCalculator.hasSubjectsWithRestrictedAccess(policyEnforcer)) {
+                        return createEmptyPartialAccessPathsJson();
+                    }
+
                     // The result depends only on (effective policy grants, Thing structure). Key the memo on
                     // the PolicyEnforcer *instance* (not its policy revision): CachingPolicyEnforcerProvider
                     // replaces the instance wholesale whenever the effective grants change from ANY source —
