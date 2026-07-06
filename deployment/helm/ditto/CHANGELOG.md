@@ -15,6 +15,20 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 
 ## [Unreleased]
 
+## [4.3.0]
+
+Bumped Ditto `appVersion` to `3.9.3`.
+
+### Added
+- New `namespaceFilteredMaxSize` (default `100`) under the policy-enforcer `cache` config of the
+  `policies`, `things` and `connectivity` services, bounding the per-enforcer cache of namespace-filtered
+  enforcers so the enforcer tree is no longer rebuilt per signal for policies with namespace-scoped entries
+  ([#2480](https://github.com/eclipse-ditto/ditto/pull/2480))
+
+### Fixed
+- Swagger UI deployment: add the volumes and `volumeMounts` required to mount the OpenID Connect JavaScript,
+  fixing the Swagger UI OIDC login ([#2478](https://github.com/eclipse-ditto/ditto/pull/2478))
+
 ## [4.2.0]
 
 Bumped Ditto `appVersion` to `3.9.2`.
