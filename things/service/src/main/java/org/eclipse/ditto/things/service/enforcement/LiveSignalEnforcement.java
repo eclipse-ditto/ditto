@@ -167,10 +167,10 @@ final class LiveSignalEnforcement
             case MESSAGES:
                 return enforceMessageCommand((MessageCommand<?, ?>) liveSignal, enforcer.getEnforcer());
             case LIVE_EVENTS:
-                return enforceLiveEvent(liveSignal, enforcer.getEnforcer());
+                return enforceLiveEvent(liveSignal, enforcer);
             case LIVE_COMMANDS:
                 ThingCommandEnforcement.authorizeByPolicyOrThrow(
-                        enforcer.getEnforcer(),
+                        enforcer,
                         (ThingCommand<?>) liveSignal,
                         partialAccessEventsEnabled);
                 final var withReadSubjects = addEffectedReadSubjectsToThingLiveSignal((ThingCommand<?>) liveSignal,
@@ -212,13 +212,14 @@ final class LiveSignalEnforcement
         return signal.setDittoHeaders(newHeaders);
     }
 
-    private Signal<?> enforceLiveEvent(final Signal<?> liveSignal, final Enforcer enforcer) {
-        if (enforcer.hasUnrestrictedPermissions(PoliciesResourceType.thingResource(liveSignal.getResourcePath()),
-                liveSignal.getDittoHeaders().getAuthorizationContext(), WRITE)) {
+    private Signal<?> enforceLiveEvent(final Signal<?> liveSignal, final PolicyEnforcer policyEnforcer) {
+        if (policyEnforcer.getEnforcer()
+                .hasUnrestrictedPermissions(PoliciesResourceType.thingResource(liveSignal.getResourcePath()),
+                        liveSignal.getDittoHeaders().getAuthorizationContext(), WRITE)) {
             LOGGER.withCorrelationId(liveSignal)
                     .info("Live Event was authorized: <{}>", liveSignal);
             return ThingCommandEnforcement.addEffectedReadSubjectsToThingSignal((ThingEvent<?>) liveSignal,
-                    enforcer,
+                    policyEnforcer,
                     partialAccessEventsEnabled);
         } else {
             LOGGER.withCorrelationId(liveSignal)

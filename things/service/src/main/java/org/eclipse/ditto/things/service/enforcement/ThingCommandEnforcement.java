@@ -180,7 +180,7 @@ final class ThingCommandEnforcement
             if (FeatureToggle.isWotTdPermissionFilteringEnabled()) {
                 // user needs at least partial READ permission; TD will be filtered in filterResponse()
                 final var commandWithReadSubjects =
-                        authorizeByPolicyOrThrow(policyEnforcer.getEnforcer(), command, partialAccessEventsEnabled);
+                        authorizeByPolicyOrThrow(policyEnforcer, command, partialAccessEventsEnabled);
                 authorizedCommand = prepareThingCommandBeforeSendingToPersistence(
                         ensureTwinChannel((ThingQueryCommand<?>) commandWithReadSubjects));
             } else {
@@ -190,7 +190,7 @@ final class ThingCommandEnforcement
         } else {
             try {
                 final var commandWithReadSubjects =
-                        authorizeByPolicyOrThrow(policyEnforcer.getEnforcer(), command, partialAccessEventsEnabled);
+                        authorizeByPolicyOrThrow(policyEnforcer, command, partialAccessEventsEnabled);
                 if (commandWithReadSubjects instanceof ThingQueryCommand<?> thingQueryCommand) {
                     authorizedCommand = prepareThingCommandBeforeSendingToPersistence(
                             ensureTwinChannel(thingQueryCommand)
@@ -369,10 +369,11 @@ final class ThingCommandEnforcement
      * @param command the command to authorize.
      * @return optionally the authorized command extended by read subjects.
      */
-    static <T extends ThingCommand<T>> T authorizeByPolicyOrThrow(final Enforcer enforcer,
+    static <T extends ThingCommand<T>> T authorizeByPolicyOrThrow(final PolicyEnforcer policyEnforcer,
             final ThingCommand<T> command,
             final boolean includePartialReadSubjects) {
 
+        final Enforcer enforcer = policyEnforcer.getEnforcer();
         final var thingResourceKey = PoliciesResourceType.thingResource(command.getResourcePath());
         final var dittoHeaders = command.getDittoHeaders();
         final var authorizationContext = dittoHeaders.getAuthorizationContext();
@@ -405,7 +406,7 @@ final class ThingCommandEnforcement
         }
 
         if (commandAuthorized) {
-            return addEffectedReadSubjectsToThingSignal(command, enforcer, includePartialReadSubjects);
+            return addEffectedReadSubjectsToThingSignal(command, policyEnforcer, includePartialReadSubjects);
         } else {
             throw errorForThingCommand(command);
         }
@@ -475,22 +476,29 @@ final class ThingCommandEnforcement
      * @return the extended signal.
      */
     static <T extends Signal<T>> T addEffectedReadSubjectsToThingSignal(final Signal<T> signal,
-            final Enforcer enforcer,
+            final PolicyEnforcer policyEnforcer,
             final boolean includePartialReadSubjects) {
 
         final var eventResourcePath = signal.getResourcePath();
         final var eventResourceKey = ResourceKey.newInstance(ThingConstants.ENTITY_TYPE, eventResourcePath);
-        final var rootResourceKey = ResourceKey.newInstance(ThingConstants.ENTITY_TYPE, JsonPointer.empty());
 
-        final var unrestrictedSubjects = includePartialReadSubjects
-                ? enforcer.getSubjectsWithUnrestrictedPermission(eventResourceKey, Permission.READ)
-                : enforcer.getSubjectsWithUnrestrictedPermission(rootResourceKey, Permission.READ);
-        final var partialSubjects = includePartialReadSubjects
-                ? enforcer.getSubjectsWithPartialPermission(rootResourceKey, Permissions.newInstance(Permission.READ))
-                : Set.<AuthorizationSubject>of();
-        final var allReadSubjects = new java.util.HashSet<>(unrestrictedSubjects);
-        allReadSubjects.addAll(partialSubjects);
-        
+        // classifyReadSubjects memoizes the (single) policy-tree walk per resource on the PolicyEnforcer, so
+        // value-only telemetry updates that repeat the same resource path do not re-walk the tree per event.
+        // The result set below is identical to the previous
+        //   getSubjectsWithUnrestrictedPermission(eventResourceKey) ∪ getSubjectsWithPartialPermission(root)
+        // because getSubjectsWithPartialPermission(root, READ) == partialOnly(root) ∪ unrestricted(root).
+        final Set<AuthorizationSubject> allReadSubjects;
+        if (includePartialReadSubjects) {
+            final var rootClassification = policyEnforcer.getRootResourceReadClassification();
+            allReadSubjects = new java.util.HashSet<>(
+                    policyEnforcer.classifyReadSubjects(eventResourceKey).getUnrestricted());
+            allReadSubjects.addAll(rootClassification.getPartialOnly());
+            allReadSubjects.addAll(rootClassification.getUnrestricted());
+        } else {
+            allReadSubjects = new java.util.HashSet<>(
+                    policyEnforcer.getRootResourceReadClassification().getUnrestricted());
+        }
+
         final var newHeaders = DittoHeaders.newBuilder(signal.getDittoHeaders())
                 .readGrantedSubjects(allReadSubjects)
                 .build();
