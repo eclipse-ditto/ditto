@@ -29,8 +29,10 @@ import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PoliciesResourceType;
+import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.SubjectId;
+import org.eclipse.ditto.policies.model.enforcers.SubjectClassification;
 import org.junit.Test;
 
 public final class PolicyEnforcerTest {
@@ -129,6 +131,67 @@ public final class PolicyEnforcerTest {
                                 Collections.emptyList())))
                 .getValueOrThrow();
         assertThat(enforcer.forNamespace("any.ns")).isSameAs(enforcer);
+    }
+
+    @Test
+    public void classifyReadSubjectsMatchesDirectEnforcerClassification() {
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(PolicyId.of("test:policy"))
+                .set(newScopedEntry("global", "google:global-user", Collections.emptyList()))
+                .build();
+        final PolicyEnforcer policyEnforcer = PolicyEnforcer.of(policy);
+        final ResourceKey root = PoliciesResourceType.thingResource("/");
+
+        final SubjectClassification memoized = policyEnforcer.classifyReadSubjects(root);
+        final SubjectClassification direct = policyEnforcer.getEnforcer()
+                .classifySubjects(root, PoliciesModelFactory.newPermissions(Permission.READ));
+
+        assertThat(memoized.getUnrestricted()).isEqualTo(direct.getUnrestricted());
+        assertThat(memoized.getPartialOnly()).isEqualTo(direct.getPartialOnly());
+        assertThat(memoized.getEffectedGranted()).isEqualTo(direct.getEffectedGranted());
+    }
+
+    @Test
+    public void classifyReadSubjectsMemoizesRepeatedCallsForSameResource() {
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(PolicyId.of("test:policy"))
+                .set(newScopedEntry("global", "google:global-user", Collections.emptyList()))
+                .build();
+        final PolicyEnforcer policyEnforcer = PolicyEnforcer.of(policy);
+        final ResourceKey root = PoliciesResourceType.thingResource("/");
+
+        // A second call for the same resource must return the memoized instance, not re-walk the policy tree.
+        final SubjectClassification first = policyEnforcer.classifyReadSubjects(root);
+        final SubjectClassification second = policyEnforcer.classifyReadSubjects(root);
+
+        assertThat(second).isSameAs(first);
+    }
+
+    @Test
+    public void getRootResourceReadClassificationDelegatesToClassifyReadSubjects() {
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(PolicyId.of("test:policy"))
+                .set(newScopedEntry("global", "google:global-user", Collections.emptyList()))
+                .build();
+        final PolicyEnforcer policyEnforcer = PolicyEnforcer.of(policy);
+
+        assertThat(policyEnforcer.getRootResourceReadClassification())
+                .isSameAs(policyEnforcer.classifyReadSubjects(PoliciesResourceType.thingResource("/")));
+    }
+
+    @Test
+    public void classifyReadSubjectsStaysCorrectUnderBoundedCache() {
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(PolicyId.of("test:policy"))
+                .set(newScopedEntry("global", "google:global-user", Collections.emptyList()))
+                .build();
+        // Tiny bound: cache correctness must not depend on capacity — a miss simply recomputes an equal result.
+        final PolicyEnforcer bounded = PolicyEnforcer.of(policy, 100, 1);
+        final ResourceKey a = PoliciesResourceType.thingResource("/features/a");
+        final ResourceKey b = PoliciesResourceType.thingResource("/features/b");
+
+        final SubjectClassification classificationA = bounded.classifyReadSubjects(a);
+        bounded.classifyReadSubjects(b);
+        final SubjectClassification classificationAgain = bounded.classifyReadSubjects(a);
+
+        assertThat(classificationAgain.getUnrestricted()).isEqualTo(classificationA.getUnrestricted());
+        assertThat(classificationAgain.getPartialOnly()).isEqualTo(classificationA.getPartialOnly());
     }
 
     private static PolicyEntry newScopedEntry(final String label, final String subjectId, final List<String> namespaces) {
