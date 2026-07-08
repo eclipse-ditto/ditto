@@ -28,6 +28,7 @@ import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.internal.utils.pubsub.api.LocalAcksChanged;
+import org.eclipse.ditto.internal.utils.pubsub.api.PreSerializedPublishSignal;
 import org.eclipse.ditto.internal.utils.pubsub.api.PublishSignal;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.SubscriptionsReader;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.ack.GroupedSnapshot;
@@ -76,9 +77,20 @@ abstract class AbstractSubscriber<T extends Signal<?>> extends AbstractActorWith
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(PublishSignal.class, this::broadcastToLocalSubscribers)
+                .match(PreSerializedPublishSignal.class, this::broadcastToLocalSubscribers)
                 .match(SubscriptionsReader.class, this::updateLocalSubscriptions)
                 .match(LocalAcksChanged.class, this::updateLocalAcks)
                 .build();
+    }
+
+    /**
+     * Handle a locally-delivered {@link PreSerializedPublishSignal}. Remote deliveries are reconstructed into a plain
+     * {@link PublishSignal} by the serializer, so this only fires for same-node (unserialized) delivery; convert the
+     * envelope back into a {@link PublishSignal} (the wrapped signal is still live) and process it as usual.
+     */
+    void broadcastToLocalSubscribers(final PreSerializedPublishSignal envelope) {
+        broadcastToLocalSubscribers(
+                PublishSignal.of(envelope.getSignal(), envelope.getGroups(), envelope.getGroupIndexKey()));
     }
 
     void broadcastToLocalSubscribers(final PublishSignal command) {
