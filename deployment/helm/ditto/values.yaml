@@ -818,6 +818,12 @@ policies:
       revokes: []
       # - namespaces: []
       #   authSubjects: []
+    # pubsub contains configuration for Ditto's cluster pub/sub
+    pubsub:
+      # preSerializeFanoutEnabled serializes a published signal once and reuses it across all remote fan-out
+      # destinations instead of re-serializing it per destination. Only enable after the whole fleet supports it
+      # (runs a version with the PreSerializedPublishSignal serializer registered).
+      preSerializeFanoutEnabled: false
     # policiesEnforcer contains configuration for Ditto "Policy Enforcers", e.g. regarding caching
     policiesEnforcer:
       # askWithRetry contains configuration regarding "ask with retry" for policy enforcement in policies service
@@ -1189,6 +1195,12 @@ things:
       # - namespaces: []
       #   authSubjects: []
       #   thingDefinitions: []
+    # pubsub contains configuration for Ditto's cluster pub/sub
+    pubsub:
+      # preSerializeFanoutEnabled serializes a published signal once and reuses it across all remote fan-out
+      # destinations instead of re-serializing it per destination. Only enable after the whole fleet supports it
+      # (runs a version with the PreSerializedPublishSignal serializer registered).
+      preSerializeFanoutEnabled: false
     # policiesEnforcer contains configuration for Ditto "Policy Enforcers", e.g. regarding caching
     policiesEnforcer:
       # askWithRetry contains configuration regarding "ask with retry" for policy enforcement in things service
@@ -1918,6 +1930,12 @@ connectivity:
         timeout: 20s
         # reset after this time in "Open" state, the circuit breaker is "Half-opened" again
         reset: 8s
+    # pubsub contains configuration for Ditto's cluster pub/sub
+    pubsub:
+      # preSerializeFanoutEnabled serializes a published signal once and reuses it across all remote fan-out
+      # destinations instead of re-serializing it per destination. Only enable after the whole fleet supports it
+      # (runs a version with the PreSerializedPublishSignal serializer registered).
+      preSerializeFanoutEnabled: false
     # policiesEnforcer contains configuration for Ditto "Policy Enforcers", e.g. regarding caching
     policiesEnforcer:
       # cache holds the configuration of policy enforcer caching
