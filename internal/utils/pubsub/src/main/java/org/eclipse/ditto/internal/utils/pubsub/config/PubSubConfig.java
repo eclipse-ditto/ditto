@@ -52,6 +52,14 @@ public interface PubSubConfig {
     double getResetProbability();
 
     /**
+     * @return whether a published signal is serialized once and reused across all remote fan-out destinations
+     * (instead of being re-serialized once per destination by Pekko Artery). Requires all cluster members to
+     * understand {@code PreSerializedPublishSignal}; only enable after the whole fleet supports it.
+     * @since 3.9.4
+     */
+    boolean isPreSerializeFanoutEnabled();
+
+    /**
      * Create a {@code PubSubConfig} object from a {@code Config} object at the key {@code pubsub}.
      *
      * @param config config with path {@code pubsub}.
@@ -106,7 +114,12 @@ public interface PubSubConfig {
         /**
          * Probability to reset the distributed data of a subscriber.
          */
-        RESET_PROBABILITY("reset-probability", 0.01);
+        RESET_PROBABILITY("reset-probability", 0.01),
+
+        /**
+         * Whether to serialize a published signal once and reuse it across all remote fan-out destinations.
+         */
+        PRE_SERIALIZE_FANOUT_ENABLED("pre-serialize-fanout-enabled", false);
 
         private final String path;
         private final Object defaultValue;
