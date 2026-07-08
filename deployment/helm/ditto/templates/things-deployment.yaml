@@ -316,6 +316,8 @@ spec:
               value: "{{ .Values.things.config.policiesEnforcer.cache.namespaceFilteredMaxSize }}"
             - name: DITTO_POLICIES_ENFORCER_READ_CLASSIFICATION_MAX_SIZE
               value: "{{ .Values.things.config.policiesEnforcer.cache.readClassificationMaxSize }}"
+            - name: DITTO_PUBSUB_PRE_SERIALIZE_FANOUT_ENABLED
+              value: "{{ .Values.things.config.pubsub.preSerializeFanoutEnabled }}"
             - name: DITTO_POLICIES_ENFORCER_CACHE_EXPIRE_AFTER_WRITE
               value: "{{ .Values.things.config.policiesEnforcer.cache.expireAfterWrite }}"
             - name: DITTO_POLICIES_ENFORCER_CACHE_EXPIRE_AFTER_ACCESS

@@ -314,6 +314,8 @@ spec:
               value: "{{ .Values.connectivity.config.policiesEnforcer.cache.namespaceFilteredMaxSize }}"
             - name: DITTO_POLICIES_ENFORCER_READ_CLASSIFICATION_MAX_SIZE
               value: "{{ .Values.connectivity.config.policiesEnforcer.cache.readClassificationMaxSize }}"
+            - name: DITTO_PUBSUB_PRE_SERIALIZE_FANOUT_ENABLED
+              value: "{{ .Values.connectivity.config.pubsub.preSerializeFanoutEnabled }}"
             - name: DITTO_POLICIES_ENFORCER_CACHE_EXPIRE_AFTER_WRITE
               value: "{{ .Values.connectivity.config.policiesEnforcer.cache.expireAfterWrite }}"
             - name: DITTO_POLICIES_ENFORCER_CACHE_EXPIRE_AFTER_ACCESS
