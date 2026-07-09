@@ -12,9 +12,13 @@
  */
 package org.eclipse.ditto.internal.utils.pubsub.serialization;
 
+import java.io.NotSerializableException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.pekko.actor.ExtendedActorSystem;
@@ -79,42 +83,66 @@ public final class PreSerializedPublishSignalSerializer extends SerializerWithSt
 
     @Override
     public void toBinary(final Object o, final ByteBuffer buf) {
-        writeInto(buf, castToEnvelope(o));
+        // Pin the byte order so the frame does not depend on the buffer's default order: Artery's pooled envelope
+        // buffers are little-endian, whereas ByteBuffer.allocate/wrap default to big-endian. Without this a frame
+        // written by Artery could not be read back through the byte[] entry point (and vice versa).
+        buf.order(ByteOrder.BIG_ENDIAN);
+        writeFrame(buf, encode(castToEnvelope(o)));
     }
 
     @Override
     public byte[] toBinary(final Object o) {
-        final PreSerializedPublishSignal envelope = castToEnvelope(o);
-        final ByteBuffer buf = ByteBuffer.allocate(computeSize(envelope));
-        writeInto(buf, envelope);
+        final EncodedFrame frame = encode(castToEnvelope(o));
+        final ByteBuffer buf = ByteBuffer.allocate(frame.size()).order(ByteOrder.BIG_ENDIAN);
+        writeFrame(buf, frame);
         return buf.array();
     }
 
     @Override
     public Object fromBinary(final ByteBuffer buf, final String manifest) {
-        final String signalManifest = getString(buf);
-        final String groupIndexKey = getString(buf);
-        final int groupCount = buf.getInt();
-        final Map<String, Integer> groups = new HashMap<>(Math.max(1, groupCount));
-        for (int i = 0; i < groupCount; i++) {
-            final String key = getString(buf);
-            final int size = buf.getInt();
-            groups.put(key, size);
+        buf.order(ByteOrder.BIG_ENDIAN);
+        try {
+            final String signalManifest = getString(buf);
+            final String groupIndexKey = getString(buf);
+            final int groupCount = buf.getInt();
+            // The frame comes off the (untrusted) wire, so validate every length prefix against the bytes that
+            // actually remain before allocating, to avoid an OutOfMemoryError / NegativeArraySizeException on a
+            // truncated, corrupted or misrouted frame. Each group entry needs at least one byte, so groupCount can
+            // never legitimately exceed the remaining byte count.
+            if (groupCount < 0 || groupCount > buf.remaining()) {
+                throw new IllegalArgumentException("Invalid group count <" + groupCount + "> (remaining: " +
+                        buf.remaining() + ")");
+            }
+            final Map<String, Integer> groups = new HashMap<>(Math.max(1, groupCount));
+            for (int i = 0; i < groupCount; i++) {
+                final String key = getString(buf);
+                final int size = buf.getInt();
+                groups.put(key, size);
+            }
+            final int signalBytesLength = buf.getInt();
+            if (signalBytesLength < 0 || signalBytesLength > buf.remaining()) {
+                throw new IllegalArgumentException("Invalid signal bytes length <" + signalBytesLength +
+                        "> (remaining: " + buf.remaining() + ")");
+            }
+            final byte[] signalBytes = new byte[signalBytesLength];
+            buf.get(signalBytes);
+            final Object deserializedPayload = innerSerializer.fromBinary(signalBytes, signalManifest);
+            if (deserializedPayload instanceof Signal<?> signal) {
+                return PublishSignal.of(signal, groups, groupIndexKey);
+            }
+            // CborJsonifiableSerializer.fromBinary returns a NotSerializableException instance (rather than
+            // throwing) when the inner manifest is unknown/unparseable, e.g. a newer signal type reaching a
+            // not-yet-upgraded node during rollout. Propagate that instance unchanged so this behaves exactly like
+            // the plain PublishSignal path instead of raising an uncaught error on the Artery decoder thread.
+            return deserializedPayload;
+        } catch (final RuntimeException e) {
+            // Truncated / corrupted / misrouted frame: surface a clean, tolerated deserialization failure
+            // (matching the inner serializer's NotSerializableException contract) rather than letting a raw
+            // BufferUnderflowException / NegativeArraySizeException escape onto the Artery inbound path.
+            final NotSerializableException notSerializable = new NotSerializableException(MANIFEST);
+            notSerializable.initCause(e);
+            return notSerializable;
         }
-        final int signalBytesLength = buf.getInt();
-        final byte[] signalBytes = new byte[signalBytesLength];
-        buf.get(signalBytes);
-        // CborJsonifiableSerializer.fromBinary returns a NotSerializableException instance (rather than throwing)
-        // when the manifest is unknown/unparseable, so guard the cast instead of letting it fail with an opaque
-        // ClassCastException (e.g. an unknown signal type reaching a not-yet-upgraded node during rollout).
-        final Object deserializedPayload = innerSerializer.fromBinary(signalBytes, signalManifest);
-        if (deserializedPayload instanceof Signal<?> signal) {
-            return PublishSignal.of(signal, groups, groupIndexKey);
-        }
-        throw new IllegalArgumentException(
-                "Cannot reconstruct PublishSignal: pre-serialized payload with manifest <" + signalManifest +
-                        "> did not deserialize to a Signal but to <" +
-                        (deserializedPayload == null ? "null" : deserializedPayload.getClass().getName()) + ">");
     }
 
     @Override
@@ -122,30 +150,26 @@ public final class PreSerializedPublishSignalSerializer extends SerializerWithSt
         return fromBinary(ByteBuffer.wrap(bytes), manifest);
     }
 
-    private void writeInto(final ByteBuffer buf, final PreSerializedPublishSignal envelope) {
+    private EncodedFrame encode(final PreSerializedPublishSignal envelope) {
         final SignalBytesHolder.Serialized serialized = envelope.getHolder().getOrCompute(innerSerializer);
-        putString(buf, serialized.manifest());
-        putString(buf, envelope.getGroupIndexKey());
         final Map<String, Integer> groups = envelope.getGroups();
-        buf.putInt(groups.size());
+        final List<EncodedGroup> encodedGroups = new ArrayList<>(groups.size());
         for (final Map.Entry<String, Integer> entry : groups.entrySet()) {
-            putString(buf, entry.getKey());
-            buf.putInt(entry.getValue());
+            encodedGroups.add(new EncodedGroup(entry.getKey().getBytes(StandardCharsets.UTF_8), entry.getValue()));
         }
-        final byte[] signalBytes = serialized.bytes();
-        buf.putInt(signalBytes.length);
-        buf.put(signalBytes);
+        return new EncodedFrame(serialized.manifest().getBytes(StandardCharsets.UTF_8),
+                envelope.getGroupIndexKey().getBytes(StandardCharsets.UTF_8), encodedGroups, serialized.bytes());
     }
 
-    private int computeSize(final PreSerializedPublishSignal envelope) {
-        final SignalBytesHolder.Serialized serialized = envelope.getHolder().getOrCompute(innerSerializer);
-        int size = sizeOfString(serialized.manifest()) + sizeOfString(envelope.getGroupIndexKey());
-        size += Integer.BYTES; // group count
-        for (final Map.Entry<String, Integer> entry : envelope.getGroups().entrySet()) {
-            size += sizeOfString(entry.getKey()) + Integer.BYTES;
+    private static void writeFrame(final ByteBuffer buf, final EncodedFrame frame) {
+        putBytes(buf, frame.signalManifest());
+        putBytes(buf, frame.groupIndexKey());
+        buf.putInt(frame.groups().size());
+        for (final EncodedGroup group : frame.groups()) {
+            putBytes(buf, group.key());
+            buf.putInt(group.size());
         }
-        size += Integer.BYTES + serialized.bytes().length; // signal bytes length + bytes
-        return size;
+        putBytes(buf, frame.signalBytes());
     }
 
     private static PreSerializedPublishSignal castToEnvelope(final Object o) {
@@ -156,20 +180,44 @@ public final class PreSerializedPublishSignalSerializer extends SerializerWithSt
                 "> with " + PreSerializedPublishSignalSerializer.class.getSimpleName());
     }
 
-    private static int sizeOfString(final String s) {
-        return Integer.BYTES + s.getBytes(StandardCharsets.UTF_8).length;
-    }
-
-    private static void putString(final ByteBuffer buf, final String s) {
-        final byte[] bytes = s.getBytes(StandardCharsets.UTF_8);
+    private static void putBytes(final ByteBuffer buf, final byte[] bytes) {
         buf.putInt(bytes.length);
         buf.put(bytes);
     }
 
     private static String getString(final ByteBuffer buf) {
         final int length = buf.getInt();
+        if (length < 0 || length > buf.remaining()) {
+            throw new IllegalArgumentException("Invalid length prefix <" + length + "> (remaining: " +
+                    buf.remaining() + ")");
+        }
         final byte[] bytes = new byte[length];
         buf.get(bytes);
         return new String(bytes, StandardCharsets.UTF_8);
     }
+
+    /**
+     * The wire frame with every variable-length field UTF-8-encoded exactly once, so sizing and writing share the
+     * same byte arrays instead of re-encoding each string.
+     *
+     * @param signalManifest the inner serializer's string manifest, UTF-8 encoded.
+     * @param groupIndexKey the group index key, UTF-8 encoded.
+     * @param groups the per-destination groups, keys UTF-8 encoded.
+     * @param signalBytes the pre-serialized signal payload (already bytes; shared across destinations).
+     */
+    private record EncodedFrame(byte[] signalManifest, byte[] groupIndexKey, List<EncodedGroup> groups,
+                                byte[] signalBytes) {
+
+        private int size() {
+            int size = Integer.BYTES + signalManifest.length +
+                    Integer.BYTES + groupIndexKey.length +
+                    Integer.BYTES; // group count
+            for (final EncodedGroup group : groups) {
+                size += Integer.BYTES + group.key().length + Integer.BYTES; // key + size
+            }
+            return size + Integer.BYTES + signalBytes.length; // signal bytes length + bytes
+        }
+    }
+
+    private record EncodedGroup(byte[] key, int size) {}
 }

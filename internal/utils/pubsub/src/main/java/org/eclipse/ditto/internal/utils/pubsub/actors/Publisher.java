@@ -48,7 +48,9 @@ import org.eclipse.ditto.json.JsonValue;
 import org.apache.pekko.actor.AbstractActor;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.actor.Address;
 import org.apache.pekko.actor.Props;
+import org.apache.pekko.cluster.Cluster;
 import org.apache.pekko.cluster.ddata.Key;
 import org.apache.pekko.cluster.ddata.ORMultiMap;
 import org.apache.pekko.cluster.ddata.Replicator;
@@ -76,6 +78,7 @@ public final class Publisher extends AbstractActor {
     private final Map<Key<?>, PublisherIndex<Long>> publisherIndexes = new HashMap<>();
     private final int subscriberPoolSize;
     private final boolean preSerializeFanoutEnabled;
+    private final Address selfAddress;
 
     private PublisherIndex<Long> publisherIndex = PublisherIndex.empty();
     private RemoteAcksChanged remoteAcks = RemoteAcksChanged.of(Map.of());
@@ -85,6 +88,7 @@ public final class Publisher extends AbstractActor {
         this.ddataReader = ddataReader;
         subscriberPoolSize = distributedAcks.getConfig().getSubscriberPoolSize();
         preSerializeFanoutEnabled = PubSubConfig.of(getContext().getSystem()).isPreSerializeFanoutEnabled();
+        selfAddress = Cluster.get(getContext().getSystem()).selfAddress();
         ddataReader.receiveChanges(getSelf());
         distributedAcks.receiveDistributedDeclaredAcks(getSelf());
     }
@@ -202,12 +206,28 @@ public final class Publisher extends AbstractActor {
         }
         sentMessagesCounter.increment(subscribers.size());
         // When enabled, serialize the (identical) signal payload once and share it across all fan-out destinations
-        // via a PreSerializedPublishSignal envelope; Pekko Artery re-serializes per destination otherwise. Only
-        // worthwhile when the signal actually fans out to more than one destination.
+        // via a PreSerializedPublishSignal envelope; Pekko Artery re-serializes per destination otherwise. This only
+        // pays off for *remote* fan-out: local delivery uses the live signal (no serialization), so requiring at
+        // least one remote destination avoids allocating a holder + envelopes for purely-local (e.g. single-node /
+        // dev) fan-out where nothing is ever serialized. The cheap enabled/size checks short-circuit before the
+        // remoteness scan so there is no extra work when the feature is off.
         final SignalBytesHolder sharedHolder =
-                preSerializeFanoutEnabled && subscribers.size() > 1 ? new SignalBytesHolder(signal) : null;
+                preSerializeFanoutEnabled && subscribers.size() > 1 && hasRemoteSubscriber(subscribers)
+                        ? new SignalBytesHolder(signal)
+                        : null;
         subscribers.forEach(pair -> publishSignal(pair.first(), pair.second(), sharedHolder, sender));
         return subscribers;
+    }
+
+    private boolean hasRemoteSubscriber(final List<Pair<ActorRef, PublishSignal>> subscribers) {
+        return subscribers.stream().anyMatch(pair -> isRemote(pair.first()));
+    }
+
+    private boolean isRemote(final ActorRef subscriber) {
+        final Address address = subscriber.path().address();
+        // A local subscriber's ref either has no host (local scope) or carries this node's own cluster address;
+        // anything else lives on a remote node and forces Artery to serialize the message.
+        return address.hasGlobalScope() && !address.equals(selfAddress);
     }
 
     private void publishSignal(final ActorRef subscriber, final PublishSignal signal,

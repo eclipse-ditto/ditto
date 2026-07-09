@@ -14,8 +14,10 @@ package org.eclipse.ditto.internal.utils.pubsub.serialization;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.NotSerializableException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CyclicBarrier;
@@ -138,6 +140,45 @@ public final class PreSerializedPublishSignalSerializerTest {
                 AuthorizationSubject.newInstance("ditto:subject-one"),
                 AuthorizationSubject.newInstance("ditto:subject-two"),
                 AuthorizationSubject.newInstance("ditto:subject-three"));
+    }
+
+    @Test
+    public void unknownInnerManifestYieldsNotSerializableExceptionNotCrash() {
+        final PreSerializedPublishSignal envelope = sampleEnvelope(Map.of("group", 1), "key");
+        final byte[] bytes = underTest.toBinary(envelope);
+
+        // The signal manifest is the first length-prefixed field; overwrite its bytes (keeping the length, so all
+        // downstream offsets stay valid) with an unknown manifest, mimicking a newer signal type reaching a
+        // not-yet-upgraded node. The inner serializer returns a NotSerializableException, which must be propagated
+        // rather than turned into an uncaught error on the decoder thread.
+        final int manifestLength = ByteBuffer.wrap(bytes).getInt();
+        Arrays.fill(bytes, Integer.BYTES, Integer.BYTES + manifestLength, (byte) 'X');
+
+        final Object result = underTest.fromBinary(bytes, underTest.manifest(envelope));
+
+        assertThat(result).isInstanceOf(NotSerializableException.class);
+    }
+
+    @Test
+    public void truncatedFrameYieldsNotSerializableExceptionNotCrash() {
+        final PreSerializedPublishSignal envelope = sampleEnvelope(Map.of("group", 1), "key");
+        final byte[] full = underTest.toBinary(envelope);
+        final byte[] truncated = Arrays.copyOf(full, full.length / 2);
+
+        final Object result = underTest.fromBinary(truncated, underTest.manifest(envelope));
+
+        assertThat(result).isInstanceOf(NotSerializableException.class);
+    }
+
+    @Test
+    public void corruptLengthPrefixDoesNotAllocateHugeBufferAndFailsCleanly() {
+        // A garbage/misrouted frame whose first length prefix decodes to Integer.MAX_VALUE must not trigger a huge
+        // allocation (OutOfMemoryError); it must fail cleanly as a NotSerializableException.
+        final byte[] bytes = ByteBuffer.allocate(2 * Integer.BYTES).putInt(Integer.MAX_VALUE).putInt(0).array();
+
+        final Object result = underTest.fromBinary(bytes, underTest.manifest(sampleEnvelope(Map.of(), "k")));
+
+        assertThat(result).isInstanceOf(NotSerializableException.class);
     }
 
     @Test
