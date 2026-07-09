@@ -37,6 +37,14 @@ public final class KamonCounter implements Counter {
     private final String name;
     private final TagSet tags;
 
+    /**
+     * Memoized resolved Kamon counter. {@code name} and {@code tags} are immutable (and {@link #tag(Tag)} /
+     * {@link #tags(TagSet)} return new instances), so the resolved instrument is invariant and can be cached to avoid
+     * re-resolving it (registry lookup + tag-set conversion) on every {@link #increment()}.
+     */
+    @SuppressWarnings("squid:S3077")
+    private transient volatile kamon.metric.Counter kamonInternalCounter;
+
     private KamonCounter(final String name, final TagSet tags) {
         this.name = argumentNotEmpty(name, "name");
         this.tags = checkNotNull(tags, "tags");
@@ -102,7 +110,13 @@ public final class KamonCounter implements Counter {
     }
 
     private kamon.metric.Counter getKamonInternalCounter() {
-        return Kamon.counter(name).withTags(KamonTagSetConverter.getKamonTagSet(tags));
+        kamon.metric.Counter result = kamonInternalCounter;
+        if (null == result) {
+            // benign race: for a given (name, tags) Kamon returns the same instrument, so a redundant resolve is safe:
+            result = Kamon.counter(name).withTags(KamonTagSetConverter.getKamonTagSet(tags));
+            kamonInternalCounter = result;
+        }
+        return result;
     }
 
     @Override

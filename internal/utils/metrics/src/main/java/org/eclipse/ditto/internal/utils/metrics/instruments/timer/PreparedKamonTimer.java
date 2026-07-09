@@ -46,6 +46,14 @@ final class PreparedKamonTimer implements PreparedTimer {
     private final Consumer<StartedTimer> additionalExpirationHandling;
     private TagSet tags;
 
+    /**
+     * Memoized resolved Kamon timer, invalidated whenever {@link #tags} changes (see {@link #tag(Tag)} /
+     * {@link #tags(TagSet)}). Avoids re-resolving the instrument (registry lookup + tag-set conversion) on every
+     * {@link #record(long, TimeUnit)} of a reused prepared timer.
+     */
+    @SuppressWarnings("squid:S3077")
+    private transient volatile kamon.metric.Timer kamonInternalTimer;
+
     private PreparedKamonTimer(final String name) {
         this(name, Duration.ofMinutes(5), startedTimer -> {}, TagSet.empty());
     }
@@ -101,12 +109,14 @@ final class PreparedKamonTimer implements PreparedTimer {
     @Override
     public PreparedTimer tag(final Tag tag) {
         tags = tags.putTag(tag);
+        kamonInternalTimer = null;
         return this;
     }
 
     @Override
     public PreparedTimer tags(final TagSet tags) {
         this.tags = this.tags.putAllTags(tags);
+        kamonInternalTimer = null;
         return this;
     }
 
@@ -189,7 +199,13 @@ final class PreparedKamonTimer implements PreparedTimer {
     }
 
     private kamon.metric.Timer getKamonInternalTimer() {
-        return Kamon.timer(name).withTags(KamonTagSetConverter.getKamonTagSet(tags));
+        kamon.metric.Timer result = kamonInternalTimer;
+        if (null == result) {
+            // benign race: for a given (name, tags) Kamon returns the same instrument, so a redundant resolve is safe:
+            result = Kamon.timer(name).withTags(KamonTagSetConverter.getKamonTagSet(tags));
+            kamonInternalTimer = result;
+        }
+        return result;
     }
 
     @Override

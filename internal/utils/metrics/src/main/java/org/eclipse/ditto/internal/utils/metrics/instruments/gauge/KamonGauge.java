@@ -34,6 +34,14 @@ public final class KamonGauge implements Gauge {
     private final String name;
     private final TagSet tags;
 
+    /**
+     * Memoized resolved Kamon gauge. {@code name} and {@code tags} are immutable (and {@link #tag(Tag)} /
+     * {@link #tags(TagSet)} return new instances), so the resolved instrument is invariant and can be cached to avoid
+     * re-resolving it (registry lookup + tag-set conversion) on every gauge operation.
+     */
+    @SuppressWarnings("squid:S3077")
+    private transient volatile kamon.metric.Gauge kamonInternalGauge;
+
     private KamonGauge(final String name, final TagSet tags) {
         this.name = name;
         this.tags = tags;
@@ -107,7 +115,13 @@ public final class KamonGauge implements Gauge {
     }
 
     private kamon.metric.Gauge getKamonInternalGauge() {
-        return Kamon.gauge(name).withTags(KamonTagSetConverter.getKamonTagSet(tags));
+        kamon.metric.Gauge result = kamonInternalGauge;
+        if (null == result) {
+            // benign race: for a given (name, tags) Kamon returns the same instrument, so a redundant resolve is safe:
+            result = Kamon.gauge(name).withTags(KamonTagSetConverter.getKamonTagSet(tags));
+            kamonInternalGauge = result;
+        }
+        return result;
     }
 
     @Override
