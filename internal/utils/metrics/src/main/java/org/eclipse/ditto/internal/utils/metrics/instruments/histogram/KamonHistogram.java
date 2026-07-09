@@ -42,6 +42,14 @@ public final class KamonHistogram implements Histogram {
     private final String name;
     private final TagSet tags;
 
+    /**
+     * Memoized resolved Kamon histogram. {@code name} and {@code tags} are immutable (and {@link #tag(Tag)} /
+     * {@link #tags(TagSet)} return new instances), so the resolved instrument is invariant and can be cached to avoid
+     * re-resolving it (registry lookup + tag-set conversion) on every {@link #record(Long)}.
+     */
+    @SuppressWarnings("squid:S3077")
+    private transient volatile kamon.metric.Histogram kamonInternalHistogram;
+
     private KamonHistogram(final String name, final TagSet tags) {
         this.name = name;
         this.tags = tags;
@@ -112,7 +120,13 @@ public final class KamonHistogram implements Histogram {
     }
 
     private kamon.metric.Histogram getKamonInternalHistogram() {
-        return Kamon.histogram(name).withTags(KamonTagSetConverter.getKamonTagSet(tags));
+        kamon.metric.Histogram result = kamonInternalHistogram;
+        if (null == result) {
+            // benign race: for a given (name, tags) Kamon returns the same instrument, so a redundant resolve is safe:
+            result = Kamon.histogram(name).withTags(KamonTagSetConverter.getKamonTagSet(tags));
+            kamonInternalHistogram = result;
+        }
+        return result;
     }
 
     @Override
