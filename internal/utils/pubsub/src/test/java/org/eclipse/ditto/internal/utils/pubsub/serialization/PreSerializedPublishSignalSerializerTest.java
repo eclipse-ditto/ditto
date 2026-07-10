@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.NotSerializableException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -101,7 +102,7 @@ public final class PreSerializedPublishSignalSerializerTest {
         final Map<String, Integer> groups = Map.of("only-group", 2);
         final PreSerializedPublishSignal envelope = sampleEnvelope(groups, "the-key");
 
-        final ByteBuffer buffer = ByteBuffer.allocate(64 * 1024);
+        final ByteBuffer buffer = ByteBuffer.allocate(64 * 1024).order(ByteOrder.LITTLE_ENDIAN);
         underTest.toBinary(envelope, buffer);
         buffer.flip();
         final Object result = underTest.fromBinary(buffer, underTest.manifest(envelope));
@@ -118,7 +119,7 @@ public final class PreSerializedPublishSignalSerializerTest {
         final PreSerializedPublishSignal envelope = sampleEnvelope(Map.of("g", 5), "k");
 
         final byte[] fromArrayPath = underTest.toBinary(envelope);
-        final ByteBuffer buffer = ByteBuffer.allocate(64 * 1024);
+        final ByteBuffer buffer = ByteBuffer.allocate(64 * 1024).order(ByteOrder.LITTLE_ENDIAN);
         underTest.toBinary(envelope, buffer);
         buffer.flip();
         final byte[] fromBufferPath = new byte[buffer.remaining()];
@@ -151,7 +152,7 @@ public final class PreSerializedPublishSignalSerializerTest {
         // downstream offsets stay valid) with an unknown manifest, mimicking a newer signal type reaching a
         // not-yet-upgraded node. The inner serializer returns a NotSerializableException, which must be propagated
         // rather than turned into an uncaught error on the decoder thread.
-        final int manifestLength = ByteBuffer.wrap(bytes).getInt();
+        final int manifestLength = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).getInt();
         Arrays.fill(bytes, Integer.BYTES, Integer.BYTES + manifestLength, (byte) 'X');
 
         final Object result = underTest.fromBinary(bytes, underTest.manifest(envelope));

@@ -83,24 +83,29 @@ public final class PreSerializedPublishSignalSerializer extends SerializerWithSt
 
     @Override
     public void toBinary(final Object o, final ByteBuffer buf) {
-        // Pin the byte order so the frame does not depend on the buffer's default order: Artery's pooled envelope
-        // buffers are little-endian, whereas ByteBuffer.allocate/wrap default to big-endian. Without this a frame
-        // written by Artery could not be read back through the byte[] entry point (and vice versa).
-        buf.order(ByteOrder.BIG_ENDIAN);
+        // IMPORTANT: never change the order of this buffer. Artery hands us one of its pooled, reused envelope
+        // buffers (little-endian) and relies on it staying little-endian to write/read the frame headers of the
+        // *next* messages that reuse it — mutating the order here corrupts those frames (observed as
+        // BufferUnderflowException on the remote Artery Decoder, dropped messages, and ddata/pub-sub timeouts).
+        // We therefore write in the buffer's native little-endian order and pin the same order on the byte[] path's
+        // own buffer below, so both entry points stay interoperable without ever touching a buffer we don't own.
         writeFrame(buf, encode(castToEnvelope(o)));
     }
 
     @Override
     public byte[] toBinary(final Object o) {
         final EncodedFrame frame = encode(castToEnvelope(o));
-        final ByteBuffer buf = ByteBuffer.allocate(frame.size()).order(ByteOrder.BIG_ENDIAN);
+        // Match Artery's little-endian framing (ByteBuffer.allocate defaults to big-endian). This is our own buffer,
+        // so setting the order here is safe.
+        final ByteBuffer buf = ByteBuffer.allocate(frame.size()).order(ByteOrder.LITTLE_ENDIAN);
         writeFrame(buf, frame);
         return buf.array();
     }
 
     @Override
     public Object fromBinary(final ByteBuffer buf, final String manifest) {
-        buf.order(ByteOrder.BIG_ENDIAN);
+        // Read in the buffer's native order without mutating it (see toBinary(Object, ByteBuffer)): Artery passes a
+        // little-endian pooled buffer, and the byte[] entry point below wraps with the same order.
         try {
             final String signalManifest = getString(buf);
             final String groupIndexKey = getString(buf);
@@ -147,7 +152,8 @@ public final class PreSerializedPublishSignalSerializer extends SerializerWithSt
 
     @Override
     public Object fromBinary(final byte[] bytes, final String manifest) {
-        return fromBinary(ByteBuffer.wrap(bytes), manifest);
+        // Match Artery's little-endian framing (ByteBuffer.wrap defaults to big-endian).
+        return fromBinary(ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN), manifest);
     }
 
     private EncodedFrame encode(final PreSerializedPublishSignal envelope) {
