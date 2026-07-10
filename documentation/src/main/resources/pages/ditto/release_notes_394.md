@@ -32,10 +32,10 @@ dominant serialization cost observed on the `things` service under high fan-out 
 
 The optimization is **flag-gated and disabled by default**. Enable it via
 `ditto.pubsub.pre-serialize-fanout-enabled` (env `DITTO_PUBSUB_PRE_SERIALIZE_FANOUT_ENABLED`, default `false`),
-exposed through the Helm values as `pubsub.preSerializeFanoutEnabled` on the `things`, `policies` and
-`connectivity` deployment templates. The flag has an effect only in services that actually publish fan-out
-signals (`things`, `policies`, `connectivity`); the subscriber-only services (`gateway`, `thingssearch`) do not
-read it. It is only safe to enable after the **whole cluster** has been upgraded — see
+exposed through the Helm values as a single cluster-wide `global.pubsub.preSerializeFanoutEnabled`. It is applied
+to exactly the services that publish fan-out signals (`things`, `policies`, `connectivity`) — on for all or off
+for all; the subscriber-only services (`gateway`, `thingssearch`) do not read it. It is only safe to enable after
+the **whole cluster** has been upgraded — see
 [Activating pre-serialized pub/sub fan-out safely](#activating-pre-serialized-pubsub-fan-out-safely) below.
 
 #### Dependency updates
@@ -49,9 +49,9 @@ latest compatible versions.
 
 ### Helm Chart
 
-The accompanying Helm chart was released as version `4.3.1`. It exposes the new
-`pubsub.preSerializeFanoutEnabled` option (default `false`) on the `things`, `policies` and `connectivity`
-services.
+The accompanying Helm chart was released as version `4.3.2`. It exposes the new cluster-wide
+`global.pubsub.preSerializeFanoutEnabled` option (default `false`), applied to the publishing services
+(`things`, `policies`, `connectivity`).
 
 ## Migration notes
 
@@ -87,11 +87,9 @@ Do not proceed until there is **no** pre-3.9.4 node left in the cluster.
 
 ### Phase 2 — Enable the flag on the publishing services
 
-3. Set `pubsub.preSerializeFanoutEnabled: true` for the publishing services only — `things`, `policies` and
-   `connectivity` (Helm keys `things.config.pubsub.preSerializeFanoutEnabled`,
-   `policies.config.pubsub.preSerializeFanoutEnabled`,
-   `connectivity.config.pubsub.preSerializeFanoutEnabled`; or directly via the
-   `DITTO_PUBSUB_PRE_SERIALIZE_FANOUT_ENABLED` environment variable).
+3. Set the cluster-wide Helm value `global.pubsub.preSerializeFanoutEnabled: true` (or set the
+   `DITTO_PUBSUB_PRE_SERIALIZE_FANOUT_ENABLED` environment variable on the publishing services `things`,
+   `policies` and `connectivity` directly).
 4. Apply the change with a normal rolling restart of those services. A mixed state during the restart (some
    publisher pods with the flag on, some off) is safe: every 3.9.4 receiver understands **both** the regular
    `PublishSignal` and the new `PreSerializedPublishSignal`, so no message is lost regardless of which publisher
