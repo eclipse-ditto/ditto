@@ -65,7 +65,7 @@ final class StreamRequestingCommandEnforcement
             return CompletableFuture.completedFuture(
                     ThingCommandEnforcement.addEffectedReadSubjectsToThingSignal(
                             signal,
-                            policyEnforcer.getEnforcer(),
+                            policyEnforcer,
                             partialAccessEventsEnabled)
             );
         } else {

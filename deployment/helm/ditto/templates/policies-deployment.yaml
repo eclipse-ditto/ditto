@@ -316,6 +316,8 @@ spec:
               value: "{{ .Values.policies.config.policiesEnforcer.cache.maxSize }}"
             - name: DITTO_POLICIES_ENFORCER_NAMESPACE_FILTERED_MAX_SIZE
               value: "{{ .Values.policies.config.policiesEnforcer.cache.namespaceFilteredMaxSize }}"
+            - name: DITTO_POLICIES_ENFORCER_READ_CLASSIFICATION_MAX_SIZE
+              value: "{{ .Values.policies.config.policiesEnforcer.cache.readClassificationMaxSize }}"
             - name: DITTO_POLICIES_ENFORCER_CACHE_EXPIRE_AFTER_WRITE
               value: "{{ .Values.policies.config.policiesEnforcer.cache.expireAfterWrite }}"
             - name: DITTO_POLICIES_ENFORCER_CACHE_EXPIRE_AFTER_ACCESS

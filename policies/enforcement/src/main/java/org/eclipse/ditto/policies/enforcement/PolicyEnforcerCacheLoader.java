@@ -40,10 +40,15 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<PolicyI
      * namespace-filtered-enforcer cache size; default provided by reference.conf. */
     private static final String NAMESPACE_FILTERED_ENFORCER_MAX_SIZE_KEY = "namespace-filtered-enforcer-max-size";
 
+    /** Config key (relative to {@link PolicyEnforcerProvider#ENFORCER_CACHE_CONFIG_KEY}) for the per-enforcer
+     * read-classification cache size; default provided by reference.conf. */
+    private static final String READ_CLASSIFICATION_MAX_SIZE_KEY = "read-classification-cache-max-size";
+
     private final PolicyCacheLoader delegate;
     private final Executor enforcementCacheExecutor;
     private final NamespacePoliciesConfig namespacePoliciesConfig;
     private final long namespaceFilteredEnforcerCacheMaxSize;
+    private final long readClassificationCacheMaxSize;
     @Nullable
     private final CompletableFuture<Cache<PolicyId, Entry<PolicyEnforcer>>> cacheFuture;
 
@@ -83,6 +88,9 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<PolicyI
         this.namespaceFilteredEnforcerCacheMaxSize = actorSystem.settings().config()
                 .getLong(PolicyEnforcerProvider.ENFORCER_CACHE_CONFIG_KEY + "." +
                         NAMESPACE_FILTERED_ENFORCER_MAX_SIZE_KEY);
+        this.readClassificationCacheMaxSize = actorSystem.settings().config()
+                .getLong(PolicyEnforcerProvider.ENFORCER_CACHE_CONFIG_KEY + "." +
+                        READ_CLASSIFICATION_MAX_SIZE_KEY);
         this.cacheFuture = cacheFuture;
     }
 
@@ -114,7 +122,8 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<PolicyI
             final var revision = entry.getRevision();
             final var policy = entry.getValueOrThrow();
             return PolicyEnforcer.withResolvedImportsAndNamespacePolicies(policy, policyResolver,
-                            namespacePoliciesConfig, namespaceFilteredEnforcerCacheMaxSize)
+                            namespacePoliciesConfig, namespaceFilteredEnforcerCacheMaxSize,
+                            readClassificationCacheMaxSize)
                     .thenApply(enforcer -> Entry.of(revision, enforcer));
         } else {
             return CompletableFuture.completedFuture(Entry.nonexistent());
