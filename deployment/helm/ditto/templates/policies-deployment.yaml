@@ -317,7 +317,7 @@ spec:
             - name: DITTO_POLICIES_ENFORCER_NAMESPACE_FILTERED_MAX_SIZE
               value: "{{ .Values.policies.config.policiesEnforcer.cache.namespaceFilteredMaxSize }}"
             - name: DITTO_PUBSUB_PRE_SERIALIZE_FANOUT_ENABLED
-              value: "{{ .Values.policies.config.pubsub.preSerializeFanoutEnabled }}"
+              value: "{{ .Values.global.pubsub.preSerializeFanoutEnabled }}"
             - name: DITTO_POLICIES_ENFORCER_CACHE_EXPIRE_AFTER_WRITE
               value: "{{ .Values.policies.config.policiesEnforcer.cache.expireAfterWrite }}"
             - name: DITTO_POLICIES_ENFORCER_CACHE_EXPIRE_AFTER_ACCESS
