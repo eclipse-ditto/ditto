@@ -115,6 +115,8 @@ spec:
               value: "{{ .Values.global.tracing.randomSampler.probability }}"
             - name: DITTO_TRACING_ADAPTIVE_SAMPLER_THROUGHPUT
               value: "{{ .Values.global.tracing.adaptiveSampler.throughput }}"
+            - name: DITTO_PUBSUB_PRE_SERIALIZE_FANOUT_ENABLED
+              value: "{{ .Values.global.pubsub.preSerializeFanoutEnabled }}"
             {{- if .Values.global.logging.logstash.enabled }}
             - name: DITTO_LOGGING_LOGSTASH_SERVER
               value: "{{ .Values.global.logging.logstash.endpoint }}"
@@ -314,8 +316,6 @@ spec:
               value: "{{ .Values.things.config.policiesEnforcer.cache.maxSize }}"
             - name: DITTO_POLICIES_ENFORCER_NAMESPACE_FILTERED_MAX_SIZE
               value: "{{ .Values.things.config.policiesEnforcer.cache.namespaceFilteredMaxSize }}"
-            - name: DITTO_PUBSUB_PRE_SERIALIZE_FANOUT_ENABLED
-              value: "{{ .Values.global.pubsub.preSerializeFanoutEnabled }}"
             - name: DITTO_POLICIES_ENFORCER_CACHE_EXPIRE_AFTER_WRITE
               value: "{{ .Values.things.config.policiesEnforcer.cache.expireAfterWrite }}"
             - name: DITTO_POLICIES_ENFORCER_CACHE_EXPIRE_AFTER_ACCESS
