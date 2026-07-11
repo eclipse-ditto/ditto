@@ -1947,6 +1947,28 @@ timeseries:
         # queryTimeout is the server-side time budget per read, applied as MongoDB maxTime (HOCON
         # duration, e.g. "60s"). Empty inherits the timeseries.conf default ("60s").
         queryTimeout: ""
+        # capabilities advertise to the query planner what this MongoDB supports, so it routes each
+        # query to the native (fast) path or the portable scan()+compute-kernel path. Defaults suit
+        # a modern MongoDB (5.0+); override for an older / feature-limited MongoDB. Leave a value
+        # unset to inherit the timeseries.conf default.
+        capabilities:
+          # nativeQuery: whether MongoDB's query() is a complete executor (planner delegates whole
+          # queries to it, preserving unit metadata). KEEP true for MongoDB. Must be an explicit
+          # boolean (true/false) to override; leave empty ("") to inherit the default (true).
+          nativeQuery: ""
+          # pushableAggregations: aggregations computed IN the DB engine. A NON-EMPTY list overrides
+          # the timeseries.conf default [avg,min,max,sum,count,first,last,stddev,derivative,integral]
+          # (all exact); an empty list inherits that default (an empty list cannot be rendered, so it
+          # is treated as "inherit"). percentile is OFF by default (native $percentile is approximate)
+          # — opt in on MongoDB 7.0+ by listing the full set plus "percentile". On older MongoDB, list
+          # only the group accumulators to disable derivative/integral push-down.
+          pushableAggregations: []
+          # nativeFillStrategies: gap-fill strategies applied natively via $densify/$fill (5.3+). A
+          # NON-EMPTY list overrides the timeseries.conf default ["linear","previous"] (exact match to
+          # the kernel; zero/null and timezone-aligned queries always stay in the kernel); an empty
+          # list inherits that default. (An empty list cannot force "no native fill" via Helm — set
+          # native-fill-strategies = [] directly in timeseries-extension.conf if you need that.)
+          nativeFillStrategies: []
 
 ## ----------------------------------------------------------------------------
 ## connectivity configuration

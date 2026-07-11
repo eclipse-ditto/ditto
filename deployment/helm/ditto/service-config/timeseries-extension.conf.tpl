@@ -28,4 +28,23 @@ ditto {
   {{- end }}
   }
   {{- end }}
+
+  {{- with .Values.timeseries.config.adapter.mongodb.capabilities }}
+  {{- if .pushableAggregations }}
+  # Aggregations MongoDB pushes down natively (lists can't come from env vars; rendered here).
+  timeseries.adapter.mongodb.capabilities.pushable-aggregations = [
+  {{- range $index, $aggregation := .pushableAggregations }}
+    "{{ $aggregation }}"
+  {{- end }}
+  ]
+  {{- end }}
+  {{- if .nativeFillStrategies }}
+  # Gap-fill strategies MongoDB applies natively (rendered here; env vars can't carry a list).
+  timeseries.adapter.mongodb.capabilities.native-fill-strategies = [
+  {{- range $index, $fill := .nativeFillStrategies }}
+    "{{ $fill }}"
+  {{- end }}
+  ]
+  {{- end }}
+  {{- end }}
 }

@@ -17,8 +17,8 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -40,9 +40,11 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.timeseries.api.Capabilities;
 import org.eclipse.ditto.timeseries.api.HealthStatus;
 import org.eclipse.ditto.timeseries.api.TimeseriesAdapter;
 import org.eclipse.ditto.timeseries.api.TimeseriesAdapterConfig;
+import org.eclipse.ditto.timeseries.api.compute.TimeseriesComputeKernel;
 import org.eclipse.ditto.timeseries.model.Aggregation;
 import org.eclipse.ditto.timeseries.model.FillStrategy;
 import org.eclipse.ditto.timeseries.model.TimeseriesDataPoint;
@@ -111,6 +113,18 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
      */
     private final ConcurrentHashMap<String, CompletionStage<Void>> ensuredCollections =
             new ConcurrentHashMap<>();
+
+    @Override
+    public Capabilities capabilities() {
+        // Config-driven: the capabilities block declares what this deployment's MongoDB supports
+        // (native query, downsampling, pushed-down aggregations, native fill/retention). Defaults
+        // (DEFAULT_CAPABILITIES) match a modern MongoDB 5.0+. Falls back to the default before the
+        // adapter is initialised.
+        final MongoDbTimeseriesAdapterConfig config = state.get().config;
+        return config != null
+                ? config.getCapabilities()
+                : DefaultMongoDbTimeseriesAdapterConfig.DEFAULT_CAPABILITIES;
+    }
 
     @Override
     public CompletionStage<Void> initialize(final TimeseriesAdapterConfig config) {
@@ -260,16 +274,70 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
         return collectInOrder(perPath);
     }
 
+    @Override
+    public CompletionStage<List<TimeseriesDataValue>> scan(final ThingId thingId,
+            final JsonPointer path, final Instant from, final Instant to, final int limit) {
+
+        checkNotNull(thingId, "thingId");
+        checkNotNull(path, "path");
+        checkNotNull(from, "from");
+        checkNotNull(to, "to");
+        final State current = state.get();
+        if (current.health != HealthStatus.UP) {
+            return failedStage(new IllegalStateException(
+                    "MongoDbTimeseriesAdapter is not initialised."));
+        }
+
+        // Same heap-guard semantics as the raw read path: cap at the smaller of the caller's limit
+        // and the configured ceiling; a non-positive limit means "the ceiling". getCollection (not
+        // ensureCollection) so a scan never provisions a collection — a find on a missing collection
+        // yields an empty cursor, which is the desired "no data yet".
+        final int maxPoints = current.config.getMaxQueryResultSize();
+        final int effectiveLimit = (limit <= 0) ? maxPoints : Math.min(limit, maxPoints);
+        final Bson filter = rangeFilter(thingId, path, from, to);
+        final FindPublisher<Document> find = getCollection(current, thingId).find(filter)
+                .sort(Sorts.ascending(TimeseriesBsonMapper.FIELD_TIMESTAMP))
+                .maxTime(current.config.getQueryTimeout().toMillis(), TimeUnit.MILLISECONDS)
+                .limit(effectiveLimit);
+        return collectAll(find).thenApply(docs -> {
+            final List<TimeseriesDataValue> out = new ArrayList<>(docs.size());
+            for (final Document doc : docs) {
+                out.add(TimeseriesBsonMapper.toDataValue(doc));
+            }
+            return Collections.unmodifiableList(out);
+        });
+    }
+
     private static Bson pathFilter(final ThingId thingId, final JsonPointer path,
             final TimeseriesQuery query) {
+        return rangeFilter(thingId, path, query.getFrom(), query.getTo());
+    }
+
+    private static Bson rangeFilter(final ThingId thingId, final JsonPointer path,
+            final Instant from, final Instant to) {
         return Filters.and(
                 Filters.eq("meta." + TimeseriesBsonMapper.META_THING_ID, thingId.toString()),
                 Filters.eq("meta." + TimeseriesBsonMapper.META_PATH, path.toString()),
-                Filters.gte(TimeseriesBsonMapper.FIELD_TIMESTAMP, Date.from(query.getFrom())),
-                Filters.lt(TimeseriesBsonMapper.FIELD_TIMESTAMP, Date.from(query.getTo())));
+                Filters.gte(TimeseriesBsonMapper.FIELD_TIMESTAMP, Date.from(from)),
+                Filters.lt(TimeseriesBsonMapper.FIELD_TIMESTAMP, Date.from(to)));
     }
 
     private CompletionStage<TimeseriesQueryResult> queryOnePath(final State current,
+            final TimeseriesQuery query,
+            final JsonPointer path) {
+
+        final long startNanos = System.nanoTime();
+        return runQueryStrategy(current, query, path)
+                .whenComplete((result, error) -> logQueryCost(query, path, result, error, startNanos));
+    }
+
+    /**
+     * Picks and runs the read strategy for a single path: a raw {@code find()} when no
+     * step/aggregation is set, the {@code $dateTrunc}/{@code $group} downsampling pipeline for a
+     * bucketed aggregation, or a point-derived window aggregation
+     * ({@code derivative}/{@code rate}/{@code integral}/{@code percentile}).
+     */
+    private CompletionStage<TimeseriesQueryResult> runQueryStrategy(final State current,
             final TimeseriesQuery query,
             final JsonPointer path) {
 
@@ -286,6 +354,45 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
             return aggregateAdvancedOnePath(current, query, path, agg);
         }
         return queryOnePathRaw(current, query, path);
+    }
+
+    /**
+     * Emits a per-path query-cost line at DEBUG: the read strategy, query shape (range, step,
+     * aggregation, fill), the result size and the wall-clock latency. This is the evidence base for
+     * spotting expensive reads (broad ranges, tiny steps, heavy window aggregations) without
+     * guessing, and it feeds the push-down/planner decisions of later phases. It is gated on DEBUG
+     * so it adds no overhead in production unless explicitly enabled; the scan <em>volume</em> of
+     * the memory-bound window aggregations is logged separately in {@link #fetchRawTimedValues}.
+     */
+    private static void logQueryCost(final TimeseriesQuery query, final JsonPointer path,
+            @Nullable final TimeseriesQueryResult result, @Nullable final Throwable error,
+            final long startNanos) {
+
+        if (!LOGGER.isDebugEnabled()) {
+            return;
+        }
+        final long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000L;
+        final long rangeSeconds = Duration.between(query.getFrom(), query.getTo()).getSeconds();
+        final String strategy = query.getAggregation()
+                .map(agg -> agg.requiresStep() && query.getStep().isPresent()
+                        ? "group-agg" : "advanced-agg")
+                .orElse("raw");
+        final String agg = query.getAggregation().map(Aggregation::getName).orElse("none");
+        final String step = query.getStep().map(Duration::toString).orElse("none");
+        final String fill = query.getFillStrategy().map(FillStrategy::getName).orElse("none");
+        if (error != null) {
+            LOGGER.debug("Timeseries query cost: thing=<{}> path=<{}> strategy=<{}> agg=<{}> " +
+                            "step=<{}> fill=<{}> rangeSeconds=<{}> elapsedMs=<{}> outcome=<error:{}>",
+                    query.getThingId(), path, strategy, agg, step, fill, rangeSeconds, elapsedMs,
+                    error.getClass().getSimpleName());
+        } else {
+            final long resultPoints = result != null ? result.getMeta().getCount() : 0L;
+            LOGGER.debug("Timeseries query cost: thing=<{}> path=<{}> strategy=<{}> agg=<{}> " +
+                            "step=<{}> fill=<{}> rangeSeconds=<{}> resultPoints=<{}> elapsedMs=<{}> " +
+                            "outcome=<ok>",
+                    query.getThingId(), path, strategy, agg, step, fill, rangeSeconds, resultPoints,
+                    elapsedMs);
+        }
     }
 
     private CompletionStage<TimeseriesQueryResult> queryOnePathRaw(final State current,
@@ -345,32 +452,137 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
         pipeline.add(Aggregates.group(dateTrunc, valueAccumulator, unitAccumulator));
         pipeline.add(Aggregates.sort(Sorts.ascending("_id")));
 
+        final int maxPoints = current.config.getMaxQueryResultSize();
         final MongoCollection<Document> collection = getCollection(current, thingId);
+        if (usesNativeFill(current, query)) {
+            appendNativeFillStages(pipeline, step, query.getFillStrategy().orElseThrow(), maxPoints);
+            return collectAll(collection.aggregate(pipeline)
+                            .allowDiskUse(true)
+                            .maxTime(current.config.getQueryTimeout().toMillis(), TimeUnit.MILLISECONDS))
+                    .thenApplyAsync(buckets -> {
+                        // A tiny step over a broad range densifies a huge grid server-side; bound the
+                        // rows pulled into service heap (mirrors the raw/derivative scan ceiling).
+                        if (buckets.size() > maxPoints) {
+                            throw fillGridExceeded(maxPoints, path);
+                        }
+                        return buildNativelyFilledResult(thingId, path, query, buckets);
+                    });
+        }
         return collectAll(collection.aggregate(pipeline)
                         .allowDiskUse(true)
                         .maxTime(current.config.getQueryTimeout().toMillis(), TimeUnit.MILLISECONDS))
                 // Bucket assembly + gap fill is CPU work — keep it off the reactive driver thread.
-                .thenApplyAsync(buckets -> buildAggregatedResult(thingId, path, query, step, buckets));
+                .thenApplyAsync(buckets -> buildAggregatedResult(thingId, path, query, step, buckets, maxPoints));
     }
 
     /**
-     * The {@code (unit, binSize)} pair MongoDB's {@code $dateTrunc} bins by, derived from a step
-     * {@link Duration}. The same pair drives the in-memory gap-fill grid (see {@link #nextBucket})
-     * so the two stay aligned.
+     * Whether gap-fill should be pushed to MongoDB ({@code $densify}+{@code $fill}) rather than the
+     * kernel. Only {@code LINEAR} (&rarr; {@code $fill} method {@code linear}) and {@code PREVIOUS}
+     * (&rarr; {@code locf}) map to native methods, and only when the capabilities declare the
+     * strategy native. Timezone-aligned queries stay in the kernel because {@code $densify} steps by
+     * a fixed duration with no timezone parameter, so a calendar (DST-aware) day grid could diverge;
+     * the kernel's {@code nextBucket} handles that correctly. A genuinely-null aggregate value (e.g.
+     * single-point {@code STDDEV}) is preserved as a gap via the {@code _wasNull} marker, so no
+     * aggregation needs to be excluded.
      */
-    private record StepUnit(String unit, long binSize) {}
+    private static boolean usesNativeFill(final State current, final TimeseriesQuery query) {
 
-    private static StepUnit stepUnitFor(final Duration step) {
-        final long seconds = step.getSeconds();
-        if (seconds % 86400 == 0) {
-            return new StepUnit("day", seconds / 86400);
-        } else if (seconds % 3600 == 0) {
-            return new StepUnit("hour", seconds / 3600);
-        } else if (seconds % 60 == 0) {
-            return new StepUnit("minute", seconds / 60);
-        } else {
-            return new StepUnit("second", seconds);
+        final FillStrategy fill = query.getFillStrategy().orElse(null);
+        return fill != null
+                && query.getTimezone().isEmpty()
+                && (fill == FillStrategy.LINEAR || fill == FillStrategy.PREVIOUS)
+                && current.config.getCapabilities().canFillNatively(fill);
+    }
+
+    /**
+     * Appends the native gap-fill stages: tag the real buckets with {@code _real}, {@code $densify}
+     * the interior grid at {@code step} (bounds {@code "full"} = data min&ndash;max, so only interior
+     * gaps are created — matching the kernel), mark rows that were null before filling
+     * ({@code _wasNull}), then {@code $fill} the value. A trailing {@code $sort} makes the order
+     * deterministic and {@code $limit} bounds the rows transferred to the service heap. Densified
+     * rows lack {@code _real} (rendered as gaps); a real row with {@code _wasNull} is a genuine-null
+     * bucket and is also a gap — see {@link #buildNativelyFilledResult}.
+     */
+    private static void appendNativeFillStages(final List<Bson> pipeline, final Duration step,
+            final FillStrategy fill, final int maxPoints) {
+
+        final TimeseriesComputeKernel.StepUnit stepUnit = TimeseriesComputeKernel.stepUnitFor(step);
+        pipeline.add(new Document("$addFields", new Document("_real", true)));
+        pipeline.add(new Document("$densify", new Document("field", "_id")
+                .append("range", new Document("step", stepUnit.binSize())
+                        .append("unit", stepUnit.unit())
+                        .append("bounds", "full"))));
+        if (fill == FillStrategy.LINEAR) {
+            // $fill linear raises a TypeMismatch on a non-numeric value; coerce non-numeric (or
+            // missing) to null so it is filled/treated as a gap — matching the kernel's linearFill,
+            // which returns a null gap for non-numeric endpoints rather than erroring.
+            pipeline.add(new Document("$addFields", new Document(TimeseriesBsonMapper.FIELD_VALUE,
+                    new Document("$cond", Arrays.asList(
+                            new Document("$isNumber", "$" + TimeseriesBsonMapper.FIELD_VALUE),
+                            "$" + TimeseriesBsonMapper.FIELD_VALUE, null)))));
         }
+        // Capture null-ness BEFORE $fill: densified rows and any genuine-null real bucket (e.g. a
+        // single-point STDDEV or an all-null AVG). $fill would otherwise fabricate a value for them.
+        pipeline.add(new Document("$addFields",
+                new Document("_wasNull", new Document("$eq", Arrays.asList("$v", null)))));
+        final String method = fill == FillStrategy.LINEAR ? "linear" : "locf";
+        pipeline.add(new Document("$fill", new Document("sortBy", new Document("_id", 1))
+                .append("output", new Document("v", new Document("method", method)))));
+        pipeline.add(Aggregates.sort(Sorts.ascending("_id")));
+        pipeline.add(Aggregates.limit(maxPoints + 1));
+    }
+
+    /**
+     * A filter keeping only numeric-valued points, mirroring the kernel's {@code isNumber} filter so
+     * the native window operators ({@code $derivative}/{@code $integral}) do not raise a
+     * {@code TypeMismatch} on a string/boolean series (they would surface as HTTP 500).
+     */
+    private static Bson numericValueFilter() {
+        return new Document("$expr",
+                new Document("$isNumber", "$" + TimeseriesBsonMapper.FIELD_VALUE));
+    }
+
+    /**
+     * Builds the result from buckets that MongoDB already gap-filled via {@code $densify}+{@code
+     * $fill}. Rows carrying {@code _real=true} are real aggregated buckets; the rest were densified
+     * (filled) and are flagged as gaps, so the output matches the kernel's fill exactly.
+     */
+    // Package-private for unit testing the _real-marker gap reconstruction without a live MongoDB.
+    static TimeseriesQueryResult buildNativelyFilledResult(final ThingId thingId,
+            final JsonPointer path, final TimeseriesQuery query, final List<Document> buckets) {
+
+        final List<TimeseriesDataValue> data = new ArrayList<>(buckets.size());
+        String unit = null;
+        for (final Document bucket : buckets) {
+            final Object id = bucket.get("_id");
+            if (!(id instanceof Date)) {
+                continue;
+            }
+            final Instant t = ((Date) id).toInstant();
+            final Document shaped = new Document(TimeseriesBsonMapper.FIELD_TIMESTAMP, id)
+                    .append(TimeseriesBsonMapper.FIELD_VALUE, bucket.get("v"));
+            // A JSON-null value counts as "no value" (a gap), matching the kernel's toValue: a real
+            // bucket with a null aggregate is a gap, not a fabricated null data point.
+            final JsonValue value = TimeseriesBsonMapper.toDataValue(shaped).getValue()
+                    .filter(jsonValue -> !jsonValue.isNull())
+                    .orElse(null);
+            if (Boolean.TRUE.equals(bucket.get("_real"))) {
+                // A real bucket that was null before $fill (_wasNull) is a gap, not the value $fill
+                // fabricated from its neighbours; a real bucket with a value is a real data point.
+                final boolean wasNull = Boolean.TRUE.equals(bucket.get("_wasNull"));
+                data.add(wasNull || value == null
+                        ? TimeseriesDataValue.gap(t, null)
+                        : TimeseriesDataValue.of(t, value));
+                if (unit == null) {
+                    unit = bucket.getString("unit");
+                }
+            } else {
+                data.add(TimeseriesDataValue.gap(t, value)); // densified -> flagged as a gap
+            }
+        }
+        final TimeseriesResultMeta meta =
+                TimeseriesResultMeta.of(data.size(), unit, inferAggregatedDataType(data));
+        return TimeseriesQueryResult.of(thingId, path, query, meta, data);
     }
 
     /**
@@ -378,7 +590,7 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
      * from the step duration; {@code timezone} (when set) aligns bucket boundaries to that zone.
      */
     private static Document dateTruncSpec(final Duration step, @Nullable final String timezone) {
-        final StepUnit stepUnit = stepUnitFor(step);
+        final TimeseriesComputeKernel.StepUnit stepUnit = TimeseriesComputeKernel.stepUnitFor(step);
         final Document spec = new Document("date", "$" + TimeseriesBsonMapper.FIELD_TIMESTAMP)
                 .append("unit", stepUnit.unit())
                 .append("binSize", stepUnit.binSize());
@@ -386,31 +598,6 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
             spec.append("timezone", timezone);
         }
         return new Document("$dateTrunc", spec);
-    }
-
-    /**
-     * Advances {@code cursor} to the next bucket start. Without a timezone the step is a fixed
-     * {@link Duration} (exact for UTC). With a timezone the step is taken in that zone's calendar, so
-     * day/hour boundaries track wall-clock time across DST transitions — mirroring how MongoDB's
-     * tz-aware {@code $dateTrunc} aligns buckets (a "day" bucket spans 23h or 25h around a transition,
-     * not a fixed 24h). The fill grid is driven off real bucket starts (see {@link #fillBuckets}), so
-     * even if a sub-day step's calendar boundary diverges from {@code $dateTrunc} at the transition
-     * hour, the grid re-syncs at the next populated bucket rather than dropping it.
-     */
-    private static Instant nextBucket(final Instant cursor, final Duration step,
-            @Nullable final ZoneId zone) {
-        if (zone == null) {
-            return cursor.plus(step);
-        }
-        final StepUnit stepUnit = stepUnitFor(step);
-        final ZonedDateTime zoned = cursor.atZone(zone);
-        final ZonedDateTime next = switch (stepUnit.unit()) {
-            case "day" -> zoned.plusDays(stepUnit.binSize());
-            case "hour" -> zoned.plusHours(stepUnit.binSize());
-            case "minute" -> zoned.plusMinutes(stepUnit.binSize());
-            default -> zoned.plusSeconds(stepUnit.binSize());
-        };
-        return next.toInstant();
     }
 
     private static BsonField accumulatorFor(final Aggregation agg, final String field,
@@ -432,7 +619,8 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
             final JsonPointer path,
             final TimeseriesQuery query,
             final Duration step,
-            final List<Document> buckets) {
+            final List<Document> buckets,
+            final int maxPoints) {
 
         // Bucket-start -> aggregated value, preserving Mongo's $dateTrunc alignment (incl. timezone).
         final LinkedHashMap<Instant, JsonValue> byBucket = new LinkedHashMap<>();
@@ -444,8 +632,13 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
             }
             final Document shaped = new Document(TimeseriesBsonMapper.FIELD_TIMESTAMP, id)
                     .append(TimeseriesBsonMapper.FIELD_VALUE, bucket.get("v"));
-            final TimeseriesDataValue dv = TimeseriesBsonMapper.toDataValue(shaped);
-            byBucket.put(((Date) id).toInstant(), dv.getValue().orElse(null));
+            // A JSON-null aggregate (e.g. single-point STDDEV) is "no value" -> a gap, matching the
+            // kernel. Without the filter, toDataValue yields a present JSON-null which fillBuckets
+            // would render as a non-gap value — the round-2 divergence this closes.
+            final JsonValue value = TimeseriesBsonMapper.toDataValue(shaped).getValue()
+                    .filter(jsonValue -> !jsonValue.isNull())
+                    .orElse(null);
+            byBucket.put(((Date) id).toInstant(), value);
             if (unit == null) {
                 unit = bucket.getString("unit");
             }
@@ -453,97 +646,45 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
 
         final FillStrategy fill = query.getFillStrategy().orElse(null);
         final ZoneId zone = query.getTimezone().orElse(null);
-        final List<TimeseriesDataValue> data = fillBuckets(byBucket, step, fill, zone);
+        if (fill != null) {
+            // Fill materialises the entire interior grid in memory; bound it so a tiny step over a
+            // broad data span cannot exhaust the heap.
+            ensureFillGridWithinCeiling(byBucket, step, maxPoints, path);
+        }
+        final List<TimeseriesDataValue> data =
+                TimeseriesComputeKernel.fillBuckets(byBucket, step, fill, zone);
         final TimeseriesResultMeta meta =
                 TimeseriesResultMeta.of(data.size(), unit, inferAggregatedDataType(data));
         return TimeseriesQueryResult.of(thingId, path, query, meta, data);
     }
 
     /**
-     * Materialises the bucket grid. With no fill strategy only populated buckets are emitted; with a
-     * strategy, interior gaps between populated buckets are filled per {@link FillStrategy}.
-     * <p>
-     * The grid is driven off the populated bucket starts rather than a free-running cursor: each
-     * {@code [present[i-1], present[i]]} segment is walked by {@link #nextBucket} and always closed by
-     * emitting {@code present[i]} exactly. This keeps the grid locked to MongoDB's {@code $dateTrunc}
-     * alignment — including tz/DST-aware boundaries — so a populated bucket is never skipped even if a
-     * calendar step would otherwise drift around a transition.
-     *
-     * @param zone the timezone the buckets were aligned to ({@code null} for UTC); controls whether
-     * stepping is calendar-aware (see {@link #nextBucket}).
+     * Refuses (HTTP 400) when a {@code fill} would materialise more than {@code maxPoints} buckets —
+     * the populated buckets' span divided by the step (an upper bound on the interior grid).
      */
-    private static List<TimeseriesDataValue> fillBuckets(
-            final LinkedHashMap<Instant, JsonValue> byBucket,
-            final Duration step,
-            @Nullable final FillStrategy fill,
-            @Nullable final ZoneId zone) {
+    private static void ensureFillGridWithinCeiling(final LinkedHashMap<Instant, JsonValue> byBucket,
+            final Duration step, final int maxPoints, final JsonPointer path) {
 
-        final List<TimeseriesDataValue> data = new ArrayList<>();
         if (byBucket.isEmpty()) {
-            return data;
+            return;
         }
-        final List<Instant> present = new ArrayList<>(byBucket.keySet());
-        if (fill == null) {
-            for (final Instant bucket : present) {
-                data.add(toValue(bucket, byBucket.get(bucket)));
-            }
-            return data;
+        final List<Instant> keys = new ArrayList<>(byBucket.keySet());
+        final long spanSeconds =
+                keys.get(keys.size() - 1).getEpochSecond() - keys.get(0).getEpochSecond();
+        final long stepSeconds = Math.max(1L, step.getSeconds());
+        if (spanSeconds / stepSeconds > maxPoints) {
+            throw fillGridExceeded(maxPoints, path);
         }
-
-        data.add(toValue(present.get(0), byBucket.get(present.get(0))));
-        for (int i = 1; i < present.size(); i++) {
-            final Instant segmentStart = present.get(i - 1);
-            final Instant segmentEnd = present.get(i);
-            final JsonValue startValue = byBucket.get(segmentStart);
-            final JsonValue endValue = byBucket.get(segmentEnd);
-            Instant cursor = nextBucket(segmentStart, step, zone);
-            while (cursor.isBefore(segmentEnd)) {
-                if (fill == FillStrategy.LINEAR) {
-                    data.add(linearFill(cursor, segmentStart, startValue, segmentEnd, endValue));
-                } else {
-                    data.add(fillValue(cursor, fill, startValue));
-                }
-                cursor = nextBucket(cursor, step, zone);
-            }
-            data.add(toValue(segmentEnd, endValue));
-        }
-        return data;
     }
 
-    private static TimeseriesDataValue toValue(final Instant t, @Nullable final JsonValue v) {
-        return v == null ? TimeseriesDataValue.gap(t, null) : TimeseriesDataValue.of(t, v);
-    }
+    private static TimeseriesQueryInvalidException fillGridExceeded(final int maxPoints,
+            final JsonPointer path) {
 
-    private static TimeseriesDataValue fillValue(final Instant t, final FillStrategy fill,
-            @Nullable final JsonValue previous) {
-        return switch (fill) {
-            case ZERO -> TimeseriesDataValue.gap(t, JsonValue.of(0));
-            case PREVIOUS -> TimeseriesDataValue.gap(t, previous);
-            case NULL -> TimeseriesDataValue.gap(t, null);
-            // LINEAR needs both surrounding anchors, so it is interpolated in fillBuckets directly.
-            case LINEAR -> throw new IllegalStateException(
-                    "LINEAR fill is interpolated in fillBuckets and must not reach fillValue.");
-        };
-    }
-
-    /**
-     * Linearly interpolates the value at gap instant {@code t} between the surrounding populated
-     * buckets {@code (t0, v0)} and {@code (t1, v1)}. Interpolation is only defined for numeric
-     * endpoints; for non-numeric or missing neighbours it falls back to a {@code null} gap (the same
-     * shape {@link FillStrategy#NULL} would produce) rather than fabricating a value.
-     */
-    private static TimeseriesDataValue linearFill(final Instant t,
-            final Instant t0, @Nullable final JsonValue v0,
-            final Instant t1, @Nullable final JsonValue v1) {
-
-        if (v0 == null || v1 == null || !v0.isNumber() || !v1.isNumber()) {
-            return TimeseriesDataValue.gap(t, null);
-        }
-        final double spanMillis = Duration.between(t0, t1).toMillis();
-        final double fraction = spanMillis == 0.0 ? 0.0 : Duration.between(t0, t).toMillis() / spanMillis;
-        final double y0 = v0.asDouble();
-        final double y1 = v1.asDouble();
-        return TimeseriesDataValue.gap(t, JsonValue.of(y0 + (y1 - y0) * fraction));
+        return TimeseriesQueryInvalidException
+                .newBuilder("The gap-filled result for <" + path + "> would exceed the maximum of " +
+                        maxPoints + " data points.")
+                .description("Increase the 'step', narrow the time range (from/to), or omit 'fill'.")
+                .build();
     }
 
     private static String inferAggregatedDataType(final List<TimeseriesDataValue> data) {
@@ -589,27 +730,75 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
             final boolean rate) {
 
         final ThingId thingId = query.getThingId();
-        final CompletionStage<List<TimedValue>> pointsStage = query.getStep().isPresent()
-                ? fetchBucketLast(current, query, path, query.getStep().get())
-                : fetchRawTimedValues(current, query, path);
+        // Push-down when allowed: MongoDB 5.0+ computes the derivative natively with the $derivative
+        // window operator over the raw points. Only the plain derivative over raw points is pushed
+        // down — `rate` (counter-reset) has no native operator, and the stepped (bucket-last) variant
+        // stays in the kernel; both fall through to the point-fetch + kernel path below.
+        if (!rate && query.getStep().isEmpty()
+                && current.config.getCapabilities().canPushDown(Aggregation.DERIVATIVE)) {
+            return nativeDerivativeOnePath(current, query, path);
+        }
+        final CompletionStage<List<TimeseriesComputeKernel.TimePoint>> pointsStage =
+                query.getStep().isPresent()
+                        ? fetchBucketLast(current, query, path, query.getStep().get())
+                        : fetchRawTimedValues(current, query, path, rate ? "rate" : "derivative");
         // Differencing is CPU work over the fetched points — keep it off the reactive driver thread.
         return pointsStage.thenApplyAsync(points -> {
-            final List<TimeseriesDataValue> data = new ArrayList<>();
-            for (int i = 1; i < points.size(); i++) {
-                final TimedValue prev = points.get(i - 1);
-                final TimedValue cur = points.get(i);
-                final double dt = (cur.time.toEpochMilli() - prev.time.toEpochMilli()) / 1000.0;
-                if (dt <= 0) {
-                    continue;
-                }
-                final double d = (rate && cur.value < prev.value)
-                        ? cur.value / dt
-                        : (cur.value - prev.value) / dt;
-                data.add(TimeseriesDataValue.of(cur.time, JsonValue.of(d)));
-            }
+            final List<TimeseriesDataValue> data = TimeseriesComputeKernel.derivative(points, rate);
             final TimeseriesResultMeta meta = TimeseriesResultMeta.of(data.size(), null, "number");
             return TimeseriesQueryResult.of(thingId, path, query, meta, data);
         });
+    }
+
+    /**
+     * Native {@code derivative}: a {@code $setWindowFields} pipeline with the {@code $derivative}
+     * window operator (per-second) over a 2-point trailing window. The first point has no
+     * predecessor and gets a {@code null} derivative, which is filtered out so the shape matches the
+     * kernel (one fewer point than the source), each stamped at the later observation.
+     */
+    private CompletionStage<TimeseriesQueryResult> nativeDerivativeOnePath(final State current,
+            final TimeseriesQuery query, final JsonPointer path) {
+
+        final ThingId thingId = query.getThingId();
+        final Bson filter = pathFilter(thingId, path, query);
+        // A derivative returns ~one row per input point, so bound the number of rows pulled into the
+        // service heap to the same ceiling as the kernel path, and refuse (HTTP 400) when it is hit —
+        // computing a derivative over a truncated series would drop its tail. The $setWindowFields
+        // itself runs server-side (allowDiskUse), so the ceiling caps transfer, not the computation.
+        final int maxPoints = current.config.getMaxQueryResultSize();
+        final List<Bson> pipeline = List.of(
+                Aggregates.match(filter),
+                // Keep only numeric points, mirroring the kernel's toTimePoints filter — $derivative
+                // raises a TypeMismatch on a non-numeric value (a string series would 500 otherwise).
+                Aggregates.match(numericValueFilter()),
+                new Document("$setWindowFields", new Document("sortBy",
+                        new Document(TimeseriesBsonMapper.FIELD_TIMESTAMP, 1))
+                        .append("output", new Document("d", new Document("$derivative",
+                                new Document("input", "$" + TimeseriesBsonMapper.FIELD_VALUE)
+                                        .append("unit", "second"))
+                                .append("window", new Document("documents", List.of(-1, 0)))))),
+                Aggregates.match(Filters.ne("d", null)),
+                Aggregates.sort(Sorts.ascending(TimeseriesBsonMapper.FIELD_TIMESTAMP)),
+                Aggregates.limit(maxPoints + 1));
+        return collectAll(getCollection(current, thingId).aggregate(pipeline)
+                        .allowDiskUse(true)
+                        .maxTime(current.config.getQueryTimeout().toMillis(), TimeUnit.MILLISECONDS))
+                .thenApply(docs -> {
+                    if (docs.size() > maxPoints) {
+                        throw scanCeilingExceeded("derivative", maxPoints, path);
+                    }
+                    final List<TimeseriesDataValue> data = new ArrayList<>(docs.size());
+                    for (final Document doc : docs) {
+                        final Object t = doc.get(TimeseriesBsonMapper.FIELD_TIMESTAMP);
+                        final Object d = doc.get("d");
+                        if (t instanceof Date && d instanceof Number number) {
+                            data.add(TimeseriesDataValue.of(((Date) t).toInstant(),
+                                    JsonValue.of(number.doubleValue())));
+                        }
+                    }
+                    final TimeseriesResultMeta meta = TimeseriesResultMeta.of(data.size(), null, "number");
+                    return TimeseriesQueryResult.of(thingId, path, query, meta, data);
+                });
     }
 
     /**
@@ -622,22 +811,59 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
             final JsonPointer path) {
 
         final ThingId thingId = query.getThingId();
-        return fetchRawTimedValues(current, query, path).thenApplyAsync(points -> {
-            double integral = 0;
-            for (int i = 1; i < points.size(); i++) {
-                final TimedValue prev = points.get(i - 1);
-                final TimedValue cur = points.get(i);
-                final double dt = (cur.time.toEpochMilli() - prev.time.toEpochMilli()) / 1000.0;
-                integral += (cur.value + prev.value) / 2.0 * dt;
-            }
-            final List<TimeseriesDataValue> data = new ArrayList<>();
-            if (!points.isEmpty()) {
-                data.add(TimeseriesDataValue.of(points.get(points.size() - 1).time,
-                        JsonValue.of(integral)));
-            }
+        if (current.config.getCapabilities().canPushDown(Aggregation.INTEGRAL)) {
+            return nativeIntegralOnePath(current, query, path);
+        }
+        return fetchRawTimedValues(current, query, path, "integral").thenApplyAsync(points -> {
+            final List<TimeseriesDataValue> data = TimeseriesComputeKernel.integral(points);
             final TimeseriesResultMeta meta = TimeseriesResultMeta.of(data.size(), null, "number");
             return TimeseriesQueryResult.of(thingId, path, query, meta, data);
         });
+    }
+
+    /**
+     * Native {@code integral}: a {@code $setWindowFields} pipeline with the {@code $integral} window
+     * operator (value-seconds) accumulated over the whole series; the last document's running total
+     * is the result, stamped at the last observation — matching the kernel's trapezoidal integral.
+     */
+    private CompletionStage<TimeseriesQueryResult> nativeIntegralOnePath(final State current,
+            final TimeseriesQuery query, final JsonPointer path) {
+
+        final ThingId thingId = query.getThingId();
+        final Bson filter = pathFilter(thingId, path, query);
+        final List<Bson> pipeline = List.of(
+                Aggregates.match(filter),
+                // Keep only numeric points (matches the kernel); $integral TypeMismatches otherwise.
+                Aggregates.match(numericValueFilter()),
+                new Document("$setWindowFields", new Document("sortBy",
+                        new Document(TimeseriesBsonMapper.FIELD_TIMESTAMP, 1))
+                        .append("output", new Document("ig", new Document("$integral",
+                                new Document("input", "$" + TimeseriesBsonMapper.FIELD_VALUE)
+                                        .append("unit", "second"))
+                                .append("window", new Document("documents",
+                                        List.of("unbounded", "unbounded")))))),
+                Aggregates.sort(Sorts.ascending(TimeseriesBsonMapper.FIELD_TIMESTAMP)),
+                Aggregates.group(null,
+                        new BsonField("ig", new Document("$last", "$ig")),
+                        new BsonField("t", new Document("$last",
+                                "$" + TimeseriesBsonMapper.FIELD_TIMESTAMP))));
+        return collectAll(getCollection(current, thingId).aggregate(pipeline)
+                        .allowDiskUse(true)
+                        .maxTime(current.config.getQueryTimeout().toMillis(), TimeUnit.MILLISECONDS))
+                .thenApply(docs -> {
+                    final List<TimeseriesDataValue> data = new ArrayList<>(1);
+                    if (!docs.isEmpty()) {
+                        final Document doc = docs.get(0);
+                        final Object t = doc.get("t");
+                        final Object ig = doc.get("ig");
+                        if (t instanceof Date && ig instanceof Number number) {
+                            data.add(TimeseriesDataValue.of(((Date) t).toInstant(),
+                                    JsonValue.of(number.doubleValue())));
+                        }
+                    }
+                    final TimeseriesResultMeta meta = TimeseriesResultMeta.of(data.size(), null, "number");
+                    return TimeseriesQueryResult.of(thingId, path, query, meta, data);
+                });
     }
 
     /**
@@ -661,10 +887,22 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
                         query.getTimezone().map(Object::toString).orElse(null)))
                 .orElse(null);
 
+        // Push-down when the capabilities allow it: MongoDB 7.0+ computes the percentile per bucket
+        // with the native $percentile accumulator (approximate / t-digest — faster, but its value can
+        // differ slightly from the kernel's exact interpolation). Otherwise gather the values with
+        // $push and compute the exact percentile in the kernel.
+        final boolean nativePercentile =
+                current.config.getCapabilities().canPushDown(Aggregation.PERCENTILE);
+        final BsonField accumulator = nativePercentile
+                ? new BsonField("p", new Document("$percentile",
+                        new Document("input", "$" + TimeseriesBsonMapper.FIELD_VALUE)
+                                .append("p", List.of(p / 100.0))
+                                .append("method", "approximate")))
+                : Accumulators.push("vals", "$" + TimeseriesBsonMapper.FIELD_VALUE);
+
         final List<Bson> pipeline = new ArrayList<>();
         pipeline.add(Aggregates.match(filter));
-        pipeline.add(Aggregates.group(groupId,
-                Accumulators.push("vals", "$" + TimeseriesBsonMapper.FIELD_VALUE)));
+        pipeline.add(Aggregates.group(groupId, accumulator));
         pipeline.add(Aggregates.sort(Sorts.ascending("_id")));
 
         // allowDiskUse lifts the 100 MB pipeline memory limit for the $push/$group; the per-bucket
@@ -673,21 +911,37 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
         return collectAll(getCollection(current, thingId).aggregate(pipeline)
                         .allowDiskUse(true)
                         .maxTime(current.config.getQueryTimeout().toMillis(), TimeUnit.MILLISECONDS)).thenApplyAsync(buckets -> {
-            final List<TimeseriesDataValue> data = new ArrayList<>();
-            for (final Document bucket : buckets) {
-                final Object id = bucket.get("_id");
-                final Instant t = (id instanceof Date) ? ((Date) id).toInstant() : query.getFrom();
-                final List<?> rawVals = bucket.get("vals", List.class);
-                final List<Double> nums = new ArrayList<>();
-                if (rawVals != null) {
-                    for (final Object o : rawVals) {
-                        if (o instanceof Number) {
-                            nums.add(((Number) o).doubleValue());
-                        }
+            final Optional<Duration> stepOpt = query.getStep();
+            if (stepOpt.isPresent()) {
+                // Bucketed percentile: assemble bucket-start -> value, then apply the fill strategy —
+                // same as the other bucketed aggregations and the kernel reference path, so gap
+                // interpolation is not silently dropped.
+                final LinkedHashMap<Instant, JsonValue> byBucket = new LinkedHashMap<>();
+                for (final Document bucket : buckets) {
+                    final Object id = bucket.get("_id");
+                    if (!(id instanceof Date)) {
+                        continue;
                     }
+                    final Double value = nativePercentile
+                            ? nativePercentileValue(bucket)
+                            : kernelPercentileValue(bucket, p);
+                    byBucket.put(((Date) id).toInstant(), value == null ? null : JsonValue.of(value));
                 }
-                if (!nums.isEmpty()) {
-                    data.add(TimeseriesDataValue.of(t, JsonValue.of(computePercentile(nums, p))));
+                final List<TimeseriesDataValue> data = TimeseriesComputeKernel.fillBuckets(byBucket,
+                        stepOpt.get(), query.getFillStrategy().orElse(null),
+                        query.getTimezone().orElse(null));
+                final TimeseriesResultMeta meta =
+                        TimeseriesResultMeta.of(data.size(), null, inferAggregatedDataType(data));
+                return TimeseriesQueryResult.of(thingId, path, query, meta, data);
+            }
+            // Whole-range percentile: a single value stamped at the range start; fill does not apply.
+            final List<TimeseriesDataValue> data = new ArrayList<>(1);
+            for (final Document bucket : buckets) {
+                final Double value = nativePercentile
+                        ? nativePercentileValue(bucket)
+                        : kernelPercentileValue(bucket, p);
+                if (value != null) {
+                    data.add(TimeseriesDataValue.of(query.getFrom(), JsonValue.of(value)));
                 }
             }
             final TimeseriesResultMeta meta = TimeseriesResultMeta.of(data.size(), null, "number");
@@ -695,25 +949,50 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
         });
     }
 
-    private static double computePercentile(final List<Double> values, final double p) {
-        final List<Double> sorted = new ArrayList<>(values);
-        Collections.sort(sorted);
-        if (sorted.size() == 1) {
-            return sorted.get(0);
+    /** Reads the value from a native {@code $percentile} bucket (an array with one element). */
+    @Nullable
+    private static Double nativePercentileValue(final Document bucket) {
+        final List<?> percentiles = bucket.get("p", List.class);
+        if (percentiles != null && !percentiles.isEmpty() && percentiles.get(0) instanceof Number number) {
+            return number.doubleValue();
         }
-        final double rank = (p / 100.0) * (sorted.size() - 1);
-        final int lo = (int) Math.floor(rank);
-        final int hi = (int) Math.ceil(rank);
-        if (lo == hi) {
-            return sorted.get(lo);
-        }
-        return sorted.get(lo) + (rank - lo) * (sorted.get(hi) - sorted.get(lo));
+        return null;
     }
 
-    /** Fetches the raw numeric points for a path, ascending by timestamp. */
-    private CompletionStage<List<TimedValue>> fetchRawTimedValues(final State current,
+    /** Computes the exact percentile in the kernel from a bucket's {@code $push}ed values. */
+    @Nullable
+    private static Double kernelPercentileValue(final Document bucket, final double p) {
+        final List<?> rawVals = bucket.get("vals", List.class);
+        final List<Double> nums = new ArrayList<>();
+        if (rawVals != null) {
+            for (final Object o : rawVals) {
+                if (o instanceof Number number) {
+                    nums.add(number.doubleValue());
+                }
+            }
+        }
+        return nums.isEmpty() ? null : TimeseriesComputeKernel.percentile(nums, p);
+    }
+
+    /**
+     * Fetches the raw numeric points for a path (ascending by timestamp) to feed a point-derived
+     * aggregation named {@code aggregationLabel} (e.g. {@code "integral"}, {@code "derivative"}).
+     * <p>
+     * Unlike the raw read path — which may legitimately return a partial, truncated series — an
+     * aggregation computed over a <em>truncated</em> series would return a confidently wrong scalar
+     * (a clipped {@code integral}, a {@code derivative}/{@code rate} missing its tail) under an
+     * HTTP 200. So when the scan reaches the {@code max-query-result-size} ceiling this
+     * <em>refuses</em> with a {@link TimeseriesQueryInvalidException} (HTTP 400) instructing the
+     * caller to narrow the range or downsample with a {@code step}, rather than silently computing
+     * over incomplete data. Detection is conservative (a result of exactly the ceiling is treated as
+     * truncated) so an inaccurate answer is never returned; the memory footprint is unchanged from
+     * the previous bounded scan.
+     */
+    private CompletionStage<List<TimeseriesComputeKernel.TimePoint>> fetchRawTimedValues(
+            final State current,
             final TimeseriesQuery query,
-            final JsonPointer path) {
+            final JsonPointer path,
+            final String aggregationLabel) {
 
         final ThingId thingId = query.getThingId();
         final int maxPoints = current.config.getMaxQueryResultSize();
@@ -723,25 +1002,51 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
                 .maxTime(current.config.getQueryTimeout().toMillis(), TimeUnit.MILLISECONDS)
                 .limit(maxPoints);
         return collectAll(find).thenApplyAsync(docs -> {
-            warnIfScanCeilingHit(docs.size(), null, maxPoints, thingId, path);
-            final List<TimedValue> out = new ArrayList<>(docs.size());
+            if (docs.size() >= maxPoints) {
+                throw scanCeilingExceeded(aggregationLabel, maxPoints, path);
+            }
+            final List<TimeseriesComputeKernel.TimePoint> out = new ArrayList<>(docs.size());
             for (final Document d : docs) {
                 final Object ts = d.get(TimeseriesBsonMapper.FIELD_TIMESTAMP);
                 final Object v = d.get(TimeseriesBsonMapper.FIELD_VALUE);
                 if (ts instanceof Date && v instanceof Number) {
-                    out.add(new TimedValue(((Date) ts).toInstant(), ((Number) v).doubleValue()));
+                    out.add(new TimeseriesComputeKernel.TimePoint(((Date) ts).toInstant(),
+                            ((Number) v).doubleValue()));
                 }
             }
             if (out.size() < docs.size()) {
-                LOGGER.debug("Skipped {} non-numeric point(s) computing a window aggregation for " +
-                        "thing <{}> path <{}>.", docs.size() - out.size(), thingId, path);
+                LOGGER.debug("Skipped {} non-numeric point(s) computing the {} aggregation for " +
+                        "thing <{}> path <{}>.", docs.size() - out.size(), aggregationLabel, thingId, path);
             }
+            // Scan-volume signal for the memory-bound window aggregations: the number of raw points
+            // pulled into the service (which the small result size hides). Pairs with the per-query
+            // cost line from logQueryCost to reveal a cheap-looking result that scanned a lot.
+            LOGGER.debug("Timeseries {} aggregation scanned {} raw point(s) for thing <{}> path <{}>.",
+                    aggregationLabel, docs.size(), thingId, path);
             return out;
         });
     }
 
+    /**
+     * Builds the HTTP 400 raised when a point-derived aggregation would have to run over a series
+     * that reached the {@code max-query-result-size} scan ceiling — i.e. would be computed over
+     * truncated, incomplete data.
+     */
+    private static TimeseriesQueryInvalidException scanCeilingExceeded(final String aggregationLabel,
+            final int maxPoints, final JsonPointer path) {
+
+        return TimeseriesQueryInvalidException
+                .newBuilder("The '" + aggregationLabel + "' aggregation for <" + path + "> reached " +
+                        "the maximum of " + maxPoints + " scanned data points and cannot be computed " +
+                        "accurately over a truncated series.")
+                .description("Narrow the time range (from/to), or add a 'step' to downsample the " +
+                        "series before aggregating.")
+                .build();
+    }
+
     /** Downsamples a path to the {@code last} numeric value per {@code step} bucket, ascending. */
-    private CompletionStage<List<TimedValue>> fetchBucketLast(final State current,
+    private CompletionStage<List<TimeseriesComputeKernel.TimePoint>> fetchBucketLast(
+            final State current,
             final TimeseriesQuery query,
             final JsonPointer path,
             final Duration step) {
@@ -759,28 +1064,17 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
                         .allowDiskUse(true)
                         .maxTime(current.config.getQueryTimeout().toMillis(), TimeUnit.MILLISECONDS))
                 .thenApplyAsync(docs -> {
-                    final List<TimedValue> out = new ArrayList<>();
+                    final List<TimeseriesComputeKernel.TimePoint> out = new ArrayList<>();
                     for (final Document d : docs) {
                         final Object id = d.get("_id");
                         final Object v = d.get("v");
                         if (id instanceof Date && v instanceof Number) {
-                            out.add(new TimedValue(((Date) id).toInstant(), ((Number) v).doubleValue()));
+                            out.add(new TimeseriesComputeKernel.TimePoint(((Date) id).toInstant(),
+                                    ((Number) v).doubleValue()));
                         }
                     }
                     return out;
                 });
-    }
-
-    /** Immutable (timestamp, numeric value) pair used by the advanced aggregations. */
-    private static final class TimedValue {
-
-        private final Instant time;
-        private final double value;
-
-        private TimedValue(final Instant time, final double value) {
-            this.time = time;
-            this.value = value;
-        }
     }
 
     /**

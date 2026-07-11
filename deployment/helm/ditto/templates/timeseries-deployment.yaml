@@ -14,7 +14,8 @@
 # circuit-breaker tuning, etc.) are intentionally omitted; the timeseries-service
 # does not consume them. The timeseries-specific knobs come from timeseries.conf:
 # TIMESERIES_SIMPLIFIED_READ_PERMISSION, TIMESERIES_ADAPTER_TYPE, TIMESERIES_QUERY_*,
-# TIMESERIES_MONGODB_COLLECTION_PREFIX, TIMESERIES_MONGODB_GRANULARITY, TIMESERIES_MONGODB_RETENTION.
+# TIMESERIES_MONGODB_COLLECTION_PREFIX, TIMESERIES_MONGODB_GRANULARITY, TIMESERIES_MONGODB_RETENTION,
+# TIMESERIES_MONGODB_CAP_NATIVE_QUERY (capability list overrides render via the extension conf).
 # MongoDB connection settings come from `ditto.mongodb.*` via DefaultMongoDbConfig (same as the
 # sibling services); see the MONGO_DB_* env vars in the spec.template.spec.containers env block.
 {{- $name := include "ditto.name" . -}}
@@ -235,6 +236,12 @@ spec:
             {{- if .queryTimeout }}
             - name: TIMESERIES_MONGODB_QUERY_TIMEOUT
               value: {{ .queryTimeout | quote }}
+            {{- end }}
+            {{- with .capabilities }}
+            {{- if kindIs "bool" .nativeQuery }}
+            - name: TIMESERIES_MONGODB_CAP_NATIVE_QUERY
+              value: "{{ .nativeQuery }}"
+            {{- end }}
             {{- end }}
             {{- end }}
             {{- if .Values.timeseries.extraEnv }}

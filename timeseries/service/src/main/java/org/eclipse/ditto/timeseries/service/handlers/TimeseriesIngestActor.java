@@ -59,6 +59,7 @@ import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.timeseries.api.TimeseriesAdapter;
+import org.eclipse.ditto.timeseries.api.TimeseriesQueryPlanner;
 import org.eclipse.ditto.timeseries.api.commands.IngestDataPoints;
 import org.eclipse.ditto.timeseries.api.commands.IngestDataPointsResponse;
 import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveTimeseries;
@@ -174,6 +175,7 @@ public final class TimeseriesIngestActor extends AbstractActorWithTimers {
             DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final TimeseriesAdapter adapter;
+    private final TimeseriesQueryPlanner queryPlanner;
     private final ThingId thingId;
 
     /** Things-shard proxy used by the read path to resolve the thing's policyId via SudoRetrieveThing. */
@@ -217,6 +219,7 @@ public final class TimeseriesIngestActor extends AbstractActorWithTimers {
             @Nullable final PolicyEnforcerProvider policyEnforcerProvider,
             final boolean simplifiedReadPermission) {
         this.adapter = checkNotNull(adapter, "adapter");
+        this.queryPlanner = new TimeseriesQueryPlanner(adapter);
         this.thingsShardRegion = thingsShardRegion;
         this.policyEnforcerProvider = policyEnforcerProvider;
         this.simplifiedReadPermission = simplifiedReadPermission;
@@ -391,7 +394,10 @@ public final class TimeseriesIngestActor extends AbstractActorWithTimers {
     }
 
     private CompletionStage<Object> runAdapterQuery(final RetrieveTimeseries command) {
-        return adapter.query(command.getQuery())
+        // Execute through the planner: for a backend whose capabilities declare a complete native
+        // query (MongoDB) this delegates straight to the adapter (transparent); a scan-only backend
+        // is driven via scan(...) + the compute kernel. Either way the results are identical.
+        return queryPlanner.execute(command.getQuery())
                 .thenApply(results -> RetrieveTimeseriesResponse.of(
                         command.getEntityId(), results, command.getDittoHeaders()));
     }
