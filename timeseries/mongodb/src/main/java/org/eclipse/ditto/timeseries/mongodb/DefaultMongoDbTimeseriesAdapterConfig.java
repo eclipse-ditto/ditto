@@ -15,16 +15,22 @@ package org.eclipse.ditto.timeseries.mongodb;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.time.Duration;
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
+import org.eclipse.ditto.timeseries.api.Capabilities;
+import org.eclipse.ditto.timeseries.model.Aggregation;
+import org.eclipse.ditto.timeseries.model.FillStrategy;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigUtil;
@@ -61,12 +67,47 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
      */
     public static final Duration DEFAULT_QUERY_TIMEOUT = Duration.ofSeconds(60);
 
+    /**
+     * Aggregations MongoDB pushes down to the DB engine by default: the single-accumulator group
+     * aggregations (version-independent) plus {@code derivative} and {@code integral} (native window
+     * operators on 5.0+, exact matches for the kernel and bounded server-side). {@code percentile}
+     * is intentionally absent — native {@code $percentile} is approximate, so it is opt-in — and
+     * {@code rate} has no native operator.
+     */
+    public static final Set<Aggregation> DEFAULT_PUSHABLE_AGGREGATIONS = Collections.unmodifiableSet(
+            EnumSet.of(Aggregation.AVG, Aggregation.MIN, Aggregation.MAX, Aggregation.SUM,
+                    Aggregation.COUNT, Aggregation.FIRST, Aggregation.LAST, Aggregation.STDDEV,
+                    Aggregation.DERIVATIVE, Aggregation.INTEGRAL));
+
+    /**
+     * Fill strategies MongoDB applies natively by default via {@code $densify}/{@code $fill} (5.3+):
+     * {@code linear} and {@code previous}, both exact matches for the kernel.
+     */
+    public static final Set<FillStrategy> DEFAULT_NATIVE_FILL_STRATEGIES = Collections.unmodifiableSet(
+            EnumSet.of(FillStrategy.LINEAR, FillStrategy.PREVIOUS));
+
+    /**
+     * Capabilities for a modern MongoDB (5.0+) when the {@code capabilities} block is absent: a
+     * complete native query, the {@link #DEFAULT_PUSHABLE_AGGREGATIONS} and the
+     * {@link #DEFAULT_NATIVE_FILL_STRATEGIES}. Kept in sync with the shipped {@code timeseries.conf}
+     * defaults so tests and production agree.
+     */
+    public static final Capabilities DEFAULT_CAPABILITIES = Capabilities.builder()
+            .supportsNativeQuery(true)
+            .pushableAggregations(DEFAULT_PUSHABLE_AGGREGATIONS)
+            .nativeFillStrategies(DEFAULT_NATIVE_FILL_STRATEGIES)
+            .build();
+
     private static final String KEY_COLLECTION_PREFIX = "collection-prefix";
     private static final String KEY_GRANULARITY = "granularity";
     private static final String KEY_RETENTION = "retention";
     private static final String KEY_RETENTION_OVERRIDES = "retention-overrides";
     private static final String KEY_MAX_QUERY_RESULT_SIZE = "max-query-result-size";
     private static final String KEY_QUERY_TIMEOUT = "query-timeout";
+    private static final String KEY_CAPABILITIES = "capabilities";
+    private static final String KEY_CAP_NATIVE_QUERY = "native-query";
+    private static final String KEY_CAP_PUSHABLE_AGGREGATIONS = "pushable-aggregations";
+    private static final String KEY_CAP_NATIVE_FILL = "native-fill-strategies";
 
     /** Sentinel values that disable expiration (mapped to no {@code expireAfter} / {@code collMod off}). */
     private static final java.util.Set<String> UNLIMITED_TOKENS =
@@ -79,6 +120,7 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
     private final Map<String, Duration> retentionOverrides;
     private final int maxQueryResultSize;
     private final Duration queryTimeout;
+    private final Capabilities capabilities;
 
     private DefaultMongoDbTimeseriesAdapterConfig(final MongoDbConfig mongoDbConfig,
             final String collectionPrefix,
@@ -86,7 +128,8 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
             @Nullable final Duration retention,
             final Map<String, Duration> retentionOverrides,
             final int maxQueryResultSize,
-            final Duration queryTimeout) {
+            final Duration queryTimeout,
+            final Capabilities capabilities) {
 
         this.mongoDbConfig = mongoDbConfig;
         this.collectionPrefix = collectionPrefix;
@@ -95,6 +138,7 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
         this.retentionOverrides = Map.copyOf(retentionOverrides);
         this.maxQueryResultSize = maxQueryResultSize;
         this.queryTimeout = queryTimeout;
+        this.capabilities = capabilities;
     }
 
     /**
@@ -117,7 +161,8 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
                 null,
                 Map.of(),
                 DEFAULT_MAX_QUERY_RESULT_SIZE,
-                DEFAULT_QUERY_TIMEOUT);
+                DEFAULT_QUERY_TIMEOUT,
+                DEFAULT_CAPABILITIES);
     }
 
     /**
@@ -143,7 +188,8 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
                 retention,
                 Map.of(),
                 DEFAULT_MAX_QUERY_RESULT_SIZE,
-                DEFAULT_QUERY_TIMEOUT);
+                DEFAULT_QUERY_TIMEOUT,
+                DEFAULT_CAPABILITIES);
     }
 
     /**
@@ -188,7 +234,55 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
         }
 
         return new DefaultMongoDbTimeseriesAdapterConfig(mongoDbConfig, collectionPrefix,
-                granularity, retention, retentionOverrides, maxQueryResultSize, queryTimeout);
+                granularity, retention, retentionOverrides, maxQueryResultSize, queryTimeout,
+                parseCapabilities(adapterConfig));
+    }
+
+    /**
+     * Parses the {@code capabilities} block. Absent block &rarr; {@link #DEFAULT_CAPABILITIES}; an
+     * absent key within the block falls back to that key's default.
+     */
+    private static Capabilities parseCapabilities(final Config adapterConfig) {
+        if (!adapterConfig.hasPath(KEY_CAPABILITIES)) {
+            return DEFAULT_CAPABILITIES;
+        }
+        final Config config = adapterConfig.getConfig(KEY_CAPABILITIES);
+        return Capabilities.builder()
+                .supportsNativeQuery(booleanOrDefault(config, KEY_CAP_NATIVE_QUERY, true))
+                .pushableAggregations(parsePushableAggregations(config))
+                .nativeFillStrategies(parseNativeFillStrategies(config))
+                .build();
+    }
+
+    private static boolean booleanOrDefault(final Config config, final String key,
+            final boolean fallback) {
+        return config.hasPath(key) ? config.getBoolean(key) : fallback;
+    }
+
+    private static Set<Aggregation> parsePushableAggregations(final Config capabilitiesConfig) {
+        if (!capabilitiesConfig.hasPath(KEY_CAP_PUSHABLE_AGGREGATIONS)) {
+            return DEFAULT_PUSHABLE_AGGREGATIONS;
+        }
+        final EnumSet<Aggregation> set = EnumSet.noneOf(Aggregation.class);
+        for (final String raw : capabilitiesConfig.getStringList(KEY_CAP_PUSHABLE_AGGREGATIONS)) {
+            set.add(Aggregation.forName(raw).orElseThrow(() -> new DittoConfigError(
+                    "Unknown timeseries.adapter.mongodb." + KEY_CAPABILITIES + "." +
+                            KEY_CAP_PUSHABLE_AGGREGATIONS + " entry <" + raw + ">.")));
+        }
+        return set;
+    }
+
+    private static Set<FillStrategy> parseNativeFillStrategies(final Config capabilitiesConfig) {
+        if (!capabilitiesConfig.hasPath(KEY_CAP_NATIVE_FILL)) {
+            return DEFAULT_NATIVE_FILL_STRATEGIES;
+        }
+        final EnumSet<FillStrategy> set = EnumSet.noneOf(FillStrategy.class);
+        for (final String raw : capabilitiesConfig.getStringList(KEY_CAP_NATIVE_FILL)) {
+            set.add(FillStrategy.forName(raw).orElseThrow(() -> new DittoConfigError(
+                    "Unknown timeseries.adapter.mongodb." + KEY_CAPABILITIES + "." +
+                            KEY_CAP_NATIVE_FILL + " entry <" + raw + ">.")));
+        }
+        return set;
     }
 
     private static String stringOrDefault(final Config config, final String key,
@@ -301,6 +395,11 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
     }
 
     @Override
+    public Capabilities getCapabilities() {
+        return capabilities;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -315,13 +414,14 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
                 Objects.equals(retention, that.retention) &&
                 Objects.equals(retentionOverrides, that.retentionOverrides) &&
                 maxQueryResultSize == that.maxQueryResultSize &&
-                Objects.equals(queryTimeout, that.queryTimeout);
+                Objects.equals(queryTimeout, that.queryTimeout) &&
+                Objects.equals(capabilities, that.capabilities);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(mongoDbConfig, collectionPrefix, granularity, retention,
-                retentionOverrides, maxQueryResultSize, queryTimeout);
+                retentionOverrides, maxQueryResultSize, queryTimeout, capabilities);
     }
 
     @Override
@@ -334,6 +434,7 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
                 ", retentionOverrides=" + retentionOverrides +
                 ", maxQueryResultSize=" + maxQueryResultSize +
                 ", queryTimeout=" + queryTimeout +
+                ", capabilities=" + capabilities +
                 "]";
     }
 }

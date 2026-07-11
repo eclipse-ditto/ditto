@@ -38,10 +38,15 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.timeseries.api.Capabilities;
 import org.eclipse.ditto.timeseries.api.HealthStatus;
 import org.eclipse.ditto.timeseries.api.TimeseriesAdapterConfig;
+import org.eclipse.ditto.timeseries.model.Aggregation;
+import org.eclipse.ditto.timeseries.model.FillStrategy;
 import org.eclipse.ditto.timeseries.model.TimeseriesDataPoint;
+import org.eclipse.ditto.timeseries.model.TimeseriesDataValue;
 import org.eclipse.ditto.timeseries.model.TimeseriesQuery;
+import org.eclipse.ditto.timeseries.model.TimeseriesQueryInvalidException;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -56,6 +61,7 @@ import com.mongodb.reactivestreams.client.ListCollectionNamesPublisher;
 import com.mongodb.reactivestreams.client.MongoClient;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
+import com.typesafe.config.ConfigFactory;
 
 import org.bson.conversions.Bson;
 
@@ -381,6 +387,50 @@ public final class MongoDbTimeseriesAdapterTest {
     }
 
     @Test
+    public void integralRefusesWhenScanCeilingReached() {
+        // A raw read may return a partial series, but an integral over a truncated series would be a
+        // confidently wrong scalar. So on hitting the scan ceiling the adapter refuses (HTTP 400)
+        // rather than computing over incomplete data.
+        final MongoDbTimeseriesAdapter adapter = newAdapterWithMaxResultSize(3);
+        stubFindReturning(mongoCollection,
+                docFor(Instant.parse("2026-01-14T10:00:00Z"), JsonValue.of(1.0)),
+                docFor(Instant.parse("2026-01-14T10:00:01Z"), JsonValue.of(2.0)),
+                docFor(Instant.parse("2026-01-14T10:00:02Z"), JsonValue.of(3.0)));
+
+        assertThatExceptionOfType(CompletionException.class)
+                .isThrownBy(() -> adapter.query(advancedQuery(Aggregation.INTEGRAL))
+                        .toCompletableFuture().join())
+                .withCauseInstanceOf(TimeseriesQueryInvalidException.class);
+    }
+
+    @Test
+    public void derivativeWithoutStepRefusesWhenScanCeilingReached() {
+        final MongoDbTimeseriesAdapter adapter = newAdapterWithMaxResultSize(2);
+        stubFindReturning(mongoCollection,
+                docFor(Instant.parse("2026-01-14T10:00:00Z"), JsonValue.of(1.0)),
+                docFor(Instant.parse("2026-01-14T10:00:01Z"), JsonValue.of(2.0)));
+
+        assertThatExceptionOfType(CompletionException.class)
+                .isThrownBy(() -> adapter.query(advancedQuery(Aggregation.DERIVATIVE))
+                        .toCompletableFuture().join())
+                .withCauseInstanceOf(TimeseriesQueryInvalidException.class);
+    }
+
+    @Test
+    public void integralSucceedsBelowScanCeiling() {
+        // Below the ceiling the aggregation is computed normally — the refusal must not over-fire.
+        final MongoDbTimeseriesAdapter adapter = newAdapterWithMaxResultSize(5);
+        stubFindReturning(mongoCollection,
+                docFor(Instant.parse("2026-01-14T10:00:00Z"), JsonValue.of(2.0)),
+                docFor(Instant.parse("2026-01-14T10:00:10Z"), JsonValue.of(4.0)));
+
+        final List<org.eclipse.ditto.timeseries.model.TimeseriesQueryResult> results =
+                adapter.query(advancedQuery(Aggregation.INTEGRAL)).toCompletableFuture().join();
+
+        assertThat(results.get(0).getData()).hasSize(1);
+    }
+
+    @Test
     public void queryReturnsEmptyResultListForEmptyPaths() {
         final MongoDbTimeseriesAdapter adapter = newInitialisedAdapter();
         final org.eclipse.ditto.timeseries.model.TimeseriesQuery emptyPaths =
@@ -424,6 +474,125 @@ public final class MongoDbTimeseriesAdapterTest {
         assertThatNullPointerException().isThrownBy(() -> adapter.query(null));
     }
 
+    // --- scan (planner primitive) ---
+
+    @Test
+    public void scanReturnsOrderedPointsForRange() {
+        final FindPublisher<org.bson.Document> finder = stubFindReturning(mongoCollection,
+                docFor(Instant.parse("2026-01-14T10:00:00Z"), JsonValue.of(1.0)),
+                docFor(Instant.parse("2026-01-14T10:00:01Z"), JsonValue.of(2.0)));
+        final MongoDbTimeseriesAdapter adapter = newInitialisedAdapter();
+
+        final List<TimeseriesDataValue> points = adapter.scan(THING_ID, PATH,
+                        Instant.parse("2026-01-14T00:00:00Z"), Instant.parse("2026-01-15T00:00:00Z"), 0)
+                .toCompletableFuture().join();
+
+        assertThat(points).hasSize(2);
+        assertThat(points.get(0).getValue().orElseThrow().asDouble()).isEqualTo(1.0);
+        // A non-positive limit falls back to the configured scan ceiling.
+        verify(finder).limit(DefaultMongoDbTimeseriesAdapterConfig.DEFAULT_MAX_QUERY_RESULT_SIZE);
+    }
+
+    @Test
+    public void scanAppliesCallerLimit() {
+        final FindPublisher<org.bson.Document> finder = stubFindReturning(mongoCollection,
+                docFor(Instant.parse("2026-01-14T10:00:00Z"), JsonValue.of(1.0)));
+        final MongoDbTimeseriesAdapter adapter = newInitialisedAdapter();
+
+        adapter.scan(THING_ID, PATH, Instant.parse("2026-01-14T00:00:00Z"),
+                Instant.parse("2026-01-15T00:00:00Z"), 7).toCompletableFuture().join();
+
+        verify(finder).limit(7);
+    }
+
+    // --- Native fill result mapping (_real-marker gap reconstruction) ---
+
+    @Test
+    public void buildNativelyFilledResultFlagsDensifiedRowsAsGaps() {
+        final Instant t0 = Instant.parse("2026-01-14T00:00:00Z");
+        final List<org.bson.Document> buckets = Arrays.asList(
+                bucketDoc(t0, 10.0, true, "degC"),
+                bucketDoc(t0.plusSeconds(2), 13.0, true, "degC"),
+                bucketDoc(t0.plusSeconds(4), 20.25, false, null),  // densified -> gap
+                bucketDoc(t0.plusSeconds(6), 42.0, true, "degC"));
+
+        final org.eclipse.ditto.timeseries.model.TimeseriesQueryResult result =
+                MongoDbTimeseriesAdapter.buildNativelyFilledResult(THING_ID, PATH, buildQuery(), buckets);
+        final List<TimeseriesDataValue> data = result.getData();
+
+        assertThat(data).hasSize(4);
+        assertThat(data.get(0).isGap()).isFalse();
+        assertThat(data.get(2).isGap()).isTrue();
+        assertThat(data.get(2).getValue().orElseThrow().asDouble()).isEqualTo(20.25);
+        assertThat(data.get(3).isGap()).isFalse();
+        assertThat(result.getMeta().getUnit()).contains("degC");
+    }
+
+    @Test
+    public void buildNativelyFilledResultKeepsNullRealBucketAsGap() {
+        final Instant t0 = Instant.parse("2026-01-14T00:00:00Z");
+
+        final org.eclipse.ditto.timeseries.model.TimeseriesQueryResult result =
+                MongoDbTimeseriesAdapter.buildNativelyFilledResult(THING_ID, PATH, buildQuery(),
+                        Arrays.asList(bucketDoc(t0, null, true, "degC")));
+
+        final TimeseriesDataValue dataValue = result.getData().get(0);
+        assertThat(dataValue.isGap()).isTrue();          // a genuine-null real bucket stays a gap
+        assertThat(dataValue.getValue()).isEmpty();
+    }
+
+    @Test
+    public void buildNativelyFilledResultTreatsWasNullRealBucketAsGap() {
+        final Instant t0 = Instant.parse("2026-01-14T00:00:00Z");
+        // A real bucket whose aggregate was null but $fill fabricated a value from its neighbours:
+        // the _wasNull marker must keep it a gap, not emit the fabricated value.
+        final org.bson.Document nullReal = new org.bson.Document("_id", java.util.Date.from(t0))
+                .append("v", 25.0)
+                .append("_real", Boolean.TRUE)
+                .append("_wasNull", Boolean.TRUE)
+                .append("unit", "degC");
+
+        final org.eclipse.ditto.timeseries.model.TimeseriesQueryResult result =
+                MongoDbTimeseriesAdapter.buildNativelyFilledResult(THING_ID, PATH, buildQuery(),
+                        Arrays.asList(nullReal));
+
+        final TimeseriesDataValue dataValue = result.getData().get(0);
+        assertThat(dataValue.isGap()).isTrue();
+        assertThat(dataValue.getValue()).isEmpty();
+    }
+
+    private static org.bson.Document bucketDoc(final Instant t, final Double value, final boolean real,
+            final String unit) {
+        final org.bson.Document doc = new org.bson.Document("_id", java.util.Date.from(t))
+                .append("v", value);
+        if (real) {
+            doc.append("_real", Boolean.TRUE);
+        }
+        if (unit != null) {
+            doc.append("unit", unit);
+        }
+        return doc;
+    }
+
+    // --- Capabilities ---
+
+    @Test
+    public void declaresPushDownCapabilities() {
+        final Capabilities caps = newInitialisedAdapter().capabilities();
+
+        assertThat(caps.supportsNativeQuery()).isTrue(); // query(...) is a complete executor
+        // Group aggregations plus derivative/integral (exact native operators) push down...
+        assertThat(caps.canPushDown(Aggregation.AVG)).isTrue();
+        assertThat(caps.canPushDown(Aggregation.STDDEV)).isTrue();
+        assertThat(caps.canPushDown(Aggregation.DERIVATIVE)).isTrue();
+        assertThat(caps.canPushDown(Aggregation.INTEGRAL)).isTrue();
+        // ...percentile is opt-in (native $percentile is approximate).
+        assertThat(caps.canPushDown(Aggregation.PERCENTILE)).isFalse();
+        // linear/previous fill are native by default.
+        assertThat(caps.getNativeFillStrategies())
+                .containsExactlyInAnyOrder(FillStrategy.LINEAR, FillStrategy.PREVIOUS);
+    }
+
     // --- Collection-name derivation ---
 
     @Test
@@ -452,6 +621,27 @@ public final class MongoDbTimeseriesAdapterTest {
                 Collections.singletonList(PATH),
                 Instant.parse("2026-01-14T00:00:00Z"),
                 Instant.parse("2026-01-15T00:00:00Z"));
+    }
+
+    private MongoDbTimeseriesAdapter newAdapterWithMaxResultSize(final int max) {
+        // Exclude derivative/integral from push-down so these ops take the kernel (scan) path where
+        // the max-query-result-size ceiling and its refusal apply — the native window operators run
+        // server-side and have their own (separate) bound.
+        final MongoDbTimeseriesAdapterConfig small = DefaultMongoDbTimeseriesAdapterConfig.of(
+                mock(MongoDbConfig.class),
+                ConfigFactory.parseString("max-query-result-size = " + max + "\n"
+                        + "capabilities { pushable-aggregations = [\"avg\"], native-fill-strategies = [] }"));
+        return MongoDbTimeseriesAdapter.forTesting(mongoClient, mongoDatabase, small);
+    }
+
+    private static org.eclipse.ditto.timeseries.model.TimeseriesQuery advancedQuery(
+            final Aggregation aggregation) {
+        return org.eclipse.ditto.timeseries.model.TimeseriesQuery.of(
+                THING_ID,
+                Collections.singletonList(PATH),
+                Instant.parse("2026-01-14T00:00:00Z"),
+                Instant.parse("2026-01-15T00:00:00Z"),
+                null, aggregation, null, null, null);
     }
 
     private static org.eclipse.ditto.timeseries.model.TimeseriesQuery limitedQuery(final int limit) {

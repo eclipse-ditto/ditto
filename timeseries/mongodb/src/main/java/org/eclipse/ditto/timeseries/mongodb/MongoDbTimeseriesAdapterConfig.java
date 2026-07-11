@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
+import org.eclipse.ditto.timeseries.api.Capabilities;
 import org.eclipse.ditto.timeseries.api.TimeseriesAdapterConfig;
 
 /**
@@ -94,4 +95,13 @@ public interface MongoDbTimeseriesAdapterConfig extends TimeseriesAdapterConfig 
      * MongoDB {@code maxTime}. Bounds the blast radius of a pathological query.
      */
     Duration getQueryTimeout();
+
+    /**
+     * @return the capabilities this adapter advertises to the {@code TimeseriesQueryPlanner} —
+     * native-query support, native downsampling, the aggregations pushed down to the DB engine, the
+     * fill strategies applied natively, and native retention. Loaded from the {@code capabilities}
+     * config block; the defaults match a modern MongoDB (5.0+). Override for an older or
+     * feature-limited MongoDB so the planner routes accordingly.
+     */
+    Capabilities getCapabilities();
 }

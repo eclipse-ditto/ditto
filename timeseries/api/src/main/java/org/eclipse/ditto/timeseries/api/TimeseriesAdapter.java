@@ -14,11 +14,15 @@ package org.eclipse.ditto.timeseries.api;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.timeseries.model.TimeseriesDataPoint;
+import org.eclipse.ditto.timeseries.model.TimeseriesDataValue;
 import org.eclipse.ditto.timeseries.model.TimeseriesQuery;
 import org.eclipse.ditto.timeseries.model.TimeseriesQueryResult;
 
@@ -44,6 +48,25 @@ import org.eclipse.ditto.timeseries.model.TimeseriesQueryResult;
  * @since 4.0.0
  */
 public interface TimeseriesAdapter {
+
+    // --- Capabilities ---
+
+    /**
+     * Declares what this adapter can compute natively (push down into its backend) versus what must
+     * be computed in the shared compute kernel. A future query planner reads this to route each
+     * operation to the fast (push-down) or portable (scan + kernel) path.
+     * <p>
+     * The default is {@link Capabilities#nativeQuery()} — the planner delegates whole queries to
+     * this adapter's {@link #query(TimeseriesQuery)} (which is a required method, so every adapter
+     * has it). A scan-only backend instead overrides this to return {@link Capabilities#minimal()}
+     * and implements {@link #scan}, letting the planner compute everything in the kernel. Advertising
+     * a capability must never change results, only where they are computed.
+     *
+     * @return the adapter's capabilities.
+     */
+    default Capabilities capabilities() {
+        return Capabilities.nativeQuery();
+    }
 
     // --- Lifecycle ---
 
@@ -114,4 +137,33 @@ public interface TimeseriesAdapter {
      * @throws NullPointerException if {@code query} is {@code null}.
      */
     CompletionStage<List<TimeseriesQueryResult>> query(TimeseriesQuery query);
+
+    /**
+     * The universal read primitive: returns the raw, non-gap data points for one series
+     * ({@code thingId} + {@code path}) in the half-open time range {@code [from, to)}, ordered
+     * ascending by timestamp, up to {@code limit} points.
+     * <p>
+     * This is the lowest common denominator every timeseries backend can satisfy, and it is what a
+     * query planner builds on to compute any operation portably in the shared compute kernel (bucket
+     * / aggregate / fill) when the backend cannot push that operation down. An adapter that
+     * implements {@code scan} can be driven entirely by the planner; the default throws
+     * {@link UnsupportedOperationException} so a backend that only implements the monolithic
+     * {@link #query(TimeseriesQuery)} still compiles.
+     *
+     * @param thingId the Thing whose series to scan.
+     * @param path the feature-property pointer identifying the series.
+     * @param from the inclusive start of the time range.
+     * @param to the exclusive end of the time range.
+     * @param limit the maximum number of points to return; a non-positive value means "the adapter's
+     * configured ceiling".
+     * @return a {@code CompletionStage} completing with the ascending points (never {@code null}).
+     * @throws NullPointerException if {@code thingId}, {@code path}, {@code from} or {@code to} is
+     * {@code null}.
+     * @throws UnsupportedOperationException if this adapter does not implement {@code scan}.
+     */
+    default CompletionStage<List<TimeseriesDataValue>> scan(final ThingId thingId,
+            final JsonPointer path, final Instant from, final Instant to, final int limit) {
+        throw new UnsupportedOperationException(
+                getClass().getName() + " does not implement scan(...).");
+    }
 }

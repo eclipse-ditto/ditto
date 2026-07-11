@@ -24,6 +24,9 @@ import java.util.Map;
 
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
+import org.eclipse.ditto.timeseries.api.Capabilities;
+import org.eclipse.ditto.timeseries.model.Aggregation;
+import org.eclipse.ditto.timeseries.model.FillStrategy;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -121,6 +124,42 @@ public final class DefaultMongoDbTimeseriesAdapterConfigTest {
         assertThat(underTest.getRetention()).isPresent();
         assertThat(underTest.getMaxQueryResultSize()).isEqualTo(500_000);
         assertThat(underTest.getQueryTimeout()).isEqualTo(Duration.ofSeconds(30));
+    }
+
+    @Test
+    public void ofConfigDefaultsCapabilitiesWhenBlockAbsent() {
+        final DefaultMongoDbTimeseriesAdapterConfig underTest =
+                DefaultMongoDbTimeseriesAdapterConfig.of(mock(MongoDbConfig.class), ConfigFactory.empty());
+
+        assertThat(underTest.getCapabilities())
+                .isEqualTo(DefaultMongoDbTimeseriesAdapterConfig.DEFAULT_CAPABILITIES);
+    }
+
+    @Test
+    public void ofConfigReadsCapabilitiesBlock() {
+        final Config adapterConfig = ConfigFactory.parseString(
+                "capabilities { native-query = false, "
+                        + "pushable-aggregations = [\"avg\", \"percentile\"], "
+                        + "native-fill-strategies = [\"linear\"] }");
+
+        final Capabilities caps =
+                DefaultMongoDbTimeseriesAdapterConfig.of(mock(MongoDbConfig.class), adapterConfig)
+                        .getCapabilities();
+
+        assertThat(caps.supportsNativeQuery()).isFalse();
+        assertThat(caps.canPushDown(Aggregation.PERCENTILE)).isTrue();
+        assertThat(caps.canPushDown(Aggregation.AVG)).isTrue();
+        assertThat(caps.canPushDown(Aggregation.SUM)).isFalse(); // replaced the default set
+        assertThat(caps.canFillNatively(FillStrategy.LINEAR)).isTrue();
+    }
+
+    @Test
+    public void ofConfigRejectsUnknownPushableAggregation() {
+        final Config adapterConfig = ConfigFactory.parseString(
+                "capabilities { pushable-aggregations = [\"avg\", \"bogus\"] }");
+
+        assertThatExceptionOfType(DittoConfigError.class).isThrownBy(() ->
+                DefaultMongoDbTimeseriesAdapterConfig.of(mock(MongoDbConfig.class), adapterConfig));
     }
 
     @Test
