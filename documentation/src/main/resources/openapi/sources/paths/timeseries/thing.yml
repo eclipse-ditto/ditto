@@ -115,9 +115,7 @@ get:
       content:
         application/json:
           schema:
-            type: array
-            items:
-              $ref: '../../schemas/timeseries/timeseriesQueryResult.yml'
+            $ref: '../../schemas/timeseries/timeseriesQueryResult.yml'
     '400':
       description: |-
         The request could not be completed (`timeseries:query.invalid`). Possible reasons:

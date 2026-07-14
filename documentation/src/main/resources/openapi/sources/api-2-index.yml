@@ -395,6 +395,8 @@ components:
       $ref: "./schemas/errors/error.yml"
     AdvancedError:
       $ref: "./schemas/errors/advancedError.yml"
+    TimeseriesQueryResult:
+      $ref: "./schemas/timeseries/timeseriesQueryResult.yml"
     Attributes:
       $ref: "./schemas/things/attributes.yml"
     Definition:
