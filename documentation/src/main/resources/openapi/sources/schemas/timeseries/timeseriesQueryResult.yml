@@ -10,10 +10,9 @@
 # SPDX-License-Identifier: EPL-2.0
 type: array
 description: |-
-  Per-path timeseries query result. The HTTP route requests exactly one path per
-  call, so the array always contains a single entry; the WebSocket envelope
-  variant of `RetrieveTimeseries` may carry multiple paths and would return one
-  entry per requested path.
+  Timeseries query result: one entry per requested path, in request order. The
+  single-property endpoint requests one path, so its array holds a single entry;
+  the multi-path Thing endpoint (`?paths=...`) returns one entry per requested path.
 items:
   type: object
   required:
@@ -33,7 +32,8 @@ items:
         e.g. `/features/environment/properties/temperature`.
     query:
       type: object
-      description: Echo of the query parameters that produced this result.
+      description: Echo of the effective query that produced this result. Optional
+        parameters are present only when supplied on the request.
       properties:
         thingId:
           type: string
@@ -47,6 +47,25 @@ items:
         to:
           type: string
           format: date-time
+        step:
+          type: string
+          description: Downsampling interval as an ISO-8601 duration, e.g. `PT1H`.
+        aggregation:
+          type: string
+          enum: [avg, min, max, sum, count, first, last, stddev, derivative, rate, integral, percentile]
+        fillStrategy:
+          type: string
+          enum: [null, previous, zero, linear]
+        percentile:
+          type: number
+          minimum: 0
+          maximum: 100
+        timezone:
+          type: string
+          description: IANA time-zone ID used to align bucket boundaries.
+        limit:
+          type: integer
+          format: int32
     result:
       type: object
       description: Per-path metadata.
