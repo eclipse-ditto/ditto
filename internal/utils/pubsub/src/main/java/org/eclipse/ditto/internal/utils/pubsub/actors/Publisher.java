@@ -19,6 +19,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
@@ -32,8 +34,11 @@ import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdap
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
+import org.eclipse.ditto.internal.utils.pubsub.api.PreSerializedPublishSignal;
 import org.eclipse.ditto.internal.utils.pubsub.api.PublishSignal;
 import org.eclipse.ditto.internal.utils.pubsub.api.RemoteAcksChanged;
+import org.eclipse.ditto.internal.utils.pubsub.api.SignalBytesHolder;
+import org.eclipse.ditto.internal.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.DDataReader;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.ack.Grouped;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
@@ -43,7 +48,9 @@ import org.eclipse.ditto.json.JsonValue;
 import org.apache.pekko.actor.AbstractActor;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.actor.Address;
 import org.apache.pekko.actor.Props;
+import org.apache.pekko.cluster.Cluster;
 import org.apache.pekko.cluster.ddata.Key;
 import org.apache.pekko.cluster.ddata.ORMultiMap;
 import org.apache.pekko.cluster.ddata.Replicator;
@@ -70,6 +77,8 @@ public final class Publisher extends AbstractActor {
     private final Counter sentMessagesCounter = DittoMetrics.counter("pubsub-sent-messages");
     private final Map<Key<?>, PublisherIndex<Long>> publisherIndexes = new HashMap<>();
     private final int subscriberPoolSize;
+    private final boolean preSerializeFanoutEnabled;
+    private final Address selfAddress;
 
     private PublisherIndex<Long> publisherIndex = PublisherIndex.empty();
     private RemoteAcksChanged remoteAcks = RemoteAcksChanged.of(Map.of());
@@ -78,6 +87,8 @@ public final class Publisher extends AbstractActor {
     private Publisher(final DDataReader<ActorRef, String> ddataReader, final DistributedAcks distributedAcks) {
         this.ddataReader = ddataReader;
         subscriberPoolSize = distributedAcks.getConfig().getSubscriberPoolSize();
+        preSerializeFanoutEnabled = PubSubConfig.of(getContext().getSystem()).isPreSerializeFanoutEnabled();
+        selfAddress = Cluster.get(getContext().getSystem()).selfAddress();
         ddataReader.receiveChanges(getSelf());
         distributedAcks.receiveDistributedDeclaredAcks(getSelf());
     }
@@ -194,12 +205,40 @@ public final class Publisher extends AbstractActor {
                     subscribers.stream().map(Pair::first).toList());
         }
         sentMessagesCounter.increment(subscribers.size());
-        subscribers.forEach(pair -> publishSignal(pair.first(), pair.second(), sender));
+        // When enabled, serialize the (identical) signal payload once and share it across all fan-out destinations
+        // via a PreSerializedPublishSignal envelope; Pekko Artery re-serializes per destination otherwise. This only
+        // pays off for *remote* fan-out: local delivery uses the live signal (no serialization), so requiring at
+        // least one remote destination avoids allocating a holder + envelopes for purely-local (e.g. single-node /
+        // dev) fan-out where nothing is ever serialized. The cheap enabled/size checks short-circuit before the
+        // remoteness scan so there is no extra work when the feature is off.
+        final SignalBytesHolder sharedHolder =
+                preSerializeFanoutEnabled && subscribers.size() > 1 && hasRemoteSubscriber(subscribers)
+                        ? new SignalBytesHolder(signal)
+                        : null;
+        subscribers.forEach(pair -> publishSignal(pair.first(), pair.second(), sharedHolder, sender));
         return subscribers;
     }
 
-    private void publishSignal(final ActorRef subscriber, final PublishSignal signal, final ActorRef sender) {
-        Subscriber.chooseSubscriber(subscriber, signal, subscriberPoolSize).tell(signal, sender);
+    private boolean hasRemoteSubscriber(final List<Pair<ActorRef, PublishSignal>> subscribers) {
+        return subscribers.stream().anyMatch(pair -> isRemote(pair.first()));
+    }
+
+    private boolean isRemote(final ActorRef subscriber) {
+        final Address address = subscriber.path().address();
+        // A local subscriber's ref either has no host (local scope) or carries this node's own cluster address;
+        // anything else lives on a remote node and forces Artery to serialize the message.
+        return address.hasGlobalScope() && !address.equals(selfAddress);
+    }
+
+    private void publishSignal(final ActorRef subscriber, final PublishSignal signal,
+            @Nullable final SignalBytesHolder sharedHolder, final ActorRef sender) {
+        final ActorSelection target = Subscriber.chooseSubscriber(subscriber, signal, subscriberPoolSize);
+        if (sharedHolder != null) {
+            target.tell(PreSerializedPublishSignal.of(sharedHolder, signal.getGroups(), signal.getGroupIndexKey()),
+                    sender);
+        } else {
+            target.tell(signal, sender);
+        }
     }
 
     private void declaredAcksChanged(final RemoteAcksChanged event) {

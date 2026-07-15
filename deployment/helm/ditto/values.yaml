@@ -64,6 +64,13 @@ global:
     downingStableAfter: 15s
     # downAllWhenUnstable is a configuration of the Pekko SBR (split brain resolver)
     downAllWhenUnstable: "on"
+  # pubsub holds Ditto's cluster pub/sub configuration shared by all services
+  pubsub:
+    # preSerializeFanoutEnabled serializes a published signal once and reuses it across all remote fan-out
+    # destinations instead of re-serializing it per destination. It is a cluster-wide setting applied to all
+    # publishing services (things, policies, connectivity) at once - either on for all or off for all. Only enable
+    # after the whole fleet supports it (runs a version with the PreSerializedPublishSignal serializer registered).
+    preSerializeFanoutEnabled: false
   # json holds the Ditto JSON specific configuration
   json:
     # escapingBufferFactor is the factor of the buffer size used when escaping JSON strings -

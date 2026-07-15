@@ -115,6 +115,8 @@ spec:
               value: "{{ .Values.global.tracing.randomSampler.probability }}"
             - name: DITTO_TRACING_ADAPTIVE_SAMPLER_THROUGHPUT
               value: "{{ .Values.global.tracing.adaptiveSampler.throughput }}"
+            - name: DITTO_PUBSUB_PRE_SERIALIZE_FANOUT_ENABLED
+              value: "{{ .Values.global.pubsub.preSerializeFanoutEnabled }}"
             {{- if .Values.global.logging.logstash.enabled }}
             - name: DITTO_LOGGING_LOGSTASH_SERVER
               value: "{{ .Values.global.logging.logstash.endpoint }}"

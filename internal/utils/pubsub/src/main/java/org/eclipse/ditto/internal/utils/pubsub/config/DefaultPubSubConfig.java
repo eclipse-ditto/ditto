@@ -41,6 +41,7 @@ final class DefaultPubSubConfig implements PubSubConfig {
     private final Duration updateInterval;
     private final Duration syncInterval;
     private final double resetProbability;
+    private final boolean preSerializeFanoutEnabled;
 
     private DefaultPubSubConfig(final ConfigWithFallback config) {
         seed = config.getString(ConfigValue.SEED.getConfigPath());
@@ -48,6 +49,7 @@ final class DefaultPubSubConfig implements PubSubConfig {
         updateInterval = config.getDuration(ConfigValue.UPDATE_INTERVAL.getConfigPath());
         syncInterval = config.getDuration(ConfigValue.SYNC_INTERVAL.getConfigPath());
         resetProbability = config.getDouble(ConfigValue.RESET_PROBABILITY.getConfigPath());
+        preSerializeFanoutEnabled = config.getBoolean(ConfigValue.PRE_SERIALIZE_FANOUT_ENABLED.getConfigPath());
     }
 
     static PubSubConfig of(final Config config) {
@@ -79,12 +81,19 @@ final class DefaultPubSubConfig implements PubSubConfig {
         return resetProbability;
     }
 
+    @Override
+    public boolean isPreSerializeFanoutEnabled() {
+        return preSerializeFanoutEnabled;
+    }
+
     private String[] getFieldNames() {
-        return new String[]{"seed", "restartDelay", "updateInterval", "syncInterval", "resetProbability"};
+        return new String[]{"seed", "restartDelay", "updateInterval", "syncInterval", "resetProbability",
+                "preSerializeFanoutEnabled"};
     }
 
     private Object[] getFieldValues() {
-        return new Object[]{seed, restartDelay, updateInterval, syncInterval, resetProbability};
+        return new Object[]{seed, restartDelay, updateInterval, syncInterval, resetProbability,
+                preSerializeFanoutEnabled};
     }
 
     @Override

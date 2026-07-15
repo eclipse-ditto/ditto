@@ -20,6 +20,7 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.internal.utils.pubsub.PubSubFactory;
 import org.eclipse.ditto.internal.utils.pubsub.api.LocalAcksChanged;
+import org.eclipse.ditto.internal.utils.pubsub.api.PreSerializedPublishSignal;
 import org.eclipse.ditto.internal.utils.pubsub.api.PublishSignal;
 import org.eclipse.ditto.internal.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.SubscriptionsReader;
@@ -100,6 +101,7 @@ public final class Subscriber<T extends Signal<?>> extends AbstractSubscriber<T>
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(PublishSignal.class, this::broadcastToLocalSubscribers)
+                .match(PreSerializedPublishSignal.class, this::broadcastToLocalSubscribers)
                 .match(SubscriptionsReader.class, this::updateLocalSubscriptions)
                 .match(LocalAcksChanged.class, this::updateLocalAcks)
                 .match(Terminated.class, this::terminated)
