@@ -72,12 +72,11 @@ public final class ReadGrantCollector {
             final JsonObject thingJson,
             final PolicyEnforcer policyEnforcer
     ) {
-        final Enforcer enforcer = policyEnforcer.getEnforcer();
         final Map<JsonPointer, Set<String>> pointerToSubjects = new LinkedHashMap<>();
 
         for (final JsonPointer pointer : fields.getPointers()) {
             final Map<JsonPointer, Set<String>> pathsForPointer =
-                    collectSubjectsForPointer(pointer, thingJson, enforcer);
+                    collectSubjectsForPointer(pointer, thingJson, policyEnforcer);
 
             for (final Map.Entry<JsonPointer, Set<String>> entry : pathsForPointer.entrySet()) {
                 pointerToSubjects.merge(entry.getKey(), entry.getValue(), (existing, newSet) -> {
@@ -103,12 +102,16 @@ public final class ReadGrantCollector {
     private static Map<JsonPointer, Set<String>> collectSubjectsForPointer(
             final JsonPointer pointer,
             final JsonObject thingJson,
-            final Enforcer enforcer
+            final PolicyEnforcer policyEnforcer
     ) {
         final ResourceKey resourceKey = PoliciesResourceType.thingResource(pointer);
         final Permissions readPermissions = Permissions.newInstance(Permission.READ);
 
-        final SubjectClassification classification = enforcer.classifySubjects(resourceKey, readPermissions);
+        // Memoized per resource on the PolicyEnforcer (pure fn of policy + resource): avoids re-walking the
+        // policy tree for the same pointer across repeated (value-only) ThingEvents. The value-dependent
+        // getAccessiblePathsForSubjects below still uses the raw enforcer (depends on the Thing JSON).
+        final SubjectClassification classification = policyEnforcer.classifyReadSubjects(resourceKey);
+        final Enforcer enforcer = policyEnforcer.getEnforcer();
         final Set<AuthorizationSubject> subjectsWithUnrestrictedPermission = classification.getUnrestricted();
         final Set<AuthorizationSubject> partialOnly = classification.getPartialOnly();
 

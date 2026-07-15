@@ -21,7 +21,11 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
+import java.util.EnumMap;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
@@ -40,8 +44,14 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.base.model.signals.JsonParsable;
+import org.eclipse.ditto.base.model.signals.WithResource;
 import org.eclipse.ditto.base.model.signals.WithType;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
+import org.eclipse.ditto.base.model.signals.announcements.Announcement;
 import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
@@ -90,14 +100,19 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
 
     private static final String METRIC_NAME_SUFFIX = "_serializer_messages";
     private static final String METRIC_DIRECTION = "direction";
+    private static final String METRIC_CATEGORY = "category";
+    private static final String METRIC_RESOURCE_TYPE = "resource_type";
+    private static final String DIRECTION_IN = "in";
+    private static final String DIRECTION_OUT = "out";
+    private static final String RESOURCE_TYPE_OTHER = "other";
 
     private final int identifier;
     private final MappingStrategies mappingStrategies;
     private final Function<Object, String> manifestProvider;
     private final BufferPool byteBufferPool;
     private final Long defaultBufferSize;
-    private final Counter inCounter;
-    private final Counter outCounter;
+    private final Map<Category, ConcurrentMap<String, Counter>> inCounters;
+    private final Map<Category, ConcurrentMap<String, Counter>> outCounters;
     private final String serializerName;
 
     /**
@@ -127,10 +142,54 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
         final var maxPoolEntries = config.withFallback(FALLBACK_CONF).getInt(CONFIG_DIRECT_BUFFER_POOL_LIMIT);
         byteBufferPool = new DirectByteBufferPool(defaultBufferSize.intValue(), maxPoolEntries);
 
-        inCounter = DittoMetrics.counter(serializerName.toLowerCase() + METRIC_NAME_SUFFIX)
-                .tag(METRIC_DIRECTION, "in");
-        outCounter = DittoMetrics.counter(serializerName.toLowerCase() + METRIC_NAME_SUFFIX)
-                .tag(METRIC_DIRECTION, "out");
+        inCounters = newCategoryCounterCache();
+        outCounters = newCategoryCounterCache();
+    }
+
+    private static Map<Category, ConcurrentMap<String, Counter>> newCategoryCounterCache() {
+        final Map<Category, ConcurrentMap<String, Counter>> cache = new EnumMap<>(Category.class);
+        for (final Category category : Category.values()) {
+            cache.put(category, new ConcurrentHashMap<>());
+        }
+        return cache;
+    }
+
+    /**
+     * Increments the {@code <serializer>_serializer_messages} counter tagged with the {@code direction}, the coarse
+     * signal {@code category} and the {@code resource_type} of the passed {@code object}. The fully tagged counters
+     * are cached per {@code (category, resource_type)} combination so that on the hot (de)serialization path only a map
+     * lookup and the increment are performed; the tagged counter is built at most once per combination and serializer.
+     *
+     * @param countersByCategory the direction-specific counter cache ({@link #inCounters} or {@link #outCounters}).
+     * @param direction the {@code direction} tag value ({@value #DIRECTION_IN} or {@value #DIRECTION_OUT}).
+     * @param object the (de)serialized object to classify.
+     */
+    private void incrementCounter(final Map<Category, ConcurrentMap<String, Counter>> countersByCategory,
+            final String direction, final Object object) {
+
+        final var category = Category.of(object);
+        final var resourceType = resourceTypeOf(object);
+        final var countersByResourceType = countersByCategory.get(category);
+        var counter = countersByResourceType.get(resourceType);
+        if (null == counter) {
+            // slow path, hit at most once per (category, resource_type) combination for a serializer's lifetime:
+            counter = countersByResourceType.computeIfAbsent(resourceType,
+                    rt -> DittoMetrics.counter(serializerName.toLowerCase() + METRIC_NAME_SUFFIX)
+                            .tag(METRIC_DIRECTION, direction)
+                            .tag(METRIC_CATEGORY, category.getTag())
+                            .tag(METRIC_RESOURCE_TYPE, rt));
+        }
+        counter.increment();
+    }
+
+    private static String resourceTypeOf(final Object object) {
+        final String result;
+        if (object instanceof WithResource withResource) {
+            result = withResource.getResourceType();
+        } else {
+            result = RESOURCE_TYPE_OTHER;
+        }
+        return result;
     }
 
     @Override
@@ -155,7 +214,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
             try {
                 serializeIntoByteBuffer(jsonObject, buf);
                 LOG.trace("toBinary jsonStr about to send 'out': {}", jsonObject);
-                outCounter.increment();
+                incrementCounter(outCounters, DIRECTION_OUT, object);
             } catch (final BufferOverflowException e) {
                 final var errorMessage = MessageFormat.format(
                         "Could not put bytes of JSON string <{0}> into ByteBuffer due to BufferOverflow",
@@ -282,7 +341,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
                         serializerName,
                         BinaryToHexConverter.createDebugMessageByTryingToConvertToHexString(buf));
             }
-            inCounter.increment();
+            incrementCounter(inCounters, DIRECTION_IN, jsonifiable);
             return jsonifiable;
         } catch (final NotSerializableException e) {
             return e;
@@ -446,6 +505,53 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
     private static String getDefaultManifestOrThrow(final JsonObject jsonObject) throws NotSerializableException {
         return jsonObject.getValue(Command.JsonFields.TYPE)
                 .orElseThrow(() -> new NotSerializableException("No type found for inner JSON!"));
+    }
+
+    /**
+     * Coarse, low-cardinality classification of a (de)serialized message, used as the {@code category} metric tag to
+     * understand the composition of cluster (de)serialization traffic - e.g. distinguishing event fan-out from command
+     * load. It is combined with the {@code resource_type} tag (derived from {@link WithResource#getResourceType()}).
+     */
+    private enum Category {
+
+        EVENT("event"),
+        COMMAND("command"),
+        RESPONSE("response"),
+        ACKNOWLEDGEMENT("acknowledgement"),
+        ANNOUNCEMENT("announcement"),
+        ERROR("error"),
+        OTHER("other");
+
+        private final String tag;
+
+        Category(final String tag) {
+            this.tag = tag;
+        }
+
+        private String getTag() {
+            return tag;
+        }
+
+        private static Category of(final Object object) {
+            final Category result;
+            // order matters: more specific types must be checked first (e.g. an Acknowledgement is a CommandResponse):
+            if (object instanceof Event) {
+                result = EVENT;
+            } else if (object instanceof Announcement) {
+                result = ANNOUNCEMENT;
+            } else if (object instanceof Acknowledgement || object instanceof Acknowledgements) {
+                result = ACKNOWLEDGEMENT;
+            } else if (object instanceof CommandResponse) {
+                result = RESPONSE;
+            } else if (object instanceof Command) {
+                result = COMMAND;
+            } else if (object instanceof DittoRuntimeException) {
+                result = ERROR;
+            } else {
+                result = OTHER;
+            }
+            return result;
+        }
     }
 
 }

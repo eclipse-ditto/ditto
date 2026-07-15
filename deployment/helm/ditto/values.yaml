@@ -854,6 +854,10 @@ policies:
         # namespaceFilteredMaxSize bounds the per-enforcer cache of namespace-filtered enforcers, avoiding
         # rebuilding the enforcer tree per signal for policies with namespace-scoped entries
         namespaceFilteredMaxSize: 100
+        # readClassificationMaxSize bounds the per-enforcer memo of classifySubjects(resource, READ) results,
+        # avoiding re-walking the policy tree per emitted ThingEvent for per-event read-authorization and
+        # read-grant collection; caps distinct resource paths cached per policy
+        readClassificationMaxSize: 1000
         # expireAfterWrite the maximum duration of inconsistency after losing a cache invalidation
         expireAfterWrite: 4h
         # expireAfterAccess prolonged on each cache access by that duration
@@ -1225,6 +1229,10 @@ things:
         # namespaceFilteredMaxSize bounds the per-enforcer cache of namespace-filtered enforcers, avoiding
         # rebuilding the enforcer tree per signal for policies with namespace-scoped entries
         namespaceFilteredMaxSize: 100
+        # readClassificationMaxSize bounds the per-enforcer memo of classifySubjects(resource, READ) results,
+        # avoiding re-walking the policy tree per emitted ThingEvent for per-event read-authorization and
+        # read-grant collection; caps distinct resource paths cached per policy
+        readClassificationMaxSize: 1000
         # expireAfterWrite the maximum duration of inconsistency after losing a cache invalidation
         expireAfterWrite: 4h
         # expireAfterAccess prolonged on each cache access by that duration
@@ -1936,6 +1944,10 @@ connectivity:
         # namespaceFilteredMaxSize bounds the per-enforcer cache of namespace-filtered enforcers, avoiding
         # rebuilding the enforcer tree per signal for policies with namespace-scoped entries
         namespaceFilteredMaxSize: 100
+        # readClassificationMaxSize bounds the per-enforcer memo of classifySubjects(resource, READ) results,
+        # avoiding re-walking the policy tree per emitted ThingEvent for per-event read-authorization and
+        # read-grant collection; caps distinct resource paths cached per policy
+        readClassificationMaxSize: 1000
         # expireAfterWrite the maximum duration of inconsistency after losing a cache invalidation
         expireAfterWrite: 4h
         # expireAfterAccess prolonged on each cache access by that duration
