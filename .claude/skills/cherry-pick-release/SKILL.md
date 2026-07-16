@@ -51,9 +51,31 @@ This returns:
 - `commits`: List of commits in the PR
 - `url`: PR URL
 
+#### Step 4b: Fetch Helm-chart PRs
+
+The Helm chart is versioned **independently** of the Ditto application (see
+`deployment/helm/ditto/Chart.yaml` → `version` vs. `appVersion`) and its work is tracked with a
+`helm-chart-<chart-version>` label rather than the app milestone. These PRs must also be cherry-picked
+onto the release branch, otherwise the chart shipped for this release is incomplete.
+
+1. Determine the chart version being released. Read `deployment/helm/ditto/Chart.yaml` (`version:`) on the
+   release branch. If it is ambiguous which chart version corresponds to this app release, ask the user.
+2. Fetch the Helm-chart-labeled, merged PRs:
+
+```bash
+CHART_VERSION=<chart-version>   # e.g. 4.3.1
+
+gh pr list --repo eclipse-ditto/ditto --search "label:helm-chart-$CHART_VERSION" --state merged --limit 200 --json number,title,mergeCommit,commits,url
+```
+
+Merge these into the same set of PRs handled by Steps 5 and 6 (de-duplicate by PR number — a PR may carry
+both the milestone and the helm-chart label). Cherry-picking a helm-chart PR brings its
+`deployment/helm/ditto/**` changes — including the `CHANGELOG.md` and `Chart.yaml` `version` bump — onto
+the release branch along with the code.
+
 ### Step 5: For Each PR, Ask User for Consent
 
-For each merged PR in the milestone:
+For each merged PR in the combined set (milestone PRs from Step 4 plus helm-chart PRs from Step 4b):
 
 1. Display PR information:
    - PR number and title
@@ -95,10 +117,15 @@ git cherry-pick <COMMIT_SHA>
 ### Step 7: Summary
 
 After processing all PRs, provide a summary:
-- Number of PRs processed
+- Number of PRs processed (note how many were milestone vs. helm-chart-labeled)
 - Number of commits cherry-picked
 - Any PRs or commits that were skipped
 - Current state of the release branch
+
+If any helm-chart PRs were cherry-picked, verify the chart is coherent on the release branch:
+- `deployment/helm/ditto/Chart.yaml` → `version` matches the released chart version and `appVersion`
+  matches this Ditto release
+- `deployment/helm/ditto/CHANGELOG.md` has a section for that chart version (not left under `[Unreleased]`)
 
 ## Example Interaction
 
