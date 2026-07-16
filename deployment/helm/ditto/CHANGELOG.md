@@ -15,6 +15,21 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 
 ## [Unreleased]
 
+## [4.4.0]
+
+Bumped Ditto `appVersion` to `3.9.4`.
+
+### Added
+- New cluster-wide `global.pubsub.preSerializeFanoutEnabled` (default `false`), applied to the publishing
+  services `things`, `policies` and `connectivity`. When enabled, a published signal is serialized once and
+  reused across all remote fan-out destinations instead of once per destination. Off by default; only enable
+  after the whole fleet runs Ditto `3.9.4` or later
+  ([#2485](https://github.com/eclipse-ditto/ditto/pull/2485))
+- New `readClassificationMaxSize` (default `1000`) under the policy-enforcer `cache` config of the `policies`,
+  `things` and `connectivity` services, bounding the per-enforcer memo of `classifySubjects(resource, READ)`
+  results so the policy tree is no longer re-walked for the READ subject classification on every event
+  ([#2484](https://github.com/eclipse-ditto/ditto/pull/2484))
+
 ## [4.3.0]
 
 Bumped Ditto `appVersion` to `3.9.3`.

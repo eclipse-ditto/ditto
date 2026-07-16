@@ -1,20 +1,19 @@
 ---
 title: Release notes 3.9.4
 tags: [release_notes]
-published: false
+published: true
 keywords: release notes, announcements, changelog
-summary: "Version 3.9.4 of Eclipse Ditto, released on TBD.2026"
+summary: "Version 3.9.4 of Eclipse Ditto, released on 16.07.2026"
 permalink: release_notes_394.html
 ---
 
-<!-- DRAFT — not yet released. Set `published: true` and fill in the release date before publishing. -->
-
 This is a bugfix release, no new user-facing API features since [3.9.3](release_notes_393.html) were added.
-It does add an opt-in, cluster-internal performance optimization for the pub/sub fan-out (disabled by default).
+It focuses on performance and observability improvements, and adds an opt-in, cluster-internal performance
+optimization for the pub/sub fan-out (disabled by default).
 
 ## Changelog
 
-Compared to the latest release [3.9.3](release_notes_393.html), the following changes and bugfixes were added.
+Compared to the latest release [3.9.3](release_notes_393.html), the following changes were added.
 
 ### Changes
 
@@ -23,7 +22,7 @@ This is a complete list of the
 
 #### Pre-serialize pub/sub signals once across fan-out
 
-PR [#TBD](https://github.com/eclipse-ditto/ditto/pull/TBD) reduces the CPU spent on cluster-internal
+PR [#2485](https://github.com/eclipse-ditto/ditto/pull/2485) reduces the CPU spent on cluster-internal
 serialization of published signals. When a single published signal fans out to several subscriber nodes,
 Pekko Artery serializes the (identical) signal payload once **per remote destination**. With this optimization
 enabled, the publishing node serializes the payload **exactly once** and reuses those bytes across all remote
@@ -38,20 +37,54 @@ for all; the subscriber-only services (`gateway`, `thingssearch`) do not read it
 the **whole cluster** has been upgraded — see
 [Activating pre-serialized pub/sub fan-out safely](#activating-pre-serialized-pubsub-fan-out-safely) below.
 
+#### Memoize per-resource READ subject classification in the policy enforcer
+
+PR [#2484](https://github.com/eclipse-ditto/ditto/pull/2484) improves policy-enforcement performance on the
+`things` service. After the 3.9.3 `PolicyEnforcer.forNamespace(...)` caching fix removed the per-signal enforcer
+tree rebuild, profiling showed the per-event **read-subject classification** became the dominant enforcement CPU
+consumer: computing the READ-granted subjects for a signal (used for pub/sub routing) re-walked the full policy
+tree on **every** emitted `ThingEvent`. Since `classifySubjects(resource, READ)` is a pure function of the
+resolved policy grants and the resource path — independent of the Thing's field values — the result is now
+memoized per resource on the `PolicyEnforcer` instance and reused across value-only telemetry updates that touch
+the same paths. The memo shares the same lifetime and invalidation as the existing namespace-filtered enforcer
+cache (the enforcer instance is replaced wholesale on any grant change), so results can never go stale. A JMH
+benchmark shows the repeated-resource (production-shaped) path is roughly 80× faster with no regression on the
+no-repeat worst case. The per-enforcer memo is bounded and operator-tunable via
+`ditto.policies-enforcer-cache.read-classification-cache-max-size` (default `1000`), exposed through the Helm
+values and the policies, things and connectivity deployment templates.
+
+#### Categorize cluster (de)serialization metrics and drop per-op allocation in metric wrappers
+
+PR [#2486](https://github.com/eclipse-ditto/ditto/pull/2486) makes cluster (de)serialization traffic easier to
+attribute and lowers the cost of the metric increment itself. The `<serializer>_serializer_messages` counter
+previously only carried a `direction` (`in`/`out`) tag, making it impossible to tell whether a spike came from
+event fan-out, inbound commands, response traffic or cross-node policy `sudo` fetches. Two additive, low-cardinality
+tags are now derived at the (de)serialization site: `category` (`event`, `command`, `response`, `acknowledgement`,
+`announcement`, `error`, `other`) and `resource_type` (`thing`, `policy`, `connectivity`, `message`, `thing-search`
+and their `*-sudo` variants). Existing dashboards keep working since `direction` is unchanged. In addition, the
+Kamon metric wrappers (`KamonCounter`, `KamonGauge`, `KamonHistogram`, `PreparedKamonTimer`) no longer re-resolve
+the underlying Kamon instrument and re-allocate a `TagSet` on every operation; the resolved instrument is now
+memoized, making the hot path allocation-free (~10× faster in a micro-benchmark) and reducing GC pressure across
+all Ditto metrics.
+
 #### Dependency updates
 
-PR [#TBD](https://github.com/eclipse-ditto/ditto/pull/TBD) updates several third-party dependencies to their
-latest compatible versions.
-
-### Bugfixes
-
-<!-- TODO: list 3.9.4 bugfixes here as they land. -->
+PR [#2488](https://github.com/eclipse-ditto/ditto/pull/2488) bumps `ch.qos.logback:logback-core` from `1.5.34` to
+`1.5.35`, which hardens the `<if>` condition handling against a Janino evaluation bypass
+([CVE-2026-13006](https://www.cve.org/cverecord?id=CVE-2026-13006)).
 
 ### Helm Chart
 
-The accompanying Helm chart was released as version `4.3.2`. It exposes the new cluster-wide
-`global.pubsub.preSerializeFanoutEnabled` option (default `false`), applied to the publishing services
-(`things`, `policies`, `connectivity`).
+The accompanying Helm chart was released as version `4.4.0`. It exposes two new options:
+
+* the cluster-wide `global.pubsub.preSerializeFanoutEnabled` (default `false`), applied to the publishing
+  services `things`, `policies` and `connectivity` (PR [#2485](https://github.com/eclipse-ditto/ditto/pull/2485)), and
+* `readClassificationMaxSize` (default `1000`) on the policy-enforcer cache of the `policies`, `things` and
+  `connectivity` services, bounding the per-enforcer memo of READ subject classifications
+  (PR [#2484](https://github.com/eclipse-ditto/ditto/pull/2484)).
+
+The full, itemized list of chart changes is in the chart's own
+[`CHANGELOG.md`](https://github.com/eclipse-ditto/ditto/blob/master/deployment/helm/ditto/CHANGELOG.md).
 
 ## Migration notes
 
