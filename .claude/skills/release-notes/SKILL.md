@@ -37,13 +37,38 @@ For each PR, extract:
 - Related issue (look for "Fixes #", "Closes #", "Resolves #" in PR body)
 - Labels (to categorize as feature, bugfix, enhancement, etc.)
 
+#### Helm chart items
+
+The Helm chart is versioned **independently** of the Ditto application (see
+`deployment/helm/ditto/Chart.yaml` → `version` vs. `appVersion`). Helm-chart work is tracked with a
+`helm-chart-<chart-version>` label (e.g. `helm-chart-4.3.0`) — **not** the application milestone. So it
+will not be picked up by the milestone queries above.
+
+1. Determine the current chart version from `deployment/helm/ditto/Chart.yaml` (`version:`). If it is
+   ambiguous which chart version corresponds to this release, ask the user.
+2. Gather the helm-chart-labeled items:
+
+```bash
+CHART_VERSION=<chart-version>   # e.g. 4.3.0
+
+# Helm-chart-labeled PRs
+gh pr list --repo eclipse-ditto/ditto --search "label:helm-chart-$CHART_VERSION" --state merged --limit 200 --json number,title,body,labels,url
+
+# Helm-chart-labeled issues
+gh issue list --repo eclipse-ditto/ditto --search "label:helm-chart-$CHART_VERSION" --state closed --limit 200 --json number,title,body,labels,url
+```
+
+These items feed both the `### Helm Chart` section of the release notes **and** the chart's own
+`CHANGELOG.md` (see Step 6).
+
 ### Step 3: Categorize Items
 
 Group PRs/issues into categories based on labels and content:
 - **New features**: PRs with `enhancement` label or significant new functionality
 - **Changes**: Non-functional improvements (performance, refactoring, dependency updates)
 - **Bugfixes**: PRs with `bug` label or fixing issues
-- **Helm Chart**: Changes to the Helm chart configuration
+- **Helm Chart**: Changes to the Helm chart configuration (milestone PRs touching `deployment/helm/`
+  and any `helm-chart-<chart-version>`-labeled items gathered above)
 
 ### Step 4: Generate Release Notes
 
@@ -70,6 +95,26 @@ For example, for version 3.8.11, add:
             url: /release_notes_3811.html
             output: web
 ```
+
+### Step 6: Update the Helm Chart CHANGELOG
+
+The Helm chart maintains its **own** changelog at `deployment/helm/ditto/CHANGELOG.md`, versioned
+independently of the Ditto application (see the header of that file). Every release that ships chart
+changes must update it.
+
+1. Read `deployment/helm/ditto/CHANGELOG.md` and `deployment/helm/ditto/Chart.yaml` (`version` + `appVersion`).
+2. Move the accumulated `## [Unreleased]` notes into a new `## [<chart-version>]` section (leaving a fresh
+   empty `## [Unreleased]` above it), or create the `## [<chart-version>]` section if the entries are not
+   yet recorded.
+3. Start the section with a line noting the bumped app version, e.g. `Bumped Ditto \`appVersion\` to \`<VERSION>\`.`
+4. Group entries under the standard [Keep a Changelog](https://keepachangelog.com/) headings —
+   `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security` — using only the ones that apply.
+5. Include the `helm-chart-<chart-version>`-labeled issues/PRs gathered in Step 2, plus any milestone PRs
+   that touched `deployment/helm/`. Link each with `([#<PR>](https://github.com/eclipse-ditto/ditto/pull/<PR>))`.
+6. Follow the existing formatting in the file (see the most recent version section as a reference).
+
+Note: bumping the chart itself (`Chart.yaml` → `version`) is part of the chart-change workflow and may
+already be done; verify the version in the CHANGELOG heading matches `Chart.yaml`.
 
 ## Release Notes Format
 
@@ -153,7 +198,8 @@ PR [#<PR>](https://github.com/eclipse-ditto/ditto/pull/<PR>) <description of wha
 ### Helm Chart
 
 The Helm chart was enhanced with the configuration options of the added features of this release.
-[Add any specific Helm-related notes if applicable]
+[Add any specific Helm-related notes if applicable, summarizing the `helm-chart-<chart-version>`-labeled
+items. The full, itemized list lives in the chart's own `deployment/helm/ditto/CHANGELOG.md` (see Step 6).]
 
 
 ## Migration notes
@@ -225,3 +271,4 @@ After generating the release notes:
 3. Ask for the release date if not provided
 4. Create the file in the documentation directory
 5. Add the release to the sidebar in `documentation/src/main/resources/_data/sidebars/ditto_sidebar.yml` as the first entry under "Release Notes"
+6. Update the Helm chart changelog at `deployment/helm/ditto/CHANGELOG.md` (see Step 6), including all `helm-chart-<chart-version>`-labeled issues/PRs
