@@ -11,6 +11,8 @@
 # SPDX-License-Identifier: EPL-2.0
 #
 
+require 'set'
+
 # Jekyll plugin that generates clean .html.md versions of documentation pages
 # for LLM consumption, supporting the llms.txt specification (https://llmstxt.org).
 #
@@ -107,6 +109,100 @@ module LlmsMarkdown
   end
 end
 
+# Validates that llms.txt - which is checked in fully-formed (absolute
+# .html.md URLs and descriptions already baked in, so it's directly useful to
+# an LLM reading the repo source, not only the deployed site) - hasn't
+# drifted from the pages it links to. Fails the build rather than silently
+# shipping a stale link or description.
+module LlmsTxtIndex
+  RELEASE_NOTES_PREFIX = 'release_notes_'
+  DOC_PAGES_PATH = 'pages/ditto/'
+
+  def self.doc_link_regex(site)
+    %r{^- \[[^\]]+\]\(#{Regexp.escape(site.config['url'].to_s)}/([\w.\-]+)\.html\.md\)}
+  end
+
+  # Slugs (without ".html") that llms.txt currently links to.
+  def self.listed_slugs(site, raw)
+    regex = doc_link_regex(site)
+    raw.each_line.filter_map { |line| regex.match(line)&.[](1) }.to_set
+  end
+
+  # Finds the release_notes_* page with the highest X.Y.Z title. Filenames are
+  # not safely sortable (the numbering scheme changed once patch versions hit
+  # two digits, e.g. release_notes_394.md == 3.9.4 but release_notes_3812.md ==
+  # 3.8.12), so this parses the title instead, which is consistently dotted.
+  def self.resolve_latest_release_notes(site)
+    versioned = site.pages.filter_map do |page|
+      permalink = page.data['permalink']
+      next unless permalink.to_s.start_with?(RELEASE_NOTES_PREFIX)
+
+      match = /Release notes (\d+)\.(\d+)\.(\d+)\b/.match(page.data['title'].to_s)
+      next unless match
+
+      [[match[1].to_i, match[2].to_i, match[3].to_i], page]
+    end
+    return nil if versioned.empty?
+
+    versioned.max_by { |version, _page| version }.last
+  end
+
+  def self.find_by_permalink(site, permalink)
+    site.pages.find { |page| page.data['permalink'] == permalink }
+  end
+
+  # Checks every internal doc link in llms.txt against the live site: the
+  # linked page must still exist, and a release-notes link must point at the
+  # actual latest release. Returns a list of human-readable problems; empty
+  # means llms.txt is accurate as checked in.
+  def self.validate(site, raw)
+    errors = []
+    doc_link = doc_link_regex(site)
+    latest_release_notes = resolve_latest_release_notes(site)
+
+    raw.each_line do |line|
+      match = doc_link.match(line)
+      next unless match
+
+      slug = match[1]
+      permalink = "#{slug}.html"
+
+      if find_by_permalink(site, permalink).nil?
+        errors << "llms.txt links to '#{permalink}', but no page has that permalink (dead link)"
+        next
+      end
+
+      next unless slug.start_with?(RELEASE_NOTES_PREFIX)
+
+      if latest_release_notes.nil?
+        errors << "llms.txt links to '#{permalink}' as the release notes entry, but no release_notes_* page has a parseable X.Y.Z title"
+      elsif latest_release_notes.data['permalink'] != permalink
+        errors << "llms.txt's release notes link points to '#{permalink}', but the latest release is " \
+                   "'#{latest_release_notes.data['permalink']}' (#{latest_release_notes.data['title']}) - update the link"
+      end
+    end
+
+    errors
+  end
+
+  # Doc pages that exist but aren't linked from llms.txt at all. This is
+  # advisory only (which pages deserve a spot in the curated index is an
+  # editorial call, not a correctness bug) - historical release_notes_* pages
+  # are excluded since only the current latest is ever meant to be linked.
+  def self.unlisted_pages(site, raw)
+    listed = listed_slugs(site, raw)
+
+    site.pages.select do |page|
+      permalink = page.data['permalink']
+      permalink && permalink.end_with?('.html') &&
+        page.ext == '.md' &&
+        page.relative_path.start_with?(DOC_PAGES_PATH) &&
+        !permalink.start_with?(RELEASE_NOTES_PREFIX) &&
+        !listed.include?(permalink.delete_suffix('.html'))
+    end.map { |page| page.data['permalink'] }.sort
+  end
+end
+
 Jekyll::Hooks.register :site, :post_write do |site|
   count = 0
 
@@ -135,4 +231,22 @@ Jekyll::Hooks.register :site, :post_write do |site|
   end
 
   Jekyll.logger.info "LlmsMarkdown:", "Generated #{count} .html.md files for LLM consumption"
+
+  llms_txt_source = File.join(site.source, 'llms.txt')
+  if File.exist?(llms_txt_source)
+    raw_llms_txt = File.read(llms_txt_source, encoding: 'utf-8')
+    errors = LlmsTxtIndex.validate(site, raw_llms_txt)
+
+    unless errors.empty?
+      Jekyll.logger.error "LlmsTxt:", "#{errors.size} problem(s) found - llms.txt is out of sync with the site:"
+      errors.each { |error| Jekyll.logger.error "LlmsTxt:", "  #{error}" }
+      raise "llms.txt is out of sync with the site: #{errors.size} problem(s). See log above."
+    end
+
+    unlisted = LlmsTxtIndex.unlisted_pages(site, raw_llms_txt)
+    unless unlisted.empty?
+      Jekyll.logger.warn "LlmsTxt:", "#{unlisted.size} doc page(s) not listed in llms.txt (informational, not a failure):"
+      unlisted.each { |permalink| Jekyll.logger.warn "LlmsTxt:", "  #{permalink}" }
+    end
+  end
 end
