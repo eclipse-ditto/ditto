@@ -325,6 +325,29 @@ _org.eclipse.ditto/device-123/things/live/messages/hello.world_ these placeholde
 | `topic:subject`        | _hello.world_                                                   |
 | `topic:action-subject` | _hello.world_                                                   |
 
+### Scope: Connection target topic filter
+
+In a connection's [target topic filter](basic-connections.html#filtering-with-placeholder-functions),
+a placeholder function pipeline (most commonly [`fn:filter()`](#function-library)) may be used
+instead of, or combined with, an [RQL expression](basic-rql.html). As with
+[RQL expressions when filtering for Ditto Protocol messages](#scope-rql-expressions-when-filtering-for-ditto-protocol-messages),
+such a pipeline is a bare expression and placeholders must not be surrounded by curly braces, e.g.
+`fn:filter(header:ditto-originator,'ne','some:subject')`. The pipeline is evaluated per outbound
+signal, before enrichment, so the following placeholders are available in general:
+* [entity placeholder](#entity-placeholder)
+* [thing placeholder](#thing-placeholder)
+* [thing-json placeholder](#thing-json-placeholder)
+* [feature placeholder](#feature-placeholder)
+* [header placeholder](#header-placeholder)
+* [request placeholder](#request-placeholder)
+* [resource placeholder](#resource-placeholder)
+* [topic placeholder](#topic-placeholder)
+* [time placeholder](#time-placeholder)
+* [connection placeholder](#connection-placeholder)
+
+Unlike the [Connections](#scope-connections) scope used e.g. for target addresses, these
+placeholders never see fields declared via `extraFields` enrichment, and no
+[policy placeholder](#policy-placeholder) is available.
 
 ## Function expressions
 

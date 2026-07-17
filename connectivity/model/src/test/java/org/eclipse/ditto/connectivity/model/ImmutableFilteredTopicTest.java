@@ -247,4 +247,22 @@ public final class ImmutableFilteredTopicTest {
         assertThat(actual).isEqualTo(filteredTopic);
     }
 
+    @Test
+    public void fromStringParsesAsExpectedWithNamespacesExtraFieldsAndCombinedRqlAndPipelineFilter() {
+        final String combinedFilter =
+                "gt(attributes/counter,42)|fn:filter(header:ditto-originator,'ne','some:subject')";
+        final ImmutableFilteredTopic filteredTopic = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
+                .withNamespaces(Lists.list("ns1", "ns2"))
+                .withExtraFields(ThingFieldSelector.fromString("attributes"))
+                .withFilter(combinedFilter)
+                .build();
+        final String filteredTopicString = filteredTopic.toString();
+
+        final ImmutableFilteredTopic actual = ImmutableFilteredTopic.fromString(filteredTopicString);
+
+        assertThat(actual.getFilter()).contains(combinedFilter);
+        assertThat(actual.toString()).isEqualTo(filteredTopicString);
+        assertThat(actual).isEqualTo(filteredTopic);
+    }
+
 }

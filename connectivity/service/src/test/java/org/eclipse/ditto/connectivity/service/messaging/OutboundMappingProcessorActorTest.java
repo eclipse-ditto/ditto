@@ -726,6 +726,229 @@ public final class OutboundMappingProcessorActorTest {
         }};
     }
 
+    // --- target topic pipeline (fn:) filter tests (Task 4) ---
+
+    @Test
+    public void mixedTopicsTargetPurePipelineNonMatchDropsEntireTarget() {
+        new TestKit(actorSystemResource.getActorSystem()) {{
+            // Target with an RQL+extraFields topic that cannot match this signal (topic4 requires
+            // resource:path == /features/feature4), plus a pure-pipeline topic on "ditto-originator".
+            // Neither topic matches, so the whole target is dropped.
+            final FilteredTopic pipelineTopic = ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                    .withFilter("fn:filter(header:ditto-originator,'ne','x')")
+                    .build();
+            final List<Target> targets = List.of(createTestTargetMultiTopics(Set.of(topic4(), pipelineTopic)));
+            final Connection connection = CONNECTION.toBuilder().setTargets(targets).build();
+            final ActorRef underTest = getTestActorRef(connection);
+
+            final OutboundSignal outboundSignal = withOriginator(outboundFeatureTwinEvent(THING,
+                    Feature.newBuilder().withId("unrelatedFeature").build(),
+                    List.of("source1", "multipleExtraFields"), targets, getRef()), "x");
+
+            underTest.tell(outboundSignal, getRef());
+            partialRetrieveAndResponse();
+
+            // THEN: sender receives a weak acknowledgement for the dropped target - no signal is published
+            final Acknowledgements acks = expectMsgClass(Acknowledgements.class);
+            final List<String> ackLabels = acks.getSuccessfulAcknowledgements()
+                    .stream()
+                    .map(ack -> ack.getLabel().toString())
+                    .toList();
+            assertThat(ackLabels).containsExactlyInAnyOrder("source1", "multipleExtraFields");
+            acks.forEach(ack -> assertThat(ack.isWeak()).describedAs("Expect weak ack, got: " + ack).isTrue());
+        }};
+    }
+
+    @Test
+    public void mixedTopicsTargetPurePipelineMatchPublishesWithoutExtraFieldsAndHeadersUnchanged() {
+        new TestKit(actorSystemResource.getActorSystem()) {{
+            // Same mixed target as above, but the pipeline now matches: the target must publish via the
+            // pure-pipeline topic (no thing needed) without any extra fields, and without leaking anything
+            // (in particular not the internal pipeline seed, see TargetTopicFilter#PIPELINE_SEED) onto the
+            // published signal's headers. A second, unfiltered "control" target on the very same signal
+            // establishes what the mapping/dispatch pipeline normally does to headers (e.g. stripping
+            // internal-only ones, adding "content-type") so the comparison isolates exactly what the pipeline
+            // *filter evaluation* itself changed, rather than unrelated header bookkeeping.
+            final FilteredTopic pipelineTopic = ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                    .withFilter("fn:filter(header:ditto-originator,'eq','x')")
+                    .build();
+            final Target pipelineTarget = createTestTargetMultiTopics(Set.of(topic4(), pipelineTopic));
+            final Target controlTarget = ConnectivityModelFactory.newTargetBuilder(pipelineTarget)
+                    .address("pipelineControlTarget")
+                    .topics(Set.of(topic0()))
+                    .issuedAcknowledgementLabel(AcknowledgementLabel.of("pipelineControl"))
+                    .build();
+            final List<Target> targets = List.of(pipelineTarget, controlTarget);
+            final Connection connection = CONNECTION.toBuilder().setTargets(targets).build();
+            final ActorRef underTest = getTestActorRef(connection);
+
+            final OutboundSignal outboundSignal = withOriginator(outboundFeatureTwinEvent(THING,
+                    Feature.newBuilder().withId("unrelatedFeature").build(),
+                    List.of("source1", "multipleExtraFields", "pipelineControl"), targets, getRef()), "x");
+
+            underTest.tell(outboundSignal, getRef());
+            partialRetrieveAndResponse();
+
+            final BaseClientActor.PublishMappedMessage publish =
+                    clientActorProbe.expectMsgClass(BaseClientActor.PublishMappedMessage.class);
+
+            assertThat(publish.getOutboundSignal().getMappedOutboundSignals()).hasSize(2);
+            assertThat(publish.getOutboundSignal().first().getTargets()).contains(pipelineTarget);
+
+            // Verify no extra fields: the winning topic is the pure-pipeline one, which carries none
+            assertThat(publish.getOutboundSignal().first().getAdaptable().getPayload().getExtra())
+                    .as("Outbound signal must not contain any extra field: the pure-pipeline topic won selection.")
+                    .isEmpty();
+
+            // Verify no leak: the "ditto-originator" header survives untouched, and the header key set is
+            // identical to the control target's - i.e. the pipeline evaluation (in particular the internal
+            // boolean seed) added/removed nothing beyond what plain unfiltered mapping already does.
+            final DittoHeaders pipelineHeaders = publish.getOutboundSignal().first().getAdaptable().getDittoHeaders();
+            final DittoHeaders controlHeaders =
+                    publish.getOutboundSignal().getMappedOutboundSignals().get(1).getAdaptable().getDittoHeaders();
+            assertThat(pipelineHeaders.get("ditto-originator")).isEqualTo("x");
+            assertThat(pipelineHeaders.keySet())
+                    .as("Pipeline evaluation must not add/remove any header compared to an unfiltered publish of " +
+                            "the same signal")
+                    .isEqualTo(controlHeaders.keySet());
+        }};
+    }
+
+    @Test
+    public void mixedTopicsTargetEnrichmentSucceedsPipelineMatchesPublishesWithRqlTopicExtraFields() {
+        new TestKit(actorSystemResource.getActorSystem()) {{
+            // T-C1 scenario 1: a single target carries both an RQL+extraFields topic (topic4) and a
+            // pure-pipeline topic. Enrichment succeeds and both independently match; the extraFields-first
+            // sort (see enrichAndFilterSignal) must make topic4 win the extraFields selection.
+            final FilteredTopic pipelineTopic = ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                    .withFilter("fn:filter(header:ditto-originator,'eq','x')")
+                    .build();
+            final List<Target> targets = List.of(createTestTargetMultiTopics(Set.of(topic4(), pipelineTopic)));
+            final Connection connection = CONNECTION.toBuilder().setTargets(targets).build();
+            final ActorRef underTest = getTestActorRef(connection);
+
+            final OutboundSignal outboundSignal = withOriginator(outboundFeatureTwinEvent(THING,
+                    Feature.newBuilder().withId("feature4")
+                            .build().setProperties(FeatureProperties.newBuilder().set("size", "large").build()),
+                    List.of("multipleExtraFields"), targets, getRef()), "x");
+
+            underTest.tell(outboundSignal, getRef());
+            partialRetrieveAndResponse();
+
+            final BaseClientActor.PublishMappedMessage publish =
+                    clientActorProbe.expectMsgClass(BaseClientActor.PublishMappedMessage.class);
+
+            assertThat(publish.getOutboundSignal().first().getTargets()).contains(targets.getFirst());
+            assertThat(publish.getOutboundSignal().first().getAdaptable().getPayload().getExtra())
+                    .isPresent()
+                    .hasValueSatisfying(extra ->
+                            assertThat(extra.getValue(JsonPointer.of("definition")))
+                                    .as("Outbound signal does not contain the requested extra fields from topic4.")
+                                    .isPresent());
+        }};
+    }
+
+    @Test
+    public void mixedTopicsTargetEnrichmentSucceedsPipelineNonMatchRqlMatchesPublishesWithExtraFields() {
+        new TestKit(actorSystemResource.getActorSystem()) {{
+            // T-C1 scenario 2: same mixed target, but the pipeline does NOT match this time (originator "x" !=
+            // required "y"). topic4's RQL matches independently on feature4, so the target must still publish
+            // with topic4's extraFields - a non-matching pipeline topic must not sink the whole target nor win
+            // the extraFields selection (it must return empty from applyFilter).
+            final FilteredTopic pipelineTopic = ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                    .withFilter("fn:filter(header:ditto-originator,'eq','y')")
+                    .build();
+            final List<Target> targets = List.of(createTestTargetMultiTopics(Set.of(topic4(), pipelineTopic)));
+            final Connection connection = CONNECTION.toBuilder().setTargets(targets).build();
+            final ActorRef underTest = getTestActorRef(connection);
+
+            final OutboundSignal outboundSignal = withOriginator(outboundFeatureTwinEvent(THING,
+                    Feature.newBuilder().withId("feature4")
+                            .build().setProperties(FeatureProperties.newBuilder().set("size", "large").build()),
+                    List.of("multipleExtraFields"), targets, getRef()), "x");
+
+            underTest.tell(outboundSignal, getRef());
+            partialRetrieveAndResponse();
+
+            final BaseClientActor.PublishMappedMessage publish =
+                    clientActorProbe.expectMsgClass(BaseClientActor.PublishMappedMessage.class);
+
+            assertThat(publish.getOutboundSignal().first().getTargets()).contains(targets.getFirst());
+            assertThat(publish.getOutboundSignal().first().getAdaptable().getPayload().getExtra())
+                    .isPresent()
+                    .hasValueSatisfying(extra ->
+                            assertThat(extra.getValue(JsonPointer.of("definition")))
+                                    .as("RQL topic must win and enrich the outbound signal even though the " +
+                                            "sibling pipeline topic did not match.")
+                                    .isPresent());
+        }};
+    }
+
+    @Test
+    public void combinedRqlAndPipelineFilterEvaluatesRqlHeadAgainstEnrichedThing() {
+        new TestKit(actorSystemResource.getActorSystem()) {{
+            // A single topic with a combined "<rql>|fn:..." filter (AND semantics) and extraFields. The RQL
+            // head references "features/featureA", which is absent from the signal-derived (raw) thing and
+            // only appears once partialRetrieveAndResponse's extra data is merged in - so a match proves the
+            // RQL head (fed via TargetTopicFilter.ParsedTopicFilter#getRqlExpression, not the raw combined
+            // filter string) is evaluated against the enriched thing.
+            final FilteredTopic combinedTopic = ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                    .withFilter("exists(features/featureA)|fn:filter(header:ditto-originator,'eq','x')")
+                    .withExtraFields(ThingFieldSelector.fromString("definition"))
+                    .build();
+            final List<Target> targets = List.of(createTestTargetMultiTopics(Set.of(combinedTopic)));
+            final Connection connection = CONNECTION.toBuilder().setTargets(targets).build();
+            final ActorRef underTest = getTestActorRef(connection);
+
+            final OutboundSignal outboundSignal = withOriginator(outboundFeatureTwinEvent(THING,
+                    Feature.newBuilder().withId("unrelatedFeature").build(),
+                    List.of("multipleExtraFields"), targets, getRef()), "x");
+
+            underTest.tell(outboundSignal, getRef());
+            partialRetrieveAndResponse();
+
+            final BaseClientActor.PublishMappedMessage publish =
+                    clientActorProbe.expectMsgClass(BaseClientActor.PublishMappedMessage.class);
+
+            assertThat(publish.getOutboundSignal().first().getTargets()).contains(targets.getFirst());
+            assertThat(publish.getOutboundSignal().first().getAdaptable().getPayload().getExtra())
+                    .isPresent()
+                    .hasValueSatisfying(extra -> assertThat(extra.getValue(JsonPointer.of("definition")))
+                            .isPresent());
+        }};
+    }
+
+    @Test
+    public void rqlExtraFieldsOnlyTargetStillDroppedWhenEnrichmentFails() {
+        new TestKit(actorSystemResource.getActorSystem()) {{
+            // Regression guard for T-C1 scenario 4: a target with only an RQL+extraFields topic (no pipeline
+            // topic) must still be dropped when signal enrichment genuinely fails - the widened :459/:498
+            // predicate must not change this pre-existing behavior. Enrichment failure is simulated exactly
+            // like the existing eventsWithFailedEnrichmentIssueFailedAcks test: never reply to the
+            // RetrieveThing, so the underlying ask-with-retry ultimately fails. That failure is intercepted by
+            // OutboundMappingProcessorActor's own recovery path (recoverFromEnrichmentError) before
+            // enrichAndFilterSignal's topics-selection code ever runs, so it proves the observable
+            // "still dropped" contract end-to-end.
+            final List<Target> targets = List.of(createTestTargetMultiTopics(Set.of(topic4())));
+            final Connection connection = CONNECTION.toBuilder().setTargets(targets).build();
+            final ActorRef underTest = getTestActorRef(connection);
+
+            final OutboundSignal outboundSignal = outboundFeatureTwinEvent(THING,
+                    Feature.newBuilder().withId("feature4").build(),
+                    List.of("source1", "multipleExtraFields"), targets, getRef());
+            underTest.tell(outboundSignal, getRef());
+            proxyActorProbe.expectMsgClass(RetrieveThing.class);
+            // no reply: the retrieval ask fails/times out, simulating an enrichment failure
+
+            final Acknowledgements acks = expectMsgClass(Duration.ofSeconds(5), Acknowledgements.class);
+            final List<String> failedAckLabels = acks.getFailedAcknowledgements()
+                    .stream()
+                    .map(ack -> ack.getLabel().toString())
+                    .toList();
+            assertThat(failedAckLabels).containsExactly("multipleExtraFields");
+        }};
+    }
+
     private void partialRetrieveAndResponse() {
         // Expect enrichment request for all fields in all topics
         final RetrieveThing retrieveEnrichedThing = proxyActorProbe.expectMsgClass(RetrieveThing.class);
@@ -808,6 +1031,18 @@ public final class OutboundMappingProcessorActorTest {
                                 .channel(TopicPath.Channel.LIVE.getName())
                                 .build()),
                 outboundTwinEvent.getTargets());
+    }
+
+    /**
+     * Returns a copy of {@code outboundSignal} whose source signal carries an explicit {@code ditto-originator}
+     * header, as required by any target topic pipeline filter relying on {@code header:ditto-originator}.
+     */
+    private static OutboundSignal withOriginator(final OutboundSignal outboundSignal, final String originator) {
+        return OutboundSignalFactory.newOutboundSignal(
+                outboundSignal.getSource().setDittoHeaders(outboundSignal.getSource().getDittoHeaders().toBuilder()
+                        .putHeader("ditto-originator", originator)
+                        .build()),
+                outboundSignal.getTargets());
     }
 
     private static Connection createTestConnection() {

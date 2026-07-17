@@ -46,6 +46,7 @@ import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.mapping.MapperLimitsConfig;
+import org.eclipse.ditto.connectivity.service.messaging.TargetTopicFilter;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.SSLContextCreator;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders;
@@ -329,10 +330,14 @@ public final class ConnectionValidator {
                 final String location = String.format("Targets of connection <%s>", connection.getId());
                 throw emptyAddressesError(location, dittoHeaders);
             }
-            target.getTopics().forEach(topic -> topic.getFilter().ifPresent(filter ->
-                    // will throw an InvalidRqlExpressionException if the RQL expression was not valid:
-                    queryFilterCriteriaFactory.filterCriteria(filter, dittoHeaders)
-            ));
+            target.getTopics().forEach(topic -> topic.getFilter().ifPresent(filter -> {
+                final TargetTopicFilter.ParsedTopicFilter parsedTopicFilter = TargetTopicFilter.parse(filter);
+                parsedTopicFilter.getPipelineExpression().ifPresent(pipeline ->
+                        TargetTopicFilter.validatePipelineFilter(pipeline, dittoHeaders));
+                parsedTopicFilter.getRqlExpression().ifPresent(rql ->
+                        // will throw an InvalidRqlExpressionException if the RQL expression was not valid:
+                        queryFilterCriteriaFactory.filterCriteria(rql, dittoHeaders));
+            }));
         });
     }
 

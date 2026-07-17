@@ -293,7 +293,9 @@ You define which message types to publish via the `topics` array. You can filter
 | `_/_/connections/announcements` | &#10060; | &#10060; |
 
 Filter parameters use HTTP query parameter syntax (`?` for the first, `&` for subsequent). URL-encode
-filter values before using them:
+filter values before using them: topic filters given in this string form are URL-decoded when parsed,
+so a literal `+` (decoded to a space) or `%xx` sequence in a compared value must itself be
+URL-encoded -- this applies to RQL `like` patterns and pipeline compared values alike:
 
 ```json
 {
@@ -306,6 +308,125 @@ filter values before using them:
   "authorizationContext": ["ditto:outbound-auth-subject"]
 }
 ```
+
+If a target's `topics` array lists several topic entries, they are evaluated independently and
+combined with **OR** semantics -- a signal is published as soon as it matches *any one* listed
+topic (each with its own namespace/RQL/pipeline filter).
+
+### Filtering with placeholder functions
+
+In addition to (or instead of) an RQL expression, a target's `filter` may be a placeholder pipeline
+expression built from [placeholder functions](basic-placeholders.html#function-library), most
+commonly [`fn:filter()`](basic-placeholders.html#function-library). A pipeline expression is
+evaluated per outbound signal against that signal's headers, topic, entity, and time -- see
+[connection target topic filter placeholders](basic-placeholders.html#scope-connection-target-topic-filter)
+for the full list -- instead of against thing/event *data*. Because of that, a pipeline filter also works for topics for which an
+RQL filter cannot meaningfully match, such as `_/_/things/live/commands` (marked &#10060; for
+"RQL filter" in the table above).
+
+A pipeline expression:
+* **resolves** (produces a value) -- the target topic is **published**
+* stays **unresolved** (the filter drops the value) -- the target topic is **suppressed**
+
+The primary use case is suppressing events caused by a given subject, or caused by another
+connection. Each is a standalone filter (do **not** combine them as two separate `topics` entries --
+that would be an OR, publishing whenever *either* condition holds; see below on how to combine
+conditions with AND):
+
+```json
+{
+  "address": "<target-address>",
+  "topics": [
+    "_/_/things/twin/events?filter=fn:filter(header:ditto-originator,'ne','some:excluded-subject')"
+  ],
+  "authorizationContext": ["ditto:outbound-auth-subject"]
+}
+```
+
+* `header:ditto-originator` resolves to the first authorization subject of the request that caused
+  the signal.
+* `header:ditto-origin` resolves to the ID of the connection that originally caused the signal, e.g.
+  `filter=fn:filter(header:ditto-origin,'ne','some-other-connection-id')`.
+  Ditto already suppresses signals a connection caused itself by default; filtering on
+  `ditto-origin` is only needed to additionally exclude signals caused by *other* connections.
+
+Several `fn:` stages can be chained with `|`. Each stage only runs if the previous one resolved
+(matched), so chaining is **AND**: every stage must match for the pipeline to resolve, for example:
+
+```text
+filter=fn:filter(header:ditto-originator,'ne','some:subject')|fn:filter(header:ditto-origin,'ne','some-connection-id')
+```
+
+A pipeline can also be combined with a leading RQL expression, joined by an unquoted `|` immediately
+followed by `fn:`, again with **AND** semantics -- both the RQL part and every pipeline stage must
+match:
+
+```text
+filter=gt(attributes/counter,42)|fn:filter(header:ditto-originator,'ne','some:subject')
+```
+
+A leading `|` directly before `fn:` (i.e. an empty RQL part, as in `filter=|fn:...`) is tolerated
+and treated as a pure pipeline filter.
+
+{% include note.html content="An unquoted `|` is otherwise legal in RQL property paths (e.g.
+`eq(attributes/a|b,1)`), so a plain RQL filter that happens to contain `|` but never `fn:` is left
+untouched. If an RQL property path literally contains `|fn:`, however, it is misread as the start of
+a pipeline and validation fails loudly with a clear error -- restructure such a filter (e.g. rename
+the property or reorder the expression) to avoid the literal sequence `|fn:`. Validation only runs
+when a connection is created or modified, though: a connection persisted *before* upgrading to a
+Ditto version with pipeline filter support is only re-validated once it is modified -- at runtime,
+such a filter logs a warning plus a failure entry in the
+[connection logs](connectivity-manage-connections.html#connection-logs) and suppresses (drops) the
+topic's publication." %}
+
+#### Absent header behavior
+
+Since the pipeline evaluates per signal, a referenced header may be absent for a given signal (for
+example, `ditto-originator` is absent for signals with no authenticated causing subject, such as
+those from Ditto's own internal processing paths). The outcome then depends on the `rqlFunction`:
+
+| `rqlFunction` | Outcome when the header is absent |
+|---------------|------------------------------------|
+| `eq`          | dropped (suppressed) |
+| `ne`          | **published** |
+| `like`        | dropped, unless the pattern itself matches the empty string (e.g. `'*'`) |
+| `exists` (2-param form, e.g. `fn:filter(header:x,'exists')`) | dropped |
+
+{% include important.html content="`ne` on an absent header resolves to **published**, not
+suppressed -- this is the opposite of what `eq` does and easy to get wrong. For example,
+`fn:filter(header:ditto-originator,'ne','some:subject')` also publishes any signal that never
+carries a `ditto-originator` header at all -- because 'absent' trivially satisfies 'not equal to
+some:subject'. If only signals that actually carry the header should be affected, combine the
+pipeline with an additional `exists` stage." additionalStyle="" %}
+
+#### Restrictions
+
+* A pipeline part must always start with `fn:` -- a bare leading placeholder
+  (e.g. `header:ditto-originator|fn:filter(...)`) is **not** a valid pipeline; place the placeholder
+  as a function parameter instead, as shown above.
+* As with any placeholder pipeline, every stage after the first must itself be an `fn:` function
+  call -- a bare placeholder cannot appear mid-pipeline.
+* A filter may contain at most **10** `fn:` stages; exceeding the limit is rejected at connection
+  creation/update time.
+* An unrecognized `rqlFunction` name (i.e. anything other than `eq`, `ne`, `like`, `exists`) is
+  **not** rejected at connection creation/update time -- that stage simply never matches at runtime.
+  Double-check spelling.
+* Pipeline placeholders never see fields added via [`extraFields`
+  enrichment](#target-topics-and-enrichment) -- they only ever see the signal's own headers, topic,
+  entity, and time. Unlike RQL, a pipeline filter cannot filter on enriched, unchanged data.
+* Pipeline filters should only reference headers that are stable for the signal's lifetime (such as
+  `ditto-originator` or `ditto-origin`): internal bookkeeping headers such as `requested-acks` are
+  mutated while the signal is processed and are not reliable filter inputs.
+* As with RQL, no `filter` at all -- pipeline, RQL, or combined -- can be set on
+  `_/_/policies/announcements` or `_/_/connections/announcements` (see the table above); it is
+  silently ignored if present.
+* A filter-suppressed signal produces no user-visible log entry, the same as with a pure RQL filter
+  today. Only when evaluating a pipeline filter *fails* (rather than simply not matching) is a
+  failure entry recorded in the [connection logs](connectivity-manage-connections.html#connection-logs).
+
+{% include warning.html content="Only start using the combined `<rql>|fn:...` or pure `fn:...`
+filter syntax once **all** instances of your connectivity service run a Ditto version that supports
+it. Older instances reject the new syntax at runtime because they do not know how to parse it." %}
 
 ### Target topics and enrichment
 

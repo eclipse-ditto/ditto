@@ -36,6 +36,7 @@ import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabelInvalidException;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabelNotUniqueException;
+import org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.connectivity.model.ClientCertificateCredentials;
@@ -451,6 +452,150 @@ public class ConnectionValidatorTest {
                 .build();
         final ConnectionValidator underTest = getConnectionValidator();
         underTest.validate(connection, DittoHeaders.empty(), actorSystem);
+    }
+
+    @Test
+    public void acceptValidConnectionWithPurePipelineTargetFilter() {
+        final List<Target> targetWithValidFilter = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFilter("fn:filter(header:ditto-originator,'eq','some:subject')")
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithValidFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        underTest.validate(connection, DittoHeaders.empty(), actorSystem);
+    }
+
+    @Test
+    public void acceptValidConnectionWithCombinedRqlAndPipelineTargetFilter() {
+        final List<Target> targetWithValidFilter = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFilter(
+                                        "eq(attributes/a,1)|fn:filter(header:ditto-originator,'eq','some:subject')")
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithValidFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        underTest.validate(connection, DittoHeaders.empty(), actorSystem);
+    }
+
+    @Test
+    public void acceptValidConnectionWithLegacyTargetFilterContainingUnquotedPipeInPropertyPath() {
+        // back-compat lock: "eq(attributes/a|b,1)" is a pre-existing, valid pure RQL expression (an unquoted "|"
+        // is legal in RQL property paths) and must keep being accepted verbatim, never mis-split as a pipeline
+        // anchor merely because it contains no "fn:" substring at all.
+        final List<Target> targetWithValidFilter = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFilter("eq(attributes/a|b,1)")
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithValidFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        underTest.validate(connection, DittoHeaders.empty(), actorSystem);
+    }
+
+    @Test
+    public void rejectConnectionWithTargetFilterContainingUnknownPipelineFunction() {
+        final List<Target> targetWithInvalidFilter = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFilter("fn:unknownfn('x')")
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithInvalidFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+    }
+
+    @Test
+    public void rejectConnectionWithMalformedPureRqlTargetFilterAsInvalidRqlExpression() {
+        // locks C-I1: a malformed pure RQL filter (no "fn:" involved at all) must keep failing with
+        // InvalidRqlExpressionException straight from the RQL parser, and must NOT be misrouted into
+        // ConnectionConfigurationInvalidException (the pipeline-validation exception type).
+        final List<Target> targetWithInvalidFilter = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFilter("gt(attributes/x,)")
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithInvalidFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(InvalidRqlExpressionException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+    }
+
+    @Test
+    public void rejectConnectionWithCombinedTargetFilterContainingMalformedRqlHead() {
+        final List<Target> targetWithInvalidFilter = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFilter("gt(attributes/x,)|fn:filter(header:ditto-originator,'eq','x')")
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithInvalidFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(InvalidRqlExpressionException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+    }
+
+    @Test
+    public void rejectConnectionWithEmptyTargetFilterAsInvalidRqlExpression() {
+        // regression lock: an empty target topic filter string (e.g. a target address ending in "?filter=") must
+        // keep being rejected with InvalidRqlExpressionException, exactly as before target topic pipeline filters
+        // existed - null is the only "absent" marker on ParsedTopicFilter, so TargetTopicFilter.parse("") yields a
+        // present (if empty) RQL part, which is routed into RQL validation here rather than silently accepted.
+        final List<Target> targetWithEmptyFilter = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFilter("")
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithEmptyFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(InvalidRqlExpressionException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+    }
+
+    @Test
+    public void rejectConnectionWithWhitespaceOnlyTargetFilterAsInvalidRqlExpression() {
+        final List<Target> targetWithBlankFilter = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFilter("   ")
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithBlankFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(InvalidRqlExpressionException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
     }
 
     @Test

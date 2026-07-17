@@ -26,6 +26,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.namespaces.NamespaceReader;
 import org.eclipse.ditto.base.model.signals.Signal;
@@ -34,15 +35,19 @@ import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.FilteredTopic;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.model.signals.announcements.ConnectivityAnnouncement;
+import org.eclipse.ditto.connectivity.service.messaging.TargetTopicFilter;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.edge.service.placeholders.EntityIdPlaceholder;
 import org.eclipse.ditto.edge.service.placeholders.FeaturePlaceholder;
 import org.eclipse.ditto.edge.service.placeholders.ThingPlaceholder;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLogger;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
@@ -71,6 +76,8 @@ import org.eclipse.ditto.things.model.signals.events.ThingEventToThingConverter;
  * </ul>
  */
 public final class SignalFilter {
+
+    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(SignalFilter.class);
 
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
     private static final TopicPathPlaceholder TOPIC_PATH_PLACEHOLDER = TopicPathPlaceholder.getInstance();
@@ -104,14 +111,23 @@ public final class SignalFilter {
     /**
      * Filters the passed {@code signal} by extracting those {@link Target}s which should receive the signal.
      * Fields are ignored if they occur as "extra targets" to be evaluated later after signal enrichment.
+     * <p>
+     * A target's topic filter string may be pure RQL (unchanged, existing behavior), a pure placeholder pipeline
+     * expression ({@code fn:...}), or a combination of both joined with an unquoted {@code |}
+     * (see {@link org.eclipse.ditto.connectivity.service.messaging.TargetTopicFilter}). Where a pipeline part is
+     * present it is evaluated first, before enrichment, as a deterministic hard gate; per the runtime failure
+     * policy, a {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException} thrown while evaluating it is
+     * caught, logged as a warning plus a failure entry in the user-visible connection logs, and treated as a
+     * non-match rather than propagated. The RQL part - if present - keeps its existing (unguarded) behavior.
      *
      * @param signal the signal to filter / determine the {@link org.eclipse.ditto.connectivity.model.Target}s for
      * @return the determined Targets for the passed in {@code signal}
-     * @throws org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException if the optional filter string of a
-     * Target cannot be mapped to a valid criterion
+     * @throws org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException if the optional RQL part of a
+     * Target's filter string cannot be mapped to a valid criterion
      */
     @SuppressWarnings("squid:S3864")
     public List<Target> filter(final Signal<?> signal) {
+        final ConnectionId connectionId = connection.getId();
         return connection.getTargets().stream()
                 .filter(t -> isTargetAuthorized(t, signal)) // this is cheaper, so check this first
                 .filter(t -> isTargetSubscribedForTopicGenerally(t, signal))
@@ -119,7 +135,7 @@ public final class SignalFilter {
                 .peek(authorizedTarget -> connectionMonitorRegistry.forOutboundDispatched(connection,
                         authorizedTarget.getAddress())
                         .success(signal))
-                .filter(t -> isTargetSubscribedForTopicWithFiltering(t, signal))
+                .filter(t -> isTargetSubscribedForTopicWithFiltering(t, signal, connectionId))
                 // count authorized + filtered targets
                 .peek(filteredTarget -> connectionMonitorRegistry.forOutboundFiltered(connection,
                         filteredTarget.getAddress())
@@ -143,11 +159,12 @@ public final class SignalFilter {
                 .anyMatch(applyTopicFilter(signal));
     }
 
-    private static boolean isTargetSubscribedForTopicWithFiltering(final Target target, final Signal<?> signal) {
+    private boolean isTargetSubscribedForTopicWithFiltering(final Target target, final Signal<?> signal,
+            final ConnectionId connectionId) {
         return target.getTopics().stream()
                 .filter(applyTopicFilter(signal))
                 .filter(applyNamespaceFilter(signal))
-                .anyMatch(filteredTopic -> matchesFilterBeforeEnrichment(filteredTopic, signal));
+                .anyMatch(filteredTopic -> matchesFilterBeforeEnrichment(filteredTopic, target, signal, connectionId));
     }
 
     private static Predicate<FilteredTopic> applyTopicFilter(final Signal<?> signal) {
@@ -164,10 +181,49 @@ public final class SignalFilter {
         return NamespaceReader.fromEntityId(withEntityId.getEntityId()).orElse(null);
     }
 
-    private static boolean matchesFilterBeforeEnrichment(final FilteredTopic filteredTopic, final Signal<?> signal) {
+    private boolean matchesFilterBeforeEnrichment(final FilteredTopic filteredTopic, final Target target,
+            final Signal<?> signal, final ConnectionId connectionId) {
         final Optional<String> filterOptional = filteredTopic.getFilter();
         if (filterOptional.isPresent()) {
+            final TargetTopicFilter.ParsedTopicFilter parsed = TargetTopicFilter.parse(filterOptional.get());
+            if (parsed.getPipelineExpression().isPresent()) {
+                final String pipelineExpression = parsed.getPipelineExpression().get();
+                final boolean pipelineMatches;
+                try {
+                    // The pipeline part is a deterministic hard gate evaluated BEFORE enrichment: unlike the RQL
+                    // criteria below - which need a thing snapshot reconstructed from the event and are therefore
+                    // only meaningfully evaluable for ThingEvents - the pipeline only ever resolves placeholders
+                    // that are already fully known pre-enrichment (headers, topic path, entity id, resource, time),
+                    // for ANY filterable signal type (twin/live events, live commands, live messages alike). Its
+                    // match/non-match outcome can therefore never change once/if enrichment happens, so a
+                    // non-match can short-circuit the whole target right here, and - for a pure pipeline filter -
+                    // a match makes the target immediately eligible without ever touching the RQL path below.
+                    pipelineMatches =
+                            TargetTopicFilter.matchesPipelineFilter(pipelineExpression, signal, connectionId);
+                } catch (final DittoRuntimeException e) {
+                    LOGGER.withCorrelationId(signal)
+                            .warn("Evaluating the target topic pipeline filter <{}> of connection <{}> failed with " +
+                                            "<{}>: <{}> - treating as non-match.",
+                                    pipelineExpression, connectionId, e.getClass().getSimpleName(), e.getMessage());
+                    // an evaluation FAILURE (as opposed to an ordinary non-match, which stays silent) must be
+                    // diagnosable by the connection owner - record it in the user-visible connection logs
+                    connectionMonitorRegistry.forOutboundFiltered(connection, target.getAddress())
+                            .failure(signal,
+                                    "Evaluating the target topic pipeline filter <{0}> failed: {1} - the signal " +
+                                            "was dropped for this target topic.",
+                                    pipelineExpression, e.getMessage());
+                    return false;
+                }
+                if (!pipelineMatches) {
+                    return false;
+                }
+                if (parsed.getRqlExpression().isEmpty()) {
+                    return true;
+                }
+            }
+
             // match filter ignoring "extraFields"
+            final String filter = parsed.getRqlExpression().orElseThrow();
 
             final TopicPath topicPath = DITTO_PROTOCOL_ADAPTER.toTopicPath(signal);
             final PlaceholderResolver<TopicPath> topicPathPlaceholderResolver =
@@ -184,7 +240,7 @@ public final class SignalFilter {
                     .newPlaceholderResolver(RESOURCE_PLACEHOLDER, signal);
             final PlaceholderResolver<Object> timePlaceholderResolver = PlaceholderFactory
                     .newPlaceholderResolver(TIME_PLACEHOLDER, new Object());
-            final Criteria criteria = parseCriteria(filterOptional.get(), signal.getDittoHeaders(),
+            final Criteria criteria = parseCriteria(filter, signal.getDittoHeaders(),
                     topicPathPlaceholderResolver, entityIdPlaceholderResolver, thingPlaceholderResolver,
                     featurePlaceholderResolver, resourcePlaceholderResolver, timePlaceholderResolver);
             final Set<JsonPointer> extraFields = filteredTopic.getExtraFields()
