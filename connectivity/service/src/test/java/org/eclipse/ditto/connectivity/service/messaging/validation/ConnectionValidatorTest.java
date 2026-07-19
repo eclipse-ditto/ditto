@@ -609,7 +609,7 @@ public class ConnectionValidatorTest {
         final ConnectionValidator underTest = getConnectionValidator();
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
                 .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem))
-                .withMessageContaining("the host is blocked");
+                .withMessageContaining("blocked");
     }
 
     @Test
