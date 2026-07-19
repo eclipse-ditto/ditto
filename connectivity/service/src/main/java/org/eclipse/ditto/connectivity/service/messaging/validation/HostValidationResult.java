@@ -85,7 +85,8 @@ final class HostValidationResult {
         final var errorMessage = String.format("The configured host '%s' may not be used for the " +
                 "connection because %s", host, message);
         return ConnectionConfigurationInvalidException.newBuilder(errorMessage)
-                .description("It is a blocked or otherwise forbidden hostname which may not be used.")
+                .description("The host is blocked or resolves to a forbidden address. " +
+                        "If the host is valid, add it to the allowed hostnames configuration.")
                 .dittoHeaders(dittoHeaders)
                 .build();
     }
