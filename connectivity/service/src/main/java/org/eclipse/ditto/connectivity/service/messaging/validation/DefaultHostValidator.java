@@ -104,22 +104,28 @@ final class DefaultHostValidator implements HostValidator {
         try {
             final InetAddress[] inetAddresses = resolver.resolve(host);
             for (final InetAddress requestAddress : inetAddresses) {
+                final String resolvedAddress = requestAddress.getHostAddress();
                 if (requestAddress.isLoopbackAddress()) {
-                    return HostValidationResult.blocked(host, "the hostname resolved to a loopback address.");
+                    return HostValidationResult.blocked(host,
+                            String.format("the hostname resolved to a loopback address (%s).", resolvedAddress));
                 } else if (requestAddress.isSiteLocalAddress()) {
-                    return HostValidationResult.blocked(host, "the hostname resolved to a site local address.");
+                    return HostValidationResult.blocked(host,
+                            String.format("the hostname resolved to a site local address (%s).", resolvedAddress));
                 } else if (requestAddress.isMulticastAddress()) {
-                    return HostValidationResult.blocked(host, "the hostname resolved to a multicast address.");
+                    return HostValidationResult.blocked(host,
+                            String.format("the hostname resolved to a multicast address (%s).", resolvedAddress));
                 } else if (requestAddress.isAnyLocalAddress()) {
-                    return HostValidationResult.blocked(host, "the hostname resolved to a wildcard address.");
+                    return HostValidationResult.blocked(host,
+                            String.format("the hostname resolved to a wildcard address (%s).", resolvedAddress));
                 } else if (blockedAddresses.contains(requestAddress)) {
-                    // host is contained in the block-list --> block
-                    return HostValidationResult.blocked(host);
+                    return HostValidationResult.blocked(host,
+                            String.format("the hostname resolved to a blocked address (%s).", resolvedAddress));
                 }
                 for (final String subnet : blockedSubnets) {
                     if (SubnetValidator.matches(subnet, requestAddress.getHostAddress())) {
-                        // ip is contained in the blocked-subnet --> block
-                        return HostValidationResult.blocked(host, "the hostname resides in a blocked subnet.");
+                        return HostValidationResult.blocked(host,
+                                String.format("the hostname resolved to address %s which resides in blocked subnet %s.",
+                                        resolvedAddress, subnet));
                     }
                 }
             }
