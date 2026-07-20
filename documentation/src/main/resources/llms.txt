@@ -125,4 +125,4 @@ Eclipse Ditto provides five microservices (Things, Policies, Gateway, Connectivi
 - [Streaming Subscriptions](https://www.eclipse.dev/ditto/protocol-specification-streaming-subscription.html.md): Protocol for streaming historical events
 - [Protocol Examples](https://www.eclipse.dev/ditto/protocol-examples.html.md): Overview of Ditto Protocol message examples
 - [User Interface](https://www.eclipse.dev/ditto/user-interface.html.md): Ditto Explorer UI for managing Things and Policies
-- [Release Notes 3.8.12](https://www.eclipse.dev/ditto/release_notes_3812.html.md): Latest release notes
+- [Release Notes](https://www.eclipse.dev/ditto/release_notes_394.html.md): Latest release notes
