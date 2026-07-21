@@ -41,6 +41,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.timeseries.model.Aggregation;
 import org.eclipse.ditto.timeseries.model.FillStrategy;
+import org.eclipse.ditto.timeseries.model.SortOrder;
 import org.eclipse.ditto.timeseries.model.TimeseriesQuery;
 import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveTimeseries;
 
@@ -60,7 +61,7 @@ import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveTimeseries;
  * a thing-level {@code GET /timeseries/things/{thingId}?paths=<p1>,<p2>,...} for multi-property reads.
  * <p>
  * All query parameters that affect <em>which</em> data is returned ({@code from/to/step/agg/fill/tz/
- * percentile/limit}) live on {@link TimeseriesQuery} and therefore round-trip identically across HTTP,
+ * percentile/limit/cursor/order}) live on {@link TimeseriesQuery} and therefore round-trip identically across HTTP,
  * WebSocket and Connectivity. {@code timeFormat} is the deliberate exception: it only changes how the
  * already-computed timestamps are <em>rendered</em> (ISO vs. epoch-ms), so it is an HTTP-edge-only
  * presentation transform and is intentionally kept off the model — do not migrate it onto
@@ -82,6 +83,8 @@ public final class TimeseriesRoute extends AbstractRoute {
     private static final String PARAM_FILL = "fill";
     private static final String PARAM_TZ = "tz";
     private static final String PARAM_PERCENTILE = "percentile";
+    private static final String PARAM_CURSOR = "cursor";
+    private static final String PARAM_ORDER = "order";
     private static final String PARAM_PATHS = "paths";
     private static final String PARAM_TIME_FORMAT = "timeFormat";
 
@@ -159,11 +162,16 @@ public final class TimeseriesRoute extends AbstractRoute {
                                                 parameterOptional(PARAM_FILL, fillOpt ->
                                                         parameterOptional(PARAM_TZ, tzOpt ->
                                                                 parameterOptional(PARAM_PERCENTILE, pctOpt ->
-                                                                        parameterOptional(PARAM_TIME_FORMAT, tfOpt ->
-                                                                                dispatchQuery(ctx, dittoHeaders, thingId,
-                                                                                        paths, fromString, toString,
-                                                                                        limitOpt, stepOpt, aggOpt,
-                                                                                        fillOpt, tzOpt, pctOpt, tfOpt)
+                                                                        parameterOptional(PARAM_CURSOR, cursorOpt ->
+                                                                                parameterOptional(PARAM_ORDER, orderOpt ->
+                                                                                        parameterOptional(PARAM_TIME_FORMAT, tfOpt ->
+                                                                                                dispatchQuery(ctx, dittoHeaders, thingId,
+                                                                                                        paths, fromString, toString,
+                                                                                                        limitOpt, stepOpt, aggOpt,
+                                                                                                        fillOpt, tzOpt, pctOpt,
+                                                                                                        cursorOpt, orderOpt, tfOpt)
+                                                                                        )
+                                                                                )
                                                                         )
                                                                 )
                                                         )
@@ -179,10 +187,11 @@ public final class TimeseriesRoute extends AbstractRoute {
             final ThingId thingId, final List<JsonPointer> paths, final String fromString,
             final String toString, final Optional<String> limitOpt, final Optional<String> stepOpt,
             final Optional<String> aggOpt, final Optional<String> fillOpt, final Optional<String> tzOpt,
-            final Optional<String> pctOpt, final Optional<String> timeFormatOpt) {
+            final Optional<String> pctOpt, final Optional<String> cursorOpt,
+            final Optional<String> orderOpt, final Optional<String> timeFormatOpt) {
 
         final RetrieveTimeseries command = buildRetrieveTimeseries(thingId, paths, fromString, toString,
-                limitOpt, stepOpt, aggOpt, fillOpt, tzOpt, pctOpt, dittoHeaders);
+                limitOpt, stepOpt, aggOpt, fillOpt, tzOpt, pctOpt, cursorOpt, orderOpt, dittoHeaders);
         if (parseTimeFormatIsMillis(timeFormatOpt)) {
             // timeFormat=ms: render timestamps as epoch milliseconds. The model stays ISO-canonical;
             // the conversion is a presentation transform applied only at the HTTP edge.
@@ -203,6 +212,8 @@ public final class TimeseriesRoute extends AbstractRoute {
             final Optional<String> fillOpt,
             final Optional<String> tzOpt,
             final Optional<String> percentileOpt,
+            final Optional<String> cursorOpt,
+            final Optional<String> orderOpt,
             final DittoHeaders dittoHeaders) {
         // Anchor both relative bounds to a single "now" so e.g. from=now-1h, to=now span exactly 1h.
         final Instant now = Instant.now();
@@ -214,10 +225,17 @@ public final class TimeseriesRoute extends AbstractRoute {
         final FillStrategy fillStrategy = fillOpt.map(TimeseriesRoute::parseFillParam).orElse(null);
         final ZoneId timezone = tzOpt.map(TimeseriesRoute::parseTimezoneParam).orElse(null);
         final Double percentile = percentileOpt.map(TimeseriesRoute::parsePercentileParam).orElse(null);
-        // Semantic validation (e.g. percentile requires a value, group aggregations require a step)
-        // lives in TimeseriesQuery.of so it applies uniformly across HTTP / WebSocket / Connectivity.
+        // The cursor is an opaque blob passed straight through; its format and the "cursor only for a
+        // single-path raw read" rule are validated in TimeseriesQuery.of so every transport agrees.
+        final String cursor = cursorOpt.map(String::trim).filter(s -> !s.isEmpty()).orElse(null);
+        final SortOrder order = orderOpt.map(String::trim).filter(s -> !s.isEmpty())
+                .map(TimeseriesRoute::parseOrderParam).orElse(null);
+        // Semantic validation (e.g. percentile requires a value, group aggregations require a step,
+        // order=desc only for raw reads) lives in TimeseriesQuery.of so it applies uniformly across
+        // HTTP / WebSocket / Connectivity.
         final TimeseriesQuery query = TimeseriesQuery.of(
-                thingId, paths, from, to, step, aggregation, fillStrategy, limit, timezone, percentile);
+                thingId, paths, from, to, step, aggregation, fillStrategy, limit, timezone, percentile,
+                cursor, order);
         return RetrieveTimeseries.of(query, dittoHeaders);
     }
 
@@ -288,6 +306,11 @@ public final class TimeseriesRoute extends AbstractRoute {
             throw invalidParam(PARAM_TZ, value,
                     "Expected an IANA time-zone ID, e.g. \"Europe/Berlin\" or \"UTC\".");
         }
+    }
+
+    private static SortOrder parseOrderParam(final String value) {
+        return SortOrder.forName(value.trim()).orElseThrow(() -> invalidParam(PARAM_ORDER, value,
+                "Expected one of: asc, desc."));
     }
 
     private static Double parsePercentileParam(final String value) {

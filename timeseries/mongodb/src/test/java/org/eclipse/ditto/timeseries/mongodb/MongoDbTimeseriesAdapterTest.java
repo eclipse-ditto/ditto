@@ -370,7 +370,8 @@ public final class MongoDbTimeseriesAdapterTest {
 
         adapter.query(query).toCompletableFuture().join();
 
-        verify(finder).limit(5);
+        // Page size is the caller's limit; one extra row is fetched to detect a further page.
+        verify(finder).limit(6);
     }
 
     @Test
@@ -381,9 +382,9 @@ public final class MongoDbTimeseriesAdapterTest {
 
         adapter.query(buildQuery()).toCompletableFuture().join();
 
-        // No caller limit -> the configured safety ceiling is applied so an over-broad range
-        // cannot exhaust the heap.
-        verify(finder).limit(DefaultMongoDbTimeseriesAdapterConfig.DEFAULT_MAX_QUERY_RESULT_SIZE);
+        // No caller limit -> the configured safety ceiling is the page size so an over-broad range
+        // cannot exhaust the heap; one extra row is fetched to detect a further page.
+        verify(finder).limit(DefaultMongoDbTimeseriesAdapterConfig.DEFAULT_MAX_QUERY_RESULT_SIZE + 1);
     }
 
     @Test
@@ -456,6 +457,81 @@ public final class MongoDbTimeseriesAdapterTest {
                 adapter.query(buildQuery()).toCompletableFuture().join();
 
         assertThat(results.get(0).getMeta().getDataType()).isEqualTo("string");
+    }
+
+    // --- Cursor pagination (raw reads) ---
+
+    @Test
+    public void rawReadEmitsNextCursorWhenMoreDataThanLimit() {
+        // Three points match but the page size is two: the adapter fetches limit+1, trims to the
+        // page, and returns a cursor pointing just past the last returned point.
+        final FindPublisher<org.bson.Document> finder = stubFindReturning(mongoCollection,
+                docFor(Instant.parse("2026-01-14T10:00:00Z"), JsonValue.of(1.0)),
+                docFor(Instant.parse("2026-01-14T10:01:00Z"), JsonValue.of(2.0)),
+                docFor(Instant.parse("2026-01-14T10:02:00Z"), JsonValue.of(3.0)));
+        final MongoDbTimeseriesAdapter adapter = newInitialisedAdapter();
+
+        final List<org.eclipse.ditto.timeseries.model.TimeseriesQueryResult> results =
+                adapter.query(limitedQuery(2)).toCompletableFuture().join();
+
+        assertThat(results.get(0).getData()).hasSize(2);
+        assertThat(results.get(0).getMeta().getHasMore()).contains(true);
+        // Fetches one extra row (page size + 1) to detect the further page.
+        verify(finder).limit(3);
+        final String nextCursor = results.get(0).getMeta().getNextCursor().orElseThrow();
+        final org.eclipse.ditto.timeseries.model.TimeseriesCursor decoded =
+                org.eclipse.ditto.timeseries.model.TimeseriesCursor.decode(nextCursor);
+        assertThat(decoded.getTimestamp()).isEqualTo(Instant.parse("2026-01-14T10:01:00Z"));
+    }
+
+    @Test
+    public void rawReadOmitsNextCursorOnLastPage() {
+        // Fewer points than the page size: no further page, so no cursor.
+        stubFindReturning(mongoCollection,
+                docFor(Instant.parse("2026-01-14T10:00:00Z"), JsonValue.of(1.0)),
+                docFor(Instant.parse("2026-01-14T10:01:00Z"), JsonValue.of(2.0)));
+        final MongoDbTimeseriesAdapter adapter = newInitialisedAdapter();
+
+        final List<org.eclipse.ditto.timeseries.model.TimeseriesQueryResult> results =
+                adapter.query(limitedQuery(2)).toCompletableFuture().join();
+
+        assertThat(results.get(0).getData()).hasSize(2);
+        assertThat(results.get(0).getMeta().getNextCursor()).isEmpty();
+        assertThat(results.get(0).getMeta().getHasMore()).contains(false);
+    }
+
+    @Test
+    public void rawReadDescendingOrderReturnsDataNewestFirst() {
+        // The mock returns docs in the order given; with order=desc the adapter requests a descending
+        // sort from Mongo, so this exercises the desc sort + (empty) keyset path end-to-end.
+        stubFindReturning(mongoCollection,
+                docFor(Instant.parse("2026-01-14T10:02:00Z"), JsonValue.of(3.0)),
+                docFor(Instant.parse("2026-01-14T10:01:00Z"), JsonValue.of(2.0)),
+                docFor(Instant.parse("2026-01-14T10:00:00Z"), JsonValue.of(1.0)));
+        final MongoDbTimeseriesAdapter adapter = newInitialisedAdapter();
+
+        final List<org.eclipse.ditto.timeseries.model.TimeseriesQueryResult> results =
+                adapter.query(descQuery()).toCompletableFuture().join();
+
+        assertThat(results.get(0).getData()).hasSize(3);
+        assertThat(results.get(0).getData().get(0).getValue().orElseThrow().asDouble()).isEqualTo(3.0);
+    }
+
+    @Test
+    public void rawReadResumesFromCursorWithoutError() {
+        // A follow-up page: the query carries a cursor, which the adapter decodes and turns into a
+        // keyset filter. Exercises the decode + filter-construction path end-to-end.
+        stubFindReturning(mongoCollection,
+                docFor(Instant.parse("2026-01-14T10:03:00Z"), JsonValue.of(4.0)));
+        final MongoDbTimeseriesAdapter adapter = newInitialisedAdapter();
+        final String cursor = org.eclipse.ditto.timeseries.model.TimeseriesCursor.of(
+                Instant.parse("2026-01-14T10:02:00Z"), 1L).encode();
+
+        final List<org.eclipse.ditto.timeseries.model.TimeseriesQueryResult> results =
+                adapter.query(cursorQuery(cursor)).toCompletableFuture().join();
+
+        assertThat(results.get(0).getData()).hasSize(1);
+        assertThat(results.get(0).getData().get(0).getValue().orElseThrow().asDouble()).isEqualTo(4.0);
     }
 
     @Test
@@ -651,6 +727,25 @@ public final class MongoDbTimeseriesAdapterTest {
                 Instant.parse("2026-01-14T00:00:00Z"),
                 Instant.parse("2026-01-15T00:00:00Z"),
                 null, null, null, limit, null);
+    }
+
+    private static org.eclipse.ditto.timeseries.model.TimeseriesQuery cursorQuery(final String cursor) {
+        return org.eclipse.ditto.timeseries.model.TimeseriesQuery.of(
+                THING_ID,
+                Collections.singletonList(PATH),
+                Instant.parse("2026-01-14T00:00:00Z"),
+                Instant.parse("2026-01-15T00:00:00Z"),
+                null, null, null, null, null, null, cursor);
+    }
+
+    private static org.eclipse.ditto.timeseries.model.TimeseriesQuery descQuery() {
+        return org.eclipse.ditto.timeseries.model.TimeseriesQuery.of(
+                THING_ID,
+                Collections.singletonList(PATH),
+                Instant.parse("2026-01-14T00:00:00Z"),
+                Instant.parse("2026-01-15T00:00:00Z"),
+                null, null, null, null, null, null, null,
+                org.eclipse.ditto.timeseries.model.SortOrder.DESC);
     }
 
     private static org.bson.Document docFor(final Instant timestamp, final JsonValue value) {

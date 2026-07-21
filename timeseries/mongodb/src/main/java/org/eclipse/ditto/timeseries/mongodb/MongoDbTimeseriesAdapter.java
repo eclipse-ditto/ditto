@@ -47,6 +47,8 @@ import org.eclipse.ditto.timeseries.api.TimeseriesAdapterConfig;
 import org.eclipse.ditto.timeseries.api.compute.TimeseriesComputeKernel;
 import org.eclipse.ditto.timeseries.model.Aggregation;
 import org.eclipse.ditto.timeseries.model.FillStrategy;
+import org.eclipse.ditto.timeseries.model.SortOrder;
+import org.eclipse.ditto.timeseries.model.TimeseriesCursor;
 import org.eclipse.ditto.timeseries.model.TimeseriesDataPoint;
 import org.eclipse.ditto.timeseries.model.TimeseriesDataValue;
 import org.eclipse.ditto.timeseries.model.TimeseriesQuery;
@@ -400,8 +402,17 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
             final JsonPointer path) {
 
         final ThingId thingId = query.getThingId();
+        final boolean descending = query.getOrder().orElse(SortOrder.ASC) == SortOrder.DESC;
 
-        final Bson filter = pathFilter(thingId, path, query);
+        // Cursor pagination is keyset-based: when a cursor is present, restrict to points that sort
+        // strictly after it under the query's order. The model layer has already validated that a
+        // cursor only reaches here for a single-path raw read, and rejects a malformed one — so
+        // decode cannot fail at this point.
+        final Optional<TimeseriesCursor> cursorOpt = query.getCursor().map(TimeseriesCursor::decode);
+        final Bson filter = cursorOpt
+                .map(cursor -> Filters.and(pathFilter(thingId, path, query),
+                        keysetFilter(cursor, descending)))
+                .orElseGet(() -> pathFilter(thingId, path, query));
         final Optional<Integer> limitOpt = query.getLimit();
 
         // Use getCollection() directly — do NOT call ensureCollection() on the read path. An
@@ -410,20 +421,67 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
         // MongoDB's find() against a non-existent collection returns an empty cursor without
         // erroring, which is exactly the user-facing semantics we want for "no data yet".
         // Collection creation stays scoped to the write path.
-        // Bound both runtime (maxTime) and heap (scan ceiling). The effective limit is the smaller of
-        // the caller's limit and MAX_SCAN_POINTS, so an unbounded range can't OOM the service.
+        // Bound both runtime (maxTime) and heap (page size). The page size is the smaller of the
+        // caller's limit and the ceiling, so an unbounded range can't OOM the service.
         final int maxPoints = current.config.getMaxQueryResultSize();
-        final int effectiveLimit = limitOpt.map(l -> Math.min(l, maxPoints)).orElse(maxPoints);
+        final int pageSize = limitOpt.map(l -> Math.min(l, maxPoints)).orElse(maxPoints);
         final MongoCollection<Document> collection = getCollection(current, thingId);
         final FindPublisher<Document> findPublisher = collection.find(filter)
-                .sort(Sorts.ascending(TimeseriesBsonMapper.FIELD_TIMESTAMP))
+                // Deterministic total order (timestamp, then revision as tie-breaker) so a keyset
+                // cursor resumes exactly after the last returned point — no skipped or repeated
+                // same-timestamp points. Descending flips both keys so a `desc` read pages from
+                // newest to oldest.
+                .sort(orderSort(descending))
                 .maxTime(current.config.getQueryTimeout().toMillis(), TimeUnit.MILLISECONDS)
-                .limit(effectiveLimit);
+                // Fetch one extra row to detect a further page (standard keyset technique); pageSize
+                // is capped at maxPoints so pageSize + 1 stays within a safe int range.
+                .limit(pageSize + 1);
         return collectAll(findPublisher)
                 .thenApply(documents -> {
-                    warnIfScanCeilingHit(documents.size(), limitOpt.orElse(null), maxPoints, thingId, path);
-                    return buildResult(thingId, path, query, documents);
+                    final boolean hasMore = documents.size() > pageSize;
+                    final List<Document> page = hasMore ? documents.subList(0, pageSize) : documents;
+                    // When the page is capped (by the caller's limit or the ceiling) and more data
+                    // matches, emit a cursor so the truncation is explicit and resumable rather than
+                    // a silent drop of the remaining points.
+                    final String nextCursor = hasMore ? nextCursorFrom(page).encode() : null;
+                    return buildResult(thingId, path, query, page, hasMore, nextCursor);
                 });
+    }
+
+    /** The {@code (timestamp, revision)} sort in the requested direction. */
+    private static Bson orderSort(final boolean descending) {
+        return descending
+                ? Sorts.descending(TimeseriesBsonMapper.FIELD_TIMESTAMP, TimeseriesBsonMapper.FIELD_REVISION)
+                : Sorts.ascending(TimeseriesBsonMapper.FIELD_TIMESTAMP, TimeseriesBsonMapper.FIELD_REVISION);
+    }
+
+    /**
+     * A keyset predicate keeping only points that sort strictly after {@code cursor} under the
+     * {@code (timestamp, revision)} total order used by the raw read: greater-than for ascending
+     * reads, less-than for descending ones.
+     */
+    private static Bson keysetFilter(final TimeseriesCursor cursor, final boolean descending) {
+        final Date timestamp = Date.from(cursor.getTimestamp());
+        if (descending) {
+            return Filters.or(
+                    Filters.lt(TimeseriesBsonMapper.FIELD_TIMESTAMP, timestamp),
+                    Filters.and(
+                            Filters.eq(TimeseriesBsonMapper.FIELD_TIMESTAMP, timestamp),
+                            Filters.lt(TimeseriesBsonMapper.FIELD_REVISION, cursor.getRevision())));
+        }
+        return Filters.or(
+                Filters.gt(TimeseriesBsonMapper.FIELD_TIMESTAMP, timestamp),
+                Filters.and(
+                        Filters.eq(TimeseriesBsonMapper.FIELD_TIMESTAMP, timestamp),
+                        Filters.gt(TimeseriesBsonMapper.FIELD_REVISION, cursor.getRevision())));
+    }
+
+    /** Builds the cursor pointing just past the last point of a (non-empty) page. */
+    private static TimeseriesCursor nextCursorFrom(final List<Document> page) {
+        final Document last = page.get(page.size() - 1);
+        final Instant timestamp = ((Date) last.get(TimeseriesBsonMapper.FIELD_TIMESTAMP)).toInstant();
+        final long revision = ((Number) last.get(TimeseriesBsonMapper.FIELD_REVISION)).longValue();
+        return TimeseriesCursor.of(timestamp, revision);
     }
 
     /**
@@ -1077,25 +1135,12 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
                 });
     }
 
-    /**
-     * Logs a warning when a read returned exactly the scan ceiling and the caller did not request a
-     * smaller {@code limit} — i.e. the result was very likely truncated by the safety cap.
-     */
-    private static void warnIfScanCeilingHit(final int returned, @Nullable final Integer userLimit,
-            final int maxPoints, final ThingId thingId, final JsonPointer path) {
-
-        final boolean cappedByUser = userLimit != null && userLimit < maxPoints;
-        if (returned >= maxPoints && !cappedByUser) {
-            LOGGER.warn("Timeseries read for thing <{}> path <{}> hit the {}-point scan ceiling and " +
-                    "was truncated. Narrow the time range, add a limit, or downsample with a step.",
-                    thingId, path, maxPoints);
-        }
-    }
-
     private static TimeseriesQueryResult buildResult(final ThingId thingId,
             final JsonPointer path,
             final TimeseriesQuery query,
-            final List<Document> documents) {
+            final List<Document> documents,
+            final boolean hasMore,
+            @Nullable final String nextCursor) {
 
         final List<TimeseriesDataValue> data = new ArrayList<>(documents.size());
         String unit = null;
@@ -1114,7 +1159,8 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
             dataType = "null";
         }
 
-        final TimeseriesResultMeta meta = TimeseriesResultMeta.of(documents.size(), unit, dataType);
+        final TimeseriesResultMeta meta =
+                TimeseriesResultMeta.of(documents.size(), unit, dataType, hasMore, nextCursor);
         return TimeseriesQueryResult.of(thingId, path, query, meta, data);
     }
 

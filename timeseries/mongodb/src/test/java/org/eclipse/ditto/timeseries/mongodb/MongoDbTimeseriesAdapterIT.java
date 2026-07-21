@@ -36,6 +36,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.timeseries.model.Aggregation;
 import org.eclipse.ditto.timeseries.model.FillStrategy;
+import org.eclipse.ditto.timeseries.model.SortOrder;
 import org.eclipse.ditto.timeseries.model.TimeseriesDataPoint;
 import org.eclipse.ditto.timeseries.model.TimeseriesDataValue;
 import org.eclipse.ditto.timeseries.model.TimeseriesQuery;
@@ -198,6 +199,98 @@ public final class MongoDbTimeseriesAdapterIT {
                 adapter.query(limitedQuery).toCompletableFuture().get();
 
         assertThat(results.get(0).getData()).hasSize(3);
+    }
+
+    @Test
+    public void paginationWalksEntireRangeWithoutGapsOrDuplicates() throws Exception {
+        final List<TimeseriesDataPoint> batch = new ArrayList<>();
+        Instant t = Instant.parse("2026-01-14T10:00:00Z");
+        for (int i = 0; i < 10; i++) {
+            batch.add(dataPoint(t, 20.0 + i));
+            t = t.plus(1, ChronoUnit.MINUTES);
+        }
+        adapter.writeBatch(batch).toCompletableFuture().get();
+
+        final Instant from = Instant.parse("2026-01-14T09:00:00Z");
+        final Instant to = Instant.parse("2026-01-14T11:00:00Z");
+        final List<Double> collected = new ArrayList<>();
+        String cursor = null;
+        int pages = 0;
+        do {
+            final TimeseriesQuery page = TimeseriesQuery.of(thingId, Collections.singletonList(PATH),
+                    from, to, null, null, null, 3, null, null, cursor);
+            final TimeseriesQueryResult result = adapter.query(page).toCompletableFuture().get().get(0);
+            for (final TimeseriesDataValue value : result.getData()) {
+                collected.add(value.getValue().orElseThrow().asDouble());
+            }
+            cursor = result.getMeta().getNextCursor().orElse(null);
+            pages++;
+            assertThat(pages).as("pagination must terminate").isLessThanOrEqualTo(10);
+        } while (cursor != null);
+
+        // Every point returned exactly once, in chronological order — no gaps, no duplicates.
+        assertThat(collected)
+                .containsExactly(20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0, 29.0);
+        assertThat(pages).isEqualTo(4); // 3 + 3 + 3 + 1
+    }
+
+    @Test
+    public void descendingPaginationWalksRangeNewestFirst() throws Exception {
+        final List<TimeseriesDataPoint> batch = new ArrayList<>();
+        Instant t = Instant.parse("2026-01-14T10:00:00Z");
+        for (int i = 0; i < 10; i++) {
+            batch.add(dataPoint(t, 20.0 + i));
+            t = t.plus(1, ChronoUnit.MINUTES);
+        }
+        adapter.writeBatch(batch).toCompletableFuture().get();
+
+        final Instant from = Instant.parse("2026-01-14T09:00:00Z");
+        final Instant to = Instant.parse("2026-01-14T11:00:00Z");
+        final List<Double> collected = new ArrayList<>();
+        String cursor = null;
+        int pages = 0;
+        do {
+            final TimeseriesQuery page = TimeseriesQuery.of(thingId, Collections.singletonList(PATH),
+                    from, to, null, null, null, 3, null, null, cursor, SortOrder.DESC);
+            final TimeseriesQueryResult result = adapter.query(page).toCompletableFuture().get().get(0);
+            for (final TimeseriesDataValue value : result.getData()) {
+                collected.add(value.getValue().orElseThrow().asDouble());
+            }
+            cursor = result.getMeta().getNextCursor().orElse(null);
+            pages++;
+            assertThat(pages).as("pagination must terminate").isLessThanOrEqualTo(10);
+        } while (cursor != null);
+
+        // Newest first, every point exactly once.
+        assertThat(collected)
+                .containsExactly(29.0, 28.0, 27.0, 26.0, 25.0, 24.0, 23.0, 22.0, 21.0, 20.0);
+    }
+
+    @Test
+    public void paginationTieBreaksSameTimestampOnRevision() throws Exception {
+        // Two points share a timestamp but differ in revision: keyset paging with page size 1 must
+        // return both exactly once (revision is the tie-breaker), never skipping or repeating one.
+        final Instant ts = Instant.parse("2026-01-14T10:00:00Z");
+        adapter.writeBatch(Arrays.asList(
+                dataPoint(ts, 1.0, PATH, 1L),
+                dataPoint(ts, 2.0, PATH, 2L))).toCompletableFuture().get();
+
+        final Instant from = Instant.parse("2026-01-14T09:00:00Z");
+        final Instant to = Instant.parse("2026-01-14T11:00:00Z");
+        final List<Double> collected = new ArrayList<>();
+        String cursor = null;
+        int pages = 0;
+        do {
+            final TimeseriesQuery page = TimeseriesQuery.of(thingId, Collections.singletonList(PATH),
+                    from, to, null, null, null, 1, null, null, cursor);
+            final TimeseriesQueryResult result = adapter.query(page).toCompletableFuture().get().get(0);
+            result.getData().forEach(v -> collected.add(v.getValue().orElseThrow().asDouble()));
+            cursor = result.getMeta().getNextCursor().orElse(null);
+            pages++;
+            assertThat(pages).as("pagination must terminate").isLessThanOrEqualTo(3);
+        } while (cursor != null);
+
+        assertThat(collected).containsExactly(1.0, 2.0);
     }
 
     @Test
@@ -528,11 +621,17 @@ public final class MongoDbTimeseriesAdapterIT {
     private TimeseriesDataPoint dataPoint(final Instant timestamp, final double value,
             final JsonPointer path) {
 
+        return dataPoint(timestamp, value, path, 1L);
+    }
+
+    private TimeseriesDataPoint dataPoint(final Instant timestamp, final double value,
+            final JsonPointer path, final long revision) {
+
         final Map<String, String> tags = new LinkedHashMap<>();
         tags.put("attributes/building", "A");
         tags.put("attributes/floor", "2");
         return TimeseriesDataPoint.of(
-                thingId, path, timestamp, JsonValue.of(value), 1L, tags, "cel");
+                thingId, path, timestamp, JsonValue.of(value), revision, tags, "cel");
     }
 
     /** Drains a publisher synchronously — used only for the AfterClass DB-drop. */

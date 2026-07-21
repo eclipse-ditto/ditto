@@ -33,25 +33,33 @@ final class ImmutableTimeseriesResultMeta implements TimeseriesResultMeta {
     private final int count;
     @Nullable private final String unit;
     private final String dataType;
+    @Nullable private final Boolean hasMore;
+    @Nullable private final String nextCursor;
 
     private ImmutableTimeseriesResultMeta(final int count,
             @Nullable final String unit,
-            final String dataType) {
+            final String dataType,
+            @Nullable final Boolean hasMore,
+            @Nullable final String nextCursor) {
 
         this.count = count;
         this.unit = unit;
         this.dataType = dataType;
+        this.hasMore = hasMore;
+        this.nextCursor = nextCursor;
     }
 
     static TimeseriesResultMeta of(final int count,
             @Nullable final String unit,
-            final String dataType) {
+            final String dataType,
+            @Nullable final Boolean hasMore,
+            @Nullable final String nextCursor) {
 
         checkNotNull(dataType, "dataType");
         if (count < 0) {
             throw new IllegalArgumentException("count must not be negative but was: " + count);
         }
-        return new ImmutableTimeseriesResultMeta(count, unit, dataType);
+        return new ImmutableTimeseriesResultMeta(count, unit, dataType, hasMore, nextCursor);
     }
 
     static TimeseriesResultMeta fromJson(final JsonObject jsonObject) {
@@ -60,8 +68,10 @@ final class ImmutableTimeseriesResultMeta implements TimeseriesResultMeta {
         final int count = jsonObject.getValueOrThrow(JsonFields.COUNT);
         final String unit = jsonObject.getValue(JsonFields.UNIT).orElse(null);
         final String dataType = jsonObject.getValueOrThrow(JsonFields.DATA_TYPE);
+        final Boolean hasMore = jsonObject.getValue(JsonFields.HAS_MORE).orElse(null);
+        final String nextCursor = jsonObject.getValue(JsonFields.NEXT_CURSOR).orElse(null);
 
-        return of(count, unit, dataType);
+        return of(count, unit, dataType, hasMore, nextCursor);
     }
 
     @Override
@@ -80,6 +90,16 @@ final class ImmutableTimeseriesResultMeta implements TimeseriesResultMeta {
     }
 
     @Override
+    public Optional<Boolean> getHasMore() {
+        return Optional.ofNullable(hasMore);
+    }
+
+    @Override
+    public Optional<String> getNextCursor() {
+        return Optional.ofNullable(nextCursor);
+    }
+
+    @Override
     public JsonObject toJson() {
         final JsonObjectBuilder builder = JsonFactory.newObjectBuilder()
                 .set(JsonFields.COUNT, count)
@@ -87,6 +107,12 @@ final class ImmutableTimeseriesResultMeta implements TimeseriesResultMeta {
 
         if (unit != null) {
             builder.set(JsonFields.UNIT, unit);
+        }
+        if (hasMore != null) {
+            builder.set(JsonFields.HAS_MORE, hasMore);
+        }
+        if (nextCursor != null) {
+            builder.set(JsonFields.NEXT_CURSOR, nextCursor);
         }
 
         return builder.build();
@@ -103,12 +129,14 @@ final class ImmutableTimeseriesResultMeta implements TimeseriesResultMeta {
         final ImmutableTimeseriesResultMeta that = (ImmutableTimeseriesResultMeta) o;
         return count == that.count &&
                 Objects.equals(unit, that.unit) &&
-                Objects.equals(dataType, that.dataType);
+                Objects.equals(dataType, that.dataType) &&
+                Objects.equals(hasMore, that.hasMore) &&
+                Objects.equals(nextCursor, that.nextCursor);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(count, unit, dataType);
+        return Objects.hash(count, unit, dataType, hasMore, nextCursor);
     }
 
     @Override
@@ -117,6 +145,8 @@ final class ImmutableTimeseriesResultMeta implements TimeseriesResultMeta {
                 "count=" + count +
                 ", unit=" + unit +
                 ", dataType=" + dataType +
+                ", hasMore=" + hasMore +
+                ", nextCursor=" + nextCursor +
                 "]";
     }
 }
