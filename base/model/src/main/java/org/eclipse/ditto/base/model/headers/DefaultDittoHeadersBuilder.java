@@ -78,6 +78,34 @@ final class DefaultDittoHeadersBuilder extends AbstractDittoHeadersBuilder<Defau
     }
 
     /**
+     * Returns a new instance of {@code DittoHeadersBuilder} initialized with the given headers, <em>skipping</em>
+     * header value type validation. Only use this for headers originating from a trusted, already-validated source
+     * (e.g. deserialization of cluster-internal messages), applying the same performance optimization the
+     * {@code DittoHeaders}-based constructor already applies to already-built {@code DittoHeaders}.
+     *
+     * @param headers the header map which provides the initial properties of the builder.
+     * @return a builder for creating {@code DittoHeaders} object.
+     * @throws NullPointerException if {@code headers} is {@code null}.
+     */
+    static DefaultDittoHeadersBuilder ofTrusted(final Map<String, String> headers) {
+        if (headers instanceof DittoHeaders) {
+            return new DefaultDittoHeadersBuilder((DittoHeaders) headers);
+        }
+        return new DefaultDittoHeadersBuilder((DittoHeaders) ImmutableDittoHeaders.of(headers));
+    }
+
+    /**
+     * Like {@link #ofTrusted(Map)} but seeded from a {@code JsonObject}. Skips value type validation.
+     *
+     * @param jsonObject the JSON object which provides the initial properties of the builder.
+     * @return a builder for creating {@code DittoHeaders} object.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     */
+    static DefaultDittoHeadersBuilder ofTrusted(final JsonObject jsonObject) {
+        return ofTrusted(toMap(jsonObject));
+    }
+
+    /**
      * Returns an empty {@code DittoHeaders} object.
      *
      * @return empty DittoHeaders.
