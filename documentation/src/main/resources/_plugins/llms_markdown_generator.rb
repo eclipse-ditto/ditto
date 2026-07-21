@@ -116,7 +116,18 @@ end
 # shipping a stale link or description.
 module LlmsTxtIndex
   RELEASE_NOTES_PREFIX = 'release_notes_'
+  # Per-command protocol example pages (e.g. protocol-examples-creatething.html)
+  # are auto-generated boilerplate and intentionally not enumerated in llms.txt -
+  # the single curated "protocol-examples.html" overview stands in for the family.
+  # Note the trailing dash: this excludes the "protocol-examples-*" children but
+  # not the "protocol-examples" overview itself, which is linked.
+  PROTOCOL_EXAMPLES_PREFIX = 'protocol-examples-'
   DOC_PAGES_PATH = 'pages/ditto/'
+
+  # Permalinks (without ".html") that are deliberately not required in llms.txt.
+  def self.excluded?(permalink)
+    permalink.start_with?(RELEASE_NOTES_PREFIX, PROTOCOL_EXAMPLES_PREFIX)
+  end
 
   def self.doc_link_regex(site)
     %r{^- \[[^\]]+\]\(#{Regexp.escape(site.config['url'].to_s)}/([\w.\-]+)\.html\.md\)}
@@ -185,10 +196,12 @@ module LlmsTxtIndex
     errors
   end
 
-  # Doc pages that exist but aren't linked from llms.txt at all. This is
-  # advisory only (which pages deserve a spot in the curated index is an
-  # editorial call, not a correctness bug) - historical release_notes_* pages
-  # are excluded since only the current latest is ever meant to be linked.
+  # Doc pages that exist but aren't linked from llms.txt at all. Every doc page
+  # is expected to be listed by default; the only permitted omissions are the
+  # excluded?() families (historical release_notes_*, of which only the latest
+  # is ever linked, and the auto-generated protocol-examples-* children). Any
+  # other unlisted page is treated as a build failure so the curated index
+  # can't silently drift out of sync as pages are added.
   def self.unlisted_pages(site, raw)
     listed = listed_slugs(site, raw)
 
@@ -197,7 +210,7 @@ module LlmsTxtIndex
       permalink && permalink.end_with?('.html') &&
         page.ext == '.md' &&
         page.relative_path.start_with?(DOC_PAGES_PATH) &&
-        !permalink.start_with?(RELEASE_NOTES_PREFIX) &&
+        !excluded?(permalink.delete_suffix('.html')) &&
         !listed.include?(permalink.delete_suffix('.html'))
     end.map { |page| page.data['permalink'] }.sort
   end
@@ -245,8 +258,11 @@ Jekyll::Hooks.register :site, :post_write do |site|
 
     unlisted = LlmsTxtIndex.unlisted_pages(site, raw_llms_txt)
     unless unlisted.empty?
-      Jekyll.logger.warn "LlmsTxt:", "#{unlisted.size} doc page(s) not listed in llms.txt (informational, not a failure):"
-      unlisted.each { |permalink| Jekyll.logger.warn "LlmsTxt:", "  #{permalink}" }
+      Jekyll.logger.error "LlmsTxt:", "#{unlisted.size} doc page(s) not listed in llms.txt:"
+      unlisted.each { |permalink| Jekyll.logger.error "LlmsTxt:", "  #{permalink}" }
+      Jekyll.logger.error "LlmsTxt:", "Add each page to llms.txt (or, for auto-generated protocol example pages, " \
+                                      "confirm it matches the '#{LlmsTxtIndex::PROTOCOL_EXAMPLES_PREFIX}' naming)."
+      raise "llms.txt is missing #{unlisted.size} doc page(s). See log above."
     end
   end
 end

@@ -13,6 +13,7 @@ Eclipse Ditto provides five microservices (Things, Policies, Gateway, Connectivi
 - [Overview](https://www.eclipse.dev/ditto/intro-overview.html.md): What Eclipse Ditto is, what it is not, and when to use it
 - [Digital Twins](https://www.eclipse.dev/ditto/intro-digitaltwins.html.md): The digital twin concept and how Ditto implements it
 - [Hello World](https://www.eclipse.dev/ditto/intro-hello-world.html.md): Quick-start guide for creating your first digital twin
+- [Glossary](https://www.eclipse.dev/ditto/glossary.html.md): Definitions of the core terms used throughout the Ditto documentation
 
 ## Core Concepts
 
@@ -51,6 +52,12 @@ Eclipse Ditto provides five microservices (Things, Policies, Gateway, Connectivi
 - [Running Ditto](https://www.eclipse.dev/ditto/installation-running.html.md): Running Ditto via Docker Compose or Kubernetes/Helm
 - [Operating Ditto](https://www.eclipse.dev/ditto/installation-operating.html.md): Configuration, monitoring, and operational aspects
 - [Extending Ditto](https://www.eclipse.dev/ditto/installation-extending.html.md): Custom protocol adapters and other extension points
+- [Operating - Authentication](https://www.eclipse.dev/ditto/operating-authentication.html.md): Configuring authentication (pre-authentication, OpenID Connect / OAuth 2.0, JWT)
+- [Operating - Configuration](https://www.eclipse.dev/ditto/operating-configuration.html.md): Configuring Ditto via environment variables, system properties, and config files
+- [Operating - DevOps Commands](https://www.eclipse.dev/ditto/operating-devops.html.md): DevOps piggyback commands for logging, dynamic config, namespace management, and cleanup
+- [Operating - MongoDB](https://www.eclipse.dev/ditto/operating-mongodb.html.md): MongoDB database configuration, tuning, and indexes
+- [Operating - Monitoring & Tracing](https://www.eclipse.dev/ditto/operating-monitoring.html.md): Monitoring, logging, and tracing (Prometheus, Grafana, OpenTelemetry, ELK)
+- [Operating - Security Hardening](https://www.eclipse.dev/ditto/operating-security-hardening.html.md): Security hardening recommendations for production deployments
 
 ## HTTP API
 
@@ -68,6 +75,7 @@ Eclipse Ditto provides five microservices (Things, Policies, Gateway, Connectivi
 - [Manage Connections via HTTP](https://www.eclipse.dev/ditto/connectivity-manage-connections.html.md): CRUD operations for connections
 - [Payload Mapping](https://www.eclipse.dev/ditto/connectivity-mapping.html.md): Transforming messages between external formats and Ditto Protocol
 - [Header Mapping](https://www.eclipse.dev/ditto/connectivity-header-mapping.html.md): Mapping external message headers
+- [Response Diversion](https://www.eclipse.dev/ditto/connectivity-response-diversion.html.md): Routing connection responses to a different address or protocol
 
 ## Ditto Protocol
 
@@ -77,6 +85,7 @@ Eclipse Ditto provides five microservices (Things, Policies, Gateway, Connectivi
 - [Protocol Topic](https://www.eclipse.dev/ditto/protocol-specification-topic.html.md): Topic path structure (namespace/name/group/channel/criterion/action)
 - [Things Commands](https://www.eclipse.dev/ditto/protocol-specification-things.html.md): Protocol commands for the Things entity group
 - [Policies Commands](https://www.eclipse.dev/ditto/protocol-specification-policies.html.md): Protocol commands for the Policies entity group
+- [Connections Commands](https://www.eclipse.dev/ditto/protocol-specification-connections.html.md): Protocol commands for the Connections entity group
 - [Protocol Bindings](https://www.eclipse.dev/ditto/protocol-bindings.html.md): How the Ditto Protocol is bound to transport protocols
 
 ## Client SDKs
@@ -125,4 +134,7 @@ Eclipse Ditto provides five microservices (Things, Policies, Gateway, Connectivi
 - [Streaming Subscriptions](https://www.eclipse.dev/ditto/protocol-specification-streaming-subscription.html.md): Protocol for streaming historical events
 - [Protocol Examples](https://www.eclipse.dev/ditto/protocol-examples.html.md): Overview of Ditto Protocol message examples
 - [User Interface](https://www.eclipse.dev/ditto/user-interface.html.md): Ditto Explorer UI for managing Things and Policies
+- [Sandbox](https://www.eclipse.dev/ditto/sandbox.html.md): The public Ditto sandbox environment for trying out Ditto
+- [Presentations](https://www.eclipse.dev/ditto/presentations.html.md): Talks and slide decks about Eclipse Ditto
+- [Feedback](https://www.eclipse.dev/ditto/feedback.html.md): Where to get help - bug tracker, forum, chat, and mailing list
 - [Release Notes](https://www.eclipse.dev/ditto/release_notes_394.html.md): Latest release notes
