@@ -64,6 +64,14 @@ global:
     downingStableAfter: 15s
     # downAllWhenUnstable is a configuration of the Pekko SBR (split brain resolver)
     downAllWhenUnstable: "on"
+    # singletonMinNumberOfHandOverRetries configures pekko.cluster.singleton.min-number-of-hand-over-retries:
+    #  when a node becomes the new "oldest" it must hand the cluster singleton over from the previous oldest.
+    #  If the retries (1s interval each) are exhausted before the previous oldest is observed as removed from
+    #  the cluster, a ClusterSingletonManagerIsStuck is raised. During rolling updates gossip dissemination of
+    #  the previous oldest's Leaving -> Exiting -> Removed transition can exceed the Pekko default of 15 retries,
+    #  so a larger budget lets the new oldest wait and then take over cleanly. It is only a ceiling: the hand-over
+    #  still completes as soon as the previous oldest confirms or is removed.
+    singletonMinNumberOfHandOverRetries: 30
   # pubsub holds Ditto's cluster pub/sub configuration shared by all services
   pubsub:
     # preSerializeFanoutEnabled serializes a published signal once and reuses it across all remote fan-out
