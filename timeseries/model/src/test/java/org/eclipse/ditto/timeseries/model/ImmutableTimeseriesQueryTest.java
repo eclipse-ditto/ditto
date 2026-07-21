@@ -46,6 +46,8 @@ public final class ImmutableTimeseriesQueryTest {
     private static final List<JsonPointer> PATHS = Collections.unmodifiableList(Arrays.asList(
             JsonPointer.of("/features/environment/properties/temperature"),
             JsonPointer.of("/features/environment/properties/humidity")));
+    private static final List<JsonPointer> SINGLE_PATH = Collections.singletonList(
+            JsonPointer.of("/features/environment/properties/temperature"));
     private static final Instant FROM = Instant.parse("2026-01-14T00:00:00Z");
     private static final Instant TO = Instant.parse("2026-01-15T00:00:00Z");
     private static final Duration STEP = Duration.ofHours(1);
@@ -377,6 +379,145 @@ public final class ImmutableTimeseriesQueryTest {
 
         assertThatExceptionOfType(TimeseriesQueryInvalidException.class).isThrownBy(() ->
                 TimeseriesQuery.of(THING_ID, tooMany, FROM, TO, null, null, null, null, null, null));
+    }
+
+    @Test
+    public void factoryAcceptsCursorForSinglePathRawRead() {
+        final String cursor = TimeseriesCursor.of(FROM, 7L).encode();
+
+        final TimeseriesQuery underTest = TimeseriesQuery.of(THING_ID, SINGLE_PATH, FROM, TO,
+                null, null, null, null, null, null, cursor);
+
+        assertThat(underTest.getCursor()).contains(cursor);
+    }
+
+    @Test
+    public void cursorRoundTripsThroughJson() {
+        final String cursor = TimeseriesCursor.of(FROM, 7L).encode();
+        final TimeseriesQuery original = TimeseriesQuery.of(THING_ID, SINGLE_PATH, FROM, TO,
+                null, null, null, null, null, null, cursor);
+
+        final JsonObject json = original.toJson();
+        assertThat(json.getValue("cursor")).contains(JsonValue.of(cursor));
+
+        final TimeseriesQuery reconstructed = TimeseriesQuery.fromJson(json);
+        assertThat(reconstructed).isEqualTo(original);
+        assertThat(reconstructed.getCursor()).contains(cursor);
+    }
+
+    @Test
+    public void toJsonOmitsCursorWhenAbsent() {
+        final TimeseriesQuery underTest = TimeseriesQuery.of(THING_ID, PATHS, FROM, TO);
+
+        assertThat(underTest.toJson().contains("cursor")).isFalse();
+    }
+
+    @Test
+    public void factoryRejectsCursorWithAggregation() {
+        final String cursor = TimeseriesCursor.of(FROM, 7L).encode();
+
+        assertThatExceptionOfType(TimeseriesQueryInvalidException.class).isThrownBy(() ->
+                TimeseriesQuery.of(THING_ID, SINGLE_PATH, FROM, TO, STEP, Aggregation.AVG, null, null,
+                        null, null, cursor));
+    }
+
+    @Test
+    public void factoryRejectsCursorWithStep() {
+        final String cursor = TimeseriesCursor.of(FROM, 7L).encode();
+
+        assertThatExceptionOfType(TimeseriesQueryInvalidException.class).isThrownBy(() ->
+                TimeseriesQuery.of(THING_ID, SINGLE_PATH, FROM, TO, STEP, null, null, null, null, null,
+                        cursor));
+    }
+
+    @Test
+    public void factoryRejectsCursorWithFill() {
+        final String cursor = TimeseriesCursor.of(FROM, 7L).encode();
+
+        assertThatExceptionOfType(TimeseriesQueryInvalidException.class).isThrownBy(() ->
+                TimeseriesQuery.of(THING_ID, SINGLE_PATH, FROM, TO, null, null, FillStrategy.PREVIOUS,
+                        null, null, null, cursor));
+    }
+
+    @Test
+    public void factoryRejectsCursorWithMultiplePaths() {
+        final String cursor = TimeseriesCursor.of(FROM, 7L).encode();
+
+        assertThatExceptionOfType(TimeseriesQueryInvalidException.class).isThrownBy(() ->
+                TimeseriesQuery.of(THING_ID, PATHS, FROM, TO, null, null, null, null, null, null,
+                        cursor));
+    }
+
+    @Test
+    public void factoryRejectsMalformedCursor() {
+        assertThatExceptionOfType(TimeseriesQueryInvalidException.class).isThrownBy(() ->
+                TimeseriesQuery.of(THING_ID, SINGLE_PATH, FROM, TO, null, null, null, null, null, null,
+                        "not-a-valid-cursor !!!"));
+    }
+
+    @Test
+    public void factoryAcceptsDescOrderForRawRead() {
+        final TimeseriesQuery underTest = TimeseriesQuery.of(THING_ID, PATHS, FROM, TO,
+                null, null, null, null, null, null, null, SortOrder.DESC);
+
+        assertThat(underTest.getOrder()).contains(SortOrder.DESC);
+    }
+
+    @Test
+    public void orderIsEmptyByDefault() {
+        final TimeseriesQuery underTest = TimeseriesQuery.of(THING_ID, PATHS, FROM, TO);
+
+        assertThat(underTest.getOrder()).isEmpty();
+    }
+
+    @Test
+    public void orderRoundTripsThroughJson() {
+        final TimeseriesQuery original = TimeseriesQuery.of(THING_ID, PATHS, FROM, TO,
+                null, null, null, null, null, null, null, SortOrder.DESC);
+
+        final JsonObject json = original.toJson();
+        assertThat(json.getValue("order")).contains(JsonValue.of("desc"));
+
+        final TimeseriesQuery reconstructed = TimeseriesQuery.fromJson(json);
+        assertThat(reconstructed).isEqualTo(original);
+        assertThat(reconstructed.getOrder()).contains(SortOrder.DESC);
+    }
+
+    @Test
+    public void toJsonOmitsOrderWhenAbsent() {
+        final TimeseriesQuery underTest = TimeseriesQuery.of(THING_ID, PATHS, FROM, TO);
+
+        assertThat(underTest.toJson().contains("order")).isFalse();
+    }
+
+    @Test
+    public void factoryAcceptsAscOrderWithAggregation() {
+        // ASC is the default direction of aggregated reads, so it imposes no constraint.
+        final TimeseriesQuery underTest = TimeseriesQuery.of(THING_ID, PATHS, FROM, TO,
+                STEP, Aggregation.AVG, null, null, null, null, null, SortOrder.ASC);
+
+        assertThat(underTest.getOrder()).contains(SortOrder.ASC);
+    }
+
+    @Test
+    public void factoryRejectsDescOrderWithAggregation() {
+        assertThatExceptionOfType(TimeseriesQueryInvalidException.class).isThrownBy(() ->
+                TimeseriesQuery.of(THING_ID, PATHS, FROM, TO, STEP, Aggregation.AVG, null, null, null,
+                        null, null, SortOrder.DESC));
+    }
+
+    @Test
+    public void factoryRejectsDescOrderWithStep() {
+        assertThatExceptionOfType(TimeseriesQueryInvalidException.class).isThrownBy(() ->
+                TimeseriesQuery.of(THING_ID, PATHS, FROM, TO, STEP, null, null, null, null, null, null,
+                        SortOrder.DESC));
+    }
+
+    @Test
+    public void factoryRejectsDescOrderWithFill() {
+        assertThatExceptionOfType(TimeseriesQueryInvalidException.class).isThrownBy(() ->
+                TimeseriesQuery.of(THING_ID, PATHS, FROM, TO, null, null, FillStrategy.PREVIOUS, null,
+                        null, null, null, SortOrder.DESC));
     }
 
     private static JsonObjectBuilder baseJson() {

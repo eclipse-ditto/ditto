@@ -46,7 +46,30 @@ public interface TimeseriesResultMeta extends Jsonifiable<JsonObject> {
             @Nullable final String unit,
             final String dataType) {
 
-        return ImmutableTimeseriesResultMeta.of(count, unit, dataType);
+        return ImmutableTimeseriesResultMeta.of(count, unit, dataType, null, null);
+    }
+
+    /**
+     * Returns a new {@code TimeseriesResultMeta} including pagination metadata.
+     *
+     * @param count the number of data points returned.
+     * @param unit the unit of the values, or {@code null} if not declared.
+     * @param dataType a token describing the JSON type of values, e.g. {@code "number"}.
+     * @param hasMore whether more data matched the query than this page returned; {@code null} for a
+     * non-paginated result (e.g. an aggregated read), in which case it is omitted from the wire form.
+     * @param nextCursor an opaque cursor to fetch the next page, or {@code null} when the page is the
+     * last one. Present exactly when {@code hasMore} is {@code true}.
+     * @return the new meta.
+     * @throws NullPointerException if {@code dataType} is {@code null}.
+     * @throws IllegalArgumentException if {@code count} is negative.
+     */
+    static TimeseriesResultMeta of(final int count,
+            @Nullable final String unit,
+            final String dataType,
+            @Nullable final Boolean hasMore,
+            @Nullable final String nextCursor) {
+
+        return ImmutableTimeseriesResultMeta.of(count, unit, dataType, hasMore, nextCursor);
     }
 
     /**
@@ -76,6 +99,20 @@ public interface TimeseriesResultMeta extends Jsonifiable<JsonObject> {
      */
     String getDataType();
 
+    /**
+     * @return whether more data matched the query than this page returned. Present only for
+     * paginated (raw) reads: {@code true} means another page follows (see {@link #getNextCursor()}),
+     * {@code false} means this is the last page. Empty for non-paginated results.
+     */
+    Optional<Boolean> getHasMore();
+
+    /**
+     * @return the opaque cursor for the next page if more data matched than this page returned, or
+     * empty when this is the last page. Pass it back as the query's {@code cursor} to continue. See
+     * {@link TimeseriesCursor}.
+     */
+    Optional<String> getNextCursor();
+
     @Override
     default JsonSchemaVersion[] getSupportedSchemaVersions() {
         return new JsonSchemaVersion[] {JsonSchemaVersion.V_2};
@@ -103,6 +140,18 @@ public interface TimeseriesResultMeta extends Jsonifiable<JsonObject> {
          */
         public static final JsonFieldDefinition<String> DATA_TYPE =
                 JsonFactory.newStringFieldDefinition("dataType", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        /**
+         * Whether more data is available. Optional; present only for paginated (raw) reads.
+         */
+        public static final JsonFieldDefinition<Boolean> HAS_MORE =
+                JsonFactory.newBooleanFieldDefinition("hasMore", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        /**
+         * The opaque cursor to fetch the next page. Optional; present only when more data is available.
+         */
+        public static final JsonFieldDefinition<String> NEXT_CURSOR =
+                JsonFactory.newStringFieldDefinition("nextCursor", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

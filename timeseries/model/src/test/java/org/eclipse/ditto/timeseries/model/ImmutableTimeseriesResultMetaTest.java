@@ -134,4 +134,59 @@ public final class ImmutableTimeseriesResultMetaTest {
     public void fromJsonRejectsNullInput() {
         assertThatNullPointerException().isThrownBy(() -> TimeseriesResultMeta.fromJson(null));
     }
+
+    @Test
+    public void paginationMetaIsEmptyByDefault() {
+        final TimeseriesResultMeta underTest = TimeseriesResultMeta.of(24, "cel", "number");
+
+        assertThat(underTest.getNextCursor()).isEmpty();
+        assertThat(underTest.getHasMore()).isEmpty();
+    }
+
+    @Test
+    public void factoryRetainsPaginationMeta() {
+        final TimeseriesResultMeta underTest =
+                TimeseriesResultMeta.of(24, "cel", "number", true, "abc123");
+
+        assertThat(underTest.getHasMore()).contains(true);
+        assertThat(underTest.getNextCursor()).contains("abc123");
+    }
+
+    @Test
+    public void toJsonContainsPaginationMetaWhenPresent() {
+        final TimeseriesResultMeta underTest =
+                TimeseriesResultMeta.of(24, "cel", "number", true, "abc123");
+
+        final JsonObject json = underTest.toJson();
+        assertThat(json.getValue("hasMore")).contains(JsonValue.of(true));
+        assertThat(json.getValue("nextCursor")).contains(JsonValue.of("abc123"));
+    }
+
+    @Test
+    public void toJsonEmitsHasMoreFalseWithoutCursorOnLastPage() {
+        final TimeseriesResultMeta underTest = TimeseriesResultMeta.of(24, "cel", "number", false, null);
+
+        final JsonObject json = underTest.toJson();
+        assertThat(json.getValue("hasMore")).contains(JsonValue.of(false));
+        assertThat(json.contains("nextCursor")).isFalse();
+    }
+
+    @Test
+    public void toJsonOmitsPaginationMetaForNonPaginatedResult() {
+        final TimeseriesResultMeta underTest = TimeseriesResultMeta.of(24, "cel", "number", null, null);
+
+        final JsonObject json = underTest.toJson();
+        assertThat(json.contains("hasMore")).isFalse();
+        assertThat(json.contains("nextCursor")).isFalse();
+    }
+
+    @Test
+    public void roundTripPreservesPaginationMeta() {
+        final TimeseriesResultMeta original =
+                TimeseriesResultMeta.of(24, "cel", "number", true, "abc123");
+
+        final TimeseriesResultMeta reconstructed = TimeseriesResultMeta.fromJson(original.toJson());
+
+        assertThat(reconstructed).isEqualTo(original);
+    }
 }

@@ -102,14 +102,41 @@ get:
     - name: limit
       in: query
       description: |-
-        Maximum number of data points to return for raw queries. When omitted, all matching
-        points within the requested time range are returned (subject to a server-side ceiling).
+        Page size for raw queries — the maximum number of data points to return. When omitted, the
+        server-side ceiling is used. If more points match than are returned, the response's
+        `meta.nextCursor` carries an opaque cursor for the next page (see `cursor`).
       required: false
       schema:
         type: integer
         format: int32
         minimum: 1
         example: 1000
+    - name: cursor
+      in: query
+      description: |-
+        Opaque pagination cursor for raw queries. Pass back the `meta.nextCursor` value from a
+        previous response (unchanged) to fetch the next page; omit it for the first page. Keep
+        `from`/`to` identical across pages. Pagination is keyset-based over the `(timestamp, revision)`
+        order, so it is stable while new points are appended. Cursors are only valid for a
+        single-property raw read — combining `cursor` with `step`, `agg` or `fill` is rejected with
+        `400`.
+      required: false
+      schema:
+        type: string
+        example: 'eyJ0IjoiMjAyNi0wMS0xNFQxMDowMTowMFoiLCJyIjo0Mn0'
+    - name: order
+      in: query
+      description: |-
+        Chronological order of a raw read: `asc` (default, oldest first) or `desc` (newest first,
+        convenient for "scroll back into the past" UIs paged with `cursor`). `desc` is only supported
+        for raw reads — combining it with `step`, `agg` or `fill` is rejected with `400`. Keep `order`
+        consistent across pages of a cursor walk.
+      required: false
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: asc
+        example: desc
     - name: timeFormat
       in: query
       description: |-
@@ -137,6 +164,8 @@ get:
           * a per-bucket aggregation was requested without a `step`.
           * `agg=percentile` without a `percentile`, or `percentile` outside `[0, 100]`.
           * `limit` is not a valid integer.
+          * `cursor` is malformed, or combined with `step`, `agg` or `fill`.
+          * `order` is not `asc`/`desc`, or `order=desc` combined with `step`, `agg` or `fill`.
       content:
         application/json:
           schema:

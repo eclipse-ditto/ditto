@@ -69,7 +69,8 @@ public interface TimeseriesQuery extends Jsonifiable<JsonObject> {
             @Nullable final ZoneId timezone) {
 
         return ImmutableTimeseriesQuery.of(
-                thingId, paths, from, to, step, aggregation, fillStrategy, limit, timezone, null);
+                thingId, paths, from, to, step, aggregation, fillStrategy, limit, timezone, null, null,
+                null);
     }
 
     /**
@@ -102,7 +103,95 @@ public interface TimeseriesQuery extends Jsonifiable<JsonObject> {
             @Nullable final Double percentile) {
 
         return ImmutableTimeseriesQuery.of(
-                thingId, paths, from, to, step, aggregation, fillStrategy, limit, timezone, percentile);
+                thingId, paths, from, to, step, aggregation, fillStrategy, limit, timezone, percentile,
+                null, null);
+    }
+
+    /**
+     * Returns a new {@code TimeseriesQuery} including the {@code cursor} pagination parameter.
+     * Optional fields may be {@code null}.
+     * <p>
+     * A {@code cursor} resumes a raw read after a previous page (keyset pagination) and is only valid
+     * for a single-path raw query — it must not be combined with {@code aggregation}, {@code step} or
+     * {@code fillStrategy}, nor with a multi-path request. Those combinations are rejected with
+     * {@link TimeseriesQueryInvalidException} (HTTP 400).
+     *
+     * @param thingId the Thing to query.
+     * @param paths the paths within the Thing whose timeseries are requested.
+     * @param from inclusive lower bound of the time range.
+     * @param to exclusive upper bound of the time range.
+     * @param step downsampling interval; may be {@code null} for raw queries.
+     * @param aggregation the aggregation function to apply per bucket; may be {@code null}.
+     * @param fillStrategy how empty buckets are filled when downsampling; may be {@code null}.
+     * @param limit a maximum number of data points to return (the page size); may be {@code null}.
+     * @param timezone the timezone used to align step boundaries; may be {@code null} (UTC is used).
+     * @param percentile the percentile in {@code [0, 100]} for {@link Aggregation#PERCENTILE}; may be
+     * {@code null} for other aggregations.
+     * @param cursor an opaque pagination cursor from a previous response's {@code nextCursor}; may be
+     * {@code null} to start from the beginning of the range.
+     * @return the new query.
+     * @throws NullPointerException if any non-{@code @Nullable} argument is {@code null}.
+     */
+    static TimeseriesQuery of(final ThingId thingId,
+            final List<JsonPointer> paths,
+            final Instant from,
+            final Instant to,
+            @Nullable final Duration step,
+            @Nullable final Aggregation aggregation,
+            @Nullable final FillStrategy fillStrategy,
+            @Nullable final Integer limit,
+            @Nullable final ZoneId timezone,
+            @Nullable final Double percentile,
+            @Nullable final String cursor) {
+
+        return ImmutableTimeseriesQuery.of(
+                thingId, paths, from, to, step, aggregation, fillStrategy, limit, timezone, percentile,
+                cursor, null);
+    }
+
+    /**
+     * Returns a new {@code TimeseriesQuery} including the {@code order} parameter controlling the
+     * chronological direction of a raw read. Optional fields may be {@code null}.
+     * <p>
+     * {@link SortOrder#DESC} (newest first) is only supported for raw reads — it must not be combined
+     * with {@code step}, {@code aggregation} or {@code fillStrategy}, which is rejected with
+     * {@link TimeseriesQueryInvalidException} (HTTP 400). {@code null} defaults to
+     * {@link SortOrder#ASC}.
+     *
+     * @param thingId the Thing to query.
+     * @param paths the paths within the Thing whose timeseries are requested.
+     * @param from inclusive lower bound of the time range.
+     * @param to exclusive upper bound of the time range.
+     * @param step downsampling interval; may be {@code null} for raw queries.
+     * @param aggregation the aggregation function to apply per bucket; may be {@code null}.
+     * @param fillStrategy how empty buckets are filled when downsampling; may be {@code null}.
+     * @param limit a maximum number of data points to return (the page size); may be {@code null}.
+     * @param timezone the timezone used to align step boundaries; may be {@code null} (UTC is used).
+     * @param percentile the percentile in {@code [0, 100]} for {@link Aggregation#PERCENTILE}; may be
+     * {@code null} for other aggregations.
+     * @param cursor an opaque pagination cursor from a previous response's {@code nextCursor}; may be
+     * {@code null} to start from the beginning of the range.
+     * @param order the chronological order of a raw read; may be {@code null} for the default
+     * {@link SortOrder#ASC}.
+     * @return the new query.
+     * @throws NullPointerException if any non-{@code @Nullable} argument is {@code null}.
+     */
+    static TimeseriesQuery of(final ThingId thingId,
+            final List<JsonPointer> paths,
+            final Instant from,
+            final Instant to,
+            @Nullable final Duration step,
+            @Nullable final Aggregation aggregation,
+            @Nullable final FillStrategy fillStrategy,
+            @Nullable final Integer limit,
+            @Nullable final ZoneId timezone,
+            @Nullable final Double percentile,
+            @Nullable final String cursor,
+            @Nullable final SortOrder order) {
+
+        return ImmutableTimeseriesQuery.of(
+                thingId, paths, from, to, step, aggregation, fillStrategy, limit, timezone, percentile,
+                cursor, order);
     }
 
     /**
@@ -120,7 +209,8 @@ public interface TimeseriesQuery extends Jsonifiable<JsonObject> {
             final Instant from,
             final Instant to) {
 
-        return ImmutableTimeseriesQuery.of(thingId, paths, from, to, null, null, null, null, null, null);
+        return ImmutableTimeseriesQuery.of(
+                thingId, paths, from, to, null, null, null, null, null, null, null, null);
     }
 
     /**
@@ -186,6 +276,19 @@ public interface TimeseriesQuery extends Jsonifiable<JsonObject> {
      * @return the percentile in {@code [0, 100]} for {@link Aggregation#PERCENTILE}, if set.
      */
     Optional<Double> getPercentile();
+
+    /**
+     * @return the opaque pagination cursor if set — a keyset position from a previous response's
+     * {@code nextCursor}, resuming a raw read after that page. Empty for the first page. See
+     * {@link TimeseriesCursor}.
+     */
+    Optional<String> getCursor();
+
+    /**
+     * @return the chronological order of a raw read if set. Empty means the default
+     * {@link SortOrder#ASC} (oldest first).
+     */
+    Optional<SortOrder> getOrder();
 
     @Override
     default JsonSchemaVersion[] getSupportedSchemaVersions() {
@@ -256,6 +359,18 @@ public interface TimeseriesQuery extends Jsonifiable<JsonObject> {
          */
         public static final JsonFieldDefinition<Double> PERCENTILE =
                 JsonFactory.newDoubleFieldDefinition("percentile", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        /**
+         * The opaque pagination cursor. Optional.
+         */
+        public static final JsonFieldDefinition<String> CURSOR =
+                JsonFactory.newStringFieldDefinition("cursor", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        /**
+         * The sort order (wire form {@code asc}/{@code desc}). Optional; defaults to {@code asc}.
+         */
+        public static final JsonFieldDefinition<String> ORDER =
+                JsonFactory.newStringFieldDefinition("order", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

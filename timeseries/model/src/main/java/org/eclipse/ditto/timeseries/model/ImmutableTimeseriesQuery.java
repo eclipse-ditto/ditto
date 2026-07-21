@@ -64,6 +64,8 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
     @Nullable private final Integer limit;
     @Nullable private final ZoneId timezone;
     @Nullable private final Double percentile;
+    @Nullable private final String cursor;
+    @Nullable private final SortOrder order;
 
     private ImmutableTimeseriesQuery(final ThingId thingId,
             final List<JsonPointer> paths,
@@ -74,7 +76,9 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
             @Nullable final FillStrategy fillStrategy,
             @Nullable final Integer limit,
             @Nullable final ZoneId timezone,
-            @Nullable final Double percentile) {
+            @Nullable final Double percentile,
+            @Nullable final String cursor,
+            @Nullable final SortOrder order) {
 
         this.thingId = thingId;
         this.paths = paths;
@@ -86,6 +90,8 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
         this.limit = limit;
         this.timezone = timezone;
         this.percentile = percentile;
+        this.cursor = cursor;
+        this.order = order;
     }
 
     static TimeseriesQuery of(final ThingId thingId,
@@ -97,20 +103,22 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
             @Nullable final FillStrategy fillStrategy,
             @Nullable final Integer limit,
             @Nullable final ZoneId timezone,
-            @Nullable final Double percentile) {
+            @Nullable final Double percentile,
+            @Nullable final String cursor,
+            @Nullable final SortOrder order) {
 
         checkNotNull(thingId, "thingId");
         checkNotNull(paths, "paths");
         checkNotNull(from, "from");
         checkNotNull(to, "to");
-        validateSemantics(paths, aggregation, step, percentile);
+        validateSemantics(paths, aggregation, step, percentile, fillStrategy, cursor, order);
 
         final List<JsonPointer> defensivePaths =
                 Collections.unmodifiableList(new ArrayList<>(paths));
 
         return new ImmutableTimeseriesQuery(
                 thingId, defensivePaths, from, to, step, aggregation, fillStrategy, limit, timezone,
-                percentile);
+                percentile, cursor, order);
     }
 
     /**
@@ -122,13 +130,18 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
     private static void validateSemantics(final List<JsonPointer> paths,
             @Nullable final Aggregation aggregation,
             @Nullable final Duration step,
-            @Nullable final Double percentile) {
+            @Nullable final Double percentile,
+            @Nullable final FillStrategy fillStrategy,
+            @Nullable final String cursor,
+            @Nullable final SortOrder order) {
 
         if (paths.size() > MAX_PATHS) {
             throw TimeseriesQueryInvalidException.newBuilder(
                     "A query may request at most <" + MAX_PATHS + "> paths but <" + paths.size() +
                             "> were given. Split the request into smaller batches.").build();
         }
+        validateCursor(paths, aggregation, step, fillStrategy, cursor);
+        validateOrder(aggregation, step, fillStrategy, order);
         if (percentile != null && (percentile < 0.0 || percentile > 100.0)) {
             throw TimeseriesQueryInvalidException.newBuilder(
                     "Parameter <percentile> must be between 0 and 100 but was <" + percentile + ">.")
@@ -145,6 +158,53 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
                         "Aggregation <percentile> requires a <percentile> value between 0 and 100.")
                         .build();
             }
+        }
+    }
+
+    /**
+     * Cursor pagination is keyset-based over a single raw series, so it is incompatible with
+     * downsampling (a {@code step}/{@code aggregation}/{@code fill} reshapes the series into buckets)
+     * and with multi-path reads (each path is an independent series with its own position). A
+     * malformed cursor is rejected here too, so every transport reports the same 400. Validation is
+     * skipped when no cursor is set.
+     */
+    private static void validateCursor(final List<JsonPointer> paths,
+            @Nullable final Aggregation aggregation,
+            @Nullable final Duration step,
+            @Nullable final FillStrategy fillStrategy,
+            @Nullable final String cursor) {
+
+        if (cursor == null) {
+            return;
+        }
+        if (aggregation != null || step != null || fillStrategy != null) {
+            throw TimeseriesQueryInvalidException.newBuilder(
+                    "Cursor pagination is only supported for raw reads and cannot be combined with " +
+                            "<step>, <agg> or <fill>.").build();
+        }
+        if (paths.size() != 1) {
+            throw TimeseriesQueryInvalidException.newBuilder(
+                    "Cursor pagination requires exactly one path but <" + paths.size() +
+                            "> were given.").build();
+        }
+        // Reject a malformed cursor at the model layer (throws TimeseriesQueryInvalidException).
+        TimeseriesCursor.decode(cursor);
+    }
+
+    /**
+     * Descending order reverses the raw scan; downsampled reads are always emitted in ascending
+     * bucket order, so {@code order=desc} is incompatible with {@code step}/{@code aggregation}/
+     * {@code fill}. Ascending is the default and imposes no constraint.
+     */
+    private static void validateOrder(@Nullable final Aggregation aggregation,
+            @Nullable final Duration step,
+            @Nullable final FillStrategy fillStrategy,
+            @Nullable final SortOrder order) {
+
+        if (order == SortOrder.DESC && (aggregation != null || step != null || fillStrategy != null)) {
+            throw TimeseriesQueryInvalidException.newBuilder(
+                    "Order <desc> is only supported for raw reads and cannot be combined with " +
+                            "<step>, <agg> or <fill>.").build();
         }
     }
 
@@ -170,8 +230,13 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
                 .map(s -> parseZoneId(s))
                 .orElse(null);
         final Double percentile = jsonObject.getValue(JsonFields.PERCENTILE).orElse(null);
+        final String cursor = jsonObject.getValue(JsonFields.CURSOR).orElse(null);
+        final SortOrder order = jsonObject.getValue(JsonFields.ORDER)
+                .map(s -> parseSortOrder(s))
+                .orElse(null);
 
-        return of(thingId, paths, from, to, step, aggregation, fillStrategy, limit, timezone, percentile);
+        return of(thingId, paths, from, to, step, aggregation, fillStrategy, limit, timezone, percentile,
+                cursor, order);
     }
 
     private static List<JsonPointer> pathsFromJson(final JsonArray array) {
@@ -237,6 +302,13 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
         }
     }
 
+    private static SortOrder parseSortOrder(final String raw) {
+        return SortOrder.forName(raw).orElseThrow(() -> new DittoJsonException(JsonParseException.newBuilder()
+                .message("Field <order> has an unknown value: <" + raw + ">.")
+                .description("Expected one of: \"asc\", \"desc\".")
+                .build()));
+    }
+
     @Override
     public ThingId getThingId() {
         return thingId;
@@ -288,6 +360,16 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
     }
 
     @Override
+    public Optional<String> getCursor() {
+        return Optional.ofNullable(cursor);
+    }
+
+    @Override
+    public Optional<SortOrder> getOrder() {
+        return Optional.ofNullable(order);
+    }
+
+    @Override
     public JsonObject toJson() {
         final JsonObjectBuilder builder = JsonFactory.newObjectBuilder()
                 .set(JsonFields.THING_ID, thingId.toString())
@@ -312,6 +394,12 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
         }
         if (percentile != null) {
             builder.set(JsonFields.PERCENTILE, percentile);
+        }
+        if (cursor != null) {
+            builder.set(JsonFields.CURSOR, cursor);
+        }
+        if (order != null) {
+            builder.set(JsonFields.ORDER, order.getName());
         }
 
         return builder.build();
@@ -343,13 +431,15 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
                 fillStrategy == that.fillStrategy &&
                 Objects.equals(limit, that.limit) &&
                 Objects.equals(timezone, that.timezone) &&
-                Objects.equals(percentile, that.percentile);
+                Objects.equals(percentile, that.percentile) &&
+                Objects.equals(cursor, that.cursor) &&
+                order == that.order;
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(thingId, paths, from, to, step, aggregation, fillStrategy, limit, timezone,
-                percentile);
+                percentile, cursor, order);
     }
 
     @Override
@@ -365,6 +455,8 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
                 ", limit=" + limit +
                 ", timezone=" + timezone +
                 ", percentile=" + percentile +
+                ", cursor=" + cursor +
+                ", order=" + order +
                 "]";
     }
 }

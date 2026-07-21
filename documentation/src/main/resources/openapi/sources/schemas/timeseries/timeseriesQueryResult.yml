@@ -66,6 +66,13 @@ items:
         limit:
           type: integer
           format: int32
+        cursor:
+          type: string
+          description: Opaque pagination cursor supplied on the request, if any.
+        order:
+          type: string
+          enum: [asc, desc]
+          description: Sort order supplied on the request, if any.
     result:
       type: object
       description: Per-path metadata.
@@ -77,6 +84,17 @@ items:
           type: integer
           format: int32
           description: Number of data points returned.
+        hasMore:
+          type: boolean
+          description: |-
+            Whether more data matched the query than this page returned. Present only for raw
+            (paginated) reads: `true` means another page follows (see `nextCursor`), `false` means
+            this is the last page. Absent for aggregated reads.
+        nextCursor:
+          type: string
+          description: |-
+            Opaque cursor for the next page of a raw read. Present only when `hasMore` is `true`;
+            pass it back as the request's `cursor` to continue. Absent on the last page.
         dataType:
           type: string
           enum:
@@ -95,7 +113,8 @@ items:
     data:
       type: array
       description: |-
-        Returned data points in chronological order (ascending timestamp).
+        Returned data points in the requested chronological order — ascending timestamp by default,
+        or descending when `order=desc`.
       items:
         type: object
         required:
