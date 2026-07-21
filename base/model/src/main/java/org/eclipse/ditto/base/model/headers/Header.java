@@ -14,7 +14,11 @@ package org.eclipse.ditto.base.model.headers;
 
 import java.util.Objects;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
+
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Package internal representation of a header with its key in the original capitalization.
@@ -29,6 +33,16 @@ final class Header implements CharSequence {
 
     private final String key;
     private final String value;
+
+    /*
+     * Lazily memoized JSON representation of {@link #value} for headers whose serialization type is a
+     * JsonObject / JsonArray. Parsing a header value is a pure function of the (immutable) value string, so this
+     * cache is an idempotent derived value: the field is intentionally non-final and unsynchronized (benign data
+     * race, same pattern as {@link String#hashCode()}) and does not affect the observable immutability of Header.
+     * Only populated on demand via {@link #getParsedValue()} for headers that actually hold JSON.
+     */
+    @Nullable
+    private JsonValue parsedValue;
 
     private Header(final String key, final String value) {
         this.key = key;
@@ -45,6 +59,23 @@ final class Header implements CharSequence {
 
     String getValue() {
         return value;
+    }
+
+    /**
+     * Returns the header value parsed as a {@link JsonValue}, memoizing the result for subsequent calls.
+     * Must only be called for headers whose value is a JSON object or array (i.e. whose serialization type is not a
+     * plain {@code CharSequence}); calling it for a non-JSON value fails the same way the previous per-access parsing
+     * did.
+     *
+     * @return the parsed (and cached) JSON representation of the header value.
+     */
+    JsonValue getParsedValue() {
+        JsonValue result = parsedValue;
+        if (null == result) {
+            result = JsonFactory.readFrom(value);
+            parsedValue = result;
+        }
+        return result;
     }
 
     @Override

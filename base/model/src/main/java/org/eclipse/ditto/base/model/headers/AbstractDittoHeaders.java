@@ -152,11 +152,11 @@ public abstract class AbstractDittoHeaders implements DittoHeaders {
         }
     }
 
-    private static JsonObject getAuthorizationContextAsJson(final Map<String, ? extends CharSequence> headers) {
-        final CharSequence jsonObjectString = headers.get(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey());
+    private JsonObject getAuthorizationContextAsJson() {
+        @Nullable final Header authContextHeader = headers.get(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey());
         final JsonObject result;
-        if (null != jsonObjectString) {
-            result = JsonObject.of(jsonObjectString.toString());
+        if (null != authContextHeader) {
+            result = authContextHeader.getParsedValue().asObject();
         } else {
             result = JsonObject.empty();
         }
@@ -194,14 +194,14 @@ public abstract class AbstractDittoHeaders implements DittoHeaders {
 
     @Override
     public AuthorizationContext getAuthorizationContext() {
-        return AuthorizationModelFactory.newAuthContext(getAuthorizationContextAsJson(headers));
+        return AuthorizationModelFactory.newAuthContext(getAuthorizationContextAsJson());
     }
 
     protected JsonArray getJsonArrayForDefinition(final HeaderDefinition definition) {
         @Nullable final Header jsonArrayHeader = headers.get(definition.getKey());
         final JsonArray result;
         if (null != jsonArrayHeader) {
-            result = JsonArray.of(jsonArrayHeader.getValue());
+            result = jsonArrayHeader.getParsedValue().asArray();
         } else {
             result = JsonArray.empty();
         }
@@ -449,7 +449,7 @@ public abstract class AbstractDittoHeaders implements DittoHeaders {
             final Class<?> type = getSerializationTypeForKey(key);
             final JsonValue jsonValue = CharSequence.class.isAssignableFrom(type)
                     ? JsonValue.of(header.getValue())
-                    : JsonFactory.readFrom(header.getValue());
+                    : header.getParsedValue();
             jsonObjectBuilder.set(header.getKey(), jsonValue);
         });
         return jsonObjectBuilder.build();
