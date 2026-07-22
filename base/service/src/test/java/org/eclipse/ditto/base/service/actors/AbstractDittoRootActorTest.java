@@ -30,6 +30,7 @@ import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.Props;
 import org.apache.pekko.cluster.Cluster;
+import org.apache.pekko.cluster.singleton.ClusterSingletonManagerIsStuck;
 import org.apache.pekko.japi.pf.ReceiveBuilder;
 import org.apache.pekko.stream.Attributes;
 import org.apache.pekko.testkit.javadsl.TestKit;
@@ -154,6 +155,39 @@ public abstract class AbstractDittoRootActorTest {
             throwingActor.tell(new UnknownException(), getRef());
 
             assertRestartSuccess(underTest, throwingActor, this);
+        }};
+    }
+
+    @Test
+    public void clusterSingletonManagerIsStuckRestartsChildInsteadOfTerminating() {
+        final ActorSystem system = createAndRememberForCleanUp();
+
+        if (disableLogging()) {
+            system.eventStream().setLogLevel(Attributes.logLevelOff());
+        }
+
+        new TestKit(system) {{
+            final ActorRef underTest = getRootActorName()
+                    .map(name -> watch(system.actorOf(getRootActorProps(system), name)))
+                    .orElseGet(() -> watch(system.actorOf(getRootActorProps(system))));
+
+            // the Props factory notifies us on every (re)creation of the child, so a restart is observable
+            underTest.tell(new StartChildActor(
+                    Props.create(ThrowingActor.class, () -> new ThrowingActor(getRef())),
+                    "singletonLikeChild"
+            ), getRef());
+
+            final ActorRef throwingActor = expectMsgClass(Duration.ofSeconds(100L), ActorRef.class);
+
+            // a stuck cluster singleton manager must NOT escalate (which would restart the root actor and
+            // re-bind the status route port); it must restart the failing child from a clean state
+            throwingActor.tell(new ClusterSingletonManagerIsStuck("test: previous oldest is unresponsive"), getRef());
+
+            // the child is recreated (its Props factory runs again) - proving a child restart, not root termination
+            expectMsgClass(Duration.ofSeconds(100L), ActorRef.class);
+
+            // and the root actor is still alive (no Terminated received)
+            expectNoMessage();
         }};
     }
 

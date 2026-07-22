@@ -179,6 +179,8 @@ spec:
               value: "{{ .Values.global.cluster.downingStableAfter }}"
             - name: CLUSTER_DOWNING_DOWN_ALL_WHEN_UNSTABLE
               value: "{{ .Values.global.cluster.downAllWhenUnstable }}"
+            - name: PEKKO_CLUSTER_SINGLETON_MIN_NUMBER_OF_HAND_OVER_RETRIES
+              value: "{{ .Values.global.cluster.singletonMinNumberOfHandOverRetries }}"
             {{- if .Values.global.prometheus.enabled }}
             - name: PROMETHEUS_PORT
               value: "{{ .Values.global.prometheus.port }}"

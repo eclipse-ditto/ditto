@@ -17,6 +17,7 @@ import static org.apache.pekko.http.javadsl.server.Directives.logResult;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.net.BindException;
 import java.net.ConnectException;
 import java.util.NoSuchElementException;
 
@@ -39,6 +40,7 @@ import org.apache.pekko.actor.Props;
 import org.apache.pekko.actor.Status;
 import org.apache.pekko.actor.SupervisorStrategy;
 import org.apache.pekko.cluster.Cluster;
+import org.apache.pekko.cluster.singleton.ClusterSingletonManagerIsStuck;
 import org.apache.pekko.http.javadsl.Http;
 import org.apache.pekko.http.javadsl.server.Route;
 import org.apache.pekko.japi.pf.DeciderBuilder;
@@ -94,6 +96,15 @@ public abstract class DittoRootActor extends AbstractActor {
                         "DittoRuntimeException '{}' should not be escalated to ConnectivityRootActor. Simply resuming Actor.",
                         e.getErrorCode());
                 return SupervisorStrategy.resume();
+            }).match(ClusterSingletonManagerIsStuck.class, e -> {
+                // Do NOT escalate: escalating restarts this root actor, which re-runs its constructor and
+                // re-binds the HTTP status route on an already-bound port -> BindException -> system.terminate().
+                // Restarting only the stuck ClusterSingletonManager child is exactly the recovery Pekko intends:
+                // it starts from a clean state and takes over the singleton once the previous oldest node has
+                // been removed from the cluster. Typically observed during rolling updates.
+                log.warning("ClusterSingletonManager is stuck: <{}>. Restarting the cluster singleton manager " +
+                        "child to recover from a clean state.", e.getMessage());
+                return SupervisorStrategy.restart();
             }).match(Throwable.class, e -> {
                 log.error(e, "Escalating above root actor!");
                 return (SupervisorStrategy.Directive) SupervisorStrategy.escalate();
@@ -167,22 +178,42 @@ public abstract class DittoRootActor extends AbstractActor {
         }
 
         final ActorSystem system = getContext().getSystem();
+        final String bindHostname = hostname;
 
         Http.get(system)
-                .newServerAt(hostname, httpConfig.getPort())
+                .newServerAt(bindHostname, httpConfig.getPort())
                 .bindFlow(createStatusRoute(system, healthCheckingActor).flow(system))
                 .thenAccept(theBinding -> {
                     theBinding.addToCoordinatedShutdown(httpConfig.getCoordinatedShutdownTimeout(), system);
                     log.info("Created new server binding for the status route.");
                 })
                 .exceptionally(failure -> {
-                    log.error(failure,
-                            "Could not create the server binding for the status route because of: <{}>",
-                            failure.getMessage());
-                    log.error("Terminating the actor system");
-                    system.terminate();
+                    if (isCausedByBindException(failure)) {
+                        // The port is already bound - e.g. by a previous binding of this same JVM that survived
+                        // an actor restart. Do not terminate the actor system; the existing binding keeps serving
+                        // the status route. Terminating here would kill the pod (and, on restart, hit the same
+                        // already-in-use port), causing avoidable rolling-update restarts.
+                        log.warning("Could not bind the status route to port <{}> because the address is already " +
+                                "in use: <{}>. Keeping the actor system alive - an existing binding continues to " +
+                                "serve the status route.", httpConfig.getPort(), failure.getMessage());
+                    } else {
+                        log.error(failure,
+                                "Could not create the server binding for the status route because of: <{}>",
+                                failure.getMessage());
+                        log.error("Terminating the actor system");
+                        system.terminate();
+                    }
                     return null;
                 });
+    }
+
+    private static boolean isCausedByBindException(final Throwable failure) {
+        for (Throwable cause = failure; cause != null && cause != cause.getCause(); cause = cause.getCause()) {
+            if (cause instanceof BindException) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static Route createStatusRoute(final ActorSystem actorSystem, final ActorRef healthCheckingActor) {

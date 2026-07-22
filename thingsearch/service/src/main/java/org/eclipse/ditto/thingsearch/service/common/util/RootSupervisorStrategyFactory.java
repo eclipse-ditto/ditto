@@ -21,6 +21,7 @@ import org.apache.pekko.actor.ActorKilledException;
 import org.apache.pekko.actor.InvalidActorNameException;
 import org.apache.pekko.actor.OneForOneStrategy;
 import org.apache.pekko.actor.SupervisorStrategy;
+import org.apache.pekko.cluster.singleton.ClusterSingletonManagerIsStuck;
 import org.apache.pekko.event.LoggingAdapter;
 import org.apache.pekko.japi.pf.DeciderBuilder;
 import org.apache.pekko.pattern.AskTimeoutException;
@@ -74,6 +75,15 @@ public final class RootSupervisorStrategyFactory {
                             "DittoRuntimeException '{}' should not be escalated to RootActor. Simply resuming Actor.",
                             e.getErrorCode());
                     return SupervisorStrategy.resume();
+                }).match(ClusterSingletonManagerIsStuck.class, e -> {
+                    // Do NOT escalate: restart only the stuck ClusterSingletonManager child so it recovers from a
+                    // clean state and takes over once the previous oldest is removed from the cluster. Escalating
+                    // would restart the root actor (see DittoRootActor for the full rationale). Typically observed
+                    // during rolling updates.
+                    log.warning("ClusterSingletonManager is stuck: {}. Restarting the cluster singleton manager " +
+                            "child to recover from a clean state.", e.getMessage());
+                    log.info(RESTARTING_CHILD_MSG);
+                    return SupervisorStrategy.restart();
                 }).match(Throwable.class, e -> {
                     log.error(e, "Escalating above root actor!");
                     return SupervisorStrategy.escalate();
