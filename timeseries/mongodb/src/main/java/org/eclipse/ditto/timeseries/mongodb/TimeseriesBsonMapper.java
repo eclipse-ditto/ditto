@@ -171,6 +171,25 @@ public final class TimeseriesBsonMapper {
         return meta == null ? null : meta.getString(META_PATH);
     }
 
+    /**
+     * Returns the {@code meta.tags} of a stored document as a string map, preserving order; empty
+     * when the document carries no tags.
+     */
+    public static Map<String, String> getStoredTags(final Document document) {
+        checkNotNull(document, "document");
+        final Document meta = (Document) document.get(FIELD_META);
+        if (meta == null || !(meta.get(META_TAGS) instanceof Document tagsDoc)) {
+            return Map.of();
+        }
+        final Map<String, String> result = new LinkedHashMap<>();
+        for (final Map.Entry<String, Object> entry : tagsDoc.entrySet()) {
+            if (entry.getValue() != null) {
+                result.put(entry.getKey(), entry.getValue().toString());
+            }
+        }
+        return result;
+    }
+
     private static JsonValue bsonValueToJsonValue(@Nullable final Object raw) {
         if (raw == null) {
             return JsonFactory.nullLiteral();

@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
@@ -290,6 +291,24 @@ public interface TimeseriesQuery extends Jsonifiable<JsonObject> {
      */
     Optional<SortOrder> getOrder();
 
+    /**
+     * @return the tag filters restricting the query to points whose resolved tags match every
+     * given key/value pair (logical AND). Always non-null; may be empty (no tag filtering). The
+     * returned map is unmodifiable.
+     */
+    Map<String, String> getTagFilters();
+
+    /**
+     * Returns a copy of this query with the given tag filters. Only points whose stored tags match
+     * every key/value pair are returned. Modelled as a wither rather than another {@code of(...)}
+     * parameter to keep the factory signatures manageable.
+     *
+     * @param tagFilters the tag key/value pairs to match (logical AND); may be empty to clear.
+     * @return a copy of this query carrying the given tag filters.
+     * @throws NullPointerException if {@code tagFilters} is {@code null}.
+     */
+    TimeseriesQuery withTagFilters(Map<String, String> tagFilters);
+
     @Override
     default JsonSchemaVersion[] getSupportedSchemaVersions() {
         return new JsonSchemaVersion[] {JsonSchemaVersion.V_2};
@@ -371,6 +390,12 @@ public interface TimeseriesQuery extends Jsonifiable<JsonObject> {
          */
         public static final JsonFieldDefinition<String> ORDER =
                 JsonFactory.newStringFieldDefinition("order", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        /**
+         * The tag filters as a JSON object of key/value pairs. Optional.
+         */
+        public static final JsonFieldDefinition<JsonObject> TAG_FILTERS =
+                JsonFactory.newJsonObjectFieldDefinition("tagFilters", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

@@ -29,6 +29,7 @@ import static org.mockito.Mockito.when;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Map;
 import java.util.List;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
@@ -459,6 +460,37 @@ public final class MongoDbTimeseriesAdapterTest {
         assertThat(results.get(0).getMeta().getDataType()).isEqualTo("string");
     }
 
+    // --- Tags (return + filter) ---
+
+    @Test
+    public void rawReadReturnsStoredTagsInMeta() {
+        stubFindReturning(mongoCollection, docForWithTags(
+                Instant.parse("2026-01-14T10:00:00Z"), JsonValue.of(1.0), Map.of("building", "A", "floor", "2")));
+        final MongoDbTimeseriesAdapter adapter = newInitialisedAdapter();
+
+        final List<org.eclipse.ditto.timeseries.model.TimeseriesQueryResult> results =
+                adapter.query(buildQuery()).toCompletableFuture().join();
+
+        assertThat(results.get(0).getMeta().getTags())
+                .containsEntry("building", "A")
+                .containsEntry("floor", "2");
+    }
+
+    @Test
+    public void tagFilterQueryExecutesAndReturnsData() {
+        // Exercises the meta.tags.* filter branch end-to-end (the mock returns the matching point).
+        stubFindReturning(mongoCollection, docForWithTags(
+                Instant.parse("2026-01-14T10:00:00Z"), JsonValue.of(1.0), Map.of("building", "A")));
+        final MongoDbTimeseriesAdapter adapter = newInitialisedAdapter();
+        final org.eclipse.ditto.timeseries.model.TimeseriesQuery query =
+                buildQuery().withTagFilters(Map.of("building", "A"));
+
+        final List<org.eclipse.ditto.timeseries.model.TimeseriesQueryResult> results =
+                adapter.query(query).toCompletableFuture().join();
+
+        assertThat(results.get(0).getData()).hasSize(1);
+    }
+
     // --- Cursor pagination (raw reads) ---
 
     @Test
@@ -751,6 +783,12 @@ public final class MongoDbTimeseriesAdapterTest {
     private static org.bson.Document docFor(final Instant timestamp, final JsonValue value) {
         return TimeseriesBsonMapper.toDocument(TimeseriesDataPoint.of(
                 THING_ID, PATH, timestamp, value, 1L, Collections.emptyMap(), null));
+    }
+
+    private static org.bson.Document docForWithTags(final Instant timestamp, final JsonValue value,
+            final Map<String, String> tags) {
+        return TimeseriesBsonMapper.toDocument(TimeseriesDataPoint.of(
+                THING_ID, PATH, timestamp, value, 1L, tags, null));
     }
 
     @SuppressWarnings("unchecked")

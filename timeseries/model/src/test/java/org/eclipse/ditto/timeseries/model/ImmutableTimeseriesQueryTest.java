@@ -22,7 +22,9 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
@@ -518,6 +520,44 @@ public final class ImmutableTimeseriesQueryTest {
         assertThatExceptionOfType(TimeseriesQueryInvalidException.class).isThrownBy(() ->
                 TimeseriesQuery.of(THING_ID, PATHS, FROM, TO, null, null, FillStrategy.PREVIOUS, null,
                         null, null, null, SortOrder.DESC));
+    }
+
+    @Test
+    public void tagFiltersAreEmptyByDefault() {
+        assertThat(TimeseriesQuery.of(THING_ID, PATHS, FROM, TO).getTagFilters()).isEmpty();
+    }
+
+    @Test
+    public void withTagFiltersRetainsThem() {
+        final TimeseriesQuery underTest = TimeseriesQuery.of(THING_ID, PATHS, FROM, TO)
+                .withTagFilters(tagMap("building", "A"));
+
+        assertThat(underTest.getTagFilters()).containsEntry("building", "A");
+    }
+
+    @Test
+    public void tagFiltersRoundTripThroughJson() {
+        final TimeseriesQuery original = TimeseriesQuery.of(THING_ID, PATHS, FROM, TO)
+                .withTagFilters(tagMap("building", "A", "floor", "2"));
+
+        final JsonObject json = original.toJson();
+        final TimeseriesQuery reconstructed = TimeseriesQuery.fromJson(json);
+
+        assertThat(reconstructed).isEqualTo(original);
+        assertThat(reconstructed.getTagFilters()).containsEntry("building", "A").containsEntry("floor", "2");
+    }
+
+    @Test
+    public void toJsonOmitsTagFiltersWhenEmpty() {
+        assertThat(TimeseriesQuery.of(THING_ID, PATHS, FROM, TO).toJson().contains("tagFilters")).isFalse();
+    }
+
+    private static Map<String, String> tagMap(final String... keyValues) {
+        final Map<String, String> map = new LinkedHashMap<>();
+        for (int i = 0; i + 1 < keyValues.length; i += 2) {
+            map.put(keyValues[i], keyValues[i + 1]);
+        }
+        return map;
     }
 
     private static JsonObjectBuilder baseJson() {

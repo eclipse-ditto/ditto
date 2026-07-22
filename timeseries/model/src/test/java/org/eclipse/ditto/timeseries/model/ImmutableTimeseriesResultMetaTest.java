@@ -17,6 +17,9 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
@@ -136,44 +139,48 @@ public final class ImmutableTimeseriesResultMetaTest {
     }
 
     @Test
-    public void paginationMetaIsEmptyByDefault() {
+    public void paginationAndTagsAreEmptyByDefault() {
         final TimeseriesResultMeta underTest = TimeseriesResultMeta.of(24, "cel", "number");
 
         assertThat(underTest.getNextCursor()).isEmpty();
         assertThat(underTest.getHasMore()).isEmpty();
+        assertThat(underTest.getTags()).isEmpty();
     }
 
     @Test
-    public void factoryRetainsPaginationMeta() {
-        final TimeseriesResultMeta underTest =
-                TimeseriesResultMeta.of(24, "cel", "number", true, "abc123");
+    public void factoryRetainsTagsAndPaginationMeta() {
+        final TimeseriesResultMeta underTest = TimeseriesResultMeta.of(24, "cel", "number",
+                tagMap("building", "A"), true, "abc123");
 
+        assertThat(underTest.getTags()).containsEntry("building", "A");
         assertThat(underTest.getHasMore()).contains(true);
         assertThat(underTest.getNextCursor()).contains("abc123");
     }
 
     @Test
-    public void toJsonContainsPaginationMetaWhenPresent() {
-        final TimeseriesResultMeta underTest =
-                TimeseriesResultMeta.of(24, "cel", "number", true, "abc123");
+    public void toJsonContainsTagsAndPaginationMetaWhenPresent() {
+        final TimeseriesResultMeta underTest = TimeseriesResultMeta.of(24, "cel", "number",
+                tagMap("building", "A"), true, "abc123");
 
         final JsonObject json = underTest.toJson();
+        assertThat(json.getValue("tags").map(JsonValue::asObject).flatMap(o -> o.getValue("building")))
+                .contains(JsonValue.of("A"));
         assertThat(json.getValue("hasMore")).contains(JsonValue.of(true));
         assertThat(json.getValue("nextCursor")).contains(JsonValue.of("abc123"));
     }
 
     @Test
-    public void toJsonEmitsHasMoreFalseWithoutCursorOnLastPage() {
-        final TimeseriesResultMeta underTest = TimeseriesResultMeta.of(24, "cel", "number", false, null);
+    public void toJsonOmitsTagsWhenEmpty() {
+        final TimeseriesResultMeta underTest = TimeseriesResultMeta.of(24, "cel", "number",
+                tagMap(), false, null);
 
-        final JsonObject json = underTest.toJson();
-        assertThat(json.getValue("hasMore")).contains(JsonValue.of(false));
-        assertThat(json.contains("nextCursor")).isFalse();
+        assertThat(underTest.toJson().contains("tags")).isFalse();
     }
 
     @Test
     public void toJsonOmitsPaginationMetaForNonPaginatedResult() {
-        final TimeseriesResultMeta underTest = TimeseriesResultMeta.of(24, "cel", "number", null, null);
+        final TimeseriesResultMeta underTest = TimeseriesResultMeta.of(24, "cel", "number",
+                tagMap(), null, null);
 
         final JsonObject json = underTest.toJson();
         assertThat(json.contains("hasMore")).isFalse();
@@ -181,12 +188,27 @@ public final class ImmutableTimeseriesResultMetaTest {
     }
 
     @Test
-    public void roundTripPreservesPaginationMeta() {
-        final TimeseriesResultMeta original =
-                TimeseriesResultMeta.of(24, "cel", "number", true, "abc123");
+    public void roundTripPreservesTagsAndPaginationMeta() {
+        final TimeseriesResultMeta original = TimeseriesResultMeta.of(24, "cel", "number",
+                tagMap("building", "A", "floor", "2"), true, "abc123");
 
         final TimeseriesResultMeta reconstructed = TimeseriesResultMeta.fromJson(original.toJson());
 
         assertThat(reconstructed).isEqualTo(original);
+        assertThat(reconstructed.getTags()).containsEntry("building", "A").containsEntry("floor", "2");
+    }
+
+    @Test
+    public void factoryRejectsNullTags() {
+        assertThatNullPointerException()
+                .isThrownBy(() -> TimeseriesResultMeta.of(0, null, "number", null, null, null));
+    }
+
+    private static Map<String, String> tagMap(final String... keyValues) {
+        final Map<String, String> map = new LinkedHashMap<>();
+        for (int i = 0; i + 1 < keyValues.length; i += 2) {
+            map.put(keyValues[i], keyValues[i + 1]);
+        }
+        return map;
     }
 }

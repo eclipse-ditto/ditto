@@ -17,6 +17,7 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -32,11 +33,15 @@ import org.apache.pekko.actor.Status;
 import org.apache.pekko.pattern.Patterns;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.placeholders.ExpressionResolver;
+import org.eclipse.ditto.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingDefinition;
 import org.eclipse.ditto.things.model.ThingId;
@@ -257,6 +262,11 @@ public final class TimeseriesIngestPublisher extends AbstractActor {
         final long revision = event.getRevision();
         final List<TimeseriesDataPoint> dataPoints = new ArrayList<>();
 
+        // Resolve tag placeholders (e.g. "{{ thing-json:attributes/building }}") against the
+        // post-event Thing once per event — all leaves of one event share the same Thing snapshot.
+        final ExpressionResolver tagResolver = PlaceholderFactory.newExpressionResolver(
+                PlaceholderFactory.newThingJsonPlaceholder(), thing.toJson(FieldType.all()));
+
         for (final PropertyLeaf leaf : leaves) {
             final Optional<ThingModel> submodelTm = submodels.entrySet().stream()
                     .filter(e -> leaf.featureId().equals(e.getKey().instanceName()))
@@ -275,17 +285,41 @@ public final class TimeseriesIngestPublisher extends AbstractActor {
                     .append(JsonPointer.of(leaf.featureId()))
                     .append(JsonPointer.of("properties"))
                     .append(leaf.path());
-            final Map<String, String> resolvedTags = resolveTags(annotation.getTags(), thing);
+            final Map<String, String> resolvedTags = resolveTags(annotation.getTags(), tagResolver, thing);
             dataPoints.add(TimeseriesDataPoint.of(thingId, thingPath, timestamp, leaf.value(), revision,
                     resolvedTags, resolved.get().unit()));
         }
         return dataPoints;
     }
 
-    /** Phase 1 returns declared tags verbatim; placeholder resolution lands in Phase 2. */
+    /**
+     * Resolves each declared tag value against the post-event Thing, replacing WoT placeholder
+     * expressions (e.g. {@code "{{ thing-json:attributes/building }}"}) with the Thing's current
+     * values; constant tag values pass through unchanged.
+     * <p>
+     * A tag whose placeholder resolves to no value on this Thing — or whose expression is malformed —
+     * is <em>dropped</em> for this data point rather than stored empty or failing ingestion. Tags are
+     * a point-in-time snapshot, so each point keeps exactly the values that were resolvable when it
+     * was recorded.
+     */
     private static Map<String, String> resolveTags(final Map<String, String> declared,
-            final Thing ignoredThing) {
-        return declared;
+            final ExpressionResolver resolver, final Thing thing) {
+
+        if (declared.isEmpty()) {
+            return declared;
+        }
+        final Map<String, String> resolved = new LinkedHashMap<>(declared.size());
+        for (final Map.Entry<String, String> entry : declared.entrySet()) {
+            try {
+                PlaceholderFilter.applyOrElseDelete(entry.getValue(), resolver)
+                        .ifPresent(value -> resolved.put(entry.getKey(), value));
+            } catch (final RuntimeException e) {
+                // Malformed/unknown placeholder in the model — drop this tag, never break ingest.
+                LOGGER.debug("Dropping timeseries tag <{}> for thing <{}>: {}",
+                        entry.getKey(), thing.getEntityId().orElse(null), e.getMessage());
+            }
+        }
+        return resolved;
     }
 
     private static DittoHeaders newDeliveryHeaders(final DittoHeaders source) {

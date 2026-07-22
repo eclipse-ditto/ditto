@@ -9459,6 +9459,17 @@ paths:
               - desc
             default: asc
             example: desc
+        - name: tagFilter
+          in: query
+          description: |-
+            Restrict the result to points whose resolved tags match every given `key:value` pair
+            (comma-separated, logical AND) — e.g. `building:A,floor:2`. Tags are declared on the WoT
+            property's `ditto:timeseries` annotation and resolved at ingestion time. Applies to raw and
+            aggregated reads.
+          required: false
+          schema:
+            type: string
+            example: 'building:A,floor:2'
         - name: timeFormat
           in: query
           description: |-
@@ -9490,6 +9501,7 @@ paths:
               * `limit` is not a valid integer.
               * `cursor` is malformed, or combined with `step`, `agg` or `fill`.
               * `order` is not `asc`/`desc`, or `order=desc` combined with `step`, `agg` or `fill`.
+              * `tagFilter` is not a comma-separated list of `key:value` pairs.
           content:
             application/json:
               schema:
@@ -9628,6 +9640,17 @@ paths:
             format: int32
             minimum: 1
             example: 1000
+        - name: tagFilter
+          in: query
+          description: |-
+            Restrict the result to points whose resolved tags match every given `key:value` pair
+            (comma-separated, logical AND) — e.g. `building:A,floor:2`. Tags are declared on the WoT
+            property's `ditto:timeseries` annotation and resolved at ingestion time. Applies to raw and
+            aggregated reads.
+          required: false
+          schema:
+            type: string
+            example: 'building:A,floor:2'
         - name: timeFormat
           in: query
           description: 'Timestamp rendering in the response: `iso` (default) or `ms` (epoch milliseconds).'
@@ -9654,6 +9677,7 @@ paths:
               * `step` is not a valid duration, or `agg`/`fill`/`timeFormat` is not a recognised value.
               * a per-bucket aggregation was requested without a `step`.
               * `agg=percentile` without a `percentile`, or `percentile` outside `[0, 100]`.
+              * `tagFilter` is not a comma-separated list of `key:value` pairs.
           content:
             application/json:
               schema:
@@ -10896,6 +10920,11 @@ components:
                   - asc
                   - desc
                 description: 'Sort order supplied on the request, if any.'
+              tagFilters:
+                type: object
+                additionalProperties:
+                  type: string
+                description: 'Tag filters supplied on the request, if any.'
           result:
             type: object
             description: Per-path metadata.
@@ -10933,6 +10962,14 @@ components:
                 description: |-
                   Unit declared on the WoT property the timeseries was ingested from
                   (semantic prefix stripped). Omitted when the property has no `unit`.
+              tags:
+                type: object
+                additionalProperties:
+                  type: string
+                description: |-
+                  The resolved tags of the series, as stored with the points (representative: the first
+                  point's). Omitted when the series has no tags or for aggregated reads (which group away
+                  per-point metadata).
           data:
             type: array
             description: |-

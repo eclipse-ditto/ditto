@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.timeseries.model;
 
+import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
@@ -46,30 +48,33 @@ public interface TimeseriesResultMeta extends Jsonifiable<JsonObject> {
             @Nullable final String unit,
             final String dataType) {
 
-        return ImmutableTimeseriesResultMeta.of(count, unit, dataType, null, null);
+        return ImmutableTimeseriesResultMeta.of(count, unit, dataType, Collections.emptyMap(), null, null);
     }
 
     /**
-     * Returns a new {@code TimeseriesResultMeta} including pagination metadata.
+     * Returns a new {@code TimeseriesResultMeta} including the resolved tags and pagination metadata.
      *
      * @param count the number of data points returned.
      * @param unit the unit of the values, or {@code null} if not declared.
      * @param dataType a token describing the JSON type of values, e.g. {@code "number"}.
+     * @param tags the resolved tags of the series (as stored with the points); may be empty but never
+     * {@code null}. Empty for aggregated reads, which group away the per-point metadata.
      * @param hasMore whether more data matched the query than this page returned; {@code null} for a
      * non-paginated result (e.g. an aggregated read), in which case it is omitted from the wire form.
      * @param nextCursor an opaque cursor to fetch the next page, or {@code null} when the page is the
      * last one. Present exactly when {@code hasMore} is {@code true}.
      * @return the new meta.
-     * @throws NullPointerException if {@code dataType} is {@code null}.
+     * @throws NullPointerException if {@code dataType} or {@code tags} is {@code null}.
      * @throws IllegalArgumentException if {@code count} is negative.
      */
     static TimeseriesResultMeta of(final int count,
             @Nullable final String unit,
             final String dataType,
+            final Map<String, String> tags,
             @Nullable final Boolean hasMore,
             @Nullable final String nextCursor) {
 
-        return ImmutableTimeseriesResultMeta.of(count, unit, dataType, hasMore, nextCursor);
+        return ImmutableTimeseriesResultMeta.of(count, unit, dataType, tags, hasMore, nextCursor);
     }
 
     /**
@@ -98,6 +103,12 @@ public interface TimeseriesResultMeta extends Jsonifiable<JsonObject> {
      * @return a token describing the JSON type of values, e.g. {@code "number"}.
      */
     String getDataType();
+
+    /**
+     * @return the resolved tags of the series, as stored with the data points. Always non-null; may
+     * be empty (no declared tags, or an aggregated read). The returned map is unmodifiable.
+     */
+    Map<String, String> getTags();
 
     /**
      * @return whether more data matched the query than this page returned. Present only for
@@ -140,6 +151,12 @@ public interface TimeseriesResultMeta extends Jsonifiable<JsonObject> {
          */
         public static final JsonFieldDefinition<String> DATA_TYPE =
                 JsonFactory.newStringFieldDefinition("dataType", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        /**
+         * The resolved tags of the series. Optional; omitted when empty.
+         */
+        public static final JsonFieldDefinition<JsonObject> TAGS =
+                JsonFactory.newJsonObjectFieldDefinition("tags", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * Whether more data is available. Optional; present only for paginated (raw) reads.

@@ -31,6 +31,7 @@ import org.eclipse.ditto.timeseries.api.compute.TimeseriesComputeKernel.TimePoin
 import org.eclipse.ditto.timeseries.model.Aggregation;
 import org.eclipse.ditto.timeseries.model.TimeseriesDataValue;
 import org.eclipse.ditto.timeseries.model.TimeseriesQuery;
+import org.eclipse.ditto.timeseries.model.TimeseriesQueryInvalidException;
 import org.eclipse.ditto.timeseries.model.TimeseriesQueryResult;
 import org.eclipse.ditto.timeseries.model.TimeseriesResultMeta;
 
@@ -81,6 +82,19 @@ public final class TimeseriesQueryPlanner {
             // complete backend like MongoDB this makes the planner transparent: identical behavior
             // and metadata to calling the adapter directly).
             return adapter.query(query);
+        }
+        if (!query.getTagFilters().isEmpty()) {
+            // Portable path: the compute kernel runs over scanned (timestamp, value) points, which
+            // do not carry the per-point tags, so tag filtering cannot be honoured here. Fail loud
+            // rather than silently returning unfiltered data — a backend must be able to push tag
+            // filters down to storage (native query) to support them.
+            final CompletableFuture<List<TimeseriesQueryResult>> failed = new CompletableFuture<>();
+            failed.completeExceptionally(TimeseriesQueryInvalidException.newBuilder(
+                            "Tag filtering is not supported by this timeseries backend.")
+                    .description("The 'tagFilter' parameter requires a backend that can push tag " +
+                            "filters down to storage; this backend can only scan raw points.")
+                    .build());
+            return failed;
         }
         final List<JsonPointer> paths = query.getPaths();
         if (paths.isEmpty()) {
