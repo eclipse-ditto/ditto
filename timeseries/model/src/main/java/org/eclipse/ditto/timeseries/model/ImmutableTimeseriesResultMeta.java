@@ -14,6 +14,9 @@ package org.eclipse.ditto.timeseries.model;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -21,8 +24,10 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * An immutable implementation of {@link TimeseriesResultMeta}.
@@ -33,18 +38,21 @@ final class ImmutableTimeseriesResultMeta implements TimeseriesResultMeta {
     private final int count;
     @Nullable private final String unit;
     private final String dataType;
+    private final Map<String, String> tags;
     @Nullable private final Boolean hasMore;
     @Nullable private final String nextCursor;
 
     private ImmutableTimeseriesResultMeta(final int count,
             @Nullable final String unit,
             final String dataType,
+            final Map<String, String> tags,
             @Nullable final Boolean hasMore,
             @Nullable final String nextCursor) {
 
         this.count = count;
         this.unit = unit;
         this.dataType = dataType;
+        this.tags = tags;
         this.hasMore = hasMore;
         this.nextCursor = nextCursor;
     }
@@ -52,14 +60,17 @@ final class ImmutableTimeseriesResultMeta implements TimeseriesResultMeta {
     static TimeseriesResultMeta of(final int count,
             @Nullable final String unit,
             final String dataType,
+            final Map<String, String> tags,
             @Nullable final Boolean hasMore,
             @Nullable final String nextCursor) {
 
         checkNotNull(dataType, "dataType");
+        checkNotNull(tags, "tags");
         if (count < 0) {
             throw new IllegalArgumentException("count must not be negative but was: " + count);
         }
-        return new ImmutableTimeseriesResultMeta(count, unit, dataType, hasMore, nextCursor);
+        return new ImmutableTimeseriesResultMeta(count, unit, dataType,
+                Collections.unmodifiableMap(new LinkedHashMap<>(tags)), hasMore, nextCursor);
     }
 
     static TimeseriesResultMeta fromJson(final JsonObject jsonObject) {
@@ -68,10 +79,22 @@ final class ImmutableTimeseriesResultMeta implements TimeseriesResultMeta {
         final int count = jsonObject.getValueOrThrow(JsonFields.COUNT);
         final String unit = jsonObject.getValue(JsonFields.UNIT).orElse(null);
         final String dataType = jsonObject.getValueOrThrow(JsonFields.DATA_TYPE);
+        final Map<String, String> tags = jsonObject.getValue(JsonFields.TAGS)
+                .map(ImmutableTimeseriesResultMeta::tagsFromJson)
+                .orElseGet(Collections::emptyMap);
         final Boolean hasMore = jsonObject.getValue(JsonFields.HAS_MORE).orElse(null);
         final String nextCursor = jsonObject.getValue(JsonFields.NEXT_CURSOR).orElse(null);
 
-        return of(count, unit, dataType, hasMore, nextCursor);
+        return of(count, unit, dataType, tags, hasMore, nextCursor);
+    }
+
+    private static Map<String, String> tagsFromJson(final JsonObject tagsJson) {
+        final Map<String, String> result = new LinkedHashMap<>();
+        for (final JsonField field : tagsJson) {
+            final JsonValue value = field.getValue();
+            result.put(field.getKeyName(), value.isString() ? value.asString() : value.formatAsString());
+        }
+        return result;
     }
 
     @Override
@@ -87,6 +110,11 @@ final class ImmutableTimeseriesResultMeta implements TimeseriesResultMeta {
     @Override
     public String getDataType() {
         return dataType;
+    }
+
+    @Override
+    public Map<String, String> getTags() {
+        return tags;
     }
 
     @Override
@@ -107,6 +135,11 @@ final class ImmutableTimeseriesResultMeta implements TimeseriesResultMeta {
 
         if (unit != null) {
             builder.set(JsonFields.UNIT, unit);
+        }
+        if (!tags.isEmpty()) {
+            final JsonObjectBuilder tagsBuilder = JsonFactory.newObjectBuilder();
+            tags.forEach(tagsBuilder::set);
+            builder.set(JsonFields.TAGS, tagsBuilder.build());
         }
         if (hasMore != null) {
             builder.set(JsonFields.HAS_MORE, hasMore);
@@ -130,13 +163,14 @@ final class ImmutableTimeseriesResultMeta implements TimeseriesResultMeta {
         return count == that.count &&
                 Objects.equals(unit, that.unit) &&
                 Objects.equals(dataType, that.dataType) &&
+                Objects.equals(tags, that.tags) &&
                 Objects.equals(hasMore, that.hasMore) &&
                 Objects.equals(nextCursor, that.nextCursor);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(count, unit, dataType, hasMore, nextCursor);
+        return Objects.hash(count, unit, dataType, tags, hasMore, nextCursor);
     }
 
     @Override
@@ -145,6 +179,7 @@ final class ImmutableTimeseriesResultMeta implements TimeseriesResultMeta {
                 "count=" + count +
                 ", unit=" + unit +
                 ", dataType=" + dataType +
+                ", tags=" + tags +
                 ", hasMore=" + hasMore +
                 ", nextCursor=" + nextCursor +
                 "]";

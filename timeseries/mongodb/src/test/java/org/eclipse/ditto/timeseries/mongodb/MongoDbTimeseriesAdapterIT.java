@@ -294,6 +294,42 @@ public final class MongoDbTimeseriesAdapterIT {
     }
 
     @Test
+    public void tagsAreReturnedInResultMeta() throws Exception {
+        adapter.writeBatch(Collections.singletonList(
+                dataPoint(Instant.parse("2026-01-14T10:00:00Z"), 22.5))).toCompletableFuture().get();
+
+        final TimeseriesQuery query = buildQuery(
+                Instant.parse("2026-01-14T09:00:00Z"), Instant.parse("2026-01-14T11:00:00Z"));
+        final List<TimeseriesQueryResult> results = adapter.query(query).toCompletableFuture().get();
+
+        assertThat(results.get(0).getMeta().getTags())
+                .containsEntry("attributes/building", "A")
+                .containsEntry("attributes/floor", "2");
+    }
+
+    @Test
+    public void tagFilterSelectsMatchingPointsOnly() throws Exception {
+        final Instant t = Instant.parse("2026-01-14T10:00:00Z");
+        adapter.writeBatch(Arrays.asList(
+                dataPointWithTags(t, 1.0, Map.of("building", "A")),
+                dataPointWithTags(t.plusSeconds(1), 2.0, Map.of("building", "B")),
+                dataPointWithTags(t.plusSeconds(2), 3.0, Map.of("building", "A")))).toCompletableFuture().get();
+
+        final TimeseriesQuery query = buildQuery(
+                Instant.parse("2026-01-14T09:00:00Z"), Instant.parse("2026-01-14T11:00:00Z"))
+                .withTagFilters(Map.of("building", "A"));
+        final List<TimeseriesDataValue> data =
+                adapter.query(query).toCompletableFuture().get().get(0).getData();
+
+        final List<Double> values = new ArrayList<>();
+        for (final TimeseriesDataValue v : data) {
+            values.add(v.getValue().orElseThrow().asDouble());
+        }
+        // Only the two building=A points, in time order; building=B is filtered out.
+        assertThat(values).containsExactly(1.0, 3.0);
+    }
+
+    @Test
     public void queryReturnsOneResultPerPath() throws Exception {
         final JsonPointer humidityPath = JsonPointer.of("/features/environment/properties/humidity");
         final Instant ts = Instant.parse("2026-01-14T10:00:00Z");
@@ -632,6 +668,12 @@ public final class MongoDbTimeseriesAdapterIT {
         tags.put("attributes/floor", "2");
         return TimeseriesDataPoint.of(
                 thingId, path, timestamp, JsonValue.of(value), revision, tags, "cel");
+    }
+
+    private TimeseriesDataPoint dataPointWithTags(final Instant timestamp, final double value,
+            final Map<String, String> tags) {
+        return TimeseriesDataPoint.of(
+                thingId, PATH, timestamp, JsonValue.of(value), 1L, tags, "cel");
     }
 
     /** Drains a publisher synchronously — used only for the AfterClass DB-drop. */

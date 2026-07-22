@@ -19,7 +19,9 @@ import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -61,7 +63,7 @@ import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveTimeseries;
  * a thing-level {@code GET /timeseries/things/{thingId}?paths=<p1>,<p2>,...} for multi-property reads.
  * <p>
  * All query parameters that affect <em>which</em> data is returned ({@code from/to/step/agg/fill/tz/
- * percentile/limit/cursor/order}) live on {@link TimeseriesQuery} and therefore round-trip identically across HTTP,
+ * percentile/limit/cursor/order/tagFilter}) live on {@link TimeseriesQuery} and therefore round-trip identically across HTTP,
  * WebSocket and Connectivity. {@code timeFormat} is the deliberate exception: it only changes how the
  * already-computed timestamps are <em>rendered</em> (ISO vs. epoch-ms), so it is an HTTP-edge-only
  * presentation transform and is intentionally kept off the model — do not migrate it onto
@@ -85,6 +87,7 @@ public final class TimeseriesRoute extends AbstractRoute {
     private static final String PARAM_PERCENTILE = "percentile";
     private static final String PARAM_CURSOR = "cursor";
     private static final String PARAM_ORDER = "order";
+    private static final String PARAM_TAG_FILTER = "tagFilter";
     private static final String PARAM_PATHS = "paths";
     private static final String PARAM_TIME_FORMAT = "timeFormat";
 
@@ -164,12 +167,14 @@ public final class TimeseriesRoute extends AbstractRoute {
                                                                 parameterOptional(PARAM_PERCENTILE, pctOpt ->
                                                                         parameterOptional(PARAM_CURSOR, cursorOpt ->
                                                                                 parameterOptional(PARAM_ORDER, orderOpt ->
-                                                                                        parameterOptional(PARAM_TIME_FORMAT, tfOpt ->
-                                                                                                dispatchQuery(ctx, dittoHeaders, thingId,
-                                                                                                        paths, fromString, toString,
-                                                                                                        limitOpt, stepOpt, aggOpt,
-                                                                                                        fillOpt, tzOpt, pctOpt,
-                                                                                                        cursorOpt, orderOpt, tfOpt)
+                                                                                        parameterOptional(PARAM_TAG_FILTER, tagFilterOpt ->
+                                                                                                parameterOptional(PARAM_TIME_FORMAT, tfOpt ->
+                                                                                                        dispatchQuery(ctx, dittoHeaders, thingId,
+                                                                                                                paths, fromString, toString,
+                                                                                                                limitOpt, stepOpt, aggOpt,
+                                                                                                                fillOpt, tzOpt, pctOpt,
+                                                                                                                cursorOpt, orderOpt, tagFilterOpt, tfOpt)
+                                                                                                )
                                                                                         )
                                                                                 )
                                                                         )
@@ -188,10 +193,12 @@ public final class TimeseriesRoute extends AbstractRoute {
             final String toString, final Optional<String> limitOpt, final Optional<String> stepOpt,
             final Optional<String> aggOpt, final Optional<String> fillOpt, final Optional<String> tzOpt,
             final Optional<String> pctOpt, final Optional<String> cursorOpt,
-            final Optional<String> orderOpt, final Optional<String> timeFormatOpt) {
+            final Optional<String> orderOpt, final Optional<String> tagFilterOpt,
+            final Optional<String> timeFormatOpt) {
 
         final RetrieveTimeseries command = buildRetrieveTimeseries(thingId, paths, fromString, toString,
-                limitOpt, stepOpt, aggOpt, fillOpt, tzOpt, pctOpt, cursorOpt, orderOpt, dittoHeaders);
+                limitOpt, stepOpt, aggOpt, fillOpt, tzOpt, pctOpt, cursorOpt, orderOpt, tagFilterOpt,
+                dittoHeaders);
         if (parseTimeFormatIsMillis(timeFormatOpt)) {
             // timeFormat=ms: render timestamps as epoch milliseconds. The model stays ISO-canonical;
             // the conversion is a presentation transform applied only at the HTTP edge.
@@ -214,6 +221,7 @@ public final class TimeseriesRoute extends AbstractRoute {
             final Optional<String> percentileOpt,
             final Optional<String> cursorOpt,
             final Optional<String> orderOpt,
+            final Optional<String> tagFilterOpt,
             final DittoHeaders dittoHeaders) {
         // Anchor both relative bounds to a single "now" so e.g. from=now-1h, to=now span exactly 1h.
         final Instant now = Instant.now();
@@ -230,13 +238,16 @@ public final class TimeseriesRoute extends AbstractRoute {
         final String cursor = cursorOpt.map(String::trim).filter(s -> !s.isEmpty()).orElse(null);
         final SortOrder order = orderOpt.map(String::trim).filter(s -> !s.isEmpty())
                 .map(TimeseriesRoute::parseOrderParam).orElse(null);
+        final Map<String, String> tagFilters = tagFilterOpt.map(String::trim).filter(s -> !s.isEmpty())
+                .map(TimeseriesRoute::parseTagFiltersParam).orElseGet(Map::of);
         // Semantic validation (e.g. percentile requires a value, group aggregations require a step,
         // order=desc only for raw reads) lives in TimeseriesQuery.of so it applies uniformly across
         // HTTP / WebSocket / Connectivity.
         final TimeseriesQuery query = TimeseriesQuery.of(
                 thingId, paths, from, to, step, aggregation, fillStrategy, limit, timezone, percentile,
                 cursor, order);
-        return RetrieveTimeseries.of(query, dittoHeaders);
+        final TimeseriesQuery queryWithTags = tagFilters.isEmpty() ? query : query.withTagFilters(tagFilters);
+        return RetrieveTimeseries.of(queryWithTags, dittoHeaders);
     }
 
     /** Parses an absolute ISO-8601 instant or a relative expression ({@code now}, {@code now-24h}). */
@@ -311,6 +322,31 @@ public final class TimeseriesRoute extends AbstractRoute {
     private static SortOrder parseOrderParam(final String value) {
         return SortOrder.forName(value.trim()).orElseThrow(() -> invalidParam(PARAM_ORDER, value,
                 "Expected one of: asc, desc."));
+    }
+
+    /**
+     * Parses the {@code tagFilter} parameter — a comma-separated list of {@code key:value} pairs
+     * (split on the first colon so values may contain colons) — into a tag-filter map.
+     */
+    private static Map<String, String> parseTagFiltersParam(final String csv) {
+        final Map<String, String> filters = new LinkedHashMap<>();
+        for (final String raw : csv.split(",")) {
+            final String pair = raw.trim();
+            if (pair.isEmpty()) {
+                continue;
+            }
+            final int colon = pair.indexOf(':');
+            if (colon <= 0 || colon == pair.length() - 1) {
+                throw invalidParam(PARAM_TAG_FILTER, csv,
+                        "Expected comma-separated key:value pairs, e.g. building:A,floor:2.");
+            }
+            filters.put(pair.substring(0, colon).trim(), pair.substring(colon + 1).trim());
+        }
+        if (filters.isEmpty()) {
+            throw invalidParam(PARAM_TAG_FILTER, csv,
+                    "Expected at least one key:value pair, e.g. building:A.");
+        }
+        return filters;
     }
 
     private static Double parsePercentileParam(final String value) {

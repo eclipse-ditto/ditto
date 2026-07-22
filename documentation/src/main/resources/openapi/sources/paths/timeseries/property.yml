@@ -137,6 +137,17 @@ get:
         enum: [asc, desc]
         default: asc
         example: desc
+    - name: tagFilter
+      in: query
+      description: |-
+        Restrict the result to points whose resolved tags match every given `key:value` pair
+        (comma-separated, logical AND) — e.g. `building:A,floor:2`. Tags are declared on the WoT
+        property's `ditto:timeseries` annotation and resolved at ingestion time. Applies to raw and
+        aggregated reads.
+      required: false
+      schema:
+        type: string
+        example: 'building:A,floor:2'
     - name: timeFormat
       in: query
       description: |-
@@ -166,6 +177,7 @@ get:
           * `limit` is not a valid integer.
           * `cursor` is malformed, or combined with `step`, `agg` or `fill`.
           * `order` is not `asc`/`desc`, or `order=desc` combined with `step`, `agg` or `fill`.
+          * `tagFilter` is not a comma-separated list of `key:value` pairs.
       content:
         application/json:
           schema:

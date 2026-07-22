@@ -118,6 +118,55 @@ public final class TimeseriesIngestPublisherTest {
     }
 
     @Test
+    public void tagPlaceholdersAreResolvedAgainstThing() {
+        new TestKit(actorSystem) {{
+            final TestProbe shardProbe = new TestProbe(actorSystem);
+            // "building" is a placeholder into the Thing's attributes; "env" is a constant.
+            final WotThingModelResolver resolver = resolverWith(annotatedSubmodel("ALL", Map.of(
+                    "building", "{{ thing-json:attributes/building }}",
+                    "env", "prod")));
+
+            final ActorRef publisher = actorSystem.actorOf(
+                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, Duration.ofSeconds(2)));
+
+            publisher.tell(new TimeseriesIngestPublisher.IngestRequest(
+                    sampleEvent(JsonValue.of(21.5)), thingWithDefinitionAndAttributes()), getRef());
+
+            final IngestDataPoints command = shardProbe.expectMsgClass(IngestDataPoints.class);
+            shardProbe.reply(IngestDataPointsResponse.of(THING_ID, command.getDittoHeaders()));
+
+            assertThat(command.getDataPoints().get(0).getTags())
+                    .containsEntry("building", "A")
+                    .containsEntry("env", "prod");
+        }};
+    }
+
+    @Test
+    public void unresolvableTagPlaceholderIsDroppedNotStoredEmpty() {
+        new TestKit(actorSystem) {{
+            final TestProbe shardProbe = new TestProbe(actorSystem);
+            // "floor" points to an attribute the Thing does not have -> that tag is dropped for the
+            // point (not stored empty, not failing ingestion); the constant "env" survives.
+            final WotThingModelResolver resolver = resolverWith(annotatedSubmodel("ALL", Map.of(
+                    "floor", "{{ thing-json:attributes/floor }}",
+                    "env", "prod")));
+
+            final ActorRef publisher = actorSystem.actorOf(
+                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, Duration.ofSeconds(2)));
+
+            publisher.tell(new TimeseriesIngestPublisher.IngestRequest(
+                    sampleEvent(JsonValue.of(21.5)), thingWithDefinitionAndAttributes()), getRef());
+
+            final IngestDataPoints command = shardProbe.expectMsgClass(IngestDataPoints.class);
+            shardProbe.reply(IngestDataPointsResponse.of(THING_ID, command.getDittoHeaders()));
+
+            assertThat(command.getDataPoints().get(0).getTags())
+                    .containsEntry("env", "prod")
+                    .doesNotContainKey("floor");
+        }};
+    }
+
+    @Test
     public void propertyWithIngestNoneAnnotationDoesNotPublish() {
         new TestKit(actorSystem) {{
             final TestProbe shardProbe = new TestProbe(actorSystem);
@@ -478,6 +527,20 @@ public final class TimeseriesIngestPublisherTest {
         return ThingsModelFactory.newThingBuilder()
                 .setId(THING_ID)
                 .setDefinition(ThingsModelFactory.newDefinition(TM_IRI.toString()))
+                .setFeature(ThingsModelFactory.newFeatureBuilder()
+                        .properties(ThingsModelFactory.newFeaturePropertiesBuilder()
+                                .set(PROPERTY_NAME, JsonValue.of(21.5))
+                                .build())
+                        .withId(FEATURE_ID)
+                        .build())
+                .build();
+    }
+
+    private static Thing thingWithDefinitionAndAttributes() {
+        return ThingsModelFactory.newThingBuilder()
+                .setId(THING_ID)
+                .setDefinition(ThingsModelFactory.newDefinition(TM_IRI.toString()))
+                .setAttribute(JsonPointer.of("building"), JsonValue.of("A"))
                 .setFeature(ThingsModelFactory.newFeatureBuilder()
                         .properties(ThingsModelFactory.newFeaturePropertiesBuilder()
                                 .set(PROPERTY_NAME, JsonValue.of(21.5))

@@ -21,7 +21,9 @@ import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -32,6 +34,7 @@ import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonArrayBuilder;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
@@ -66,6 +69,7 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
     @Nullable private final Double percentile;
     @Nullable private final String cursor;
     @Nullable private final SortOrder order;
+    private final Map<String, String> tagFilters;
 
     private ImmutableTimeseriesQuery(final ThingId thingId,
             final List<JsonPointer> paths,
@@ -78,7 +82,8 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
             @Nullable final ZoneId timezone,
             @Nullable final Double percentile,
             @Nullable final String cursor,
-            @Nullable final SortOrder order) {
+            @Nullable final SortOrder order,
+            final Map<String, String> tagFilters) {
 
         this.thingId = thingId;
         this.paths = paths;
@@ -92,6 +97,7 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
         this.percentile = percentile;
         this.cursor = cursor;
         this.order = order;
+        this.tagFilters = tagFilters;
     }
 
     static TimeseriesQuery of(final ThingId thingId,
@@ -118,7 +124,7 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
 
         return new ImmutableTimeseriesQuery(
                 thingId, defensivePaths, from, to, step, aggregation, fillStrategy, limit, timezone,
-                percentile, cursor, order);
+                percentile, cursor, order, Collections.emptyMap());
     }
 
     /**
@@ -234,9 +240,22 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
         final SortOrder order = jsonObject.getValue(JsonFields.ORDER)
                 .map(s -> parseSortOrder(s))
                 .orElse(null);
+        final Map<String, String> tagFilters = jsonObject.getValue(JsonFields.TAG_FILTERS)
+                .map(ImmutableTimeseriesQuery::tagFiltersFromJson)
+                .orElseGet(Collections::emptyMap);
 
-        return of(thingId, paths, from, to, step, aggregation, fillStrategy, limit, timezone, percentile,
-                cursor, order);
+        final TimeseriesQuery query = of(thingId, paths, from, to, step, aggregation, fillStrategy,
+                limit, timezone, percentile, cursor, order);
+        return tagFilters.isEmpty() ? query : query.withTagFilters(tagFilters);
+    }
+
+    private static Map<String, String> tagFiltersFromJson(final JsonObject tagFiltersJson) {
+        final Map<String, String> result = new LinkedHashMap<>();
+        for (final JsonField field : tagFiltersJson) {
+            final JsonValue value = field.getValue();
+            result.put(field.getKeyName(), value.isString() ? value.asString() : value.formatAsString());
+        }
+        return result;
     }
 
     private static List<JsonPointer> pathsFromJson(final JsonArray array) {
@@ -370,6 +389,19 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
     }
 
     @Override
+    public Map<String, String> getTagFilters() {
+        return tagFilters;
+    }
+
+    @Override
+    public TimeseriesQuery withTagFilters(final Map<String, String> newTagFilters) {
+        checkNotNull(newTagFilters, "tagFilters");
+        return new ImmutableTimeseriesQuery(thingId, paths, from, to, step, aggregation, fillStrategy,
+                limit, timezone, percentile, cursor, order,
+                Collections.unmodifiableMap(new LinkedHashMap<>(newTagFilters)));
+    }
+
+    @Override
     public JsonObject toJson() {
         final JsonObjectBuilder builder = JsonFactory.newObjectBuilder()
                 .set(JsonFields.THING_ID, thingId.toString())
@@ -400,6 +432,11 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
         }
         if (order != null) {
             builder.set(JsonFields.ORDER, order.getName());
+        }
+        if (!tagFilters.isEmpty()) {
+            final JsonObjectBuilder tagFiltersBuilder = JsonFactory.newObjectBuilder();
+            tagFilters.forEach(tagFiltersBuilder::set);
+            builder.set(JsonFields.TAG_FILTERS, tagFiltersBuilder.build());
         }
 
         return builder.build();
@@ -433,13 +470,14 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
                 Objects.equals(timezone, that.timezone) &&
                 Objects.equals(percentile, that.percentile) &&
                 Objects.equals(cursor, that.cursor) &&
-                order == that.order;
+                order == that.order &&
+                Objects.equals(tagFilters, that.tagFilters);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(thingId, paths, from, to, step, aggregation, fillStrategy, limit, timezone,
-                percentile, cursor, order);
+                percentile, cursor, order, tagFilters);
     }
 
     @Override
@@ -457,6 +495,7 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
                 ", percentile=" + percentile +
                 ", cursor=" + cursor +
                 ", order=" + order +
+                ", tagFilters=" + tagFilters +
                 "]";
     }
 }

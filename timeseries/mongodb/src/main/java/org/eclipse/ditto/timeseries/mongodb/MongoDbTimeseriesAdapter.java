@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -312,7 +313,18 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
 
     private static Bson pathFilter(final ThingId thingId, final JsonPointer path,
             final TimeseriesQuery query) {
-        return rangeFilter(thingId, path, query.getFrom(), query.getTo());
+        final Bson range = rangeFilter(thingId, path, query.getFrom(), query.getTo());
+        final Map<String, String> tagFilters = query.getTagFilters();
+        if (tagFilters.isEmpty()) {
+            return range;
+        }
+        // AND each tag filter as a match on the stored meta.tags sub-field. meta.tags is part of the
+        // Time Series collection's metaField, so these predicates are index-supported.
+        final List<Bson> filters = new ArrayList<>(tagFilters.size() + 1);
+        filters.add(range);
+        tagFilters.forEach((key, value) ->
+                filters.add(Filters.eq("meta." + TimeseriesBsonMapper.META_TAGS + "." + key, value)));
+        return Filters.and(filters);
     }
 
     private static Bson rangeFilter(final ThingId thingId, final JsonPointer path,
@@ -1159,8 +1171,13 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
             dataType = "null";
         }
 
+        // Surface the series' tags (representative: the first point's), mirroring how unit is taken.
+        final Map<String, String> tags = documents.isEmpty()
+                ? Map.of()
+                : TimeseriesBsonMapper.getStoredTags(documents.get(0));
+
         final TimeseriesResultMeta meta =
-                TimeseriesResultMeta.of(documents.size(), unit, dataType, hasMore, nextCursor);
+                TimeseriesResultMeta.of(documents.size(), unit, dataType, tags, hasMore, nextCursor);
         return TimeseriesQueryResult.of(thingId, path, query, meta, data);
     }
 

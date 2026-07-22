@@ -73,6 +73,11 @@ items:
           type: string
           enum: [asc, desc]
           description: Sort order supplied on the request, if any.
+        tagFilters:
+          type: object
+          additionalProperties:
+            type: string
+          description: Tag filters supplied on the request, if any.
     result:
       type: object
       description: Per-path metadata.
@@ -110,6 +115,14 @@ items:
           description: |-
             Unit declared on the WoT property the timeseries was ingested from
             (semantic prefix stripped). Omitted when the property has no `unit`.
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+          description: |-
+            The resolved tags of the series, as stored with the points (representative: the first
+            point's). Omitted when the series has no tags or for aggregated reads (which group away
+            per-point metadata).
     data:
       type: array
       description: |-

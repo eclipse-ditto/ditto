@@ -100,6 +100,17 @@ get:
         format: int32
         minimum: 1
         example: 1000
+    - name: tagFilter
+      in: query
+      description: |-
+        Restrict the result to points whose resolved tags match every given `key:value` pair
+        (comma-separated, logical AND) — e.g. `building:A,floor:2`. Tags are declared on the WoT
+        property's `ditto:timeseries` annotation and resolved at ingestion time. Applies to raw and
+        aggregated reads.
+      required: false
+      schema:
+        type: string
+        example: 'building:A,floor:2'
     - name: timeFormat
       in: query
       description: 'Timestamp rendering in the response: `iso` (default) or `ms` (epoch milliseconds).'
@@ -124,6 +135,7 @@ get:
           * `step` is not a valid duration, or `agg`/`fill`/`timeFormat` is not a recognised value.
           * a per-bucket aggregation was requested without a `step`.
           * `agg=percentile` without a `percentile`, or `percentile` outside `[0, 100]`.
+          * `tagFilter` is not a comma-separated list of `key:value` pairs.
       content:
         application/json:
           schema:

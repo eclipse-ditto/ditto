@@ -13,12 +13,14 @@
 package org.eclipse.ditto.timeseries.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.within;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -29,6 +31,7 @@ import org.eclipse.ditto.timeseries.model.FillStrategy;
 import org.eclipse.ditto.timeseries.model.TimeseriesDataPoint;
 import org.eclipse.ditto.timeseries.model.TimeseriesDataValue;
 import org.eclipse.ditto.timeseries.model.TimeseriesQuery;
+import org.eclipse.ditto.timeseries.model.TimeseriesQueryInvalidException;
 import org.eclipse.ditto.timeseries.model.TimeseriesQueryResult;
 import org.eclipse.ditto.timeseries.model.TimeseriesResultMeta;
 import org.junit.Before;
@@ -180,6 +183,22 @@ public final class TimeseriesQueryPlannerTest {
         join(portablePlanner.execute(query(STEP_2S, Aggregation.AVG, null, null, FLOW)));
 
         assertThat(scanned[0]).isTrue();
+    }
+
+    @Test
+    public void scanOnlyAdapterRejectsTagFilterInsteadOfSilentlyIgnoringIt() {
+        final boolean[] scanned = {false};
+        final TimeseriesQueryPlanner portablePlanner = new TimeseriesQueryPlanner(
+                capabilityAdapter(false, scanned, List.of()));
+        final TimeseriesQuery tagFiltered = TimeseriesQuery.of(THING, List.of(FLOW), FROM, TO)
+                .withTagFilters(Map.of("building", "A"));
+
+        // The kernel path scans (timestamp, value) points that carry no tags, so it cannot honour a
+        // tag filter. The planner must fail loud rather than silently return unfiltered data — and
+        // must not scan.
+        assertThatThrownBy(() -> join(portablePlanner.execute(tagFiltered)))
+                .hasCauseInstanceOf(TimeseriesQueryInvalidException.class);
+        assertThat(scanned[0]).isFalse();
     }
 
     // --- helpers ---
