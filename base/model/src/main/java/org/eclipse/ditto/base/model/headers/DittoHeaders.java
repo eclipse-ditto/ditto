@@ -102,6 +102,21 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     }
 
     /**
+     * Returns {@code DittoHeaders} initialized with the entries of the given {@code jsonObject}, <em>skipping</em>
+     * header value type validation. Only use this for a trusted, already-validated source such as the deserialization
+     * of cluster-internal messages: the values were validated when the {@code DittoHeaders} were first created, so
+     * re-validating (and thereby re-parsing every JSON-typed value) on every hop is redundant work.
+     *
+     * @param jsonObject the JSON object which provides the properties of the returned DittoHeaders.
+     * @return the DittoHeaders.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @since 3.9.5
+     */
+    static DittoHeaders newFromTrustedJson(final JsonObject jsonObject) {
+        return DefaultDittoHeadersBuilder.ofTrusted(jsonObject).build();
+    }
+
+    /**
      * Returns a mutable builder with a fluent API for immutable {@code DittoHeaders}. The builder is initialised with
      * the entries of this instance.
      *

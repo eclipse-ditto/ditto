@@ -38,7 +38,6 @@ import org.apache.pekko.serialization.SerializerWithStringManifest;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
@@ -428,9 +427,11 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
     protected abstract JsonValue deserializeFromByteBuffer(ByteBuffer byteBuffer);
 
     private static DittoHeaders deserializeDittoHeaders(final JsonObject jsonObject) {
+        // Deserialization happens on trusted, cluster-internal traffic whose headers were already validated when
+        // first created, so we skip redundant value-type (re-)validation here (which would re-parse every JSON-typed
+        // header value on each hop).
         return jsonObject.getValue(JSON_DITTO_HEADERS)
-                .map(DittoHeaders::newBuilder)
-                .map(DittoHeadersBuilder::build)
+                .map(DittoHeaders::newFromTrustedJson)
                 .orElseGet(DittoHeaders::empty);
     }
 
