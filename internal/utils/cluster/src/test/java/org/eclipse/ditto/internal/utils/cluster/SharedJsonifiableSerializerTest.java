@@ -29,6 +29,7 @@ import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
 import org.eclipse.ditto.base.model.signals.commands.GlobalCommandRegistry;
 import org.eclipse.ditto.base.model.signals.commands.GlobalCommandResponseRegistry;
 import org.eclipse.ditto.base.model.signals.events.GlobalEventRegistry;
+import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
@@ -320,6 +321,13 @@ public final class SharedJsonifiableSerializerTest {
         @Test
         public void thingEventIsTaggedAsEventOnThingResource() {
             assertRoundTripTaggedWith(ThingCreated.of(thing, 1L, null, DITTO_HEADERS, null), "event", "thing");
+        }
+
+        @Test
+        public void signalWithBlankResourceTypeIsTaggedAsOther() {
+            // RetrieveHealth (and other health signals) return a blank resource type; the metric tag value must not be
+            // blank, so the serializer falls back to the "other" bucket instead of throwing an IllegalArgumentException:
+            assertRoundTripTaggedWith(RetrieveHealth.newInstance(), "command", "other");
         }
 
         private void assertRoundTripTaggedWith(final Object signal, final String expectedCategory,
