@@ -244,6 +244,8 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.gateway.config.authentication.devops.existingSecret | default ( printf "%s-gateway-secret" ( include "ditto.fullname" . )) }}
                   key: devops-password
+                  # absent when devops.authMethod is "oauth2" (JWT): no password Secret is created
+                  optional: true
             - name: DEVOPS_STATUS_SECURED
               value: "{{ .Values.gateway.config.authentication.devops.statusSecured }}"
             - name: STATUS_AUTHENTICATION_METHOD
@@ -253,6 +255,8 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.gateway.config.authentication.devops.existingSecret | default ( printf "%s-gateway-secret" ( include "ditto.fullname" . )) }}
                   key: status-password
+                  # absent when devops.statusAuthMethod is "oauth2" (JWT): no password Secret is created
+                  optional: true
             - name: WS_SUBSCRIBER_BACKPRESSURE
               value: "{{ .Values.gateway.config.websocket.subscriber.backpressureQueueSize }}"
             - name: WS_PUBLISHER_BACKPRESSURE
