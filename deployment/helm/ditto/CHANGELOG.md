@@ -17,16 +17,27 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 
 ## [4.5.0]
 
+Bumped Ditto `appVersion` to `3.9.5`.
+
+### Added
+- New `global.cluster.singletonMinNumberOfHandOverRetries` (default `30`), wired into all five service
+  deployments. It raises `pekko.cluster.singleton.min-number-of-hand-over-retries` from the Pekko default of
+  `15` so the new oldest node waits for the previous oldest's removal to be gossiped during a rolling update,
+  avoiding a `ClusterSingletonManagerIsStuck` that could restart pods with a status-route bind failure
+  ([#2496](https://github.com/eclipse-ditto/ditto/pull/2496))
+
 ### Changed
 - The gateway devops and status `Secret` passwords are now only materialised when they are actually consumed,
   i.e. when the respective `devops.authMethod` / `devops.statusAuthMethod` is `basic` (or an explicit password
   is provided). When `oauth2` (JWT) devops authentication is used, no password is generated and the
   corresponding `devops-password` / `status-password` env var references are marked `optional`
+  ([#2500](https://github.com/eclipse-ditto/ditto/pull/2500))
 
 ### Fixed
 - Stop the gateway `Secret` from churning on every render (and restarting the gateway on every ArgoCD sync)
   when devops passwords are not explicitly set: the `randAlphaNum` fallback previously regenerated the password
   on each template render even under `oauth2` auth where it was never used
+  ([#2500](https://github.com/eclipse-ditto/ditto/pull/2500))
 
 ## [4.4.0]
 
