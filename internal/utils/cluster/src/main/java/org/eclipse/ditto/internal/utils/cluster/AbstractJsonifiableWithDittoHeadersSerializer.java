@@ -184,7 +184,10 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
     private static String resourceTypeOf(final Object object) {
         final String result;
         if (object instanceof WithResource withResource) {
-            result = withResource.getResourceType();
+            final String resourceType = withResource.getResourceType();
+            // some signals (e.g. health signals) have no resource type and return a blank string; the metric tag value
+            // must not be blank, so fall back to the "other" bucket in that case:
+            result = (null == resourceType || resourceType.isBlank()) ? RESOURCE_TYPE_OTHER : resourceType;
         } else {
             result = RESOURCE_TYPE_OTHER;
         }
