@@ -27,7 +27,6 @@ RUN set -x \
     && chown -R ditto:ditto $DITTO_LOGS \
     && rm -rf /var/lib/apt/lists/*
 
-ARG MAVEN_REPO=https://repo.eclipse.org/repository/ditto-maven2-releases/org/eclipse/ditto
 ARG SERVICE_STARTER
 ARG SERVICE_VERSION
 ARG JVM_CMD_ARGS=""
@@ -39,10 +38,10 @@ ENV HTTP_PORT=8080 \
     MAIN_CLASS_ENV=${MAIN_CLASS} \
     CLASSPATH=/opt/ditto/*:/opt/ditto/extensions/*
 
-RUN set -x \
-    && cd $DITTO_HOME \
-    && curl -o ${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar "${MAVEN_REPO}/${SERVICE_STARTER}/${SERVICE_VERSION}/${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar" \
-    && chown -R ditto:ditto $DITTO_HOME
+# The *-allinone.jar is built from the tagged sources by the GitHub Actions "push-dockerhub"
+# workflow and provided in the build context. It is intentionally no longer published to a
+# Maven repository (it exceeds the repo.eclipse.org upload size limit).
+COPY --chown=ditto:ditto ${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar $DITTO_HOME/
 
 USER ditto
 WORKDIR $DITTO_HOME
