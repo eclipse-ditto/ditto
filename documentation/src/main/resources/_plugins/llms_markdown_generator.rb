@@ -11,6 +11,8 @@
 # SPDX-License-Identifier: EPL-2.0
 #
 
+require 'set'
+
 # Jekyll plugin that generates clean .html.md versions of documentation pages
 # for LLM consumption, supporting the llms.txt specification (https://llmstxt.org).
 #
@@ -107,6 +109,142 @@ module LlmsMarkdown
   end
 end
 
+# Validates that llms.txt - which is checked in fully-formed (absolute
+# .html.md URLs and descriptions already baked in, so it's directly useful to
+# an LLM reading the repo source, not only the deployed site) - hasn't
+# drifted from the pages it links to. Fails the build rather than silently
+# shipping a stale link or description.
+module LlmsTxtIndex
+  RELEASE_NOTES_PREFIX = 'release_notes_'
+  # Per-command protocol example pages (e.g. protocol-examples-creatething.html)
+  # are auto-generated boilerplate and intentionally not enumerated in llms.txt -
+  # the single curated "protocol-examples.html" overview stands in for the family.
+  # Note the trailing dash: this excludes the "protocol-examples-*" children but
+  # not the "protocol-examples" overview itself, which is linked.
+  PROTOCOL_EXAMPLES_PREFIX = 'protocol-examples-'
+  DOC_PAGES_PATH = 'pages/ditto/'
+
+  # Permalinks (without ".html") that are deliberately not required in llms.txt.
+  def self.excluded?(permalink)
+    permalink.start_with?(RELEASE_NOTES_PREFIX, PROTOCOL_EXAMPLES_PREFIX)
+  end
+
+  def self.doc_link_regex(site)
+    %r{^- \[[^\]]+\]\(#{Regexp.escape(site.config['url'].to_s)}/([\w.\-]+)\.html\.md\)}
+  end
+
+  # Slugs (without ".html") that llms.txt currently links to.
+  def self.listed_slugs(site, raw)
+    regex = doc_link_regex(site)
+    raw.each_line.filter_map { |line| regex.match(line)&.[](1) }.to_set
+  end
+
+  # Finds the release_notes_* page with the highest X.Y.Z title. Filenames are
+  # not safely sortable (the numbering scheme changed once patch versions hit
+  # two digits, e.g. release_notes_394.md == 3.9.4 but release_notes_3812.md ==
+  # 3.8.12), so this parses the title instead, which is consistently dotted.
+  def self.resolve_latest_release_notes(site)
+    versioned = site.pages.filter_map do |page|
+      permalink = page.data['permalink']
+      next unless permalink.to_s.start_with?(RELEASE_NOTES_PREFIX)
+
+      match = /Release notes (\d+)\.(\d+)\.(\d+)\b/.match(page.data['title'].to_s)
+      next unless match
+
+      [[match[1].to_i, match[2].to_i, match[3].to_i], page]
+    end
+    return nil if versioned.empty?
+
+    versioned.max_by { |version, _page| version }.last
+  end
+
+  def self.find_by_permalink(site, permalink)
+    site.pages.find { |page| page.data['permalink'] == permalink }
+  end
+
+  # Rewrites the release-notes link in llms.txt to point at the current latest
+  # release. Unlike dead links or unlisted pages - which need human judgment -
+  # the latest release is mechanically derivable, so a new release shouldn't
+  # require a manual edit. Returns [updated_content, old_permalink,
+  # new_permalink] when a change was made, or nil when nothing needs changing
+  # (link already current, no release-notes line, or no resolvable latest).
+  def self.rewrite_release_notes_link(site, raw)
+    latest = resolve_latest_release_notes(site)
+    return nil if latest.nil?
+
+    latest_permalink = latest.data['permalink']
+    latest_slug = latest_permalink.delete_suffix('.html')
+    regex = doc_link_regex(site)
+    old_permalink = nil
+
+    updated = raw.each_line.map do |line|
+      slug = regex.match(line)&.[](1)
+      next line unless slug&.start_with?(RELEASE_NOTES_PREFIX)
+      next line if slug == latest_slug
+
+      old_permalink = "#{slug}.html"
+      line.sub("#{slug}.html.md", "#{latest_slug}.html.md")
+    end.join
+
+    return nil if old_permalink.nil?
+
+    [updated, old_permalink, latest_permalink]
+  end
+
+  # Checks every internal doc link in llms.txt against the live site: the
+  # linked page must still exist, and a release-notes link must point at the
+  # actual latest release. Returns a list of human-readable problems; empty
+  # means llms.txt is accurate as checked in.
+  def self.validate(site, raw)
+    errors = []
+    doc_link = doc_link_regex(site)
+    latest_release_notes = resolve_latest_release_notes(site)
+
+    raw.each_line do |line|
+      match = doc_link.match(line)
+      next unless match
+
+      slug = match[1]
+      permalink = "#{slug}.html"
+
+      if find_by_permalink(site, permalink).nil?
+        errors << "llms.txt links to '#{permalink}', but no page has that permalink (dead link)"
+        next
+      end
+
+      next unless slug.start_with?(RELEASE_NOTES_PREFIX)
+
+      if latest_release_notes.nil?
+        errors << "llms.txt links to '#{permalink}' as the release notes entry, but no release_notes_* page has a parseable X.Y.Z title"
+      elsif latest_release_notes.data['permalink'] != permalink
+        errors << "llms.txt's release notes link points to '#{permalink}', but the latest release is " \
+                   "'#{latest_release_notes.data['permalink']}' (#{latest_release_notes.data['title']}) - update the link"
+      end
+    end
+
+    errors
+  end
+
+  # Doc pages that exist but aren't linked from llms.txt at all. Every doc page
+  # is expected to be listed by default; the only permitted omissions are the
+  # excluded?() families (historical release_notes_*, of which only the latest
+  # is ever linked, and the auto-generated protocol-examples-* children). Any
+  # other unlisted page is treated as a build failure so the curated index
+  # can't silently drift out of sync as pages are added.
+  def self.unlisted_pages(site, raw)
+    listed = listed_slugs(site, raw)
+
+    site.pages.select do |page|
+      permalink = page.data['permalink']
+      permalink && permalink.end_with?('.html') &&
+        page.ext == '.md' &&
+        page.relative_path.start_with?(DOC_PAGES_PATH) &&
+        !excluded?(permalink.delete_suffix('.html')) &&
+        !listed.include?(permalink.delete_suffix('.html'))
+    end.map { |page| page.data['permalink'] }.sort
+  end
+end
+
 Jekyll::Hooks.register :site, :post_write do |site|
   count = 0
 
@@ -135,4 +273,39 @@ Jekyll::Hooks.register :site, :post_write do |site|
   end
 
   Jekyll.logger.info "LlmsMarkdown:", "Generated #{count} .html.md files for LLM consumption"
+
+  llms_txt_source = File.join(site.source, 'llms.txt')
+  if File.exist?(llms_txt_source)
+    raw_llms_txt = File.read(llms_txt_source, encoding: 'utf-8')
+
+    # A new release only bumps the latest release-notes link, which is derivable
+    # from the pages - so fix it in place rather than failing the build. Both
+    # the checked-in source (kept accurate for LLMs reading the repo, and so the
+    # change shows up in git to be committed) and the already-copied build
+    # output are updated.
+    rewrite = LlmsTxtIndex.rewrite_release_notes_link(site, raw_llms_txt)
+    if rewrite
+      raw_llms_txt, old_permalink, new_permalink = rewrite
+      File.write(llms_txt_source, raw_llms_txt, encoding: 'utf-8')
+      File.write(File.join(site.dest, 'llms.txt'), raw_llms_txt, encoding: 'utf-8')
+      Jekyll.logger.info "LlmsTxt:", "Updated release notes link '#{old_permalink}' -> '#{new_permalink}' in llms.txt"
+    end
+
+    errors = LlmsTxtIndex.validate(site, raw_llms_txt)
+
+    unless errors.empty?
+      Jekyll.logger.error "LlmsTxt:", "#{errors.size} problem(s) found - llms.txt is out of sync with the site:"
+      errors.each { |error| Jekyll.logger.error "LlmsTxt:", "  #{error}" }
+      raise "llms.txt is out of sync with the site: #{errors.size} problem(s). See log above."
+    end
+
+    unlisted = LlmsTxtIndex.unlisted_pages(site, raw_llms_txt)
+    unless unlisted.empty?
+      Jekyll.logger.error "LlmsTxt:", "#{unlisted.size} doc page(s) not listed in llms.txt:"
+      unlisted.each { |permalink| Jekyll.logger.error "LlmsTxt:", "  #{permalink}" }
+      Jekyll.logger.error "LlmsTxt:", "Add each page to llms.txt (or, for auto-generated protocol example pages, " \
+                                      "confirm it matches the '#{LlmsTxtIndex::PROTOCOL_EXAMPLES_PREFIX}' naming)."
+      raise "llms.txt is missing #{unlisted.size} doc page(s). See log above."
+    end
+  end
 end
