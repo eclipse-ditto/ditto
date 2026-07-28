@@ -9,7 +9,7 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 
-FROM docker.io/eclipse-temurin:21-jdk
+FROM docker.io/eclipse-temurin:25-jdk
 
 # Http port
 EXPOSE 8080
@@ -19,7 +19,7 @@ ENV DITTO_HOME=/opt/ditto \
 
 RUN set -x \
     && apt-get update \
-    && apt-get install -y tini \
+    && apt-get install -y tini curl \
     && mkdir -p $DITTO_HOME \
     && mkdir -p $DITTO_LOGS \
     && groupadd --system --gid 1005 ditto \
@@ -27,7 +27,6 @@ RUN set -x \
     && chown -R ditto:ditto $DITTO_LOGS \
     && rm -rf /var/lib/apt/lists/*
 
-ARG MAVEN_REPO=https://repo.eclipse.org/service/local/artifact/maven/content
 ARG SERVICE_STARTER
 ARG SERVICE_VERSION
 ARG JVM_CMD_ARGS=""
@@ -39,10 +38,10 @@ ENV HTTP_PORT=8080 \
     MAIN_CLASS_ENV=${MAIN_CLASS} \
     CLASSPATH=/opt/ditto/*:/opt/ditto/extensions/*
 
-RUN set -x \
-    && cd $DITTO_HOME \
-    && curl -o ${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar "${MAVEN_REPO}?r=ditto&g=org.eclipse.ditto&a=${SERVICE_STARTER}&v=${SERVICE_VERSION}&c=allinone" \
-    && chown -R ditto:ditto $DITTO_HOME
+# The *-allinone.jar is built from the tagged sources by the GitHub Actions "push-dockerhub"
+# workflow and provided in the build context. It is intentionally no longer published to a
+# Maven repository (it exceeds the repo.eclipse.org upload size limit).
+COPY --chown=ditto:ditto ${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar $DITTO_HOME/
 
 USER ditto
 WORKDIR $DITTO_HOME

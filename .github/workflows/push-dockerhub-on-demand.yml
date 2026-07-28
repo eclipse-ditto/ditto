@@ -30,20 +30,32 @@ on:
           - ditto-connectivity
           - ditto-ui
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       -
+        name: Harden Runner
+        uses: step-security/harden-runner@a5ad31d6a139d249332a2605b85202e8c0b78450 # v2.19.1
+        with:
+          egress-policy: audit
+      -
         name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          # Check out the requested release tag so the allinone jar is built from its sources.
+          ref: ${{ inputs.dittoVersion }}
+          persist-credentials: false
       -
         name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
       -
         name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v2 # setup buildx in order to do build and push multi-architecture images
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0 # setup buildx in order to do build and push multi-architecture images
       -
         name: Inspect buildx builder
         run: |
@@ -54,18 +66,20 @@ jobs:
           echo "Platforms: ${{ steps.buildx.outputs.platforms }}"
       -
         name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
         with:
           username: eclipsedittobot
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
       -
         name: Branch name
         id: branch_name
+        env:
+          DITTO_VERSION_INPUT: ${{ inputs.dittoVersion }}
         run: |
-          echo "IMAGE_TAG=${{ inputs.dittoVersion }}" >> $GITHUB_ENV
-          echo "IMAGE_MINOR_TAG=$(echo ${{ inputs.dittoVersion }} | cut -d. -f-2)" >> $GITHUB_ENV
-          echo "IMAGE_MAJOR_TAG=$(echo ${{ inputs.dittoVersion }} | cut -d. -f-1)" >> $GITHUB_ENV
-          echo "MILESTONE_OR_RC_SUFFIX=$(echo ${{ inputs.dittoVersion }} | cut -d- -f2)" >> $GITHUB_ENV
+          echo "IMAGE_TAG=$DITTO_VERSION_INPUT" >> $GITHUB_ENV
+          echo "IMAGE_MINOR_TAG=$(echo "$DITTO_VERSION_INPUT" | cut -d. -f-2)" >> $GITHUB_ENV
+          echo "IMAGE_MAJOR_TAG=$(echo "$DITTO_VERSION_INPUT" | cut -d. -f-1)" >> $GITHUB_ENV
+          echo "MILESTONE_OR_RC_SUFFIX=$(echo "$DITTO_VERSION_INPUT" | cut -d- -f2)" >> $GITHUB_ENV
       -
         name: Building Docker images for tag
         run: |
@@ -75,11 +89,46 @@ jobs:
           echo "Major version: $IMAGE_MAJOR_TAG"
           echo "Milestone or RC suffix: $MILESTONE_OR_RC_SUFFIX"
       -
+        name: Set up JDK 25
+        if: inputs.dittoImage != 'ditto-ui'
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
+        with:
+          distribution: 'temurin'
+          java-version: 21
+          cache: 'maven'
+      -
+        name: Build allinone jar from sources
+        # The *-allinone.jar artifacts are no longer published to a Maven repository (they
+        # exceed the repo.eclipse.org upload size limit). Build the selected service's
+        # allinone jar from sources so the Docker image build can consume it locally.
+        if: inputs.dittoImage != 'ditto-ui'
+        env:
+          DITTO_IMAGE: ${{ inputs.dittoImage }}
+        run: |
+          case "$DITTO_IMAGE" in
+            ditto-policies)      MODULE=policies/service ;;
+            ditto-things)        MODULE=things/service ;;
+            ditto-gateway)       MODULE=gateway/service ;;
+            ditto-things-search) MODULE=thingsearch/service ;;
+            ditto-connectivity)  MODULE=connectivity/service ;;
+            *) echo "No Maven build needed for $DITTO_IMAGE"; exit 1 ;;
+          esac
+          mvn clean install -T4 --batch-mode --errors -DskipTests -Dmaven.javadoc.skip=true \
+            -Drevision=$IMAGE_TAG -pl "$MODULE" -am
+      -
+        name: Stage allinone jar for the Docker build context
+        if: inputs.dittoImage != 'ditto-ui'
+        run: |
+          mkdir -p docker-libs
+          find . -path '*/service/target/*-allinone.jar' -exec cp -v {} docker-libs/ \;
+          echo "Staged allinone jars:"
+          ls -lh docker-libs
+      -
         name: Build and push ditto-policies
         if: env.MILESTONE_OR_RC_SUFFIX == env.IMAGE_TAG && inputs.dittoImage == 'ditto-policies'
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         with:
-          context: .
+          context: docker-libs
           file: dockerfile-release
           platforms: linux/amd64,linux/arm64
           build-args: |
@@ -96,9 +145,9 @@ jobs:
       -
         name: Build and push ditto-things
         if: env.MILESTONE_OR_RC_SUFFIX == env.IMAGE_TAG && inputs.dittoImage == 'ditto-things'
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         with:
-          context: .
+          context: docker-libs
           file: dockerfile-release
           platforms: linux/amd64,linux/arm64
           build-args: |
@@ -115,9 +164,9 @@ jobs:
       -
         name: Build and push ditto-gateway
         if: env.MILESTONE_OR_RC_SUFFIX == env.IMAGE_TAG && inputs.dittoImage == 'ditto-gateway'
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         with:
-          context: .
+          context: docker-libs
           file: dockerfile-release
           platforms: linux/amd64,linux/arm64
           build-args: |
@@ -134,9 +183,9 @@ jobs:
       -
         name: Build and push ditto-thingsearch
         if: env.MILESTONE_OR_RC_SUFFIX == env.IMAGE_TAG && inputs.dittoImage == 'ditto-things-search'
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         with:
-          context: .
+          context: docker-libs
           file: dockerfile-release
           platforms: linux/amd64,linux/arm64
           build-args: |
@@ -153,9 +202,9 @@ jobs:
       -
         name: Build and push ditto-connectivity
         if: env.MILESTONE_OR_RC_SUFFIX == env.IMAGE_TAG && inputs.dittoImage == 'ditto-connectivity'
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         with:
-          context: .
+          context: docker-libs
           file: dockerfile-release
           platforms: linux/amd64,linux/arm64
           build-args: |
@@ -172,7 +221,7 @@ jobs:
             eclipse/ditto-connectivity:latest
       -
         name: Use Node.js 18.x
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: 20
       -
@@ -186,7 +235,7 @@ jobs:
       -
         name: Build and push ditto-ui
         if: env.MILESTONE_OR_RC_SUFFIX == env.IMAGE_TAG && inputs.dittoImage == 'ditto-ui'
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         with:
           context: ./ui
           file: ui/Dockerfile
@@ -201,9 +250,9 @@ jobs:
       -
         name: Build and push ditto-policies milestone/RC
         if: env.MILESTONE_OR_RC_SUFFIX != env.IMAGE_TAG && inputs.dittoImage == 'ditto-policies'
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         with:
-          context: .
+          context: docker-libs
           file: dockerfile-release
           platforms: linux/amd64,linux/arm64
           build-args: |
@@ -217,9 +266,9 @@ jobs:
       -
         name: Build and push ditto-things milestone/RC
         if: env.MILESTONE_OR_RC_SUFFIX != env.IMAGE_TAG && inputs.dittoImage == 'ditto-things'
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         with:
-          context: .
+          context: docker-libs
           file: dockerfile-release
           platforms: linux/amd64,linux/arm64
           build-args: |
@@ -233,9 +282,9 @@ jobs:
       -
         name: Build and push ditto-gateway milestone/RC
         if: env.MILESTONE_OR_RC_SUFFIX != env.IMAGE_TAG && inputs.dittoImage == 'ditto-gateway'
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         with:
-          context: .
+          context: docker-libs
           file: dockerfile-release
           platforms: linux/amd64,linux/arm64
           build-args: |
@@ -249,9 +298,9 @@ jobs:
       -
         name: Build and push ditto-thingsearch milestone/RC
         if: env.MILESTONE_OR_RC_SUFFIX != env.IMAGE_TAG && inputs.dittoImage == 'ditto-things-search'
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         with:
-          context: .
+          context: docker-libs
           file: dockerfile-release
           platforms: linux/amd64,linux/arm64
           build-args: |
@@ -265,9 +314,9 @@ jobs:
       -
         name: Build and push ditto-connectivity milestone/RC
         if: env.MILESTONE_OR_RC_SUFFIX != env.IMAGE_TAG && inputs.dittoImage == 'ditto-connectivity'
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         with:
-          context: .
+          context: docker-libs
           file: dockerfile-release
           platforms: linux/amd64,linux/arm64
           build-args: |
@@ -282,7 +331,7 @@ jobs:
       -
         name: Build and push ditto-ui milestone/RC
         if: env.MILESTONE_OR_RC_SUFFIX != env.IMAGE_TAG && inputs.dittoImage == 'ditto-ui'
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         with:
           context: ./ui
           file: ui/Dockerfile

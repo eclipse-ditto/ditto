@@ -136,9 +136,11 @@
 
         <!-- Phase for the maven-shade-plugin executions in the service modules.
              Default `package` builds and attaches the *-allinone.jar as a Maven artifact.
-             Overridden to `none` in the `publishToMavenCentral` profile so the (very large)
-             allinone jars are NOT uploaded to Maven Central — they're only needed in the
-             Eclipse Maven repo (consumed by the Docker image build). -->
+             This default is used by the GitHub Actions "push-dockerhub" workflow, which
+             builds the allinone jars from the tagged sources solely to assemble the Docker
+             images. It is overridden to `none` in BOTH the `publishToMavenCentral` and the
+             `publishToEclipseMavenRepo` profiles so the (very large) allinone jars are never
+             staged/uploaded to a Maven repository (they exceed repo.eclipse.org size limits). -->
         <shade.phase>package</shade.phase>
 
         <!-- globally set version for checking binary compatibility against -->
@@ -825,6 +827,14 @@
                     <value>true</value>
                 </property>
             </activation>
+            <properties>
+                <!-- Skip the maven-shade-plugin executions so the *-allinone.jar is NOT
+                     attached and therefore not staged/uploaded to repo.eclipse.org. The
+                     allinone jars exceed the Eclipse Maven repo upload size limit; they are
+                     instead built on demand by the GitHub Actions "push-dockerhub" workflow
+                     and consumed directly by the Docker image build. -->
+                <shade.phase>none</shade.phase>
+            </properties>
             <distributionManagement>
                 <repository>
                     <id>repo.eclipse.org</id>
@@ -850,8 +860,9 @@
             <properties>
                 <!-- Skip the maven-shade-plugin executions so the *-allinone.jar is NOT
                      attached and therefore not staged/uploaded to Maven Central.
-                     The allinone is still produced in the `publishToEclipseMavenRepo`
-                     run, which uploads it to repo.eclipse.org for the Docker build. -->
+                     The allinone jars are built on demand by the GitHub Actions
+                     "push-dockerhub" workflow and consumed directly by the Docker image
+                     build; they are never published to a Maven repository. -->
                 <shade.phase>none</shade.phase>
             </properties>
             <distributionManagement>
