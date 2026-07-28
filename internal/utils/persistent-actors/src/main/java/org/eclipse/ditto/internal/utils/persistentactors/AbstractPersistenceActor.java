@@ -1088,7 +1088,9 @@ public abstract class AbstractPersistenceActor<
                 .serialize(event);
 
         final DittoHeaders dittoHeaders = eventAsJsonObject.getValue(AbstractMongoEventAdapter.HISTORICAL_EVENT_HEADERS)
-                .map(obj -> DittoHeaders.newBuilder(obj).build())
+                // persisted headers were already validated when the event was written -> trust them, skipping
+                // re-parsing/re-validating every JSON-typed header value on each journal replay/recovery.
+                .map(DittoHeaders::newFromTrustedJson)
                 .orElseGet(DittoHeaders::empty);
         return (EventsourcedEvent<?>) GlobalEventRegistry.getInstance().parse(eventAsJsonObject, dittoHeaders);
     }
