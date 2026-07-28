@@ -15,8 +15,10 @@ package org.eclipse.ditto.internal.utils.tracing.span;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
+import java.util.Objects;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.internal.utils.metrics.instruments.TaggableMetricsInstrument;
 
 /**
@@ -129,13 +131,16 @@ public interface StartedSpan extends TaggableMetricsInstrument<StartedSpan>, Spa
      */
     default DittoHeaders propagateContext(final DittoHeaders dittoHeaders) {
         final Map<String, String> propagatedHeaders = propagateContext((Map<String, String>) dittoHeaders);
-        final var builder = dittoHeaders.toBuilder();
-        propagatedHeaders.forEach((key, value) -> {
-            if (!value.equals(dittoHeaders.get(key))) {
-                builder.putHeader(key, value);
+        DittoHeadersBuilder<?, ?> builder = null;
+        for (final Map.Entry<String, String> entry : propagatedHeaders.entrySet()) {
+            if (!Objects.equals(entry.getValue(), dittoHeaders.get(entry.getKey()))) {
+                if (null == builder) {
+                    builder = dittoHeaders.toBuilder();
+                }
+                builder.putHeader(entry.getKey(), entry.getValue());
             }
-        });
-        return builder.build();
+        }
+        return null == builder ? dittoHeaders : builder.build();
     }
 
     /**
