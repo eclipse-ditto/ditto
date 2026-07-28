@@ -15,6 +15,7 @@ package org.eclipse.ditto.internal.utils.tracing.span;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.assertj.core.api.Assertions;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -50,6 +51,16 @@ public final class EmptyStartedSpanTest {
         final var underTest = EmptyStartedSpan.newInstance(operationName);
 
         assertThat((CharSequence) underTest.getOperationName()).isEqualTo(operationName);
+    }
+
+    @Test
+    public void propagateContextToDittoHeadersReturnsSameInstance() {
+        final var underTest = EmptyStartedSpan.newInstance(SpanOperationName.of(testName.getMethodName()));
+        final var dittoHeaders = DittoHeaders.newBuilder()
+                .correlationId(testName.getMethodName())
+                .build();
+
+        assertThat((Object) underTest.propagateContext(dittoHeaders)).isSameAs(dittoHeaders);
     }
 
 }

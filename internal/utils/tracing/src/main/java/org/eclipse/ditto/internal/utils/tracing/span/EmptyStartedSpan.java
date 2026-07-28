@@ -21,6 +21,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.common.ConditionChecker;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
 
@@ -98,6 +99,12 @@ final class EmptyStartedSpan implements StartedSpan {
     @Override
     public Map<String, String> propagateContext(final Map<String, String> map) {
         return map;
+    }
+
+    @Override
+    public DittoHeaders propagateContext(final DittoHeaders dittoHeaders) {
+        // an empty (noop) span never changes the headers, so return them unchanged and avoid any rebuild
+        return dittoHeaders;
     }
 
     @Override
