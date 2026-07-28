@@ -96,7 +96,9 @@ public abstract class AbstractMongoEventAdapter<T extends Event<?>> implements E
                 final JsonObject jsonObject = jsonValue.asObject()
                         .setValue(EventsourcedEvent.JsonFields.REVISION.getPointer(), Event.DEFAULT_REVISION);
                 final DittoHeaders dittoHeaders = jsonObject.getValue(HISTORICAL_EVENT_HEADERS)
-                        .map(obj -> DittoHeaders.newBuilder(obj).build())
+                        // persisted headers were already validated when the event was written -> trust them, skipping
+                        // re-parsing/re-validating every JSON-typed header value on each journal read/recovery.
+                        .map(DittoHeaders::newFromTrustedJson)
                         .orElse(DittoHeaders.empty());
 
                 final T result =
