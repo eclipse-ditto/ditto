@@ -137,4 +137,4 @@ Eclipse Ditto provides five microservices (Things, Policies, Gateway, Connectivi
 - [Sandbox](https://www.eclipse.dev/ditto/sandbox.html.md): The public Ditto sandbox environment for trying out Ditto
 - [Presentations](https://www.eclipse.dev/ditto/presentations.html.md): Talks and slide decks about Eclipse Ditto
 - [Feedback](https://www.eclipse.dev/ditto/feedback.html.md): Where to get help - bug tracker, forum, chat, and mailing list
-- [Release Notes](https://www.eclipse.dev/ditto/release_notes_394.html.md): Latest release notes
+- [Release Notes](https://www.eclipse.dev/ditto/release_notes_395.html.md): Latest release notes

@@ -162,6 +162,35 @@ module LlmsTxtIndex
     site.pages.find { |page| page.data['permalink'] == permalink }
   end
 
+  # Rewrites the release-notes link in llms.txt to point at the current latest
+  # release. Unlike dead links or unlisted pages - which need human judgment -
+  # the latest release is mechanically derivable, so a new release shouldn't
+  # require a manual edit. Returns [updated_content, old_permalink,
+  # new_permalink] when a change was made, or nil when nothing needs changing
+  # (link already current, no release-notes line, or no resolvable latest).
+  def self.rewrite_release_notes_link(site, raw)
+    latest = resolve_latest_release_notes(site)
+    return nil if latest.nil?
+
+    latest_permalink = latest.data['permalink']
+    latest_slug = latest_permalink.delete_suffix('.html')
+    regex = doc_link_regex(site)
+    old_permalink = nil
+
+    updated = raw.each_line.map do |line|
+      slug = regex.match(line)&.[](1)
+      next line unless slug&.start_with?(RELEASE_NOTES_PREFIX)
+      next line if slug == latest_slug
+
+      old_permalink = "#{slug}.html"
+      line.sub("#{slug}.html.md", "#{latest_slug}.html.md")
+    end.join
+
+    return nil if old_permalink.nil?
+
+    [updated, old_permalink, latest_permalink]
+  end
+
   # Checks every internal doc link in llms.txt against the live site: the
   # linked page must still exist, and a release-notes link must point at the
   # actual latest release. Returns a list of human-readable problems; empty
@@ -248,6 +277,20 @@ Jekyll::Hooks.register :site, :post_write do |site|
   llms_txt_source = File.join(site.source, 'llms.txt')
   if File.exist?(llms_txt_source)
     raw_llms_txt = File.read(llms_txt_source, encoding: 'utf-8')
+
+    # A new release only bumps the latest release-notes link, which is derivable
+    # from the pages - so fix it in place rather than failing the build. Both
+    # the checked-in source (kept accurate for LLMs reading the repo, and so the
+    # change shows up in git to be committed) and the already-copied build
+    # output are updated.
+    rewrite = LlmsTxtIndex.rewrite_release_notes_link(site, raw_llms_txt)
+    if rewrite
+      raw_llms_txt, old_permalink, new_permalink = rewrite
+      File.write(llms_txt_source, raw_llms_txt, encoding: 'utf-8')
+      File.write(File.join(site.dest, 'llms.txt'), raw_llms_txt, encoding: 'utf-8')
+      Jekyll.logger.info "LlmsTxt:", "Updated release notes link '#{old_permalink}' -> '#{new_permalink}' in llms.txt"
+    end
+
     errors = LlmsTxtIndex.validate(site, raw_llms_txt)
 
     unless errors.empty?
