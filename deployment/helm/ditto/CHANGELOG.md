@@ -15,6 +15,13 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 
 ## [Unreleased]
 
+## [4.6.0]
+
+Bumped Ditto `appVersion` to `3.9.6`.
+
+Ditto 3.9.6 is a bugfix release with no chart-facing configuration changes; this chart version only tracks
+the new application version.
+
 ## [4.5.0]
 
 Bumped Ditto `appVersion` to `3.9.5`.
