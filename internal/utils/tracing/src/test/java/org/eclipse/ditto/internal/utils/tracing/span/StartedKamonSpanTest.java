@@ -302,6 +302,26 @@ public final class StartedKamonSpanTest {
     }
 
     @Test
+    // Regression: the trusted DittoHeaders overload must not clobber an incoming tracestate and must stay
+    // equivalent to the plain validating expression it replaces.
+    public void propagateContextToDittoHeadersPreservesIncomingTracestate() {
+        final var incomingTracestate = "vendorA=abc123";
+        final var dittoHeaders = DittoHeaders.newBuilder()
+                .correlationId(testName.getMethodName())
+                .putHeader(DittoHeaderDefinition.W3C_TRACESTATE.getKey(), incomingTracestate)
+                .build();
+
+        final DittoHeaders viaOverload = underTest.propagateContext(dittoHeaders);
+        final DittoHeaders viaMap =
+                DittoHeaders.of(underTest.propagateContext((Map<String, String>) dittoHeaders));
+
+        assertThat(viaOverload)
+                .isEqualTo(viaMap)
+                .containsEntry(DittoHeaderDefinition.W3C_TRACESTATE.getKey(), incomingTracestate)
+                .containsEntry(DittoHeaderDefinition.W3C_TRACEPARENT.getKey(), getExpectedTraceparentValue());
+    }
+
+    @Test
     public void spawnChildWithNullOperationNameThrowsNullPointerException() {
         assertThatNullPointerException()
                 .isThrownBy(() -> underTest.spawnChild(null))

@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.metrics.instruments.TaggableMetricsInstrument;
 
 /**
@@ -109,6 +110,33 @@ public interface StartedSpan extends TaggableMetricsInstrument<StartedSpan>, Spa
      * @param map the map to which the current span context is propagated.
      */
     Map<String, String> propagateContext(Map<String, String> map);
+
+    /**
+     * Propagates the current context of this span onto the given <em>already-validated</em> {@link DittoHeaders},
+     * returning trusted {@code DittoHeaders} that skip header value re-validation.
+     * <p>
+     * This is equivalent in result to {@code DittoHeaders.of(propagateContext((Map<String, String>) dittoHeaders))}
+     * but avoids rebuilding through the validating constructor, which would re-parse every JSON-typed header value on
+     * each traced hop. It runs the exact same propagation on the actual headers (so the incoming {@code tracestate}
+     * is read and this span's {@code traceparent} is written identically to {@link #propagateContext(Map)}), then
+     * re-applies only the entries the propagation actually changed onto the trusted, memoizing headers. Those changed
+     * entries are the W3C trace-context headers ({@code traceparent}/{@code tracestate}), which carry a no-op value
+     * validator, so no header value is re-parsed.
+     *
+     * @param dittoHeaders the already-validated headers onto which the span context is propagated.
+     * @return the trusted headers including the propagated span context.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     */
+    default DittoHeaders propagateContext(final DittoHeaders dittoHeaders) {
+        final Map<String, String> propagatedHeaders = propagateContext((Map<String, String>) dittoHeaders);
+        final var builder = dittoHeaders.toBuilder();
+        propagatedHeaders.forEach((key, value) -> {
+            if (!value.equals(dittoHeaders.get(key))) {
+                builder.putHeader(key, value);
+            }
+        });
+        return builder.build();
+    }
 
     /**
      * Spawns a child span of this StartedSpan with the specified SpanOperationName argument.

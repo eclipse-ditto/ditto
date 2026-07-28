@@ -269,8 +269,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
             final DittoHeaders dittoHeaders,
             final StartedSpan startedSpan
     ) {
-        final var dittoHeadersWithSpanContext = DittoHeaders.of(startedSpan.propagateContext(dittoHeaders));
-        return dittoHeadersWithSpanContext.toJson();
+        return startedSpan.propagateContext(dittoHeaders).toJson();
     }
 
     @SuppressWarnings("java:S3740")
@@ -389,7 +388,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
                 beforeDeserializeInstant
         );
         final var result =
-                deserializeJson(payload, manifest, DittoHeaders.of(startedSpan.propagateContext(dittoHeaders)));
+                deserializeJson(payload, manifest, startedSpan.propagateContext(dittoHeaders));
         try {
             return result;
         } finally {
