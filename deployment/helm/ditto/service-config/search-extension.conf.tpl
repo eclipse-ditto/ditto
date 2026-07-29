@@ -146,6 +146,28 @@ ditto {
         }
         {{- end }}
       }
+
+      {{- with .Values.thingsSearch.config.operatorMetrics.customMetricsPersistence }}
+      {{- if .readPreference }}
+      custom-metrics-persistence {
+        readPreference = "{{ .readPreference }}"
+        {{- if .readConcern }}
+        readConcern = "{{ .readConcern }}"
+        {{- end }}
+      }
+      {{- end }}
+      {{- end }}
+
+      {{- with .Values.thingsSearch.config.operatorMetrics.customAggregationMetricsPersistence }}
+      {{- if .readPreference }}
+      custom-aggregation-metrics-persistence {
+        readPreference = "{{ .readPreference }}"
+        {{- if .readConcern }}
+        readConcern = "{{ .readConcern }}"
+        {{- end }}
+      }
+      {{- end }}
+      {{- end }}
     }
   }
 }

@@ -73,6 +73,14 @@ public final class SudoCountThings extends AbstractCommand<SudoCountThings>
             JsonFactory.newJsonValueFieldDefinition("indexHint", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
+    static final JsonFieldDefinition<String> JSON_READ_PREFERENCE =
+            JsonFactory.newStringFieldDefinition("readPreference", FieldType.REGULAR,
+                    JsonSchemaVersion.V_2);
+
+    static final JsonFieldDefinition<String> JSON_READ_CONCERN =
+            JsonFactory.newStringFieldDefinition("readConcern", FieldType.REGULAR,
+                    JsonSchemaVersion.V_2);
+
     @Nullable
     private final String filter;
 
@@ -82,8 +90,15 @@ public final class SudoCountThings extends AbstractCommand<SudoCountThings>
     @Nullable
     private final JsonValue indexHint;
 
+    @Nullable
+    private final String readPreference;
+
+    @Nullable
+    private final String readConcern;
+
     private SudoCountThings(final DittoHeaders dittoHeaders, @Nullable final String filter,
-            @Nullable final Collection<String> namespaces, @Nullable final JsonValue indexHint) {
+            @Nullable final Collection<String> namespaces, @Nullable final JsonValue indexHint,
+            @Nullable final String readPreference, @Nullable final String readConcern) {
         super(TYPE, dittoHeaders);
         this.filter = filter;
         if (namespaces != null) {
@@ -92,6 +107,8 @@ public final class SudoCountThings extends AbstractCommand<SudoCountThings>
             this.namespaces = null;
         }
         this.indexHint = indexHint;
+        this.readPreference = readPreference;
+        this.readConcern = readConcern;
     }
 
     /**
@@ -103,7 +120,7 @@ public final class SudoCountThings extends AbstractCommand<SudoCountThings>
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
     public static SudoCountThings of(@Nullable final String filter, final DittoHeaders dittoHeaders) {
-        return new SudoCountThings(dittoHeaders, filter, null, null);
+        return new SudoCountThings(dittoHeaders, filter, null, null, null, null);
     }
 
     /**
@@ -117,7 +134,7 @@ public final class SudoCountThings extends AbstractCommand<SudoCountThings>
      */
     public static SudoCountThings of(@Nullable final String filter, @Nullable final Collection<String> namespaces,
             final DittoHeaders dittoHeaders) {
-        return new SudoCountThings(dittoHeaders, filter, namespaces, null);
+        return new SudoCountThings(dittoHeaders, filter, namespaces, null, null, null);
     }
 
     /**
@@ -132,7 +149,47 @@ public final class SudoCountThings extends AbstractCommand<SudoCountThings>
      */
     public static SudoCountThings of(@Nullable final String filter, @Nullable final Collection<String> namespaces,
             @Nullable final JsonValue indexHint, final DittoHeaders dittoHeaders) {
-        return new SudoCountThings(dittoHeaders, filter, namespaces, indexHint);
+        return new SudoCountThings(dittoHeaders, filter, namespaces, indexHint, null, null);
+    }
+
+    /**
+     * Returns a new instance of {@code SudoCountThings}.
+     *
+     * @param filter the optional filter string.
+     * @param namespaces the namespaces to perform the count in.
+     * @param indexHint the optional index hint for the MongoDB query.
+     * @param readPreference the optional MongoDB read preference to use for this count query (e.g.
+     * {@code "secondaryPreferred"}); when {@code null} the persistence default read preference is used.
+     * @param dittoHeaders the headers of the command.
+     * @return a new command for counting Things.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @since 3.9.7
+     */
+    public static SudoCountThings of(@Nullable final String filter, @Nullable final Collection<String> namespaces,
+            @Nullable final JsonValue indexHint, @Nullable final String readPreference,
+            final DittoHeaders dittoHeaders) {
+        return new SudoCountThings(dittoHeaders, filter, namespaces, indexHint, readPreference, null);
+    }
+
+    /**
+     * Returns a new instance of {@code SudoCountThings}.
+     *
+     * @param filter the optional filter string.
+     * @param namespaces the namespaces to perform the count in.
+     * @param indexHint the optional index hint for the MongoDB query.
+     * @param readPreference the optional MongoDB read preference to use for this count query (e.g.
+     * {@code "secondaryPreferred"}); when {@code null} the persistence default read preference is used.
+     * @param readConcern the optional MongoDB read concern to use for this count query (e.g. {@code "local"});
+     * when {@code null} the persistence default read concern is used.
+     * @param dittoHeaders the headers of the command.
+     * @return a new command for counting Things.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @since 3.9.7
+     */
+    public static SudoCountThings of(@Nullable final String filter, @Nullable final Collection<String> namespaces,
+            @Nullable final JsonValue indexHint, @Nullable final String readPreference,
+            @Nullable final String readConcern, final DittoHeaders dittoHeaders) {
+        return new SudoCountThings(dittoHeaders, filter, namespaces, indexHint, readPreference, readConcern);
     }
 
     /**
@@ -143,7 +200,7 @@ public final class SudoCountThings extends AbstractCommand<SudoCountThings>
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static SudoCountThings of(final DittoHeaders dittoHeaders) {
-        return new SudoCountThings(dittoHeaders, null, null, null);
+        return new SudoCountThings(dittoHeaders, null, null, null, null, null);
     }
 
     /**
@@ -186,7 +243,12 @@ public final class SudoCountThings extends AbstractCommand<SudoCountThings>
 
             final JsonValue extractedIndexHint = jsonObject.getValue(JSON_INDEX_HINT).orElse(null);
 
-            return new SudoCountThings(dittoHeaders, extractedFilter, extractedNamespaces, extractedIndexHint);
+            final String extractedReadPreference = jsonObject.getValue(JSON_READ_PREFERENCE).orElse(null);
+
+            final String extractedReadConcern = jsonObject.getValue(JSON_READ_CONCERN).orElse(null);
+
+            return new SudoCountThings(dittoHeaders, extractedFilter, extractedNamespaces, extractedIndexHint,
+                    extractedReadPreference, extractedReadConcern);
         });
     }
 
@@ -217,6 +279,26 @@ public final class SudoCountThings extends AbstractCommand<SudoCountThings>
         return Optional.ofNullable(indexHint);
     }
 
+    /**
+     * Get the optional MongoDB read preference override for this count query.
+     *
+     * @return the optional read preference (e.g. {@code "secondaryPreferred"}).
+     * @since 3.9.7
+     */
+    public Optional<String> getReadPreference() {
+        return Optional.ofNullable(readPreference);
+    }
+
+    /**
+     * Get the optional MongoDB read concern override for this count query.
+     *
+     * @return the optional read concern (e.g. {@code "local"}).
+     * @since 3.9.7
+     */
+    public Optional<String> getReadConcern() {
+        return Optional.ofNullable(readConcern);
+    }
+
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
@@ -227,6 +309,8 @@ public final class SudoCountThings extends AbstractCommand<SudoCountThings>
                 .map(JsonValue::of)
                 .collect(JsonCollectors.valuesToArray()), predicate));
         getIndexHint().ifPresent(hint -> jsonObjectBuilder.set(JSON_INDEX_HINT, hint, predicate));
+        getReadPreference().ifPresent(rp -> jsonObjectBuilder.set(JSON_READ_PREFERENCE, rp, predicate));
+        getReadConcern().ifPresent(rc -> jsonObjectBuilder.set(JSON_READ_CONCERN, rc, predicate));
     }
 
     @Override
@@ -236,7 +320,7 @@ public final class SudoCountThings extends AbstractCommand<SudoCountThings>
 
     @Override
     public SudoCountThings setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new SudoCountThings(dittoHeaders, filter, namespaces, indexHint);
+        return new SudoCountThings(dittoHeaders, filter, namespaces, indexHint, readPreference, readConcern);
     }
 
     @Override
@@ -250,12 +334,14 @@ public final class SudoCountThings extends AbstractCommand<SudoCountThings>
         final SudoCountThings that = (SudoCountThings) o;
         return Objects.equals(filter, that.filter) &&
                 Objects.equals(namespaces, that.namespaces) &&
-                Objects.equals(indexHint, that.indexHint);
+                Objects.equals(indexHint, that.indexHint) &&
+                Objects.equals(readPreference, that.readPreference) &&
+                Objects.equals(readConcern, that.readConcern);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), filter, namespaces, indexHint);
+        return Objects.hash(super.hashCode(), filter, namespaces, indexHint, readPreference, readConcern);
     }
 
     @Override
@@ -264,6 +350,8 @@ public final class SudoCountThings extends AbstractCommand<SudoCountThings>
                 "filter='" + filter + "'" +
                 ", namespaces=" + namespaces +
                 ", indexHint=" + indexHint +
+                ", readPreference=" + readPreference +
+                ", readConcern=" + readConcern +
                 "]";
     }
 
