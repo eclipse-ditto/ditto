@@ -41,6 +41,16 @@ public enum ReadPreference {
     }
 
     /**
+     * Returns the config string value of this read preference (e.g. {@code "secondaryPreferred"}).
+     *
+     * @return the read preference config string.
+     * @since 3.9.7
+     */
+    public String getName() {
+        return name;
+    }
+
+    /**
      * Tries to create a ReadPreference from the given read preference string.
      *
      * @param readPreference the string value of read preference.
