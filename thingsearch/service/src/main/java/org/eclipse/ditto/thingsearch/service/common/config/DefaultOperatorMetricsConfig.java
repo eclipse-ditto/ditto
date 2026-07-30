@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
@@ -26,6 +27,7 @@ import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
@@ -47,10 +49,22 @@ public final class DefaultOperatorMetricsConfig implements OperatorMetricsConfig
      */
     static final String CONFIG_PATH = "operator-metrics";
 
+    /**
+     * Path of the optional persistence config block used for the count based {@code custom-metrics} queries.
+     */
+    static final String CUSTOM_METRICS_PERSISTENCE_PATH = "custom-metrics-persistence";
+
+    /**
+     * Path of the optional persistence config block used for the {@code custom-aggregation-metrics} queries.
+     */
+    static final String CUSTOM_AGGREGATION_METRICS_PERSISTENCE_PATH = "custom-aggregation-metrics-persistence";
+
     private final boolean enabled;
     private final Duration scrapeInterval;
     private final Map<String, CustomMetricConfig> customMetricConfigurations;
     private final Map<String, CustomAggregationMetricConfig> customAggregationMetricConfigs;
+    @Nullable private final SearchPersistenceConfig customMetricsPersistenceConfig;
+    @Nullable private final SearchPersistenceConfig customAggregationMetricsPersistenceConfig;
 
     private DefaultOperatorMetricsConfig(final ConfigWithFallback updaterScopedConfig) {
         enabled = updaterScopedConfig.getBoolean(OperatorMetricsConfigValue.ENABLED.getConfigPath());
@@ -59,6 +73,14 @@ public final class DefaultOperatorMetricsConfig implements OperatorMetricsConfig
                 OperatorMetricsConfigValue.CUSTOM_METRICS);
         customAggregationMetricConfigs = loadCustomAggregatedMetricConfigurations(updaterScopedConfig,
                 OperatorMetricsConfigValue.CUSTOM_AGGREGATION_METRIC);
+        customMetricsPersistenceConfig = updaterScopedConfig.hasPath(CUSTOM_METRICS_PERSISTENCE_PATH)
+                ? DefaultSearchPersistenceConfig.of(updaterScopedConfig, CUSTOM_METRICS_PERSISTENCE_PATH)
+                : null;
+        customAggregationMetricsPersistenceConfig =
+                updaterScopedConfig.hasPath(CUSTOM_AGGREGATION_METRICS_PERSISTENCE_PATH)
+                        ? DefaultSearchPersistenceConfig.of(updaterScopedConfig,
+                        CUSTOM_AGGREGATION_METRICS_PERSISTENCE_PATH)
+                        : null;
     }
 
     /**
@@ -99,12 +121,18 @@ public final class DefaultOperatorMetricsConfig implements OperatorMetricsConfig
         }
         final DefaultOperatorMetricsConfig that = (DefaultOperatorMetricsConfig) o;
         return enabled == that.enabled &&
-                Objects.equals(scrapeInterval, that.scrapeInterval);
+                Objects.equals(scrapeInterval, that.scrapeInterval) &&
+                Objects.equals(customMetricConfigurations, that.customMetricConfigurations) &&
+                Objects.equals(customAggregationMetricConfigs, that.customAggregationMetricConfigs) &&
+                Objects.equals(customMetricsPersistenceConfig, that.customMetricsPersistenceConfig) &&
+                Objects.equals(customAggregationMetricsPersistenceConfig,
+                        that.customAggregationMetricsPersistenceConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(enabled, scrapeInterval, customMetricConfigurations);
+        return Objects.hash(enabled, scrapeInterval, customMetricConfigurations, customAggregationMetricConfigs,
+                customMetricsPersistenceConfig, customAggregationMetricsPersistenceConfig);
     }
 
     @Override
@@ -113,6 +141,9 @@ public final class DefaultOperatorMetricsConfig implements OperatorMetricsConfig
                 "enabled=" + enabled +
                 ", scrapeInterval=" + scrapeInterval +
                 ", customMetricConfigurations=" + customMetricConfigurations +
+                ", customAggregationMetricConfigs=" + customAggregationMetricConfigs +
+                ", customMetricsPersistenceConfig=" + customMetricsPersistenceConfig +
+                ", customAggregationMetricsPersistenceConfig=" + customAggregationMetricsPersistenceConfig +
                 "]";
     }
 
@@ -134,6 +165,16 @@ public final class DefaultOperatorMetricsConfig implements OperatorMetricsConfig
     @Override
     public Map<String, CustomAggregationMetricConfig> getCustomAggregationMetricConfigs() {
         return customAggregationMetricConfigs;
+    }
+
+    @Override
+    public Optional<SearchPersistenceConfig> getCustomMetricsPersistenceConfig() {
+        return Optional.ofNullable(customMetricsPersistenceConfig);
+    }
+
+    @Override
+    public Optional<SearchPersistenceConfig> getCustomAggregationMetricsPersistenceConfig() {
+        return Optional.ofNullable(customAggregationMetricsPersistenceConfig);
     }
 
     private static class CustomMetricConfigCollector

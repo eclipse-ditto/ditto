@@ -135,4 +135,42 @@ public final class SudoCountThingsTest {
         assertThat(withNewHeaders.getIndexHint()).contains(JsonValue.of("my_index"));
     }
 
+    @Test
+    public void toJsonWithReadPreferenceAndReadConcern() {
+        final SudoCountThings command = SudoCountThings.of(
+                KNOWN_FILTER_STR, List.of("ns1"), JsonValue.of("my_index"), "secondaryPreferred", "local",
+                DittoHeaders.empty());
+
+        final String json = command.toJsonString();
+        final SudoCountThings deserialized = SudoCountThings.fromJson(json, DittoHeaders.empty());
+
+        assertThat(deserialized.getFilter()).contains(KNOWN_FILTER_STR);
+        assertThat(deserialized.getIndexHint()).contains(JsonValue.of("my_index"));
+        assertThat(deserialized.getReadPreference()).contains("secondaryPreferred");
+        assertThat(deserialized.getReadConcern()).contains("local");
+    }
+
+    @Test
+    public void toJsonWithoutReadPreferenceOrReadConcern() {
+        final SudoCountThings command = SudoCountThings.of(KNOWN_FILTER_STR, DittoHeaders.empty());
+
+        final String json = command.toJsonString();
+        final SudoCountThings deserialized = SudoCountThings.fromJson(json, DittoHeaders.empty());
+
+        assertThat(deserialized.getReadPreference()).isEmpty();
+        assertThat(deserialized.getReadConcern()).isEmpty();
+    }
+
+    @Test
+    public void setDittoHeadersPreservesReadPreferenceAndReadConcern() {
+        final SudoCountThings command = SudoCountThings.of(
+                KNOWN_FILTER_STR, null, null, "secondaryPreferred", "local", DittoHeaders.empty());
+
+        final SudoCountThings withNewHeaders = command.setDittoHeaders(
+                DittoHeaders.newBuilder().correlationId("test").build());
+
+        assertThat(withNewHeaders.getReadPreference()).contains("secondaryPreferred");
+        assertThat(withNewHeaders.getReadConcern()).contains("local");
+    }
+
 }

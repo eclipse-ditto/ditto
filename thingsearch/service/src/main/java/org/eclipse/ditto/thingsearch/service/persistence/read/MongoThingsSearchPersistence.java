@@ -48,6 +48,8 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.BsonUtil;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.IndexInitializationConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.ReadConcern;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.ReadPreference;
 import org.eclipse.ditto.internal.utils.persistence.mongo.indices.Index;
 import org.eclipse.ditto.internal.utils.persistence.mongo.indices.IndexInitializer;
 import org.eclipse.ditto.json.JsonArray;
@@ -215,6 +217,13 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
     @Override
     public Source<Long, NotUsed> sudoCount(final Query query, final DittoHeaders dittoHeaders,
             @Nullable final JsonValue indexHint) {
+        return sudoCount(query, dittoHeaders, indexHint, null, null);
+    }
+
+    @Override
+    public Source<Long, NotUsed> sudoCount(final Query query, final DittoHeaders dittoHeaders,
+            @Nullable final JsonValue indexHint, @Nullable final String readPreferenceOverride,
+            @Nullable final String readConcernOverride) {
 
         checkNotNull(query, "query");
 
@@ -227,9 +236,36 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
                 .maxTime(maxQueryTime.getSeconds(), TimeUnit.SECONDS);
         applyHint(countOptions, indexHint);
 
-        return Source.fromPublisher(collection.countDocuments(queryFilter, countOptions))
+        return Source.fromPublisher(withReadOverrides(readPreferenceOverride, readConcernOverride, dittoHeaders)
+                        .countDocuments(queryFilter, countOptions))
                 .mapError(handleMongoExecutionTimeExceededException(dittoHeaders))
                 .log("sudoCount");
+    }
+
+    private MongoCollection<Document> withReadOverrides(@Nullable final String readPreferenceOverride,
+            @Nullable final String readConcernOverride, final DittoHeaders dittoHeaders) {
+        MongoCollection<Document> result = collection;
+        if (readPreferenceOverride != null) {
+            final Optional<ReadPreference> parsed = ReadPreference.ofReadPreference(readPreferenceOverride);
+            if (parsed.isPresent()) {
+                result = result.withReadPreference(parsed.get().getMongoReadPreference());
+            } else {
+                LOGGER.withCorrelationId(dittoHeaders)
+                        .warn("Ignoring unknown read preference override <{}> for count query.",
+                                readPreferenceOverride);
+            }
+        }
+        if (readConcernOverride != null) {
+            final Optional<ReadConcern> parsed = ReadConcern.ofReadConcern(readConcernOverride);
+            if (parsed.isPresent()) {
+                result = result.withReadConcern(parsed.get().getMongoReadConcern());
+            } else {
+                LOGGER.withCorrelationId(dittoHeaders)
+                        .warn("Ignoring unknown read concern override <{}> for count query.",
+                                readConcernOverride);
+            }
+        }
+        return result;
     }
 
     private void applyHint(final CountOptions countOptions, @Nullable final JsonValue indexHint) {

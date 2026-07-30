@@ -43,6 +43,16 @@ public enum ReadConcern {
     }
 
     /**
+     * Returns the config string value of this read concern (e.g. {@code "local"}).
+     *
+     * @return the read concern config string.
+     * @since 3.9.7
+     */
+    public String getName() {
+        return name;
+    }
+
+    /**
      * Tries to create a ReadConcern from the given read concern string.
      *
      * @param readConcern the string value of read concern.
