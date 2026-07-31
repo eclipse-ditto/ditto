@@ -110,9 +110,10 @@ public final class ImmutableTargetTest {
     }
 
     @Test
-    public void toJsonFromJsonRoundTripsWithCombinedRqlAndPipelineFilterTopic() {
+    public void toJsonFromJsonRoundTripsWithFilterAndFnFilterTopic() {
         final FilteredTopic filteredTopic = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
-                .withFilter("gt(attributes/counter,42)|fn:filter(header:ditto-originator,'ne','some:subject')")
+                .withFilter("gt(attributes/counter,42)")
+                .withFnFilter("fn:filter(header:ditto-originator,'ne','some:subject')")
                 .build();
         final Target target = ConnectivityModelFactory.newTargetBuilder()
                 .address(ADDRESS)
