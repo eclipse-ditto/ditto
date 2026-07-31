@@ -18,6 +18,7 @@ import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 import java.text.MessageFormat;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -192,6 +193,44 @@ public final class KamonHttpContextPropagationTest {
                 .hasSize(contextTags.size() + 1)
                 .containsAllEntriesOf(contextTags)
                 .containsEntry("upstream.name", "kamon-application");
+    }
+
+    @Test
+    public void propagateContextToNewMapWithNullContextThrowsNullPointerException() {
+        final var underTest = KamonHttpContextPropagation.getInstanceForDefaultHttpChannel();
+
+        assertThatNullPointerException()
+                .isThrownBy(() -> underTest.propagateContextToNewMap(null))
+                .withMessage("The context must not be null!")
+                .withNoCause();
+    }
+
+    @Test
+    public void propagateContextToNewMapReturnsOnlyPropagatedContextWithoutCopyingInputHeaders() {
+        final Map<String, Object> contextTags = Map.of(
+                "foo", "bar",
+                "bar", "baz",
+                "marco", "polo"
+        );
+        final var span = Kamon.spanBuilder(testName.getMethodName()).traceId(traceId).start();
+        final var dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
+        final var underTest = KamonHttpContextPropagation.getInstanceForDefaultHttpChannel();
+        final var context = Context.of(Span.Key(), span, TagSet.from(contextTags));
+
+        final var propagatedContext = underTest.propagateContextToNewMap(context);
+
+        // the delta holds only the propagated context entries and none of the pre-existing headers ...
+        softly.assertThat(propagatedContext)
+                .as("delta map")
+                .containsOnlyKeys(TRACEPARENT_KEY, DittoHeaderDefinition.W3C_TRACESTATE.getKey(), CONTEXT_TAGS_KEY)
+                .doesNotContainKey(DittoHeaderDefinition.CORRELATION_ID.getKey());
+
+        // ... and applying it onto the incoming headers reproduces propagateContextToHeaders exactly.
+        final Map<String, String> reconstructed = new HashMap<>(dittoHeaders);
+        reconstructed.putAll(propagatedContext);
+        softly.assertThat(reconstructed)
+                .as("headers reconstructed from delta")
+                .isEqualTo(underTest.propagateContextToHeaders(context, dittoHeaders));
     }
 
     private static Map<String, Object> parseContextTagsHeaderValueToMap(final String contextTagsHeaderValue) {

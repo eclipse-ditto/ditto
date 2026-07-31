@@ -103,6 +103,27 @@ public final class KamonHttpContextPropagation {
         return result;
     }
 
+    /**
+     * Computes only the trace-context entries that the specified context contributes, without copying any
+     * pre-existing headers. The returned map contains solely the propagated context entries (the W3C trace-context
+     * headers such as {@code traceparent}/{@code tracestate}); it never contains the headers the context was read
+     * from.
+     * <p>
+     * This is the allocation-lean counterpart to {@link #propagateContextToHeaders(Context, Map)}: callers that only
+     * need the propagated delta (e.g. to apply it onto already-validated, trusted headers) avoid copying the whole
+     * incoming header map on every traced hop.
+     *
+     * @param context the context to be propagated.
+     * @return a small, modifiable Map containing only the propagated context entries.
+     * @throws NullPointerException if {@code context} is {@code null}.
+     */
+    public Map<String, String> propagateContextToNewMap(final Context context) {
+        checkNotNull(context, "context");
+        final Map<String, String> propagatedContext = new HashMap<>(4);
+        propagation.write(context, propagatedContext::put);
+        return propagatedContext;
+    }
+
     private static <K, V> Map<K, V> getMutableCopyOfMap(final Map<K, V> map) {
         return new HashMap<>(map);
     }

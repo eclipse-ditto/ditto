@@ -105,7 +105,7 @@ public interface SessionedJsonifiable {
                 .tag(SpanTagKey.SIGNAL_TYPE.getTagForValue(signal.getType()))
                 .start();
         return new SessionedSignal(
-                signal.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(signal.getDittoHeaders()))),
+                signal.setDittoHeaders(startedSpan.propagateContext(signal.getDittoHeaders())),
                 sessionHeaders,
                 session,
                 startedSpan
@@ -126,7 +126,7 @@ public interface SessionedJsonifiable {
         final var startedSpan = preparedSpan.start();
         startedSpan.tagAsFailed(error);
         return new SessionedResponseErrorOrAck(
-                error.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(error.getDittoHeaders()))),
+                error.setDittoHeaders(startedSpan.propagateContext(error.getDittoHeaders())),
                 error.getDittoHeaders(),
                 startedSpan
         );
@@ -146,7 +146,7 @@ public interface SessionedJsonifiable {
                 .tag(SpanTagKey.SIGNAL_TYPE.getTagForValue(response.getType()))
                 .start();
         return new SessionedResponseErrorOrAck(
-                response.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(response.getDittoHeaders()))),
+                response.setDittoHeaders(startedSpan.propagateContext(response.getDittoHeaders())),
                 response.getDittoHeaders(),
                 startedSpan
         );
