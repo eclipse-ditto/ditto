@@ -25,6 +25,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -60,10 +62,31 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
     private static final JsonPointer ROOT_RESOURCE_POINTER = JsonFactory.newPointer(ROOT_RESOURCE);
 
     /**
+     * Best-effort upper bound on each authorization-verdict memo (see below). Keeps memory bounded should a
+     * caller ever produce pathologically many distinct keys (e.g. huge numbers of distinct resources or
+     * subject-sets). Above the cap, verdicts are computed without being cached — correctness is unaffected,
+     * only the fast path is skipped. Mirrors the bounded best-effort caches used by {@code PolicyEnforcer}.
+     */
+    private static final int MAX_MEMO_SIZE = 10_000;
+
+    /**
      * Maps subject ID to {@link org.eclipse.ditto.policies.model.enforcers.tree.SubjectNode} whose children are {@link org.eclipse.ditto.policies.model.enforcers.tree.ResourceNode} for which the subject is granted
      * or revoked access. The child-set of each {@link org.eclipse.ditto.policies.model.enforcers.tree.SubjectNode} is effectively a map from resources to permissions.
      */
     private final Map<String, PolicyTreeNode> tree;
+
+    // Per-instance memos of authorization verdicts. TreeBasedPolicyEnforcer is effectively immutable after
+    // createInstance: the tree is built once during construction and only ever read (never mutated) by
+    // visitTree afterwards. A policy change produces a brand-new instance via
+    // PolicyEnforcers.defaultEvaluator, so - exactly like the classifySubjects(resource, READ) memo on
+    // PolicyEnforcer - each memo's lifetime equals the instance's and needs no explicit invalidation.
+    // Every memoized method walks the whole policy tree per call (visitTree), which production JFR showed to
+    // be a dominant things-service CPU hotspot; the (resource, subjects, permissions) tuples recur heavily,
+    // so a hash lookup replaces the repeated full-tree traversal. ConcurrentHashMap because enforcer
+    // instances are shared and hit from multiple threads concurrently.
+    private final Map<PermissionCheckKey, Boolean> permissionCheckMemo = new ConcurrentHashMap<>();
+    private final Map<SubjectsKey, EffectedSubjects> effectedSubjectsMemo = new ConcurrentHashMap<>();
+    private final Map<SubjectsKey, Set<AuthorizationSubject>> partialSubjectsMemo = new ConcurrentHashMap<>();
 
     private TreeBasedPolicyEnforcer(final Map<String, PolicyTreeNode> tree) {
         this.tree = tree;
@@ -160,9 +183,13 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
             final AuthorizationContext authorizationContext, final Permissions permissions) {
 
         checkPermissions(permissions);
+        // resourcePointer/authSubjectIds are computed eagerly (cheap, and preserving the original
+        // null-argument check ordering); only the expensive visitTree call is deferred into the memo supplier.
         final JsonPointer resourcePointer = createAbsoluteResourcePointer(resourceKey);
-        final Collection<String> authSubjectIds = getAuthorizationSubjectIds(authorizationContext);
-        return visitTree(new CheckUnrestrictedPermissionsVisitor(resourcePointer, authSubjectIds, permissions));
+        final Set<String> authSubjectIds = getAuthorizationSubjectIds(authorizationContext);
+        return memoize(permissionCheckMemo,
+                new PermissionCheckKey(resourceKey, authSubjectIds, permissions, false),
+                () -> visitTree(new CheckUnrestrictedPermissionsVisitor(resourcePointer, authSubjectIds, permissions)));
     }
 
     private static void checkPermissions(final Permissions permissions) {
@@ -173,7 +200,7 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
         return JsonFactory.newPointer(resourceKey.getResourceType()).append(resourceKey.getResourcePath());
     }
 
-    private static Collection<String> getAuthorizationSubjectIds(final AuthorizationContext authorizationContext) {
+    private static Set<String> getAuthorizationSubjectIds(final AuthorizationContext authorizationContext) {
         checkNotNull(authorizationContext, "Authorization Context");
 
         return authorizationContext.stream()
@@ -186,12 +213,33 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
         return visitor.get();
     }
 
+    /**
+     * Returns the memoized value for {@code key}, computing and caching it (best-effort, up to
+     * {@link #MAX_MEMO_SIZE} entries) on a miss. All memoized suppliers return non-null values, so a
+     * {@code null} lookup reliably means "absent". Thread-safe: {@code memo} is a {@link ConcurrentHashMap}
+     * and the supplier only reads the immutable policy tree, never re-entering the memo.
+     */
+    private static <K, V> V memoize(final Map<K, V> memo, final K key, final Supplier<V> valueSupplier) {
+        final V cached = memo.get(key);
+        if (cached != null) {
+            return cached;
+        }
+        final V computed = valueSupplier.get();
+        if (memo.size() < MAX_MEMO_SIZE) {
+            memo.putIfAbsent(key, computed);
+        }
+        return computed;
+    }
+
     @Override
     public EffectedSubjects getSubjectsWithPermission(final ResourceKey resourceKey, final Permissions permissions) {
         checkResourceKey(resourceKey);
         checkPermissions(permissions);
         final JsonPointer resourcePointer = createAbsoluteResourcePointer(resourceKey);
-        return visitTree(new CollectEffectedSubjectsVisitor(resourcePointer, permissions));
+        // EffectedSubjects (DefaultEffectedSubjects) is @Immutable with unmodifiable internal sets, so the
+        // cached instance can be shared across callers directly.
+        return memoize(effectedSubjectsMemo, new SubjectsKey(resourceKey, permissions),
+                () -> visitTree(new CollectEffectedSubjectsVisitor(resourcePointer, permissions)));
     }
 
     private static void checkResourceKey(final ResourceKey resourceKey) {
@@ -205,7 +253,13 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
         checkResourceKey(resourceKey);
         checkPermissions(permissions);
         final JsonPointer resourcePointer = createAbsoluteResourcePointer(resourceKey);
-        return visitTree(new CollectPartialGrantedSubjectsVisitor(resourcePointer, permissions));
+        // The visitor returns a fresh mutable HashSet; memoize an immutable snapshot but hand each caller a
+        // fresh mutable copy, preserving the original contract (callers receive a private, mutable set).
+        final Set<AuthorizationSubject> cached = memoize(partialSubjectsMemo,
+                new SubjectsKey(resourceKey, permissions),
+                () -> Collections.unmodifiableSet(new HashSet<>(
+                        visitTree(new CollectPartialGrantedSubjectsVisitor(resourcePointer, permissions)))));
+        return new HashSet<>(cached);
     }
 
     @Override
@@ -214,9 +268,11 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
 
         checkResourceKey(resourceKey);
         checkPermissions(permissions);
-        final Collection<String> authSubjectIds = getAuthorizationSubjectIds(authorizationContext);
+        final Set<String> authSubjectIds = getAuthorizationSubjectIds(authorizationContext);
         final JsonPointer resourcePointer = createAbsoluteResourcePointer(resourceKey);
-        return visitTree(new CheckPartialPermissionsVisitor(resourcePointer, authSubjectIds, permissions));
+        return memoize(permissionCheckMemo,
+                new PermissionCheckKey(resourceKey, authSubjectIds, permissions, true),
+                () -> visitTree(new CheckPartialPermissionsVisitor(resourcePointer, authSubjectIds, permissions)));
     }
 
     @Override
@@ -737,6 +793,83 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
         PointerAndPermission(final JsonPointer pointer, final String permission) {
             this.pointer = pointer;
             this.permission = permission;
+        }
+    }
+
+    /**
+     * Memo key for the two permission-check methods. {@code authorizationSubjectIds} is a {@link Set} so its
+     * equality is order-independent; {@code partial} distinguishes {@code hasUnrestrictedPermissions}
+     * ({@code false}) from {@code hasPartialPermissions} ({@code true}), letting both share a single map. All
+     * components are immutable value types with stable {@code equals}/{@code hashCode}. Plain class (not a
+     * record) because this module still targets Java 8.
+     */
+    @Immutable
+    private static final class PermissionCheckKey {
+
+        private final ResourceKey resourceKey;
+        private final Set<String> authorizationSubjectIds;
+        private final Permissions permissions;
+        private final boolean partial;
+
+        private PermissionCheckKey(final ResourceKey resourceKey, final Set<String> authorizationSubjectIds,
+                final Permissions permissions, final boolean partial) {
+            this.resourceKey = resourceKey;
+            this.authorizationSubjectIds = authorizationSubjectIds;
+            this.permissions = permissions;
+            this.partial = partial;
+        }
+
+        @Override
+        public boolean equals(@Nullable final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            final PermissionCheckKey that = (PermissionCheckKey) o;
+            return partial == that.partial
+                    && Objects.equals(resourceKey, that.resourceKey)
+                    && Objects.equals(authorizationSubjectIds, that.authorizationSubjectIds)
+                    && Objects.equals(permissions, that.permissions);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(resourceKey, authorizationSubjectIds, permissions, partial);
+        }
+    }
+
+    /**
+     * Memo key for the subject-collection methods, which classify <em>all</em> subjects and therefore depend
+     * only on the resource and permissions. Plain class (not a record) because this module still targets Java 8.
+     */
+    @Immutable
+    private static final class SubjectsKey {
+
+        private final ResourceKey resourceKey;
+        private final Permissions permissions;
+
+        private SubjectsKey(final ResourceKey resourceKey, final Permissions permissions) {
+            this.resourceKey = resourceKey;
+            this.permissions = permissions;
+        }
+
+        @Override
+        public boolean equals(@Nullable final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            final SubjectsKey that = (SubjectsKey) o;
+            return Objects.equals(resourceKey, that.resourceKey) && Objects.equals(permissions, that.permissions);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(resourceKey, permissions);
         }
     }
 
