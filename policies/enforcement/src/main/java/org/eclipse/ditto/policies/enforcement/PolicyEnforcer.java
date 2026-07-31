@@ -263,6 +263,37 @@ public final class PolicyEnforcer {
                                 namespaceEnforcerCacheMaxSize, readClassificationCacheMaxSize));
     }
 
+    /**
+     * Same as {@link #withResolvedImportsAndNamespacePolicies(Policy, Function, NamespacePoliciesConfig, long, long)}
+     * but additionally bounds the bare enforcer's authorization-verdict memos (see
+     * {@link org.eclipse.ditto.policies.model.enforcers.tree.TreeBasedPolicyEnforcer}). Used by the enforcer cache
+     * loader with the operator-configured value.
+     *
+     * @param policy the policy to build an enforcer for.
+     * @param policyResolver resolves imported policies by ID.
+     * @param namespacePoliciesConfig the static namespace policies configuration.
+     * @param namespaceEnforcerCacheMaxSize the maximum size of the per-instance namespace-filtered-enforcer cache.
+     * @param readClassificationCacheMaxSize the maximum size of the per-instance read-classification cache.
+     * @param authorizationMemoMaxSize the per-memo upper bound for the enforcer's authorization-verdict memos;
+     * a value {@code <= 0} disables those memos (no maps allocated).
+     * @return a completion stage with the fully resolved PolicyEnforcer.
+     * @since 3.9.7
+     */
+    public static CompletionStage<PolicyEnforcer> withResolvedImportsAndNamespacePolicies(
+            final Policy policy,
+            final Function<PolicyId, CompletionStage<Optional<Policy>>> policyResolver,
+            final NamespacePoliciesConfig namespacePoliciesConfig,
+            final long namespaceEnforcerCacheMaxSize,
+            final long readClassificationCacheMaxSize,
+            final long authorizationMemoMaxSize) {
+
+        return resolveImportsAndNamespacePolicies(policy, policyResolver, namespacePoliciesConfig)
+                .thenApply(finalPolicy ->
+                        new PolicyEnforcer(finalPolicy,
+                                PolicyEnforcers.defaultEvaluator(finalPolicy, (int) authorizationMemoMaxSize),
+                                namespaceEnforcerCacheMaxSize, readClassificationCacheMaxSize));
+    }
+
     private static CompletionStage<Policy> resolveImportsAndNamespacePolicies(
             final Policy policy,
             final Function<PolicyId, CompletionStage<Optional<Policy>>> policyResolver,
