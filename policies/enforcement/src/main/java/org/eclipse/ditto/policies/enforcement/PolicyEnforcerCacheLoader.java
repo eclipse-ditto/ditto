@@ -44,11 +44,16 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<PolicyI
      * read-classification cache size; default provided by reference.conf. */
     private static final String READ_CLASSIFICATION_MAX_SIZE_KEY = "read-classification-cache-max-size";
 
+    /** Config key (relative to {@link PolicyEnforcerProvider#ENFORCER_CACHE_CONFIG_KEY}) for the per-enforcer
+     * authorization-verdict memo size; {@code 0} disables the memo (no maps allocated). Default in reference.conf. */
+    private static final String AUTHORIZATION_MEMO_MAX_SIZE_KEY = "authorization-memo-cache-max-size";
+
     private final PolicyCacheLoader delegate;
     private final Executor enforcementCacheExecutor;
     private final NamespacePoliciesConfig namespacePoliciesConfig;
     private final long namespaceFilteredEnforcerCacheMaxSize;
     private final long readClassificationCacheMaxSize;
+    private final long authorizationMemoMaxSize;
     @Nullable
     private final CompletableFuture<Cache<PolicyId, Entry<PolicyEnforcer>>> cacheFuture;
 
@@ -91,6 +96,9 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<PolicyI
         this.readClassificationCacheMaxSize = actorSystem.settings().config()
                 .getLong(PolicyEnforcerProvider.ENFORCER_CACHE_CONFIG_KEY + "." +
                         READ_CLASSIFICATION_MAX_SIZE_KEY);
+        this.authorizationMemoMaxSize = actorSystem.settings().config()
+                .getLong(PolicyEnforcerProvider.ENFORCER_CACHE_CONFIG_KEY + "." +
+                        AUTHORIZATION_MEMO_MAX_SIZE_KEY);
         this.cacheFuture = cacheFuture;
     }
 
@@ -123,7 +131,7 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<PolicyI
             final var policy = entry.getValueOrThrow();
             return PolicyEnforcer.withResolvedImportsAndNamespacePolicies(policy, policyResolver,
                             namespacePoliciesConfig, namespaceFilteredEnforcerCacheMaxSize,
-                            readClassificationCacheMaxSize)
+                            readClassificationCacheMaxSize, authorizationMemoMaxSize)
                     .thenApply(enforcer -> Entry.of(revision, enforcer));
         } else {
             return CompletableFuture.completedFuture(Entry.nonexistent());
