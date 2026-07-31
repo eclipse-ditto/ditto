@@ -14,6 +14,7 @@ package org.eclipse.ditto.policies.model.enforcers.tree;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.lang.reflect.Field;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -148,5 +149,59 @@ public final class TreeBasedPolicyEnforcerMemoTest {
         final Set<AuthorizationSubject> second = underTest.getSubjectsWithPartialPermission(THING_ROOT, READ);
         assertThat(second).isEqualTo(snapshotBeforeMutation);
         assertThat(second).isNotSameAs(first);
+    }
+
+    @Test
+    public void memoizationDisabledAllocatesNoMemosAndStaysCorrect() throws Exception {
+        final TreeBasedPolicyEnforcer disabled = TreeBasedPolicyEnforcer.createInstance(policy(), 0);
+        final TreeBasedPolicyEnforcer cold = TreeBasedPolicyEnforcer.createInstance(policy());
+
+        assertThat(disabled.isMemoizationEnabled()).isFalse();
+        // No ConcurrentHashMaps are allocated when disabled: the three memo fields must be null.
+        assertThat(memoField(disabled, "permissionCheckMemo")).isNull();
+        assertThat(memoField(disabled, "effectedSubjectsMemo")).isNull();
+        assertThat(memoField(disabled, "partialSubjectsMemo")).isNull();
+
+        // All four memoized methods must still return results identical to a cold (memoizing) enforcer.
+        assertThat(disabled.hasUnrestrictedPermissions(THING_ROOT, ctx(FULL), READ))
+                .isEqualTo(cold.hasUnrestrictedPermissions(THING_ROOT, ctx(FULL), READ)).isTrue();
+        assertThat(disabled.hasUnrestrictedPermissions(THING_ROOT, ctx(STRANGER), READ))
+                .isEqualTo(cold.hasUnrestrictedPermissions(THING_ROOT, ctx(STRANGER), READ)).isFalse();
+        assertThat(disabled.hasPartialPermissions(THING_ROOT, ctx(PARTIAL), READ))
+                .isEqualTo(cold.hasPartialPermissions(THING_ROOT, ctx(PARTIAL), READ)).isTrue();
+        assertThat(disabled.getSubjectsWithPermission(THING_ROOT, READ))
+                .isEqualTo(cold.getSubjectsWithPermission(THING_ROOT, READ));
+        assertThat(disabled.getSubjectsWithPartialPermission(THING_ROOT, READ))
+                .isEqualTo(cold.getSubjectsWithPartialPermission(THING_ROOT, READ));
+
+        // With no cache, repeated getSubjectsWithPermission recomputes -> not the same instance (proves no memo).
+        assertThat(disabled.getSubjectsWithPermission(THING_ROOT, READ))
+                .isNotSameAs(disabled.getSubjectsWithPermission(THING_ROOT, READ));
+    }
+
+    @Test
+    public void smallCapStaysCorrectEvenWhenExceeded() {
+        final TreeBasedPolicyEnforcer bounded = TreeBasedPolicyEnforcer.createInstance(policy(), 4);
+        final TreeBasedPolicyEnforcer cold = TreeBasedPolicyEnforcer.createInstance(policy());
+
+        assertThat(bounded.isMemoizationEnabled()).isTrue();
+        // Push well past the cap of 4 with distinct subject-sets: above the cap, verdicts are computed uncached,
+        // but must remain correct for every distinct key (cached or not).
+        for (int i = 0; i < 20; i++) {
+            final AuthorizationContext stranger =
+                    ctx(AuthorizationSubject.newInstance("test:stranger-" + i));
+            assertThat(bounded.hasUnrestrictedPermissions(THING_ROOT, stranger, READ))
+                    .isEqualTo(cold.hasUnrestrictedPermissions(THING_ROOT, stranger, READ)).isFalse();
+        }
+        // The genuinely-permitted subjects still resolve correctly after the cap was hit.
+        assertThat(bounded.hasUnrestrictedPermissions(THING_ROOT, ctx(FULL), READ)).isTrue();
+        assertThat(bounded.hasUnrestrictedPermissions(THING_ROOT, ctx(FULL), READ)).isTrue();
+    }
+
+    private static Object memoField(final TreeBasedPolicyEnforcer enforcer, final String fieldName)
+            throws Exception {
+        final Field field = TreeBasedPolicyEnforcer.class.getDeclaredField(fieldName);
+        field.setAccessible(true);
+        return field.get(enforcer);
     }
 }

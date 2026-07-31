@@ -866,6 +866,11 @@ policies:
         # avoiding re-walking the policy tree per emitted ThingEvent for per-event read-authorization and
         # read-grant collection; caps distinct resource paths cached per policy
         readClassificationMaxSize: 1000
+        # authorizationMemoMaxSize bounds the per-enforcer memo of authorization verdicts (permission checks and
+        # subject collection), replacing the full policy-tree walk per authorization with a hash lookup; caps
+        # distinct (resource, caller-subjects, permission) tuples cached per policy. Set to 0 to disable it
+        # entirely - then no maps are allocated and every check walks the tree directly.
+        authorizationMemoMaxSize: 10000
         # expireAfterWrite the maximum duration of inconsistency after losing a cache invalidation
         expireAfterWrite: 4h
         # expireAfterAccess prolonged on each cache access by that duration
@@ -1241,6 +1246,11 @@ things:
         # avoiding re-walking the policy tree per emitted ThingEvent for per-event read-authorization and
         # read-grant collection; caps distinct resource paths cached per policy
         readClassificationMaxSize: 1000
+        # authorizationMemoMaxSize bounds the per-enforcer memo of authorization verdicts (permission checks and
+        # subject collection), replacing the full policy-tree walk per authorization with a hash lookup; caps
+        # distinct (resource, caller-subjects, permission) tuples cached per policy. Set to 0 to disable it
+        # entirely - then no maps are allocated and every check walks the tree directly.
+        authorizationMemoMaxSize: 10000
         # expireAfterWrite the maximum duration of inconsistency after losing a cache invalidation
         expireAfterWrite: 4h
         # expireAfterAccess prolonged on each cache access by that duration
@@ -1970,6 +1980,11 @@ connectivity:
         # avoiding re-walking the policy tree per emitted ThingEvent for per-event read-authorization and
         # read-grant collection; caps distinct resource paths cached per policy
         readClassificationMaxSize: 1000
+        # authorizationMemoMaxSize bounds the per-enforcer memo of authorization verdicts (permission checks and
+        # subject collection), replacing the full policy-tree walk per authorization with a hash lookup; caps
+        # distinct (resource, caller-subjects, permission) tuples cached per policy. Set to 0 to disable it
+        # entirely - then no maps are allocated and every check walks the tree directly.
+        authorizationMemoMaxSize: 10000
         # expireAfterWrite the maximum duration of inconsistency after losing a cache invalidation
         expireAfterWrite: 4h
         # expireAfterAccess prolonged on each cache access by that duration
