@@ -91,9 +91,9 @@ public final class ByRoundTripSignalEnrichmentFacade implements SignalEnrichment
         }
 
         final RetrieveThing command =
-                RetrieveThing.getBuilder(thingId, DittoHeaders.of(startedSpan.propagateContext(
+                RetrieveThing.getBuilder(thingId, startedSpan.propagateContext(
                                 dittoHeadersBuilder.build()
-                        )))
+                        ))
                         .withSelectedFields(jsonFieldSelector)
                         .build();
 

@@ -166,7 +166,7 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
                 .start();
         final Optional<String> formerTraceParent = dittoHeaders.getTraceParent();
         final var tracedSignal = signal.setDittoHeaders(
-                DittoHeaders.of(startedSpan.propagateContext(dittoHeaders))
+                startedSpan.propagateContext(dittoHeaders)
         );
         final ActorRef self = getSelf();
 

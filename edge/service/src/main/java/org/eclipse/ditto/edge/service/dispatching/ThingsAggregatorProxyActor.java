@@ -147,7 +147,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActorWithShutdownB
                 .tag("size", Integer.toString(thingIds.size()))
                 .start();
         final Command<?> tracedCommand = command.setDittoHeaders(
-                DittoHeaders.of(startedSpan.propagateContext(dittoHeaders))
+                startedSpan.propagateContext(dittoHeaders)
         );
 
         final DistributedPubSubMediator.Publish pubSubMsg =

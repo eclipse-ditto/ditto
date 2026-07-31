@@ -22,6 +22,8 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
 
@@ -118,6 +120,25 @@ final class StartedKamonSpan implements StartedSpan {
         return httpContextPropagation.propagateContextToHeaders(wrapSpanInContext(
                 headers.get(DittoHeaderDefinition.W3C_TRACESTATE.getKey())
         ), headers);
+    }
+
+    @Override
+    public DittoHeaders propagateContext(final DittoHeaders dittoHeaders) {
+        checkNotNull(dittoHeaders, "dittoHeaders");
+        // Propagate onto a fresh, small map (delta) instead of copying all headers: the writer only ever emits the
+        // W3C trace-context headers. The read side is identical to propagateContext(Map) - the same incoming
+        // tracestate is read into the same context and this span's traceparent is written identically.
+        final Map<String, String> propagatedContext = httpContextPropagation.propagateContextToNewMap(wrapSpanInContext(
+                dittoHeaders.get(DittoHeaderDefinition.W3C_TRACESTATE.getKey())
+        ));
+        if (propagatedContext.isEmpty()) {
+            return dittoHeaders;
+        }
+        // Apply only the propagated trace-context entries onto the already-validated, trusted headers. The changed
+        // entries are the W3C trace-context headers, which carry a no-op value validator, so no header is re-parsed.
+        final DittoHeadersBuilder<?, ?> builder = dittoHeaders.toBuilder();
+        propagatedContext.forEach(builder::putHeader);
+        return builder.build();
     }
 
     private Context wrapSpanInContext(@Nullable final String traceStateHeader) {

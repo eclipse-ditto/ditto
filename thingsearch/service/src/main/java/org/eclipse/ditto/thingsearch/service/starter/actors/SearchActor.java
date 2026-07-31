@@ -313,7 +313,7 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
 
         @SuppressWarnings("unchecked")
         final T tracedCountCommand = (T) countCommand.setDittoHeaders(
-                DittoHeaders.of(spanWithTimer.startedSpan.propagateContext(dittoHeaders)));
+                spanWithTimer.startedSpan.propagateContext(dittoHeaders));
 
         final Source<CountThingsResponse, ?> countThingsResponseSource =
                 createQuerySource(queryParseFunction, tracedCountCommand)
@@ -365,7 +365,7 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
         final var namespaces = streamThings.getNamespaces().orElse(null);
 
         final StreamThings tracedStreamThings = streamThings.setDittoHeaders(
-                DittoHeaders.of(spanWithTimer.startedSpan.propagateContext(streamThings.getDittoHeaders())));
+                spanWithTimer.startedSpan.propagateContext(streamThings.getDittoHeaders()));
 
         final Source<SourceRef<String>, NotUsed> thingIdSourceRefSource =
                 ThingsSearchCursor.extractCursor(tracedStreamThings).flatMapConcat(cursor -> {
@@ -484,7 +484,7 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
         final var namespaces = queryThings.getNamespaces().orElse(null);
 
         final QueryThings tracedQueryThings = queryThings.setDittoHeaders(
-                DittoHeaders.of(spanWithTimer.startedSpan.propagateContext(queryThings.getDittoHeaders())));
+                spanWithTimer.startedSpan.propagateContext(queryThings.getDittoHeaders()));
 
         final Source<QueryThingsResponse, ?> queryThingsResponseSource =
                 ThingsSearchCursor.extractCursor(tracedQueryThings, getSystem()).flatMapConcat(cursor -> {
