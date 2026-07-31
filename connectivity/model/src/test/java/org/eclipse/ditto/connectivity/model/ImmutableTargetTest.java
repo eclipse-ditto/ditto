@@ -14,6 +14,8 @@ package org.eclipse.ditto.connectivity.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Arrays;
+
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
@@ -107,6 +109,23 @@ public final class ImmutableTargetTest {
         final Target actual = ImmutableTarget.fromJson(MQTT_TARGET_JSON);
 
         assertThat(actual).isEqualTo(MQTT_TARGET);
+    }
+
+    @Test
+    public void toJsonFromJsonRoundTripsWithRqlAndPipelineFilterTopic() {
+        final FilteredTopic filteredTopic = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
+                .withFilters(Arrays.asList("gt(attributes/counter,42)",
+                        "fn:filter(header:ditto-originator,'ne','some:subject')"))
+                .build();
+        final Target target = ConnectivityModelFactory.newTargetBuilder()
+                .address(ADDRESS)
+                .authorizationContext(AUTHORIZATION_CONTEXT)
+                .topics(filteredTopic)
+                .build();
+
+        final Target actual = ImmutableTarget.fromJson(target.toJson());
+
+        assertThat(actual).isEqualTo(target);
     }
 
 }

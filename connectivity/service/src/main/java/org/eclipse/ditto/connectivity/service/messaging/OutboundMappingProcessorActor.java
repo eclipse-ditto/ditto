@@ -24,11 +24,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -456,7 +458,22 @@ public final class OutboundMappingProcessorActor
             // Pre-filtering already did the job
             return CompletableFuture.completedFuture(Collections.singletonList(outboundSignal));
         }
-        final boolean topicWithNoFilterExists = topics.stream().anyMatch(topic -> topic.getFilter().isEmpty());
+        // Partition each topic's filters exactly once: the result feeds both the aggregate boolean below and the
+        // per-topic filtering inside applyFilter. Topics without any filter have no map entry.
+        final Map<FilteredTopic, TargetTopicFilter.PartitionedFilters> partitionedFiltersByTopic = topics.stream()
+                .filter(topic -> !topic.getFilters().isEmpty())
+                .collect(Collectors.toMap(Function.identity(),
+                        topic -> TargetTopicFilter.partition(topic.getFilters())));
+        // A topic needs no enriched thing to be decided if it has no filter at all, or if none of its filters is
+        // an RQL expression - a pipeline expression only ever resolves placeholders that are already known before
+        // enrichment (see TargetTopicFilter#matchesPipelineFilter), so applyFilter can decide such a topic even
+        // when signal enrichment failed and enrichedThing below ends up null.
+        final boolean topicWithoutThingFilterExists = topics.stream()
+                .anyMatch(topic -> {
+                    @Nullable final TargetTopicFilter.PartitionedFilters partitioned =
+                            partitionedFiltersByTopic.get(topic);
+                    return partitioned == null || !partitioned.hasRqlExpression();
+                });
 
         final Target target = outboundSignal.getTargets().getFirst();
         final DittoHeaders headers = DittoHeaders.newBuilder()
@@ -495,8 +512,9 @@ public final class OutboundMappingProcessorActor
                                             .thenComparing(t ->
                                                     t.getExtraFields().map(Object::toString).orElse(""))
                                             .thenComparing(FilteredTopic::toString))
-                                    .filter(_ -> enrichedThing != null || topicWithNoFilterExists)
-                                    .flatMap(topic -> applyFilter(outboundSignal, enrichedThing, topic)
+                                    .filter(_ -> enrichedThing != null || topicWithoutThingFilterExists)
+                                    .flatMap(topic -> applyFilter(outboundSignal, enrichedThing,
+                                            partitionedFiltersByTopic.get(topic))
                                             .map(signal -> enrichWithNeededExtra(signal, topic, expressionResolver, extra))
                                             .stream())
                                     .findFirst()
@@ -825,13 +843,56 @@ public final class OutboundMappingProcessorActor
     }
 
     private Optional<OutboundSignalWithSender> applyFilter(final OutboundSignalWithSender outboundSignal,
-            @Nullable final Thing thing, final FilteredTopic topic) {
+            @Nullable final Thing thing,
+            @Nullable final TargetTopicFilter.PartitionedFilters partitionedFilters) {
 
         final Signal<?> signal = outboundSignal.getSource();
         final TopicPath topicPath = DITTO_PROTOCOL_ADAPTER.toTopicPath(signal);
 
-        final Optional<String> filter = topic.getFilter();
-        if (filter.isPresent()) {
+        // partitionedFilters is the pre-computed partition result of the topic's filters (see enrichAndFilterSignal)
+        // and is null exactly when the topic has no filter at all
+        if (partitionedFilters != null) {
+            final List<String> pipelineExpressions = partitionedFilters.getPipelineExpressions();
+            if (!pipelineExpressions.isEmpty()) {
+                // Per the runtime failure policy, guard ONLY the pipeline evaluation: a pipeline only ever resolves
+                // placeholders that are already known pre-enrichment (headers, topic path, entity id, resource,
+                // time), so - unlike the RQL criteria below - the pipelines are evaluated first (AND, short-circuit)
+                // and decide a topic without RQL filter without ever needing the (possibly null, when enrichment
+                // failed) enriched thing.
+                final ExpressionResolver pipelineResolver = Resolvers.forSignal(signal, connection.getId());
+                for (final String pipelineExpression : pipelineExpressions) {
+                    final boolean pipelineMatches;
+                    try {
+                        pipelineMatches =
+                                TargetTopicFilter.matchesPipelineFilter(pipelineExpression, pipelineResolver);
+                    } catch (final DittoRuntimeException e) {
+                        logger.withCorrelationId(signal)
+                                .warning("Evaluating the target topic pipeline filter <{}> of connection <{}> failed " +
+                                                "with <{}>: <{}> - treating as non-match.",
+                                        pipelineExpression, connection.getId(), e.getClass().getSimpleName(),
+                                        e.getMessage());
+                        // an evaluation FAILURE (as opposed to an ordinary non-match, which stays silent) must be
+                        // diagnosable by the connection owner - record it in the user-visible connection logs;
+                        // connectionMonitorRegistry is safe to use off the actor thread (same pattern as
+                        // logEnrichmentFailure, called from the exceptionally-stage of this future)
+                        connectionMonitorRegistry
+                                .forOutboundFiltered(connection,
+                                        outboundSignal.getTargets().getFirst().getOriginalAddress())
+                                .failure(signal,
+                                        "Evaluating the target topic pipeline filter <{0}> failed: {1} - the signal " +
+                                                "was dropped for this target topic.",
+                                        pipelineExpression, e.getMessage());
+                        return Optional.empty();
+                    }
+                    if (!pipelineMatches) {
+                        return Optional.empty();
+                    }
+                }
+                if (!partitionedFilters.hasRqlExpression()) {
+                    // no RQL filter: decided by the pipelines alone, no thing needed
+                    return Optional.of(outboundSignal);
+                }
+            }
             if (thing == null) {
                 return Optional.empty();
             }
@@ -851,20 +912,26 @@ public final class OutboundMappingProcessorActor
             final PlaceholderResolver<Object> timePlaceholderResolver = PlaceholderFactory
                     .newPlaceholderResolver(TIME_PLACEHOLDER, new Object());
             final DittoHeaders dittoHeaders = signal.getDittoHeaders();
-            final Criteria criteria = QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance(),
-                    topicPathPlaceholderResolver, entityIdPlaceholderResolver, thingPlaceholderResolver,
-                    featurePlaceholderResolver, resourcePlaceholderResolver, timePlaceholderResolver
-            ).filterCriteria(filter.get(), dittoHeaders);
             final PlaceholderResolver<Thing> thingJsonPlaceholderResolver = PlaceholderFactory
                     .newPlaceholderResolver(THING_JSON_PLACEHOLDER, thing);
-            final var result = Optional.of(outboundSignal)
-                    .filter(_ -> ThingPredicateVisitor
+            // at most one RQL entry after connection validation, defensively AND-combined should ever more than
+            // one slip through
+            for (final String rqlExpression : partitionedFilters.getRqlExpressions()) {
+                final Criteria criteria = QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance(),
+                        topicPathPlaceholderResolver, entityIdPlaceholderResolver, thingPlaceholderResolver,
+                        featurePlaceholderResolver, resourcePlaceholderResolver, timePlaceholderResolver
+                ).filterCriteria(rqlExpression, dittoHeaders);
+                final boolean rqlMatches = ThingPredicateVisitor
                         .apply(criteria, topicPathPlaceholderResolver,
                                 entityIdPlaceholderResolver, thingPlaceholderResolver,
                                 featurePlaceholderResolver, resourcePlaceholderResolver,
                                 timePlaceholderResolver, thingJsonPlaceholderResolver)
-                        .test(thing));
-            return result;
+                        .test(thing);
+                if (!rqlMatches) {
+                    return Optional.empty();
+                }
+            }
+            return Optional.of(outboundSignal);
         } else {
             // no signal enrichment: filtering is already done in SignalFilter since there is no ignored field
             return Optional.of(outboundSignal);
