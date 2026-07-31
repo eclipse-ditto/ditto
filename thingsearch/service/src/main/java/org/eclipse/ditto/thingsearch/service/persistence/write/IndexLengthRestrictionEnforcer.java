@@ -20,6 +20,7 @@ import java.nio.CharBuffer;
 import java.nio.charset.CoderResult;
 import java.util.Optional;
 
+import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 
@@ -111,8 +112,55 @@ public final class IndexLengthRestrictionEnforcer {
         return thingId.length() + namespaceLength + authSubjectOverhead;
     }
 
-    private static int jsonPointerBytes(final JsonPointer jsonPointer) {
-        return jsonPointer.toString().getBytes(UTF_8).length;
+    // Package-private for the equivalence test in IndexLengthRestrictionEnforcerTest. Computes the exact byte
+    // length of the pointer's UTF-8 string representation (as produced by JsonPointer.toString()) without
+    // materialising that String or an intermediate byte[]. This runs per leaf field of every indexed thing, so
+    // avoiding the two throwaway allocations meaningfully cuts CPU and allocation churn on the search-write path.
+    static int jsonPointerBytes(final JsonPointer jsonPointer) {
+        final int levelCount = jsonPointer.getLevelCount();
+        if (levelCount == 0) {
+            // JsonPointer.toString() renders the empty pointer as a single "/".
+            return 1;
+        }
+        // One '/' byte per key: the leading slash plus a separator before each subsequent key.
+        int bytes = levelCount;
+        for (final JsonKey key : jsonPointer) {
+            bytes += escapedUtf8ByteLength(key.toString());
+        }
+        return bytes;
+    }
+
+    /**
+     * Byte length of a single pointer segment as {@link JsonPointer#toString()} would render it: UTF-8 encoded,
+     * with each {@code ~} escaped to {@code ~0} (RFC 6901, matching {@code ImmutableJsonPointer.escapeTilde};
+     * {@code /} is not escaped there). Mirrors {@code String.getBytes(UTF_8)} exactly, including the single
+     * {@code ?} replacement byte that encoder emits for an unpaired surrogate.
+     */
+    private static int escapedUtf8ByteLength(final String segment) {
+        int bytes = 0;
+        final int length = segment.length();
+        for (int i = 0; i < length; i++) {
+            final char c = segment.charAt(i);
+            if (c == '~') {
+                bytes += 2; // escaped to "~0": '~' and '0' are each one ASCII byte
+            } else if (c < 0x80) {
+                bytes += 1;
+            } else if (c < 0x800) {
+                bytes += 2;
+            } else if (Character.isHighSurrogate(c)) {
+                if (i + 1 < length && Character.isLowSurrogate(segment.charAt(i + 1))) {
+                    bytes += 4; // valid surrogate pair encodes one supplementary code point
+                    i++;        // consume the paired low surrogate
+                } else {
+                    bytes += 1; // unpaired high surrogate -> single '?' replacement byte
+                }
+            } else if (Character.isLowSurrogate(c)) {
+                bytes += 1;     // unpaired low surrogate -> single '?' replacement byte
+            } else {
+                bytes += 3;     // remaining BMP code points (0x800..0xFFFF)
+            }
+        }
+        return bytes;
     }
 
     private static void checkThingId(final String thingId) {
