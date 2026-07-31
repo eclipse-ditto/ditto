@@ -192,7 +192,7 @@ final class MappingTimer {
     }
 
     private Adaptable propagateContextToAdaptable(final Adaptable adaptable) {
-        return adaptable.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(adaptable.getDittoHeaders())));
+        return adaptable.setDittoHeaders(startedSpan.propagateContext(adaptable.getDittoHeaders()));
     }
 
     /**
@@ -209,7 +209,7 @@ final class MappingTimer {
     }
 
     private Signal<?> propagateContextToSignalDittoHeaders(final Signal<?> signal) {
-        return signal.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(signal.getDittoHeaders())));
+        return signal.setDittoHeaders(startedSpan.propagateContext(signal.getDittoHeaders()));
     }
 
     /**

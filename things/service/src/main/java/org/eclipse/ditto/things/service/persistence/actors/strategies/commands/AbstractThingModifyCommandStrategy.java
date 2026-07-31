@@ -85,7 +85,7 @@ abstract class AbstractThingModifyCommandStrategy<C extends ThingModifyCommand<C
         final var startedSpan = DittoTracing.newStartedSpanByTimer(command.getDittoHeaders(), startedTimer)
                 .tag(SpanTagKey.SIGNAL_TYPE.getTagForValue(command.getType()));
         final var tracedCommand =
-                command.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(command.getDittoHeaders())));
+                command.setDittoHeaders(startedSpan.propagateContext(command.getDittoHeaders()));
         return performWotValidation(tracedCommand, previousThing, previewThing)
                 .whenCompleteAsync((result, throwable) -> {
                     if (throwable instanceof CompletionException completionException) {

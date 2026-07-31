@@ -744,7 +744,7 @@ public abstract class AbstractPersistenceActor<
                 .start();
 
         final var tracedCommand =
-                command.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(command.getDittoHeaders())));
+                command.setDittoHeaders(startedSpan.propagateContext(command.getDittoHeaders()));
 
         accessCounter++;
         Result<E> result;
@@ -907,7 +907,7 @@ public abstract class AbstractPersistenceActor<
                 .start();
 
         persist(
-                event.setDittoHeaders(DittoHeaders.of(persistOperationSpan.propagateContext(event.getDittoHeaders()))),
+                event.setDittoHeaders(persistOperationSpan.propagateContext(event.getDittoHeaders())),
                 persistedEvent -> handlePersistedEvent(handler, l, persistOperationSpan, persistedEvent)
         );
     }

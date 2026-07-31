@@ -224,7 +224,7 @@ public final class ThingEnforcerActor
                     )
                     .start();
             return performWotBasedMessageCommandValidation(messageCommand.setDittoHeaders(
-                    DittoHeaders.of(startedSpan.propagateContext(messageCommand.getDittoHeaders()))
+                    startedSpan.propagateContext(messageCommand.getDittoHeaders())
                             .toBuilder()
                             .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(),
                                     entityId.getEntityType() + ":" + entityId)
@@ -318,7 +318,7 @@ public final class ThingEnforcerActor
                 .start();
         return performWotBasedMessageCommandResponseValidation(
                 messageCommandResponse.setDittoHeaders(
-                        DittoHeaders.of(startedSpan.propagateContext(messageCommandResponse.getDittoHeaders()))
+                        startedSpan.propagateContext(messageCommandResponse.getDittoHeaders())
                                 .toBuilder()
                                 .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(),
                                         entityId.getEntityType() + ":" + entityId)
@@ -631,11 +631,11 @@ public final class ThingEnforcerActor
                     .start();
             final SudoRetrieveThing sudoRetrieveThing = SudoRetrieveThing.of(entityId,
                     JsonFieldSelector.newInstance("policyId"),
-                    DittoHeaders.of(startedSpan.propagateContext(DittoHeaders.newBuilder()
+                    startedSpan.propagateContext(DittoHeaders.newBuilder()
                             .correlationId("sudoRetrieveThingFromThingEnforcerActor-" + UUID.randomUUID())
                             .putHeader(DittoHeaderDefinition.DITTO_RETRIEVE_DELETED.getKey(),
                                     Boolean.TRUE.toString())
-                            .build()))
+                            .build())
             );
             return Patterns.ask(getContext().getParent(), sudoRetrieveThing, determineAskTimeoutForLocalActorInvocations())
                     .thenApply(

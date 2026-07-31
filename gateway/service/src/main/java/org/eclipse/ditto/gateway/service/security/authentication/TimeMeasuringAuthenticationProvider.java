@@ -63,7 +63,7 @@ public abstract class TimeMeasuringAuthenticationProvider<R extends Authenticati
         final StartedTimer timer = TraceUtils.newAuthFilterTimer(authorizationContextType, requestContext.getRequest())
                 .start();
         final StartedSpan startedSpan = DittoTracing.newStartedSpanByTimer(dittoHeaders, timer);
-        final DittoHeaders propagatedHeaders = DittoHeaders.of(startedSpan.propagateContext(dittoHeaders));
+        final DittoHeaders propagatedHeaders = startedSpan.propagateContext(dittoHeaders);
 
         CompletableFuture<R> resultFuture;
         try {
