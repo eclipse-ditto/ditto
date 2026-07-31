@@ -328,8 +328,10 @@ _org.eclipse.ditto/device-123/things/live/messages/hello.world_ these placeholde
 ### Scope: Connection target topic filter
 
 In a connection's [target topic filter](basic-connections.html#filtering-with-placeholder-functions),
-a placeholder function pipeline (most commonly [`fn:filter()`](#function-library)) may be used
-instead of, or combined with, an [RQL expression](basic-rql.html). As with
+a placeholder function pipeline (most commonly [`fn:filter()`](#function-library), several stages
+chainable with `|`) may be used as a `filter` query parameter, alongside an optional
+[RQL expression](basic-rql.html) `filter` parameter (at most one of each; all of a topic's filters
+are combined with AND). As with
 [RQL expressions when filtering for Ditto Protocol messages](#scope-rql-expressions-when-filtering-for-ditto-protocol-messages),
 such a pipeline is a bare expression and placeholders must not be surrounded by curly braces, e.g.
 `fn:filter(header:ditto-originator,'ne','some:subject')`. The pipeline is evaluated per outbound

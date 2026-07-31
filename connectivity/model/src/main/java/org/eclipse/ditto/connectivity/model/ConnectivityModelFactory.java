@@ -842,8 +842,9 @@ public final class ConnectivityModelFactory {
     }
 
     /**
-     * Creates a new {@code FilteredTopic} from the passed {@code topicString} which consists of a {@code Topic} and an
-     * optional filter string supplied with {@code ?filter=...}.
+     * Creates a new {@code FilteredTopic} from the passed {@code topicString} which consists of a {@code Topic} and
+     * optional filter strings supplied with {@code ?filter=...}. The {@code filter} query parameter may be repeated
+     * ({@code ?filter=...&filter=...}); all given filters must match for a signal to be processed (AND semantics).
      *
      * @param topicString the {@code FilteredTopic} String representation
      * @return the created FilteredTopic

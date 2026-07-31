@@ -885,15 +885,16 @@ public final class OutboundMappingProcessorActorTest {
     }
 
     @Test
-    public void combinedRqlAndPipelineFilterEvaluatesRqlHeadAgainstEnrichedThing() {
+    public void rqlAndPipelineFilterParamsEvaluateRqlAgainstEnrichedThing() {
         new TestKit(actorSystemResource.getActorSystem()) {{
-            // A single topic with a combined "<rql>|fn:..." filter (AND semantics) and extraFields. The RQL
-            // head references "features/featureA", which is absent from the signal-derived (raw) thing and
-            // only appears once partialRetrieveAndResponse's extra data is merged in - so a match proves the
-            // RQL head (fed via TargetTopicFilter.ParsedTopicFilter#getRqlExpression, not the raw combined
-            // filter string) is evaluated against the enriched thing.
+            // A single topic with an RQL filter param, a pipeline filter param (AND semantics) and extraFields.
+            // The RQL param references "features/featureA", which is absent from the signal-derived (raw) thing
+            // and only appears once partialRetrieveAndResponse's extra data is merged in - so a match proves the
+            // RQL param (fed via TargetTopicFilter.PartitionedFilters#getRqlExpressions) is evaluated against
+            // the enriched thing.
             final FilteredTopic combinedTopic = ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
-                    .withFilter("exists(features/featureA)|fn:filter(header:ditto-originator,'eq','x')")
+                    .withFilters(List.of("exists(features/featureA)",
+                            "fn:filter(header:ditto-originator,'eq','x')"))
                     .withExtraFields(ThingFieldSelector.fromString("definition"))
                     .build();
             final List<Target> targets = List.of(createTestTargetMultiTopics(Set.of(combinedTopic)));
@@ -915,6 +916,71 @@ public final class OutboundMappingProcessorActorTest {
                     .isPresent()
                     .hasValueSatisfying(extra -> assertThat(extra.getValue(JsonPointer.of("definition")))
                             .isPresent());
+        }};
+    }
+
+    @Test
+    public void chainedPipelineStagesWithExtraFieldsAllMatchPublishesEnriched() {
+        new TestKit(actorSystemResource.getActorSystem()) {{
+            // A single topic with one pipeline filter param chaining TWO fn: stages (AND semantics) and
+            // extraFields: both stages match, so the signal is published with the topic's extra fields after
+            // the post-enrichment re-evaluation.
+            final FilteredTopic pipelineTopic = ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                    .withFilters(List.of("fn:filter(header:ditto-originator,'eq','x')" +
+                            "|fn:filter(header:ditto-originator,'ne','y')"))
+                    .withExtraFields(ThingFieldSelector.fromString("definition"))
+                    .build();
+            final List<Target> targets = List.of(createTestTargetMultiTopics(Set.of(pipelineTopic)));
+            final Connection connection = CONNECTION.toBuilder().setTargets(targets).build();
+            final ActorRef underTest = getTestActorRef(connection);
+
+            final OutboundSignal outboundSignal = withOriginator(outboundFeatureTwinEvent(THING,
+                    Feature.newBuilder().withId("unrelatedFeature").build(),
+                    List.of("multipleExtraFields"), targets, getRef()), "x");
+
+            underTest.tell(outboundSignal, getRef());
+            partialRetrieveAndResponse();
+
+            final BaseClientActor.PublishMappedMessage publish =
+                    clientActorProbe.expectMsgClass(BaseClientActor.PublishMappedMessage.class);
+
+            assertThat(publish.getOutboundSignal().first().getTargets()).contains(targets.getFirst());
+            assertThat(publish.getOutboundSignal().first().getAdaptable().getPayload().getExtra())
+                    .isPresent()
+                    .hasValueSatisfying(extra -> assertThat(extra.getValue(JsonPointer.of("definition")))
+                            .isPresent());
+        }};
+    }
+
+    @Test
+    public void chainedPipelineStagesSecondStageNonMatchDropsTarget() {
+        new TestKit(actorSystemResource.getActorSystem()) {{
+            // Same topic shape as above, but the SECOND chained stage does not match ("ne 'x'" with originator
+            // "x") - AND semantics must drop the whole target even though the first stage matches.
+            final FilteredTopic pipelineTopic = ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                    .withFilters(List.of("fn:filter(header:ditto-originator,'eq','x')" +
+                            "|fn:filter(header:ditto-originator,'ne','x')"))
+                    .withExtraFields(ThingFieldSelector.fromString("definition"))
+                    .build();
+            final List<Target> targets = List.of(createTestTargetMultiTopics(Set.of(pipelineTopic)));
+            final Connection connection = CONNECTION.toBuilder().setTargets(targets).build();
+            final ActorRef underTest = getTestActorRef(connection);
+
+            final OutboundSignal outboundSignal = withOriginator(outboundFeatureTwinEvent(THING,
+                    Feature.newBuilder().withId("unrelatedFeature").build(),
+                    List.of("source1", "multipleExtraFields"), targets, getRef()), "x");
+
+            underTest.tell(outboundSignal, getRef());
+            partialRetrieveAndResponse();
+
+            // THEN: sender receives weak acknowledgements for the dropped target - no signal is published
+            final Acknowledgements acks = expectMsgClass(Acknowledgements.class);
+            final List<String> ackLabels = acks.getSuccessfulAcknowledgements()
+                    .stream()
+                    .map(ack -> ack.getLabel().toString())
+                    .toList();
+            assertThat(ackLabels).containsExactlyInAnyOrder("source1", "multipleExtraFields");
+            acks.forEach(ack -> assertThat(ack.isWeak()).describedAs("Expect weak ack, got: " + ack).isTrue());
         }};
     }
 

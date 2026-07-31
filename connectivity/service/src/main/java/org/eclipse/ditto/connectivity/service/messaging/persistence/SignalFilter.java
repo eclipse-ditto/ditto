@@ -40,6 +40,7 @@ import org.eclipse.ditto.connectivity.model.FilteredTopic;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.model.signals.announcements.ConnectivityAnnouncement;
+import org.eclipse.ditto.connectivity.service.messaging.Resolvers;
 import org.eclipse.ditto.connectivity.service.messaging.TargetTopicFilter;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitorRegistry;
@@ -52,6 +53,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
+import org.eclipse.ditto.placeholders.ExpressionResolver;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.PlaceholderResolver;
 import org.eclipse.ditto.placeholders.TimePlaceholder;
@@ -112,18 +114,21 @@ public final class SignalFilter {
      * Filters the passed {@code signal} by extracting those {@link Target}s which should receive the signal.
      * Fields are ignored if they occur as "extra targets" to be evaluated later after signal enrichment.
      * <p>
-     * A target's topic filter string may be pure RQL (unchanged, existing behavior), a pure placeholder pipeline
-     * expression ({@code fn:...}), or a combination of both joined with an unquoted {@code |}
-     * (see {@link org.eclipse.ditto.connectivity.service.messaging.TargetTopicFilter}). Where a pipeline part is
-     * present it is evaluated first, before enrichment, as a deterministic hard gate; per the runtime failure
-     * policy, a {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException} thrown while evaluating it is
-     * caught, logged as a warning plus a failure entry in the user-visible connection logs, and treated as a
-     * non-match rather than propagated. The RQL part - if present - keeps its existing (unguarded) behavior.
+     * A target topic may carry up to two {@code filter} parameters, combined with AND semantics: at most one RQL
+     * expression (unchanged, existing behavior) plus at most one placeholder pipeline expression ({@code fn:...},
+     * possibly chaining several stages with {@code |} - see
+     * {@link org.eclipse.ditto.connectivity.service.messaging.TargetTopicFilter}); the loop below defensively
+     * AND-evaluates every pipeline entry it finds, even for never-validated topics carrying more. The
+     * pipeline filters are evaluated first, before enrichment, as a deterministic hard gate; per the runtime
+     * failure policy, a {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException} thrown while
+     * evaluating one of them is caught, logged as a warning plus a failure entry in the user-visible connection
+     * logs, and treated as a non-match rather than propagated. The RQL filter - if present - keeps its existing
+     * (unguarded) behavior.
      *
      * @param signal the signal to filter / determine the {@link org.eclipse.ditto.connectivity.model.Target}s for
      * @return the determined Targets for the passed in {@code signal}
-     * @throws org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException if the optional RQL part of a
-     * Target's filter string cannot be mapped to a valid criterion
+     * @throws org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException if the optional RQL filter of a
+     * Target's topic cannot be mapped to a valid criterion
      */
     @SuppressWarnings("squid:S3864")
     public List<Target> filter(final Signal<?> signal) {
@@ -183,23 +188,27 @@ public final class SignalFilter {
 
     private boolean matchesFilterBeforeEnrichment(final FilteredTopic filteredTopic, final Target target,
             final Signal<?> signal, final ConnectionId connectionId) {
-        final Optional<String> filterOptional = filteredTopic.getFilter();
-        if (filterOptional.isPresent()) {
-            final TargetTopicFilter.ParsedTopicFilter parsed = TargetTopicFilter.parse(filterOptional.get());
-            if (parsed.getPipelineExpression().isPresent()) {
-                final String pipelineExpression = parsed.getPipelineExpression().get();
+        final List<String> filters = filteredTopic.getFilters();
+        if (filters.isEmpty()) {
+            return true;
+        }
+        final TargetTopicFilter.PartitionedFilters partitioned = TargetTopicFilter.partition(filters);
+        final List<String> pipelineExpressions = partitioned.getPipelineExpressions();
+        if (!pipelineExpressions.isEmpty()) {
+            // The pipeline filters are a deterministic hard gate evaluated BEFORE enrichment: unlike the RQL
+            // criteria below - which need a thing snapshot reconstructed from the event and are therefore
+            // only meaningfully evaluable for ThingEvents - a pipeline only ever resolves placeholders
+            // that are already fully known pre-enrichment (headers, topic path, entity id, resource, time),
+            // for ANY filterable signal type (twin/live events, live commands, live messages alike). Its
+            // match/non-match outcome can therefore never change once/if enrichment happens, so a single
+            // non-match can short-circuit the whole target right here, and - for a topic without an RQL filter -
+            // an all-match makes the target immediately eligible without ever touching the RQL path below.
+            final ExpressionResolver expressionResolver = Resolvers.forSignal(signal, connectionId);
+            for (final String pipelineExpression : pipelineExpressions) {
                 final boolean pipelineMatches;
                 try {
-                    // The pipeline part is a deterministic hard gate evaluated BEFORE enrichment: unlike the RQL
-                    // criteria below - which need a thing snapshot reconstructed from the event and are therefore
-                    // only meaningfully evaluable for ThingEvents - the pipeline only ever resolves placeholders
-                    // that are already fully known pre-enrichment (headers, topic path, entity id, resource, time),
-                    // for ANY filterable signal type (twin/live events, live commands, live messages alike). Its
-                    // match/non-match outcome can therefore never change once/if enrichment happens, so a
-                    // non-match can short-circuit the whole target right here, and - for a pure pipeline filter -
-                    // a match makes the target immediately eligible without ever touching the RQL path below.
                     pipelineMatches =
-                            TargetTopicFilter.matchesPipelineFilter(pipelineExpression, signal, connectionId);
+                            TargetTopicFilter.matchesPipelineFilter(pipelineExpression, expressionResolver);
                 } catch (final DittoRuntimeException e) {
                     LOGGER.withCorrelationId(signal)
                             .warn("Evaluating the target topic pipeline filter <{}> of connection <{}> failed with " +
@@ -217,50 +226,53 @@ public final class SignalFilter {
                 if (!pipelineMatches) {
                     return false;
                 }
-                if (parsed.getRqlExpression().isEmpty()) {
-                    return true;
-                }
             }
+        }
+        if (!partitioned.hasRqlExpression()) {
+            return true;
+        }
 
-            // match filter ignoring "extraFields"
-            final String filter = parsed.getRqlExpression().orElseThrow();
-
-            final TopicPath topicPath = DITTO_PROTOCOL_ADAPTER.toTopicPath(signal);
-            final PlaceholderResolver<TopicPath> topicPathPlaceholderResolver =
-                    PlaceholderFactory.newPlaceholderResolver(TOPIC_PATH_PLACEHOLDER, topicPath);
-            final PlaceholderResolver<EntityId> entityIdPlaceholderResolver = PlaceholderFactory
-                    .newPlaceholderResolver(ENTITY_ID_PLACEHOLDER,
-                            (signal instanceof WithEntityId withEntityId) ? withEntityId.getEntityId() : null);
-            final PlaceholderResolver<EntityId> thingPlaceholderResolver = PlaceholderFactory
-                    .newPlaceholderResolver(THING_PLACEHOLDER,
-                            (signal instanceof WithEntityId withEntityId) ? withEntityId.getEntityId() : null);
-            final PlaceholderResolver<Signal<?>> featurePlaceholderResolver = PlaceholderFactory
-                    .newPlaceholderResolver(FEATURE_PLACEHOLDER, signal);
-            final PlaceholderResolver<WithResource> resourcePlaceholderResolver = PlaceholderFactory
-                    .newPlaceholderResolver(RESOURCE_PLACEHOLDER, signal);
-            final PlaceholderResolver<Object> timePlaceholderResolver = PlaceholderFactory
-                    .newPlaceholderResolver(TIME_PLACEHOLDER, new Object());
+        // match RQL filter(s) ignoring "extraFields" - at most one entry after connection validation, defensively
+        // AND-combined should ever more than one slip through
+        final TopicPath topicPath = DITTO_PROTOCOL_ADAPTER.toTopicPath(signal);
+        final PlaceholderResolver<TopicPath> topicPathPlaceholderResolver =
+                PlaceholderFactory.newPlaceholderResolver(TOPIC_PATH_PLACEHOLDER, topicPath);
+        final PlaceholderResolver<EntityId> entityIdPlaceholderResolver = PlaceholderFactory
+                .newPlaceholderResolver(ENTITY_ID_PLACEHOLDER,
+                        (signal instanceof WithEntityId withEntityId) ? withEntityId.getEntityId() : null);
+        final PlaceholderResolver<EntityId> thingPlaceholderResolver = PlaceholderFactory
+                .newPlaceholderResolver(THING_PLACEHOLDER,
+                        (signal instanceof WithEntityId withEntityId) ? withEntityId.getEntityId() : null);
+        final PlaceholderResolver<Signal<?>> featurePlaceholderResolver = PlaceholderFactory
+                .newPlaceholderResolver(FEATURE_PLACEHOLDER, signal);
+        final PlaceholderResolver<WithResource> resourcePlaceholderResolver = PlaceholderFactory
+                .newPlaceholderResolver(RESOURCE_PLACEHOLDER, signal);
+        final PlaceholderResolver<Object> timePlaceholderResolver = PlaceholderFactory
+                .newPlaceholderResolver(TIME_PLACEHOLDER, new Object());
+        final Set<JsonPointer> extraFields = filteredTopic.getExtraFields()
+                .map(JsonFieldSelector::getPointers)
+                .orElse(Collections.emptySet());
+        final Thing thingToMatch;
+        if (signal instanceof ThingEvent) {
+            final Optional<Thing> thingFromEvent = ThingEventToThingConverter.thingEventToThing((ThingEvent<?>) signal);
+            if (thingFromEvent.isEmpty()) {
+                return false;
+            }
+            thingToMatch = thingFromEvent.get();
+        } else {
+            thingToMatch = Thing.newBuilder().build();
+        }
+        for (final String filter : partitioned.getRqlExpressions()) {
             final Criteria criteria = parseCriteria(filter, signal.getDittoHeaders(),
                     topicPathPlaceholderResolver, entityIdPlaceholderResolver, thingPlaceholderResolver,
                     featurePlaceholderResolver, resourcePlaceholderResolver, timePlaceholderResolver);
-            final Set<JsonPointer> extraFields = filteredTopic.getExtraFields()
-                    .map(JsonFieldSelector::getPointers)
-                    .orElse(Collections.emptySet());
-            if (signal instanceof ThingEvent) {
-                return ThingEventToThingConverter.thingEventToThing((ThingEvent<?>) signal)
-                        .filter(thing -> Thing3ValuePredicateVisitor.couldBeTrue(criteria, extraFields, thing,
-                                topicPathPlaceholderResolver, entityIdPlaceholderResolver, thingPlaceholderResolver,
-                                featurePlaceholderResolver, resourcePlaceholderResolver, timePlaceholderResolver))
-                        .isPresent();
-            } else {
-                final Thing emptyThing = Thing.newBuilder().build();
-                return Thing3ValuePredicateVisitor.couldBeTrue(criteria, extraFields, emptyThing,
-                        topicPathPlaceholderResolver, entityIdPlaceholderResolver, thingPlaceholderResolver,
-                        featurePlaceholderResolver, resourcePlaceholderResolver, timePlaceholderResolver);
+            if (!Thing3ValuePredicateVisitor.couldBeTrue(criteria, extraFields, thingToMatch,
+                    topicPathPlaceholderResolver, entityIdPlaceholderResolver, thingPlaceholderResolver,
+                    featurePlaceholderResolver, resourcePlaceholderResolver, timePlaceholderResolver)) {
+                return false;
             }
-        } else {
-            return true;
         }
+        return true;
     }
 
     /**

@@ -15,6 +15,7 @@ package org.eclipse.ditto.connectivity.model;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.text.MessageFormat;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -248,21 +249,118 @@ public final class ImmutableFilteredTopicTest {
     }
 
     @Test
-    public void fromStringParsesAsExpectedWithNamespacesExtraFieldsAndCombinedRqlAndPipelineFilter() {
-        final String combinedFilter =
-                "gt(attributes/counter,42)|fn:filter(header:ditto-originator,'ne','some:subject')";
+    public void fromStringParsesAsExpectedWithNamespacesExtraFieldsAndRqlAndPipelineFilters() {
+        final String rqlFilter = "gt(attributes/counter,42)";
+        final String pipelineFilter = "fn:filter(header:ditto-originator,'ne','some:subject')";
         final ImmutableFilteredTopic filteredTopic = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
                 .withNamespaces(Lists.list("ns1", "ns2"))
                 .withExtraFields(ThingFieldSelector.fromString("attributes"))
-                .withFilter(combinedFilter)
+                .withFilters(Arrays.asList(rqlFilter, pipelineFilter))
                 .build();
         final String filteredTopicString = filteredTopic.toString();
 
         final ImmutableFilteredTopic actual = ImmutableFilteredTopic.fromString(filteredTopicString);
 
-        assertThat(actual.getFilter()).contains(combinedFilter);
+        assertThat(filteredTopicString).contains("filter=" + rqlFilter + "&filter=" + pipelineFilter);
+        assertThat(actual.getFilters()).containsExactly(rqlFilter, pipelineFilter);
         assertThat(actual.toString()).isEqualTo(filteredTopicString);
         assertThat(actual).isEqualTo(filteredTopic);
+    }
+
+    @Test
+    public void getFiltersReturnsAllInInsertionOrder() {
+        final ImmutableFilteredTopic underTest = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
+                .withFilters(Arrays.asList("fn:filter(header:b,'exists')", FILTER_EXAMPLE, "fn:filter(header:a,'exists')"))
+                .build();
+
+        assertThat(underTest.getFilters())
+                .containsExactly("fn:filter(header:b,'exists')", FILTER_EXAMPLE, "fn:filter(header:a,'exists')");
+    }
+
+    @Test
+    public void getFilterReturnsFirstOfMultipleFilters() {
+        // contract of the deprecated single-filter accessor: the FIRST filter in insertion order
+        final ImmutableFilteredTopic underTest = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
+                .withFilters(Arrays.asList(FILTER_EXAMPLE, "fn:filter(header:a,'exists')"))
+                .build();
+
+        assertThat(underTest.getFilter()).contains(FILTER_EXAMPLE);
+    }
+
+    @Test
+    public void withFilterReplacesPreviouslySetFilters() {
+        final ImmutableFilteredTopic underTest = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
+                .withFilters(Arrays.asList("fn:filter(header:a,'exists')", "fn:filter(header:b,'exists')"))
+                .withFilter(FILTER_EXAMPLE)
+                .build();
+
+        assertThat(underTest.getFilters()).containsExactly(FILTER_EXAMPLE);
+    }
+
+    @Test
+    public void withFiltersNullResetsFilters() {
+        final ImmutableFilteredTopic underTest = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
+                .withFilters(Collections.singletonList(FILTER_EXAMPLE))
+                .withFilters(null)
+                .build();
+
+        assertThat(underTest.getFilters()).isEmpty();
+        assertThat(underTest.getFilter()).isEmpty();
+    }
+
+    @Test
+    public void toStringEmitsOneFilterParamPerEntryInOrder() {
+        final ImmutableFilteredTopic underTest = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
+                .withNamespaces(NAMESPACES)
+                .withFilters(Arrays.asList(FILTER_EXAMPLE, "fn:filter(header:a,'exists')"))
+                .withExtraFields(EXTRA_FIELDS)
+                .build();
+
+        assertThat(underTest.toString()).isEqualTo(
+                "_/_/things/twin/events?namespaces=" + String.join(",", NAMESPACES)
+                        + "&filter=" + FILTER_EXAMPLE
+                        + "&filter=fn:filter(header:a,'exists')"
+                        + "&extraFields=" + EXTRA_FIELDS);
+    }
+
+    @Test
+    public void fromStringCollectsRepeatedFilterParamsInOrder() {
+        final ImmutableFilteredTopic actual = ImmutableFilteredTopic.fromString(
+                "_/_/things/twin/events?filter=fn:filter(header:a,'exists')&filter=" + FILTER_EXAMPLE);
+
+        assertThat(actual.getFilters()).containsExactly("fn:filter(header:a,'exists')", FILTER_EXAMPLE);
+    }
+
+    @Test
+    public void fromStringToStringRoundTripsWithMultipleFilters() {
+        final ImmutableFilteredTopic filteredTopic = ImmutableFilteredTopic.getBuilder(Topic.LIVE_MESSAGES)
+                .withFilters(Arrays.asList("fn:filter(header:ditto-originator,'ne','some:subject')",
+                        "fn:filter(header:ditto-origin,'ne','some-connection')"))
+                .build();
+
+        final ImmutableFilteredTopic actual = ImmutableFilteredTopic.fromString(filteredTopic.toString());
+
+        assertThat(actual).isEqualTo(filteredTopic);
+        assertThat(actual.toString()).isEqualTo(filteredTopic.toString());
+    }
+
+    @Test
+    public void fromStringDuplicateNamespacesParamStillThrows() {
+        // freezes the (out-of-scope) pre-existing behavior: only the "filter" query parameter is repeatable,
+        // any other duplicated parameter keeps failing like the previous Collectors.toMap-based parsing did
+        org.assertj.core.api.Assertions.assertThatExceptionOfType(IllegalStateException.class)
+                .isThrownBy(() -> ImmutableFilteredTopic.fromString(
+                        "_/_/things/twin/events?namespaces=ns1&namespaces=ns2"))
+                .withMessageContaining("Duplicate key");
+    }
+
+    @Test
+    public void announcementTopicsDropFiltersSetViaWithFilters() {
+        final ImmutableFilteredTopic underTest = ImmutableFilteredTopic.getBuilder(Topic.POLICY_ANNOUNCEMENTS)
+                .withFilters(Arrays.asList(FILTER_EXAMPLE, "fn:filter(header:a,'exists')"))
+                .build();
+
+        assertThat(underTest.getFilters()).isEmpty();
     }
 
 }

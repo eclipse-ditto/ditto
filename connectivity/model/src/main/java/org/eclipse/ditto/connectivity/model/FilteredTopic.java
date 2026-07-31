@@ -18,8 +18,10 @@ import java.util.Optional;
 import org.eclipse.ditto.json.JsonFieldSelector;
 
 /**
- * A FilteredTopic wraps a {@link Topic} and an optional {@code filter} String which additionally restricts which
- * kind of Signals should be processed/filtered based on an {@code RQL} query.
+ * A FilteredTopic wraps a {@link Topic} and optional {@code filter} Strings which additionally restrict which
+ * kind of Signals should be processed/filtered. Each filter is either an {@code RQL} query or a placeholder
+ * pipeline expression starting with {@code fn:}; all filters of one topic must match for a signal to be
+ * processed (AND semantics).
  */
 public interface FilteredTopic extends CharSequence {
 
@@ -34,9 +36,21 @@ public interface FilteredTopic extends CharSequence {
     List<String> getNamespaces();
 
     /**
-     * @return the optional filter string as RQL query
+     * @return the first filter string of this FilteredTopic, or an empty Optional if no filter is set.
+     * @deprecated as of 3.10.0 a FilteredTopic may carry multiple filters; use {@link #getFilters()} instead.
      */
+    @Deprecated
     Optional<String> getFilter();
+
+    /**
+     * Returns the filter strings of this FilteredTopic in insertion order. All filters of one topic must match
+     * for a signal to be processed (AND semantics). At most one entry may be an RQL expression; any number of
+     * entries may be placeholder pipeline expressions starting with {@code fn:}.
+     *
+     * @return the filter strings, or an empty list if no filter is set.
+     * @since 3.10.0
+     */
+    List<String> getFilters();
 
     /**
      * Returns the selector for the extra fields and their values to enrich outgoing signals with.

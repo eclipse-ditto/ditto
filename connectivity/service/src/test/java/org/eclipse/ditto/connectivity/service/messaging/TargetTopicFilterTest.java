@@ -15,18 +15,18 @@ package org.eclipse.ditto.connectivity.service.messaging;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 import java.time.Instant;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.connectivity.service.messaging.TargetTopicFilter.ParsedTopicFilter;
+import org.eclipse.ditto.connectivity.service.messaging.TargetTopicFilter.PartitionedFilters;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Thing;
@@ -42,179 +42,112 @@ public final class TargetTopicFilterTest {
     private static final ConnectionId CONNECTION_ID = ConnectionId.generateRandom();
     private static final ThingId THING_ID = ThingId.of("foo:bar13");
 
-    // ===== parse(): pure forms =====
+    // ===== isPipelineFilter(): classification =====
 
     @Test
-    public void parsePurePipelineFilter() {
-        final ParsedTopicFilter parsed = TargetTopicFilter.parse("fn:filter(header:ditto-originator,'eq','x')");
+    public void isPipelineFilterClassifiesByFnPrefix() {
+        assertThat(TargetTopicFilter.isPipelineFilter("fn:filter(header:a,'exists')")).isTrue();
+        assertThat(TargetTopicFilter.isPipelineFilter(" fn:filter(header:a,'exists')")).isTrue();
+        assertThat(TargetTopicFilter.isPipelineFilter("gt(attributes/x,5)")).isFalse();
+        // an "fn:" substring anywhere but the (trimmed) start does not make a pipeline filter
+        assertThat(TargetTopicFilter.isPipelineFilter("like(attributes/a,'*|fn:x*')")).isFalse();
+        assertThat(TargetTopicFilter.isPipelineFilter("")).isFalse();
+    }
 
-        assertThat(parsed.getRqlExpression()).isEmpty();
-        assertThat(parsed.getPipelineExpression()).contains("fn:filter(header:ditto-originator,'eq','x')");
+    // ===== partition(): pure forms =====
+
+    @Test
+    public void partitionPurePipelineFilter() {
+        final PartitionedFilters partitioned =
+                TargetTopicFilter.partition(List.of("fn:filter(header:ditto-originator,'eq','x')"));
+
+        assertThat(partitioned.getRqlExpressions()).isEmpty();
+        assertThat(partitioned.hasRqlExpression()).isFalse();
+        assertThat(partitioned.getPipelineExpressions())
+                .containsExactly("fn:filter(header:ditto-originator,'eq','x')");
     }
 
     @Test
-    public void parsePureRqlFilters() {
+    public void partitionPureRqlFilters() {
         assertPureRql("and(eq(attributes/a,1),eq(attributes/b,2))");
         assertPureRql("eq(attributes/a,1)");
         assertPureRql("exists(attributes/a)");
     }
 
     private static void assertPureRql(final String rql) {
-        final ParsedTopicFilter parsed = TargetTopicFilter.parse(rql);
+        final PartitionedFilters partitioned = TargetTopicFilter.partition(List.of(rql));
 
-        assertThat(parsed.getRqlExpression()).contains(rql);
-        assertThat(parsed.getPipelineExpression()).isEmpty();
+        assertThat(partitioned.getRqlExpressions()).containsExactly(rql);
+        assertThat(partitioned.getPipelineExpressions()).isEmpty();
     }
 
-    // ===== parse(): combined forms =====
+    // ===== partition(): mixed parameter lists =====
 
     @Test
-    public void parseCombinedRqlAndSinglePipelineStage() {
-        final ParsedTopicFilter parsed =
-                TargetTopicFilter.parse("gt(attributes/x,5)|fn:filter(header:ditto-originator,'eq','x')");
+    public void partitionClassifiesMixedParamsPreservingOrder() {
+        final PartitionedFilters partitioned = TargetTopicFilter.partition(List.of(
+                "gt(attributes/x,5)",
+                "fn:filter(header:a,'exists')",
+                "fn:filter(header:b,'ne','x')"));
 
-        assertThat(parsed.getRqlExpression()).contains("gt(attributes/x,5)");
-        assertThat(parsed.getPipelineExpression()).contains("fn:filter(header:ditto-originator,'eq','x')");
+        assertThat(partitioned.getRqlExpressions()).containsExactly("gt(attributes/x,5)");
+        assertThat(partitioned.hasRqlExpression()).isTrue();
+        assertThat(partitioned.getPipelineExpressions())
+                .containsExactly("fn:filter(header:a,'exists')", "fn:filter(header:b,'ne','x')");
     }
 
     @Test
-    public void parseCombinedRqlAndTwoStagePipeline() {
-        final ParsedTopicFilter parsed =
-                TargetTopicFilter.parse("gt(attributes/x,5)|fn:filter(header:a,'exists')|fn:filter(header:b,'ne','x')");
+    public void partitionCollectsMultipleRqlParamsWithoutThrowing() {
+        // partition() applies no structural rules - the at-most-one-RQL rule is enforced by ConnectionValidator
+        final PartitionedFilters partitioned =
+                TargetTopicFilter.partition(List.of("eq(attributes/a,1)", "eq(attributes/b,2)"));
 
-        assertThat(parsed.getRqlExpression()).contains("gt(attributes/x,5)");
-        assertThat(parsed.getPipelineExpression())
-                .contains("fn:filter(header:a,'exists')|fn:filter(header:b,'ne','x')");
+        assertThat(partitioned.getRqlExpressions()).containsExactly("eq(attributes/a,1)", "eq(attributes/b,2)");
+        assertThat(partitioned.getPipelineExpressions()).isEmpty();
     }
 
-    // ===== parse(): back-compat regressions (D-C1) — unquoted "|" in RQL property paths =====
+    @Test
+    public void partitionTrimsEachParam() {
+        final PartitionedFilters partitioned = TargetTopicFilter.partition(
+                List.of(" fn:filter(header:ditto-originator,'eq','x')", " gt(attributes/x,5) "));
+
+        assertThat(partitioned.getPipelineExpressions())
+                .containsExactly("fn:filter(header:ditto-originator,'eq','x')");
+        assertThat(partitioned.getRqlExpressions()).containsExactly("gt(attributes/x,5)");
+    }
+
+    // ===== partition(): RQL params containing "|" or "fn:" stay intact (no splitting anymore) =====
 
     @Test
-    public void parseBackCompatEqWithPipeInPropertyPath() {
+    public void partitionKeepsRqlWithPipeInPropertyPathIntact() {
+        // an unquoted "|" is legal in RQL property paths - without any splitting the whole param stays one
+        // (valid) RQL expression
         assertPureRql("eq(attributes/a|b,1)");
-    }
-
-    @Test
-    public void parseBackCompatExistsWithPipeInPropertyPath() {
         assertPureRql("exists(attributes/a|b)");
-    }
-
-    @Test
-    public void parseBackCompatLikeWithPipeInQuotedPattern() {
         assertPureRql("like(attributes/x,'*|*')");
     }
 
     @Test
-    public void parseBackCompatLikeWithFnAnchorInsideQuotes() {
-        // the "|fn:x*" substring is inside a quoted RQL string literal, so it must NOT be treated as an anchor
-        assertPureRql("like(attributes/a,'*|fn:x*')");
+    public void partitionLegacyCombinedSyntaxStaysOneRqlExpression() {
+        // the retired "<rql>|fn:..." single-param syntax is NOT split anymore: not starting with "fn:", the whole
+        // param is classified as RQL and fails loudly at RQL validation time (ConnectionValidatorTest locks the
+        // rejection)
+        final String legacyCombined = "gt(attributes/x,5)|fn:filter(header:a,'exists')";
+        final PartitionedFilters partitioned = TargetTopicFilter.partition(List.of(legacyCombined));
+
+        assertThat(partitioned.getRqlExpressions()).containsExactly(legacyCombined);
+        assertThat(partitioned.getPipelineExpressions()).isEmpty();
     }
 
-    @Test
-    public void parseLoudEdgeCaseSplitsOnUnquotedAnchorEvenInsidePropertyPath() {
-        // "eq(attributes/a|fn:b,1)": the "|" right before "fn:" is unquoted, so per the anchored-split grammar
-        // this DOES split (even though the resulting RQL head is then syntactically invalid RQL) -
-        // rejection of the malformed head happens later, at RQL-parse/validation time, not in parse().
-        final ParsedTopicFilter parsed = TargetTopicFilter.parse("eq(attributes/a|fn:b,1)");
-
-        assertThat(parsed.getRqlExpression()).contains("eq(attributes/a");
-        assertThat(parsed.getPipelineExpression()).contains("fn:b,1)");
-    }
-
-    // ===== parse(): backslash-escaped quotes (round-2 review finding — escaped ' must not toggle quote state) =====
+    // ===== partition(): empty / whitespace-only params (a PRESENT empty RQL entry, not absent) =====
 
     @Test
-    public void parseCombinedRqlWithEscapedSingleQuoteInLiteralThenPipelineAnchor() {
-        // the "\'" inside the RQL string literal must not flip the quote-parity state, so the real "|fn:" anchor
-        // right after the (correctly still-open-then-closed) literal is recognized.
-        final ParsedTopicFilter parsed = TargetTopicFilter.parse(
-                "eq(attributes/owner,'O\\'Brien')|fn:filter(header:ditto-origin,'ne','x')");
-
-        assertThat(parsed.getRqlExpression()).contains("eq(attributes/owner,'O\\'Brien')");
-        assertThat(parsed.getPipelineExpression()).contains("fn:filter(header:ditto-origin,'ne','x')");
-    }
-
-    @Test
-    public void parsePureRqlWithFnAnchorAfterEscapedQuoteStaysUnsplit() {
-        // the "\'" does not close the literal, so the "|fn:b" that follows is still inside the quoted string and
-        // must NOT be treated as an anchor - this is a currently-valid pure-RQL filter.
-        assertPureRql("like(attributes/x,'a\\'|fn:b')");
-    }
-
-    @Test
-    public void parseTrailingBackslashDoesNotThrow() {
-        assertThatNoException().isThrownBy(() -> TargetTopicFilter.parse("eq(attributes/a,1) fn:b\\"));
-    }
-
-    // ===== parse(): trimming / whitespace =====
-
-    @Test
-    public void parseTrimsLeadingWhitespaceBeforeFnPrefix() {
-        final ParsedTopicFilter parsed = TargetTopicFilter.parse(" fn:filter(header:ditto-originator,'eq','x')");
-
-        assertThat(parsed.getRqlExpression()).isEmpty();
-        assertThat(parsed.getPipelineExpression()).contains("fn:filter(header:ditto-originator,'eq','x')");
-    }
-
-    @Test
-    public void parseCombinedFilterWithWhitespaceAroundAnchorTrimsRqlHeadAndPipelineEvaluates() {
-        final ParsedTopicFilter parsed =
-                TargetTopicFilter.parse("gt(attributes/x,5) | fn:filter(header:a,'exists')");
-
-        assertThat(parsed.getRqlExpression()).contains("gt(attributes/x,5)");
-        // parse() itself does not strip the whitespace between the anchor "|" and "fn:" from the pipeline part -
-        // that stage-internal trimming happens later, in ImmutableExpressionResolver - so compare trimmed here.
-        assertThat(parsed.getPipelineExpression().map(String::trim)).contains("fn:filter(header:a,'exists')");
-
-        // prove the parsed (untrimmed) pipeline part still evaluates correctly end-to-end.
-        final Signal<?> signalWithHeaderA = thingModifiedWithHeader("a", "present");
-        assertThat(TargetTopicFilter.matchesPipelineFilter(
-                parsed.getPipelineExpression().orElseThrow(), signalWithHeaderA, CONNECTION_ID)).isTrue();
-    }
-
-    // ===== parse(): empty / whitespace-only filters (null is the only "absent" marker) =====
-
-    @Test
-    public void parseEmptyFilterYieldsPresentEmptyRqlExpressionNotAbsent() {
-        // regression lock: an empty filter must NOT collapse to "both parts absent" - null is the only "absent"
-        // marker on ParsedTopicFilter (see its class-level documentation). A present-but-empty RQL part is what
+    public void partitionEmptyParamYieldsPresentEmptyRqlEntryNotAbsent() {
+        // regression lock: an empty filter param must NOT vanish - it stays a PRESENT (empty) RQL entry, which
         // lets ConnectionValidator route it into RQL validation and reject it with InvalidRqlExpressionException,
         // exactly as an empty filter was rejected before target topic pipeline filters existed.
-        final ParsedTopicFilter parsed = TargetTopicFilter.parse("");
-
-        assertThat(parsed.getRqlExpression()).contains("");
-        assertThat(parsed.getPipelineExpression()).isEmpty();
-    }
-
-    @Test
-    public void parseWhitespaceOnlyFilterYieldsPresentEmptyRqlExpressionNotAbsent() {
-        final ParsedTopicFilter parsed = TargetTopicFilter.parse("   ");
-
-        assertThat(parsed.getRqlExpression()).contains("");
-        assertThat(parsed.getPipelineExpression()).isEmpty();
-    }
-
-    @Test
-    public void parseLeadingPipeWithEmptyRqlHeadIsPurePipeline() {
-        // "|fn:..." - the RQL head before the anchor is empty, so it is passed as null explicitly and the whole
-        // filter is treated as a pure pipeline expression (the pipeline part itself can never be empty by
-        // construction, since the anchor requires "fn:" right after the "|").
-        final ParsedTopicFilter parsed = TargetTopicFilter.parse("|fn:filter(header:x,'eq','y')");
-
-        assertThat(parsed.getRqlExpression()).isEmpty();
-        assertThat(parsed.getPipelineExpression()).contains("fn:filter(header:x,'eq','y')");
-    }
-
-    // ===== parse(): malformed pipeline is not rejected at parse time =====
-
-    @Test
-    public void parseGluedGarbagePipelineIsKeptAsSingleStageListNotRejected() {
-        // starts with "fn:" => the WHOLE trimmed string becomes the pipeline expression, unvalidated.
-        // Rejection of "gt(x)" as an invalid function stage happens later, in validatePipelineFilter().
-        final ParsedTopicFilter parsed = TargetTopicFilter.parse("fn:a(x)|gt(x)|fn:b(x)");
-
-        assertThat(parsed.getRqlExpression()).isEmpty();
-        assertThat(parsed.getPipelineExpression()).contains("fn:a(x)|gt(x)|fn:b(x)");
+        assertThat(TargetTopicFilter.partition(List.of("")).getRqlExpressions()).containsExactly("");
+        assertThat(TargetTopicFilter.partition(List.of("   ")).getRqlExpressions()).containsExactly("");
     }
 
     // ===== matchesPipelineFilter(): match / non-match against a signal =====
@@ -247,20 +180,6 @@ public final class TargetTopicFilterTest {
                 "fn:filter(header:ditto-origin,'eq','some-origin')", signal, CONNECTION_ID)).isTrue();
         assertThat(TargetTopicFilter.matchesPipelineFilter(
                 "fn:filter(header:ditto-origin,'eq','other-origin')", signal, CONNECTION_ID)).isFalse();
-    }
-
-    @Test
-    public void matchesPipelineFilterChainedTwoStagePipeline() {
-        final String chained = "fn:filter(header:a,'exists')|fn:filter(header:b,'ne','x')";
-
-        final Signal<?> bothConditionsHold = thingModifiedWithHeaders(Map.of("a", "present", "b", "y"));
-        assertThat(TargetTopicFilter.matchesPipelineFilter(chained, bothConditionsHold, CONNECTION_ID)).isTrue();
-
-        final Signal<?> secondConditionFails = thingModifiedWithHeaders(Map.of("a", "present", "b", "x"));
-        assertThat(TargetTopicFilter.matchesPipelineFilter(chained, secondConditionFails, CONNECTION_ID)).isFalse();
-
-        final Signal<?> firstConditionFails = thingModifiedWithHeaders(Map.of("b", "y"));
-        assertThat(TargetTopicFilter.matchesPipelineFilter(chained, firstConditionFails, CONNECTION_ID)).isFalse();
     }
 
     // ===== matchesPipelineFilter(): absent-header semantics (verified facts, Fact 5) =====
@@ -297,7 +216,49 @@ public final class TargetTopicFilterTest {
                 "fn:filter(header:ditto-originator,'exists')", signal, CONNECTION_ID)).isFalse();
     }
 
+    // ===== matchesPipelineFilter(): chained stages (AND semantics) =====
+
+    @Test
+    public void matchesPipelineFilterChainedStagesBothMatchPublishes() {
+        final Signal<?> signal = thingModifiedWithHeaders(Map.of(
+                "ditto-originator", "some:subject",
+                "ditto-origin", "some-origin"));
+
+        assertThat(TargetTopicFilter.matchesPipelineFilter(
+                "fn:filter(header:ditto-originator,'eq','some:subject')" +
+                        "|fn:filter(header:ditto-origin,'eq','some-origin')", signal, CONNECTION_ID)).isTrue();
+    }
+
+    @Test
+    public void matchesPipelineFilterChainedStagesFirstNonMatchDrops() {
+        final Signal<?> signal = thingModifiedWithHeaders(Map.of(
+                "ditto-originator", "other:subject",
+                "ditto-origin", "some-origin"));
+
+        assertThat(TargetTopicFilter.matchesPipelineFilter(
+                "fn:filter(header:ditto-originator,'eq','some:subject')" +
+                        "|fn:filter(header:ditto-origin,'eq','some-origin')", signal, CONNECTION_ID)).isFalse();
+    }
+
+    @Test
+    public void matchesPipelineFilterChainedStagesSecondNonMatchDrops() {
+        final Signal<?> signal = thingModifiedWithHeaders(Map.of(
+                "ditto-originator", "some:subject",
+                "ditto-origin", "other-origin"));
+
+        assertThat(TargetTopicFilter.matchesPipelineFilter(
+                "fn:filter(header:ditto-originator,'eq','some:subject')" +
+                        "|fn:filter(header:ditto-origin,'eq','some-origin')", signal, CONNECTION_ID)).isFalse();
+    }
+
     // ===== validatePipelineFilter(): invalid expressions =====
+
+    @Test
+    public void validatePipelineFilterAcceptsSingleStage() {
+        assertThatNoException().isThrownBy(() ->
+                TargetTopicFilter.validatePipelineFilter("fn:filter(header:ditto-originator,'ne','x')",
+                        DittoHeaders.empty()));
+    }
 
     @Test
     public void validatePipelineFilterRejectsUnknownFunction() {
@@ -317,24 +278,72 @@ public final class TargetTopicFilterTest {
                 TargetTopicFilter.validatePipelineFilter("fn:filter(bogus:x,'eq','y')", DittoHeaders.empty()));
     }
 
-    @Test
-    public void validatePipelineFilterRejectsElevenUserStages() {
-        final String elevenStages = IntStream.range(0, 11)
-                .mapToObj(i -> "fn:filter(header:a,'exists')")
-                .collect(Collectors.joining("|"));
+    // ===== validatePipelineFilter(): chained stages, pipeline grammar limits =====
 
+    @Test
+    public void validatePipelineFilterAcceptsChainedStages() {
+        assertThatNoException().isThrownBy(() ->
+                TargetTopicFilter.validatePipelineFilter(
+                        "fn:filter(header:a,'exists')|fn:filter(header:b,'exists')", DittoHeaders.empty()));
+    }
+
+    @Test
+    public void validatePipelineFilterRejectsChainedParamWithUnknownFunctionStage() {
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class).isThrownBy(() ->
+                TargetTopicFilter.validatePipelineFilter(
+                        "fn:filter(header:a,'exists')|fn:unknownfn('x')", DittoHeaders.empty()));
+    }
+
+    @Test
+    public void validatePipelineFilterAcceptsTenChainedStagesButRejectsEleven() {
+        // the resolver's pipeline grammar caps a pipeline at 10 fn: stages (the internal fn:default seed does
+        // not eat into the user's budget: seed + 10 user stages is exactly the grammar's 11-element maximum)
+        final String tenStages = String.join("|", Collections.nCopies(10, "fn:filter(header:a,'exists')"));
+        assertThatNoException().isThrownBy(() ->
+                TargetTopicFilter.validatePipelineFilter(tenStages, DittoHeaders.empty()));
+
+        final String elevenStages = String.join("|", Collections.nCopies(11, "fn:filter(header:a,'exists')"));
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class).isThrownBy(() ->
                 TargetTopicFilter.validatePipelineFilter(elevenStages, DittoHeaders.empty()));
     }
 
     @Test
-    public void validatePipelineFilterAcceptsTenUserStages() {
-        final String tenStages = IntStream.range(0, 10)
-                .mapToObj(i -> "fn:filter(header:a,'exists')")
-                .collect(Collectors.joining("|"));
-
+    public void validatePipelineFilterAcceptsQuotedPipeInsideChainedStages() {
+        // the resolver's stage split is quote-aware: the '|' inside 'a|b' must not be taken for a stage separator
         assertThatNoException().isThrownBy(() ->
-                TargetTopicFilter.validatePipelineFilter(tenStages, DittoHeaders.empty()));
+                TargetTopicFilter.validatePipelineFilter(
+                        "fn:filter(header:a,'eq','a|b')|fn:filter(header:b,'exists')", DittoHeaders.empty()));
+    }
+
+    @Test
+    public void validatePipelineFilterRejectsTrailingPipe() {
+        // rejected by the resolver's pipeline grammar (empty trailing stage), no custom scan involved
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class).isThrownBy(() ->
+                TargetTopicFilter.validatePipelineFilter("fn:filter(header:a,'exists')|", DittoHeaders.empty()));
+    }
+
+    @Test
+    public void validatePipelineFilterAcceptsQuotedPipeInSingleQuotedConstant() {
+        assertThatNoException().isThrownBy(() ->
+                TargetTopicFilter.validatePipelineFilter("fn:filter(header:a,'eq','a|b')", DittoHeaders.empty()));
+    }
+
+    @Test
+    public void validatePipelineFilterAcceptsQuotedPipeInDoubleQuotedConstant() {
+        assertThatNoException().isThrownBy(() ->
+                TargetTopicFilter.validatePipelineFilter("fn:filter(header:a,'eq',\"a|b\")", DittoHeaders.empty()));
+    }
+
+    @Test
+    public void validatePipelineFilterTrailingBackslashDoesNotThrowUnexpectedly() {
+        // a trailing backslash must never escape the documented exception contract; the resolver validation may
+        // still reject the expression, but only ever with the documented exception type
+        final Throwable throwable = catchThrowable(() ->
+                TargetTopicFilter.validatePipelineFilter("fn:filter(header:a,'exists')\\", DittoHeaders.empty()));
+
+        if (throwable != null) {
+            assertThat(throwable).isInstanceOf(ConnectionConfigurationInvalidException.class);
+        }
     }
 
     // ===== test helpers =====

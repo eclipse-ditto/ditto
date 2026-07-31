@@ -330,14 +330,44 @@ public final class ConnectionValidator {
                 final String location = String.format("Targets of connection <%s>", connection.getId());
                 throw emptyAddressesError(location, dittoHeaders);
             }
-            target.getTopics().forEach(topic -> topic.getFilter().ifPresent(filter -> {
-                final TargetTopicFilter.ParsedTopicFilter parsedTopicFilter = TargetTopicFilter.parse(filter);
-                parsedTopicFilter.getPipelineExpression().ifPresent(pipeline ->
-                        TargetTopicFilter.validatePipelineFilter(pipeline, dittoHeaders));
-                parsedTopicFilter.getRqlExpression().ifPresent(rql ->
-                        // will throw an InvalidRqlExpressionException if the RQL expression was not valid:
-                        queryFilterCriteriaFactory.filterCriteria(rql, dittoHeaders));
-            }));
+            target.getTopics().forEach(topic -> {
+                final List<String> filters = topic.getFilters();
+                if (!filters.isEmpty()) {
+                    final TargetTopicFilter.PartitionedFilters partitionedFilters =
+                            TargetTopicFilter.partition(filters);
+                    if (partitionedFilters.getRqlExpressions().size() > 1) {
+                        throw ConnectionConfigurationInvalidException
+                                .newBuilder("The topic '" + topic + "' of the target with address '" +
+                                        target.getAddress() + "' declares " +
+                                        partitionedFilters.getRqlExpressions().size() + " RQL 'filter' parameters " +
+                                        "- at most one RQL filter is allowed per topic.")
+                                .description("Combine several RQL conditions into a single RQL expression using " +
+                                        "'and(...)'. Besides the RQL filter, a topic may only carry one more " +
+                                        "'filter' parameter holding a placeholder pipeline expression starting " +
+                                        "with 'fn:'.")
+                                .dittoHeaders(dittoHeaders)
+                                .build();
+                    }
+                    if (partitionedFilters.getPipelineExpressions().size() > 1) {
+                        throw ConnectionConfigurationInvalidException
+                                .newBuilder("The topic '" + topic + "' of the target with address '" +
+                                        target.getAddress() + "' declares " +
+                                        partitionedFilters.getPipelineExpressions().size() +
+                                        " pipeline 'filter' parameters - at most one pipeline filter is allowed " +
+                                        "per topic.")
+                                .description("Combine several pipeline conditions by chaining 'fn:' stages with " +
+                                        "'|' inside the single pipeline 'filter' parameter instead, e.g. " +
+                                        "'?filter=fn:filter(...)|fn:filter(...)'.")
+                                .dittoHeaders(dittoHeaders)
+                                .build();
+                    }
+                    partitionedFilters.getPipelineExpressions().forEach(pipeline ->
+                            TargetTopicFilter.validatePipelineFilter(pipeline, dittoHeaders));
+                    partitionedFilters.getRqlExpressions().forEach(rql ->
+                            // will throw an InvalidRqlExpressionException if the RQL expression was not valid:
+                            queryFilterCriteriaFactory.filterCriteria(rql, dittoHeaders));
+                }
+            });
         });
     }
 

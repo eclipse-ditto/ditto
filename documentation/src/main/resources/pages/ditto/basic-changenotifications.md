@@ -53,9 +53,9 @@ For more granular control, use an [RQL expression](basic-rql.html) to filter bas
 considered when it has been [enriched via extraFields](basic-enrichment.html)." %}
 
 [Connections](basic-connections.html) additionally accept a placeholder function pipeline (`fn:...`)
-in place of, or combined with, an RQL expression -- see
+in an additional `filter` parameter alongside (or instead of) an RQL expression -- see
 [Filtering with placeholder functions](basic-connections.html#filtering-with-placeholder-functions).
-This is not available for the WebSocket API or SSE, which only support RQL filters.
+This is not available for the WebSocket API or SSE, which only support a single RQL filter.
 
 ### Examples
 

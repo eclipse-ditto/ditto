@@ -471,12 +471,12 @@ public class ConnectionValidatorTest {
     }
 
     @Test
-    public void acceptValidConnectionWithCombinedRqlAndPipelineTargetFilter() {
+    public void acceptValidConnectionWithRqlAndPipelineTargetFilterParams() {
         final List<Target> targetWithValidFilter = singletonList(
                 ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
                         .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
-                                .withFilter(
-                                        "eq(attributes/a,1)|fn:filter(header:ditto-originator,'eq','some:subject')")
+                                .withFilters(List.of("eq(attributes/a,1)",
+                                        "fn:filter(header:ditto-originator,'eq','some:subject')"))
                                 .build())
                         .build());
         final Connection connection = createConnection(CONNECTION_ID)
@@ -488,10 +488,91 @@ public class ConnectionValidatorTest {
     }
 
     @Test
+    public void rejectConnectionWithTwoPipelineTargetFilterParams() {
+        // at most one of a topic's filter params may be a pipeline expression - several pipeline conditions
+        // belong into ONE fn: param, chained with '|'
+        final List<Target> targetWithInvalidFilters = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFilters(List.of(
+                                        "fn:filter(header:ditto-originator,'ne','some:subject')",
+                                        "fn:filter(header:ditto-origin,'ne','some-connection-id')"))
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithInvalidFilters)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem))
+                .withMessageContaining("at most one pipeline filter");
+    }
+
+    @Test
+    public void rejectConnectionWithTwoRqlTargetFilterParams() {
+        // at most one of a topic's filter params may be an RQL expression - several RQL conditions belong into a
+        // single RQL expression combined with and(...)
+        final List<Target> targetWithInvalidFilters = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFilters(List.of("eq(attributes/a,1)", "eq(attributes/b,2)"))
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithInvalidFilters)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem))
+                .withMessageContaining("at most one RQL filter");
+    }
+
+    @Test
+    public void acceptConnectionWithChainedPipelineTargetFilterParam() {
+        // several fn: stages chained with '|' inside the ONE pipeline filter param are the intended way to
+        // AND several pipeline conditions
+        final List<Target> targetWithValidFilter = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFilter("fn:filter(header:a,'exists')|fn:filter(header:b,'exists')")
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithValidFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        underTest.validate(connection, DittoHeaders.empty(), actorSystem);
+    }
+
+    @Test
+    public void rejectConnectionWithLegacyCombinedFilterSyntax() {
+        // locks the loud failure of the retired "<rql>|fn:..." single-param syntax: not starting with "fn:", the
+        // whole param is routed into the RQL parser, which rejects the "|fn:..." tail - it must NOT be silently
+        // split or accepted.
+        final List<Target> targetWithLegacyFilter = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFilter(
+                                        "gt(attributes/counter,42)|fn:filter(header:ditto-originator,'eq','x')")
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithLegacyFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(InvalidRqlExpressionException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+    }
+
+    @Test
     public void acceptValidConnectionWithLegacyTargetFilterContainingUnquotedPipeInPropertyPath() {
         // back-compat lock: "eq(attributes/a|b,1)" is a pre-existing, valid pure RQL expression (an unquoted "|"
-        // is legal in RQL property paths) and must keep being accepted verbatim, never mis-split as a pipeline
-        // anchor merely because it contains no "fn:" substring at all.
+        // is legal in RQL property paths) and must keep being accepted verbatim - filter params are classified
+        // only by their "fn:" prefix, never split at a "|".
         final List<Target> targetWithValidFilter = singletonList(
                 ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
                         .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
@@ -544,11 +625,14 @@ public class ConnectionValidatorTest {
     }
 
     @Test
-    public void rejectConnectionWithCombinedTargetFilterContainingMalformedRqlHead() {
+    public void rejectConnectionWithMalformedRqlFilterParamAlongsideValidPipelineFilterParam() {
+        // a malformed RQL filter param keeps failing with InvalidRqlExpressionException even when the topic also
+        // carries a (valid) pipeline filter param
         final List<Target> targetWithInvalidFilter = singletonList(
                 ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
                         .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
-                                .withFilter("gt(attributes/x,)|fn:filter(header:ditto-originator,'eq','x')")
+                                .withFilters(List.of("gt(attributes/x,)",
+                                        "fn:filter(header:ditto-originator,'eq','x')"))
                                 .build())
                         .build());
         final Connection connection = createConnection(CONNECTION_ID)
@@ -564,8 +648,8 @@ public class ConnectionValidatorTest {
     public void rejectConnectionWithEmptyTargetFilterAsInvalidRqlExpression() {
         // regression lock: an empty target topic filter string (e.g. a target address ending in "?filter=") must
         // keep being rejected with InvalidRqlExpressionException, exactly as before target topic pipeline filters
-        // existed - null is the only "absent" marker on ParsedTopicFilter, so TargetTopicFilter.parse("") yields a
-        // present (if empty) RQL part, which is routed into RQL validation here rather than silently accepted.
+        // existed - TargetTopicFilter.partition classifies an empty param as a PRESENT (empty) RQL entry, which
+        // is routed into RQL validation here rather than silently accepted.
         final List<Target> targetWithEmptyFilter = singletonList(
                 ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
                         .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
