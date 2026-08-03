@@ -26,6 +26,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
@@ -115,7 +116,7 @@ final class ImmutableWotTimeseriesAnnotation implements WotTimeseriesAnnotation 
         if (!tags.isEmpty()) {
             final JsonObjectBuilder tagsBuilder = JsonFactory.newObjectBuilder();
             for (final Map.Entry<String, String> entry : tags.entrySet()) {
-                tagsBuilder.set(entry.getKey(), entry.getValue());
+                tagsBuilder.set(JsonKey.of(entry.getKey()), entry.getValue());
             }
             builder.set(JsonFields.TAGS, tagsBuilder.build());
         }

@@ -19,7 +19,9 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -30,6 +32,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
@@ -46,8 +49,11 @@ import org.eclipse.ditto.timeseries.api.HealthStatus;
 import org.eclipse.ditto.timeseries.api.TimeseriesAdapter;
 import org.eclipse.ditto.timeseries.api.TimeseriesAdapterConfig;
 import org.eclipse.ditto.timeseries.api.compute.TimeseriesComputeKernel;
+import org.eclipse.ditto.timeseries.model.AggregatedTimeseriesResult;
 import org.eclipse.ditto.timeseries.model.Aggregation;
+import org.eclipse.ditto.timeseries.model.CrossThingTimeseriesQuery;
 import org.eclipse.ditto.timeseries.model.FillStrategy;
+import org.eclipse.ditto.timeseries.model.GroupBy;
 import org.eclipse.ditto.timeseries.model.SortOrder;
 import org.eclipse.ditto.timeseries.model.TimeseriesCursor;
 import org.eclipse.ditto.timeseries.model.TimeseriesDataPoint;
@@ -105,6 +111,28 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
      * tuple in the same bucket — which is what makes per-thing reads fast.
      */
     static final String META_FIELD = "meta";
+
+    /** {@code _id} sub-field holding the {@code $dateTrunc}ed bucket start of a cross-Thing group. */
+    private static final String GROUP_FIELD_BUCKET = "b";
+
+    /** {@code _id} sub-field holding the series path of a cross-Thing group. */
+    private static final String GROUP_FIELD_PATH = "p";
+
+    /** {@code _id} sub-field holding the Thing ID when grouping by {@code thingId}. */
+    private static final String GROUP_FIELD_THING_ID = "t";
+
+    /**
+     * Prefix for {@code _id} sub-fields holding a tag dimension. Tag keys are sanitised into this
+     * namespace because a raw Ditto tag key may contain {@code .} or {@code $}, neither of which is
+     * legal in a Mongo {@code _id} sub-field name.
+     */
+    private static final String GROUP_FIELD_TAG_PREFIX = "g_";
+
+    /** Applied when a cross-Thing query does not specify {@code maxGroups}. */
+    private static final int DEFAULT_CROSS_THING_MAX_GROUPS =
+            CrossThingTimeseriesQuery.DEFAULT_MAX_GROUPS;
+
+    private static final int MAX_GROUPS_CEILING = CrossThingTimeseriesQuery.MAX_GROUPS_CEILING;
 
     private final AtomicReference<State> state = new AtomicReference<>(State.notInitialized());
 
@@ -275,6 +303,386 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
             perPath.add(queryOnePath(current, query, path));
         }
         return collectInOrder(perPath);
+    }
+
+    @Override
+    public CompletionStage<List<AggregatedTimeseriesResult>> queryCrossThing(
+            final CrossThingTimeseriesQuery query,
+            @Nullable final Map<JsonPointer, Collection<ThingId>> permittedThingsPerPath) {
+
+        checkNotNull(query, "query");
+        final State current = state.get();
+        if (current.health != HealthStatus.UP) {
+            return failedStage(new IllegalStateException(
+                    "MongoDbTimeseriesAdapter is not initialised."));
+        }
+        // No path with any permitted Thing means the caller established that nothing is readable.
+        // Treating that as "no filter" would leak the whole namespace, so short-circuit explicitly
+        // rather than letting an empty match fall through to the pipeline.
+        if (permittedThingsPerPath != null && readablePaths(query, permittedThingsPerPath).isEmpty()) {
+            return CompletableFuture.completedFuture(Collections.emptyList());
+        }
+
+        final int maxGroups = query.getMaxGroups().orElse(DEFAULT_CROSS_THING_MAX_GROUPS);
+        final List<Bson> pipeline = crossThingPipeline(query, permittedThingsPerPath, maxGroups);
+        final MongoCollection<Document> collection = current.database.getCollection(
+                collectionNameForNamespace(current.config, query.getNamespace()), Document.class);
+
+        // The request-shape line is logged by the calling actor, which has the correlation id in
+        // scope; what only this layer knows is how long the backend actually took, so that is what
+        // is reported here (same shape as the single-Thing "query cost" line).
+        final long startNanos = System.nanoTime();
+        return collectAll(collection.aggregate(pipeline)
+                        .allowDiskUse(true)
+                        .maxTime(current.config.getQueryTimeout().toMillis(), TimeUnit.MILLISECONDS))
+                // Series assembly + gap fill is CPU work; keep it off the reactive driver thread.
+                .thenApplyAsync(seriesDocs -> {
+                    LOGGER.debug("Cross-Thing query cost: namespace=<{}> paths={} step=<{}> agg=<{}> " +
+                                    "groupBy={} tagFilters={} access=<{}> series=<{}> elapsedMs=<{}>",
+                            query.getNamespace(), query.getPaths(), query.getStep(),
+                            query.getAggregation().getName(), query.getGroupBy(),
+                            query.getFilter().orElse("-"),
+                            permittedThingsPerPath == null ? "namespace-wide"
+                                    : describePerPathAccess(query, permittedThingsPerPath),
+                            seriesDocs.size(), (System.nanoTime() - startNanos) / 1_000_000L);
+                    return buildCrossThingResults(query, seriesDocs, maxGroups,
+                            current.config.getMaxQueryResultSize());
+                });
+    }
+
+    @Override
+    public CompletionStage<Map<JsonPointer, List<ThingId>>> discoverContributors(
+            final CrossThingTimeseriesQuery query, final int limit) {
+
+        checkNotNull(query, "query");
+        final State current = state.get();
+        if (current.health != HealthStatus.UP) {
+            return failedStage(new IllegalStateException(
+                    "MongoDbTimeseriesAdapter is not initialised."));
+        }
+
+        // Same filter as the aggregation but namespace-wide: this call runs BEFORE authorization and
+        // its whole purpose is to discover what the decision has to be taken about.
+        final List<Bson> pipeline = new ArrayList<>();
+        pipeline.add(Aggregates.match(crossThingFilter(query, null)));
+        // Group by (path, thingId) so the caller learns which combinations actually carry data, and
+        // can therefore report exactly which were withheld rather than counting a Thing against a
+        // path it would have contributed nothing to.
+        pipeline.add(Aggregates.group(new Document(GROUP_FIELD_PATH,
+                        "$" + TimeseriesBsonMapper.FIELD_META + "." + TimeseriesBsonMapper.META_PATH)
+                .append(GROUP_FIELD_THING_ID,
+                        "$" + TimeseriesBsonMapper.FIELD_META + "." + TimeseriesBsonMapper.META_THING_ID)));
+        // Thing-major, NOT path-major. The bound below is on rows, but the contract is on distinct
+        // Things; sorting by path first would let the row limit cut off entire paths, hiding Things
+        // that only carry data on a later one.
+        pipeline.add(Aggregates.sort(Sorts.ascending(
+                "_id." + GROUP_FIELD_THING_ID, "_id." + GROUP_FIELD_PATH)));
+        // Bound the result server-side. Without this, the ceiling was applied only after every
+        // distinct (path, Thing) group had been sorted and shipped into service heap — so a large
+        // namespace exhausted memory *before* reaching the check meant to prevent exactly that.
+        // A Thing yields at most one row per requested path and rows are Thing-major, so
+        // (limit + 1) * paths rows are guaranteed to contain limit + 1 distinct Things if they exist.
+        final long rowBound = ((long) limit + 1) * Math.max(1, query.getPaths().size());
+        pipeline.add(Aggregates.limit((int) Math.min(Integer.MAX_VALUE, rowBound)));
+
+        final MongoCollection<Document> collection = current.database.getCollection(
+                collectionNameForNamespace(current.config, query.getNamespace()), Document.class);
+
+        final long startNanos = System.nanoTime();
+        return collectAll(collection.aggregate(pipeline)
+                        .allowDiskUse(true)
+                        .maxTime(current.config.getQueryTimeout().toMillis(), TimeUnit.MILLISECONDS))
+                .thenApply(docs -> {
+                    final Map<JsonPointer, List<ThingId>> perPath = new LinkedHashMap<>();
+                    final java.util.Set<ThingId> distinct = new java.util.LinkedHashSet<>();
+                    for (final Document doc : docs) {
+                        final Document id = doc.get("_id", Document.class);
+                        final Object rawPath = id == null ? null : id.get(GROUP_FIELD_PATH);
+                        final Object rawThing = id == null ? null : id.get(GROUP_FIELD_THING_ID);
+                        if (rawPath == null || rawThing == null) {
+                            continue;
+                        }
+                        final ThingId thingId = ThingId.of(String.valueOf(rawThing));
+                        // Bound on DISTINCT Things, not on rows: one Thing spanning five paths is one
+                        // Thing to authorize. Allow limit + 1 through so the caller can tell "at the
+                        // ceiling" from "over it". The pipeline's $limit above bounds the rows that
+                        // reach this loop; this bounds the Things that reach the allow-list.
+                        if (!distinct.contains(thingId) && distinct.size() > limit) {
+                            continue;
+                        }
+                        distinct.add(thingId);
+                        perPath.computeIfAbsent(JsonPointer.of(String.valueOf(rawPath)),
+                                k -> new ArrayList<>()).add(thingId);
+                    }
+                    LOGGER.debug("Cross-Thing discovery cost: namespace=<{}> paths={} " +
+                                    "distinctThings=<{}> combinations=<{}> elapsedMs=<{}>",
+                            query.getNamespace(), query.getPaths(), distinct.size(), docs.size(),
+                            (System.nanoTime() - startNanos) / 1_000_000L);
+                    return perPath;
+                });
+    }
+
+    /**
+     * Builds the two-stage aggregation: bucket-and-aggregate per {@code (group, bucket)}, then fold
+     * each group's buckets into one document per series. Doing the fold in MongoDB means the driver
+     * returns one document per series rather than one per bucket, and lets the {@code $limit} below
+     * detect a group-cap overflow without materialising the overflowing series.
+     */
+    // Package-private so the pipeline shape can be asserted without a live MongoDB.
+    static List<Bson> crossThingPipeline(final CrossThingTimeseriesQuery query,
+            @Nullable final Map<JsonPointer, Collection<ThingId>> permittedThingsPerPath,
+            final int maxGroups) {
+
+        final Document bucketKey = new Document(GROUP_FIELD_BUCKET,
+                dateTruncSpec(query.getStep(), query.getTimezone().map(Object::toString).orElse(null)));
+        // Results are always reported per path, so the path is part of the series key regardless of
+        // whether the caller declared `groupBy=path` explicitly.
+        bucketKey.append(GROUP_FIELD_PATH, "$" + TimeseriesBsonMapper.FIELD_META + "." +
+                TimeseriesBsonMapper.META_PATH);
+        for (final GroupBy dimension : query.getGroupBy()) {
+            if (dimension.getKind() != GroupBy.Kind.PATH) {
+                bucketKey.append(groupFieldFor(dimension), groupExpressionFor(dimension));
+            }
+        }
+
+        final List<Bson> pipeline = new ArrayList<>();
+        pipeline.add(Aggregates.match(crossThingFilter(query, permittedThingsPerPath)));
+        // Pre-sort so $first/$last reflect chronological order rather than storage order.
+        pipeline.add(Aggregates.sort(Sorts.ascending(TimeseriesBsonMapper.FIELD_TIMESTAMP)));
+        pipeline.add(Aggregates.group(bucketKey,
+                accumulatorFor(query.getAggregation(), "v", "$" + TimeseriesBsonMapper.FIELD_VALUE),
+                Accumulators.first("unit", "$" + TimeseriesBsonMapper.FIELD_META + "." +
+                        TimeseriesBsonMapper.META_UNIT)));
+        // Ascending buckets before the fold so each series' pushed points come out chronological.
+        pipeline.add(Aggregates.sort(Sorts.ascending("_id." + GROUP_FIELD_BUCKET)));
+
+        // Fold: series key = the bucket key minus the bucket itself.
+        final Document seriesKey = new Document(GROUP_FIELD_PATH, "$_id." + GROUP_FIELD_PATH);
+        for (final GroupBy dimension : query.getGroupBy()) {
+            if (dimension.getKind() != GroupBy.Kind.PATH) {
+                final String field = groupFieldFor(dimension);
+                seriesKey.append(field, "$_id." + field);
+            }
+        }
+        pipeline.add(Aggregates.group(seriesKey,
+                Accumulators.push("points", new Document("t", "$_id." + GROUP_FIELD_BUCKET)
+                        .append("v", "$v")),
+                Accumulators.first("unit", "$unit")));
+        pipeline.add(Aggregates.sort(Sorts.ascending("_id")));
+        // +1 so an overflow is detectable and can be reported instead of silently truncated.
+        pipeline.add(Aggregates.limit(maxGroups + 1));
+        return pipeline;
+    }
+
+    private static Bson crossThingFilter(final CrossThingTimeseriesQuery query,
+            @Nullable final Map<JsonPointer, Collection<ThingId>> permittedThingsPerPath) {
+
+        final List<Bson> filters = new ArrayList<>();
+        filters.add(Filters.gte(TimeseriesBsonMapper.FIELD_TIMESTAMP, query.getFrom()));
+        filters.add(Filters.lt(TimeseriesBsonMapper.FIELD_TIMESTAMP, query.getTo()));
+        filters.add(pathAccessFilter(query, permittedThingsPerPath));
+        // Tag predicates live in the Time Series collection's metaField, so they are index-supported.
+        // The filter is RQL — Ditto's query language — translated to a filter over meta.tags only, so
+        // it cannot reach meta.thingId / meta.path and sidestep the per-path allow-list above.
+        query.getFilter().ifPresent(rql -> filters.add(TimeseriesRqlTranslator.translate(rql)));
+        filters.add(numericValueFilter());
+        return Filters.and(filters);
+    }
+
+    /**
+     * Restricts the scan to the {@code (path, Thing)} combinations the caller may read.
+     * <p>
+     * Permission is path-granular, so this is an {@code $or} of one clause per readable path rather
+     * than a single Thing-level {@code $in}: a Thing withheld from one property must still contribute
+     * to another it is entitled to. Both {@code meta.path} and {@code meta.thingId} live in the Time
+     * Series {@code metaField}, so every clause stays index-supported.
+     */
+    private static Bson pathAccessFilter(final CrossThingTimeseriesQuery query,
+            @Nullable final Map<JsonPointer, Collection<ThingId>> permittedThingsPerPath) {
+
+        final String metaPath = TimeseriesBsonMapper.FIELD_META + "." + TimeseriesBsonMapper.META_PATH;
+        final String metaThing = TimeseriesBsonMapper.FIELD_META + "." + TimeseriesBsonMapper.META_THING_ID;
+
+        if (permittedThingsPerPath == null) {
+            // Namespace-wide: every requested path, no Thing restriction.
+            return Filters.in(metaPath, query.getPaths().stream()
+                    .map(JsonPointer::toString)
+                    .collect(Collectors.toList()));
+        }
+
+        final List<Bson> perPath = new ArrayList<>();
+        for (final JsonPointer path : readablePaths(query, permittedThingsPerPath)) {
+            // getOrDefault, never get(): an absent entry means "nothing permitted", never
+            // "unrestricted". Reading it the other way round would be a data leak.
+            final Collection<ThingId> permitted =
+                    permittedThingsPerPath.getOrDefault(path, Collections.emptyList());
+            perPath.add(Filters.and(
+                    Filters.eq(metaPath, path.toString()),
+                    Filters.in(metaThing, permitted.stream()
+                            .map(ThingId::toString)
+                            .collect(Collectors.toList()))));
+        }
+        // Callers short-circuit before reaching here when nothing is readable; this stays defensive so
+        // an empty $or can never degenerate into "match everything".
+        return perPath.isEmpty() ? Filters.expr(new Document("$eq", Arrays.asList(1, 0)))
+                : Filters.or(perPath);
+    }
+
+    /** The requested paths that have at least one permitted Thing, in request order. */
+    private static List<JsonPointer> readablePaths(final CrossThingTimeseriesQuery query,
+            final Map<JsonPointer, Collection<ThingId>> permittedThingsPerPath) {
+
+        final List<JsonPointer> readable = new ArrayList<>();
+        for (final JsonPointer path : query.getPaths()) {
+            final Collection<ThingId> permitted = permittedThingsPerPath.get(path);
+            if (permitted != null && !permitted.isEmpty()) {
+                readable.add(path);
+            }
+        }
+        return readable;
+    }
+
+    /** Compact per-path access summary for the cost log, e.g. {@code flowTemperature=4,return=3}. */
+    private static String describePerPathAccess(final CrossThingTimeseriesQuery query,
+            final Map<JsonPointer, Collection<ThingId>> permittedThingsPerPath) {
+
+        final List<String> parts = new ArrayList<>();
+        for (final JsonPointer path : query.getPaths()) {
+            parts.add(path + "=" +
+                    permittedThingsPerPath.getOrDefault(path, Collections.emptyList()).size());
+        }
+        return String.join(",", parts);
+    }
+
+
+    /** Mongo-safe field name for a grouping dimension inside the {@code _id} sub-document. */
+    private static String groupFieldFor(final GroupBy dimension) {
+        if (dimension.getKind() == GroupBy.Kind.THING_ID) {
+            return GROUP_FIELD_THING_ID;
+        }
+        // A tag key may contain dots (they are legal Ditto pointers) which are not legal as a
+        // Mongo _id sub-field name, so index tag dimensions positionally and map back afterwards.
+        return GROUP_FIELD_TAG_PREFIX + dimension.getTagKey().orElseThrow().replace('.', '_')
+                .replace('$', '_');
+    }
+
+    private static String groupExpressionFor(final GroupBy dimension) {
+        if (dimension.getKind() == GroupBy.Kind.THING_ID) {
+            return "$" + TimeseriesBsonMapper.FIELD_META + "." + TimeseriesBsonMapper.META_THING_ID;
+        }
+        // A tag key is a Thing path (e.g. "attributes/floor"): it contains '/' and never '.', so it
+        // cannot be misread as a nested field reference. Tolerate a leading slash for symmetry with
+        // the RQL filter, which accepts both "/attributes/floor" and "attributes/floor".
+        final String tagKey = dimension.getTagKey().orElseThrow();
+        final String normalised = tagKey.startsWith("/") ? tagKey.substring(1) : tagKey;
+        return "$" + TimeseriesBsonMapper.FIELD_META + "." + TimeseriesBsonMapper.META_TAGS + "." +
+                normalised;
+    }
+
+
+    /**
+     * Turns the folded series documents into {@link AggregatedTimeseriesResult}s, applying gap fill
+     * per series in the shared compute kernel so a cross-Thing result fills identically to a
+     * single-Thing one.
+     */
+    // Package-private so the fold, group cap and gap fill can be unit-tested without a live MongoDB
+    // (mirrors buildAggregatedResult above).
+    static List<AggregatedTimeseriesResult> buildCrossThingResults(
+            final CrossThingTimeseriesQuery query,
+            final List<Document> seriesDocs,
+            final int maxGroups,
+            final int maxPoints) {
+
+        if (seriesDocs.size() > maxGroups) {
+            // Fail loudly. Silently returning the first N series would look like a complete answer
+            // and quietly misreport any aggregate the caller computes on top of it.
+            throw TimeseriesQueryInvalidException.newBuilder("The query matches more than " +
+                            maxGroups + " distinct groups. Narrow it with 'tagFilter', fewer " +
+                            "'groupBy' dimensions or a smaller namespace, or raise 'maxGroups' " +
+                            "(ceiling " + MAX_GROUPS_CEILING + ").")
+                    .build();
+        }
+
+        final ZoneId zone = query.getTimezone().orElse(null);
+        final FillStrategy fill = query.getFillStrategy().orElse(null);
+        final List<AggregatedTimeseriesResult> results = new ArrayList<>(seriesDocs.size());
+
+        for (final Document seriesDoc : seriesDocs) {
+            final Document id = seriesDoc.get("_id", Document.class);
+            final JsonPointer path = JsonPointer.of(id.getString(GROUP_FIELD_PATH));
+
+            final LinkedHashMap<Instant, JsonValue> byBucket = new LinkedHashMap<>();
+            final List<Document> points = seriesDoc.getList("points", Document.class,
+                    Collections.emptyList());
+            // The pipeline sorts buckets before pushing, but $group output order is not contractual,
+            // so sort defensively here — the fill grid depends on ascending order being real.
+            final List<Document> sorted = new ArrayList<>(points);
+            sorted.sort(Comparator.comparing(doc -> toInstant(doc.get("t"))));
+            for (final Document point : sorted) {
+                byBucket.put(toInstant(point.get("t")), toJsonValue(point.get("v")));
+            }
+
+            if (fill != null) {
+                // Same ceiling the single-Thing path applies: fill materialises the entire interior
+                // grid in memory, so a tiny step over a broad span would otherwise exhaust the heap —
+                // and here it would do so once per series, up to maxGroups times.
+                ensureFillGridWithinCeiling(byBucket, query.getStep(), maxPoints, path);
+            }
+            final List<TimeseriesDataValue> data =
+                    TimeseriesComputeKernel.fillBuckets(byBucket, query.getStep(), fill, zone);
+            final TimeseriesResultMeta meta = TimeseriesResultMeta.of(data.size(),
+                    seriesDoc.getString("unit"), inferAggregatedDataType(data));
+            results.add(AggregatedTimeseriesResult.of(
+                    groupIdentityFrom(query, id), path, meta, data));
+        }
+        return results;
+    }
+
+    /**
+     * Reconstructs the caller-facing group identity from the Mongo {@code _id}: keys are the original
+     * {@link GroupBy#getGroupKey()} values, not the sanitised Mongo field names.
+     */
+    private static Map<String, String> groupIdentityFrom(final CrossThingTimeseriesQuery query,
+            final Document id) {
+
+        final Map<String, String> group = new LinkedHashMap<>();
+        for (final GroupBy dimension : query.getGroupBy()) {
+            if (dimension.getKind() == GroupBy.Kind.PATH) {
+                group.put(dimension.getGroupKey(), id.getString(GROUP_FIELD_PATH));
+            } else {
+                final Object raw = id.get(groupFieldFor(dimension));
+                // A point that carries no such tag groups under null; surface it as an explicit
+                // empty string rather than dropping the key, so every series has the same shape.
+                group.put(dimension.getGroupKey(), raw == null ? "" : String.valueOf(raw));
+            }
+        }
+        return group;
+    }
+
+    private static Instant toInstant(@Nullable final Object raw) {
+        if (raw instanceof Instant instant) {
+            return instant;
+        }
+        if (raw instanceof java.util.Date date) {
+            return date.toInstant();
+        }
+        throw new IllegalStateException("Unexpected bucket timestamp type: " + raw);
+    }
+
+    private static JsonValue toJsonValue(@Nullable final Object raw) {
+        if (raw == null) {
+            return JsonValue.nullLiteral();
+        }
+        if (raw instanceof Integer i) {
+            return JsonValue.of(i);
+        }
+        if (raw instanceof Long l) {
+            return JsonValue.of(l);
+        }
+        if (raw instanceof Number n) {
+            return JsonValue.of(n.doubleValue());
+        }
+        return JsonValue.of(String.valueOf(raw));
     }
 
     @Override
@@ -1216,7 +1624,17 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
     static String collectionNameFor(final MongoDbTimeseriesAdapterConfig config,
             final ThingId thingId) {
 
-        final String namespace = thingId.getNamespace();
+        return collectionNameForNamespace(config, thingId.getNamespace());
+    }
+
+    /**
+     * Namespace-keyed variant of {@link #collectionNameFor}. Cross-Thing queries know only the
+     * namespace, never a Thing, so they resolve their collection directly from it — which is exactly
+     * what makes a within-namespace cross-Thing aggregation a single-collection operation.
+     */
+    static String collectionNameForNamespace(final MongoDbTimeseriesAdapterConfig config,
+            final String namespace) {
+
         return config.getCollectionPrefix() + namespace.replace('.', '_');
     }
 

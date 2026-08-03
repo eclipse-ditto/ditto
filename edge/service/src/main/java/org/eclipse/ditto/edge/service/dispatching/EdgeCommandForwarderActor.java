@@ -60,6 +60,8 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.thingsearch.api.ThingsSearchConstants;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.ThingSearchSudoCommand;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
+import org.eclipse.ditto.timeseries.api.TimeseriesMessagingConstants;
+import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveAggregatedTimeseries;
 import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveTimeseries;
 
 import com.typesafe.config.Config;
@@ -170,6 +172,7 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                 )
                 .match(WotValidationConfigCommand.class, this::forwardToWotValidationConfig)
                 .match(RetrieveTimeseries.class, this::forwardToTimeseries)
+                .match(RetrieveAggregatedTimeseries.class, this::forwardToTimeseriesAggregate)
                 .match(Signal.class, this::handleUnknownSignal)
                 .matchAny(m -> log.warning("Got unknown message: {}", m))
                 .build();
@@ -334,6 +337,17 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                 getSender());
     }
 
+
+    private void forwardToTimeseriesAggregate(final RetrieveAggregatedTimeseries command) {
+        // A cross-Thing aggregation has no thingId, so it cannot be routed through the timeseries
+        // shard region the way RetrieveTimeseries is. Address the per-node aggregate handler by
+        // path instead — the same mechanism forwardToThingSearch uses. Deliberately not
+        // "ask with retry": an aggregation can be slow, and retrying it would multiply the load on
+        // the very query that is already expensive.
+        pubSubMediator.tell(
+                DistPubSubAccess.send(TimeseriesMessagingConstants.AGGREGATE_ACTOR_PATH, command),
+                getSender());
+    }
 
     private void handleUnknownSignal(final Signal<?> signal) {
         applySignalTransformation(signal, sender())

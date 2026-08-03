@@ -28,9 +28,12 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.bson.Document;
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
+import org.eclipse.ditto.internal.utils.test.docker.mongo.MongoDbResource;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.ThingId;
@@ -43,10 +46,11 @@ import org.eclipse.ditto.timeseries.model.TimeseriesQuery;
 import org.eclipse.ditto.timeseries.model.TimeseriesQueryResult;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
@@ -61,9 +65,9 @@ import com.typesafe.config.ConfigFactory;
 /**
  * Integration test for {@link MongoDbTimeseriesAdapter} against a real MongoDB instance.
  * <p>
- * Skipped by default. Set the environment variable
- * {@code TIMESERIES_MONGODB_TEST_URI=mongodb://localhost:27017} (or whichever URI points at your
- * dev MongoDB) to enable. Each test uses a fresh randomly-named demo Thing namespace so test runs
+ * Runs against a throwaway MongoDB container. Set
+ * {@code TIMESERIES_MONGODB_TEST_URI=mongodb://localhost:27017} to point it at an existing instance
+ * instead, which skips the container. Each test uses a fresh randomly-named demo Thing namespace so test runs
  * do not collide; the test database is dropped in {@code @AfterClass}.
  */
 public final class MongoDbTimeseriesAdapterIT {
@@ -73,16 +77,49 @@ public final class MongoDbTimeseriesAdapterIT {
     private static final JsonPointer PATH =
             JsonPointer.of("/features/environment/properties/temperature");
 
+    /** Optional override pointing at an existing MongoDB; when set, no container is started. */
+    private static final String URI_OVERRIDE = System.getenv(ENV_VAR);
+    /**
+     * Null when {@value ENV_VAR} is set. Constructed lazily like this because
+     * {@code new MongoDbResource()} already reaches for the Docker daemon, so an unconditional field
+     * would fail class initialisation on a machine without Docker even though the override means no
+     * container is needed.
+     */
+    @Nullable
+    private static final MongoDbResource CONTAINER = isOverridden() ? null : new MongoDbResource();
+
     private static String uri;
     private MongoDbTimeseriesAdapter adapter;
     private ThingId thingId;
 
+    /**
+     * Starts a throwaway MongoDB container for the class. Replaced by a no-op rule — so no container
+     * is started at all — when {@value ENV_VAR} points at an already-running instance.
+     * <p>
+     * Running by default is deliberate. This IT previously required {@value ENV_VAR} to be set,
+     * which meant CI always skipped it; the harness then broke unnoticed (the database name was
+     * passed via a config key nothing reads) and every case here errored the moment it was enabled.
+     * A test that only runs when someone remembers to opt in provides no regression protection.
+     */
+    @ClassRule
+    public static final TestRule MONGO = CONTAINER == null ? (base, description) -> base : CONTAINER;
+
     @BeforeClass
     public static void resolveUri() {
-        uri = System.getenv(ENV_VAR);
-        Assume.assumeTrue(
-                "Set " + ENV_VAR + "=mongodb://localhost:27017 (or your dev URI) to enable this IT",
-                uri != null && !uri.isEmpty());
+        uri = isOverridden()
+                ? URI_OVERRIDE
+                : "mongodb://" + requireContainer().getBindIp() + ":" + requireContainer().getPort();
+    }
+
+    private static boolean isOverridden() {
+        return URI_OVERRIDE != null && !URI_OVERRIDE.isEmpty();
+    }
+
+    private static MongoDbResource requireContainer() {
+        if (CONTAINER == null) {
+            throw new IllegalStateException("No container was started; " + ENV_VAR + " is set.");
+        }
+        return CONTAINER;
     }
 
     @Before
@@ -96,8 +133,11 @@ public final class MongoDbTimeseriesAdapterIT {
         // Build a MongoDbConfig from a Typesafe Config rooted at "ditto" — same shape as
         // DefaultMongoDbConfig consumes at runtime. Production code reads `ditto.mongodb.uri`
         // and `ditto.mongodb.database`; the IT does the same here.
+        // The database name must be a path segment of the URI: DefaultMongoDbConfig reads only
+        // `ditto.mongodb.uri`, so a separate `ditto.mongodb.database` key is silently ignored and
+        // getDefaultDatabase() then resolves to null.
         final Config rootConfig = ConfigFactory.parseString(String.format(
-                "ditto.mongodb.uri = \"%s\"\nditto.mongodb.database = \"%s\"\n", uri, DATABASE));
+                "ditto.mongodb.uri = \"%s\"\n", MongoDbItUris.withDatabase(uri, DATABASE)));
         final MongoDbConfig mongoDbConfig =
                 DefaultMongoDbConfig.of(DefaultScopedConfig.dittoScoped(rootConfig));
         final MongoDbTimeseriesAdapterConfig config = DefaultMongoDbTimeseriesAdapterConfig.of(
@@ -564,8 +604,11 @@ public final class MongoDbTimeseriesAdapterIT {
     }
 
     private MongoDbConfig mongoDbConfig() {
+        // The database name must be a path segment of the URI: DefaultMongoDbConfig reads only
+        // `ditto.mongodb.uri`, so a separate `ditto.mongodb.database` key is silently ignored and
+        // getDefaultDatabase() then resolves to null.
         final Config rootConfig = ConfigFactory.parseString(String.format(
-                "ditto.mongodb.uri = \"%s\"\nditto.mongodb.database = \"%s\"\n", uri, DATABASE));
+                "ditto.mongodb.uri = \"%s\"\n", MongoDbItUris.withDatabase(uri, DATABASE)));
         return DefaultMongoDbConfig.of(DefaultScopedConfig.dittoScoped(rootConfig));
     }
 

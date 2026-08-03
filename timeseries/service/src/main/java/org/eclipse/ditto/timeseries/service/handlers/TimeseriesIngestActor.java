@@ -17,6 +17,7 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -62,6 +63,7 @@ import org.eclipse.ditto.timeseries.api.TimeseriesAdapter;
 import org.eclipse.ditto.timeseries.api.TimeseriesQueryPlanner;
 import org.eclipse.ditto.timeseries.api.commands.IngestDataPoints;
 import org.eclipse.ditto.timeseries.api.commands.IngestDataPointsResponse;
+import org.eclipse.ditto.timeseries.model.TimeseriesQuery;
 import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveTimeseries;
 import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveTimeseriesResponse;
 
@@ -388,34 +390,45 @@ public final class TimeseriesIngestActor extends AbstractActorWithTimers {
         final CompletionStage<Object> stage =
                 (thingsShardRegion == null || policyEnforcerProvider == null)
                         // Test-only path: no enforcement wired, run the adapter directly.
-                        ? runAdapterQuery(command)
-                        : enforce(command).thenCompose(allowed -> runAdapterQuery(command));
+                        ? runAdapterQuery(command, command.getQuery().getPaths())
+                        : enforce(command).thenCompose(allowed -> runAdapterQuery(command, allowed));
         return stage.exceptionally(throwable -> toFailure(command, throwable));
     }
 
-    private CompletionStage<Object> runAdapterQuery(final RetrieveTimeseries command) {
+    private CompletionStage<Object> runAdapterQuery(final RetrieveTimeseries command,
+            final List<JsonPointer> permittedPaths) {
         // Execute through the planner: for a backend whose capabilities declare a complete native
         // query (MongoDB) this delegates straight to the adapter (transparent); a scan-only backend
         // is driven via scan(...) + the compute kernel. Either way the results are identical.
-        return queryPlanner.execute(command.getQuery())
+        // Narrow to the readable subset so the backend never scans a path the caller may not read.
+        final TimeseriesQuery query = permittedPaths.size() == command.getQuery().getPaths().size()
+                ? command.getQuery()
+                : command.getQuery().withPaths(permittedPaths);
+        return queryPlanner.execute(query)
                 .thenApply(results -> RetrieveTimeseriesResponse.of(
                         command.getEntityId(), results, command.getDittoHeaders()));
     }
 
     /**
-     * Resolves the Thing's policy id, loads the enforcer, and verifies the configured permission
-     * on each requested path. Failures propagate as either
-     * {@link ThingNotAccessibleException} (Thing missing or path denied — 404-not-403) or the
-     * original cause for transport / infra errors.
+     * Resolves the Thing's policy id, loads the enforcer, and returns the subset of requested paths the
+     * caller may read.
+     * <p>
+     * Partial by design: {@code READ_TS} is grantable per property, so a request for two properties
+     * where only one is granted returns that one rather than failing the whole read. Dropping a denied
+     * path is safe to do silently here — unlike an aggregate, a missing series is visibly missing, which
+     * is the same reasoning behind Ditto's {@code buildJsonView} for Thing queries.
+     * <p>
+     * {@link ThingNotAccessibleException} (404-not-403) is raised only when <em>no</em> requested path is
+     * readable, so nothing is disclosed about a Thing the caller cannot read at all.
      */
-    private CompletionStage<Void> enforce(final RetrieveTimeseries command) {
+    private CompletionStage<List<JsonPointer>> enforce(final RetrieveTimeseries command) {
         final ThingId queryThingId = command.getEntityId();
         final DittoHeaders headers = command.getDittoHeaders();
         final SudoRetrieveThing sudo = SudoRetrieveThing.of(queryThingId, headers);
         return Patterns.ask(thingsShardRegion, sudo, THING_LOOKUP_TIMEOUT)
                 .thenCompose(reply -> resolveSudoReply(reply, queryThingId, headers))
                 .thenCompose(thing -> loadEnforcer(thing, queryThingId, headers))
-                .thenAccept(enforcerWithContext -> verifyPaths(enforcerWithContext, command));
+                .thenApply(enforcerWithContext -> permittedPaths(enforcerWithContext, command));
     }
 
     private CompletionStage<Thing> resolveSudoReply(final Object reply, final ThingId queryThingId,
@@ -451,10 +464,27 @@ public final class TimeseriesIngestActor extends AbstractActorWithTimers {
         final PolicyId policyId = policyIdOpt.get();
         return policyEnforcerProvider.getPolicyEnforcer(policyId)
                 .thenCompose(opt -> opt
-                        .<CompletionStage<EnforcerWithContext>>map(pe ->
-                                CompletableFuture.completedFuture(
-                                        new EnforcerWithContext(pe.getEnforcer(),
-                                                headers.getAuthorizationContext())))
+                        .<CompletionStage<EnforcerWithContext>>map(pe -> {
+                            // Narrow to the Thing's namespace before enforcing, as ThingEnforcerActor
+                            // does. A policy entry may be scoped to a subset of namespaces and
+                            // PolicyImporter preserves that scope when merging namespace-root entries,
+                            // so the unfiltered enforcer would honour a grant meant for elsewhere.
+                            // Fail closed when the Policy is absent: forNamespace cannot filter what it
+                            // cannot see and returns the enforcer unchanged in that case.
+                            if (pe.getPolicy().isEmpty()) {
+                                LOGGER.withCorrelationId(headers)
+                                        .warn("PolicyEnforcer for policy <{}> on thing <{}> carries no " +
+                                                "Policy, so per-entry namespace scoping cannot be " +
+                                                "applied; denying timeseries access.",
+                                                policyId, queryThingId);
+                                return CompletableFuture.<EnforcerWithContext>failedFuture(
+                                        ThingNotAccessibleException.newBuilder(queryThingId)
+                                                .dittoHeaders(headers).build());
+                            }
+                            return CompletableFuture.completedFuture(new EnforcerWithContext(
+                                    pe.forNamespace(queryThingId.getNamespace()).getEnforcer(),
+                                    headers.getAuthorizationContext()));
+                        })
                         .orElseGet(() -> {
                             LOGGER.withCorrelationId(headers)
                                     .warn("PolicyEnforcer for policy <{}> on thing <{}> could not " +
@@ -465,7 +495,7 @@ public final class TimeseriesIngestActor extends AbstractActorWithTimers {
                         }));
     }
 
-    private void verifyPaths(final EnforcerWithContext enforcerWithContext,
+    private List<JsonPointer> permittedPaths(final EnforcerWithContext enforcerWithContext,
             final RetrieveTimeseries command) {
         // Two-mode contract per `simplifiedReadPermission`: strict (default) checks READ_TS;
         // simplified checks READ. The selection is fixed for the lifetime of this entity (it's
@@ -473,21 +503,36 @@ public final class TimeseriesIngestActor extends AbstractActorWithTimers {
         final String requiredPermission =
                 simplifiedReadPermission ? Permission.READ : Permission.READ_TS;
         final Permissions required = Permissions.newInstance(requiredPermission);
-        final List<JsonPointer> paths = command.getQuery().getPaths();
-        for (final JsonPointer path : paths) {
+        final List<JsonPointer> requested = command.getQuery().getPaths();
+        final List<JsonPointer> permitted = new ArrayList<>(requested.size());
+        final List<JsonPointer> denied = new ArrayList<>();
+        for (final JsonPointer path : requested) {
             final ResourceKey resourceKey = PoliciesResourceType.thingResource(path);
-            final boolean granted = enforcerWithContext.enforcer.hasUnrestrictedPermissions(
-                    resourceKey, enforcerWithContext.authorizationContext, required);
-            if (!granted) {
-                LOGGER.withCorrelationId(command.getDittoHeaders())
-                        .info("Subject <{}> denied <{}> on <{}> for thing <{}>.",
-                                enforcerWithContext.authorizationContext.getAuthorizationSubjectIds(),
-                                requiredPermission, path, command.getEntityId());
-                throw ThingNotAccessibleException.newBuilder(command.getEntityId())
-                        .dittoHeaders(command.getDittoHeaders())
-                        .build();
+            if (enforcerWithContext.enforcer.hasUnrestrictedPermissions(
+                    resourceKey, enforcerWithContext.authorizationContext, required)) {
+                permitted.add(path);
+            } else {
+                denied.add(path);
             }
         }
+        if (permitted.isEmpty()) {
+            LOGGER.withCorrelationId(command.getDittoHeaders())
+                    .info("Subject <{}> denied <{}> on every requested path {} for thing <{}>.",
+                            enforcerWithContext.authorizationContext.getAuthorizationSubjectIds(),
+                            requiredPermission, requested, command.getEntityId());
+            throw ThingNotAccessibleException.newBuilder(command.getEntityId())
+                    .dittoHeaders(command.getDittoHeaders())
+                    .build();
+        }
+        if (!denied.isEmpty()) {
+            LOGGER.withCorrelationId(command.getDittoHeaders())
+                    .info("Subject <{}> denied <{}> on {} of {} requested path(s) for thing <{}>; " +
+                                    "returning the permitted ones {}. Denied: {}.",
+                            enforcerWithContext.authorizationContext.getAuthorizationSubjectIds(),
+                            requiredPermission, denied.size(), requested.size(),
+                            command.getEntityId(), permitted, denied);
+        }
+        return permitted;
     }
 
     private Object toFailure(final RetrieveTimeseries command, final Throwable throwable) {

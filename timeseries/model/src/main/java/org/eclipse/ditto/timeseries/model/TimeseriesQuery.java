@@ -309,6 +309,20 @@ public interface TimeseriesQuery extends Jsonifiable<JsonObject> {
      */
     TimeseriesQuery withTagFilters(Map<String, String> tagFilters);
 
+    /**
+     * Returns a copy of this query restricted to {@code paths}.
+     * <p>
+     * Used by the read path to narrow a multi-path query to the paths the caller may actually read, so
+     * a request for two properties where only one is granted returns that one rather than failing
+     * outright.
+     *
+     * @param paths the paths to keep; must be non-empty.
+     * @return the narrowed query.
+     * @throws NullPointerException if {@code paths} is {@code null}.
+     * @throws TimeseriesQueryInvalidException if {@code paths} is empty.
+     */
+    TimeseriesQuery withPaths(List<JsonPointer> paths);
+
     @Override
     default JsonSchemaVersion[] getSupportedSchemaVersions() {
         return new JsonSchemaVersion[] {JsonSchemaVersion.V_2};

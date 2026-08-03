@@ -43,12 +43,16 @@ import org.eclipse.ditto.timeseries.model.FillStrategy;
 public final class Capabilities {
 
     private final boolean supportsNativeQuery;
+    private final boolean supportsNativeCrossThingQuery;
     private final Set<Aggregation> pushableAggregations;
     private final Set<FillStrategy> nativeFillStrategies;
 
     private Capabilities(final boolean supportsNativeQuery,
+            final boolean supportsNativeCrossThingQuery,
             final Set<Aggregation> pushableAggregations,
             final Set<FillStrategy> nativeFillStrategies) {
+
+        this.supportsNativeCrossThingQuery = supportsNativeCrossThingQuery;
 
         this.supportsNativeQuery = supportsNativeQuery;
         this.pushableAggregations = immutableCopy(pushableAggregations, Aggregation.class);
@@ -62,7 +66,7 @@ public final class Capabilities {
      * @return the minimal (scan-only) capabilities.
      */
     public static Capabilities minimal() {
-        return new Capabilities(false, EnumSet.noneOf(Aggregation.class),
+        return new Capabilities(false, false, EnumSet.noneOf(Aggregation.class),
                 EnumSet.noneOf(FillStrategy.class));
     }
 
@@ -76,7 +80,7 @@ public final class Capabilities {
      * @return capabilities declaring a complete native query and nothing else.
      */
     public static Capabilities nativeQuery() {
-        return new Capabilities(true, EnumSet.noneOf(Aggregation.class),
+        return new Capabilities(true, false, EnumSet.noneOf(Aggregation.class),
                 EnumSet.noneOf(FillStrategy.class));
     }
 
@@ -96,6 +100,18 @@ public final class Capabilities {
      */
     public boolean supportsNativeQuery() {
         return supportsNativeQuery;
+    }
+
+    /**
+     * @return {@code true} if this adapter implements
+     * {@link TimeseriesAdapter#queryCrossThing} natively, i.e. it can group and aggregate across many
+     * Things inside its own engine. When {@code false} the cross-Thing endpoint is unavailable for
+     * this backend: unlike single-Thing queries there is no portable fallback yet, because computing
+     * a cross-Thing grouping in the kernel would mean scanning every matching series into service
+     * heap — which is exactly the fan-out the endpoint's guard rails exist to prevent.
+     */
+    public boolean supportsNativeCrossThingQuery() {
+        return supportsNativeCrossThingQuery;
     }
 
     /**
@@ -149,19 +165,22 @@ public final class Capabilities {
         }
         final Capabilities that = (Capabilities) o;
         return supportsNativeQuery == that.supportsNativeQuery
+                && supportsNativeCrossThingQuery == that.supportsNativeCrossThingQuery
                 && pushableAggregations.equals(that.pushableAggregations)
                 && nativeFillStrategies.equals(that.nativeFillStrategies);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(supportsNativeQuery, pushableAggregations, nativeFillStrategies);
+        return Objects.hash(supportsNativeQuery, supportsNativeCrossThingQuery,
+                pushableAggregations, nativeFillStrategies);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " ["
                 + "supportsNativeQuery=" + supportsNativeQuery
+                + ", supportsNativeCrossThingQuery=" + supportsNativeCrossThingQuery
                 + ", pushableAggregations=" + pushableAggregations
                 + ", nativeFillStrategies=" + nativeFillStrategies
                 + "]";
@@ -174,6 +193,7 @@ public final class Capabilities {
     public static final class Builder {
 
         private boolean supportsNativeQuery = false;
+        private boolean supportsNativeCrossThingQuery = false;
         private Set<Aggregation> pushableAggregations = EnumSet.noneOf(Aggregation.class);
         private Set<FillStrategy> nativeFillStrategies = EnumSet.noneOf(FillStrategy.class);
 
@@ -188,6 +208,15 @@ public final class Capabilities {
          */
         public Builder supportsNativeQuery(final boolean supported) {
             this.supportsNativeQuery = supported;
+            return this;
+        }
+
+        /**
+         * @param supported whether the adapter implements {@code queryCrossThing(...)} natively.
+         * @return this builder.
+         */
+        public Builder supportsNativeCrossThingQuery(final boolean supported) {
+            this.supportsNativeCrossThingQuery = supported;
             return this;
         }
 
@@ -215,7 +244,8 @@ public final class Capabilities {
          * @return the immutable {@link Capabilities}.
          */
         public Capabilities build() {
-            return new Capabilities(supportsNativeQuery, pushableAggregations, nativeFillStrategies);
+            return new Capabilities(supportsNativeQuery, supportsNativeCrossThingQuery,
+                    pushableAggregations, nativeFillStrategies);
         }
     }
 }

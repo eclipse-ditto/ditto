@@ -9702,6 +9702,234 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
+  /api/2/timeseries/things:
+    get:
+      summary: Aggregate timeseries data across many things of one namespace
+      description: |-
+        Aggregates historical values across **all things of one namespace** and returns one series per
+        group — for example "average `flowTemperature` per building, hourly, over the last day".
+
+        ### Aggregation is mandatory
+        Unlike the single-thing endpoints, `step` and `agg` are **required**. A raw cross-thing read
+        would stream every point of every matching thing, so the result size must be a function of the
+        time range rather than of the tenant's thing count. Only the per-bucket aggregations are
+        available (`avg`, `min`, `max`, `sum`, `count`, `first`, `last`, `stddev`); the window functions
+        (`derivative`, `rate`, `integral`, `percentile`) remain single-thing only.
+
+        ### `filter` uses RQL, and selects points rather than things
+        The filter is written in **RQL** — the same query language as `/api/2/search/things` — so there is
+        one filter syntax to learn across Ditto. Field references are the tag keys declared in the WoT
+        model, which are full thing paths, e.g. `eq(attributes/building,'A')`.
+
+        Tags are frozen on each data point at ingest, so the filter selects by the state of the world
+        **when the measurement was recorded**. For a thing moved from building A to building B,
+        `filter=eq(attributes/building,'A')` returns only the points recorded while it was in A — not its
+        whole history. This is deliberate and differs from selecting things by their current attributes.
+
+        ### Authorization
+        Access is evaluated against **current** policy state on every request; nothing about
+        authorization is stored with the data points. A subject granted access today therefore sees
+        history ingested before the grant, and a revoked subject immediately loses access to history it
+        could previously read.
+
+        Three checks apply, and each covers a different disclosure:
+
+        0. **`READ` on the fields you filter or group by.** Filtering by a tag reveals which points carry
+           which value, and grouping by one reveals its distinct values — so slicing a series by
+           `attributes/building` requires `READ` on `attributes/building`, independently of `READ_TS` on
+           the data. Because tag keys are thing paths, they are ordinary policy resources.
+
+        Then, on the data itself:
+
+        1. **Entry condition** — a **namespace-wide** `READ_TS` grant, normally expressed through a
+           namespace root policy. Without it the request is rejected with `403`. Per-thing grants
+           scattered across individual policies are not sufficient to *use* this endpoint; query those
+           things individually instead.
+        2. **Per-thing, per-path narrowing** — a namespace-wide grant does **not** imply every thing
+           grants. Namespace-root entries are merged *additively*, so a thing's own policy may still revoke
+           `READ_TS`, and a revoke wins. Every thing that would contribute data is therefore verified
+           against live policy first.
+
+           This is **path-granular**, because `READ_TS` is grantable per property: a thing denied one
+           requested path still contributes to the paths it is entitled to, rather than being dropped from
+           the whole query. (This mirrors how thing-search authorizes an RQL predicate per field.)
+
+        When anything is withheld the response says so: `authorization.withheldByPath` names the affected
+        paths with a count, and `authorization.partial` is `true`. Check that flag before treating an
+        aggregate as representative — the values are otherwise indistinguishable from a complete result.
+
+        Only entries whose `importable` type is `implicit` count toward the namespace-wide grant, since
+        those are the only ones the merge propagates to the namespace's things.
+
+        ### Scope
+        Exactly one namespace per request: storage is partitioned one collection per namespace, so
+        spanning several would be a multi-collection merge.
+      tags:
+        - Timeseries
+      parameters:
+        - name: namespaces
+          in: query
+          description: The namespace to aggregate over. Exactly one value — a comma-separated list is rejected.
+          required: true
+          schema:
+            type: string
+            example: io.beyonnex.smartheating
+        - name: paths
+          in: query
+          description: |-
+            Comma-separated list of JSON pointers (relative to the thing root) to aggregate, e.g.
+            `/features/circuit/properties/flowTemperature`. Results are always reported per path.
+          required: true
+          schema:
+            type: string
+            example: /features/circuit/properties/flowTemperature
+        - name: from
+          in: query
+          description: 'Inclusive lower bound — ISO-8601 instant or relative expression (`now`, `now-24h`).'
+          required: true
+          schema:
+            type: string
+            example: now-24h
+        - name: to
+          in: query
+          description: Exclusive upper bound — ISO-8601 instant or relative expression (e.g. `now`).
+          required: true
+          schema:
+            type: string
+            example: now
+        - name: step
+          in: query
+          description: 'Bucket width (`30s`, `5m`, `1h`, `1d` or ISO-8601 `PT1H`). Required — see above.'
+          required: true
+          schema:
+            type: string
+            example: 1h
+        - name: agg
+          in: query
+          description: The per-bucket aggregation. Required — see above.
+          required: true
+          schema:
+            type: string
+            enum:
+              - avg
+              - min
+              - max
+              - sum
+              - count
+              - first
+              - last
+              - stddev
+            example: avg
+        - name: groupBy
+          in: query
+          description: |-
+            Comma-separated grouping dimensions. Each is one of:
+              * `thingId` — one series per thing;
+              * `path` — one series per requested path (implicit: results are always per path, so
+                declaring this only adds the path to the emitted `group` object);
+              * a **tag path** such as `attributes/floor` — one series per distinct value of that
+                ingest-time tag. (`tag:<key>` is still accepted.)
+
+            A tag dimension requires `READ` on the referenced field, as with `filter`.
+
+            Omitted means one series per path, aggregated across every matching thing.
+          required: false
+          schema:
+            type: string
+            example: attributes/building
+        - name: filter
+          in: query
+          description: |-
+            An RQL predicate over ingest-time tags, using the same syntax as `/api/2/search/things`.
+            Supported operators: `eq`, `ne`, `gt`, `ge`, `lt`, `le`, `in`, `like`, `ilike`, `exists`,
+            `and`, `or`, `not`. Field references are tag keys as declared in the WoT model (full thing
+            paths). Matches points, not things — see above.
+
+            Every field referenced here additionally requires `READ` permission.
+          required: false
+          schema:
+            type: string
+            example: 'and(eq(attributes/building,''A''),ge(attributes/floor,2))'
+        - name: fill
+          in: query
+          description: |-
+            How buckets with no data are filled. Omitted means such buckets are simply absent.
+            Synthesised buckets are marked `_gap: true`.
+          required: false
+          schema:
+            type: string
+            enum:
+              - previous
+              - zero
+              - linear
+        - name: tz
+          in: query
+          description: |-
+            IANA timezone for calendar-aligned bucket boundaries, e.g. `Europe/Berlin`. Affects
+            day-and-coarser steps across DST transitions. Defaults to UTC.
+          required: false
+          schema:
+            type: string
+            example: Europe/Berlin
+        - name: maxGroups
+          in: query
+          description: |-
+            Cap on the number of distinct groups returned (default 1000, ceiling 10000). Exceeding the
+            cap **fails the request** rather than truncating the result, because a silently truncated
+            set would look like a complete answer and misreport anything computed on top of it.
+
+            A separate, operator-configured ceiling bounds how many *things* one request will authorize
+            (`ditto.timeseries.max-verified-things`, default 1000). Exceeding it also fails the request,
+            for the same reason: authorizing a truncated set of contributors would silently admit
+            whatever fell off the end.
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10000
+        - name: timeFormat
+          in: query
+          description: 'Rendering of the `t` fields: `iso` (default) or `ms` for epoch milliseconds.'
+          required: false
+          schema:
+            type: string
+            enum:
+              - iso
+              - ms
+      responses:
+        '200':
+          description: The aggregation succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AggregatedTimeseriesResult'
+        '400':
+          description: |-
+            The request is malformed: a missing or unparseable required parameter, a window-function
+            aggregation, a non-positive `step`, a `maxGroups` outside its bounds, more than one
+            namespace, an unknown `groupBy` dimension, a query matching more groups than `maxGroups`, or
+            a query spanning more things than the service will authorize per request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '403':
+          description: |-
+            The caller lacks `READ` on a field referenced by `filter`/`groupBy`, or has no namespace-wide
+            `READ_TS` grant covering every requested path — including
+            the case where they hold only scattered per-thing grants, which are not sufficient to use
+            this endpoint, and the case where the grant is carried by a policy entry that is not
+            `importable: implicit`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
 components:
   requestBodies:
     Attributes:
@@ -10987,6 +11215,146 @@ components:
                   description: ISO-8601 timestamp at which the value was observed.
                 v:
                   description: The observed scalar value. Type matches the per-path `dataType`.
+    AggregatedTimeseriesResult:
+      type: object
+      required:
+        - results
+        - authorization
+      description: |-
+        Cross-Thing aggregation result.
+
+        Unlike the single-thing endpoints (whose body is a bare array), this is an object so it can carry the
+        `authorization` summary alongside the series. An aggregate computed over the subset of things you may
+        read is indistinguishable from one computed over everything if you only look at the numbers — so the
+        exclusion is stated rather than left implicit.
+      properties:
+        authorization:
+          type: object
+          required:
+            - contributingThings
+            - excludedThings
+            - withheldByPath
+            - partial
+          description: How much of the matching data is actually reflected in `results`.
+          properties:
+            contributingThings:
+              type: integer
+              description: |-
+                How many distinct things shaped these aggregates, i.e. were permitted on at least one
+                requested path.
+            excludedThings:
+              type: integer
+              description: |-
+                How many things had matching data but were withheld from **every** requested path.
+
+                This is not an error. A namespace-wide `READ_TS` grant is the entry condition for this
+                endpoint, but namespace-root policy entries are merged *additively* — an individual thing's
+                own policy may still revoke `READ_TS`, and a revoke wins.
+            withheldByPath:
+              type: object
+              additionalProperties:
+                type: integer
+              description: |-
+                Per requested path, how many things had matching data for that path but were withheld from
+                it. Only non-zero entries appear.
+
+                `READ_TS` is grantable **per property**, so access is path-granular: a thing denied one
+                requested path still contributes to the paths it is entitled to. Such a thing appears here
+                under the denied path while remaining counted in `contributingThings` — it is *not* in
+                `excludedThings`, which counts only things withheld from every path.
+
+                A thing is counted against a path only if it actually had data for that path, so this never
+                inflates with things that would have contributed nothing anyway.
+              example:
+                /features/circuit/properties/returnTemperature: 1
+            partial:
+              type: boolean
+              description: |-
+                `true` when anything at all was withheld, i.e. `withheldByPath` is non-empty. Every affected
+                series in `results` is then computed over a subset of the matching data — treat those numbers
+                as a lower-bound sample, not the population. Check this before presenting an aggregate as
+                representative.
+        results:
+          type: array
+          description: |-
+            One entry per `(group, path)` combination.
+
+            There is no `thingId` field — a group generally spans many things. When the query groups by
+            `thingId`, the thing ID appears as an ordinary entry inside `group` instead, so every grouping
+            choice produces the same response shape.
+          items:
+            type: object
+            required:
+              - path
+              - result
+              - data
+            properties:
+              group:
+                type: object
+                additionalProperties:
+                  type: string
+                description: |-
+                  The group identity: one entry per `groupBy` dimension, keyed by the dimension's name
+                  (`thingId`, `path`, or the bare tag key for a `tag:<key>` dimension). Absent when the
+                  query declared no `groupBy`, in which case the entry aggregates every matching thing.
+
+                  A point that carries no value for a grouped tag appears under an empty-string value
+                  rather than being dropped, so the set of keys is the same across all entries.
+                example:
+                  building: A
+              path:
+                type: string
+                description: |-
+                  The Ditto Protocol path this series belongs to, e.g.
+                  `/features/circuit/properties/flowTemperature`. Results are always reported per path.
+              result:
+                type: object
+                required:
+                  - count
+                  - dataType
+                properties:
+                  count:
+                    type: integer
+                    description: Number of data points in `data`.
+                  unit:
+                    type: string
+                    description: 'The unit declared on the WoT property, when the points of this series carry one.'
+                    example: cel
+                  dataType:
+                    type: string
+                    description: JSON type of the aggregated values.
+                    example: number
+                  tags:
+                    type: object
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      Always empty for aggregated results: a group spans many points whose tags may differ,
+                      so there is no single tag set to report. Use `group` instead.
+              data:
+                type: array
+                description: |-
+                  The aggregated values in chronological order, one per `step` bucket that has data (plus
+                  the interpolated buckets when `fill` is set).
+                items:
+                  type: object
+                  required:
+                    - t
+                    - v
+                  properties:
+                    t:
+                      type: string
+                      format: date-time
+                      description: |-
+                        Start of the bucket, ISO-8601. Rendered as epoch milliseconds instead when
+                        `timeFormat=ms`.
+                    v:
+                      description: The aggregated value for this bucket. Type matches `dataType`.
+                    _gap:
+                      type: boolean
+                      description: |-
+                        Present and `true` when this bucket had no data of its own and was synthesised by the
+                        `fill` strategy. Absent on buckets backed by real measurements.
     Attributes:
       type: object
       description: An arbitrary JSON object describing the attributes of a thing.

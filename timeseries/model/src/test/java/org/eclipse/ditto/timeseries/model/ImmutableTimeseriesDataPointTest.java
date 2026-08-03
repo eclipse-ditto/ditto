@@ -203,6 +203,21 @@ public final class ImmutableTimeseriesDataPointTest {
     }
 
     @Test
+    public void tagKeyContainingASlashStaysAFlatKey() {
+        // Tag keys come from the WoT model and are not pattern-constrained, so "site/zone" is legal.
+        // JsonObjectBuilder.set(CharSequence, ...) would read such a key as a JSON *pointer* and nest
+        // it into {"site":{"zone":…}}, which fromJson then reads back as a tag named "site" whose
+        // value is an object -> DittoJsonException. It must stay one literal key instead.
+        final Map<String, String> slashTags = Collections.singletonMap("site/zone", "north");
+        final TimeseriesDataPoint underTest = TimeseriesDataPoint.of(
+                THING_ID, PATH, TIMESTAMP, VALUE, REVISION, slashTags, UNIT);
+
+        final JsonObject tagsJson = underTest.toJson().getValue("tags").orElseThrow().asObject();
+        assertThat(tagsJson.getKeys()).extracting(Object::toString).containsExactly("site/zone");
+        assertThat(TimeseriesDataPoint.fromJson(underTest.toJson()).getTags()).isEqualTo(slashTags);
+    }
+
+    @Test
     public void toJsonOmitsUnitWhenNull() {
         final TimeseriesDataPoint underTest = TimeseriesDataPoint.of(
                 THING_ID, PATH, TIMESTAMP, VALUE, REVISION, TAGS, null);

@@ -94,6 +94,7 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
      */
     public static final Capabilities DEFAULT_CAPABILITIES = Capabilities.builder()
             .supportsNativeQuery(true)
+            .supportsNativeCrossThingQuery(true)
             .pushableAggregations(DEFAULT_PUSHABLE_AGGREGATIONS)
             .nativeFillStrategies(DEFAULT_NATIVE_FILL_STRATEGIES)
             .build();
@@ -106,6 +107,7 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
     private static final String KEY_QUERY_TIMEOUT = "query-timeout";
     private static final String KEY_CAPABILITIES = "capabilities";
     private static final String KEY_CAP_NATIVE_QUERY = "native-query";
+    private static final String KEY_CAP_CROSS_THING_QUERY = "cross-thing-query";
     private static final String KEY_CAP_PUSHABLE_AGGREGATIONS = "pushable-aggregations";
     private static final String KEY_CAP_NATIVE_FILL = "native-fill-strategies";
 
@@ -249,6 +251,8 @@ public final class DefaultMongoDbTimeseriesAdapterConfig implements MongoDbTimes
         final Config config = adapterConfig.getConfig(KEY_CAPABILITIES);
         return Capabilities.builder()
                 .supportsNativeQuery(booleanOrDefault(config, KEY_CAP_NATIVE_QUERY, true))
+                .supportsNativeCrossThingQuery(
+                        booleanOrDefault(config, KEY_CAP_CROSS_THING_QUERY, true))
                 .pushableAggregations(parsePushableAggregations(config))
                 .nativeFillStrategies(parseNativeFillStrategies(config))
                 .build();

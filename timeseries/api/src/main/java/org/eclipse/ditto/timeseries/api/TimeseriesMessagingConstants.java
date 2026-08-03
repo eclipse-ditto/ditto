@@ -73,6 +73,22 @@ public final class TimeseriesMessagingConstants {
      */
     public static final String INGEST_PUBLISHER_ACTOR_NAME = "timeseriesIngestPublisher";
 
+    /**
+     * Name of the per-node actor serving cross-Thing timeseries aggregations
+     * ({@code RetrieveAggregatedTimeseries}).
+     * <p>
+     * Cross-Thing queries have no {@code thingId}, so — unlike {@code RetrieveTimeseries} — they
+     * cannot be routed through {@link #SHARD_REGION}. They are addressed by path via pub/sub
+     * instead, the same way thing-search receives its query commands.
+     */
+    public static final String AGGREGATE_ACTOR_NAME = "timeseriesAggregate";
+
+    /**
+     * Path of the cross-Thing aggregation actor, used by the edge command forwarder to address it
+     * from any cluster node via {@code DistPubSubAccess.send(...)}.
+     */
+    public static final String AGGREGATE_ACTOR_PATH = ROOT_ACTOR_PATH + "/" + AGGREGATE_ACTOR_NAME;
+
     private TimeseriesMessagingConstants() {
         // no-op
     }

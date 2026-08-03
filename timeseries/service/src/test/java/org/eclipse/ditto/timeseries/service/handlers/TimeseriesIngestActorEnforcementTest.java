@@ -248,6 +248,141 @@ public final class TimeseriesIngestActorEnforcementTest {
                 entityId.toString());
     }
 
+
+
+    // ---------------------------------------------------------------------------------------------
+    // Partial reads: READ_TS is per-property, so a denied path narrows the result rather than
+    // failing the request (design doc section 6.3).
+    // ---------------------------------------------------------------------------------------------
+
+    /**
+     * Two paths requested, one granted: the granted one comes back and the denied one is simply absent.
+     * A missing series is visibly missing, so — unlike an aggregate — dropping it silently does not
+     * misrepresent the answer.
+     */
+    @Test
+    public void aDeniedPathIsDroppedRatherThanFailingTheWholeRead() {
+        new TestKit(actorSystem) {{
+            final TestProbe thingsShard = new TestProbe(actorSystem);
+            final PolicyEnforcerProvider provider =
+                    stubProvider(policyEnforcerGrantingOnlyFirstPath(Permission.READ_TS));
+            final PathCapturingAdapter adapter = new PathCapturingAdapter();
+            final ActorRef actor = startEntity(thingsShard.ref(), provider, adapter,
+                    false, "partial-read");
+
+            actor.tell(retrieveTimeseries(authHeaders("partial-cid"), List.of(PATH, OTHER_PATH)),
+                    getRef());
+            thingsShard.expectMsgClass(SudoRetrieveThing.class);
+            thingsShard.reply(SudoRetrieveThingResponse.of(
+                    thingWithPolicy(THING_ID, POLICY_ID).toJson(), DittoHeaders.empty()));
+
+            expectMsgClass(RetrieveTimeseriesResponse.class);
+            // The backend must never be asked for the path the caller may not read.
+            assertThat(adapter.queriedPaths).containsExactly(PATH);
+        }};
+    }
+
+    /** When no requested path is readable the read still 404s, disclosing nothing. */
+    @Test
+    public void allPathsDeniedStillProduces404() {
+        new TestKit(actorSystem) {{
+            final TestProbe thingsShard = new TestProbe(actorSystem);
+            final PolicyEnforcerProvider provider =
+                    stubProvider(policyEnforcerGrantingOnlyFirstPath(Permission.READ_TS));
+            final ActorRef actor = startEntity(thingsShard.ref(), provider, recordingAdapter(),
+                    false, "partial-none");
+
+            actor.tell(retrieveTimeseries(authHeaders("none-cid"), List.of(OTHER_PATH)), getRef());
+            thingsShard.expectMsgClass(SudoRetrieveThing.class);
+            thingsShard.reply(SudoRetrieveThingResponse.of(
+                    thingWithPolicy(THING_ID, POLICY_ID).toJson(), DittoHeaders.empty()));
+
+            expectMsgClass(ThingNotAccessibleException.class);
+        }};
+    }
+
+    /** All paths granted: the query reaches the backend unnarrowed. */
+    @Test
+    public void allPathsGrantedQueriesEveryRequestedPath() {
+        new TestKit(actorSystem) {{
+            final TestProbe thingsShard = new TestProbe(actorSystem);
+            final PolicyEnforcerProvider provider =
+                    stubProvider(policyEnforcerWithGrant(Permission.READ_TS));
+            final PathCapturingAdapter adapter = new PathCapturingAdapter();
+            final ActorRef actor = startEntity(thingsShard.ref(), provider, adapter,
+                    false, "partial-all");
+
+            actor.tell(retrieveTimeseries(authHeaders("all-cid"), List.of(PATH, OTHER_PATH)), getRef());
+            thingsShard.expectMsgClass(SudoRetrieveThing.class);
+            thingsShard.reply(SudoRetrieveThingResponse.of(
+                    thingWithPolicy(THING_ID, POLICY_ID).toJson(), DittoHeaders.empty()));
+
+            expectMsgClass(RetrieveTimeseriesResponse.class);
+            assertThat(adapter.queriedPaths).containsExactly(PATH, OTHER_PATH);
+        }};
+    }
+
+    /** Records the paths the adapter was actually asked for. */
+    private static final class PathCapturingAdapter implements TimeseriesAdapter {
+
+        private volatile List<JsonPointer> queriedPaths = List.of();
+
+        @Override
+        public CompletionStage<Void> initialize(final TimeseriesAdapterConfig config) {
+            return CompletableFuture.completedFuture(null);
+        }
+
+        @Override
+        public CompletionStage<Void> shutdown() {
+            return CompletableFuture.completedFuture(null);
+        }
+
+        @Override
+        public HealthStatus getHealth() {
+            return HealthStatus.UP;
+        }
+
+        @Override
+        public CompletionStage<Void> write(final TimeseriesDataPoint dataPoint) {
+            return CompletableFuture.completedFuture(null);
+        }
+
+        @Override
+        public CompletionStage<List<TimeseriesQueryResult>> query(final TimeseriesQuery query) {
+            queriedPaths = List.copyOf(query.getPaths());
+            return CompletableFuture.completedFuture(List.of());
+        }
+    }
+
+    private static final JsonPointer OTHER_PATH =
+            JsonPointer.of("/features/env/properties/humidity");
+
+    private static RetrieveTimeseries retrieveTimeseries(final DittoHeaders headers,
+            final List<JsonPointer> paths) {
+
+        final TimeseriesQuery query = TimeseriesQuery.of(THING_ID, paths, FROM, TO,
+                null, null, null, null, null);
+        return RetrieveTimeseries.of(query, headers);
+    }
+
+    /** Grants {@code permission} on {@code PATH} only; {@code OTHER_PATH} is left ungranted. */
+    private static PolicyEnforcer policyEnforcerGrantingOnlyFirstPath(final String permission) {
+        final Policy policy = PoliciesModelFactory.newPolicy("""
+                {
+                  "policyId": "org.eclipse.ditto:sensor-policy",
+                  "entries": {
+                    "DEFAULT": {
+                      "subjects": { "%s": { "type": "test" } },
+                      "resources": {
+                        "thing:%s": { "grant": ["%s"], "revoke": [] }
+                      }
+                    }
+                  }
+                }
+                """.formatted(SUBJECT_ID, PATH, permission));
+        return PolicyEnforcer.of(policy);
+    }
+
     private static RetrieveTimeseries retrieveTimeseries(final DittoHeaders headers) {
         final TimeseriesQuery query = TimeseriesQuery.of(THING_ID, List.of(PATH), FROM, TO,
                 null, null, null, null, null);
@@ -293,10 +428,12 @@ public final class TimeseriesIngestActorEnforcementTest {
                   }
                 }
                 """.formatted(SUBJECT_ID, permission));
-        final Enforcer enforcer = PolicyEnforcers.defaultEvaluator(policy);
-        // PolicyEnforcer's public ctor is private; embed(Entry) is the documented factory for
-        // wrapping a pre-built Enforcer without going through the import-resolution machinery.
-        return PolicyEnforcer.embed(Entry.of(1L, enforcer)).getValueOrThrow();
+        // of(policy), NOT embed(enforcer): embed keeps only the pre-built Enforcer and drops the
+        // Policy, and the read path needs the Policy to apply per-entry `namespaces` scoping
+        // (forNamespace). Without it enforcement fails closed — correct in production, but it would
+        // make this fixture deny everything. PolicyEnforcerCacheLoader likewise builds instances that
+        // carry their resolved Policy, so of(...) is the faithful double.
+        return PolicyEnforcer.of(policy);
     }
 
     private static TimeseriesAdapter recordingAdapter() {

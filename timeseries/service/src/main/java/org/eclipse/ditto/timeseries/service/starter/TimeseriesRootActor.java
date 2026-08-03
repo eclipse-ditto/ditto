@@ -25,6 +25,7 @@ import org.apache.pekko.actor.Props;
 import org.apache.pekko.pattern.Patterns;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.base.service.config.DittoServiceConfig;
+import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionCreator;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionProxyActorFactory;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
@@ -37,6 +38,7 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbC
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
+import org.eclipse.ditto.policies.enforcement.config.DefaultNamespacePoliciesConfig;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProviderExtension;
 import org.eclipse.ditto.things.api.Permission;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
@@ -46,6 +48,7 @@ import org.eclipse.ditto.timeseries.api.TimeseriesMessagingConstants;
 import org.eclipse.ditto.timeseries.mongodb.DefaultMongoDbTimeseriesAdapterConfig;
 import org.eclipse.ditto.timeseries.mongodb.MongoDbTimeseriesAdapter;
 import org.eclipse.ditto.timeseries.mongodb.MongoDbTimeseriesAdapterConfig;
+import org.eclipse.ditto.timeseries.service.handlers.TimeseriesAggregateActor;
 import org.eclipse.ditto.timeseries.service.handlers.TimeseriesIngestActor;
 
 import com.typesafe.config.Config;
@@ -89,6 +92,14 @@ public final class TimeseriesRootActor extends DittoRootActor {
     static final String SIMPLIFIED_READ_PERMISSION_CONFIG_PATH =
             "ditto.timeseries.simplified-read-permission";
 
+    /**
+     * Config path capping how many Things a single cross-Thing aggregation will authorize. Per-Thing
+     * verification is what makes the aggregation correct in the presence of Thing-level revokes, and
+     * its cost scales with the number of Things contributing data to the query. Exceeding the cap
+     * fails the request rather than authorizing a truncated set.
+     */
+    static final String MAX_VERIFIED_THINGS_CONFIG_PATH = "ditto.timeseries.max-verified-things";
+
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final TimeseriesAdapter adapter;
@@ -98,6 +109,10 @@ public final class TimeseriesRootActor extends DittoRootActor {
             final ActorRef pubSubMediator) {
 
         final Config rootConfig = getContext().system().settings().config();
+        // Resolve and validate configuration BEFORE any side effect (adapter construction, shutdown
+        // task registration, shard region, child actors). A DittoConfigError raised after those have
+        // run would tear down the root actor while leaving the node in the cluster.
+        final int maxVerifiedThings = resolveMaxVerifiedThings(rootConfig);
         adapter = createAdapter(rootConfig);
 
         // Register the adapter shutdown so its MongoDB connection pool closes cleanly
@@ -152,6 +167,17 @@ public final class TimeseriesRootActor extends DittoRootActor {
                         simplifiedReadPermission),
                 numberOfShards,
                 TimeseriesMessagingConstants.CLUSTER_ROLE);
+
+        // Cross-Thing aggregations have no thingId, so they cannot go through the shard region.
+        // Start a per-node handler and register it with pub/sub under its well-known path so the
+        // edge forwarder can address it from any node — the same wiring SearchRootActor uses for
+        // the search actor.
+        final ActorRef aggregateActor = startChildActor(
+                TimeseriesMessagingConstants.AGGREGATE_ACTOR_NAME,
+                TimeseriesAggregateActor.props(adapter, thingsShardRegion, policyEnforcerProvider,
+                        DefaultNamespacePoliciesConfig.of(rootConfig), simplifiedReadPermission,
+                        maxVerifiedThings));
+        pubSubMediator.tell(DistPubSubAccess.put(aggregateActor), getSelf());
 
         // Wire the health-check actor + HTTP /status route so Kubernetes liveness/readiness probes
         // resolve. The persistence checker is null because timeseries-service has no shared MongoDB
@@ -210,12 +236,31 @@ public final class TimeseriesRootActor extends DittoRootActor {
     }
 
     /**
-     * Reads {@value #SIMPLIFIED_READ_PERMISSION_CONFIG_PATH} from the root config, falling back
-     * to {@code false} (= strict mode, require READ_TS) when the section is absent. The boolean
-     * cast is HOCON-strict — a malformed value (e.g. {@code "READ"} left over from a pre-4.0
-     * configuration) throws {@link com.typesafe.config.ConfigException} at start-up rather than
-     * silently defaulting.
+     * Reads {@value #MAX_VERIFIED_THINGS_CONFIG_PATH} from the root config, falling back to
+     * {@link TimeseriesAggregateActor#DEFAULT_MAX_VERIFIED_THINGS} when the section is absent.
+     * <p>
+     * A value that is present but not positive is rejected at start-up rather than silently
+     * corrected: {@code 0} or a negative number reads as "no aggregation may be authorized", but
+     * silently substituting the default would instead authorize up to a thousand Things — the
+     * opposite of what the operator wrote. Failing here surfaces the typo while it is still cheap.
      */
+    private static int resolveMaxVerifiedThings(final Config rootConfig) {
+        if (!rootConfig.hasPath(MAX_VERIFIED_THINGS_CONFIG_PATH)) {
+            return TimeseriesAggregateActor.DEFAULT_MAX_VERIFIED_THINGS;
+        }
+        final int configured = rootConfig.getInt(MAX_VERIFIED_THINGS_CONFIG_PATH);
+        if (configured <= 0) {
+            // DittoConfigError, not IllegalArgumentException: the latter is what DittoRootActor's
+            // supervision treats as *recoverable* (resume), so throwing it here would leave the node
+            // in the cluster with the root actor stopped, no shard region and /status never bound —
+            // alive but useless. DittoConfigError extends Error, so it is not NonFatal and the JVM
+            // exits deterministically. Same reasoning as createAdapter below.
+            throw new DittoConfigError(MAX_VERIFIED_THINGS_CONFIG_PATH +
+                    " must be a positive number of Things, but was <" + configured + ">.");
+        }
+        return configured;
+    }
+
     private static boolean resolveSimplifiedReadPermission(final Config rootConfig) {
         return rootConfig.hasPath(SIMPLIFIED_READ_PERMISSION_CONFIG_PATH)
                 && rootConfig.getBoolean(SIMPLIFIED_READ_PERMISSION_CONFIG_PATH);

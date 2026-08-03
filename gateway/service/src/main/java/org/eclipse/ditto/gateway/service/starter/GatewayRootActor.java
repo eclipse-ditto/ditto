@@ -283,7 +283,7 @@ public final class GatewayRootActor extends DittoRootActor {
                         gatewayConfig.getMessageConfig(),
                         gatewayConfig.getClaimMessageConfig(),
                         namespaceAccessDirective))
-                .timeseriesRoute(new TimeseriesRoute(routeBaseProperties))
+                .timeseriesRoute(new TimeseriesRoute(routeBaseProperties, namespaceAccessValidatorFactory))
                 .connectionsRoute(new ConnectionsRoute(routeBaseProperties, devopsAuthenticationDirective))
                 .thingSearchRoute(new ThingSearchRoute(routeBaseProperties, namespaceAccessValidatorFactory))
                 .whoamiRoute(new WhoamiRoute(routeBaseProperties))

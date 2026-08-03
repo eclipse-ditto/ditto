@@ -241,6 +241,8 @@ paths:
     $ref: "./paths/timeseries/property.yml"
   '/api/2/timeseries/things/{thingId}':
     $ref: "./paths/timeseries/thing.yml"
+  '/api/2/timeseries/things':
+    $ref: "./paths/timeseries/crossThing.yml"
 
 components:
 
@@ -397,6 +399,8 @@ components:
       $ref: "./schemas/errors/advancedError.yml"
     TimeseriesQueryResult:
       $ref: "./schemas/timeseries/timeseriesQueryResult.yml"
+    AggregatedTimeseriesResult:
+      $ref: "./schemas/timeseries/aggregatedTimeseriesResult.yml"
     Attributes:
       $ref: "./schemas/things/attributes.yml"
     Definition:

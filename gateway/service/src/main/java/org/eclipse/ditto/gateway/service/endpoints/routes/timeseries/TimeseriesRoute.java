@@ -26,6 +26,8 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.annotation.Nullable;
+
 import org.apache.pekko.http.javadsl.model.ContentTypes;
 import org.apache.pekko.http.javadsl.server.PathMatchers;
 import org.apache.pekko.http.javadsl.server.RequestContext;
@@ -38,13 +40,20 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonArrayBuilder;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.gateway.api.NamespaceNotAccessibleException;
+import org.eclipse.ditto.gateway.service.security.authorization.NamespaceAccessValidator;
+import org.eclipse.ditto.gateway.service.security.authorization.NamespaceAccessValidatorFactory;
+import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.timeseries.model.Aggregation;
+import org.eclipse.ditto.timeseries.model.CrossThingTimeseriesQuery;
 import org.eclipse.ditto.timeseries.model.FillStrategy;
+import org.eclipse.ditto.timeseries.model.GroupBy;
 import org.eclipse.ditto.timeseries.model.SortOrder;
 import org.eclipse.ditto.timeseries.model.TimeseriesQuery;
+import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveAggregatedTimeseries;
 import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveTimeseries;
 
 /**
@@ -88,14 +97,38 @@ public final class TimeseriesRoute extends AbstractRoute {
     private static final String PARAM_CURSOR = "cursor";
     private static final String PARAM_ORDER = "order";
     private static final String PARAM_TAG_FILTER = "tagFilter";
+    /** Cross-Thing tag predicate, expressed in RQL — the same language as /search/things. */
+    private static final String PARAM_FILTER = "filter";
     private static final String PARAM_PATHS = "paths";
     private static final String PARAM_TIME_FORMAT = "timeFormat";
+    private static final String PARAM_NAMESPACES = "namespaces";
+    private static final String PARAM_GROUP_BY = "groupBy";
+    private static final String PARAM_MAX_GROUPS = "maxGroups";
+
+    /** Field wrapping the series array in the cross-Thing response body. */
+    private static final String FIELD_RESULTS = "results";
 
     /** Short duration form used by {@code step} and relative time offsets, e.g. {@code 30s,5m,1h,1d,1w}. */
     private static final Pattern SHORT_DURATION = Pattern.compile("(\\d+)([smhdw])");
 
+    @Nullable private final NamespaceAccessValidatorFactory validatorFactory;
+
     public TimeseriesRoute(final RouteBaseProperties routeBaseProperties) {
+        this(routeBaseProperties, null);
+    }
+
+    /**
+     * Constructs a {@code TimeseriesRoute} that enforces namespace access control on the
+     * caller-supplied {@code namespaces} parameter of the cross-Thing endpoint.
+     *
+     * @param routeBaseProperties the base properties of the route.
+     * @param validatorFactory creates the namespace access validator; may be {@code null}, in which
+     * case no namespace access control is applied (matching {@code ThingSearchRoute}).
+     */
+    public TimeseriesRoute(final RouteBaseProperties routeBaseProperties,
+            @Nullable final NamespaceAccessValidatorFactory validatorFactory) {
         super(routeBaseProperties);
+        this.validatorFactory = validatorFactory;
     }
 
     /**
@@ -109,20 +142,125 @@ public final class TimeseriesRoute extends AbstractRoute {
     public Route buildTimeseriesRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
         return rawPathPrefix(PathMatchers.slash().concat(PATH_TIMESERIES), () ->
                 rawPathPrefix(PathMatchers.slash().concat(PATH_THINGS), () ->
-                        rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), thingIdString -> {
-                            final ThingId thingId = ThingId.of(thingIdString);
-                            return concat(
-                                    // GET /timeseries/things/{id}/features/{f}/properties/{path}
-                                    singlePropertyRoute(ctx, dittoHeaders, thingId),
-                                    // GET /timeseries/things/{id}?paths=<p1>,<p2>,...  (multi-property)
-                                    pathEndOrSingleSlash(() ->
-                                            parameter(PARAM_PATHS, pathsCsv ->
-                                                    runTimeseriesQuery(ctx, dittoHeaders, thingId,
-                                                            parsePathsParam(pathsCsv))))
-                            );
-                        })
+                        concat(
+                                // GET /timeseries/things?namespaces=…  (cross-Thing aggregation).
+                                // Must come first: the collection URL has no trailing segment, so it
+                                // would otherwise never be reached past the segment() matcher below.
+                                pathEndOrSingleSlash(() -> crossThingRoute(ctx, dittoHeaders)),
+                                rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()),
+                                        thingIdString -> {
+                                            final ThingId thingId = ThingId.of(thingIdString);
+                                            return concat(
+                                                    // GET /timeseries/things/{id}/features/{f}/properties/{path}
+                                                    singlePropertyRoute(ctx, dittoHeaders, thingId),
+                                                    // GET /timeseries/things/{id}?paths=<p1>,<p2>,...
+                                                    pathEndOrSingleSlash(() ->
+                                                            parameter(PARAM_PATHS, pathsCsv ->
+                                                                    runTimeseriesQuery(ctx, dittoHeaders,
+                                                                            thingId,
+                                                                            parsePathsParam(pathsCsv))))
+                                            );
+                                        })
+                        )
                 )
         );
+    }
+
+    /**
+     * The cross-Thing aggregation route.
+     * <p>
+     * Reads its parameters from {@code parameterMap} rather than nesting a
+     * {@code parameterOptional} per parameter: this endpoint takes eleven of them, and the nested
+     * form does not survive that (the single-Thing route below is already twelve levels deep).
+     */
+    private Route crossThingRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
+        return get(() -> parameterMap(params -> {
+            final RetrieveAggregatedTimeseries command =
+                    buildRetrieveAggregatedTimeseries(params, dittoHeaders);
+            // This is an enumerating, caller-namespace-scoped API — the same shape ThingSearchRoute, SSE
+            // and WebSocket guard. Without it a tenant could aggregate over a namespace their
+            // deployment's NamespaceAccessConfig excludes, leaving policy enforcement as the only
+            // barrier. Checked before the command is dispatched, so no work is provoked.
+            requireNamespaceAccessible(command.getQuery().getNamespace(), dittoHeaders);
+            if (parseTimeFormatIsMillis(Optional.ofNullable(optional(params, PARAM_TIME_FORMAT)))) {
+                return handlePerRequest(ctx, command, (responseValue, response) ->
+                        response.withEntity(ContentTypes.APPLICATION_JSON,
+                                convertTimestampsToMillis(responseValue).toString()));
+            }
+            return handlePerRequest(ctx, command);
+        }));
+    }
+
+    private static RetrieveAggregatedTimeseries buildRetrieveAggregatedTimeseries(
+            final Map<String, String> params, final DittoHeaders dittoHeaders) {
+
+        // Anchor both relative bounds to a single "now" so from=now-1h,to=now spans exactly 1h.
+        final Instant now = Instant.now();
+        final String namespace = required(params, PARAM_NAMESPACES);
+        // One namespace only, for now: storage is one collection per namespace, so spanning several
+        // means a multi-collection merge. Rejecting a list is better than silently reading the first.
+        if (namespace.indexOf(',') >= 0) {
+            throw invalidParam(PARAM_NAMESPACES, namespace,
+                    "Cross-Thing aggregation is scoped to a single namespace; pass exactly one value.");
+        }
+        final List<JsonPointer> paths = parsePathsParam(required(params, PARAM_PATHS));
+        final Instant from = parseTimeParam(PARAM_FROM, required(params, PARAM_FROM), now);
+        final Instant to = parseTimeParam(PARAM_TO, required(params, PARAM_TO), now);
+        final Duration step = parseStepParam(required(params, PARAM_STEP));
+        final Aggregation aggregation = parseAggregationParam(required(params, PARAM_AGG));
+
+        final List<GroupBy> groupBy = parseGroupByParam(optional(params, PARAM_GROUP_BY));
+        final String filter = Optional.ofNullable(optional(params, PARAM_FILTER))
+                .map(String::trim)
+                .filter(value -> !value.isEmpty())
+                .orElse(null);
+        final ZoneId timezone = Optional.ofNullable(optional(params, PARAM_TZ))
+                .map(TimeseriesRoute::parseTimezoneParam)
+                .orElse(null);
+        final FillStrategy fillStrategy = Optional.ofNullable(optional(params, PARAM_FILL))
+                .map(TimeseriesRoute::parseFillParam)
+                .orElse(null);
+        final Integer maxGroups = Optional.ofNullable(optional(params, PARAM_MAX_GROUPS))
+                .map(raw -> parseIntegerParam(PARAM_MAX_GROUPS, raw))
+                .orElse(null);
+
+        // Semantic validation (bucketed-aggregation-only, positive step, group caps) lives in
+        // CrossThingTimeseriesQuery.of so HTTP, WebSocket and Connectivity reject the same inputs.
+        final CrossThingTimeseriesQuery query = CrossThingTimeseriesQuery.of(namespace, paths, from,
+                to, step, aggregation, groupBy, filter, timezone, fillStrategy, maxGroups);
+        return RetrieveAggregatedTimeseries.of(query, dittoHeaders);
+    }
+
+    /** Parses {@code groupBy=tag:building,thingId} into its dimensions; absent/blank means none. */
+    private static List<GroupBy> parseGroupByParam(@Nullable final String raw) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return List.of();
+        }
+        final List<GroupBy> dimensions = new ArrayList<>();
+        for (final String token : raw.split(",")) {
+            if (!token.trim().isEmpty()) {
+                dimensions.add(GroupBy.parse(token));
+            }
+        }
+        return dimensions;
+    }
+
+    private static String required(final Map<String, String> params, final String name) {
+        final String value = optional(params, name);
+        if (value == null) {
+            throw invalidParam(name, "", "Query parameter '" + name + "' is required.");
+        }
+        return value;
+    }
+
+    @Nullable
+    private static String optional(final Map<String, String> params, final String name) {
+        final String value = params.get(name);
+        if (value == null) {
+            return null;
+        }
+        final String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private Route singlePropertyRoute(final RequestContext ctx, final DittoHeaders dittoHeaders,
@@ -394,6 +532,17 @@ public final class TimeseriesRoute extends AbstractRoute {
      * ({@code [{path, result, data:[{t, v}]}, ...]}).
      */
     private static JsonValue convertTimestampsToMillis(final JsonValue entity) {
+        // The cross-Thing endpoint's body is an object ({results, authorization}) rather than the
+        // single-Thing bare array, so unwrap it, convert the series, and put it back — otherwise
+        // timeFormat=ms would silently pass the object through unconverted.
+        if (entity.isObject()) {
+            final JsonObject entityObject = entity.asObject();
+            return entityObject.getValue(FIELD_RESULTS)
+                    .filter(JsonValue::isArray)
+                    .map(results -> (JsonValue) entityObject.setValue(FIELD_RESULTS,
+                            convertTimestampsToMillis(results)))
+                    .orElse(entity);
+        }
         if (!entity.isArray()) {
             return entity;
         }
@@ -444,4 +593,21 @@ public final class TimeseriesRoute extends AbstractRoute {
                 .description(description)
                 .build();
     }
+
+    /**
+     * Rejects a namespace the caller may not access, mirroring
+     * {@code ThingSearchRoute.applyNamespaceAccessControl}. A {@code null} factory means the feature is
+     * not configured, in which case every namespace is permitted.
+     */
+    private void requireNamespaceAccessible(final String namespace, final DittoHeaders dittoHeaders) {
+        if (validatorFactory == null) {
+            return;
+        }
+        final NamespaceAccessValidator validator =
+                validatorFactory.createValidator(dittoHeaders, ThingConstants.ENTITY_TYPE.toString());
+        if (!validator.isNamespaceAccessible(namespace)) {
+            throw NamespaceNotAccessibleException.forNamespace(namespace, dittoHeaders);
+        }
+    }
+
 }

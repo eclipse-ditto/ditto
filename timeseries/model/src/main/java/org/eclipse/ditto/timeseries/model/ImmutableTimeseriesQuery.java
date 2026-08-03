@@ -153,6 +153,15 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
                     "Parameter <percentile> must be between 0 and 100 but was <" + percentile + ">.")
                     .build();
         }
+        if (step != null && (step.isZero() || step.isNegative() || step.getNano() != 0)) {
+            // A sub-second or fractional step has no valid bucket width: TimeseriesComputeKernel
+            // .stepUnitFor derives its bin from Duration.getSeconds(), so PT0.5S becomes a zero-sized
+            // bin (division by zero / a fill cursor that never advances) and PT1.5S silently bins at
+            // 1s while the fill grid steps 1.5s. Rejecting here covers every transport at once.
+            throw TimeseriesQueryInvalidException.newBuilder(
+                    "Parameter <step> must be a positive whole number of seconds, but was <" + step +
+                            ">.").build();
+        }
         if (aggregation != null) {
             if (aggregation.requiresStep() && step == null) {
                 throw TimeseriesQueryInvalidException.newBuilder(
@@ -399,6 +408,18 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
         return new ImmutableTimeseriesQuery(thingId, paths, from, to, step, aggregation, fillStrategy,
                 limit, timezone, percentile, cursor, order,
                 Collections.unmodifiableMap(new LinkedHashMap<>(newTagFilters)));
+    }
+
+    @Override
+    public TimeseriesQuery withPaths(final List<JsonPointer> newPaths) {
+        checkNotNull(newPaths, "paths");
+        if (newPaths.isEmpty()) {
+            throw TimeseriesQueryInvalidException.newBuilder(
+                    "A timeseries query requires at least one path.").build();
+        }
+        return new ImmutableTimeseriesQuery(thingId,
+                Collections.unmodifiableList(new ArrayList<>(newPaths)), from, to, step, aggregation,
+                fillStrategy, limit, timezone, percentile, cursor, order, tagFilters);
     }
 
     @Override

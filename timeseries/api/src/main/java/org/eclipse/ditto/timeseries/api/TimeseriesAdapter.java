@@ -15,12 +15,18 @@ package org.eclipse.ditto.timeseries.api;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.timeseries.model.AggregatedTimeseriesResult;
+import org.eclipse.ditto.timeseries.model.CrossThingTimeseriesQuery;
 import org.eclipse.ditto.timeseries.model.TimeseriesDataPoint;
 import org.eclipse.ditto.timeseries.model.TimeseriesDataValue;
 import org.eclipse.ditto.timeseries.model.TimeseriesQuery;
@@ -165,5 +171,83 @@ public interface TimeseriesAdapter {
             final JsonPointer path, final Instant from, final Instant to, final int limit) {
         throw new UnsupportedOperationException(
                 getClass().getName() + " does not implement scan(...).");
+    }
+
+    /**
+     * Executes a cross-Thing aggregation over one namespace, returning one series per
+     * {@code (group, path)} combination.
+     * <p>
+     * Callers must have decided authorization <em>before</em> invoking this: the adapter has no
+     * notion of who is asking and stores no authorization state alongside the data points. Access is
+     * a statement about the present, whereas data points are historical, so any snapshot of grants
+     * taken at ingest time would be wrong in at least one direction (a later grant would hide
+     * history; a revoke would keep leaking it). Keeping enforcement out of the adapter also means a
+     * new backend never re-implements it.
+     * <p>
+     * The default throws {@link UnsupportedOperationException} so a backend that predates cross-Thing
+     * support still compiles; adapters advertise support via
+     * {@link Capabilities#supportsNativeCrossThingQuery()}.
+     *
+     * @param query the cross-Thing query.
+     * @param permittedThingsPerPath the Things the caller may read, <b>per path</b>. Permission is
+     * path-granular — a subject may hold {@code READ_TS} on one requested property and not another,
+     * so a Thing can legitimately contribute to one path's series and be withheld from another's.
+     * <p>
+     * Contract, and it is fail-closed by design:
+     * <ul>
+     *   <li>{@code null} means "every Thing in the namespace, for every requested path". Only
+     *   correct once the caller has established a namespace-wide grant.</li>
+     *   <li>Otherwise a path maps to the Things permitted for <em>that</em> path. A path that is
+     *   <b>absent</b> from the map, or maps to an <b>empty</b> collection, contributes
+     *   <b>nothing</b> — implementations must never read an absent entry as "unrestricted".</li>
+     *   <li>If no path has any permitted Thing, the result must be empty rather than an
+     *   unfiltered scan.</li>
+     * </ul>
+     * @return a {@code CompletionStage} completing with one result per {@code (group, path)}.
+     * @throws NullPointerException if {@code query} is {@code null}.
+     * @throws UnsupportedOperationException if this adapter does not implement cross-Thing queries.
+     */
+    default CompletionStage<List<AggregatedTimeseriesResult>> queryCrossThing(
+            final CrossThingTimeseriesQuery query,
+            @Nullable final Map<JsonPointer, Collection<ThingId>> permittedThingsPerPath) {
+
+        throw new UnsupportedOperationException(
+                getClass().getName() + " does not implement queryCrossThing(...).");
+    }
+
+    /**
+     * Returns, <b>per requested path</b>, the distinct Things that have at least one data point
+     * matching the given cross-Thing query's namespace, time range and tag filters.
+     * <p>
+     * Grouped per path rather than flattened because permission is path-granular: knowing which
+     * {@code (Thing, path)} combinations actually carry data is what lets the caller report exactly
+     * which of them were withheld, instead of counting a Thing as "excluded" from a path it would
+     * have contributed nothing to anyway.
+     * <p>
+     * This exists so authorization can be decided per contributing Thing <em>before</em> any values
+     * are aggregated. A namespace-wide grant does not imply every Thing grants: policy entries
+     * injected from a namespace root are merged <em>additively</em>, so a Thing's own policy may still
+     * revoke the permission, and a revoke wins. Aggregating first and filtering afterwards is not an
+     * option — once values are folded into a bucket average, one Thing's contribution cannot be
+     * subtracted back out.
+     * <p>
+     * The result set is bounded by the <em>query's</em> selectivity rather than by the namespace's
+     * size: a one-hour window over a single property returns only the Things active in that hour.
+     *
+     * @param query the cross-Thing query whose filters scope the lookup.
+     * @param limit the maximum number of <em>distinct</em> Thing IDs across all paths. Implementations
+     * must allow at most {@code limit + 1} distinct Things through so the caller can distinguish
+     * "exactly at the ceiling" from "more than the ceiling" and fail loudly instead of silently
+     * verifying a truncated set.
+     * @return a {@code CompletionStage} completing with path &rarr; contributing Thing IDs. Paths with
+     * no matching data may be omitted.
+     * @throws NullPointerException if {@code query} is {@code null}.
+     * @throws UnsupportedOperationException if this adapter does not implement the lookup.
+     */
+    default CompletionStage<Map<JsonPointer, List<ThingId>>> discoverContributors(
+            final CrossThingTimeseriesQuery query, final int limit) {
+
+        throw new UnsupportedOperationException(
+                getClass().getName() + " does not implement discoverContributors(...).");
     }
 }
