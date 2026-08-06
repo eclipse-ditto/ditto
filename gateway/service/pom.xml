@@ -122,6 +122,14 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-edge-service</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-timeseries-model</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-timeseries-api</artifactId>
+        </dependency>
 
         <!-- logstash appender logging -->
         <dependency>

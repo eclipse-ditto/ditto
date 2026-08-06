@@ -257,7 +257,11 @@ public final class DittoProtocolAdapterParameterizedTest {
                 policyCommandAdapterProvider, connectivityCommandAdapterProvider, acknowledgementAdapterProvider,
                 streamingSubscriptionCommandAdapter, streamingSubscriptionEventAdapter,
                 CheckPermissionsCommandAdapter.of(HeaderTranslator.empty()),
-                CheckPermissionsCommandResponseAdapter.of(HeaderTranslator.empty()));
+                CheckPermissionsCommandResponseAdapter.of(HeaderTranslator.empty()),
+                org.eclipse.ditto.protocol.adapter.things.TimeseriesQueryCommandAdapter.of(HeaderTranslator.empty()),
+                org.eclipse.ditto.protocol.adapter.things.TimeseriesQueryCommandResponseAdapter.of(HeaderTranslator.empty()),
+                org.eclipse.ditto.protocol.adapter.things.TimeseriesAggregateCommandAdapter.of(HeaderTranslator.empty()),
+                org.eclipse.ditto.protocol.adapter.things.TimeseriesAggregateCommandResponseAdapter.of(HeaderTranslator.empty()));
         underTest = DittoProtocolAdapter.newInstance(HeaderTranslator.empty(), thingCommandAdapterProvider,
                 policyCommandAdapterProvider, connectivityCommandAdapterProvider, acknowledgementAdapterProvider,
                 streamingSubscriptionCommandAdapter, streamingSubscriptionEventAdapter,

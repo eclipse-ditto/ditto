@@ -390,6 +390,36 @@ dbconfig:
     # awsSessionName is the name of the session when assuming the AWS role.
     #  This can be used to identify the session in logs or IAM policies.
     awsSessionName: "dittoSession"
+  # timeseries the MongoDB configuration for Ditto "timeseries" service.
+  # Authentication note: the timeseries adapter uses the MongoDB Java driver directly
+  # (not Ditto's shared DefaultMongoDbConfig path). The driver supports MONGODB-AWS auth
+  # natively since v4.4. When `useAwsIamRole: true`, the mongodb-secret template appends
+  # `?authMechanism=MONGODB-AWS&authSource=$external` to this URI before base64-encoding,
+  # and the deployment template injects the standard AWS_ROLE_ARN +
+  # AWS_WEB_IDENTITY_TOKEN_FILE + AWS_REGION + AWS_ROLE_SESSION_NAME env vars. The driver's
+  # built-in AWS auth chain assumes the role via STS:AssumeRoleWithWebIdentity using the
+  # IRSA-mounted token; no additional Ditto code path is needed. For non-IAM auth, encode
+  # credentials in the URI directly (e.g. `mongodb://user:pass@host:27017/ditto_ts`).
+  timeseries:
+    uri: mongodb://#{PLACEHOLDER_MONGODB_HOSTNAME}#:27017/ditto
+    ssl: false
+    # useAwsIamRole — when true, the URI is augmented with MONGODB-AWS authMechanism params
+    # in mongodb-secret.yaml and the deployment template sets the AWS_* env vars the driver
+    # consumes. Requires `serviceAccount.assumeAwsIamRole: true` so the IRSA token file is
+    # mounted into the pod, and the assumed role must have IAM auth granted on the Atlas /
+    # DocumentDB user (via the Atlas database-user IAM mapping).
+    useAwsIamRole: false
+    # awsRegion — passed as both MONGO_DB_AWS_REGION (informational) and AWS_REGION (consumed
+    # by the MongoDB driver's bundled AWS auth chain for STS endpoint selection). Empty string
+    # lets the AWS SDK resolve from IMDS / pod metadata — usually works in EKS but can be flaky.
+    awsRegion: ""
+    # awsRoleArn — the IAM role the pod assumes for MongoDB access. Required when
+    # useAwsIamRole is true. Set as AWS_ROLE_ARN in the pod env so the driver's STS call
+    # targets this role. Example: arn:aws:iam::<account-id>:role/<role-name>
+    awsRoleArn: ""
+    # awsSessionName — session name attached to the assumed-role identity; appears in
+    # CloudTrail and IAM-policy `aws:RoleSessionName` conditions. Set as AWS_ROLE_SESSION_NAME.
+    awsSessionName: "dittoSession"
   ## If following property is set, an existing secret will be used to retrieve the mongodb connectionUris from.
   # uriSecret: my-uri-secret
 
@@ -1743,6 +1773,210 @@ thingsSearch:
         poolSizeMin: 4
         poolSizeMax: 16
 
+
+## ----------------------------------------------------------------------------
+## timeseries configuration
+##  Phase 1 of the timeseries feature (issue #2291) — ingest path from things-service
+##  via cluster pub/sub, per-thing persistent ingest actor, and a query handler that
+##  enforces READ_TS on RetrieveTimeseries.
+timeseries:
+  # enabled controls whether timeseries related resources should be created
+  enabled: false
+  # replicaCount configuration for timeseries
+  replicaCount: 1
+  # updateStrategy configuration for timeseries
+  #  ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#strategy
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  # minReadySeconds configures the minimum number of seconds for which a newly created Pod should be ready without any
+  #  of its containers crashing, for it to be considered available
+  #  ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#min-ready-seconds
+  minReadySeconds: 10
+  # additionalLabels configuration for timeseries
+  additionalLabels: {}
+  # additionalAnnotations configuration for timeseries
+  additionalAnnotations: {}
+  image:
+    # repository for the timeseries docker image
+    repository: docker.io/eclipse/ditto-timeseries
+    # tag for the timeseries docker image - overwrite to specify something else than Chart.AppVersion
+    # tag: 3.3.0
+    # pullPolicy for the timeseries docker image
+    pullPolicy: IfNotPresent
+  # activateGcLogging whether to enable GC logging for the timeseries service
+  activateGcLogging: false
+  # additionalJvmOptions JVM options to put into JAVA_TOOL_OPTIONS
+  additionalJvmOptions: ""
+  # systemProps used to define arbitrary system properties for timeseries service
+  #  ref: https://www.eclipse.dev/ditto/installation-operating.html#configuration
+  systemProps:
+  # extraEnv to add arbitrary environment variable to timeseries container
+  extraEnv:
+  # - name: LOG_LEVEL_APPLICATION
+  #   value: "DEBUG"
+  extraVolumes:
+  extraVolumeMounts:
+  # resources configures the resources available/to use for the timeseries service
+  resources:
+    # cpu defines the "required" CPU of a node so that the service is placed there
+    cpu: 0.5
+    # memoryMi defines the memory in mebibyte (MiB) used as "required" and "limit" in k8s
+    memoryMi: 1024
+    # ephemeralStorageMi defines the storage in mebibyte (MiB) used as "required" and "limit" in k8s
+    ephemeralStorageMi: 2048
+  # jvm contains JVM specific scaling/tuning configuration of e.g. processors and garbage collector settings
+  jvm:
+    # activeProcessorCount defines how many processors the JVM should be configured to use
+    activeProcessorCount: 2
+    # parallelGcThreads defines how many threads the G1 garbage collector should use for parallel GC operations
+    #  if configured < 1, the JVM chooses according to its own logic
+    parallelGcThreads: 0
+    # concGcThreads defines how many threads the G1 garbage collector should use for concurrent GC operations
+    #  if configured < 1, the JVM chooses according to its own logic
+    concGcThreads: 0
+    # heapRamPercentage defines how much memory of the configured "resources.memoryMi" can be used by the JVM heap space
+    heapRamPercentage: 60
+    # maxGcPauseMillis configures the used G1 GC "target for the maximum GC pause time"
+    maxGcPauseMillis: 200
+    # g1ReservePercent configures the used G1 GC "amount of heap to keep free after a mixed GC"
+    g1ReservePercent: 10
+    # initiatingHeapOccupancyPercent configures the G1 GC "heap occupancy threshold" to start a concurrent GC cycle
+    initiatingHeapOccupancyPercent: 45
+    # g1NewSizePercent sets the percentage of the heap size to use as default minimum young (new) generation
+    g1NewSizePercent: 5
+    # g1MaxNewSizePercent sets the maximum percentage of the heap that can be allocated to the young (new) generation
+    g1MaxNewSizePercent: 60
+  # startupProbe configuration for timeseries
+  #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
+  startupProbe:
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 30
+  # readinessProbe configuration for timeseries
+  readinessProbe:
+    periodSeconds: 5
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 6
+  # livenessProbe configuration for timeseries
+  livenessProbe:
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 6
+  # podDisruptionBudget configuration for timeseries
+  podDisruptionBudget:
+    enabled: true
+    # NOTE: You can only set either minAvailable OR maxUnavailable, not both
+    minAvailable: 1
+    maxUnavailable:
+  # priorityClassName configuration for timeseries
+  priorityClassName: ""
+  # nodeSelector configuration for timeseries
+  nodeSelector: {}
+  # tolerations configuration for timeseries
+  tolerations: []
+  # affinity configuration for timeseries
+  affinity: {}
+  # Pod topology spread constraints for timeseries
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: ScheduleAnyway
+  # terminationGracePeriodSeconds how much time to give the application to gracefully leave
+  terminationGracePeriodSeconds: 300
+  # podMonitor configuration for timeseries
+  podMonitor:
+    enabled: false
+    # interval: 30s
+    # scrapeTimeout: 15s
+  # config holds timeseries-specific configuration
+  config:
+    # mongodb holds the MongoDB connection-tuning knobs read by DefaultMongoDbConfig (same as
+    # sibling services). The URI itself (with IAM auth metadata) comes from the
+    # `timeseries-uri` secret key → MONGO_DB_URI env var. The database segment of that URI sets
+    # the timeseries database (default `ditto_ts`).
+    mongodb:
+      # minPoolSize configures the minimum number of connections in the connection pool
+      minPoolSize: 10
+      # maxPoolSize configures the maximum number of connections in the connection pool
+      maxPoolSize: 200
+      # maxPoolIdleTime configures the maximum amount of time a pooled connection is allowed to idle before closing
+      maxPoolIdleTime: 10m
+    # simplifiedReadPermission selects the read-permission mode (two-mode contract, issue #2291
+    # Section 6.1):
+    #   - false (default, strict): read-path enforcer requires an explicit READ_TS grant on every
+    #     requested path. Historical access can be granted separately from live access.
+    #   - true (simplified): the enforcer instead checks the standard READ permission. Useful for
+    #     deployments preferring "if you can read the current value, you can read its history",
+    #     without rewriting existing policies to add READ_TS grants.
+    # A boolean rather than a permission-name string — the contract is binary; any other value
+    # would be a deployment footgun (typo'd permissions are silently treated as "no permission"
+    # by the policy enforcer).
+    simplifiedReadPermission: false
+    # adapter selects the timeseries storage backend
+    adapter:
+      # type selects the timeseries database adapter implementation. Currently supports "mongodb".
+      type: "mongodb"
+      # mongodb carries adapter-specific tuning for the MongoDB Time Series implementation.
+      # The connection (URI, IAM, pool, SSL) comes from dbconfig.timeseries.* + timeseries.config.mongodb
+      # above via DefaultMongoDbConfig — same code path as the sibling services use.
+      mongodb:
+        # collectionPrefix is prepended to each per-namespace time-series collection name.
+        # Leave empty to inherit the timeseries.conf default ("ts_").
+        collectionPrefix: ""
+        # granularity is the MongoDB Time Series bucketing granularity for NEW collections.
+        # One of "seconds", "minutes", "hours" — cannot be changed once a collection exists.
+        # Leave empty to inherit the timeseries.conf default ("seconds").
+        granularity: ""
+        # retention is the default expiry for time-series collections (HOCON duration, e.g. "30d",
+        # "8760h"); "unlimited" disables expiration. Empty inherits the timeseries.conf default
+        # ("90d") — timeseries is append-only, so leaving it unbounded grows storage forever. The
+        # adapter reconciles EXISTING collections to this value on startup via collMod, so changes
+        # take effect without a manual migration.
+        retention: ""
+        # retentionOverrides sets per-namespace retention, keyed by Thing namespace. A listed
+        # namespace uses its own duration instead of `retention` above; others fall back to it.
+        # Reconciled onto existing collections on startup, same as the default. Example:
+        #   retentionOverrides:
+        #     com.acme.hifreq: "7d"
+        #     org.eclipse.ditto: "365d"
+        retentionOverrides: {}
+        # maxQueryResultSize is the safety ceiling on data points read into memory per path on the
+        # raw / window-function read paths (guards against OOM on over-broad ranges). Empty inherits
+        # the timeseries.conf default (1000000).
+        maxQueryResultSize: ""
+        # queryTimeout is the server-side time budget per read, applied as MongoDB maxTime (HOCON
+        # duration, e.g. "60s"). Empty inherits the timeseries.conf default ("60s").
+        queryTimeout: ""
+        # capabilities advertise to the query planner what this MongoDB supports, so it routes each
+        # query to the native (fast) path or the portable scan()+compute-kernel path. Defaults suit
+        # a modern MongoDB (5.0+); override for an older / feature-limited MongoDB. Leave a value
+        # unset to inherit the timeseries.conf default.
+        capabilities:
+          # nativeQuery: whether MongoDB's query() is a complete executor (planner delegates whole
+          # queries to it, preserving unit metadata). KEEP true for MongoDB. Must be an explicit
+          # boolean (true/false) to override; leave empty ("") to inherit the default (true).
+          nativeQuery: ""
+          # pushableAggregations: aggregations computed IN the DB engine. A NON-EMPTY list overrides
+          # the timeseries.conf default [avg,min,max,sum,count,first,last,stddev,derivative,integral]
+          # (all exact); an empty list inherits that default (an empty list cannot be rendered, so it
+          # is treated as "inherit"). percentile is OFF by default (native $percentile is approximate)
+          # — opt in on MongoDB 7.0+ by listing the full set plus "percentile". On older MongoDB, list
+          # only the group accumulators to disable derivative/integral push-down.
+          pushableAggregations: []
+          # nativeFillStrategies: gap-fill strategies applied natively via $densify/$fill (5.3+). A
+          # NON-EMPTY list overrides the timeseries.conf default ["linear","previous"] (exact match to
+          # the kernel; zero/null and timezone-aligned queries always stay in the kernel); an empty
+          # list inherits that default. (An empty list cannot force "no native fill" via Helm — set
+          # native-fill-strategies = [] directly in timeseries-extension.conf if you need that.)
+          nativeFillStrategies: []
 
 ## ----------------------------------------------------------------------------
 ## connectivity configuration
