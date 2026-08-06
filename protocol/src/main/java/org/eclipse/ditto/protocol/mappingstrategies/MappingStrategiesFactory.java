@@ -13,6 +13,8 @@
 package org.eclipse.ditto.protocol.mappingstrategies;
 
 import org.eclipse.ditto.base.model.signals.ErrorRegistry;
+import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveAggregatedTimeseries;
+import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveAggregatedTimeseriesResponse;
 import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveTimeseries;
 import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveTimeseriesResponse;
 
@@ -164,6 +166,28 @@ public final class MappingStrategiesFactory {
     public static MappingStrategies<RetrieveTimeseriesResponse>
             getTimeseriesQueryCommandResponseMappingStrategies() {
         return TimeseriesQueryCommandResponseMappingStrategies.getInstance();
+    }
+
+    /**
+     * Mapping strategies for {@code RetrieveAggregatedTimeseries} commands.
+     *
+     * @return the strategies.
+     * @since 4.0.0
+     */
+    public static MappingStrategies<RetrieveAggregatedTimeseries>
+            getTimeseriesAggregateCommandMappingStrategies() {
+        return TimeseriesAggregateCommandMappingStrategies.getInstance();
+    }
+
+    /**
+     * Mapping strategies for {@code RetrieveAggregatedTimeseriesResponse}.
+     *
+     * @return the strategies.
+     * @since 4.0.0
+     */
+    public static MappingStrategies<RetrieveAggregatedTimeseriesResponse>
+            getTimeseriesAggregateCommandResponseMappingStrategies() {
+        return TimeseriesAggregateCommandResponseMappingStrategies.getInstance();
     }
 
 }

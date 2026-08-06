@@ -214,7 +214,7 @@ public final class MongoDbTimeseriesAdapterCrossThingIT {
         writeSpreadAcrossThreeThings();
 
         final List<AggregatedTimeseriesResult> results = run(
-                query(Collections.singletonList(FLOW), Aggregation.AVG), null);
+                query(Collections.singletonList(FLOW), Aggregation.AVG), allPermitted(FLOW));
 
         assertThat(results).hasSize(1);
         assertThat((Object) results.get(0).getPath()).isEqualTo(FLOW);
@@ -254,7 +254,7 @@ public final class MongoDbTimeseriesAdapterCrossThingIT {
                 query(Collections.singletonList(FLOW), Aggregation.AVG,
                         Collections.singletonList(GroupBy.thingId()),
                         null, null, null),
-                null);
+                allPermitted(FLOW));
 
         final Map<String, AggregatedTimeseriesResult> byThing = new LinkedHashMap<>();
         for (final AggregatedTimeseriesResult r : results) {
@@ -276,7 +276,7 @@ public final class MongoDbTimeseriesAdapterCrossThingIT {
                 point(t2, RETURN, 10, 200.0))).toCompletableFuture().get();
 
         final List<AggregatedTimeseriesResult> results = run(
-                query(Arrays.asList(FLOW, RETURN), Aggregation.AVG), null);
+                query(Arrays.asList(FLOW, RETURN), Aggregation.AVG), allPermitted(FLOW, RETURN));
 
         assertThat(results).hasSize(2);
         assertThat(doubleAt(seriesFor(results, FLOW), 0)).isCloseTo(20.0, within(1e-9));
@@ -292,13 +292,24 @@ public final class MongoDbTimeseriesAdapterCrossThingIT {
      * unfiltered scan is correct.
      */
     @Test
-    public void nullAllowListReadsEveryThingInTheNamespace() throws Exception {
+    public void anExplicitAllowListOfEveryThingReadsTheWholeNamespace() throws Exception {
         writeSpreadAcrossThreeThings();
 
+        // There is no "unrestricted" sentinel any more: reading the whole namespace means
+        // enumerating it. Passing null used to mean the same thing and made an unfiltered scan
+        // reachable from the query path, so the adapter now rejects it outright.
         final List<AggregatedTimeseriesResult> results = run(
-                query(Collections.singletonList(FLOW), Aggregation.COUNT), null);
+                query(Collections.singletonList(FLOW), Aggregation.COUNT), allPermitted(FLOW));
 
         assertThat(doubleAt(results.get(0), 0)).isCloseTo(7.0, within(1e-9));
+    }
+
+    @Test
+    public void aNullAllowListIsRejectedRatherThanTreatedAsUnrestricted() {
+        assertThatThrownBy(() -> adapter.queryCrossThing(
+                query(Collections.singletonList(FLOW), Aggregation.COUNT), null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessageContaining("permittedThingsPerPath");
     }
 
     /**
@@ -492,7 +503,7 @@ public final class MongoDbTimeseriesAdapterCrossThingIT {
                 Collections.singletonList(GroupBy.thingId()),
                 null, null, 2);
 
-        assertThatThrownBy(() -> adapter.queryCrossThing(threeGroupsCapAtTwo, null)
+        assertThatThrownBy(() -> adapter.queryCrossThing(threeGroupsCapAtTwo, allPermitted(FLOW))
                 .toCompletableFuture().get())
                 .hasRootCauseInstanceOf(TimeseriesQueryInvalidException.class);
     }
@@ -508,7 +519,7 @@ public final class MongoDbTimeseriesAdapterCrossThingIT {
                 query(Collections.singletonList(FLOW), Aggregation.AVG,
                         Collections.singletonList(GroupBy.thingId()),
                         null, null, 3),
-                null);
+                allPermitted(FLOW));
 
         assertThat(results).hasSize(3);
     }
@@ -530,7 +541,7 @@ public final class MongoDbTimeseriesAdapterCrossThingIT {
                 query(Collections.singletonList(FLOW), Aggregation.AVG,
                         Collections.singletonList(GroupBy.tag("building")),
                         null, null, null),
-                null);
+                allPermitted(FLOW));
 
         final Map<String, AggregatedTimeseriesResult> byBuilding = new LinkedHashMap<>();
         for (final AggregatedTimeseriesResult r : results) {
@@ -552,7 +563,7 @@ public final class MongoDbTimeseriesAdapterCrossThingIT {
                 query(Collections.singletonList(FLOW), Aggregation.AVG,
                         Collections.<GroupBy>emptyList(),
                         "eq(building,'A')", null, null),
-                null);
+                allPermitted(FLOW));
 
         assertThat(results).hasSize(1);
         assertThat(doubleAt(results.get(0), 0)).isCloseTo(15.0, within(1e-9));
@@ -569,7 +580,7 @@ public final class MongoDbTimeseriesAdapterCrossThingIT {
                 pointTagged(t2, FLOW, 10, 20.0, "building", "B"))).toCompletableFuture().get();
 
         final AggregatedTimeseriesResult result = run(
-                query(Collections.singletonList(FLOW), Aggregation.AVG), null).get(0);
+                query(Collections.singletonList(FLOW), Aggregation.AVG), allPermitted(FLOW)).get(0);
 
         assertThat(result.getMeta().getUnit()).contains(UNIT);
         assertThat(result.getMeta().getTags()).isEmpty();
@@ -588,7 +599,7 @@ public final class MongoDbTimeseriesAdapterCrossThingIT {
                         Collections.<GroupBy>emptyList(), null,
                         FillStrategy.LINEAR, null,
                         Duration.ofMinutes(20)),
-                null);
+                allPermitted(FLOW));
 
         final List<TimeseriesDataValue> data = results.get(0).getData();
         assertThat(data).hasSize(3);
@@ -609,7 +620,7 @@ public final class MongoDbTimeseriesAdapterCrossThingIT {
                 query(Collections.singletonList(FLOW), Aggregation.AVG,
                         Collections.<GroupBy>emptyList(), null,
                         null, null, Duration.ofMinutes(20)),
-                null);
+                allPermitted(FLOW));
 
         assertThat(results.get(0).getData()).hasSize(2);
     }
@@ -617,7 +628,7 @@ public final class MongoDbTimeseriesAdapterCrossThingIT {
     @Test
     public void aNamespaceWithNoDataYieldsNoSeriesRatherThanAnError() throws Exception {
         final List<AggregatedTimeseriesResult> results = run(
-                query(Collections.singletonList(FLOW), Aggregation.AVG), null);
+                query(Collections.singletonList(FLOW), Aggregation.AVG), allPermitted(FLOW));
 
         assertThat(results).isEmpty();
     }
@@ -640,13 +651,26 @@ public final class MongoDbTimeseriesAdapterCrossThingIT {
 
     private double singleValue(final Aggregation aggregation) throws Exception {
         final List<AggregatedTimeseriesResult> results =
-                run(query(Collections.singletonList(FLOW), aggregation), null);
+                run(query(Collections.singletonList(FLOW), aggregation), allPermitted(FLOW));
         assertThat(results).hasSize(1);
         return doubleAt(results.get(0), 0);
     }
 
+    /**
+     * Every fixture Thing permitted on each of the given paths. The adapter takes no "unrestricted"
+     * sentinel — the allow-list is always explicit — so a test that isn't about authorization still
+     * has to state that everything is readable.
+     */
+    private Map<JsonPointer, Collection<ThingId>> allPermitted(final JsonPointer... paths) {
+        final Map<JsonPointer, Collection<ThingId>> permitted = new LinkedHashMap<>();
+        for (final JsonPointer path : paths) {
+            permitted.put(path, Arrays.asList(t1, t2, t3));
+        }
+        return permitted;
+    }
+
     private List<AggregatedTimeseriesResult> run(final CrossThingTimeseriesQuery query,
-            @Nullable final Map<JsonPointer, Collection<ThingId>> permittedThingsPerPath)
+            final Map<JsonPointer, Collection<ThingId>> permittedThingsPerPath)
             throws Exception {
 
         return adapter.queryCrossThing(query, permittedThingsPerPath).toCompletableFuture().get();

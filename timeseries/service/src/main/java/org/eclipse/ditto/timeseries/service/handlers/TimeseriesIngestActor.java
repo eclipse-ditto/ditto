@@ -98,12 +98,23 @@ import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveTimeseriesRes
  *       same correlation-id.</li>
  * </ol>
  *
- * <h2>Idempotency window</h2>
- * The bounded {@link #recentlyApplied} LRU covers the duplicate-on-success window only
- * within the current actor lifetime. After passivation or actor restart the ring is
- * empty, so a duplicate retry that lands across a restart can produce one duplicate row
- * in the time-series collection. A later phase closes that gap with
- * {@code (thingId, path, timestamp)} dedup inside the MongoDB adapter.
+ * <h2>Idempotency window — and its limit</h2>
+ * The bounded {@link #recentlyApplied} LRU is the <em>only</em> dedup in the write path, and it
+ * covers the duplicate-on-success window only within the current actor lifetime. After passivation
+ * or actor restart the ring is empty, so a duplicate retry that lands across a restart can produce
+ * one duplicate row in the time-series collection.
+ * <p>
+ * There is deliberately no adapter-side fallback. A MongoDB Time Series collection does not accept
+ * a unique index on measurement fields, so a {@code (thingId, path, timestamp)} uniqueness
+ * constraint is not expressible there, and a read-before-write on the ingest hot path would cost
+ * more than the duplicates it prevents. Delivery is therefore <b>at-least-once</b>, and a duplicate
+ * point skews {@code avg}, {@code sum} and {@code count} for the bucket it lands in.
+ * <p>
+ * Sizing is the mitigation: {@link #APPLIED_RING_CAPACITY} entries per Thing must exceed the number
+ * of distinct batches one Thing can produce inside the publisher's retry window
+ * ({@code MAX_ATTEMPTS} × ask-timeout). At 1024 entries that is roughly 68 writes/second for a
+ * single Thing — well above any expected device rate. Raise it before onboarding a device class
+ * that writes faster than that.
  *
  * <h2>Read path</h2>
  * Co-located on the same per-Thing entity so the edge forwarder can route
@@ -161,9 +172,9 @@ public final class TimeseriesIngestActor extends AbstractActorWithTimers {
      * <p>
      * If an entity sustains a higher rate than that, retries arriving after the entry has
      * been evicted fall through to a fresh {@code triggerWrite}, producing one duplicate
-     * row in MongoDB for the affected batch. Cross-passivation duplicates are a separate
-     * concern, addressed by adapter-side {@code (thingId, path, timestamp)} dedup in a
-     * later phase.
+     * row in MongoDB for the affected batch. Cross-passivation duplicates have the same
+     * effect. Both are accepted: see the class javadoc for why no adapter-side dedup backs
+     * this up, and raise this bound before onboarding a faster-writing device class.
      */
     private static final int APPLIED_RING_CAPACITY = 1024;
 
@@ -204,8 +215,8 @@ public final class TimeseriesIngestActor extends AbstractActorWithTimers {
      * the current actor lifetime. Covers the duplicate-on-success race where the
      * publisher's {@code Patterns.ask} times out before our reply arrives, the publisher
      * retries with the same id, and we'd otherwise issue a second {@code writeBatch}. The
-     * ring is in-memory only — across passivation / restart this protection is lost; a
-     * later adapter-side {@code (thingId, path, timestamp)} dedup closes that window.
+     * ring is in-memory only — across passivation / restart this protection is lost, and
+     * nothing downstream closes that window (see the class javadoc).
      */
     private final LinkedHashMap<String, Boolean> recentlyApplied =
             new LinkedHashMap<>(APPLIED_RING_CAPACITY + 1, 0.75f, true) {

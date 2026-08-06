@@ -436,7 +436,14 @@ public interface TopicPath {
          *
          * @since 3.9.0
          */
-        CHECK_PERMISSIONS("checkPermissions");
+        CHECK_PERMISSIONS("checkPermissions"),
+
+        /**
+         * Action for aggregating timeseries data across many entities.
+         *
+         * @since 4.0.0
+         */
+        AGGREGATE("aggregate");
 
         private final String name;
 

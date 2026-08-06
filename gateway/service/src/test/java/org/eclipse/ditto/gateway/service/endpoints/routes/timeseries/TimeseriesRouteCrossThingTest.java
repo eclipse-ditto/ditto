@@ -14,8 +14,10 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.timeseries;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.pekko.http.javadsl.model.HttpRequest;
 import org.apache.pekko.http.javadsl.model.StatusCodes;
@@ -24,6 +26,11 @@ import org.apache.pekko.http.javadsl.testkit.TestRoute;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
+import org.eclipse.ditto.gateway.service.security.authorization.NamespaceAccessValidatorFactory;
+import org.eclipse.ditto.gateway.service.util.config.security.DefaultNamespaceAccessConfig;
+import org.eclipse.ditto.gateway.service.util.config.security.NamespaceAccessConfig;
+
+import com.typesafe.config.ConfigFactory;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
@@ -62,10 +69,28 @@ public final class TimeseriesRouteCrossThingTest extends EndpointTestBase {
 
     @Before
     public void setUp() {
-        final TimeseriesRoute timeseriesRoute = new TimeseriesRoute(routeBaseProperties);
+        // Wire the namespace access validator exactly as GatewayRootActor does. Constructing the
+        // route without it (the one-arg overload passes null) would disable namespace access
+        // control for every case below, so the endpoint's first authorization layer would go
+        // unexercised while the tests still passed.
+        underTest = testRouteWithNamespaceAccess(List.of(NAMESPACE));
+    }
+
+    private TestRoute testRouteWithNamespaceAccess(final List<String> allowedNamespaces) {
+        final NamespaceAccessValidatorFactory validatorFactory =
+                new NamespaceAccessValidatorFactory(List.of(namespaceAccessConfig(allowedNamespaces)));
+        final TimeseriesRoute timeseriesRoute = new TimeseriesRoute(routeBaseProperties, validatorFactory);
         final Route route =
                 extractRequestContext(ctx -> timeseriesRoute.buildTimeseriesRoute(ctx, dittoHeaders));
-        underTest = testRoute(handleExceptions(() -> route));
+        return testRoute(handleExceptions(() -> route));
+    }
+
+    private static NamespaceAccessConfig namespaceAccessConfig(final List<String> allowedNamespaces) {
+        return DefaultNamespaceAccessConfig.of(ConfigFactory.parseString(String.format(
+                "{ conditions = [], allowed-namespaces = [%s], blocked-namespaces = [] }",
+                allowedNamespaces.stream()
+                        .map(item -> "\"" + item + "\"")
+                        .collect(Collectors.joining(", ")))));
     }
 
     private static String url(final String query) {
@@ -210,6 +235,29 @@ public final class TimeseriesRouteCrossThingTest extends EndpointTestBase {
      * The collection route must not shadow the existing single-Thing route, which lives one segment
      * deeper and requires {@code paths} but no {@code step}/{@code agg}.
      */
+    @Test
+    public void crossThingRejectsNamespaceOutsideTheAccessAllowList() {
+        // The caller-supplied `namespaces` parameter is enumerating, so it is guarded the same way
+        // ThingSearchRoute guards its own. Checked at the route, before any command is dispatched.
+        final TestRoute restricted = testRouteWithNamespaceAccess(List.of("org.eclipse.allowed"));
+
+        final var result = restricted.run(HttpRequest.GET(url(validQuery())));
+
+        result.assertStatusCode(StatusCodes.FORBIDDEN);
+        assertThat(result.entityString()).contains("gateway:namespace.notaccessible");
+    }
+
+    @Test
+    public void crossThingPassesThroughNamespaceInsideTheAccessAllowList() {
+        final TestRoute permitted = testRouteWithNamespaceAccess(List.of(NAMESPACE));
+
+        final var result = permitted.run(HttpRequest.GET(url(validQuery())));
+
+        result.assertStatusCode(StatusCodes.OK);
+        assertThat(result.entityString())
+                .contains("timeseries.commands:retrieveAggregatedTimeseries");
+    }
+
     @Test
     public void singleThingRouteStillResolves() {
         final var result = underTest.run(HttpRequest.GET(

@@ -43,6 +43,14 @@ import org.eclipse.ditto.things.model.ThingId;
 public interface TimeseriesQuery extends Jsonifiable<JsonObject> {
 
     /**
+     * Hard upper bound on the number of paths a single query may request. Every path multiplies the
+     * per-path scan ceiling, so this keeps one request from multiplying that ceiling without limit;
+     * legitimate multi-property reads are well under it. Applies to cross-Thing queries too — those
+     * fan out over a whole namespace, so the bound matters there at least as much.
+     */
+    int MAX_PATHS = 100;
+
+    /**
      * Returns a new {@code TimeseriesQuery} with the given fields. Optional fields may be
      * {@code null}.
      *

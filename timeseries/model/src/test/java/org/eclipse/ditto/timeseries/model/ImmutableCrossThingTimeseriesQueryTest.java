@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -146,6 +147,38 @@ public final class ImmutableCrossThingTimeseriesQueryTest {
                         Collections.<GroupBy>emptyList(), null,
                         null, null, null))
                 .withMessageContaining("at least one path");
+    }
+
+    /**
+     * The same bound the single-Thing query enforces. It matters more here: every path is a separate
+     * grouped scan over the whole namespace, so the path count multiplies an already namespace-wide
+     * fan-out.
+     */
+    @Test
+    public void rejectsMoreThanMaxPaths() {
+        final List<JsonPointer> tooMany = new ArrayList<>();
+        for (int i = 0; i <= TimeseriesQuery.MAX_PATHS; i++) {
+            tooMany.add(JsonPointer.of("/features/f/properties/p" + i));
+        }
+
+        assertThatExceptionOfType(TimeseriesQueryInvalidException.class)
+                .isThrownBy(() -> CrossThingTimeseriesQuery.of(NAMESPACE, tooMany, FROM, TO, STEP, AGG,
+                        Collections.<GroupBy>emptyList(), null,
+                        null, null, null))
+                .withMessageContaining("at most <" + TimeseriesQuery.MAX_PATHS + "> paths");
+    }
+
+    @Test
+    public void acceptsExactlyMaxPaths() {
+        final List<JsonPointer> exactly = new ArrayList<>();
+        for (int i = 0; i < TimeseriesQuery.MAX_PATHS; i++) {
+            exactly.add(JsonPointer.of("/features/f/properties/p" + i));
+        }
+
+        final CrossThingTimeseriesQuery underTest = CrossThingTimeseriesQuery.of(NAMESPACE, exactly,
+                FROM, TO, STEP, AGG, Collections.<GroupBy>emptyList(), null, null, null, null);
+
+        assertThat(underTest.getPaths()).hasSize(TimeseriesQuery.MAX_PATHS);
     }
 
     @Test

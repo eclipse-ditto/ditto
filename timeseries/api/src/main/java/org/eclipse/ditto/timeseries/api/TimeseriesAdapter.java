@@ -21,8 +21,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.timeseries.model.AggregatedTimeseriesResult;
@@ -195,21 +193,23 @@ public interface TimeseriesAdapter {
      * <p>
      * Contract, and it is fail-closed by design:
      * <ul>
-     *   <li>{@code null} means "every Thing in the namespace, for every requested path". Only
-     *   correct once the caller has established a namespace-wide grant.</li>
-     *   <li>Otherwise a path maps to the Things permitted for <em>that</em> path. A path that is
+     *   <li>The map is <b>required</b>. There is deliberately no "unrestricted" sentinel: a value
+     *   meaning "skip filtering" is an authorization bypass one {@code null} away, and the caller
+     *   that used to pass it has been removed for exactly that reason. An adapter that wants to
+     *   serve a namespace-wide grant receives every Thing explicitly enumerated per path.</li>
+     *   <li>A path maps to the Things permitted for <em>that</em> path. A path that is
      *   <b>absent</b> from the map, or maps to an <b>empty</b> collection, contributes
      *   <b>nothing</b> — implementations must never read an absent entry as "unrestricted".</li>
      *   <li>If no path has any permitted Thing, the result must be empty rather than an
      *   unfiltered scan.</li>
      * </ul>
      * @return a {@code CompletionStage} completing with one result per {@code (group, path)}.
-     * @throws NullPointerException if {@code query} is {@code null}.
+     * @throws NullPointerException if {@code query} or {@code permittedThingsPerPath} is {@code null}.
      * @throws UnsupportedOperationException if this adapter does not implement cross-Thing queries.
      */
     default CompletionStage<List<AggregatedTimeseriesResult>> queryCrossThing(
             final CrossThingTimeseriesQuery query,
-            @Nullable final Map<JsonPointer, Collection<ThingId>> permittedThingsPerPath) {
+            final Map<JsonPointer, Collection<ThingId>> permittedThingsPerPath) {
 
         throw new UnsupportedOperationException(
                 getClass().getName() + " does not implement queryCrossThing(...).");

@@ -73,20 +73,6 @@ final class TimeseriesRqlTranslator {
         return toFilter(parse(rql));
     }
 
-    /**
-     * Returns the tag keys (Thing paths) referenced by {@code rql}, so the caller can authorize them
-     * before the filter is ever executed.
-     *
-     * @param rql the RQL predicate.
-     * @return the referenced tag keys, in encounter order.
-     * @throws TimeseriesQueryInvalidException if {@code rql} is unparseable.
-     */
-    static List<String> referencedFields(final String rql) {
-        final List<String> fields = new ArrayList<>();
-        collectFields(parse(rql), fields);
-        return fields;
-    }
-
     private static RootNode parse(final String rql) {
         try {
             return RqlPredicateParser.getInstance().parse(rql);
@@ -96,30 +82,6 @@ final class TimeseriesRqlTranslator {
                     .description("Use RQL as on /api/2/search/things, e.g. " +
                             "eq(attributes/building,'A') or and(eq(a,'x'),ge(b,2)).")
                     .build();
-        }
-    }
-
-    private static void collectFields(final Node node, final List<String> into) {
-        if (node instanceof SingleComparisonNode) {
-            add(into, ((SingleComparisonNode) node).getComparisonProperty());
-        } else if (node instanceof MultiComparisonNode) {
-            add(into, ((MultiComparisonNode) node).getComparisonProperty());
-        } else if (node instanceof ExistsNode) {
-            add(into, ((ExistsNode) node).getProperty());
-        } else if (node instanceof RootNode) {
-            for (final Node child : ((RootNode) node).getChildren()) {
-                collectFields(child, into);
-            }
-        } else if (node instanceof LogicalNode) {
-            for (final Node child : ((LogicalNode) node).getChildren()) {
-                collectFields(child, into);
-            }
-        }
-    }
-
-    private static void add(final List<String> into, final String field) {
-        if (!into.contains(field)) {
-            into.add(field);
         }
     }
 

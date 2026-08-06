@@ -116,18 +116,4 @@ public final class TimeseriesRqlTranslatorTest {
                 .isThrownBy(() -> TimeseriesRqlTranslator.translate("this is not rql"))
                 .withMessageContaining("not a valid RQL predicate");
     }
-
-    @Test
-    public void referencedFieldsAreReportedForAuthorization() {
-        assertThat(TimeseriesRqlTranslator.referencedFields(
-                "and(eq(attributes/building,'A'),ge(attributes/floor,2))"))
-                .containsExactly("attributes/building", "attributes/floor");
-    }
-
-    @Test
-    public void referencedFieldsAreDeduplicated() {
-        assertThat(TimeseriesRqlTranslator.referencedFields(
-                "or(eq(attributes/building,'A'),eq(attributes/building,'B'))"))
-                .containsExactly("attributes/building");
-    }
 }

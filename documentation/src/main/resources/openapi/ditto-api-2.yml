@@ -9555,6 +9555,9 @@ paths:
           description: |-
             Comma-separated list of JSON pointers (relative to the Thing root) to retrieve, e.g.
             `/features/environment/properties/temperature,/attributes/batteryExchangeDate`.
+
+            At most 100 paths per request. Each path is scanned independently and bounded by the
+            adapter's per-path ceiling, so the path count multiplies the memory one request can use.
           required: true
           schema:
             type: string
@@ -9672,7 +9675,7 @@ paths:
         '400':
           description: |-
             The request could not be completed (`timeseries:query.invalid`). Possible reasons:
-              * `paths` is missing or contains no valid JSON pointer.
+              * `paths` is missing, contains no valid JSON pointer, or lists more than 100 paths.
               * `from`/`to` is not a valid ISO-8601 instant or relative expression.
               * `step` is not a valid duration, or `agg`/`fill`/`timeFormat` is not a recognised value.
               * a per-bucket aggregation was requested without a `step`.
@@ -9779,6 +9782,10 @@ paths:
           description: |-
             Comma-separated list of JSON pointers (relative to the thing root) to aggregate, e.g.
             `/features/circuit/properties/flowTemperature`. Results are always reported per path.
+
+            At most 100 paths per request — the same bound the single-thing endpoints apply. It matters
+            more here: each path is a separate grouped scan over every thing in the namespace, so the
+            path count multiplies a fan-out that is already namespace-wide.
           required: true
           schema:
             type: string
@@ -9905,10 +9912,11 @@ paths:
                 $ref: '#/components/schemas/AggregatedTimeseriesResult'
         '400':
           description: |-
-            The request is malformed: a missing or unparseable required parameter, a window-function
-            aggregation, a non-positive `step`, a `maxGroups` outside its bounds, more than one
-            namespace, an unknown `groupBy` dimension, a query matching more groups than `maxGroups`, or
-            a query spanning more things than the service will authorize per request.
+            The request is malformed: a missing or unparseable required parameter, more than 100
+            `paths`, a window-function aggregation, a non-positive `step`, a `maxGroups` outside its
+            bounds, more than one namespace, an unknown `groupBy` dimension, a query matching more
+            groups than `maxGroups`, or a query spanning more things than the service will authorize
+            per request.
           content:
             application/json:
               schema:

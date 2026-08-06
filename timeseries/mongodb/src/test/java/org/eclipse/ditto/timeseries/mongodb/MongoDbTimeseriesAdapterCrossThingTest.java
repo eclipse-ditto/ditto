@@ -57,6 +57,8 @@ public final class MongoDbTimeseriesAdapterCrossThingTest {
     private static final Instant FROM = Instant.parse("2026-07-01T00:00:00Z");
     private static final Instant TO = Instant.parse("2026-07-01T06:00:00Z");
     private static final Duration STEP = Duration.ofHours(1);
+    /** The single Thing these pipeline-shape tests authorize on {@link #PATH}. */
+    private static final ThingId PERMITTED_THING = ThingId.of(NAMESPACE, "circuit-1");
     /** Stand-in for the adapter's configured max-query-result-size; high enough not to interfere. */
     private static final int MAX_POINTS = 100_000;
 
@@ -83,7 +85,7 @@ public final class MongoDbTimeseriesAdapterCrossThingTest {
         final List<Bson> pipeline = MongoDbTimeseriesAdapter.crossThingPipeline(
                 query(Collections.singletonList(GroupBy.tag("building")),
                         null, null, 5),
-                null, 5);
+                permitted(), 5);
 
         assertThat(pipeline).hasSize(7);
         final String rendered = render(pipeline);
@@ -99,7 +101,7 @@ public final class MongoDbTimeseriesAdapterCrossThingTest {
         final List<Bson> pipeline = MongoDbTimeseriesAdapter.crossThingPipeline(
                 query(Collections.<GroupBy>emptyList(), null,
                         null, null),
-                null, 1000);
+                permitted(), 1000);
 
         assertThat(render(pipeline.get(0))).contains(PATH.toString());
     }
@@ -109,7 +111,7 @@ public final class MongoDbTimeseriesAdapterCrossThingTest {
         final List<Bson> pipeline = MongoDbTimeseriesAdapter.crossThingPipeline(
                 query(Collections.<GroupBy>emptyList(),
                         "eq(building,'A')", null, null),
-                null, 1000);
+                permitted(), 1000);
 
         // Tags live in the Time Series metaField, so the predicate must address meta.tags.<key>
         // to stay index-supported.
@@ -179,13 +181,18 @@ public final class MongoDbTimeseriesAdapterCrossThingTest {
     }
 
     @Test
-    public void pipelineOmitsThingIdFilterForNamespaceWideAccess() {
+    public void pipelineAlwaysConstrainsThingIdsToTheAllowList() {
+        // There is no "namespace-wide" mode: the allow-list is required, so the $match must always
+        // carry an explicit meta.thingId constraint. A pipeline without one would scan the whole
+        // namespace regardless of what the caller was authorized for.
         final List<Bson> pipeline = MongoDbTimeseriesAdapter.crossThingPipeline(
                 query(Collections.<GroupBy>emptyList(), null,
                         null, null),
-                null, 1000);
+                permitted(), 1000);
 
-        assertThat(render(pipeline.get(0))).doesNotContain("meta.thingId");
+        final String match = render(pipeline.get(0));
+        assertThat(match).contains("meta.thingId");
+        assertThat(match).contains(PERMITTED_THING.toString());
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -377,8 +384,19 @@ public final class MongoDbTimeseriesAdapterCrossThingTest {
                 Collections.<GroupBy>emptyList(), null,
                 ZoneId.of("Europe/Berlin"), null, null);
 
-        final List<Bson> pipeline = MongoDbTimeseriesAdapter.crossThingPipeline(tzQuery, null, 1000);
+        final List<Bson> pipeline = MongoDbTimeseriesAdapter.crossThingPipeline(tzQuery, permitted(), 1000);
 
         assertThat(render(pipeline)).contains("Europe/Berlin");
+    }
+
+    /**
+     * The allow-list these pipeline-shape tests run with: one Thing permitted on {@link #PATH}.
+     * The adapter takes no "unrestricted" sentinel, so even a test that is not about authorization
+     * has to say what is readable.
+     */
+    private static Map<JsonPointer, Collection<ThingId>> permitted() {
+        final Map<JsonPointer, Collection<ThingId>> allowed = new LinkedHashMap<>();
+        allowed.put(PATH, Collections.singletonList(PERMITTED_THING));
+        return allowed;
     }
 }

@@ -51,11 +51,10 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
     /**
      * Upper bound on the number of paths a single query may request. A multi-path read fans out to
      * one scan per path, each bounded independently by the adapter's per-path ceiling, so the
-     * request-level memory is the path count times that ceiling. This cap keeps a pathological
-     * request from multiplying the ceiling without limit; legitimate multi-property reads are well
-     * under it.
+     * request-level memory is the path count times that ceiling. Shared with the cross-Thing query
+     * so both endpoints enforce the same bound.
      */
-    private static final int MAX_PATHS = 100;
+    private static final int MAX_PATHS = TimeseriesQuery.MAX_PATHS;
 
     private final ThingId thingId;
     private final List<JsonPointer> paths;

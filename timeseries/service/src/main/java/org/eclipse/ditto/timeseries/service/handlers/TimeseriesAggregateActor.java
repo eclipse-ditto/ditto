@@ -531,7 +531,7 @@ public final class TimeseriesAggregateActor extends AbstractActor {
                         return CompletableFuture.failedFuture(TimeseriesQueryInvalidException
                                 .newBuilder("The query spans more than " + maxVerifiedThings +
                                         " Things, which exceeds the number this service will " +
-                                        "authorize per request. Narrow it with 'tagFilter' or a " +
+                                        "authorize per request. Narrow it with 'filter' or a " +
                                         "shorter time range.")
                                 .dittoHeaders(headers)
                                 .build());
@@ -785,11 +785,11 @@ public final class TimeseriesAggregateActor extends AbstractActor {
     }
 
     /**
-     * @param allowedPerPath {@code null} means "the whole namespace is readable, on every requested
-     * path"; otherwise the Things permitted per path.
+     * @param allowedPerPath the Things permitted per path. Always present: the adapter takes no
+     * "unrestricted" sentinel, so reading a whole namespace means enumerating it.
      */
     private CompletionStage<Object> runQuery(final RetrieveAggregatedTimeseries command,
-            @Nullable final Map<JsonPointer, Collection<ThingId>> allowedPerPath,
+            final Map<JsonPointer, Collection<ThingId>> allowedPerPath,
             final int contributingThings,
             final int fullyExcludedThings,
             final Map<JsonPointer, Integer> withheldByPath) {
@@ -801,7 +801,7 @@ public final class TimeseriesAggregateActor extends AbstractActor {
                         query.getNamespace(), query.getPaths(), query.getStep(),
                         query.getAggregation().getName(), query.getGroupBy(),
                         query.getFilter().orElse("-"),
-                        allowedPerPath == null ? "<namespace-wide>" : allowedPerPath,
+                        allowedPerPath,
                         query.getMaxGroups().map(String::valueOf).orElse("<default>"));
         final long aggregateStart = System.nanoTime();
         return adapter.queryCrossThing(command.getQuery(), allowedPerPath)

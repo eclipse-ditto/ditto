@@ -31,6 +31,9 @@ get:
       description: |-
         Comma-separated list of JSON pointers (relative to the Thing root) to retrieve, e.g.
         `/features/environment/properties/temperature,/attributes/batteryExchangeDate`.
+
+        At most 100 paths per request. Each path is scanned independently and bounded by the
+        adapter's per-path ceiling, so the path count multiplies the memory one request can use.
       required: true
       schema:
         type: string
@@ -130,7 +133,7 @@ get:
     '400':
       description: |-
         The request could not be completed (`timeseries:query.invalid`). Possible reasons:
-          * `paths` is missing or contains no valid JSON pointer.
+          * `paths` is missing, contains no valid JSON pointer, or lists more than 100 paths.
           * `from`/`to` is not a valid ISO-8601 instant or relative expression.
           * `step` is not a valid duration, or `agg`/`fill`/`timeFormat` is not a recognised value.
           * a per-bucket aggregation was requested without a `step`.

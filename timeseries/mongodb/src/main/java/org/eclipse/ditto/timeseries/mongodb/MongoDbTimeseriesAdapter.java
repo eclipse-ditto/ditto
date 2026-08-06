@@ -308,9 +308,12 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
     @Override
     public CompletionStage<List<AggregatedTimeseriesResult>> queryCrossThing(
             final CrossThingTimeseriesQuery query,
-            @Nullable final Map<JsonPointer, Collection<ThingId>> permittedThingsPerPath) {
+            final Map<JsonPointer, Collection<ThingId>> permittedThingsPerPath) {
 
         checkNotNull(query, "query");
+        // Required, never a sentinel for "unrestricted" — an absent allow-list would mean an
+        // unfiltered namespace scan, the one failure mode this parameter exists to prevent.
+        checkNotNull(permittedThingsPerPath, "permittedThingsPerPath");
         final State current = state.get();
         if (current.health != HealthStatus.UP) {
             return failedStage(new IllegalStateException(
@@ -319,7 +322,7 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
         // No path with any permitted Thing means the caller established that nothing is readable.
         // Treating that as "no filter" would leak the whole namespace, so short-circuit explicitly
         // rather than letting an empty match fall through to the pipeline.
-        if (permittedThingsPerPath != null && readablePaths(query, permittedThingsPerPath).isEmpty()) {
+        if (readablePaths(query, permittedThingsPerPath).isEmpty()) {
             return CompletableFuture.completedFuture(Collections.emptyList());
         }
 
@@ -342,8 +345,7 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
                             query.getNamespace(), query.getPaths(), query.getStep(),
                             query.getAggregation().getName(), query.getGroupBy(),
                             query.getFilter().orElse("-"),
-                            permittedThingsPerPath == null ? "namespace-wide"
-                                    : describePerPathAccess(query, permittedThingsPerPath),
+                            describePerPathAccess(query, permittedThingsPerPath),
                             seriesDocs.size(), (System.nanoTime() - startNanos) / 1_000_000L);
                     return buildCrossThingResults(query, seriesDocs, maxGroups,
                             current.config.getMaxQueryResultSize());
@@ -364,7 +366,7 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
         // Same filter as the aggregation but namespace-wide: this call runs BEFORE authorization and
         // its whole purpose is to discover what the decision has to be taken about.
         final List<Bson> pipeline = new ArrayList<>();
-        pipeline.add(Aggregates.match(crossThingFilter(query, null)));
+        pipeline.add(Aggregates.match(discoveryFilter(query)));
         // Group by (path, thingId) so the caller learns which combinations actually carry data, and
         // can therefore report exactly which were withheld rather than counting a Thing against a
         // path it would have contributed nothing to.
@@ -430,7 +432,7 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
      */
     // Package-private so the pipeline shape can be asserted without a live MongoDB.
     static List<Bson> crossThingPipeline(final CrossThingTimeseriesQuery query,
-            @Nullable final Map<JsonPointer, Collection<ThingId>> permittedThingsPerPath,
+            final Map<JsonPointer, Collection<ThingId>> permittedThingsPerPath,
             final int maxGroups) {
 
         final Document bucketKey = new Document(GROUP_FIELD_BUCKET,
@@ -474,13 +476,39 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
         return pipeline;
     }
 
+    /**
+     * The discovery-phase filter: time range, requested paths, tag predicate — but <b>no</b> Thing
+     * restriction, because this runs before authorization and its whole purpose is to find out which
+     * Things a decision has to be taken about.
+     * <p>
+     * A separate method rather than a {@code null} allow-list. "Pre-authorization discovery" and
+     * "authorized query" are different operations, and expressing the difference as a nullable
+     * parameter made an unfiltered namespace scan reachable from the query path by passing
+     * {@code null} — which is exactly the bypass {@link #queryCrossThing} must not have.
+     */
+    private static Bson discoveryFilter(final CrossThingTimeseriesQuery query) {
+        return crossThingFilter(query, allPathsUnrestricted(query));
+    }
+
+    /** Every requested path, no Thing restriction. Only for {@link #discoveryFilter}. */
+    private static Bson allPathsUnrestricted(final CrossThingTimeseriesQuery query) {
+        return Filters.in(TimeseriesBsonMapper.FIELD_META + "." + TimeseriesBsonMapper.META_PATH,
+                query.getPaths().stream().map(JsonPointer::toString).collect(Collectors.toList()));
+    }
+
     private static Bson crossThingFilter(final CrossThingTimeseriesQuery query,
-            @Nullable final Map<JsonPointer, Collection<ThingId>> permittedThingsPerPath) {
+            final Map<JsonPointer, Collection<ThingId>> permittedThingsPerPath) {
+
+        return crossThingFilter(query, pathAccessFilter(query, permittedThingsPerPath));
+    }
+
+    private static Bson crossThingFilter(final CrossThingTimeseriesQuery query,
+            final Bson pathAccessFilter) {
 
         final List<Bson> filters = new ArrayList<>();
         filters.add(Filters.gte(TimeseriesBsonMapper.FIELD_TIMESTAMP, query.getFrom()));
         filters.add(Filters.lt(TimeseriesBsonMapper.FIELD_TIMESTAMP, query.getTo()));
-        filters.add(pathAccessFilter(query, permittedThingsPerPath));
+        filters.add(pathAccessFilter);
         // Tag predicates live in the Time Series collection's metaField, so they are index-supported.
         // The filter is RQL — Ditto's query language — translated to a filter over meta.tags only, so
         // it cannot reach meta.thingId / meta.path and sidestep the per-path allow-list above.
@@ -498,17 +526,10 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
      * Series {@code metaField}, so every clause stays index-supported.
      */
     private static Bson pathAccessFilter(final CrossThingTimeseriesQuery query,
-            @Nullable final Map<JsonPointer, Collection<ThingId>> permittedThingsPerPath) {
+            final Map<JsonPointer, Collection<ThingId>> permittedThingsPerPath) {
 
         final String metaPath = TimeseriesBsonMapper.FIELD_META + "." + TimeseriesBsonMapper.META_PATH;
         final String metaThing = TimeseriesBsonMapper.FIELD_META + "." + TimeseriesBsonMapper.META_THING_ID;
-
-        if (permittedThingsPerPath == null) {
-            // Namespace-wide: every requested path, no Thing restriction.
-            return Filters.in(metaPath, query.getPaths().stream()
-                    .map(JsonPointer::toString)
-                    .collect(Collectors.toList()));
-        }
 
         final List<Bson> perPath = new ArrayList<>();
         for (final JsonPointer path : readablePaths(query, permittedThingsPerPath)) {
@@ -597,7 +618,7 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
             // Fail loudly. Silently returning the first N series would look like a complete answer
             // and quietly misreport any aggregate the caller computes on top of it.
             throw TimeseriesQueryInvalidException.newBuilder("The query matches more than " +
-                            maxGroups + " distinct groups. Narrow it with 'tagFilter', fewer " +
+                            maxGroups + " distinct groups. Narrow it with 'filter', fewer " +
                             "'groupBy' dimensions or a smaller namespace, or raise 'maxGroups' " +
                             "(ceiling " + MAX_GROUPS_CEILING + ").")
                     .build();

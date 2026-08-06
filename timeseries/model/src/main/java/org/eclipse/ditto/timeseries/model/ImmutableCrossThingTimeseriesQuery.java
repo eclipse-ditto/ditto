@@ -124,6 +124,13 @@ final class ImmutableCrossThingTimeseriesQuery implements CrossThingTimeseriesQu
         if (paths.isEmpty()) {
             throw invalid("A cross-Thing timeseries query requires at least one path in 'paths'.");
         }
+        // Same bound the single-Thing query enforces. It matters more here, not less: each path is a
+        // separate grouped scan over every Thing in the namespace, so the path count multiplies a
+        // fan-out that is already namespace-wide.
+        if (paths.size() > TimeseriesQuery.MAX_PATHS) {
+            throw invalid("A query may request at most <" + TimeseriesQuery.MAX_PATHS + "> paths but <" +
+                    paths.size() + "> were given. Split the request into smaller batches.");
+        }
         if (!from.isBefore(to)) {
             throw invalid("'from' (" + from + ") must be strictly before 'to' (" + to + ").");
         }

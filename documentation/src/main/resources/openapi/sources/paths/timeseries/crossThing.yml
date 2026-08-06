@@ -85,6 +85,10 @@ get:
       description: |-
         Comma-separated list of JSON pointers (relative to the thing root) to aggregate, e.g.
         `/features/circuit/properties/flowTemperature`. Results are always reported per path.
+
+        At most 100 paths per request — the same bound the single-thing endpoints apply. It matters
+        more here: each path is a separate grouped scan over every thing in the namespace, so the
+        path count multiplies a fan-out that is already namespace-wide.
       required: true
       schema:
         type: string
@@ -201,10 +205,11 @@ get:
             $ref: '../../schemas/timeseries/aggregatedTimeseriesResult.yml'
     '400':
       description: |-
-        The request is malformed: a missing or unparseable required parameter, a window-function
-        aggregation, a non-positive `step`, a `maxGroups` outside its bounds, more than one
-        namespace, an unknown `groupBy` dimension, a query matching more groups than `maxGroups`, or
-        a query spanning more things than the service will authorize per request.
+        The request is malformed: a missing or unparseable required parameter, more than 100
+        `paths`, a window-function aggregation, a non-positive `step`, a `maxGroups` outside its
+        bounds, more than one namespace, an unknown `groupBy` dimension, a query matching more
+        groups than `maxGroups`, or a query spanning more things than the service will authorize
+        per request.
       content:
         application/json:
           schema:
