@@ -2,7 +2,9 @@
 
 Extensible MCP server for Ditto knowledge and tools. P1 = foundation
 (config, plugin registry, server factory, stdio + streamable-HTTP transports,
-`ping` tool). See the design spec and plans under `docs/superpowers/`.
+`ping` tool). P2a = knowledge: `search` and `get_chunk` tools backed by a
+pluggable `KnowledgeSource` → `Retriever` core. See the design spec and plans
+under `docs/superpowers/`.
 
 ## Requirements
 - Node >= 22
@@ -17,6 +19,33 @@ Extensible MCP server for Ditto knowledge and tools. P1 = foundation
 ## Configuration
 
 Optional JSON config via `DITTO_MCP_CONFIG=/path/to/config.json`. All fields have defaults; see `src/config/schema.ts`.
+
+### Knowledge (P2a)
+
+The server exposes `search` and `get_chunk` tools backed by a pluggable
+`KnowledgeSource` → `Retriever` core. P2a ships with `PublicSource` (Ditto
+`llms.txt`) and a SQLite FTS5 keyword retriever.
+
+**On startup**, the server fetches the public docs (configurable with
+`knowledge.publicSource.url` and `knowledge.publicSource.maxDocs`). To disable
+this network fetch, set `knowledge.enabled=false` or
+`knowledge.publicSource.enabled=false`.
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `knowledge.enabled` | `boolean` | `true` | Enable knowledge tools (`search`, `get_chunk`) |
+| `knowledge.publicSource.enabled` | `boolean` | `true` | Enable PublicSource (Ditto `llms.txt`) |
+| `knowledge.publicSource.url` | `string` | `"https://eclipse.dev/ditto/llms.txt"` | URL to the `llms.txt` index |
+| `knowledge.publicSource.maxDocs` | `number?` | `undefined` | Optional limit on the number of docs to fetch |
+
+Example config to disable knowledge:
+```json
+{
+  "knowledge": {
+    "enabled": false
+  }
+}
+```
 
 ### HTTP Server Options (`server.http`)
 
@@ -49,6 +78,9 @@ Example config for remote deployment:
 - `src/core/` — shared types (`ToolDef`, `RequestCtx`)
 - `src/registry/` — `ToolRegistry`
 - `src/config/` — zod schema + loader
-- `src/tools/` — tool implementations (`ping`) + wiring
+- `src/tools/` — tool implementations (`ping`, knowledge tools) + wiring
+- `src/knowledge/` — corpus/retrieval core (`KnowledgeSource`, `Retriever`, `PublicSource`, `FtsRetriever`)
 - `src/server/` — `buildServer`, `createHttpApp`
 - `src/bin/` — `stdio` and `http` entrypoints
+
+Dependencies: `@modelcontextprotocol/sdk`, `express`, `zod`, `better-sqlite3`

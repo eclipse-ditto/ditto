@@ -12,6 +12,10 @@ describe("loadConfig", () => {
     expect(cfg.server.http.host).toBe("127.0.0.1");
     expect(cfg.server.http.enableDnsRebindingProtection).toBe(true);
     expect(cfg.tools.ping).toBe(true);
+    expect(cfg.knowledge.enabled).toBe(true);
+    expect(cfg.knowledge.publicSource.url).toBe(
+      "https://eclipse.dev/ditto/llms.txt",
+    );
   });
 
   it("merges values from a JSON file over defaults", () => {

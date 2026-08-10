@@ -2,10 +2,12 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { loadConfig } from "../config/load.js";
 import { registerTools } from "../tools/index.js";
 import { buildServer } from "../server/build-server.js";
+import { buildKnowledgeService } from "../knowledge/build.js";
 
 async function main(): Promise<void> {
   const config = loadConfig(process.env.DITTO_MCP_CONFIG);
-  const registry = registerTools(config);
+  const knowledge = await buildKnowledgeService(config);
+  const registry = registerTools(config, knowledge);
   const server = buildServer(registry, config);
   const transport = new StdioServerTransport();
   await server.connect(transport);

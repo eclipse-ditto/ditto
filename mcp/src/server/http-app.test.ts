@@ -8,8 +8,10 @@ import { createHttpApp } from "./http-app.js";
 
 async function listen(): Promise<{ server: Server; url: string }> {
   // protocol e2e; DNS-rebinding protection exercised separately below.
+  // knowledge disabled to keep this transport test hermetic; knowledge covered in knowledge tests.
   const config = AppConfigSchema.parse({
     server: { http: { enableDnsRebindingProtection: false } },
+    knowledge: { enabled: false },
   });
   const app = createHttpApp(config);
   return await new Promise((res) => {
@@ -57,7 +59,8 @@ describe("streamable HTTP app (e2e)", () => {
 
   it("rejects DNS rebinding attacks by default", async () => {
     // Default config has DNS-rebinding protection enabled
-    const config = AppConfigSchema.parse({});
+    // knowledge disabled to keep this transport test hermetic; knowledge covered in knowledge tests.
+    const config = AppConfigSchema.parse({ knowledge: { enabled: false } });
     const app = createHttpApp(config);
     const server = await new Promise<Server>((res) => {
       const srv = app.listen(0, () => res(srv));

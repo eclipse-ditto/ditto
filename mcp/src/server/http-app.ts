@@ -5,8 +5,12 @@ import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import type { AppConfig } from "../config/schema.js";
 import { registerTools } from "../tools/index.js";
 import { buildServer } from "./build-server.js";
+import type { KnowledgeService } from "../knowledge/knowledge-service.js";
 
-export function createHttpApp(config: AppConfig): Express {
+export function createHttpApp(
+  config: AppConfig,
+  knowledgeService?: KnowledgeService,
+): Express {
   const app = express();
   app.use(express.json());
 
@@ -48,7 +52,7 @@ export function createHttpApp(config: AppConfig): Express {
         transport.onclose = () => {
           if (transport?.sessionId) transports.delete(transport.sessionId);
         };
-        const registry = registerTools(config);
+        const registry = registerTools(config, knowledgeService);
         const server = buildServer(registry, config);
         await server.connect(transport);
       }

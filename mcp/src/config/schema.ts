@@ -26,6 +26,23 @@ export const AppConfigSchema = z
     tools: z
       .object({ ping: z.boolean().default(true) })
       .default({ ping: true }),
+    knowledge: z
+      .object({
+        enabled: z.boolean().default(true),
+        publicSource: z
+          .object({
+            enabled: z.boolean().default(true),
+            url: z
+              .string()
+              .default("https://eclipse.dev/ditto/llms.txt"),
+            maxDocs: z.number().int().positive().optional(),
+          })
+          .default({ enabled: true, url: "https://eclipse.dev/ditto/llms.txt" }),
+      })
+      .default({
+        enabled: true,
+        publicSource: { enabled: true, url: "https://eclipse.dev/ditto/llms.txt" },
+      }),
   })
   .default({});
 

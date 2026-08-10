@@ -6,7 +6,8 @@ import { registerTools } from "../tools/index.js";
 import { buildServer } from "./build-server.js";
 
 async function connectedClient() {
-  const config = AppConfigSchema.parse({});
+  // knowledge disabled to keep this transport test hermetic; knowledge covered in knowledge tests.
+  const config = AppConfigSchema.parse({ knowledge: { enabled: false } });
   const registry = registerTools(config);
   const server = buildServer(registry, config);
   const [clientTransport, serverTransport] =
@@ -34,7 +35,11 @@ describe("buildServer + ping (in-memory e2e)", () => {
   });
 
   it("omits ping when disabled in config", async () => {
-    const config = AppConfigSchema.parse({ tools: { ping: false } });
+    // knowledge disabled to keep this transport test hermetic; knowledge covered in knowledge tests.
+    const config = AppConfigSchema.parse({
+      tools: { ping: false },
+      knowledge: { enabled: false },
+    });
     const registry = registerTools(config);
     const server = buildServer(registry, config);
     const [ct, st] = InMemoryTransport.createLinkedPair();
