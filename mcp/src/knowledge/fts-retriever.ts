@@ -1,7 +1,8 @@
 import Database from "better-sqlite3";
-import type { Chunk, Retriever } from "./types.js";
+import type { Chunk, Retriever, RetrievedChunk } from "./types.js";
 
 export class FtsRetriever implements Retriever {
+  readonly kind = "fts";
   private readonly db: Database.Database;
   private readonly chunks = new Map<string, Chunk>();
 
@@ -25,7 +26,7 @@ export class FtsRetriever implements Retriever {
     tx(chunks);
   }
 
-  async search(query: string, k: number): Promise<Chunk[]> {
+  async search(query: string, k: number): Promise<RetrievedChunk[]> {
     const match = toMatchQuery(query);
     if (match === "") return [];
     const rows = this.db
@@ -33,10 +34,10 @@ export class FtsRetriever implements Retriever {
         "SELECT id FROM chunks WHERE chunks MATCH ? ORDER BY rank, id LIMIT ?",
       )
       .all(match, k) as Array<{ id: string }>;
-    const out: Chunk[] = [];
+    const out: RetrievedChunk[] = [];
     for (const row of rows) {
       const c = this.chunks.get(row.id);
-      if (c) out.push(c);
+      if (c) out.push({ chunk: c, matchedBy: ["fts"] });
     }
     return out;
   }

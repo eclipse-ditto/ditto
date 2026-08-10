@@ -16,6 +16,11 @@ describe("loadConfig", () => {
     expect(cfg.knowledge.publicSource.url).toBe(
       "https://eclipse.dev/ditto/llms.txt",
     );
+    expect(cfg.knowledge.retriever).toBe("fts");
+    expect(cfg.knowledge.embedding.model).toBe("Xenova/bge-small-en-v1.5");
+    expect(cfg.knowledge.embedding.dim).toBe(384);
+    expect(cfg.knowledge.embedding.batchSize).toBe(32);
+    expect(cfg.knowledge.localDir.enabled).toBe(false);
   });
 
   it("merges values from a JSON file over defaults", () => {

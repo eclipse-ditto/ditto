@@ -43,29 +43,37 @@ export class PublicSource implements KnowledgeSource {
     if (this.opts.maxDocs !== undefined) {
       entries = entries.slice(0, this.opts.maxDocs);
     }
-    const chunks: Chunk[] = [];
-    for (const entry of entries) {
-      let md: string;
-      try {
-        md = await this.fetchFn(entry.url, signal);
-      } catch (err) {
-        process.stderr.write(
-          `[ditto-mcp] public-source: skipping ${entry.url}: ${String(err)}\n`,
-        );
-        continue;
-      }
-      chunks.push(
-        ...chunkMarkdown(md, {
-          source: this.id,
-          title: entry.title,
-          cite: entry.url,
-          maxChars: this.opts.chunkOptions?.maxChars,
-          overlap: this.opts.chunkOptions?.overlap,
+    // Fetch documents with bounded concurrency (network-bound; sequential
+    // fetches make server startup block for a long time on large corpora).
+    // Order is preserved so chunk ids are deterministic across runs.
+    const CONCURRENCY = 8;
+    const perEntry: Chunk[][] = new Array(entries.length);
+    for (let i = 0; i < entries.length; i += CONCURRENCY) {
+      const batch = entries.slice(i, i + CONCURRENCY);
+      const results = await Promise.all(
+        batch.map(async (entry) => {
+          let md: string;
+          try {
+            md = await this.fetchFn(entry.url, signal);
+          } catch (err) {
+            process.stderr.write(
+              `[ditto-mcp] public-source: skipping ${entry.url}: ${String(err)}\n`,
+            );
+            return [];
+          }
+          return chunkMarkdown(md, {
+            source: this.id,
+            title: entry.title,
+            cite: entry.url,
+            maxChars: this.opts.chunkOptions?.maxChars,
+            overlap: this.opts.chunkOptions?.overlap,
+          });
         }),
       );
+      results.forEach((r, j) => (perEntry[i + j] = r));
     }
     // Re-key ids to be unique across documents (chunker numbers per-doc).
-    return chunks.map((c, i) => ({ ...c, id: `${this.id}#${i}` }));
+    return perEntry.flat().map((c, i) => ({ ...c, id: `${this.id}#${i}` }));
   }
 }
 
@@ -78,6 +86,12 @@ function parseEntries(index: string, baseUrl: string): Entry[] {
     const resolved = new URL(m[2].trim(), baseUrl);
     // Guard against SSRF: only allow http/https schemes
     if (resolved.protocol !== "http:" && resolved.protocol !== "https:") {
+      continue;
+    }
+    // Only ingest markdown docs; llms.txt indexes also link to HTML pages
+    // (repo, openapi/jsonschema UIs) that would pollute the corpus with markup.
+    const path = resolved.pathname.toLowerCase();
+    if (!path.endsWith(".md") && !path.endsWith(".markdown")) {
       continue;
     }
     entries.push({ title, url: resolved.toString() });

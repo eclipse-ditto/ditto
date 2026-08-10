@@ -29,6 +29,24 @@ export const AppConfigSchema = z
     knowledge: z
       .object({
         enabled: z.boolean().default(true),
+        retriever: z.enum(["fts", "vector", "hybrid"]).default("fts"),
+        embedding: z
+          .object({
+            model: z.string().default("Xenova/bge-small-en-v1.5"),
+            dim: z.number().int().positive().default(384),
+            modelPath: z.string().optional(),
+            allowRemoteModels: z.boolean().default(true),
+            cacheDir: z.string().optional(),
+            batchSize: z.number().int().positive().default(32),
+          })
+          .default({ model: "Xenova/bge-small-en-v1.5", dim: 384, allowRemoteModels: true, batchSize: 32 }),
+        localDir: z
+          .object({
+            enabled: z.boolean().default(false),
+            path: z.string().optional(),
+            id: z.string().default("local"),
+          })
+          .default({ enabled: false, id: "local" }),
         publicSource: z
           .object({
             enabled: z.boolean().default(true),
@@ -41,6 +59,9 @@ export const AppConfigSchema = z
       })
       .default({
         enabled: true,
+        retriever: "fts",
+        embedding: { model: "Xenova/bge-small-en-v1.5", dim: 384, allowRemoteModels: true, batchSize: 32 },
+        localDir: { enabled: false, id: "local" },
         publicSource: { enabled: true, url: "https://eclipse.dev/ditto/llms.txt" },
       }),
   })

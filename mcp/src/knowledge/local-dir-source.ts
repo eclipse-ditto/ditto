@@ -1,0 +1,58 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { join, basename, extname } from "node:path";
+import type { Chunk, KnowledgeSource } from "./types.js";
+import { chunkMarkdown } from "./chunker.js";
+
+export interface LocalDirSourceOptions {
+  dir: string;
+  id?: string;
+  chunkOptions?: { maxChars?: number; overlap?: number };
+}
+
+const MD_EXT = new Set([".md", ".markdown"]);
+
+export class LocalDirSource implements KnowledgeSource {
+  readonly id: string;
+  private readonly opts: LocalDirSourceOptions;
+
+  constructor(opts: LocalDirSourceOptions) {
+    this.opts = opts;
+    this.id = opts.id ?? "local";
+  }
+
+  async loadChunks(): Promise<Chunk[]> {
+    let files: string[];
+    try {
+      files = walk(this.opts.dir);
+    } catch (err) {
+      process.stderr.write(
+        `[ditto-mcp] local-dir-source: cannot read ${this.opts.dir}: ${String(err)}\n`,
+      );
+      return [];
+    }
+    const chunks: Chunk[] = [];
+    for (const file of files) {
+      const md = readFileSync(file, "utf8");
+      chunks.push(
+        ...chunkMarkdown(md, {
+          source: this.id,
+          title: basename(file),
+          cite: file,
+          maxChars: this.opts.chunkOptions?.maxChars,
+          overlap: this.opts.chunkOptions?.overlap,
+        }),
+      );
+    }
+    return chunks.map((c, i) => ({ ...c, id: `${this.id}#${i}` }));
+  }
+}
+
+function walk(dir: string): string[] {
+  const out: string[] = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) out.push(...walk(full));
+    else if (MD_EXT.has(extname(entry.name).toLowerCase())) out.push(full);
+  }
+  return out.sort(); // deterministic order
+}

@@ -24,8 +24,8 @@ describe("KnowledgeService", () => {
       r,
     );
     await svc.init();
-    expect((await svc.search("memory", 5)).map((c) => c.id)).toContain("a");
-    expect((await svc.search("policy", 5)).map((c) => c.id)).toContain("b");
+    expect((await svc.search("memory", 5)).map((rc) => rc.chunk.id)).toContain("a");
+    expect((await svc.search("policy", 5)).map((rc) => rc.chunk.id)).toContain("b");
     expect((await svc.getChunk("a"))?.text).toBe("reconnect memory crash");
   });
 

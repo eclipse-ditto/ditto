@@ -14,6 +14,11 @@ let r: FtsRetriever;
 afterEach(() => r?.close());
 
 describe("FtsRetriever", () => {
+  it("has kind 'fts'", () => {
+    r = new FtsRetriever();
+    expect(r.kind).toBe("fts");
+  });
+
   it("finds chunks by keyword, best match first", async () => {
     r = new FtsRetriever();
     await r.add([
@@ -23,7 +28,8 @@ describe("FtsRetriever", () => {
     ]);
     const hits = await r.search("memory crash", 5);
     expect(hits.length).toBeGreaterThanOrEqual(1);
-    expect(hits[0].id).toBe("a");
+    expect(hits[0].chunk.id).toBe("a");
+    expect(hits[0].matchedBy).toEqual(["fts"]);
   });
 
   it("respects the k limit", async () => {

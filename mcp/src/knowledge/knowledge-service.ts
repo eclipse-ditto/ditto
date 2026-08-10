@@ -1,4 +1,4 @@
-import type { Chunk, KnowledgeSource, Retriever } from "./types.js";
+import type { Chunk, KnowledgeSource, Retriever, RetrievedChunk } from "./types.js";
 
 export class KnowledgeService {
   private initialized = false;
@@ -16,7 +16,7 @@ export class KnowledgeService {
     this.initialized = true;
   }
 
-  async search(query: string, k: number): Promise<Chunk[]> {
+  async search(query: string, k: number): Promise<RetrievedChunk[]> {
     return await this.retriever.search(query, k);
   }
 

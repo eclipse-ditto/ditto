@@ -44,6 +44,25 @@ describe("PublicSource", () => {
     expect(new Set(chunks.map((c) => c.cite)).size).toBe(1);
   });
 
+  it("ingests only markdown links, skipping HTML/non-.md entries", async () => {
+    const index = `# Ditto docs
+- [Repo](https://github.com/eclipse-ditto/ditto): source
+- [OpenAPI](https://eclipse.dev/ditto/openapi/): api ui
+- [Things](https://eclipse.dev/ditto/things.md): about things`;
+    const src = new PublicSource({
+      url: "https://eclipse.dev/ditto/llms.txt",
+      fetchFn: async (u) => {
+        if (u === "https://eclipse.dev/ditto/llms.txt") return index;
+        if (u === "https://eclipse.dev/ditto/things.md")
+          return "# Things\n\nA thing is a digital twin.";
+        throw new Error(`should not fetch non-markdown url: ${u}`);
+      },
+    });
+    const chunks = await src.loadChunks();
+    const cites = new Set(chunks.map((c) => c.cite));
+    expect(cites).toEqual(new Set(["https://eclipse.dev/ditto/things.md"]));
+  });
+
   it("skips documents that fail to fetch instead of throwing", async () => {
     const src = new PublicSource({
       url: "https://eclipse.dev/ditto/llms.txt",

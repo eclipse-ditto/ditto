@@ -19,9 +19,11 @@
     "dev:http": "tsx src/bin/http.ts"
   },
   "dependencies": {
+    "@huggingface/transformers": "^3.8.1",
     "@modelcontextprotocol/sdk": "^1",
     "better-sqlite3": "^11.10.0",
     "express": "^4.21.2",
+    "sqlite-vec": "^0.1.9",
     "zod": "^3.23.8"
   },
   "devDependencies": {

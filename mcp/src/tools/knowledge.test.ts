@@ -24,12 +24,13 @@ async function tools() {
 }
 
 describe("knowledge tools", () => {
-  it("search returns matching chunk text with citation", async () => {
+  it("search returns matching chunk text with citation and matched provenance", async () => {
     const t = await tools();
     const res = await t.search.handler({ query: "digital twin" }, ctx);
     const text = res.content.map((p) => p.text).join("\n");
     expect(text).toContain("digital twin");
     expect(text).toContain("https://x/a");
+    expect(text).toContain("matched: fts");
   });
 
   it("search reports no results cleanly", async () => {

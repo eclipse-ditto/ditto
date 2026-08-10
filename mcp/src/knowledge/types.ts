@@ -6,6 +6,11 @@ export interface Chunk {
   cite: string;
 }
 
+export interface RetrievedChunk {
+  chunk: Chunk;
+  matchedBy: string[]; // leaf retriever kinds, e.g. ["fts"], ["vector"], ["fts","vector"]
+}
+
 /** A corpus provider: yields chunks. Does not search. */
 export interface KnowledgeSource {
   id: string;
@@ -14,7 +19,8 @@ export interface KnowledgeSource {
 
 /** Indexes chunks and searches them. */
 export interface Retriever {
+  readonly kind: string;                 // "fts" | "vector" | "hybrid"
   add(chunks: Chunk[]): Promise<void>;
-  search(query: string, k: number): Promise<Chunk[]>;
+  search(query: string, k: number): Promise<RetrievedChunk[]>;
   getChunk(id: string): Promise<Chunk | undefined>;
 }
