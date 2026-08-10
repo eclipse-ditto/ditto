@@ -1,0 +1,18 @@
+{
+  "ditto": {
+    "enabled": true,
+    "baseUrl": "http://localhost:8080",
+    "credential": {
+      "kind": "oidc",
+      "tokenUrl": "https://idp.example/token",
+      "clientId": "REPLACE_ME",
+      "clientSecret": "REPLACE_ME",
+      "devops": true
+    },
+    "policy": {
+      "allowMethods": ["GET"],
+      "writeAllowlist": ["putThing"],
+      "sudoAllowlist": ["sudoRetrieveThing"]
+    }
+  }
+}
