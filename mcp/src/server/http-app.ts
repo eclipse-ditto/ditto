@@ -52,7 +52,7 @@ export function createHttpApp(
         transport.onclose = () => {
           if (transport?.sessionId) transports.delete(transport.sessionId);
         };
-        const registry = registerTools(config, knowledgeService);
+        const registry = await registerTools(config, knowledgeService);
         const server = buildServer(registry, config);
         await server.connect(transport);
       }

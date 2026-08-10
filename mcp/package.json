@@ -28,6 +28,7 @@
     "express": "^4.21.2",
     "pg": "^8.22.0",
     "sqlite-vec": "^0.1.9",
+    "yaml": "^2.9.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {

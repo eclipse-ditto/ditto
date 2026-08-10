@@ -209,6 +209,171 @@ The `ingest` command uses backend-specific atomic writes:
 
 The async `KnowledgeStore` lifecycle (`isPopulated()`, `getMeta()`, `setMeta()`, `reset()`, `close()`) enables both `SqliteKnowledgeStore` and `PgKnowledgeStore` to plug in behind the same interface with no churn to `build.ts` or `build-index.ts`. Both backends validate metadata and support offline re-ingest.
 
+## Action tools (P3-1)
+
+The server exposes action tools dynamically generated from a Ditto OpenAPI specification.
+Each action tool makes HTTP calls to a Ditto instance, enforcing a configurable **ToolPolicy**
+(read-only by default) and **credential passthrough** (the MCP forwards credentials to Ditto,
+which enforces authorization; the MCP never decides access beyond policy gating).
+
+### Enable Action Tools
+
+Set `ditto.enabled: true` and provide either a `ditto.baseUrl` or fetch the OpenAPI spec from a custom location:
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `ditto.enabled` | `boolean` | `false` | Enable action tools |
+| `ditto.baseUrl` | `string` | (required if enabled) | Base URL to the Ditto instance (e.g., `http://localhost:8080`) |
+| `ditto.openApi.path` | `string?` | `undefined` | Path to the OpenAPI spec file (reads locally). If unset, falls back to bundled spec. |
+| `ditto.openApi.url` | `string?` | `undefined` | URL to fetch the OpenAPI spec from (remote fetch). If unset, falls back to bundled spec. |
+
+If both `path` and `url` are unset, the server uses the bundled pinned Ditto OpenAPI spec
+(`mcp/assets/ditto-openapi.yml`), which is a snapshot of a known Ditto release and works offline.
+
+### Credential Passthrough
+
+Action tools support two credential modes:
+
+1. **Session-level credentials** (per tool call): The caller can pass an `Authorization` header
+   with each tool invocation. The header is forwarded to the Ditto backend.
+
+2. **Config-level credentials** (`ditto.credential`): A static credential (basic auth or devops token)
+   configured at server startup, forwarded to every action-tool call unless overridden by a per-session
+   `Authorization` header.
+
+**Credential types:**
+- `basic` — username + password (sent as `Authorization: Basic <base64(user:pass)>`)
+- `devops` — a static token (sent as `Authorization: Bearer <token>`)
+- `oidc` — OAuth2 client-credentials flow (sends `Authorization: Bearer <access_token>`)
+
+**OIDC client-credentials:** Set `ditto.credential.kind: "oidc"` to enable OAuth2 client-credentials.
+The MCP exchanges `clientId` + `clientSecret` for an access token on the first action-tool call, caches it,
+and auto-refreshes ~30 seconds before expiry. The access token is forwarded as `Authorization: Bearer <token>`.
+
+OIDC credential fields:
+- `tokenUrl` (required) — OAuth2 token endpoint (e.g., `https://auth.example.com/oauth/token`)
+- `clientId` (required) — OAuth2 client identifier
+- `clientSecret` (required) — OAuth2 client secret (never logged)
+- `scope` (optional) — OAuth2 scopes (space-separated; e.g., `"scope1 scope2"`)
+
+Example OIDC config:
+```json
+{
+  "ditto": {
+    "enabled": true,
+    "baseUrl": "http://localhost:8080",
+    "credential": {
+      "kind": "oidc",
+      "tokenUrl": "https://auth.example.com/oauth/token",
+      "clientId": "my-client-id",
+      "clientSecret": "my-client-secret",
+      "scope": "ditto:read ditto:write"
+    }
+  }
+}
+```
+
+**Authorization enforcement:** The MCP never decides authorization. It forwards the credential
+(or `Authorization` header) and lets the Ditto backend enforce access control. Credentials are
+never logged by the server.
+
+### ToolPolicy
+
+By default, action tools only expose read (`GET`) operations. Write and privileged operations
+require explicit allowlisting:
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `ditto.policy.allowMethods` | `string[]` | `["GET"]` | Wholesale HTTP method allowlist (applies to all non-sudo operations). Keep this `["GET"]` for read-only; expand for writes. |
+| `ditto.policy.writeAllowlist` | `string[]` | `[]` | Per-operation granular allowlist for enabling specific write operations (operationIds). Use this to enable individual writes when `allowMethods` includes write verbs. |
+| `ditto.policy.sudoAllowlist` | `string[]` | `[]` | Per-operation allowlist for sudo/devops-privileged operations (operationIds). Required for `/api/2/connections*`, `/devops/*`, and `sudo*` operations. |
+
+**Sudo operations & devops flag:**
+Ditto secures `/api/2/connections*` (secret-bearing) with `DevOpsBasic`/`DevOpsBearer` security,
+and `/devops/*` paths are devops-privileged. These operations are classified as "sudo" and:
+- Must be explicitly listed in `sudoAllowlist` (by operationId).
+- Require a devops-capable credential. If a devops credential is not present, the operation is refused and never sent to Ditto.
+- Are NOT auto-allowed even if the method is `GET` and in `allowMethods`.
+
+Set `credential.devops: true` as an **operator assertion** that the credential is devops-capable.
+This gates `sudo*`/`/devops`/`/connections` tools at the MCP layer — Ditto still enforces the real
+authorization. Deriving `devops` from token introspection/claims is a future enhancement (currently,
+only `basic` and `devops` kinds are implicitly devops-capable; `oidc` requires explicit `devops: true`).
+
+**Examples:**
+- Read-only (default): `{ "allowMethods": ["GET"] }` — only non-sudo GET operations are allowed.
+- Enable specific writes: `{ "allowMethods": ["GET", "POST", "PATCH"], "writeAllowlist": ["putThing", "modifyThing"] }` — enables specific write operations.
+- Enable sudo: `{ "allowMethods": ["GET"], "sudoAllowlist": ["getConnections", "getLogging"] }` — enables specific devops-privileged operations (requires devops credential).
+
+### Typed Request Bodies
+
+Write tools (POST, PATCH, PUT) expose their top-level request body fields in the tool schema,
+allowing clients to discover and validate the shape of the request. Nested objects are passed through
+as freeform JSON (no further schema introspection). This surfaces the Ditto OpenAPI operation's
+request body schema to the MCP tool layer without deeply traversing `allOf`, `oneOf`, or nested `$ref`s.
+
+For example, a `createThing` operation with a top-level `body.attributes` field will expose
+`attributes` as a schema input field; callers can then pass nested objects like `{ "color": "blue" }`
+within that field.
+
+### Action Tools Configuration Examples
+
+**Example 1: Read-only access (default policy):**
+```json
+{
+  "ditto": {
+    "enabled": true,
+    "baseUrl": "http://localhost:8080",
+    "credential": {
+      "type": "basic",
+      "username": "ditto",
+      "password": "ditto"
+    }
+  }
+}
+```
+This uses the bundled spec (offline) and forwards basic auth to Ditto. Only `GET` operations are available.
+
+**Example 2: Write + sudo operations with devops credential:**
+```json
+{
+  "ditto": {
+    "enabled": true,
+    "baseUrl": "http://localhost:8080",
+    "credential": {
+      "type": "devops",
+      "token": "my-devops-secret"
+    },
+    "policy": {
+      "allowMethods": ["GET", "POST", "PATCH", "DELETE"],
+      "writeAllowlist": ["/api/2/things", "/api/2/things/{thingId}"],
+      "sudoAllowlist": ["/devops/piggyback/send"]
+    }
+  }
+}
+```
+This enables write operations on things and `/devops/piggyback/send` (sudo). The devops credential
+is forwarded to Ditto for all requests.
+
+**Example 3: Custom OpenAPI spec from URL:**
+```json
+{
+  "ditto": {
+    "enabled": true,
+    "baseUrl": "http://localhost:8080",
+    "openApi": {
+      "url": "http://my-ditto:8080/openapi.json"
+    },
+    "credential": {
+      "type": "basic",
+      "username": "user",
+      "password": "pass"
+    }
+  }
+}
+```
+This fetches the OpenAPI spec from a remote URL instead of using the bundled spec.
+
 ### HTTP Server Options (`server.http`)
 
 | Field | Type | Default | Description |

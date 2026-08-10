@@ -1,0 +1,59 @@
+import { z, type ZodRawShape } from "zod";
+import type { ToolDef, ToolResult, RequestCtx } from "../core/types.js";
+import type { DittoOperation } from "./openapi.js";
+import type { DittoClient } from "./client.js";
+import type { DittoCredential } from "./credential.js";
+import { resolveCredential } from "./credential.js";
+import { isSudo } from "./tool-policy.js";
+
+function sanitizeName(id: string): string {
+  return id.replace(/[^A-Za-z0-9_]/g, "_").slice(0, 64);
+}
+
+function inputSchema(op: DittoOperation): ZodRawShape {
+  const shape: ZodRawShape = {};
+  for (const p of op.params) {
+    const base = p.type === "number" ? z.number() : p.type === "boolean" ? z.boolean() : z.string();
+    shape[p.name] = (p.required ? base : base.optional()).describe(`${p.in} parameter ${p.name}`);
+  }
+  if (op.bodySchema?.props.length) {
+    const bodyShape: ZodRawShape = {};
+    for (const bp of op.bodySchema.props) {
+      const base = bp.type === "number" ? z.number()
+        : bp.type === "boolean" ? z.boolean()
+        : bp.type === "object" ? z.record(z.any())
+        : bp.type === "array" ? z.array(z.any())
+        : bp.type === "unknown" ? z.any()
+        : z.string();
+      const desc = `body.${bp.name}` + (bp.required ? " (required)" : "");
+      bodyShape[bp.name] = base.optional().describe(desc);
+    }
+    shape.body = z.object(bodyShape).passthrough().optional().describe("JSON request body");
+  } else if (op.hasBody) {
+    shape.body = z.any().optional().describe("JSON request body");
+  }
+  return shape;
+}
+
+function text(t: string): ToolResult {
+  return { content: [{ type: "text", text: t }] };
+}
+
+export function operationToTool(op: DittoOperation, client: DittoClient, configCredential: DittoCredential): ToolDef {
+  const sudo = isSudo(op);
+  return {
+    name: sanitizeName(op.operationId),
+    description:
+      `${op.method} ${op.path} — ${op.description || op.summary}` +
+      (sudo ? " [sudo — requires a devops credential]" : ""),
+    inputSchema: inputSchema(op),
+    handler: async (args: unknown, ctx: RequestCtx): Promise<ToolResult> => {
+      const credential = resolveCredential(configCredential, { headers: ctx.headers });
+      if (sudo && !credential.isDevops) {
+        return text(`Refused: "${op.operationId}" is a sudo operation and requires a devops credential.`);
+      }
+      const res = await client.execute(op, (args ?? {}) as Record<string, unknown>, credential, ctx.signal);
+      return text(`HTTP ${res.status}\n${res.body}`);
+    },
+  };
+}

@@ -79,6 +79,39 @@ export const AppConfigSchema = z
         publicSource: { enabled: true, url: "https://eclipse.dev/ditto/llms.txt" },
         store: { kind: "sqlite", sqlite: {}, pgvector: { table: "ditto_kn" } },
       }),
+    ditto: z
+      .object({
+        enabled: z.boolean().default(false),
+        baseUrl: z.string().optional(),
+        openApi: z
+          .object({ path: z.string().optional(), url: z.string().optional() })
+          .default({}),
+        credential: z
+          .object({
+            kind: z.enum(["basic", "devops", "oidc"]).default("basic"),
+            username: z.string().optional(),
+            password: z.string().optional(),
+            tokenUrl: z.string().optional(),
+            clientId: z.string().optional(),
+            clientSecret: z.string().optional(),
+            scope: z.string().optional(),
+            devops: z.boolean().optional(),
+          })
+          .default({ kind: "basic" }),
+        policy: z
+          .object({
+            allowMethods: z.array(z.string()).default(["GET"]),
+            writeAllowlist: z.array(z.string()).default([]),
+            sudoAllowlist: z.array(z.string()).default([]),
+          })
+          .default({ allowMethods: ["GET"], writeAllowlist: [], sudoAllowlist: [] }),
+      })
+      .default({
+        enabled: false,
+        openApi: {},
+        credential: { kind: "basic" },
+        policy: { allowMethods: ["GET"], writeAllowlist: [], sudoAllowlist: [] },
+      }),
   })
   .default({});
 

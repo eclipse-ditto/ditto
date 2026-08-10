@@ -7,7 +7,7 @@ import { buildKnowledgeService } from "../knowledge/build.js";
 async function main(): Promise<void> {
   const config = loadConfig(process.env.DITTO_MCP_CONFIG);
   const knowledge = await buildKnowledgeService(config);
-  const registry = registerTools(config, knowledge);
+  const registry = await registerTools(config, knowledge);
   const server = buildServer(registry, config);
   const transport = new StdioServerTransport();
   await server.connect(transport);

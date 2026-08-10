@@ -8,7 +8,7 @@ import { buildServer } from "./build-server.js";
 async function connectedClient() {
   // knowledge disabled to keep this transport test hermetic; knowledge covered in knowledge tests.
   const config = AppConfigSchema.parse({ knowledge: { enabled: false } });
-  const registry = registerTools(config);
+  const registry = await registerTools(config);
   const server = buildServer(registry, config);
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
@@ -40,7 +40,7 @@ describe("buildServer + ping (in-memory e2e)", () => {
       tools: { ping: false },
       knowledge: { enabled: false },
     });
-    const registry = registerTools(config);
+    const registry = await registerTools(config);
     const server = buildServer(registry, config);
     const [ct, st] = InMemoryTransport.createLinkedPair();
     await server.connect(st);

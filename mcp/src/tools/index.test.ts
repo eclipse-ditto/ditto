@@ -18,23 +18,28 @@ let store: SqliteKnowledgeStore | undefined;
 afterEach(() => store?.close());
 
 describe("registerTools wiring", () => {
-  it("registers ping by default", () => {
-    const reg = registerTools(
+  it("registers ping by default", async () => {
+    const reg = await registerTools(
       AppConfigSchema.parse({ knowledge: { enabled: false } }),
     );
     expect(reg.get("ping")).toBeDefined();
   });
 
-  it("omits knowledge tools when knowledge disabled", () => {
-    const reg = registerTools(
+  it("omits action tools when ditto disabled (default)", async () => {
+    const reg = await registerTools(AppConfigSchema.parse({}));
+    expect(reg.list().some((t) => t.name === "getThingById")).toBe(false);
+  });
+
+  it("omits knowledge tools when knowledge disabled", async () => {
+    const reg = await registerTools(
       AppConfigSchema.parse({ knowledge: { enabled: false } }),
     );
     expect(reg.get("search")).toBeUndefined();
     expect(reg.get("get_chunk")).toBeUndefined();
   });
 
-  it("omits knowledge tools when service not provided", () => {
-    const reg = registerTools(
+  it("omits knowledge tools when service not provided", async () => {
+    const reg = await registerTools(
       AppConfigSchema.parse({ knowledge: { enabled: true } }),
     );
     expect(reg.get("search")).toBeUndefined();
@@ -46,7 +51,7 @@ describe("registerTools wiring", () => {
     await store.addChunks([chunk("a", "test content")]);
     const retriever = new FtsRetriever(store);
     const service = new KnowledgeService(store, retriever);
-    const reg = registerTools(
+    const reg = await registerTools(
       AppConfigSchema.parse({ knowledge: { enabled: true } }),
       service,
     );

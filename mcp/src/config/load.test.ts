@@ -22,6 +22,9 @@ describe("loadConfig", () => {
     expect(cfg.knowledge.embedding.batchSize).toBe(32);
     expect(cfg.knowledge.localDir.enabled).toBe(false);
     expect(cfg.knowledge.store.kind).toBe("sqlite");
+    expect(cfg.ditto.enabled).toBe(false);
+    expect(cfg.ditto.credential.kind).toBe("basic");
+    expect(cfg.ditto.policy.allowMethods).toEqual(["GET"]);
   });
 
   it("accepts a pgvector store config", () => {
@@ -51,5 +54,17 @@ describe("loadConfig", () => {
     const file = join(dir, "config.json");
     writeFileSync(file, JSON.stringify({ server: { http: { port: "nope" } } }));
     expect(() => loadConfig(file)).toThrow();
+  });
+
+  it("accepts an oidc credential config", () => {
+    const dir = mkdtempSync(join(tmpdir(), "ditto-mcp-"));
+    const file = join(dir, "c.json");
+    writeFileSync(file, JSON.stringify({
+      ditto: { enabled: true, credential: { kind: "oidc", tokenUrl: "https://idp/token", clientId: "c", clientSecret: "s", scope: "ditto", devops: true } },
+    }));
+    const cfg = loadConfig(file);
+    expect(cfg.ditto.credential.kind).toBe("oidc");
+    expect(cfg.ditto.credential.tokenUrl).toBe("https://idp/token");
+    expect(cfg.ditto.credential.devops).toBe(true);
   });
 });
