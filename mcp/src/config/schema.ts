@@ -56,6 +56,20 @@ export const AppConfigSchema = z
             maxDocs: z.number().int().positive().optional(),
           })
           .default({ enabled: true, url: "https://eclipse.dev/ditto/llms.txt" }),
+        store: z
+          .object({
+            kind: z.enum(["sqlite", "pgvector"]).default("sqlite"),
+            sqlite: z
+              .object({ path: z.string().optional() })
+              .default({}),
+            pgvector: z
+              .object({
+                connectionString: z.string().optional(),
+                table: z.string().default("ditto_kn"),
+              })
+              .default({ table: "ditto_kn" }),
+          })
+          .default({ kind: "sqlite", sqlite: {}, pgvector: { table: "ditto_kn" } }),
       })
       .default({
         enabled: true,
@@ -63,6 +77,7 @@ export const AppConfigSchema = z
         embedding: { model: "Xenova/bge-small-en-v1.5", dim: 384, allowRemoteModels: true, batchSize: 32 },
         localDir: { enabled: false, id: "local" },
         publicSource: { enabled: true, url: "https://eclipse.dev/ditto/llms.txt" },
+        store: { kind: "sqlite", sqlite: {}, pgvector: { table: "ditto_kn" } },
       }),
   })
   .default({});

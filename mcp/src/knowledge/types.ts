@@ -19,8 +19,6 @@ export interface KnowledgeSource {
 
 /** Indexes chunks and searches them. */
 export interface Retriever {
-  readonly kind: string;                 // "fts" | "vector" | "hybrid"
-  add(chunks: Chunk[]): Promise<void>;
+  readonly kind: string;
   search(query: string, k: number): Promise<RetrievedChunk[]>;
-  getChunk(id: string): Promise<Chunk | undefined>;
 }

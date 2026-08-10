@@ -136,3 +136,96 @@ describe("buildKnowledgeService — vector retriever over a local dir", () => {
     expect(hits.some((rc) => rc.chunk.text.toLowerCase().includes("out of memory"))).toBe(true);
   });
 });
+
+describe("buildKnowledgeService — prebuilt sqlite file", () => {
+  it("opens a populated index file without rebuilding (fts)", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "ditto-idx-"));
+    const corpus = mkdtempSync(join(tmpdir(), "ditto-corpus-"));
+    writeFileSync(join(corpus, "a.md"), "# Reconnect\n\nNetty leak out of memory crash.");
+    const path = join(dir, "index.db");
+
+    // Pre-populate the file via the same buildIndex the CLI uses.
+    const { SqliteKnowledgeStore } = await import("./sqlite-knowledge-store.js");
+    const { buildIndex } = await import("./build-index.js");
+    const { LocalDirSource } = await import("./local-dir-source.js");
+    const w = new SqliteKnowledgeStore(path);
+    await buildIndex([new LocalDirSource({ dir: corpus })], w);
+    await w.close();
+
+    const config = AppConfigSchema.parse({
+      knowledge: {
+        retriever: "fts",
+        publicSource: { enabled: false },
+        localDir: { enabled: true, path: "/nonexistent-should-not-be-read" },
+        store: { kind: "sqlite", sqlite: { path } },
+      },
+    });
+    // localDir points at a missing dir on purpose: if the server rebuilt, it would
+    // find nothing; since it must LOAD the prebuilt file, search still works.
+    const svc = await buildKnowledgeService(config);
+    expect(svc).toBeDefined();
+    const hits = await svc!.search("out of memory", 5);
+    expect(hits[0].chunk.text.toLowerCase()).toContain("out of memory");
+  });
+
+  it("rebuilds (fallback) when a prebuilt file's retriever metadata mismatches config", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "ditto-idx-"));
+    const path = join(dir, "index.db");
+    const { SqliteKnowledgeStore } = await import("./sqlite-knowledge-store.js");
+    const { buildIndex } = await import("./build-index.js");
+    const w = new SqliteKnowledgeStore(path);
+    await buildIndex([{ id: "s", loadChunks: async () => [
+      { id: "s#0", source: "s", title: "T", text: "netty oom", cite: "x" }] }], w, undefined,
+      { retriever: "fts" });
+    await w.close();
+    // Server configured for "vector" but the file was built for "fts" -> must not serve it.
+    const config = AppConfigSchema.parse({
+      knowledge: { retriever: "vector", embedding: { dim: 3 }, publicSource: { enabled: false },
+        localDir: { enabled: false }, store: { kind: "sqlite", sqlite: { path } } },
+    });
+    const fake = { dim: 3, embed: async (t: string[]) => t.map(() => [1, 0, 0]) };
+    const svc = await buildKnowledgeService(config, { embeddingProvider: fake });
+    // localDir disabled + publicSource disabled -> fallback build has no sources -> undefined.
+    // The point: it did NOT serve the mismatched fts file as a vector index.
+    expect(svc).toBeUndefined();
+  });
+
+  it("falls back to in-memory build when the store path is a corrupt file", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "ditto-idx-"));
+    const path = join(dir, "index.db");
+    writeFileSync(path, "this is not a sqlite database");
+    const corpus = mkdtempSync(join(tmpdir(), "ditto-corpus-"));
+    writeFileSync(join(corpus, "a.md"), "# A\n\nnetty out of memory");
+    const config = AppConfigSchema.parse({
+      knowledge: { retriever: "fts", publicSource: { enabled: false },
+        localDir: { enabled: true, path: corpus }, store: { kind: "sqlite", sqlite: { path } } },
+    });
+    const svc = await buildKnowledgeService(config);
+    expect(svc).toBeDefined();
+    expect((await svc!.search("memory", 5))[0].chunk.text.toLowerCase()).toContain("out of memory");
+  });
+
+  it("refuses to serve a prebuilt vector index with mismatched embedding dim", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "ditto-idx-"));
+    const path = join(dir, "index.db");
+    // Build a vector index with dim=3
+    const { SqliteKnowledgeStore } = await import("./sqlite-knowledge-store.js");
+    const { buildIndex } = await import("./build-index.js");
+    const fake3 = { dim: 3, embed: async (t: string[]) => t.map(() => [1, 0, 0]) };
+    const w = new SqliteKnowledgeStore(path);
+    await buildIndex([{ id: "s", loadChunks: async () => [
+      { id: "s#0", source: "s", title: "T", text: "netty oom", cite: "x" }] }], w, fake3,
+      { retriever: "vector", embeddingModel: "fake/model", embeddingDim: 3 });
+    await w.close();
+    // Now try to serve it with config expecting dim=4
+    const config = AppConfigSchema.parse({
+      knowledge: { retriever: "vector", embedding: { model: "fake/model", dim: 4 },
+        publicSource: { enabled: false }, localDir: { enabled: false },
+        store: { kind: "sqlite", sqlite: { path } } },
+    });
+    const fake4 = { dim: 4, embed: async (t: string[]) => t.map(() => [1, 0, 0, 0]) };
+    const svc = await buildKnowledgeService(config, { embeddingProvider: fake4 });
+    // The mismatched file must NOT be served; fallback has no sources -> undefined.
+    expect(svc).toBeUndefined();
+  });
+});

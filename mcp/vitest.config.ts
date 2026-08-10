@@ -5,6 +5,7 @@ export default defineConfig({
     globals: false,
     environment: "node",
     include: ["src/**/*.test.ts", "src/**/*.itest.ts"],
+    exclude: ["**/node_modules/**", "**/*.pgtest.ts"],
     testTimeout: 20000,
   },
 });

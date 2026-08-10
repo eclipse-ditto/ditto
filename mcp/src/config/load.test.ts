@@ -21,6 +21,18 @@ describe("loadConfig", () => {
     expect(cfg.knowledge.embedding.dim).toBe(384);
     expect(cfg.knowledge.embedding.batchSize).toBe(32);
     expect(cfg.knowledge.localDir.enabled).toBe(false);
+    expect(cfg.knowledge.store.kind).toBe("sqlite");
+  });
+
+  it("accepts a pgvector store config", () => {
+    const dir = mkdtempSync(join(tmpdir(), "ditto-mcp-"));
+    const file = join(dir, "c.json");
+    writeFileSync(file, JSON.stringify({
+      knowledge: { store: { kind: "pgvector", pgvector: { connectionString: "postgres://x" } } },
+    }));
+    const cfg = loadConfig(file);
+    expect(cfg.knowledge.store.kind).toBe("pgvector");
+    expect(cfg.knowledge.store.pgvector.connectionString).toBe("postgres://x");
   });
 
   it("merges values from a JSON file over defaults", () => {

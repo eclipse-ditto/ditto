@@ -8,28 +8,34 @@
   },
   "bin": {
     "ditto-mcp-stdio": "dist/bin/stdio.js",
-    "ditto-mcp-http": "dist/bin/http.js"
+    "ditto-mcp-http": "dist/bin/http.js",
+    "ditto-mcp-ingest": "dist/bin/ingest.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:pg": "vitest run --config vitest.pg.config.ts",
     "dev:stdio": "tsx src/bin/stdio.ts",
-    "dev:http": "tsx src/bin/http.ts"
+    "dev:http": "tsx src/bin/http.ts",
+    "dev:ingest": "tsx src/bin/ingest.ts"
   },
   "dependencies": {
     "@huggingface/transformers": "^3.8.1",
     "@modelcontextprotocol/sdk": "^1",
     "better-sqlite3": "^11.10.0",
     "express": "^4.21.2",
+    "pg": "^8.22.0",
     "sqlite-vec": "^0.1.9",
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@testcontainers/postgresql": "^12.1.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/express": "^4.17.21",
     "@types/node": "^22.10.0",
+    "@types/pg": "^8.20.4",
     "tsx": "^4.19.2",
     "typescript": "^5.7.0",
     "vitest": "^2.1.0"

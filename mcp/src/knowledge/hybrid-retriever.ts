@@ -7,10 +7,6 @@ export class HybridRetriever implements Retriever {
 
   constructor(private readonly retrievers: Retriever[]) {}
 
-  async add(chunks: Chunk[]): Promise<void> {
-    await Promise.all(this.retrievers.map((r) => r.add(chunks)));
-  }
-
   async search(query: string, k: number): Promise<RetrievedChunk[]> {
     const lists = await Promise.all(
       this.retrievers.map((r) => r.search(query, k)),
@@ -37,13 +33,5 @@ export class HybridRetriever implements Retriever {
         chunk: byId.get(id)!,
         matchedBy: Array.from(matchedBy.get(id)!).sort(),
       }));
-  }
-
-  async getChunk(id: string): Promise<Chunk | undefined> {
-    for (const r of this.retrievers) {
-      const c = await r.getChunk(id);
-      if (c) return c;
-    }
-    return undefined;
   }
 }

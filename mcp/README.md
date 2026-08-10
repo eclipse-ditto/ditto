@@ -105,6 +105,110 @@ no embedding stack. See `embedding` config below.
 }
 ```
 
+### Persistence & Ingestion (P2b-2)
+
+The knowledge index (chunks, FTS, and vectors) lives in a pluggable
+`KnowledgeStore` backend. Currently, `SqliteKnowledgeStore` persists everything
+to a single `.db` file; `PgKnowledgeStore` (pgvector + Postgres FTS) is next
+(P2c).
+
+#### Store Configuration
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `knowledge.store.kind` | `"sqlite" \| "pgvector"` | `"sqlite"` | Store backend: `sqlite` (file-based, default) or `pgvector` (Postgres + pgvector + FTS) |
+| `knowledge.store.sqlite.path` | `string?` | `undefined` | Path to the SQLite file. If unset or missing, the server builds an in-memory index at startup. |
+| `knowledge.store.pgvector.connectionString` | `string?` | `undefined` | Postgres connection string (e.g., `postgresql://user:pass@host:5432/ditto`). Required when `kind: "pgvector"`. |
+| `knowledge.store.pgvector.table` | `string` | `"ditto_kn"` | Table name prefix for Postgres tables (chunks, FTS, vectors). |
+
+**Example (SQLite persistent store):**
+```json
+{
+  "knowledge": {
+    "retriever": "fts",
+    "store": { "kind": "sqlite", "sqlite": { "path": "/var/lib/ditto-mcp/index.db" } }
+  }
+}
+```
+
+**Example (Postgres / pgvector store — AWS RDS):**
+```json
+{
+  "knowledge": {
+    "retriever": "hybrid",
+    "store": {
+      "kind": "pgvector",
+      "pgvector": {
+        "connectionString": "postgresql://user:password@my-rds.c9akciq32.us-east-1.rds.amazonaws.com:5432/ditto",
+        "table": "ditto_kn"
+      }
+    }
+  }
+}
+```
+
+#### Postgres / pgvector (P2c-2)
+
+When `knowledge.store.kind: "pgvector"`, the server uses Postgres for persistence:
+- **Vectors**: stored in a `pgvector` column (requires the `vector` extension)
+- **Keyword index**: built using Postgres `tsvector` FTS
+- **Chunks**: stored in a text table
+
+**Setup:**
+1. Create a Postgres database (e.g., `ditto`).
+2. Ensure the `vector` extension is available. For **AWS RDS**:
+   - Create a custom parameter group with `rds.extensions = 'vector'`
+   - Apply it to your Postgres instance
+   - Connect and run `CREATE EXTENSION IF NOT EXISTS vector;`
+3. Configure the connection string in your config JSON.
+
+**Ingest:** The `ingest` command fetches the corpus, embeds vectors, and writes all chunks/FTS/vectors to Postgres:
+```bash
+DITTO_MCP_CONFIG=/path/to/config.json npm run dev:ingest
+```
+
+On the first run, the server validates index metadata (retriever, embedding model/dim, schema version). On re-ingest, the server calls `reset()` (drops the vec table and clears chunks/meta), rebuilds the index, and sets the completion flag — this is an **offline/maintenance operation** (not zero-downtime for a live instance). Re-ingest always replaces the full index from scratch, and can survive embedding-dim changes (reset() drops and recreates the vec table).
+
+**Server Load-or-Build Behavior:**
+- **Index exists & metadata matches**: server connects and serves immediately (no rebuild).
+- **Index missing or metadata mismatch**: server logs a warning and disables knowledge tools (pgvector backend does NOT fall back to in-memory build — you MUST run `ingest` to populate Postgres before the server can serve knowledge).
+- **Connection failure**: server exits with an error (Postgres backend requires a live database).
+
+**Integration Tests:**
+Postgres integration tests run via `npm run test:pg` (requires Docker and testcontainers):
+```bash
+npm run test:pg
+```
+These tests are **excluded** from the default `npm test` suite to keep the default test run hermetic (no Docker, no network, no external dependencies).
+
+#### Ingest Command
+
+To pre-build the index and persist it to a file (SQLite) or database (Postgres), use the `ingest` command:
+
+```bash
+# Development
+DITTO_MCP_CONFIG=/path/to/config.json npm run dev:ingest
+
+# Built
+DITTO_MCP_CONFIG=/path/to/config.json ditto-mcp-ingest
+```
+
+The `ingest` command reads the config, fetches/indexes the corpus, and writes the store (file path for SQLite, or Postgres for pgvector). The config must specify a valid store location, or `ingest` will error.
+
+#### Server Load-or-Build Behavior
+
+When the server starts:
+- **Populated store exists & metadata matches**: opens the prebuilt store and validates index metadata (retriever mode, embedding model/dim, schema version, and completion flag). If metadata matches the config, the store is served instantly (no fetch/embed).
+- **SQLite — missing/empty/mismatched store**: builds the index in memory (fallback mode). The server never writes the file automatically — use `ingest` to persist. A corrupt or mismatched file at `knowledge.store.sqlite.path` never crashes the server or disables knowledge — it triggers the same in-memory fallback as a missing file.
+- **Postgres — missing/empty/mismatched store**: server logs a warning and disables knowledge tools (pgvector backend does NOT fall back to in-memory build — you MUST run `ingest` to populate Postgres before the server can serve knowledge).
+- **Postgres connection failure**: exits with an error. Postgres backend requires a live database.
+
+The `ingest` command uses backend-specific atomic writes:
+- **SQLite**: temp file + rename on success (zero-downtime, crash-safe).
+- **Postgres**: `reset()` → rebuild → set completion flag (offline operation; re-ingest requires downtime, but can survive embedding-dim changes since reset() drops and recreates the vec table).
+
+The async `KnowledgeStore` lifecycle (`isPopulated()`, `getMeta()`, `setMeta()`, `reset()`, `close()`) enables both `SqliteKnowledgeStore` and `PgKnowledgeStore` to plug in behind the same interface with no churn to `build.ts` or `build-index.ts`. Both backends validate metadata and support offline re-ingest.
+
 ### HTTP Server Options (`server.http`)
 
 | Field | Type | Default | Description |

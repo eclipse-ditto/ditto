@@ -2,8 +2,9 @@ import { describe, it, expect, afterEach } from "vitest";
 import { registerTools } from "./index.js";
 import { AppConfigSchema } from "../config/schema.js";
 import { KnowledgeService } from "../knowledge/knowledge-service.js";
+import { SqliteKnowledgeStore } from "../knowledge/sqlite-knowledge-store.js";
 import { FtsRetriever } from "../knowledge/fts-retriever.js";
-import type { KnowledgeSource, Chunk } from "../knowledge/types.js";
+import type { Chunk } from "../knowledge/types.js";
 
 const chunk = (id: string, text: string): Chunk => ({
   id,
@@ -13,13 +14,8 @@ const chunk = (id: string, text: string): Chunk => ({
   cite: `https://x/${id}`,
 });
 
-const fakeSource = (chunks: Chunk[]): KnowledgeSource => ({
-  id: "fake",
-  loadChunks: async () => chunks,
-});
-
-let retriever: FtsRetriever | undefined;
-afterEach(() => retriever?.close());
+let store: SqliteKnowledgeStore | undefined;
+afterEach(() => store?.close());
 
 describe("registerTools wiring", () => {
   it("registers ping by default", () => {
@@ -46,12 +42,10 @@ describe("registerTools wiring", () => {
   });
 
   it("registers knowledge tools when enabled and service provided", async () => {
-    retriever = new FtsRetriever();
-    const service = new KnowledgeService(
-      [fakeSource([chunk("a", "test content")])],
-      retriever,
-    );
-    await service.init();
+    store = new SqliteKnowledgeStore(":memory:");
+    await store.addChunks([chunk("a", "test content")]);
+    const retriever = new FtsRetriever(store);
+    const service = new KnowledgeService(store, retriever);
     const reg = registerTools(
       AppConfigSchema.parse({ knowledge: { enabled: true } }),
       service,

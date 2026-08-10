@@ -8,15 +8,12 @@ const chunk = (id: string): Chunk => ({
 
 // Fake retrievers returning fixed ranked lists.
 function fixed(kind: string, ids: string[]): Retriever {
-  const map = new Map(ids.map((id) => [id, chunk(id)]));
   return {
     kind,
-    add: async () => {},
     search: async (_q, k): Promise<RetrievedChunk[]> => ids.slice(0, k).map((id) => ({
-      chunk: map.get(id)!,
+      chunk: chunk(id),
       matchedBy: [kind],
     })),
-    getChunk: async (id) => map.get(id),
   };
 }
 
@@ -54,9 +51,4 @@ describe("HybridRetriever", () => {
     expect(d_hit!.matchedBy).toEqual(["vector"]);
   });
 
-  it("getChunk finds a chunk from any retriever", async () => {
-    const h = new HybridRetriever([fixed("fts", ["a"]), fixed("vector", ["z"])]);
-    expect((await h.getChunk("z"))?.id).toBe("z");
-    expect(await h.getChunk("missing")).toBeUndefined();
-  });
 });

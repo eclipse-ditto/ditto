@@ -1,25 +1,21 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { KnowledgeService } from "../knowledge/knowledge-service.js";
+import { SqliteKnowledgeStore } from "../knowledge/sqlite-knowledge-store.js";
 import { FtsRetriever } from "../knowledge/fts-retriever.js";
 import { makeKnowledgeTools } from "./knowledge.js";
 import { AppConfigSchema } from "../config/schema.js";
-import type { KnowledgeSource } from "../knowledge/types.js";
-
-const src: KnowledgeSource = {
-  id: "s",
-  loadChunks: async () => [
-    { id: "a", source: "s", title: "Things", text: "a thing is a digital twin", cite: "https://x/a" },
-  ],
-};
 
 const ctx = { config: AppConfigSchema.parse({}) };
-let r: FtsRetriever;
-afterEach(() => r?.close());
+let store: SqliteKnowledgeStore | undefined;
+afterEach(() => store?.close());
 
 async function tools() {
-  r = new FtsRetriever();
-  const svc = new KnowledgeService([src], r);
-  await svc.init();
+  store = new SqliteKnowledgeStore(":memory:");
+  await store.addChunks([
+    { id: "a", source: "s", title: "Things", text: "a thing is a digital twin", cite: "https://x/a" },
+  ]);
+  const retriever = new FtsRetriever(store);
+  const svc = new KnowledgeService(store, retriever);
   return Object.fromEntries(makeKnowledgeTools(svc).map((t) => [t.name, t]));
 }
 
