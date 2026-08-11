@@ -1,7 +1,6 @@
-import type { AppConfig } from "../config/schema.js";
+import type { CredentialConfig } from "../config/schema.js";
 
 export interface DittoCredential {
-  readonly isDevops: boolean;
   authHeader(signal?: AbortSignal): Promise<string | undefined>;
 }
 
@@ -10,7 +9,7 @@ function first(h: string | string[] | undefined): string | undefined {
 }
 
 class StaticCredential implements DittoCredential {
-  constructor(readonly isDevops: boolean, private readonly header: string | undefined) {}
+  constructor(private readonly header: string | undefined) {}
   async authHeader(): Promise<string | undefined> {
     return this.header;
   }
@@ -21,18 +20,14 @@ interface OidcOptions {
   clientId: string;
   clientSecret: string;
   scope?: string;
-  isDevops: boolean;
 }
 
 export class OidcClientCredential implements DittoCredential {
-  readonly isDevops: boolean;
   private token?: string;
   private expiresAt = 0;
   private inflight?: Promise<string>;
 
-  constructor(private readonly opts: OidcOptions, private readonly fetchFn: typeof fetch = fetch) {
-    this.isDevops = opts.isDevops;
-  }
+  constructor(private readonly opts: OidcOptions, private readonly fetchFn: typeof fetch = fetch) {}
 
   async authHeader(signal?: AbortSignal): Promise<string | undefined> {
     const now = Date.now();
@@ -63,33 +58,32 @@ export class OidcClientCredential implements DittoCredential {
   }
 }
 
-export function createConfigCredential(config: AppConfig, fetchFn: typeof fetch = fetch): DittoCredential {
-  const c = config.ditto.credential;
-  const isDevops = c.devops ?? c.kind === "devops";
+/** Build a credential from a single credential-config object (standard or devops slot). */
+export function createConfigCredential(c: CredentialConfig, fetchFn: typeof fetch = fetch): DittoCredential {
   if (c.kind === "oidc") {
     if (!c.tokenUrl || !c.clientId || !c.clientSecret) {
       process.stderr.write("[ditto-mcp] oidc credential missing tokenUrl/clientId/clientSecret; using no credential\n");
-      return new StaticCredential(isDevops, undefined);
+      return new StaticCredential(undefined);
     }
     return new OidcClientCredential(
-      { tokenUrl: c.tokenUrl, clientId: c.clientId, clientSecret: c.clientSecret, scope: c.scope, isDevops },
+      { tokenUrl: c.tokenUrl, clientId: c.clientId, clientSecret: c.clientSecret, scope: c.scope },
       fetchFn,
     );
   }
   if (c.username !== undefined) {
-    const header = `Basic ${Buffer.from(`${c.username}:${c.password ?? ""}`).toString("base64")}`;
-    return new StaticCredential(isDevops, header);
+    return new StaticCredential(`Basic ${Buffer.from(`${c.username}:${c.password ?? ""}`).toString("base64")}`);
   }
-  return new StaticCredential(false, undefined);
+  return new StaticCredential(undefined);
 }
 
+/** A per-session `Authorization` header, when present, replaces the base credential. */
 export function resolveCredential(
-  configCredential: DittoCredential,
+  base: DittoCredential,
   ctx: { headers?: Record<string, string | string[] | undefined> },
 ): DittoCredential {
   const headers = ctx.headers ?? {};
   const key = Object.keys(headers).find((k) => k.toLowerCase() === "authorization");
   const sessionAuth = first(key ? headers[key] : undefined);
-  if (sessionAuth) return new StaticCredential(configCredential.isDevops, sessionAuth);
-  return configCredential;
+  if (sessionAuth) return new StaticCredential(sessionAuth);
+  return base;
 }

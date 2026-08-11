@@ -204,29 +204,27 @@ The server can expose action tools dynamically generated from a Ditto OpenAPI sp
 |-------|------|---------|-------------|
 | `ditto.enabled` | `boolean` | `false` | Enable action tools |
 | `ditto.baseUrl` | `string` | (required if enabled) | Base URL to Ditto instance (e.g., `http://localhost:8080`) |
-| `ditto.openApi.path` | `string?` | `undefined` | Path to local OpenAPI spec file. If unset, uses bundled spec. |
-| `ditto.openApi.url` | `string?` | `undefined` | URL to fetch OpenAPI spec from. If unset, uses bundled spec. |
+| `ditto.openApi.path` | `string?` | `undefined` | Path to a local OpenAPI spec file. |
+| `ditto.openApi.url` | `string?` | `undefined` | URL to fetch the OpenAPI spec from. |
+| `ditto.openApi.version` | `string?` | `undefined` | Ditto git tag/ref (e.g. `3.6.0`) to fetch the matching spec for, via `versionUrlTemplate`. |
+| `ditto.openApi.versionUrlTemplate` | `string` | eclipse-ditto raw URL | URL template with a `${version}` placeholder; override for forks/mirrors. |
 
-If both `path` and `url` are unset, the server uses the bundled pinned Ditto OpenAPI spec (`mcp/assets/ditto-openapi.yml`), which is a snapshot of a known Ditto release and works offline.
+Spec resolution precedence (first match wins): `path` > `url` > `version` > the in-repo canonical spec (`documentation/src/main/resources/openapi/ditto-api-2.yml`), which matches the checked-out Ditto version and works offline. Set `version` to target a different Ditto release at runtime (requires network).
 
 #### Credentials
 
-Action tools support three credential modes:
+Action tools support two credential modes:
 
 | Kind | Description |
 |------|-------------|
 | `basic` | Username + password (sent as `Authorization: Basic <base64(user:pass)>`) |
-| `devops` | Static bearer token (sent as `Authorization: Bearer <token>`) |
-| `oidc` | OAuth2 client-credentials flow (exchanges `clientId` + `clientSecret` for an access token, auto-refreshes ~30s before expiry) |
-
-**Config-level credentials** (`ditto.credential`) are forwarded to every action-tool call unless overridden by a per-session `Authorization` header (session-level credentials).
+| `oidc` | OAuth2 client-credentials flow: requests a token from `tokenUrl` using `clientId` + `clientSecret`, sends it as `Authorization: Bearer <token>`, auto-refreshes ~30s before expiry |
 
 **OIDC credential fields:**
 - `tokenUrl` (required) — OAuth2 token endpoint
 - `clientId` (required) — OAuth2 client identifier
 - `clientSecret` (required) — OAuth2 client secret (never logged)
 - `scope` (optional) — OAuth2 scopes (space-separated)
-- `devops` (optional) — Operator assertion that the credential is devops-capable (required for sudo operations)
 
 Example:
 ```json
@@ -245,6 +243,30 @@ Example:
 }
 ```
 
+**Standard vs devops credentials:**
+
+`ditto.credential` authenticates standard operations. `ditto.devopsCredential` (optional, same shape) authenticates **sudo** operations — `/devops/*`, `sudo*`, and the secret-bearing connectivity API (`/api/2/connections*`).
+
+- Sudo operations use `devopsCredential` **exclusively**. If `devopsCredential` is not set, every sudo tool is refused at the MCP layer (even if `credential` could reach it).
+- `devopsCredential` may be `basic` (Ditto `DevOpsBasic`: a devops user's username/password) or `oidc` (Ditto `DevOpsBearer`: OAuth2). For a separate devops OIDC identity, give it its own `clientId`/`clientSecret`.
+- A per-session `Authorization` header overrides whichever credential the operation selected (standard for normal ops, devops for sudo ops).
+
+Example (separate OIDC identities):
+
+```json
+{
+  "ditto": {
+    "enabled": true,
+    "baseUrl": "http://localhost:8080",
+    "credential":       { "kind": "oidc", "tokenUrl": "https://idp/token", "clientId": "app",    "clientSecret": "..." },
+    "devopsCredential": { "kind": "oidc", "tokenUrl": "https://idp/token", "clientId": "devops", "clientSecret": "..." },
+    "policy": { "sudoAllowlist": ["getConnections"] }
+  }
+}
+```
+
+**Migration from earlier configs:** the `devops` credential kind and the `devops: true` flag are removed. Move a devops credential into `ditto.devopsCredential` (use `kind: "basic"` for a devops username/password).
+
 **Authorization enforcement:** The MCP never decides authorization. It forwards the credential (or `Authorization` header) and lets Ditto enforce access control. Credentials are never logged.
 
 #### Policy
@@ -257,14 +279,19 @@ By default, action tools only expose **read** (`GET`) operations. Write and priv
 | `ditto.policy.writeAllowlist` | `string[]` | `[]` | Per-operation granular allowlist for enabling specific write operations (operationIds) |
 | `ditto.policy.sudoAllowlist` | `string[]` | `[]` | Per-operation allowlist for sudo/devops-privileged operations (operationIds) |
 
-**Sudo operations & devops flag:**
+**Sudo operations & devops credential:**
 
 Ditto secures `/api/2/connections*` (secret-bearing) with `DevOpsBasic`/`DevOpsBearer` security, and `/devops/*` paths are devops-privileged. These operations are classified as "sudo" and:
 - Must be explicitly listed in `sudoAllowlist` (by operationId)
-- Require a devops-capable credential. If a devops credential is not present, the operation is refused and never sent to Ditto.
+- Require `ditto.devopsCredential` to be configured.
 - Are NOT auto-allowed even if the method is `GET` and in `allowMethods`.
 
-Set `credential.devops: true` as an **operator assertion** that the credential is devops-capable. This gates `sudo*`/`/devops`/`/connections` tools at the MCP layer — Ditto still enforces the real authorization. Deriving `devops` from token introspection/claims is a future enhancement (currently, `basic` and `devops` kinds are implicitly devops-capable; `oidc` requires explicit `devops: true`).
+Connectivity is always devops-gated (classified sudo regardless of the OpenAPI spec's declared security), but policy granularity is unchanged — `sudoAllowlist` is a per-`operationId` opt-in (default `[]` = all sudo blocked). Allow connections while blocking direct-actor/devops commands by listing only the connection operationIds:
+
+- Connections read only: `"sudoAllowlist": ["getConnections", "getConnection"]`
+- Full connections CRUD, still blocking piggyback/devops: `"sudoAllowlist": ["getConnections","getConnection","createConnection","modifyConnection","deleteConnection"]`
+
+All sudo operations still require `ditto.devopsCredential` to be set.
 
 **Examples:**
 

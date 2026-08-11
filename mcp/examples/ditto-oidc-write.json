@@ -5,14 +5,19 @@
     "credential": {
       "kind": "oidc",
       "tokenUrl": "https://idp.example/token",
-      "clientId": "REPLACE_ME",
-      "clientSecret": "REPLACE_ME",
-      "devops": true
+      "clientId": "REPLACE_ME_APP_CLIENT",
+      "clientSecret": "REPLACE_ME"
+    },
+    "devopsCredential": {
+      "kind": "oidc",
+      "tokenUrl": "https://idp.example/token",
+      "clientId": "REPLACE_ME_DEVOPS_CLIENT",
+      "clientSecret": "REPLACE_ME"
     },
     "policy": {
       "allowMethods": ["GET"],
       "writeAllowlist": ["putThing"],
-      "sudoAllowlist": ["sudoRetrieveThing"]
+      "sudoAllowlist": ["sudoRetrieveThing", "getConnections"]
     }
   }
 }

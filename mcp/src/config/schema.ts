@@ -1,5 +1,17 @@
 import { z } from "zod";
 
+const CredentialSchema = z.object({
+  kind: z.enum(["basic", "oidc"]).default("basic"),
+  username: z.string().optional(),
+  password: z.string().optional(),
+  tokenUrl: z.string().optional(),
+  clientId: z.string().optional(),
+  clientSecret: z.string().optional(),
+  scope: z.string().optional(),
+});
+
+export type CredentialConfig = z.infer<typeof CredentialSchema>;
+
 export const AppConfigSchema = z
   .object({
     server: z
@@ -84,20 +96,19 @@ export const AppConfigSchema = z
         enabled: z.boolean().default(false),
         baseUrl: z.string().optional(),
         openApi: z
-          .object({ path: z.string().optional(), url: z.string().optional() })
-          .default({}),
-        credential: z
           .object({
-            kind: z.enum(["basic", "devops", "oidc"]).default("basic"),
-            username: z.string().optional(),
-            password: z.string().optional(),
-            tokenUrl: z.string().optional(),
-            clientId: z.string().optional(),
-            clientSecret: z.string().optional(),
-            scope: z.string().optional(),
-            devops: z.boolean().optional(),
+            path: z.string().optional(),
+            url: z.string().optional(),
+            version: z.string().optional(),
+            versionUrlTemplate: z
+              .string()
+              .default(
+                "https://raw.githubusercontent.com/eclipse-ditto/ditto/${version}/documentation/src/main/resources/openapi/ditto-api-2.yml",
+              ),
           })
-          .default({ kind: "basic" }),
+          .default({}),
+        credential: CredentialSchema.default({ kind: "basic" }),
+        devopsCredential: CredentialSchema.optional(),
         policy: z
           .object({
             allowMethods: z.array(z.string()).default(["GET"]),

@@ -39,7 +39,12 @@ function text(t: string): ToolResult {
   return { content: [{ type: "text", text: t }] };
 }
 
-export function operationToTool(op: DittoOperation, client: DittoClient, configCredential: DittoCredential): ToolDef {
+export interface ToolCredentials {
+  standard: DittoCredential;
+  devops?: DittoCredential;
+}
+
+export function operationToTool(op: DittoOperation, client: DittoClient, creds: ToolCredentials): ToolDef {
   const sudo = isSudo(op);
   return {
     name: sanitizeName(op.operationId),
@@ -48,10 +53,12 @@ export function operationToTool(op: DittoOperation, client: DittoClient, configC
       (sudo ? " [sudo — requires a devops credential]" : ""),
     inputSchema: inputSchema(op),
     handler: async (args: unknown, ctx: RequestCtx): Promise<ToolResult> => {
-      const credential = resolveCredential(configCredential, { headers: ctx.headers });
-      if (sudo && !credential.isDevops) {
-        return text(`Refused: "${op.operationId}" is a sudo operation and requires a devops credential.`);
+      // Non-sudo ops always have `standard`; sudo ops require the `devops` slot.
+      const base = sudo ? creds.devops : creds.standard;
+      if (!base) {
+        return text(`Refused: "${op.operationId}" is a sudo operation and requires ditto.devopsCredential.`);
       }
+      const credential = resolveCredential(base, { headers: ctx.headers });
       const res = await client.execute(op, (args ?? {}) as Record<string, unknown>, credential, ctx.signal);
       return text(`HTTP ${res.status}\n${res.body}`);
     },

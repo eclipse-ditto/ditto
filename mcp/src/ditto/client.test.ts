@@ -6,7 +6,7 @@ import type { DittoOperation } from "./openapi.js";
 const op = (over: Partial<DittoOperation>): DittoOperation => ({
   operationId: "op", method: "GET", path: "/x", summary: "", description: "", params: [], hasBody: false, ...over,
 });
-const cred = (h?: string) => ({ isDevops: false, authHeader: async () => h });
+const cred = (h?: string) => ({ authHeader: async () => h });
 
 let fake: Awaited<ReturnType<typeof startFakeDitto>>;
 afterEach(async () => { await fake?.stop(); });

@@ -8,7 +8,8 @@ export function isSudo(op: DittoOperation): boolean {
     hasDevopsSecurity ||
     op.operationId.toLowerCase().startsWith("sudo") ||
     p.includes("/sudo") ||
-    p.startsWith("/devops")
+    p.startsWith("/devops") ||
+    p.includes("/connections") // connectivity is secret-bearing → always devops
   );
 }
 

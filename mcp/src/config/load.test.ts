@@ -56,15 +56,47 @@ describe("loadConfig", () => {
     expect(() => loadConfig(file)).toThrow();
   });
 
-  it("accepts an oidc credential config", () => {
+  it("accepts an oidc credential and an optional devopsCredential", () => {
     const dir = mkdtempSync(join(tmpdir(), "ditto-mcp-"));
     const file = join(dir, "c.json");
     writeFileSync(file, JSON.stringify({
-      ditto: { enabled: true, credential: { kind: "oidc", tokenUrl: "https://idp/token", clientId: "c", clientSecret: "s", scope: "ditto", devops: true } },
+      ditto: {
+        enabled: true,
+        credential: { kind: "oidc", tokenUrl: "https://idp/token", clientId: "c", clientSecret: "s", scope: "ditto" },
+        devopsCredential: { kind: "oidc", tokenUrl: "https://idp/token", clientId: "dev", clientSecret: "s2" },
+      },
     }));
     const cfg = loadConfig(file);
     expect(cfg.ditto.credential.kind).toBe("oidc");
     expect(cfg.ditto.credential.tokenUrl).toBe("https://idp/token");
-    expect(cfg.ditto.credential.devops).toBe(true);
+    expect(cfg.ditto.devopsCredential?.clientId).toBe("dev");
+  });
+
+  it("rejects the removed devops credential kind", () => {
+    const dir = mkdtempSync(join(tmpdir(), "ditto-mcp-"));
+    const file = join(dir, "c.json");
+    writeFileSync(file, JSON.stringify({ ditto: { enabled: true, credential: { kind: "devops", username: "d", password: "s" } } }));
+    expect(() => loadConfig(file)).toThrow();
+  });
+});
+
+describe("openApi version config", () => {
+  it("defaults versionUrlTemplate to the eclipse-ditto raw URL", () => {
+    const cfg = loadConfig();
+    expect(cfg.ditto.openApi.version).toBeUndefined();
+    expect(cfg.ditto.openApi.versionUrlTemplate).toBe(
+      "https://raw.githubusercontent.com/eclipse-ditto/ditto/${version}/documentation/src/main/resources/openapi/ditto-api-2.yml",
+    );
+  });
+
+  it("accepts an explicit version and custom template", () => {
+    const dir = mkdtempSync(join(tmpdir(), "ditto-mcp-"));
+    const file = join(dir, "c.json");
+    writeFileSync(file, JSON.stringify({
+      ditto: { openApi: { version: "3.6.0", versionUrlTemplate: "https://mirror.example/${version}/spec.yml" } },
+    }));
+    const cfg = loadConfig(file);
+    expect(cfg.ditto.openApi.version).toBe("3.6.0");
+    expect(cfg.ditto.openApi.versionUrlTemplate).toBe("https://mirror.example/${version}/spec.yml");
   });
 });

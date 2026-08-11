@@ -1,8 +1,22 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { makeActionTools } from "./action-tools.js";
+import { makeActionTools, buildVersionUrl } from "./action-tools.js";
 import { HttpDittoClient } from "./client.js";
 import { startFakeDitto } from "./fake-ditto.js";
 import { AppConfigSchema } from "../config/schema.js";
+
+describe("buildVersionUrl", () => {
+  it("substitutes the ${version} placeholder", () => {
+    const template =
+      "https://raw.githubusercontent.com/eclipse-ditto/ditto/${version}/documentation/src/main/resources/openapi/ditto-api-2.yml";
+    expect(buildVersionUrl(template, "3.6.0")).toBe(
+      "https://raw.githubusercontent.com/eclipse-ditto/ditto/3.6.0/documentation/src/main/resources/openapi/ditto-api-2.yml",
+    );
+  });
+
+  it("substitutes every occurrence", () => {
+    expect(buildVersionUrl("a/${version}/b/${version}", "1.2.3")).toBe("a/1.2.3/b/1.2.3");
+  });
+});
 
 const SPEC = {
   paths: {
@@ -66,5 +80,11 @@ describe("makeActionTools", () => {
     expect(names).toContain("foo_bar_2");
     expect(names).toContain("foo_bar_3");
     expect(names.length).toBe(3);
+  });
+
+  it("a sudo tool refuses at call time when no devopsCredential is configured", async () => {
+    const { byName, config } = await tools({ allowMethods: ["GET"], writeAllowlist: [], sudoAllowlist: ["sudoRetrieveThing"] });
+    const res = await byName.sudoRetrieveThing.handler({ thingId: "ns:1" }, { config, headers: {} } as never);
+    expect(res.content[0].text.toLowerCase()).toContain("devopscredential");
   });
 });

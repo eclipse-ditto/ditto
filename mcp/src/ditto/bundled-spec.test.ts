@@ -6,7 +6,11 @@ import YAML from "yaml";
 import { parseOperations } from "./openapi.js";
 import { isSudo } from "./tool-policy.js";
 
-const specPath = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "assets", "ditto-openapi.yml");
+const specPath = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "..", "..", "..",
+  "documentation", "src", "main", "resources", "openapi", "ditto-api-2.yml",
+);
 
 describe("bundled Ditto spec", () => {
   it("parses and yields operations incl. a things GET with a resolved path param", () => {

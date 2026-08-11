@@ -45,4 +45,11 @@ describe("tool-policy", () => {
     const op2 = op({ securitySchemes: ["DevOpsBearer"], path: "/api/2/connections/foo" });
     expect(isSudo(op2)).toBe(true);
   });
+
+  it("treats /api/2/connections as sudo even without declared devops security (path rule)", () => {
+    const conn = op({ operationId: "getConnections", method: "GET", path: "/api/2/connections", securitySchemes: [] });
+    expect(isSudo(conn)).toBe(true);
+    expect(isAllowed(conn, policy({}))).toBe(false); // GET but connections -> not auto-allowed
+    expect(isAllowed(conn, policy({ sudoAllowlist: ["getConnections"] }))).toBe(true);
+  });
 });
