@@ -9,6 +9,9 @@ export interface Chunk {
 export interface RetrievedChunk {
   chunk: Chunk;
   matchedBy: string[]; // leaf retriever kinds, e.g. ["fts"], ["vector"], ["fts","vector"]
+  // "anchor" = matched by the retriever; "context" = a positional neighbor pulled
+  // in by expansion. Absent means anchor (pre-expansion results).
+  role?: "anchor" | "context";
 }
 
 /** A corpus provider: yields chunks. Does not search. */

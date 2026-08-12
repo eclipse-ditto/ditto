@@ -236,6 +236,31 @@ Controls how source markdown is split into indexed chunks. Applies to all source
 
 **⚠️ Ceiling for `vector`/`hybrid`:** the embedding model bounds useful chunk size. `bge-small-en-v1.5` has a **512-token (~1500–2000 char) window** — text beyond it is silently truncated before embedding, so a chunk larger than the window loses semantic recall on its tail. Keep `maxChars` at/under the model's window for vector search, or switch to a longer-context embedding model. For `fts` (no embeddings) there is no such limit; larger chunks are safe.
 
+#### Search (query-time)
+
+Applies at search time — no re-ingest needed. The `search` tool accepts per-call `limit` and `context` args that override these defaults.
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `knowledge.search.limit` | `number` | `5` | Default number of **matches (anchors)** returned. Max 20. Neighbors from `context` do not count against it. |
+| `knowledge.search.context` | `number` | `1` | **Neighbor expansion**: adjacent same-document chunks pulled in on each side of every match, for surrounding context. Max 5. `0` = matches only. |
+
+**Neighbor expansion** decouples *retrieval granularity* from *context delivery*. The retriever finds the relevant chunk (anchor); expansion then fetches its positional neighbors (same document, adjacent ordinal) **by id — never re-scored or re-embedded**. This is retriever-agnostic: an `fts`, `vector`, or `hybrid` match all get the same neighbors, since neighbors are defined by document layout, not by how the anchor was found. Results are emitted as contiguous spans in reading order; neighbors are tagged `context` (vs. `matched: …`) so their relevance isn't over-weighted.
+
+Why it matters for `vector`/`hybrid`: keep chunks **small** (sharp embeddings, under the 512-token ceiling) and recover surrounding context via `context` instead of fat chunks. Because neighbors are fetched by id, expansion never touches the embedding ceiling.
+
+**Interaction with `chunk.overlap`:** overlap and neighbor expansion both fight boundary loss, so they partly overlap in purpose. With `context ≥ 1`, adjacent chunks are already returned — so a positive `overlap` duplicates the seam text. When using expansion, set `chunk.overlap` low or `0`.
+
+Recommended for `hybrid`: small chunks + expansion, no overlap:
+
+```json
+{ "knowledge": {
+  "retriever": "hybrid",
+  "chunk":  { "maxChars": 1000, "overlap": 0 },
+  "search": { "limit": 5, "context": 1 }
+} }
+```
+
 #### Embedding (for vector/hybrid)
 
 | Field | Type | Default | Description |

@@ -9,21 +9,33 @@ function formatChunk(c: Chunk, extraFooter = ""): string {
 }
 
 function formatRetrievedChunk(rc: RetrievedChunk): string {
-  return formatChunk(rc.chunk, ` · matched: ${rc.matchedBy.join("+")}`);
+  // Neighbors pulled in by context expansion aren't retriever matches — label
+  // them so their relevance isn't over-weighted vs. the actual anchors.
+  const tag = rc.role === "context" ? "context" : `matched: ${rc.matchedBy.join("+")}`;
+  return formatChunk(rc.chunk, ` · ${tag}`);
 }
 
 function textResult(text: string): ToolResult {
   return { content: [{ type: "text", text }] };
 }
 
-export function makeKnowledgeTools(service: KnowledgeService): ToolDef[] {
+export interface SearchDefaults {
+  limit: number;
+  context: number;
+}
+
+export function makeKnowledgeTools(
+  service: KnowledgeService,
+  defaults: SearchDefaults = { limit: 5, context: 0 },
+): ToolDef[] {
   const search: ToolDef = {
     name: "search",
     description:
       "Search the Ditto knowledge base (official docs plus any configured corpora) and " +
       "return the most relevant documentation excerpts, each with a source URL and a chunk id. " +
       "Use natural-language questions about Ditto concepts, configuration, HTTP/Ditto protocol, " +
-      "connectivity, policies, or operations.",
+      "connectivity, policies, or operations. Each match ('matched: ...') may be followed by " +
+      "adjacent 'context' excerpts from the same document to preserve surrounding meaning.",
     inputSchema: {
       query: z
         .string()
@@ -38,13 +50,25 @@ export function makeKnowledgeTools(service: KnowledgeService): ToolDef[] {
         .max(20)
         .optional()
         .describe(
-          "Maximum number of documentation excerpts to return. Default 5, maximum 20. " +
-            "Increase for broader context, decrease for only the top matches.",
+          `Maximum number of matching excerpts (anchors) to return. Default ${defaults.limit}, maximum 20. ` +
+            "Neighbors added by 'context' do not count against this.",
+        ),
+      context: z
+        .number()
+        .int()
+        .min(0)
+        .max(5)
+        .optional()
+        .describe(
+          `Adjacent same-document excerpts to include on each side of every match, for ` +
+            `surrounding context. Default ${defaults.context}, maximum 5. Set 0 for matches only.`,
         ),
     },
     handler: async (args: unknown): Promise<ToolResult> => {
-      const { query, limit } = args as { query: string; limit?: number };
-      const hits = await service.search(query, limit ?? 5);
+      const { query, limit, context } = args as { query: string; limit?: number; context?: number };
+      const hits = await service.search(query, limit ?? defaults.limit, {
+        context: context ?? defaults.context,
+      });
       if (hits.length === 0) return textResult(`No results for "${query}".`);
       return textResult(hits.map(formatRetrievedChunk).join("\n\n---\n\n"));
     },

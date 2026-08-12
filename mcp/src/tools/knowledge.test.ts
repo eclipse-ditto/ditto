@@ -42,4 +42,28 @@ describe("knowledge tools", () => {
     const miss = await t.get_chunk.handler({ id: "nope" }, ctx);
     expect(miss.content[0].text.toLowerCase()).toContain("not found");
   });
+
+  it("search pulls in same-document neighbors as labeled context", async () => {
+    store = new SqliteKnowledgeStore(":memory:");
+    await store.addChunks([
+      { id: "pub#0", source: "pub", title: "T", text: "alpha prelude", cite: "https://x/doc" },
+      { id: "pub#1", source: "pub", title: "T", text: "bravo uniquematchword baz", cite: "https://x/doc" },
+      { id: "pub#2", source: "pub", title: "T", text: "charlie epilogue", cite: "https://x/doc" },
+    ]);
+    const svc = new KnowledgeService(store, new FtsRetriever(store));
+    const t = Object.fromEntries(
+      makeKnowledgeTools(svc, { limit: 5, context: 1 }).map((tool) => [tool.name, tool]),
+    );
+    const res = await t.search.handler({ query: "uniquematchword" }, ctx);
+    const text = res.content.map((p) => p.text).join("\n");
+    // anchor labeled matched, neighbors labeled context
+    expect(text).toContain("matched: fts");
+    expect(text).toContain("context");
+    expect(text).toContain("alpha prelude"); // neighbor pub#0
+    expect(text).toContain("charlie epilogue"); // neighbor pub#2
+    // context=0 override suppresses neighbors
+    const only = await t.search.handler({ query: "uniquematchword", context: 0 }, ctx);
+    const onlyText = only.content.map((p) => p.text).join("\n");
+    expect(onlyText).not.toContain("alpha prelude");
+  });
 });

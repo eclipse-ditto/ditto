@@ -11,7 +11,7 @@ export async function registerTools(
   const registry = new ToolRegistry();
   if (config.tools.ping) registry.register(pingTool);
   if (config.knowledge.enabled && knowledgeService) {
-    for (const tool of makeKnowledgeTools(knowledgeService))
+    for (const tool of makeKnowledgeTools(knowledgeService, config.knowledge.search))
       registry.register(tool);
   }
   if (config.ditto.enabled) {
