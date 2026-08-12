@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { loadConfig } from "../config/load.js";
 import { createHttpApp } from "../server/http-app.js";
 import { buildKnowledgeService } from "../knowledge/build.js";

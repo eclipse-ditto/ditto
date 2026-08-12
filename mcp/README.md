@@ -71,6 +71,74 @@ node dist/bin/http.js
 
 By default, the HTTP server binds to `127.0.0.1:3000` and serves at `/mcp`. Configure via `server.http` in the config (see below).
 
+## Docker Deployment
+
+The HTTP transport is the intended production deployment: one long-lived container that MCP clients reach over a URL. The image bundles all native dependencies (`better-sqlite3`, `sqlite-vec`, `onnxruntime-node`) so consumers need no build toolchain. (stdio transport is for local development only.)
+
+The repo ships a multi-stage `Dockerfile` and a baked default config at `docker/config.docker.json` (binds `0.0.0.0:3000`, sqlite index under `/app/data`).
+
+### Build & run
+
+```bash
+docker build -t ditto-mcp-server:0.1.0 .
+
+docker run -d -p 3000:3000 \
+  -v ditto-data:/app/data \
+  ditto-mcp-server:0.1.0
+```
+
+Point your MCP client at the HTTP endpoint:
+
+```json
+{ "mcpServers": { "ditto": { "url": "http://your-host:3000/mcp" } } }
+```
+
+### ⚠️ Required: set `allowedHosts` for your hostname
+
+The baked config keeps DNS rebinding protection **on**, with `allowedHosts` limited to `localhost:3000` / `127.0.0.1:3000`. A request whose `Host` header is not on that list is rejected with **HTTP 403 `Invalid Host header`** — so a container reached via a service name, public hostname, or reverse proxy is unreachable until you add that host.
+
+Override the config with your real hostname (see the [Server HTTP options](#server-http-transport-options) table):
+
+```json
+{
+  "server": {
+    "http": {
+      "host": "0.0.0.0",
+      "port": 3000,
+      "enableDnsRebindingProtection": true,
+      "allowedHosts": ["ditto-mcp.internal:3000", "mcp.example.com"]
+    }
+  }
+}
+```
+
+Mount it and point the server at it:
+
+```bash
+docker run -d -p 3000:3000 \
+  -v ditto-data:/app/data \
+  -v /path/to/config.json:/app/config.docker.json:ro \
+  ditto-mcp-server:0.1.0
+```
+
+Disabling `enableDnsRebindingProtection` is only appropriate when the container sits behind a proxy or network boundary that validates the `Host` header for you — do not ship it disabled on a directly exposed service.
+
+### Publishing to a private registry (e.g. Artifactory)
+
+Artifactory (and most registries) host Docker images directly — no npm publish needed.
+
+```bash
+docker login your.artifactory.com                 # user + API token
+docker build -t your.artifactory.com/docker-local/ditto-mcp-server:0.1.0 .
+docker push your.artifactory.com/docker-local/ditto-mcp-server:0.1.0
+```
+
+Consumers then `docker run your.artifactory.com/docker-local/ditto-mcp-server:0.1.0`.
+
+### Vector / hybrid retrieval in containers
+
+The default `retriever: fts` needs no embedding model. If you switch to `vector` or `hybrid`, the bge model is downloaded at runtime from the Hugging Face Hub — which fails in air-gapped networks. For offline use, either bake the model into the image and set `knowledge.embedding.modelPath`, or mount a pre-populated cache and set `knowledge.embedding.cacheDir`. Persist the built index with the ingest process (see below) so the container doesn't rebuild in memory on every start.
+
 ## Two Processes: Ingest vs. Server
 
 The MCP server supports **persistent knowledge indexes** (SQLite or Postgres). The index must be built **before** the server starts (or the server falls back to building it in memory at startup).
@@ -156,6 +224,17 @@ The index can be stored in **SQLite** (file-based, default) or **Postgres** (pgv
 | `knowledge.localDir.enabled` | `boolean` | `false` | Enable LocalDirSource (index a local markdown directory) |
 | `knowledge.localDir.path` | `string?` | `undefined` | Path to local markdown directory |
 | `knowledge.localDir.id` | `string` | `"local"` | Source ID for local chunks |
+
+#### Chunking
+
+Controls how source markdown is split into indexed chunks. Applies to all sources (public + local). Re-run `ditto-mcp-ingest` after changing these to rebuild the index.
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `knowledge.chunk.maxChars` | `number` | `1000` | Max characters per chunk. Larger = more contiguous context per hit, fewer split-across-boundary gaps; coarser ranking precision and more tokens returned per result. |
+| `knowledge.chunk.overlap` | `number` | `150` | Characters carried between adjacent pieces when a paragraph is hard-split. Must be `< maxChars`. Raise to reduce boundary loss without growing chunks much. |
+
+**⚠️ Ceiling for `vector`/`hybrid`:** the embedding model bounds useful chunk size. `bge-small-en-v1.5` has a **512-token (~1500–2000 char) window** — text beyond it is silently truncated before embedding, so a chunk larger than the window loses semantic recall on its tail. Keep `maxChars` at/under the model's window for vector search, or switch to a longer-context embedding model. For `fts` (no embeddings) there is no such limit; larger chunks are safe.
 
 #### Embedding (for vector/hybrid)
 

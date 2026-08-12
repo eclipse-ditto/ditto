@@ -52,6 +52,15 @@ export const AppConfigSchema = z
             batchSize: z.number().int().positive().default(32),
           })
           .default({ model: "Xenova/bge-small-en-v1.5", dim: 384, allowRemoteModels: true, batchSize: 32 }),
+        chunk: z
+          .object({
+            maxChars: z.number().int().positive().default(1000),
+            overlap: z.number().int().min(0).default(150),
+          })
+          .refine((c) => c.overlap < c.maxChars, {
+            message: "knowledge.chunk.overlap must be less than maxChars",
+          })
+          .default({ maxChars: 1000, overlap: 150 }),
         localDir: z
           .object({
             enabled: z.boolean().default(false),
@@ -87,6 +96,7 @@ export const AppConfigSchema = z
         enabled: true,
         retriever: "fts",
         embedding: { model: "Xenova/bge-small-en-v1.5", dim: 384, allowRemoteModels: true, batchSize: 32 },
+        chunk: { maxChars: 1000, overlap: 150 },
         localDir: { enabled: false, id: "local" },
         publicSource: { enabled: true, url: "https://eclipse.dev/ditto/llms.txt" },
         store: { kind: "sqlite", sqlite: {}, pgvector: { table: "ditto_kn" } },

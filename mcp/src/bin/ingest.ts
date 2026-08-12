@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { loadConfig } from "../config/load.js";
 import { buildIndex, metaFor } from "../knowledge/build-index.js";
 import { makeSources, makeEmbedder } from "../knowledge/factories.js";
