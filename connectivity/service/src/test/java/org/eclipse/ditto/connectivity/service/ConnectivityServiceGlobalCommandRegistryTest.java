@@ -44,6 +44,8 @@ import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateSubscription;
 import org.eclipse.ditto.things.model.devops.commands.CreateWotValidationConfig;
+import org.eclipse.ditto.timeseries.api.commands.IngestDataPoints;
+import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveTimeseries;
 
 
 public class ConnectivityServiceGlobalCommandRegistryTest extends GlobalCommandRegistryTestCases {
@@ -79,7 +81,9 @@ public class ConnectivityServiceGlobalCommandRegistryTest extends GlobalCommandR
                 CheckPermissions.class,
                 MigrateConnectionEncryption.class,
                 MigrateConnectionEncryptionAbort.class,
-                MigrateConnectionEncryptionStatus.class
+                MigrateConnectionEncryptionStatus.class,
+                IngestDataPoints.class,
+                RetrieveTimeseries.class
         );
     }
 

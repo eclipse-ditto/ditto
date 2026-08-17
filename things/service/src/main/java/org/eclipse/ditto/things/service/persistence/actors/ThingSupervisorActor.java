@@ -106,6 +106,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     private final ActorRef policiesShardRegion;
     private final ActorRef thingsShardRegion;
     private final ActorRef searchShardRegionProxy;
+    @Nullable private final ActorRef timeseriesIngestPublisher;
 
     private final SupervisorInlinePolicyEnrichment inlinePolicyEnrichment;
     private final SupervisorLiveChannelDispatching liveChannelDispatching;
@@ -125,7 +126,8 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
             @Nullable final ActorRef thingPersistenceActorRef,
             @Nullable final BlockedNamespaces blockedNamespaces,
             final PolicyEnforcerProvider policyEnforcerProvider,
-            final MongoReadJournal mongoReadJournal) {
+            final MongoReadJournal mongoReadJournal,
+            @Nullable final ActorRef timeseriesIngestPublisher) {
 
         super(blockedNamespaces, mongoReadJournal, thingsConfig.getThingConfig().getSupervisorConfig());
 
@@ -135,6 +137,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
         this.distributedPubThingEventsForTwin = distributedPubThingEventsForTwin;
         this.thingPersistenceActorPropsFactory = thingPersistenceActorPropsFactory;
         this.policyEnforcerProvider = policyEnforcerProvider;
+        this.timeseriesIngestPublisher = timeseriesIngestPublisher;
         persistenceActorChild = thingPersistenceActorRef;
 
         final var system = getContext().getSystem();
@@ -206,11 +209,12 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
             final ThingPersistenceActorPropsFactory propsFactory,
             @Nullable final BlockedNamespaces blockedNamespaces,
             final PolicyEnforcerProvider policyEnforcerProvider,
-            final MongoReadJournal mongoReadJournal) {
+            final MongoReadJournal mongoReadJournal,
+            @Nullable final ActorRef timeseriesIngestPublisher) {
 
         return Props.create(ThingSupervisorActor.class, pubSubMediator, thingsConfig, enforcementConfig, null,
                 distributedPubThingEventsForTwin, liveSignalPub, propsFactory, null, blockedNamespaces,
-                policyEnforcerProvider, mongoReadJournal);
+                policyEnforcerProvider, mongoReadJournal, timeseriesIngestPublisher);
     }
 
     /**
@@ -229,7 +233,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
 
         return Props.create(ThingSupervisorActor.class, pubSubMediator, thingsConfig, enforcementConfig,
                 policiesShardRegion, distributedPubThingEventsForTwin, liveSignalPub, propsFactory, null,
-                blockedNamespaces, policyEnforcerProvider, mongoReadJournal);
+                blockedNamespaces, policyEnforcerProvider, mongoReadJournal, null);
     }
 
     /**
@@ -248,7 +252,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
 
         return Props.create(ThingSupervisorActor.class, pubSubMediator, thingsConfig, enforcementConfig,
                 policiesShardRegion, distributedPubThingEventsForTwin, liveSignalPub, null, thingsPersistenceActor,
-                blockedNamespaces, policyEnforcerProvider, mongoReadJournal);
+                blockedNamespaces, policyEnforcerProvider, mongoReadJournal, null);
     }
 
     @Override
@@ -423,7 +427,8 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     protected Props getPersistenceActorProps(final ThingId entityId) {
         assert thingPersistenceActorPropsFactory != null;
         return thingPersistenceActorPropsFactory.props(entityId, mongoReadJournal, thingsConfig.getThingConfig(),
-                distributedPubThingEventsForTwin, searchShardRegionProxy, policyEnforcerProvider);
+                distributedPubThingEventsForTwin, searchShardRegionProxy, policyEnforcerProvider,
+                timeseriesIngestPublisher);
     }
 
     @Override

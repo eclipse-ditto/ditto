@@ -51,6 +51,10 @@ import org.eclipse.ditto.protocol.adapter.connectivity.ConnectivityCommandAdapte
 import org.eclipse.ditto.protocol.adapter.provider.AcknowledgementAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.provider.PolicyCommandAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.provider.ThingCommandAdapterProvider;
+import org.eclipse.ditto.protocol.adapter.things.TimeseriesAggregateCommandAdapter;
+import org.eclipse.ditto.protocol.adapter.things.TimeseriesAggregateCommandResponseAdapter;
+import org.eclipse.ditto.protocol.adapter.things.TimeseriesQueryCommandAdapter;
+import org.eclipse.ditto.protocol.adapter.things.TimeseriesQueryCommandResponseAdapter;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThingResponse;
@@ -257,7 +261,11 @@ public final class DittoProtocolAdapterParameterizedTest {
                 policyCommandAdapterProvider, connectivityCommandAdapterProvider, acknowledgementAdapterProvider,
                 streamingSubscriptionCommandAdapter, streamingSubscriptionEventAdapter,
                 CheckPermissionsCommandAdapter.of(HeaderTranslator.empty()),
-                CheckPermissionsCommandResponseAdapter.of(HeaderTranslator.empty()));
+                CheckPermissionsCommandResponseAdapter.of(HeaderTranslator.empty()),
+                TimeseriesQueryCommandAdapter.of(HeaderTranslator.empty()),
+                TimeseriesQueryCommandResponseAdapter.of(HeaderTranslator.empty()),
+                TimeseriesAggregateCommandAdapter.of(HeaderTranslator.empty()),
+                TimeseriesAggregateCommandResponseAdapter.of(HeaderTranslator.empty()));
         underTest = DittoProtocolAdapter.newInstance(HeaderTranslator.empty(), thingCommandAdapterProvider,
                 policyCommandAdapterProvider, connectivityCommandAdapterProvider, acknowledgementAdapterProvider,
                 streamingSubscriptionCommandAdapter, streamingSubscriptionEventAdapter,

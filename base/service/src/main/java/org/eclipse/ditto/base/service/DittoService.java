@@ -433,6 +433,8 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
                 Boolean.toString(rawConfig.getBoolean(FeatureToggle.POLICY_LOCKOUT_PREVENTION_ENABLED)));
         System.setProperty(FeatureToggle.HIDE_INACCESSIBLE_ENTITY_EXISTENCE_ENABLED,
                 Boolean.toString(rawConfig.getBoolean(FeatureToggle.HIDE_INACCESSIBLE_ENTITY_EXISTENCE_ENABLED)));
+        System.setProperty(FeatureToggle.TIMESERIES_ENABLED,
+                Boolean.toString(rawConfig.getBoolean(FeatureToggle.TIMESERIES_ENABLED)));
         System.setProperty(DittoSystemProperties.DITTO_LIMITS_POLICY_IMPORTS_LIMIT,
                 Integer.toString(limitsConfig.getPolicyImportsLimit()));
         final MetricsConfig metricsConfig = serviceSpecificConfig.getMetricsConfig();
