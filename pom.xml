@@ -110,6 +110,7 @@
         <module>rql</module>
         <module>things</module>
         <module>thingsearch</module>
+        <module>timeseries</module>
         <module>utils</module>
         <module>wot</module>
         <module>edge</module>

@@ -1,0 +1,143 @@
+# Copyright (c) 2026 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+type: array
+description: |-
+  Timeseries query result: one entry per requested path, in request order. The
+  single-property endpoint requests one path, so its array holds a single entry;
+  the multi-path Thing endpoint (`?paths=...`) returns one entry per requested path.
+items:
+  type: object
+  required:
+    - thingId
+    - path
+    - query
+    - result
+    - data
+  properties:
+    thingId:
+      type: string
+      description: The thing the data points belong to.
+    path:
+      type: string
+      description: |-
+        The Ditto Protocol path inside the thing whose timeseries was queried,
+        e.g. `/features/environment/properties/temperature`.
+    query:
+      type: object
+      description: Echo of the effective query that produced this result. Optional
+        parameters are present only when supplied on the request.
+      properties:
+        thingId:
+          type: string
+        paths:
+          type: array
+          items:
+            type: string
+        from:
+          type: string
+          format: date-time
+        to:
+          type: string
+          format: date-time
+        step:
+          type: string
+          description: Downsampling interval as an ISO-8601 duration, e.g. `PT1H`.
+        aggregation:
+          type: string
+          enum: [avg, min, max, sum, count, first, last, stddev, derivative, rate, integral, percentile]
+        fillStrategy:
+          type: string
+          enum: [null, previous, zero, linear]
+        percentile:
+          type: number
+          minimum: 0
+          maximum: 100
+        timezone:
+          type: string
+          description: IANA time-zone ID used to align bucket boundaries.
+        limit:
+          type: integer
+          format: int32
+        cursor:
+          type: string
+          description: Opaque pagination cursor supplied on the request, if any.
+        order:
+          type: string
+          enum: [asc, desc]
+          description: Sort order supplied on the request, if any.
+        tagFilters:
+          type: object
+          additionalProperties:
+            type: string
+          description: Tag filters supplied on the request, if any.
+    result:
+      type: object
+      description: Per-path metadata.
+      required:
+        - count
+        - dataType
+      properties:
+        count:
+          type: integer
+          format: int32
+          description: Number of data points returned.
+        hasMore:
+          type: boolean
+          description: |-
+            Whether more data matched the query than this page returned. Present only for raw
+            (paginated) reads: `true` means another page follows (see `nextCursor`), `false` means
+            this is the last page. Absent for aggregated reads.
+        nextCursor:
+          type: string
+          description: |-
+            Opaque cursor for the next page of a raw read. Present only when `hasMore` is `true`;
+            pass it back as the request's `cursor` to continue. Absent on the last page.
+        dataType:
+          type: string
+          enum:
+            - number
+            - string
+            - boolean
+            - "null"
+          description: |-
+            Inferred scalar type of the returned values. `null` when the result
+            set is empty.
+        unit:
+          type: string
+          description: |-
+            Unit declared on the WoT property the timeseries was ingested from
+            (semantic prefix stripped). Omitted when the property has no `unit`.
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+          description: |-
+            The resolved tags of the series, as stored with the points (representative: the first
+            point's). Omitted when the series has no tags or for aggregated reads (which group away
+            per-point metadata).
+    data:
+      type: array
+      description: |-
+        Returned data points in the requested chronological order — ascending timestamp by default,
+        or descending when `order=desc`.
+      items:
+        type: object
+        required:
+          - t
+          - v
+        properties:
+          t:
+            type: string
+            format: date-time
+            description: ISO-8601 timestamp at which the value was observed.
+          v:
+            description: |-
+              The observed scalar value. Type matches the per-path `dataType`.

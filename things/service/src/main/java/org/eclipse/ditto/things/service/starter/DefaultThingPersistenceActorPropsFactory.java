@@ -55,9 +55,10 @@ final class DefaultThingPersistenceActorPropsFactory implements ThingPersistence
     @Override
     public Props props(final ThingId thingId, final MongoReadJournal mongoReadJournal, final ThingConfig thingConfig,
             final DistributedPub<ThingEvent<?>> distributedPub, @Nullable final ActorRef searchShardRegionProxy,
-            final PolicyEnforcerProvider policyEnforcerProvider) {
+            final PolicyEnforcerProvider policyEnforcerProvider,
+            @Nullable final ActorRef timeseriesIngestPublisher) {
         argumentNotEmpty(thingId);
         return ThingPersistenceActor.props(thingId, mongoReadJournal, thingConfig, distributedPub,
-                searchShardRegionProxy, policyEnforcerProvider);
+                searchShardRegionProxy, policyEnforcerProvider, timeseriesIngestPublisher);
     }
 }
