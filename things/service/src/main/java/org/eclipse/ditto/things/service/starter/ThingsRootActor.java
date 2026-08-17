@@ -28,12 +28,14 @@ import org.apache.pekko.japi.pf.ReceiveBuilder;
 import org.apache.pekko.pattern.Patterns;
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.base.service.RootChildActorStarter;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionCreator;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
+import org.eclipse.ditto.internal.utils.cluster.ShardRegionProxyActorFactory;
 import org.eclipse.ditto.internal.utils.cluster.config.DefaultLiveEntitiesMetricsConfig;
 import org.eclipse.ditto.internal.utils.cluster.config.LiveEntitiesMetricsConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
@@ -71,6 +73,8 @@ import org.eclipse.ditto.things.service.persistence.actors.ThingsPersistenceStre
 import org.eclipse.ditto.things.service.persistence.actors.WotValidationConfigSupervisorActor;
 import org.eclipse.ditto.things.service.persistence.actors.strategies.commands.WotValidationConfigDData;
 import org.eclipse.ditto.things.service.persistence.actors.strategies.commands.WotValidationConfigUtils;
+import org.eclipse.ditto.things.service.timeseries.TimeseriesIngestPublisher;
+import org.eclipse.ditto.timeseries.api.TimeseriesMessagingConstants;
 import org.eclipse.ditto.wot.api.validator.WotThingModelValidator;
 import org.eclipse.ditto.wot.integration.DittoWotIntegration;
 import org.eclipse.ditto.wot.validation.config.TmValidationConfig;
@@ -115,6 +119,30 @@ public final class ThingsRootActor extends DittoRootActor {
         final EnforcementConfig enforcementConfig = DefaultEnforcementConfig.of(
                 DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
         );
+
+        // Left null when the feature toggle is off; publishEvent null-guards it, so the write
+        // path pays nothing in deployments without the timeseries service.
+        final ActorRef timeseriesIngestPublisher;
+        if (FeatureToggle.isTimeseriesFeatureEnabled()) {
+            // Sends buffer at the proxy until a node with the "timeseries" role joins, so the
+            // timeseries service can be deployed after this one.
+            final ActorRef timeseriesShardRegionProxy = ShardRegionProxyActorFactory
+                    .newInstance(actorSystem, clusterConfig)
+                    .getShardRegionProxyActor(TimeseriesMessagingConstants.CLUSTER_ROLE,
+                            TimeseriesMessagingConstants.SHARD_REGION);
+
+            // Safe to look up ahead of the WoT initialisation at the end of this constructor:
+            // DittoWotIntegration is an actor-system extension.
+            final DittoWotIntegration earlyWotIntegration = DittoWotIntegration.get(actorSystem);
+
+            timeseriesIngestPublisher = startChildActor(
+                    TimeseriesIngestPublisher.ACTOR_NAME,
+                    TimeseriesIngestPublisher.props(timeseriesShardRegionProxy,
+                            earlyWotIntegration.getWotThingModelResolver()));
+        } else {
+            timeseriesIngestPublisher = null;
+        }
+
         final Props thingSupervisorActorProps = getThingSupervisorActorProps(pubSubMediator,
                 thingsConfig,
                 enforcementConfig,
@@ -123,7 +151,8 @@ public final class ThingsRootActor extends DittoRootActor {
                 propsFactory,
                 blockedNamespaces,
                 policyEnforcerProvider,
-                mongoReadJournal
+                mongoReadJournal,
+                timeseriesIngestPublisher
         );
 
         final ActorRef thingsShardRegion =
@@ -302,10 +331,11 @@ public final class ThingsRootActor extends DittoRootActor {
             final ThingPersistenceActorPropsFactory propsFactory,
             final BlockedNamespaces blockedNamespaces,
             final PolicyEnforcerProvider policyEnforcerProvider,
-            final MongoReadJournal mongoReadJournal) {
+            final MongoReadJournal mongoReadJournal,
+            final ActorRef timeseriesIngestPublisher) {
         return ThingSupervisorActor.props(pubSubMediator, thingsConfig, enforcementConfig,
                 distributedPubThingEventsForTwin, liveSignalPub, propsFactory, blockedNamespaces,
-                policyEnforcerProvider, mongoReadJournal);
+                policyEnforcerProvider, mongoReadJournal, timeseriesIngestPublisher);
     }
 
     private static MongoReadJournal newMongoReadJournal(final MongoDbConfig mongoDbConfig,

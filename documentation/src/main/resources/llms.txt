@@ -35,6 +35,7 @@ Eclipse Ditto provides five microservices (Things, Policies, Gateway, Connectivi
 - [Conditional Requests](https://www.eclipse.dev/ditto/basic-conditional-requests.html.md): Conditional operations based on RQL conditions or ETags
 - [Search](https://www.eclipse.dev/ditto/basic-search.html.md): Searching across all digital twins using RQL
 - [History](https://www.eclipse.dev/ditto/basic-history.html.md): Accessing historical state of Things via event journal
+- [Timeseries](https://www.eclipse.dev/ditto/basic-timeseries.html.md): Recording and querying the history of feature properties, including cross-thing aggregation
 - [Acknowledgements / QoS](https://www.eclipse.dev/ditto/basic-acknowledgements.html.md): At-least-once delivery and acknowledgement handling
 
 ## Architecture

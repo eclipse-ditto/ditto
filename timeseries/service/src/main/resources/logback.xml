@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2026 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+  -->
+<configuration>
+
+    <!--
+      Brought to parity with the sibling services (things / policies / gateway / connectivity /
+      thingsearch), which each ship this file. Without it on the classpath, Logback falls back to its
+      built-in default: everything to console at DEBUG, no correlation-id in the pattern and no
+      per-logger levels — which is what a local (IDE) run of the timeseries service used to get.
+      In Kubernetes the Helm chart overrides this via -Dlogback.configurationFile, so deployments are
+      unaffected by this file's presence.
+    -->
+    <statusListener class="ch.qos.logback.core.status.OnConsoleStatusListener"/>
+
+    <appender name="STDERR" class="ch.qos.logback.core.ConsoleAppender">
+        <target>System.err</target>
+        <encoder>
+            <pattern>%date{ISO8601} %-5level [%X{correlation-id}][%X{traceparent-trace-id}] %logger{20} %X{pekkoSource} - %msg%n</pattern>
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
+    </appender>
+
+    <if condition='isDefined("DITTO_LOGGING_DISABLE_SYSOUT_LOG")'>
+        <then>
+            <if condition='property("DITTO_LOGGING_DISABLE_SYSOUT_LOG").equals("true")'>
+                <then>
+                    <appender name="STDOUT" class="ch.qos.logback.core.helpers.NOPAppender"/>
+                </then>
+                <else>
+                    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+                        <encoder>
+                            <pattern>%date{ISO8601} %-5level [%X{correlation-id}][%X{traceparent-trace-id}] %logger{20} %X{pekkoSource} - %msg%n</pattern>
+                        </encoder>
+                    </appender>
+                </else>
+            </if>
+        </then>
+        <else>
+            <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+                <encoder>
+                    <pattern>%date{ISO8601} %-5level [%X{correlation-id}][%X{traceparent-trace-id}] %logger{20} %X{pekkoSource} - %msg%n</pattern>
+                </encoder>
+            </appender>
+        </else>
+    </if>
+
+    <if condition='isDefined("DITTO_LOGGING_LOGSTASH_SERVER")'>
+        <then>
+            <appender name="stash" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+                <destination>${DITTO_LOGGING_LOGSTASH_SERVER}</destination>
+                <reconnectionDelay>1 second</reconnectionDelay>
+                <writeBufferSize>${LOGSTASH_WRITE_BUFFER_SIZE:-8192}</writeBufferSize>
+                <ringBufferSize>${LOGSTASH_RING_BUFFER_SIZE:-8192}</ringBufferSize>
+
+                <!-- Encoder is required -->
+                <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                    <customFields>{"appname":"things","instance_index":"${INSTANCE_INDEX}"}</customFields>
+                </encoder>
+            </appender>
+        </then>
+        <else>
+            <appender name="stash" class="ch.qos.logback.core.helpers.NOPAppender"/>
+        </else>
+    </if>
+
+    <if condition='property("DITTO_LOGGING_FILE_APPENDER").equals("true")'>
+        <then>
+            <appender name="file" class="ch.qos.logback.core.rolling.RollingFileAppender">
+                <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+                    <level>${DITTO_LOGGING_FILE_APPENDER_THRESHOLD:-info}</level>
+                </filter>
+                <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+                    <!-- The rollover period is inferred from the fileNamePattern -->
+                    <!-- daily rollover as default -->
+                    <fileNamePattern>${DITTO_LOGGING_FILE_NAME_PATTERN:-/var/log/ditto/timeseries.log.%d{yyyy-MM-dd}.gz}</fileNamePattern>
+                    <!-- Keep 10 days' worth of history capped at 1GB total size as default -->
+                    <!-- maxHistory is based on the rollover period of the fileNamePattern -->
+                    <maxHistory>${DITTO_LOGGING_MAX_LOG_FILE_HISTORY:-10}</maxHistory>
+                    <totalSizeCap>${DITTO_LOGGING_TOTAL_LOG_FILE_SIZE:-1GB}</totalSizeCap>
+                    <cleanHistoryOnStart>${DITTO_LOGGING_CLEAN_HISTORY_ON_START:-false}</cleanHistoryOnStart>
+                </rollingPolicy>
+                <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                    <customFields>{"appname":"things","instance_index":"${INSTANCE_INDEX}"}</customFields>
+                </encoder>
+            </appender>
+        </then>
+        <else>
+            <appender name="file" class="ch.qos.logback.core.helpers.NOPAppender"/>
+        </else>
+    </if>
+
+    <!-- Do not print INFO cluster messages of mongo driver: -->
+    <logger name="org.mongodb.driver" level="WARN"/>
+
+    <logger name="org.apache.pekko.management.cluster.bootstrap.contactpoint.HttpClusterBootstrapRoutes" level="WARN"/>
+    <logger name="org.apache.pekko.management.cluster.bootstrap.internal.BootstrapCoordinator" level="WARN"/>
+    <logger name="org.apache.pekko.actor.CoordinatedShutdown" level="DEBUG"/>
+
+    <!-- Log level for the application -->
+    <logger name="org.eclipse.ditto" level="${LOG_LEVEL_APPLICATION:-INFO}"/>
+
+    <!-- Logging INFO messages can be disabled by setting environment variable -->
+    <root level="${LOG_LEVEL:-INFO}">
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="STDERR"/>
+        <appender-ref ref="stash"/>
+        <appender-ref ref="file"/>
+    </root>
+
+</configuration>

@@ -1,0 +1,34 @@
+# Copyright (c) 2026 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+{{- if and .Values.timeseries.podDisruptionBudget.enabled (gt .Values.timeseries.replicaCount 1.0) -}}
+{{- if and .Values.timeseries.podDisruptionBudget.minAvailable .Values.timeseries.podDisruptionBudget.maxUnavailable }}
+{{- fail "timeseries.podDisruptionBudget cannot have both minAvailable and maxUnavailable set. Please set only one of them." }}
+{{- end }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "ditto.fullname" . }}-timeseries
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ include "ditto.name" . }}-timeseries
+{{ include "ditto.labels" . | indent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "ditto.name" . }}-timeseries
+      app.kubernetes.io/instance: {{ .Release.Name }}
+{{- if .Values.timeseries.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.timeseries.podDisruptionBudget.minAvailable }}
+{{- else }}
+  maxUnavailable: {{ .Values.timeseries.podDisruptionBudget.maxUnavailable }}
+{{- end }}
+{{- end }}
