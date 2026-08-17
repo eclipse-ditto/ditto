@@ -14,3 +14,4 @@ dist/
 
 # Local config with secrets
 config.local.json
+config.*.local.json
