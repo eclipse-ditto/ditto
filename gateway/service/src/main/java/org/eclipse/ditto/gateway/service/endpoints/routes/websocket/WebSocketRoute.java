@@ -544,7 +544,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         final var startedSpan = startTraceSpan(failure, SpanOperationName.of("gw.streaming.in.error"));
         startedSpan.tagAsFailed(failure);
         try {
-            return failure.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(failure.getDittoHeaders())));
+            return failure.setDittoHeaders(startedSpan.propagateContext(failure.getDittoHeaders()));
         } finally {
             startedSpan.finish();
         }
