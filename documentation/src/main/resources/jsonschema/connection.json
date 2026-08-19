@@ -656,11 +656,13 @@
             "items": {
               "type": "string",
               "title": "Subscribed topics.",
-              "description": "Contains the type of messages that are delivered to this target. You can receive\n * Thing events: `_/_/things/twin/events` (notification about twin change) \n * Live events: `_/_/things/live/events`\n * Live commands: `_/_/things/live/commands`\n * Live messages: `_/_/things/live/messages`\n\nYou can specify an additional namespace and/or event filter (URL encoded)",
+              "description": "Contains the type of messages that are delivered to this target. You can receive\n * Thing events: `_/_/things/twin/events` (notification about twin change) \n * Live events: `_/_/things/live/events`\n * Live commands: `_/_/things/live/commands`\n * Live messages: `_/_/things/live/messages`\n\nYou can specify an additional namespace and/or event filter (URL encoded). The `filter` parameter may be repeated: at most one RQL expression and at most one placeholder pipeline expression starting with `fn:` (several `fn:` stages chainable with `|`); all given filters must match (AND)",
               "examples": [
                 "_/_/things/twin/events",
                 "_/_/things/twin/events?namespaces=org.eclipse.ditto.one,org.eclipse.foo",
                 "_/_/things/twin/events?namespaces=org.eclipse.ditto&filter=eq(attributes/counter,42)",
+                "_/_/things/twin/events?filter=fn:filter(header:ditto-originator,'ne','some:excluded-subject')",
+                "_/_/things/twin/events?filter=gt(attributes/counter,42)&filter=fn:filter(header:ditto-originator,'ne','some:excluded-subject')",
                 "_/_/things/twin/events?extraFields=attributes",
                 "_/_/things/twin/events?extraFields=attributes&filter=eq(attributes/counter,42)",
                 "_/_/things/live/commands",

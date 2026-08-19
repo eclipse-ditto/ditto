@@ -35,12 +35,27 @@ public interface FilteredTopicBuilder {
     FilteredTopicBuilder withNamespaces(@Nullable Collection<String> namespaces);
 
     /**
-     * Sets the given filter to this builder.
+     * Sets the given filter to this builder, replacing all previously set filters.
      *
-     * @param filter the optional RQL filter of the topic to be built.
+     * @param filter the optional filter of the topic to be built.
      * @return this builder instance to allow method chaining.
+     * @deprecated as of 3.10.0 a FilteredTopic may carry multiple filters; use {@link #withFilters(Collection)}
+     * instead.
      */
+    @Deprecated
     FilteredTopicBuilder withFilter(@Nullable CharSequence filter);
+
+    /**
+     * Sets the given filters to this builder, replacing all previously set filters. The insertion order is
+     * preserved and determines the serialization order of the {@code filter} query parameters; two topics with
+     * the same filters in different order are not equal.
+     *
+     * @param filters the filters of the topic to be built - each entry is either an RQL expression or a
+     * placeholder pipeline expression starting with {@code fn:}.
+     * @return this builder instance to allow method chaining.
+     * @since 3.10.0
+     */
+    FilteredTopicBuilder withFilters(@Nullable Collection<? extends CharSequence> filters);
 
     /**
      * Sets the selector for the extra fields and their values to enrich outgoing signals of the topic to be built with.
