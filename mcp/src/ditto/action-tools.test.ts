@@ -95,6 +95,22 @@ describe("makeActionTools", () => {
     expect(names.length).toBe(3);
   });
 
+  it("builds a clean tool name from a synthesized operationId (no operationId in spec)", async () => {
+    const specNoOpId = {
+      paths: {
+        "/api/2/things/{thingId}": {
+          get: { summary: "get", parameters: [{ name: "thingId", in: "path", required: true, schema: { type: "string" } }] },
+        },
+      },
+    };
+    fake = await startFakeDitto(() => ({ status: 200, body: "{}" }));
+    const config = AppConfigSchema.parse({
+      ditto: { enabled: true, baseUrl: fake.baseUrl, credential: { kind: "basic", username: "u", password: "p" }, policy: { allowMethods: ["GET"], writeAllowlist: [], sudoAllowlist: [] } },
+    });
+    const list = await makeActionTools(config, { loadSpec: async () => specNoOpId, client: new HttpDittoClient(fake.baseUrl) });
+    expect(list.map((t) => t.name)).toEqual(["GET_api_2_things_thingId"]);
+  });
+
   it("a sudo tool refuses at call time when no devopsCredential is configured", async () => {
     const { byName, config } = await tools({ allowMethods: ["GET"], writeAllowlist: [], sudoAllowlist: ["sudoRetrieveThing"] });
     const res = await byName.sudoRetrieveThing.handler({ thingId: "ns:1" }, { config, headers: {} } as never);

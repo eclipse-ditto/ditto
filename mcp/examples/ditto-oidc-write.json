@@ -16,8 +16,8 @@
     },
     "policy": {
       "allowMethods": ["GET"],
-      "writeAllowlist": ["putThing"],
-      "sudoAllowlist": ["sudoRetrieveThing", "getConnections"]
+      "writeAllowlist": ["PUT /api/2/things/{thingId}"],
+      "sudoAllowlist": ["GET /api/2/connections"]
     }
   }
 }

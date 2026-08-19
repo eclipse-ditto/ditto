@@ -19,8 +19,17 @@ import type { DittoCredential } from "./credential.js";
 import { resolveCredential } from "./credential.js";
 import { isSudo } from "./tool-policy.js";
 
+// Map an operationId to a legal MCP tool name (MCP names must match [A-Za-z0-9_-]).
+// Replace illegal chars, collapse runs of "_", and trim the edges. For specs that
+// declare no operationId, the id is a synthesized "<METHOD>_<path>" fallback, so
+// collapsing keeps names clean: the /api/2/things GET tool becomes "GET_api_2_things"
+// rather than "GET__api_2_things".
 function sanitizeName(id: string): string {
-  return id.replace(/[^A-Za-z0-9_]/g, "_").slice(0, 64);
+  return id
+    .replace(/[^A-Za-z0-9_]/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "")
+    .slice(0, 64);
 }
 
 function inputSchema(op: DittoOperation): ZodRawShape {

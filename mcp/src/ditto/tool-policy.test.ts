@@ -28,6 +28,24 @@ describe("tool-policy", () => {
   it("allows a write only when allowlisted", () => {
     expect(isAllowed(op({ operationId: "putThing", method: "PUT" }), policy({ writeAllowlist: ["putThing"] }))).toBe(true);
   });
+  it("allows a write via a 'METHOD path' allowlist entry (spec has no operationId)", () => {
+    const putThing = op({
+      operationId: "PUT_/api/2/things/{thingId}", // synthesized fallback
+      method: "PUT",
+      path: "/api/2/things/{thingId}",
+    });
+    expect(isAllowed(putThing, policy({ writeAllowlist: ["PUT /api/2/things/{thingId}"] }))).toBe(true);
+    expect(isAllowed(putThing, policy({ writeAllowlist: ["PUT /api/2/other"] }))).toBe(false);
+  });
+  it("allows a sudo op via a 'METHOD path' allowlist entry", () => {
+    const conn = op({
+      operationId: "PUT_/api/2/connections/{connectionId}",
+      method: "PUT",
+      path: "/api/2/connections/{connectionId}",
+      securitySchemes: ["DevOpsBasic"],
+    });
+    expect(isAllowed(conn, policy({ sudoAllowlist: ["PUT /api/2/connections/{connectionId}"] }))).toBe(true);
+  });
   it("treats sudo ops specially: only via sudoAllowlist", () => {
     const s = op({ operationId: "sudoRetrieveThing", method: "GET" });
     expect(isSudo(s)).toBe(true);

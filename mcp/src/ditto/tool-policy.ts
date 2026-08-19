@@ -26,7 +26,15 @@ export function isSudo(op: DittoOperation): boolean {
   );
 }
 
+// Allowlist entries may be either the OpenAPI operationId (e.g. "putThing") or a
+// "METHOD path" key (e.g. "PUT /api/2/things/{thingId}"). The latter is the stable,
+// user-friendly form when the spec omits operationIds (Ditto's does), in which case
+// operationId is a synthesized "METHOD_path" fallback.
+function matchesAllowlist(op: DittoOperation, list: string[]): boolean {
+  return list.includes(op.operationId) || list.includes(`${op.method} ${op.path}`);
+}
+
 export function isAllowed(op: DittoOperation, policy: AppConfig["ditto"]["policy"]): boolean {
-  if (isSudo(op)) return policy.sudoAllowlist.includes(op.operationId);
-  return policy.allowMethods.includes(op.method) || policy.writeAllowlist.includes(op.operationId);
+  if (isSudo(op)) return matchesAllowlist(op, policy.sudoAllowlist);
+  return policy.allowMethods.includes(op.method) || matchesAllowlist(op, policy.writeAllowlist);
 }

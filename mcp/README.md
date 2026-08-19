@@ -364,7 +364,7 @@ Example (separate OIDC identities):
     "baseUrl": "http://localhost:8080",
     "credential":       { "kind": "oidc", "tokenUrl": "https://idp/token", "clientId": "app",    "clientSecret": "..." },
     "devopsCredential": { "kind": "oidc", "tokenUrl": "https://idp/token", "clientId": "devops", "clientSecret": "..." },
-    "policy": { "sudoAllowlist": ["getConnections"] }
+    "policy": { "sudoAllowlist": ["GET /api/2/connections"] }
   }
 }
 ```
@@ -380,28 +380,30 @@ By default, action tools only expose **read** (`GET`) operations. Write and priv
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `ditto.policy.allowMethods` | `string[]` | `["GET"]` | Wholesale HTTP method allowlist (applies to all non-sudo operations) |
-| `ditto.policy.writeAllowlist` | `string[]` | `[]` | Per-operation granular allowlist for enabling specific write operations (operationIds) |
-| `ditto.policy.sudoAllowlist` | `string[]` | `[]` | Per-operation allowlist for sudo/devops-privileged operations (operationIds) |
+| `ditto.policy.writeAllowlist` | `string[]` | `[]` | Per-operation granular allowlist for enabling specific write operations (see key format below) |
+| `ditto.policy.sudoAllowlist` | `string[]` | `[]` | Per-operation allowlist for sudo/devops-privileged operations (see key format below) |
+
+**Allowlist key format:** each entry is either the OpenAPI `operationId` (e.g. `putThing`) **or** a `METHOD path` key (e.g. `PUT /api/2/things/{thingId}`). Ditto's OpenAPI spec does not declare `operationId`s, so use the `METHOD path` form — the `path` is the raw spec path, keeping the `{param}` braces. `allowMethods` (wholesale, non-sudo) is unaffected.
 
 **Sudo operations & devops credential:**
 
 Ditto secures `/api/2/connections*` (secret-bearing) with `DevOpsBasic`/`DevOpsBearer` security, and `/devops/*` paths are devops-privileged. These operations are classified as "sudo" and:
-- Must be explicitly listed in `sudoAllowlist` (by operationId)
+- Must be explicitly listed in `sudoAllowlist` (by `METHOD path` key, or operationId if the spec has one)
 - Require `ditto.devopsCredential` to be configured.
 - Are NOT auto-allowed even if the method is `GET` and in `allowMethods`.
 
-Connectivity is always devops-gated (classified sudo regardless of the OpenAPI spec's declared security), but policy granularity is unchanged — `sudoAllowlist` is a per-`operationId` opt-in (default `[]` = all sudo blocked). Allow connections while blocking direct-actor/devops commands by listing only the connection operationIds:
+Connectivity is always devops-gated (classified sudo regardless of the OpenAPI spec's declared security), but policy granularity is unchanged — `sudoAllowlist` is a per-operation opt-in (default `[]` = all sudo blocked). Allow connections while blocking direct-actor/devops commands by listing only the connection operations:
 
-- Connections read only: `"sudoAllowlist": ["getConnections", "getConnection"]`
-- Full connections CRUD, still blocking piggyback/devops: `"sudoAllowlist": ["getConnections","getConnection","createConnection","modifyConnection","deleteConnection"]`
+- Connections read only: `"sudoAllowlist": ["GET /api/2/connections", "GET /api/2/connections/{connectionId}"]`
+- Full connections CRUD, still blocking piggyback/devops: `"sudoAllowlist": ["GET /api/2/connections","GET /api/2/connections/{connectionId}","POST /api/2/connections","PUT /api/2/connections/{connectionId}","DELETE /api/2/connections/{connectionId}"]`
 
 All sudo operations still require `ditto.devopsCredential` to be set.
 
 **Examples:**
 
 - **Read-only (default):** `{ "allowMethods": ["GET"] }` — only non-sudo GET operations are allowed.
-- **Enable specific writes:** `{ "allowMethods": ["GET", "POST", "PATCH"], "writeAllowlist": ["putThing", "modifyThing"] }` — enables specific write operations.
-- **Enable sudo:** `{ "allowMethods": ["GET"], "sudoAllowlist": ["getConnections", "getLogging"] }` — enables specific devops-privileged operations (requires devops credential).
+- **Enable specific writes:** `{ "allowMethods": ["GET"], "writeAllowlist": ["PUT /api/2/things/{thingId}", "PATCH /api/2/things/{thingId}"] }` — enables specific write operations.
+- **Enable sudo:** `{ "allowMethods": ["GET"], "sudoAllowlist": ["GET /api/2/connections", "GET /devops/logging"] }` — enables specific devops-privileged operations (requires devops credential).
 
 ### Tools Exposed
 
