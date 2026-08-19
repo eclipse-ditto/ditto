@@ -32,6 +32,8 @@ tags:
     description: Manage connections
   - name: WoT
     description: WoT (Web of Things) Discovery endpoints
+  - name: Timeseries
+    description: 'Read historical timeseries data ingested from properties annotated with `ditto:timeseries`'
   - name: Devops
     description: Devops APIs to manage log levels and configuration in runtime and send piggyback command
 security:
@@ -4670,6 +4672,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/PolicyIdPathParam'
         - $ref: '#/components/parameters/PolicyFieldsQueryParam'
+        - $ref: '#/components/parameters/PolicyViewParam'
         - $ref: '#/components/parameters/IfMatchHeaderParam'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
@@ -9308,6 +9311,633 @@ paths:
           description: Deleted successfully
         '404':
           description: Not found
+  '/api/2/timeseries/things/{thingId}/features/{featureId}/properties/{propertyPath}':
+    get:
+      summary: Retrieve historical timeseries data for one feature property
+      description: |-
+        Returns the chronological sequence of values that were observed for one feature
+        property within the specified time range.
+
+        The property must be annotated with `ditto:timeseries.ingest = "ALL"` in the
+        WoT ThingModel referenced by the thing's `definition`; properties without the
+        annotation (or with `ingest = "NONE"`) are not ingested and the response will
+        have `count = 0`.
+
+        Authorization is enforced via the Timeseries service's configured permission —
+        `READ_TS` by default. A subject without the configured permission on the
+        requested resource path receives a `404` (per Ditto's "404-not-403" discipline:
+        a `403` would leak existence).
+
+        When `step` and `agg` are supplied the points are downsampled into `step`-sized
+        buckets and aggregated per bucket; otherwise the raw points are returned. Cross-thing
+        aggregation queries use a separate endpoint and are not exposed here.
+      tags:
+        - Timeseries
+      parameters:
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/FeatureIdPathPathParam'
+        - $ref: '#/components/parameters/PropertyPathPathParam'
+        - name: from
+          in: query
+          description: |-
+            Inclusive lower bound of the queried time range. Either an ISO-8601 instant or a
+            relative expression (`now`, `now-24h`, `now-30m`, `now-7d`).
+          required: true
+          schema:
+            type: string
+            example: now-24h
+        - name: to
+          in: query
+          description: |-
+            Exclusive upper bound of the queried time range. ISO-8601 instant or relative
+            expression (e.g. `now`).
+          required: true
+          schema:
+            type: string
+            example: now
+        - name: step
+          in: query
+          description: |-
+            Downsampling interval. Short form (`30s`, `5m`, `1h`, `1d`) or ISO-8601 duration
+            (`PT1H`). Required for the per-bucket aggregations (`avg`, `min`, `max`, `sum`,
+            `count`, `first`, `last`, `stddev`); optional for the window functions.
+          required: false
+          schema:
+            type: string
+            example: 1h
+        - name: agg
+          in: query
+          description: |-
+            Aggregation function applied per `step` bucket (or, for the window functions,
+            over the fetched points).
+          required: false
+          schema:
+            type: string
+            enum:
+              - avg
+              - min
+              - max
+              - sum
+              - count
+              - first
+              - last
+              - stddev
+              - derivative
+              - rate
+              - integral
+              - percentile
+            example: avg
+        - name: percentile
+          in: query
+          description: 'Percentile in `[0, 100]`. Required when `agg=percentile`.'
+          required: false
+          schema:
+            type: number
+            minimum: 0
+            maximum: 100
+            example: 95
+        - name: fill
+          in: query
+          description: |-
+            Gap-fill strategy for empty buckets when downsampling. `null` emits a gap marker,
+            `previous` carries the last value forward, `zero` fills with 0, and `linear` linearly
+            interpolates between the surrounding non-empty buckets (numeric series only; non-numeric
+            neighbours fall back to a `null` gap).
+          required: false
+          schema:
+            type: string
+            enum:
+              - null
+              - previous
+              - zero
+              - linear
+            example: previous
+        - name: tz
+          in: query
+          description: IANA time-zone ID used to align `step` bucket boundaries (default UTC).
+          required: false
+          schema:
+            type: string
+            example: Europe/Berlin
+        - name: limit
+          in: query
+          description: |-
+            Page size for raw queries — the maximum number of data points to return. When omitted, the
+            server-side ceiling is used. If more points match than are returned, the response's
+            `meta.nextCursor` carries an opaque cursor for the next page (see `cursor`).
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            example: 1000
+        - name: cursor
+          in: query
+          description: |-
+            Opaque pagination cursor for raw queries. Pass back the `meta.nextCursor` value from a
+            previous response (unchanged) to fetch the next page; omit it for the first page. Keep
+            `from`/`to` identical across pages. Pagination is keyset-based over the `(timestamp, revision)`
+            order, so it is stable while new points are appended. Cursors are only valid for a
+            single-property raw read — combining `cursor` with `step`, `agg` or `fill` is rejected with
+            `400`.
+          required: false
+          schema:
+            type: string
+            example: eyJ0IjoiMjAyNi0wMS0xNFQxMDowMTowMFoiLCJyIjo0Mn0
+        - name: order
+          in: query
+          description: |-
+            Chronological order of a raw read: `asc` (default, oldest first) or `desc` (newest first,
+            convenient for "scroll back into the past" UIs paged with `cursor`). `desc` is only supported
+            for raw reads — combining it with `step`, `agg` or `fill` is rejected with `400`. Keep `order`
+            consistent across pages of a cursor walk.
+          required: false
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            default: asc
+            example: desc
+        - name: tagFilter
+          in: query
+          description: |-
+            Restrict the result to points whose resolved tags match every given `key:value` pair
+            (comma-separated, logical AND) — e.g. `building:A,floor:2`. Tags are declared on the WoT
+            property's `ditto:timeseries` annotation and resolved at ingestion time. Applies to raw and
+            aggregated reads.
+          required: false
+          schema:
+            type: string
+            example: 'building:A,floor:2'
+        - name: timeFormat
+          in: query
+          description: |-
+            How timestamps are rendered in the response `data` array: `iso` (default, ISO-8601 string)
+            or `ms` (epoch milliseconds, compact and convenient for charting libraries).
+          required: false
+          schema:
+            type: string
+            enum:
+              - iso
+              - ms
+            default: iso
+            example: ms
+      responses:
+        '200':
+          description: Timeseries data points for the requested path.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeseriesQueryResult'
+        '400':
+          description: |-
+            The request could not be completed (`timeseries:query.invalid`). Possible reasons:
+              * the `thingId` does not conform to the namespaced entity ID notation.
+              * `from`/`to` is not a valid ISO-8601 instant or relative expression.
+              * `step` is not a valid duration, or `agg`/`fill` is not a recognised value.
+              * a per-bucket aggregation was requested without a `step`.
+              * `agg=percentile` without a `percentile`, or `percentile` outside `[0, 100]`.
+              * `limit` is not a valid integer.
+              * `cursor` is malformed, or combined with `step`, `agg` or `fill`.
+              * `order` is not `asc`/`desc`, or `order=desc` combined with `step`, `agg` or `fill`.
+              * `tagFilter` is not a comma-separated list of `key:value` pairs.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '404':
+          description: |-
+            The request could not be completed. Either the thing with the given ID was
+            not found, or the requesting subject lacks the configured
+            `READ_TS`/`READ` permission on the requested resource path. The two cases
+            return the same error to avoid leaking the existence of resources the
+            caller cannot access.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        5XX:
+          description: |-
+            The Timeseries service is temporarily unavailable or the underlying
+            timeseries database is degraded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+  '/api/2/timeseries/things/{thingId}':
+    get:
+      summary: Retrieve historical timeseries data for multiple paths of a Thing
+      description: |-
+        Returns the chronological sequence of values for several feature properties and/or attributes
+        of one Thing in a single request. The paths are given explicitly via the required `paths`
+        query parameter (comma-separated JSON pointers).
+
+        The same downsampling / aggregation / fill / timezone / percentile / timeFormat parameters as the
+        single-property endpoint apply, and they apply uniformly to every requested path. The response is
+        an array with one entry (`path`, `result`, `data`) per requested path.
+
+        Only paths whose property is annotated with `ditto:timeseries.ingest = "ALL"` produce data; the
+        others come back with `count = 0`. Authorization is enforced per path (`READ_TS` by default); a
+        path the caller cannot read is reported as having no data rather than leaking its existence.
+      tags:
+        - Timeseries
+      parameters:
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - name: paths
+          in: query
+          description: |-
+            Comma-separated list of JSON pointers (relative to the Thing root) to retrieve, e.g.
+            `/features/environment/properties/temperature,/attributes/batteryExchangeDate`.
+
+            At most 100 paths per request. Each path is scanned independently and bounded by the
+            adapter's per-path ceiling, so the path count multiplies the memory one request can use.
+          required: true
+          schema:
+            type: string
+            example: '/features/environment/properties/temperature,/features/environment/properties/humidity'
+        - name: from
+          in: query
+          description: 'Inclusive lower bound — ISO-8601 instant or relative expression (`now`, `now-24h`).'
+          required: true
+          schema:
+            type: string
+            example: now-24h
+        - name: to
+          in: query
+          description: Exclusive upper bound — ISO-8601 instant or relative expression (e.g. `now`).
+          required: true
+          schema:
+            type: string
+            example: now
+        - name: step
+          in: query
+          description: 'Downsampling interval (`30s`, `5m`, `1h`, `1d` or ISO-8601 `PT1H`).'
+          required: false
+          schema:
+            type: string
+            example: 1h
+        - name: agg
+          in: query
+          description: Aggregation function applied per `step` bucket (or over fetched points for window functions).
+          required: false
+          schema:
+            type: string
+            enum:
+              - avg
+              - min
+              - max
+              - sum
+              - count
+              - first
+              - last
+              - stddev
+              - derivative
+              - rate
+              - integral
+              - percentile
+            example: avg
+        - name: percentile
+          in: query
+          description: 'Percentile in `[0, 100]`. Required when `agg=percentile`.'
+          required: false
+          schema:
+            type: number
+            minimum: 0
+            maximum: 100
+            example: 95
+        - name: fill
+          in: query
+          description: |-
+            Gap-fill strategy for empty buckets when downsampling. `null` emits a gap marker,
+            `previous` carries the last value forward, `zero` fills with 0, and `linear` linearly
+            interpolates between the surrounding non-empty buckets (numeric series only).
+          required: false
+          schema:
+            type: string
+            enum:
+              - null
+              - previous
+              - zero
+              - linear
+            example: previous
+        - name: tz
+          in: query
+          description: IANA time-zone ID used to align `step` bucket boundaries (default UTC).
+          required: false
+          schema:
+            type: string
+            example: Europe/Berlin
+        - name: limit
+          in: query
+          description: Maximum number of data points per path for raw queries (subject to a server-side ceiling).
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            example: 1000
+        - name: tagFilter
+          in: query
+          description: |-
+            Restrict the result to points whose resolved tags match every given `key:value` pair
+            (comma-separated, logical AND) — e.g. `building:A,floor:2`. Tags are declared on the WoT
+            property's `ditto:timeseries` annotation and resolved at ingestion time. Applies to raw and
+            aggregated reads.
+          required: false
+          schema:
+            type: string
+            example: 'building:A,floor:2'
+        - name: timeFormat
+          in: query
+          description: 'Timestamp rendering in the response: `iso` (default) or `ms` (epoch milliseconds).'
+          required: false
+          schema:
+            type: string
+            enum:
+              - iso
+              - ms
+            default: iso
+            example: ms
+      responses:
+        '200':
+          description: One timeseries result entry per requested path.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeseriesQueryResult'
+        '400':
+          description: |-
+            The request could not be completed (`timeseries:query.invalid`). Possible reasons:
+              * `paths` is missing, contains no valid JSON pointer, or lists more than 100 paths.
+              * `from`/`to` is not a valid ISO-8601 instant or relative expression.
+              * `step` is not a valid duration, or `agg`/`fill`/`timeFormat` is not a recognised value.
+              * a per-bucket aggregation was requested without a `step`.
+              * `agg=percentile` without a `percentile`, or `percentile` outside `[0, 100]`.
+              * `tagFilter` is not a comma-separated list of `key:value` pairs.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '404':
+          description: |-
+            The Thing with the given ID was not found, or the requesting subject lacks the configured
+            `READ_TS` permission. The two cases return the same error to avoid leaking existence.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        5XX:
+          description: The Timeseries service is temporarily unavailable or the timeseries database is degraded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+  /api/2/timeseries/things:
+    get:
+      summary: Aggregate timeseries data across many things of one namespace
+      description: |-
+        Aggregates historical values across **all things of one namespace** and returns one series per
+        group — for example "average `flowTemperature` per building, hourly, over the last day".
+
+        ### Aggregation is mandatory
+        Unlike the single-thing endpoints, `step` and `agg` are **required**. A raw cross-thing read
+        would stream every point of every matching thing, so the result size must be a function of the
+        time range rather than of the tenant's thing count. Only the per-bucket aggregations are
+        available (`avg`, `min`, `max`, `sum`, `count`, `first`, `last`, `stddev`); the window functions
+        (`derivative`, `rate`, `integral`, `percentile`) remain single-thing only.
+
+        ### `filter` uses RQL, and selects points rather than things
+        The filter is written in **RQL** — the same query language as `/api/2/search/things` — so there is
+        one filter syntax to learn across Ditto. Field references are the tag keys declared in the WoT
+        model, which are full thing paths, e.g. `eq(attributes/building,'A')`.
+
+        Tags are frozen on each data point at ingest, so the filter selects by the state of the world
+        **when the measurement was recorded**. For a thing moved from building A to building B,
+        `filter=eq(attributes/building,'A')` returns only the points recorded while it was in A — not its
+        whole history. This is deliberate and differs from selecting things by their current attributes.
+
+        ### Authorization
+        Access is evaluated against **current** policy state on every request; nothing about
+        authorization is stored with the data points. A subject granted access today therefore sees
+        history ingested before the grant, and a revoked subject immediately loses access to history it
+        could previously read.
+
+        Three checks apply, and each covers a different disclosure:
+
+        0. **`READ` on the fields you filter or group by.** Filtering by a tag reveals which points carry
+           which value, and grouping by one reveals its distinct values — so slicing a series by
+           `attributes/building` requires `READ` on `attributes/building`, independently of `READ_TS` on
+           the data. Because tag keys are thing paths, they are ordinary policy resources.
+
+        Then, on the data itself:
+
+        1. **Entry condition** — a **namespace-wide** `READ_TS` grant, normally expressed through a
+           namespace root policy. Without it the request is rejected with `403`. Per-thing grants
+           scattered across individual policies are not sufficient to *use* this endpoint; query those
+           things individually instead.
+        2. **Per-thing, per-path narrowing** — a namespace-wide grant does **not** imply every thing
+           grants. Namespace-root entries are merged *additively*, so a thing's own policy may still revoke
+           `READ_TS`, and a revoke wins. Every thing that would contribute data is therefore verified
+           against live policy first.
+
+           This is **path-granular**, because `READ_TS` is grantable per property: a thing denied one
+           requested path still contributes to the paths it is entitled to, rather than being dropped from
+           the whole query. (This mirrors how thing-search authorizes an RQL predicate per field.)
+
+        When anything is withheld the response says so: `authorization.withheldByPath` names the affected
+        paths with a count, and `authorization.partial` is `true`. Check that flag before treating an
+        aggregate as representative — the values are otherwise indistinguishable from a complete result.
+
+        Only entries whose `importable` type is `implicit` count toward the namespace-wide grant, since
+        those are the only ones the merge propagates to the namespace's things.
+
+        ### Scope
+        Exactly one namespace per request: storage is partitioned one collection per namespace, so
+        spanning several would be a multi-collection merge.
+      tags:
+        - Timeseries
+      parameters:
+        - name: namespaces
+          in: query
+          description: The namespace to aggregate over. Exactly one value — a comma-separated list is rejected.
+          required: true
+          schema:
+            type: string
+            example: io.beyonnex.smartheating
+        - name: paths
+          in: query
+          description: |-
+            Comma-separated list of JSON pointers (relative to the thing root) to aggregate, e.g.
+            `/features/circuit/properties/flowTemperature`. Results are always reported per path.
+
+            At most 100 paths per request — the same bound the single-thing endpoints apply. It matters
+            more here: each path is a separate grouped scan over every thing in the namespace, so the
+            path count multiplies a fan-out that is already namespace-wide.
+          required: true
+          schema:
+            type: string
+            example: /features/circuit/properties/flowTemperature
+        - name: from
+          in: query
+          description: 'Inclusive lower bound — ISO-8601 instant or relative expression (`now`, `now-24h`).'
+          required: true
+          schema:
+            type: string
+            example: now-24h
+        - name: to
+          in: query
+          description: Exclusive upper bound — ISO-8601 instant or relative expression (e.g. `now`).
+          required: true
+          schema:
+            type: string
+            example: now
+        - name: step
+          in: query
+          description: 'Bucket width (`30s`, `5m`, `1h`, `1d` or ISO-8601 `PT1H`). Required — see above.'
+          required: true
+          schema:
+            type: string
+            example: 1h
+        - name: agg
+          in: query
+          description: The per-bucket aggregation. Required — see above.
+          required: true
+          schema:
+            type: string
+            enum:
+              - avg
+              - min
+              - max
+              - sum
+              - count
+              - first
+              - last
+              - stddev
+            example: avg
+        - name: groupBy
+          in: query
+          description: |-
+            Comma-separated grouping dimensions. Each is one of:
+              * `thingId` — one series per thing;
+              * `path` — one series per requested path (implicit: results are always per path, so
+                declaring this only adds the path to the emitted `group` object);
+              * a **tag path** such as `attributes/floor` — one series per distinct value of that
+                ingest-time tag. (`tag:<key>` is still accepted.)
+
+            A tag dimension requires `READ` on the referenced field, as with `filter`.
+
+            Omitted means one series per path, aggregated across every matching thing.
+          required: false
+          schema:
+            type: string
+            example: attributes/building
+        - name: filter
+          in: query
+          description: |-
+            An RQL predicate over ingest-time tags, using the same syntax as `/api/2/search/things`.
+            Supported operators: `eq`, `ne`, `gt`, `ge`, `lt`, `le`, `in`, `like`, `ilike`, `exists`,
+            `and`, `or`, `not`. Field references are tag keys as declared in the WoT model (full thing
+            paths). Matches points, not things — see above.
+
+            Every field referenced here additionally requires `READ` permission.
+          required: false
+          schema:
+            type: string
+            example: 'and(eq(attributes/building,''A''),ge(attributes/floor,2))'
+        - name: fill
+          in: query
+          description: |-
+            How buckets with no data are filled. Omitted means such buckets are simply absent.
+            Synthesised buckets are marked `_gap: true`.
+          required: false
+          schema:
+            type: string
+            enum:
+              - previous
+              - zero
+              - linear
+        - name: tz
+          in: query
+          description: |-
+            IANA timezone for calendar-aligned bucket boundaries, e.g. `Europe/Berlin`. Affects
+            day-and-coarser steps across DST transitions. Defaults to UTC.
+          required: false
+          schema:
+            type: string
+            example: Europe/Berlin
+        - name: maxGroups
+          in: query
+          description: |-
+            Cap on the number of distinct groups returned (default 1000, ceiling 10000). Exceeding the
+            cap **fails the request** rather than truncating the result, because a silently truncated
+            set would look like a complete answer and misreport anything computed on top of it.
+
+            A separate, operator-configured ceiling bounds how many *things* one request will authorize
+            (`ditto.timeseries.max-verified-things`, default 1000). Exceeding it also fails the request,
+            for the same reason: authorizing a truncated set of contributors would silently admit
+            whatever fell off the end.
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10000
+        - name: timeFormat
+          in: query
+          description: 'Rendering of the `t` fields: `iso` (default) or `ms` for epoch milliseconds.'
+          required: false
+          schema:
+            type: string
+            enum:
+              - iso
+              - ms
+      responses:
+        '200':
+          description: The aggregation succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AggregatedTimeseriesResult'
+        '400':
+          description: |-
+            The request is malformed: a missing or unparseable required parameter, more than 100
+            `paths`, a window-function aggregation, a non-positive `step`, a `maxGroups` outside its
+            bounds, more than one namespace, an unknown `groupBy` dimension, a query matching more
+            groups than `maxGroups`, or a query spanning more things than the service will authorize
+            per request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '403':
+          description: |-
+            The caller lacks `READ` on a field referenced by `filter`/`groupBy`, or has no namespace-wide
+            `READ_TS` grant covering every requested path — including
+            the case where they hold only scattered per-thing grants, which are not sufficient to use
+            this endpoint, and the case where the grant is carried by a policy entry that is not
+            `importable: implicit`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
 components:
   requestBodies:
     Attributes:
@@ -10003,6 +10633,29 @@ components:
       required: true
       schema:
         type: string
+    PolicyViewParam:
+      name: policy-view
+      in: query
+      description: |-
+        Selects the policy representation. Accepted values: `original` (default — policy as stored)
+        and `resolved` (merged view including imports, references and namespace-root policies).
+        Imported entries appear under labels of the form `imported-<importedPolicyId>-<originalLabel>`
+        (treat the format as opaque; policy IDs may contain `-`). The `imports` block is preserved
+        unchanged.
+
+        Note on caching: the response ETag reflects only the importing policy's revision, so a `304`
+        may be returned even when imported or namespace-root policies have changed. Treat the
+        resolved view as read-through.
+
+        The resolved view exposes all `importable=implicit` entries from imported policies declared
+        by the importing policy, matching how the enforcer evaluates the policy at runtime.
+      required: false
+      schema:
+        type: string
+        enum:
+          - original
+          - resolved
+        default: original
     PropertiesFieldsQueryParam:
       name: fields
       in: query
@@ -10420,6 +11073,296 @@ components:
         - status
         - error
         - message
+    TimeseriesQueryResult:
+      type: array
+      description: |-
+        Timeseries query result: one entry per requested path, in request order. The
+        single-property endpoint requests one path, so its array holds a single entry;
+        the multi-path Thing endpoint (`?paths=...`) returns one entry per requested path.
+      items:
+        type: object
+        required:
+          - thingId
+          - path
+          - query
+          - result
+          - data
+        properties:
+          thingId:
+            type: string
+            description: The thing the data points belong to.
+          path:
+            type: string
+            description: |-
+              The Ditto Protocol path inside the thing whose timeseries was queried,
+              e.g. `/features/environment/properties/temperature`.
+          query:
+            type: object
+            description: Echo of the effective query that produced this result. Optional parameters are present only when supplied on the request.
+            properties:
+              thingId:
+                type: string
+              paths:
+                type: array
+                items:
+                  type: string
+              from:
+                type: string
+                format: date-time
+              to:
+                type: string
+                format: date-time
+              step:
+                type: string
+                description: 'Downsampling interval as an ISO-8601 duration, e.g. `PT1H`.'
+              aggregation:
+                type: string
+                enum:
+                  - avg
+                  - min
+                  - max
+                  - sum
+                  - count
+                  - first
+                  - last
+                  - stddev
+                  - derivative
+                  - rate
+                  - integral
+                  - percentile
+              fillStrategy:
+                type: string
+                enum:
+                  - null
+                  - previous
+                  - zero
+                  - linear
+              percentile:
+                type: number
+                minimum: 0
+                maximum: 100
+              timezone:
+                type: string
+                description: IANA time-zone ID used to align bucket boundaries.
+              limit:
+                type: integer
+                format: int32
+              cursor:
+                type: string
+                description: 'Opaque pagination cursor supplied on the request, if any.'
+              order:
+                type: string
+                enum:
+                  - asc
+                  - desc
+                description: 'Sort order supplied on the request, if any.'
+              tagFilters:
+                type: object
+                additionalProperties:
+                  type: string
+                description: 'Tag filters supplied on the request, if any.'
+          result:
+            type: object
+            description: Per-path metadata.
+            required:
+              - count
+              - dataType
+            properties:
+              count:
+                type: integer
+                format: int32
+                description: Number of data points returned.
+              hasMore:
+                type: boolean
+                description: |-
+                  Whether more data matched the query than this page returned. Present only for raw
+                  (paginated) reads: `true` means another page follows (see `nextCursor`), `false` means
+                  this is the last page. Absent for aggregated reads.
+              nextCursor:
+                type: string
+                description: |-
+                  Opaque cursor for the next page of a raw read. Present only when `hasMore` is `true`;
+                  pass it back as the request's `cursor` to continue. Absent on the last page.
+              dataType:
+                type: string
+                enum:
+                  - number
+                  - string
+                  - boolean
+                  - 'null'
+                description: |-
+                  Inferred scalar type of the returned values. `null` when the result
+                  set is empty.
+              unit:
+                type: string
+                description: |-
+                  Unit declared on the WoT property the timeseries was ingested from
+                  (semantic prefix stripped). Omitted when the property has no `unit`.
+              tags:
+                type: object
+                additionalProperties:
+                  type: string
+                description: |-
+                  The resolved tags of the series, as stored with the points (representative: the first
+                  point's). Omitted when the series has no tags or for aggregated reads (which group away
+                  per-point metadata).
+          data:
+            type: array
+            description: |-
+              Returned data points in the requested chronological order — ascending timestamp by default,
+              or descending when `order=desc`.
+            items:
+              type: object
+              required:
+                - t
+                - v
+              properties:
+                t:
+                  type: string
+                  format: date-time
+                  description: ISO-8601 timestamp at which the value was observed.
+                v:
+                  description: The observed scalar value. Type matches the per-path `dataType`.
+    AggregatedTimeseriesResult:
+      type: object
+      required:
+        - results
+        - authorization
+      description: |-
+        Cross-Thing aggregation result.
+
+        Unlike the single-thing endpoints (whose body is a bare array), this is an object so it can carry the
+        `authorization` summary alongside the series. An aggregate computed over the subset of things you may
+        read is indistinguishable from one computed over everything if you only look at the numbers — so the
+        exclusion is stated rather than left implicit.
+      properties:
+        authorization:
+          type: object
+          required:
+            - contributingThings
+            - excludedThings
+            - withheldByPath
+            - partial
+          description: How much of the matching data is actually reflected in `results`.
+          properties:
+            contributingThings:
+              type: integer
+              description: |-
+                How many distinct things shaped these aggregates, i.e. were permitted on at least one
+                requested path.
+            excludedThings:
+              type: integer
+              description: |-
+                How many things had matching data but were withheld from **every** requested path.
+
+                This is not an error. A namespace-wide `READ_TS` grant is the entry condition for this
+                endpoint, but namespace-root policy entries are merged *additively* — an individual thing's
+                own policy may still revoke `READ_TS`, and a revoke wins.
+            withheldByPath:
+              type: object
+              additionalProperties:
+                type: integer
+              description: |-
+                Per requested path, how many things had matching data for that path but were withheld from
+                it. Only non-zero entries appear.
+
+                `READ_TS` is grantable **per property**, so access is path-granular: a thing denied one
+                requested path still contributes to the paths it is entitled to. Such a thing appears here
+                under the denied path while remaining counted in `contributingThings` — it is *not* in
+                `excludedThings`, which counts only things withheld from every path.
+
+                A thing is counted against a path only if it actually had data for that path, so this never
+                inflates with things that would have contributed nothing anyway.
+              example:
+                /features/circuit/properties/returnTemperature: 1
+            partial:
+              type: boolean
+              description: |-
+                `true` when anything at all was withheld, i.e. `withheldByPath` is non-empty. Every affected
+                series in `results` is then computed over a subset of the matching data — treat those numbers
+                as a lower-bound sample, not the population. Check this before presenting an aggregate as
+                representative.
+        results:
+          type: array
+          description: |-
+            One entry per `(group, path)` combination.
+
+            There is no `thingId` field — a group generally spans many things. When the query groups by
+            `thingId`, the thing ID appears as an ordinary entry inside `group` instead, so every grouping
+            choice produces the same response shape.
+          items:
+            type: object
+            required:
+              - path
+              - result
+              - data
+            properties:
+              group:
+                type: object
+                additionalProperties:
+                  type: string
+                description: |-
+                  The group identity: one entry per `groupBy` dimension, keyed by the dimension's name
+                  (`thingId`, `path`, or the bare tag key for a `tag:<key>` dimension). Absent when the
+                  query declared no `groupBy`, in which case the entry aggregates every matching thing.
+
+                  A point that carries no value for a grouped tag appears under an empty-string value
+                  rather than being dropped, so the set of keys is the same across all entries.
+                example:
+                  building: A
+              path:
+                type: string
+                description: |-
+                  The Ditto Protocol path this series belongs to, e.g.
+                  `/features/circuit/properties/flowTemperature`. Results are always reported per path.
+              result:
+                type: object
+                required:
+                  - count
+                  - dataType
+                properties:
+                  count:
+                    type: integer
+                    description: Number of data points in `data`.
+                  unit:
+                    type: string
+                    description: 'The unit declared on the WoT property, when the points of this series carry one.'
+                    example: cel
+                  dataType:
+                    type: string
+                    description: JSON type of the aggregated values.
+                    example: number
+                  tags:
+                    type: object
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      Always empty for aggregated results: a group spans many points whose tags may differ,
+                      so there is no single tag set to report. Use `group` instead.
+              data:
+                type: array
+                description: |-
+                  The aggregated values in chronological order, one per `step` bucket that has data (plus
+                  the interpolated buckets when `fill` is set).
+                items:
+                  type: object
+                  required:
+                    - t
+                    - v
+                  properties:
+                    t:
+                      type: string
+                      format: date-time
+                      description: |-
+                        Start of the bucket, ISO-8601. Rendered as epoch milliseconds instead when
+                        `timeFormat=ms`.
+                    v:
+                      description: The aggregated value for this bucket. Type matches `dataType`.
+                    _gap:
+                      type: boolean
+                      description: |-
+                        Present and `true` when this bucket had no data of its own and was synthesised by the
+                        `fill` strategy. Absent on buckets backed by real measurements.
     Attributes:
       type: object
       description: An arbitrary JSON object describing the attributes of a thing.
@@ -10831,10 +11774,18 @@ components:
             $ref: '#/components/schemas/Permission'
     Permission:
       type: string
-      description: A Permission allows a certain action on an entity
+      description: |
+        A Permission allows a certain action on an entity.
+         * `READ` and `WRITE` apply to all resource types (`thing:/`, `policy:/`, `message:/`).
+         * `READ_TS` (since 4.0.0) only applies to `thing:/...` resources and gates retrieval
+           of historical timeseries data via the Timeseries API. Its enforcement is governed
+           by the boolean Timeseries service setting `ditto.timeseries.simplified-read-permission`:
+           when `false` (default, strict) an explicit `READ_TS` grant is required on every requested
+           path; when `true` (simplified) a standard `READ` grant on the resource is also sufficient.
       enum:
         - READ
         - WRITE
+        - READ_TS
     AllowedAdditions:
       type: array
       description: |-
