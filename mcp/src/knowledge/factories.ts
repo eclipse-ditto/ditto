@@ -35,10 +35,10 @@ export function makeSources(config: AppConfig, deps?: FactoryDeps): KnowledgeSou
       }),
     );
   }
-  if (config.knowledge.localDir.enabled && config.knowledge.localDir.path) {
+  if (config.knowledge.localDir.enabled && config.knowledge.localDir.paths?.length) {
     sources.push(
       new LocalDirSource({
-        dir: config.knowledge.localDir.path,
+        dirs: config.knowledge.localDir.paths,
         id: config.knowledge.localDir.id,
         chunkOptions,
       }),

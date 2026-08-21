@@ -83,7 +83,7 @@ export const AppConfigSchema = z
         localDir: z
           .object({
             enabled: z.boolean().default(false),
-            path: z.string().optional(),
+            paths: z.array(z.string()).optional(),
             id: z.string().default("local"),
           })
           .default({ enabled: false, id: "local" }),

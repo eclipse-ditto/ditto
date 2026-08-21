@@ -28,7 +28,7 @@ beforeEach(() => {
 
 describe("LocalDirSource", () => {
   it("loads and chunks markdown files recursively, ignoring non-markdown", async () => {
-    const src = new LocalDirSource({ dir });
+    const src = new LocalDirSource({ dirs: [dir] });
     const chunks = await src.loadChunks();
     expect(src.id).toBe("local");
     const texts = chunks.map((c) => c.text).join("\n");
@@ -39,8 +39,34 @@ describe("LocalDirSource", () => {
     chunks.forEach((c, i) => expect(c.id).toBe(`local#${i}`));
   });
 
-  it("returns [] for a missing directory (non-fatal)", async () => {
-    const src = new LocalDirSource({ dir: join(dir, "does-not-exist") });
+  it("merges markdown across multiple dirs with unique sequential ids", async () => {
+    const dir2 = mkdtempSync(join(tmpdir(), "ditto-corpus2-"));
+    writeFileSync(join(dir2, "extra.md"), "# Extra\n\nSecond corpus entry about sharding.");
+    const src = new LocalDirSource({ dirs: [dir, dir2] });
+    const chunks = await src.loadChunks();
+    const texts = chunks.map((c) => c.text).join("\n");
+    expect(texts).toContain("reconnect storm");
+    expect(texts).toContain("Netty leak detection");
+    expect(texts).toContain("sharding");
+    // ids stay unique + sequential across both dirs
+    chunks.forEach((c, i) => expect(c.id).toBe(`local#${i}`));
+    expect(new Set(chunks.map((c) => c.id)).size).toBe(chunks.length);
+  });
+
+  it("skips a missing dir but still loads the readable ones (non-fatal)", async () => {
+    const src = new LocalDirSource({ dirs: [join(dir, "does-not-exist"), dir] });
+    const chunks = await src.loadChunks();
+    const texts = chunks.map((c) => c.text).join("\n");
+    expect(texts).toContain("reconnect storm");
+  });
+
+  it("returns [] when all dirs are missing (non-fatal)", async () => {
+    const src = new LocalDirSource({ dirs: [join(dir, "does-not-exist")] });
+    expect(await src.loadChunks()).toEqual([]);
+  });
+
+  it("returns [] for an empty dirs list", async () => {
+    const src = new LocalDirSource({ dirs: [] });
     expect(await src.loadChunks()).toEqual([]);
   });
 });

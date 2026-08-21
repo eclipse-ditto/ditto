@@ -17,7 +17,7 @@ import type { Chunk, KnowledgeSource } from "./types.js";
 import { chunkMarkdown } from "./chunker.js";
 
 export interface LocalDirSourceOptions {
-  dir: string;
+  dirs: string[];
   id?: string;
   chunkOptions?: { maxChars?: number; overlap?: number };
 }
@@ -34,14 +34,16 @@ export class LocalDirSource implements KnowledgeSource {
   }
 
   async loadChunks(): Promise<Chunk[]> {
-    let files: string[];
-    try {
-      files = walk(this.opts.dir);
-    } catch (err) {
-      process.stderr.write(
-        `[ditto-mcp] local-dir-source: cannot read ${this.opts.dir}: ${String(err)}\n`,
-      );
-      return [];
+    const files: string[] = [];
+    for (const dir of this.opts.dirs) {
+      try {
+        files.push(...walk(dir));
+      } catch (err) {
+        // Skip an unreadable dir but keep loading the rest.
+        process.stderr.write(
+          `[ditto-mcp] local-dir-source: cannot read ${dir}: ${String(err)}\n`,
+        );
+      }
     }
     const chunks: Chunk[] = [];
     for (const file of files) {

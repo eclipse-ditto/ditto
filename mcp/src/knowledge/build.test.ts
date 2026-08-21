@@ -121,7 +121,7 @@ describe("buildKnowledgeService — vector retriever over a local dir", () => {
         retriever: "vector",
         embedding: { dim: 3 },
         publicSource: { enabled: false },
-        localDir: { enabled: true, path: dir },
+        localDir: { enabled: true, paths: [dir] },
       },
     });
     const svc = await buildKnowledgeService(config, { embeddingProvider: fakeEmbedder });
@@ -140,7 +140,7 @@ describe("buildKnowledgeService — vector retriever over a local dir", () => {
         retriever: "hybrid",
         embedding: { dim: 3 },
         publicSource: { enabled: false },
-        localDir: { enabled: true, path: dir },
+        localDir: { enabled: true, paths: [dir] },
       },
     });
     const svc = await buildKnowledgeService(config, { embeddingProvider: fakeEmbedder });
@@ -162,14 +162,14 @@ describe("buildKnowledgeService — prebuilt sqlite file", () => {
     const { buildIndex } = await import("./build-index.js");
     const { LocalDirSource } = await import("./local-dir-source.js");
     const w = new SqliteKnowledgeStore(path);
-    await buildIndex([new LocalDirSource({ dir: corpus })], w);
+    await buildIndex([new LocalDirSource({ dirs: [corpus] })], w);
     await w.close();
 
     const config = AppConfigSchema.parse({
       knowledge: {
         retriever: "fts",
         publicSource: { enabled: false },
-        localDir: { enabled: true, path: "/nonexistent-should-not-be-read" },
+        localDir: { enabled: true, paths: ["/nonexistent-should-not-be-read"] },
         store: { kind: "sqlite", sqlite: { path } },
       },
     });
@@ -211,7 +211,7 @@ describe("buildKnowledgeService — prebuilt sqlite file", () => {
     writeFileSync(join(corpus, "a.md"), "# A\n\nnetty out of memory");
     const config = AppConfigSchema.parse({
       knowledge: { retriever: "fts", publicSource: { enabled: false },
-        localDir: { enabled: true, path: corpus }, store: { kind: "sqlite", sqlite: { path } } },
+        localDir: { enabled: true, paths: [corpus] }, store: { kind: "sqlite", sqlite: { path } } },
     });
     const svc = await buildKnowledgeService(config);
     expect(svc).toBeDefined();

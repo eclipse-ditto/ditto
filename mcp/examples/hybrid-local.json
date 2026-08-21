@@ -6,7 +6,7 @@
     },
     "localDir": {
       "enabled": true,
-      "path": "/path/to/your/markdown"
+      "paths": ["/path/to/your/markdown", "/path/to/another/dir"]
     },
     "embedding": {
       "model": "Xenova/bge-small-en-v1.5",

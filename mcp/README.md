@@ -221,8 +221,8 @@ The index can be stored in **SQLite** (file-based, default) or **Postgres** (pgv
 | `knowledge.publicSource.enabled` | `boolean` | `true` | Enable PublicSource (Ditto llms.txt) |
 | `knowledge.publicSource.url` | `string` | `"https://eclipse.dev/ditto/llms.txt"` | llms.txt URL |
 | `knowledge.publicSource.maxDocs` | `number?` | `undefined` | Optional doc limit |
-| `knowledge.localDir.enabled` | `boolean` | `false` | Enable LocalDirSource (index a local markdown directory) |
-| `knowledge.localDir.path` | `string?` | `undefined` | Path to local markdown directory |
+| `knowledge.localDir.enabled` | `boolean` | `false` | Enable LocalDirSource (index local markdown directories) |
+| `knowledge.localDir.paths` | `string[]?` | `undefined` | Paths to local markdown directories (each walked recursively) |
 | `knowledge.localDir.id` | `string` | `"local"` | Source ID for local chunks |
 
 #### Chunking

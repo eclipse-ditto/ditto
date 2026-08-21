@@ -33,7 +33,7 @@ describe("ingest CLI (spawn e2e)", () => {
       knowledge: {
         retriever: "fts",
         publicSource: { enabled: false },
-        localDir: { enabled: true, path: corpus },
+        localDir: { enabled: true, paths: [corpus] },
         store: { kind: "sqlite", sqlite: { path } },
       },
     }));
@@ -60,7 +60,7 @@ describe("ingest CLI (spawn e2e)", () => {
       for (let i = 0; i < files; i++) writeFileSync(join(corpus, `d${i}.md`), `# D${i}\n\ndoc ${i} netty`);
       writeFileSync(cfgPath, JSON.stringify({
         knowledge: { retriever: "fts", publicSource: { enabled: false },
-          localDir: { enabled: true, path: corpus }, store: { kind: "sqlite", sqlite: { path } } },
+          localDir: { enabled: true, paths: [corpus] }, store: { kind: "sqlite", sqlite: { path } } },
       }));
     };
     const run = () => execFileSync(process.execPath, ["--import", "tsx", entry],
