@@ -19,6 +19,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -88,6 +89,25 @@ public final class AddEffectedReadSubjectsTest {
         assertThat(actual).isEqualTo(legacyReadSubjects(policyEnforcer.getEnforcer(), event, false));
         // without partial subjects only root-unrestricted readers (alice) are granted
         assertThat(actual).containsExactly(AuthorizationSubject.newInstance("user:alice"));
+    }
+
+    @Test
+    public void emptyReadGrantsStillRenderAnEmptyArrayHeader() {
+        final Policy writeOnlyPolicy = Policy.newBuilder(POLICY_ID)
+                .setRevision(1L)
+                .setSubjectFor("alice", subject("user:alice"))
+                .setGrantedPermissionsFor("alice", ResourceKey.newInstance("thing", "/"), Permission.WRITE)
+                .build();
+        final PolicyEnforcer policyEnforcer = PolicyEnforcer.of(writeOnlyPolicy);
+
+        final AttributeModified enriched = ThingCommandEnforcement.addEffectedReadSubjectsToThingSignal(
+                attributeModified("x"), policyEnforcer, false);
+
+        // The header must be present and empty rather than absent: downstream readers distinguish
+        // "nobody may read" from "no read-grant information attached".
+        assertThat(enriched.getDittoHeaders())
+                .containsEntry(DittoHeaderDefinition.READ_SUBJECTS.getKey(), "[]");
+        assertThat(enriched.getDittoHeaders().getReadGrantedSubjects()).isEmpty();
     }
 
     /** The exact computation the code performed before the PolicyEnforcer memo was introduced. */

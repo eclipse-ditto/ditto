@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
@@ -32,7 +34,11 @@ import javax.annotation.concurrent.Immutable;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.enforcement.config.NamespacePoliciesConfig;
@@ -76,6 +82,15 @@ public final class PolicyEnforcer {
     // safe: the instance is replaced wholesale by CachingPolicyEnforcerProvider on every grant change, so the
     // memo is invalidated naturally. Generalizes the former single-slot root-read-classification memo.
     private final Cache<ResourceKey, SubjectClassification> readClassificationCache;
+    // Memoizes the rendered "ditto-read-subjects" header value per resource, layered on top of
+    // readClassificationCache: the value is a pure function of the resolved grants and the resource path, so
+    // rendering it (merge -> sort -> JsonArray -> escaped string + CBOR) once per policy revision instead of once
+    // per emitted ThingEvent is safe. Same natural invalidation as the caches above. Only used for the
+    // include-partial-read-subjects variant, which is the only one depending on the resource key.
+    private final Cache<ResourceKey, JsonArray> readGrantedSubjectsHeaderValueCache;
+    // Single-slot memo for the root-only variant, whose value does not depend on the resource key. Volatile
+    // rather than a Cache because it is a single reference read on the hot path.
+    @Nullable private volatile JsonArray rootOnlyReadGrantedSubjectsHeaderValue;
     // The read-classification bound (<= 0 means unbounded), kept so forNamespace children can inherit it:
     // the things-service hot path calls classifyReadSubjects on the namespace-filtered child, so its cache
     // must be bounded too (unlike the child's namespace cache, which stays empty).
@@ -115,6 +130,11 @@ public final class PolicyEnforcer {
         // <= 0 means unbounded (of/embed/transient instances); provider-cached and forNamespace children
         // inherit the operator-configured bound.
         this.readClassificationCache = readClassificationCacheMaxSize > 0
+                ? Caffeine.newBuilder().maximumSize(readClassificationCacheMaxSize).build()
+                : Caffeine.newBuilder().build();
+        // Entries correspond one-to-one to readClassificationCache entries, so the same bound keeps the retained
+        // memory of both memos proportional; no separate configuration knob is needed.
+        this.readGrantedSubjectsHeaderValueCache = readClassificationCacheMaxSize > 0
                 ? Caffeine.newBuilder().maximumSize(readClassificationCacheMaxSize).build()
                 : Caffeine.newBuilder().build();
     }
@@ -431,6 +451,71 @@ public final class PolicyEnforcer {
         checkNotNull(resourceKey, "resourceKey");
         return readClassificationCache.get(resourceKey,
                 rk -> enforcer.classifySubjects(rk, READ_PERMISSIONS));
+    }
+
+    /**
+     * Returns the rendered value of the {@code ditto-read-subjects} header for the given resource, computed at most
+     * once per distinct {@code resourceKey} and memoized for the lifetime of this instance.
+     * <p>
+     * The subjects are the same ones {@link #classifyReadSubjects(ResourceKey)} yields, namely
+     * {@code unrestricted(resourceKey) ∪ partialOnly(root) ∪ unrestricted(root)} when
+     * {@code includePartialReadSubjects} is set and {@code unrestricted(root)} otherwise. Rendering them into a JSON
+     * array is a pure function of those sets, so — like the classification itself — it is memoized here instead of
+     * being repeated for every emitted ThingEvent. The memo is invalidated naturally, because
+     * {@code CachingPolicyEnforcerProvider} replaces this instance wholesale on every grant change.
+     * <p>
+     * Subject IDs are sorted and de-duplicated, which makes the rendered value stable across pods and restarts.
+     * Consumers parse the array back into a Set, so the ordering is not semantically relevant.
+     *
+     * @param resourceKey the resource to render the READ-granted subjects for.
+     * @param includePartialReadSubjects whether subjects with only partial READ access on the root resource are
+     * included.
+     * @return the cached rendered header value; empty if no subject has READ access.
+     * @since 3.9.7
+     */
+    public JsonArray getReadGrantedSubjectsHeaderValue(final ResourceKey resourceKey,
+            final boolean includePartialReadSubjects) {
+
+        checkNotNull(resourceKey, "resourceKey");
+        if (includePartialReadSubjects) {
+            return readGrantedSubjectsHeaderValueCache.get(resourceKey, this::renderReadGrantedSubjectsIncludingPartial);
+        }
+        JsonArray result = rootOnlyReadGrantedSubjectsHeaderValue;
+        if (null == result) {
+            result = renderSubjectIds(getRootResourceReadClassification().getUnrestricted());
+            rootOnlyReadGrantedSubjectsHeaderValue = result;
+        }
+        return result;
+    }
+
+    private JsonArray renderReadGrantedSubjectsIncludingPartial(final ResourceKey resourceKey) {
+        final SubjectClassification rootClassification = getRootResourceReadClassification();
+        final TreeSet<String> subjectIds = new TreeSet<>();
+        collectSubjectIds(classifyReadSubjects(resourceKey).getUnrestricted(), subjectIds);
+        collectSubjectIds(rootClassification.getPartialOnly(), subjectIds);
+        collectSubjectIds(rootClassification.getUnrestricted(), subjectIds);
+        return toJsonArray(subjectIds);
+    }
+
+    private static JsonArray renderSubjectIds(final Set<AuthorizationSubject> subjects) {
+        final TreeSet<String> subjectIds = new TreeSet<>();
+        collectSubjectIds(subjects, subjectIds);
+        return toJsonArray(subjectIds);
+    }
+
+    private static void collectSubjectIds(final Set<AuthorizationSubject> subjects, final TreeSet<String> target) {
+        for (final AuthorizationSubject subject : subjects) {
+            target.add(subject.getId());
+        }
+    }
+
+    private static JsonArray toJsonArray(final TreeSet<String> subjectIds) {
+        if (subjectIds.isEmpty()) {
+            return JsonArray.empty();
+        }
+        return subjectIds.stream()
+                .map(JsonFactory::newValue)
+                .collect(JsonCollectors.valuesToArray());
     }
 
     /**

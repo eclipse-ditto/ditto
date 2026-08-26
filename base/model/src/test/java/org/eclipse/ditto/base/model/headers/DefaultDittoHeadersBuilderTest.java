@@ -494,4 +494,45 @@ public final class DefaultDittoHeadersBuilderTest {
                 .withNoCause();
     }
 
+    @Test
+    public void readGrantedSubjectsFromJsonArrayIsEquivalentToCollectionVariant() {
+        final JsonArray renderedSubjectIds = READ_SUBJECTS.stream()
+                .map(AuthorizationSubject::getId)
+                .map(JsonFactory::newValue)
+                .collect(JsonCollectors.valuesToArray());
+
+        final DittoHeaders fromJsonArray = DittoHeaders.newBuilder()
+                .readGrantedSubjects(renderedSubjectIds)
+                .build();
+        final DittoHeaders fromCollection = DittoHeaders.newBuilder()
+                .readGrantedSubjects(READ_SUBJECTS)
+                .build();
+
+        assertThat(fromJsonArray).isEqualTo(fromCollection);
+        assertThat(fromJsonArray.getReadGrantedSubjects())
+                .containsExactlyInAnyOrderElementsOf(READ_SUBJECTS);
+    }
+
+    @Test
+    public void readGrantedSubjectsFromEmptyJsonArraySetsEmptyArrayHeader() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .readGrantedSubjects(JsonArray.empty())
+                .build();
+
+        assertThat(dittoHeaders).containsEntry(DittoHeaderDefinition.READ_SUBJECTS.getKey(), "[]");
+        assertThat(dittoHeaders.getReadGrantedSubjects()).isEmpty();
+    }
+
+    @Test
+    public void readGrantedSubjectsFromJsonArrayWithNonStringValueThrows() {
+        final String readSubjectsKey = DittoHeaderDefinition.READ_SUBJECTS.getKey();
+        final JsonArray invalidSubjectIds = JsonArray.newBuilder().add("valid").add(42).build();
+        final DefaultDittoHeadersBuilder builder = DefaultDittoHeadersBuilder.newInstance();
+
+        assertThatExceptionOfType(DittoHeaderInvalidException.class)
+                .isThrownBy(() -> builder.readGrantedSubjects(invalidSubjectIds))
+                .withMessage("JSON array for <%s> contained non-string values!", readSubjectsKey)
+                .withNoCause();
+    }
+
 }

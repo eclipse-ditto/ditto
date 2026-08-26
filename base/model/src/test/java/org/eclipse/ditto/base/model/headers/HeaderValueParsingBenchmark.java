@@ -135,6 +135,17 @@ public class HeaderValueParsingBenchmark {
         return dittoHeaders.getAuthorizationContext();
     }
 
+    /**
+     * Cold-memo variant of {@link #getReadGrantedSubjects()}: rebuilds the headers from their JSON representation
+     * (as a cluster hop does) so every invocation pays the parse plus the set derivation exactly once. Contrast with
+     * {@link #getReadGrantedSubjects()} to see what same-node consumers (pub/sub extractor, streaming sessions,
+     * connectivity targets) save by sharing one memoized set.
+     */
+    @Benchmark
+    public Object getReadGrantedSubjects_freshHeaders() {
+        return DittoHeaders.newFromTrustedJson(headersJson).getReadGrantedSubjects();
+    }
+
     /** Pre-memoization equivalent of {@link #getReadGrantedSubjects()}: re-parses the array string each call. */
     @Benchmark
     public Object getReadGrantedSubjects_reparse() {
