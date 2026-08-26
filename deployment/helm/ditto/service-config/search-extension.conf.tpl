@@ -148,9 +148,11 @@ ditto {
       }
 
       {{- with .Values.thingsSearch.config.operatorMetrics.customMetricsPersistence }}
-      {{- if .readPreference }}
+      {{- if or .readPreference .readConcern }}
       custom-metrics-persistence {
+        {{- if .readPreference }}
         readPreference = "{{ .readPreference }}"
+        {{- end }}
         {{- if .readConcern }}
         readConcern = "{{ .readConcern }}"
         {{- end }}
@@ -159,9 +161,11 @@ ditto {
       {{- end }}
 
       {{- with .Values.thingsSearch.config.operatorMetrics.customAggregationMetricsPersistence }}
-      {{- if .readPreference }}
+      {{- if or .readPreference .readConcern }}
       custom-aggregation-metrics-persistence {
+        {{- if .readPreference }}
         readPreference = "{{ .readPreference }}"
+        {{- end }}
         {{- if .readConcern }}
         readConcern = "{{ .readConcern }}"
         {{- end }}

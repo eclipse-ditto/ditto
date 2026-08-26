@@ -73,6 +73,13 @@ public final class OperatorMetricsProviderActor extends AbstractActorWithTimers 
         readConcernOverride = operatorMetricsConfig.getCustomMetricsPersistenceConfig()
                 .map(persistenceConfig -> persistenceConfig.readConcern().getName())
                 .orElse(null);
+        if (null != readPreferenceOverride || null != readConcernOverride) {
+            log.info("Custom metrics count queries readConcern=<{}> readPreference=<{}> (configured via " +
+                            "<operator-metrics.custom-metrics-persistence>)",
+                    readConcernOverride, readPreferenceOverride);
+        } else {
+            log.info("Custom metrics count queries use the read settings configured via <query.persistence>");
+        }
         metricsGauges = new HashMap<>();
         operatorMetricsConfig.getCustomMetricConfigurations().forEach((metricName, config) -> {
             if (config.isEnabled()) {

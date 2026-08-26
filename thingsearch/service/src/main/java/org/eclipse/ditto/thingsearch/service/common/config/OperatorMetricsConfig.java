@@ -57,7 +57,9 @@ public interface OperatorMetricsConfig {
 
     /**
      * Returns the optional persistence (read preference / read concern) configuration to use for the count based
-     * {@code custom-metrics} queries. When empty, the general {@code query.persistence} configuration is used.
+     * {@code custom-metrics} queries. When empty, i.e. when the {@code custom-metrics-persistence} block is absent,
+     * the general {@code query.persistence} configuration is used. A configured block only overrides the read
+     * settings it actually specifies; the others are inherited from {@code query.persistence} as well.
      *
      * @return the optional persistence configuration for count based custom metrics.
      * @since 3.9.7
@@ -66,8 +68,10 @@ public interface OperatorMetricsConfig {
 
     /**
      * Returns the optional persistence (read preference / read concern) configuration to use for the
-     * {@code custom-aggregation-metrics} ({@code $group}) queries. When empty, the general {@code query.persistence}
-     * configuration is used.
+     * {@code custom-aggregation-metrics} ({@code $group}) queries. When empty, i.e. when the
+     * {@code custom-aggregation-metrics-persistence} block is absent, the general {@code query.persistence}
+     * configuration is used. A configured block only overrides the read settings it actually specifies; the others
+     * are inherited from {@code query.persistence} as well.
      *
      * @return the optional persistence configuration for custom aggregation metrics.
      * @since 3.9.7
