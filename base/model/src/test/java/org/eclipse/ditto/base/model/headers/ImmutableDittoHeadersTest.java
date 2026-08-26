@@ -330,6 +330,56 @@ public final class ImmutableDittoHeadersTest {
     }
 
     @Test
+    public void getReadGrantedSubjectsIsMemoizedAcrossRepeatedCalls() {
+        final DittoHeaders underTest = DittoHeaders.newBuilder()
+                .readGrantedSubjects(KNOWN_READ_GRANTED_SUBJECTS)
+                .build();
+
+        assertThat(underTest.getReadGrantedSubjects()).isSameAs(underTest.getReadGrantedSubjects());
+    }
+
+    @Test
+    public void getReadRevokedSubjectsIsMemoizedAcrossRepeatedCalls() {
+        final DittoHeaders underTest = DittoHeaders.newBuilder()
+                .readRevokedSubjects(KNOWN_READ_REVOKED_SUBJECTS)
+                .build();
+
+        assertThat(underTest.getReadRevokedSubjects()).isSameAs(underTest.getReadRevokedSubjects());
+    }
+
+    @Test
+    public void memoizedReadGrantedSubjectsSurviveHeadersCopy() {
+        final DittoHeaders original = DittoHeaders.newBuilder()
+                .readGrantedSubjects(KNOWN_READ_GRANTED_SUBJECTS)
+                .build();
+        final Set<AuthorizationSubject> memoizedByOriginal = original.getReadGrantedSubjects();
+
+        // copying headers re-uses the very same Header entries, hence also their memoized derived values:
+        final DittoHeaders copy = DittoHeaders.newBuilder(original).putHeader("foo", "bar").build();
+
+        assertThat(copy.getReadGrantedSubjects()).isSameAs(memoizedByOriginal);
+    }
+
+    @Test
+    public void getReadGrantedSubjectsReturnsUnmodifiableSet() {
+        final DittoHeaders underTest = DittoHeaders.newBuilder()
+                .readGrantedSubjects(KNOWN_READ_GRANTED_SUBJECTS)
+                .build();
+        final Set<AuthorizationSubject> readGrantedSubjects = underTest.getReadGrantedSubjects();
+
+        assertThatExceptionOfType(UnsupportedOperationException.class)
+                .isThrownBy(() -> readGrantedSubjects.add(AuthorizationModelFactory.newAuthSubject("foo")));
+    }
+
+    @Test
+    public void getReadGrantedSubjectsReturnsEmptySetIfHeaderIsAbsent() {
+        final DittoHeaders underTest = DittoHeaders.empty();
+
+        assertThat(underTest.getReadGrantedSubjects()).isEmpty();
+        assertThat(underTest.getReadRevokedSubjects()).isEmpty();
+    }
+
+    @Test
     public void isResponseRequiredIsTrueByDefault() {
         final DittoHeaders underTest = DittoHeaders.empty();
 
