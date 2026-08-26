@@ -69,7 +69,24 @@ public final class DefaultSearchPersistenceConfig implements SearchPersistenceCo
      * @throws DittoConfigError if {@code config} is invalid.
      */
     public static DefaultSearchPersistenceConfig of(final Config config) {
-        return new DefaultSearchPersistenceConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH, ConfigValue.values()));
+        return new DefaultSearchPersistenceConfig(
+                ConfigWithFallback.newInstance(config, CONFIG_PATH, ConfigValue.values()));
+    }
+
+    /**
+     * Returns an instance of DefaultSearchPersistenceConfig based on the settings of the specified already scoped
+     * Config, i.e. a Config directly providing the persistence settings instead of nesting them at
+     * {@value CONFIG_PATH}. Settings absent from {@code scopedConfig} are taken from the {@code ConfigValue}
+     * defaults, so a caller wanting different fallbacks has to merge them into {@code scopedConfig} beforehand.
+     *
+     * @param scopedConfig the Config directly providing the persistence settings.
+     * @return the instance.
+     * @throws DittoConfigError if {@code scopedConfig} is invalid.
+     * @since 3.9.7
+     */
+    public static DefaultSearchPersistenceConfig ofScopedConfig(final Config scopedConfig) {
+        return new DefaultSearchPersistenceConfig(
+                ConfigWithFallback.newInstance(scopedConfig, ConfigValue.values()));
     }
 
 

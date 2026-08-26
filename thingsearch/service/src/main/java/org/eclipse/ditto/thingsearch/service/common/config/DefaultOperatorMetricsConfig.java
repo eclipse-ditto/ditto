@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
@@ -26,10 +27,12 @@ import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -47,30 +50,87 @@ public final class DefaultOperatorMetricsConfig implements OperatorMetricsConfig
      */
     static final String CONFIG_PATH = "operator-metrics";
 
+    /**
+     * Path of the optional persistence config block used for the count based {@code custom-metrics} queries.
+     */
+    static final String CUSTOM_METRICS_PERSISTENCE_PATH = "custom-metrics-persistence";
+
+    /**
+     * Path of the optional persistence config block used for the {@code custom-aggregation-metrics} queries.
+     */
+    static final String CUSTOM_AGGREGATION_METRICS_PERSISTENCE_PATH = "custom-aggregation-metrics-persistence";
+
     private final boolean enabled;
     private final Duration scrapeInterval;
     private final Map<String, CustomMetricConfig> customMetricConfigurations;
     private final Map<String, CustomAggregationMetricConfig> customAggregationMetricConfigs;
+    @Nullable private final SearchPersistenceConfig customMetricsPersistenceConfig;
+    @Nullable private final SearchPersistenceConfig customAggregationMetricsPersistenceConfig;
 
-    private DefaultOperatorMetricsConfig(final ConfigWithFallback updaterScopedConfig) {
+    private DefaultOperatorMetricsConfig(final ConfigWithFallback updaterScopedConfig,
+            final SearchPersistenceConfig queryPersistenceConfig) {
         enabled = updaterScopedConfig.getBoolean(OperatorMetricsConfigValue.ENABLED.getConfigPath());
         scrapeInterval = updaterScopedConfig.getNonNegativeDurationOrThrow(OperatorMetricsConfigValue.SCRAPE_INTERVAL);
         customMetricConfigurations = loadCustomMetricConfigurations(updaterScopedConfig,
                 OperatorMetricsConfigValue.CUSTOM_METRICS);
         customAggregationMetricConfigs = loadCustomAggregatedMetricConfigurations(updaterScopedConfig,
                 OperatorMetricsConfigValue.CUSTOM_AGGREGATION_METRIC);
+        customMetricsPersistenceConfig = loadPersistenceConfig(updaterScopedConfig,
+                CUSTOM_METRICS_PERSISTENCE_PATH, queryPersistenceConfig);
+        customAggregationMetricsPersistenceConfig = loadPersistenceConfig(updaterScopedConfig,
+                CUSTOM_AGGREGATION_METRICS_PERSISTENCE_PATH, queryPersistenceConfig);
     }
 
     /**
-     * Returns an instance of DefaultOperatorMetricsConfig based on the settings of the specified Config.
+     * Returns an instance of DefaultOperatorMetricsConfig based on the settings of the specified Config, using the
+     * {@code SearchPersistenceConfig} defaults as fallback for partially configured persistence blocks.
      *
      * @param config is supposed to provide the settings of the updater config at {@value #CONFIG_PATH}.
      * @return the instance.
      * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultOperatorMetricsConfig of(final Config config) {
+        return of(config, DefaultSearchPersistenceConfig.of(ConfigFactory.empty()));
+    }
+
+    /**
+     * Returns an instance of DefaultOperatorMetricsConfig based on the settings of the specified Config, inheriting
+     * read settings which the optional persistence blocks leave out from the passed {@code queryPersistenceConfig}.
+     *
+     * @param config is supposed to provide the settings of the updater config at {@value #CONFIG_PATH}.
+     * @param queryPersistenceConfig the general {@code query.persistence} config which individual read settings are
+     * inherited from when a configured persistence block does not specify them.
+     * @return the instance.
+     * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
+     * @since 3.9.7
+     */
+    public static DefaultOperatorMetricsConfig of(final Config config,
+            final SearchPersistenceConfig queryPersistenceConfig) {
         return new DefaultOperatorMetricsConfig(
-                ConfigWithFallback.newInstance(config, CONFIG_PATH, OperatorMetricsConfigValue.values()));
+                ConfigWithFallback.newInstance(config, CONFIG_PATH, OperatorMetricsConfigValue.values()),
+                queryPersistenceConfig);
+    }
+
+    @Nullable
+    private static SearchPersistenceConfig loadPersistenceConfig(final ConfigWithFallback updaterScopedConfig,
+            final String configPath, final SearchPersistenceConfig queryPersistenceConfig) {
+
+        if (!updaterScopedConfig.hasPath(configPath)) {
+            return null;
+        }
+        // read settings the block does not specify are inherited from "query.persistence" instead of falling back to
+        // the SearchPersistenceConfig defaults, so a partially configured block only overrides what it names:
+        final Config blockConfig = updaterScopedConfig.getConfig(configPath)
+                .withFallback(asConfig(queryPersistenceConfig));
+        return DefaultSearchPersistenceConfig.ofScopedConfig(blockConfig);
+    }
+
+    private static Config asConfig(final SearchPersistenceConfig persistenceConfig) {
+        return ConfigFactory.parseMap(Map.of(
+                MongoDbConfig.OptionsConfig.OptionsConfigValue.READ_PREFERENCE.getConfigPath(),
+                persistenceConfig.readPreference().getName(),
+                MongoDbConfig.OptionsConfig.OptionsConfigValue.READ_CONCERN.getConfigPath(),
+                persistenceConfig.readConcern().getName()));
     }
 
     private static Map<String, CustomMetricConfig> loadCustomMetricConfigurations(final ConfigWithFallback config,
@@ -99,12 +159,18 @@ public final class DefaultOperatorMetricsConfig implements OperatorMetricsConfig
         }
         final DefaultOperatorMetricsConfig that = (DefaultOperatorMetricsConfig) o;
         return enabled == that.enabled &&
-                Objects.equals(scrapeInterval, that.scrapeInterval);
+                Objects.equals(scrapeInterval, that.scrapeInterval) &&
+                Objects.equals(customMetricConfigurations, that.customMetricConfigurations) &&
+                Objects.equals(customAggregationMetricConfigs, that.customAggregationMetricConfigs) &&
+                Objects.equals(customMetricsPersistenceConfig, that.customMetricsPersistenceConfig) &&
+                Objects.equals(customAggregationMetricsPersistenceConfig,
+                        that.customAggregationMetricsPersistenceConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(enabled, scrapeInterval, customMetricConfigurations);
+        return Objects.hash(enabled, scrapeInterval, customMetricConfigurations, customAggregationMetricConfigs,
+                customMetricsPersistenceConfig, customAggregationMetricsPersistenceConfig);
     }
 
     @Override
@@ -113,6 +179,9 @@ public final class DefaultOperatorMetricsConfig implements OperatorMetricsConfig
                 "enabled=" + enabled +
                 ", scrapeInterval=" + scrapeInterval +
                 ", customMetricConfigurations=" + customMetricConfigurations +
+                ", customAggregationMetricConfigs=" + customAggregationMetricConfigs +
+                ", customMetricsPersistenceConfig=" + customMetricsPersistenceConfig +
+                ", customAggregationMetricsPersistenceConfig=" + customAggregationMetricsPersistenceConfig +
                 "]";
     }
 
@@ -134,6 +203,16 @@ public final class DefaultOperatorMetricsConfig implements OperatorMetricsConfig
     @Override
     public Map<String, CustomAggregationMetricConfig> getCustomAggregationMetricConfigs() {
         return customAggregationMetricConfigs;
+    }
+
+    @Override
+    public Optional<SearchPersistenceConfig> getCustomMetricsPersistenceConfig() {
+        return Optional.ofNullable(customMetricsPersistenceConfig);
+    }
+
+    @Override
+    public Optional<SearchPersistenceConfig> getCustomAggregationMetricsPersistenceConfig() {
+        return Optional.ofNullable(customAggregationMetricsPersistenceConfig);
     }
 
     private static class CustomMetricConfigCollector

@@ -327,7 +327,9 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
                                             (theQuery, headers) -> {
                                                 if (isSudo && tracedCountCommand instanceof SudoCountThings sudoCmd) {
                                                     return searchPersistence.sudoCount(theQuery, headers,
-                                                            sudoCmd.getIndexHint().orElse(null));
+                                                            sudoCmd.getIndexHint().orElse(null),
+                                                            sudoCmd.getReadPreference().orElse(null),
+                                                            sudoCmd.getReadConcern().orElse(null));
                                                 } else if (isSudo) {
                                                     return searchPersistence.sudoCount(theQuery, headers);
                                                 } else {

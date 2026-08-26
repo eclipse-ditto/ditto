@@ -107,7 +107,7 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
         simpleFieldMappings =
                 convertToMap(configWithFallback.getConfig(SearchConfigValue.SIMPLE_FIELD_MAPPINGS.getConfigPath()));
         namespaceIndexedFields = loadNamespaceSearchIndexList(configWithFallback);
-        operatorMetricsConfig = DefaultOperatorMetricsConfig.of(configWithFallback);
+        operatorMetricsConfig = DefaultOperatorMetricsConfig.of(configWithFallback, queryPersistenceConfig);
         customIndexes = loadCustomIndexes(configWithFallback);
     }
 

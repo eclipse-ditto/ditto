@@ -1729,6 +1729,20 @@ thingsSearch:
       #   # or as index key spec:
       #   # indexHint:
       #   #   "t.attributes.location": 1
+      # customMetricsPersistence optionally overrides the MongoDB read preference / read concern used for the
+      # count based "customMetrics" queries above - e.g. to offload the periodic operator metric counts to a
+      # secondary node without affecting user-facing search/count requests.
+      # Each setting is inherited from the general query.persistence config when it is not set here, so either
+      # key can be configured on its own: setting only readConcern keeps the query.persistence readPreference.
+      # customMetricsPersistence:
+      #   readPreference: secondaryPreferred
+      #   readConcern: local
+      # customAggregationMetricsPersistence optionally overrides the MongoDB read preference / read concern used
+      # for the "customAggregationMetrics" ($group) queries above, with the same per-setting inheritance from
+      # query.persistence. Can be configured independently from customMetricsPersistence.
+      # customAggregationMetricsPersistence:
+      #   readPreference: secondaryPreferred
+      #   readConcern: local
     # dispatchers contains tuning for the things-search service's Pekko dispatchers.
     # Defaults below match the in-jar HOCON defaults and only need overriding under sustained load.
     dispatchers:

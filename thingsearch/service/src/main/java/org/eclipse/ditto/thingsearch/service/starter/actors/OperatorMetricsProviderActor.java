@@ -19,6 +19,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
+import javax.annotation.Nullable;
+
 import org.apache.pekko.actor.AbstractActorWithTimers;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.Props;
@@ -57,12 +59,27 @@ public final class OperatorMetricsProviderActor extends AbstractActorWithTimers 
 
     private final ActorRef searchActor;
     private final Map<String, Gauge> metricsGauges;
+    @Nullable private final String readPreferenceOverride;
+    @Nullable private final String readConcernOverride;
 
     @SuppressWarnings("unused")
     private OperatorMetricsProviderActor(final OperatorMetricsConfig operatorMetricsConfig,
             final ActorRef searchActor) {
 
         this.searchActor = searchActor;
+        readPreferenceOverride = operatorMetricsConfig.getCustomMetricsPersistenceConfig()
+                .map(persistenceConfig -> persistenceConfig.readPreference().getName())
+                .orElse(null);
+        readConcernOverride = operatorMetricsConfig.getCustomMetricsPersistenceConfig()
+                .map(persistenceConfig -> persistenceConfig.readConcern().getName())
+                .orElse(null);
+        if (null != readPreferenceOverride || null != readConcernOverride) {
+            log.info("Custom metrics count queries readConcern=<{}> readPreference=<{}> (configured via " +
+                            "<operator-metrics.custom-metrics-persistence>)",
+                    readConcernOverride, readPreferenceOverride);
+        } else {
+            log.info("Custom metrics count queries use the read settings configured via <query.persistence>");
+        }
         metricsGauges = new HashMap<>();
         operatorMetricsConfig.getCustomMetricConfigurations().forEach((metricName, config) -> {
             if (config.isEnabled()) {
@@ -131,7 +148,7 @@ public final class OperatorMetricsProviderActor extends AbstractActorWithTimers 
                 .build();
         final SudoCountThings sudoCountThings = SudoCountThings.of(
                 filter.isEmpty() ? null : filter, namespaces.isEmpty() ? null : namespaces,
-                config.getIndexHint().orElse(null), dittoHeaders);
+                config.getIndexHint().orElse(null), readPreferenceOverride, readConcernOverride, dittoHeaders);
 
         final long startTs = System.nanoTime();
         log.withCorrelationId(dittoHeaders)

@@ -15,6 +15,7 @@ package org.eclipse.ditto.thingsearch.service.common.config;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -53,6 +54,29 @@ public interface OperatorMetricsConfig {
      * @return the registered custom aggregation metrics.
      */
     Map<String, CustomAggregationMetricConfig> getCustomAggregationMetricConfigs();
+
+    /**
+     * Returns the optional persistence (read preference / read concern) configuration to use for the count based
+     * {@code custom-metrics} queries. When empty, i.e. when the {@code custom-metrics-persistence} block is absent,
+     * the general {@code query.persistence} configuration is used. A configured block only overrides the read
+     * settings it actually specifies; the others are inherited from {@code query.persistence} as well.
+     *
+     * @return the optional persistence configuration for count based custom metrics.
+     * @since 3.9.7
+     */
+    Optional<SearchPersistenceConfig> getCustomMetricsPersistenceConfig();
+
+    /**
+     * Returns the optional persistence (read preference / read concern) configuration to use for the
+     * {@code custom-aggregation-metrics} ({@code $group}) queries. When empty, i.e. when the
+     * {@code custom-aggregation-metrics-persistence} block is absent, the general {@code query.persistence}
+     * configuration is used. A configured block only overrides the read settings it actually specifies; the others
+     * are inherited from {@code query.persistence} as well.
+     *
+     * @return the optional persistence configuration for custom aggregation metrics.
+     * @since 3.9.7
+     */
+    Optional<SearchPersistenceConfig> getCustomAggregationMetricsPersistenceConfig();
 
     /**
      * An enumeration of the known config path expressions and their associated default values for

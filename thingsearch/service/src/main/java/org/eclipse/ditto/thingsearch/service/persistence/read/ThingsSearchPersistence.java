@@ -91,6 +91,27 @@ public interface ThingsSearchPersistence {
     }
 
     /**
+     * Returns the count of documents found by the given {@code query} regardless of visibility,
+     * using an optional per-query index hint and an optional per-query read preference override.
+     *
+     * @param query the query for matching.
+     * @param dittoHeaders the headers of the request.
+     * @param indexHint the optional index hint (string for index name, object for index key spec).
+     * @param readPreferenceOverride the optional MongoDB read preference to use for this query (e.g.
+     * {@code "secondaryPreferred"}); when {@code null} the persistence default read preference is used.
+     * @param readConcernOverride the optional MongoDB read concern to use for this query (e.g. {@code "local"});
+     * when {@code null} the persistence default read concern is used.
+     * @return an {@link Source} which emits the count.
+     * @throws NullPointerException if {@code query} is {@code null}.
+     * @since 3.9.7
+     */
+    default Source<Long, NotUsed> sudoCount(Query query, DittoHeaders dittoHeaders,
+            @Nullable JsonValue indexHint, @Nullable String readPreferenceOverride,
+            @Nullable String readConcernOverride) {
+        return sudoCount(query, dittoHeaders, indexHint);
+    }
+
+    /**
      * Returns the IDs for all found documents.
      *
      * @param query the query for matching.
