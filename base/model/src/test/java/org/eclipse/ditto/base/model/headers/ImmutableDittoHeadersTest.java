@@ -372,6 +372,19 @@ public final class ImmutableDittoHeadersTest {
     }
 
     @Test
+    public void getReadGrantedSubjectsToleratesDuplicateSubjectIds() {
+        // Nothing enforces uniqueness on the wire (the header validator only checks element types), so a duplicate
+        // must be collapsed rather than rejected -- as the previous Collectors.toSet() did.
+        final DittoHeaders underTest = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.READ_SUBJECTS.getKey(), "[\"read\",\"read\",\"subjects\"]")
+                .build();
+
+        assertThat(underTest.getReadGrantedSubjects()).containsExactlyInAnyOrder(
+                AuthorizationModelFactory.newAuthSubject("read"),
+                AuthorizationModelFactory.newAuthSubject("subjects"));
+    }
+
+    @Test
     public void getReadGrantedSubjectsReturnsEmptySetIfHeaderIsAbsent() {
         final DittoHeaders underTest = DittoHeaders.empty();
 

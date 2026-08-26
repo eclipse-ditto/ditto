@@ -96,7 +96,15 @@ public class ClassifyReadSubjectsBenchmark {
         }
     }
 
+    /**
+     * Subject count of a production policy after the authz-format migration, where every human role is granted to
+     * both a tenant-wildcard and a tenant-qualified subject. The rendering cost this benchmark measures scales with
+     * this number, so a two-subject fixture would understate it by an order of magnitude.
+     */
+    private static final int WIDE_SUBJECT_COUNT = 22;
+
     private PolicyEnforcer memoizedEnforcer;
+    private PolicyEnforcer wideEnforcer;
     private PolicyEnforcer boundedEnforcer;
     private Enforcer rawEnforcer;
     private AttributeModified event;
@@ -119,6 +127,18 @@ public class ClassifyReadSubjectsBenchmark {
         memoizedEnforcer = PolicyEnforcer.of(policy);
         boundedEnforcer = PolicyEnforcer.of(policy, 100, BOUNDED_MAX);
         rawEnforcer = PolicyEnforcer.of(policy).getEnforcer();
+
+        // Production-shaped policy: every role granted to both subject variants the authz format emits, with
+        // realistically long subject IDs.
+        final PolicyBuilder wideBuilder = Policy.newBuilder(POLICY_ID).setRevision(1L);
+        for (int i = 0; i < WIDE_SUBJECT_COUNT / 2; i++) {
+            final String role = "ddm-smartheating:grid-operator-" + i;
+            wideBuilder.setSubjectFor("wildcard" + i, subject("dex:authz:###prod:" + role))
+                    .setGrantedPermissionsFor("wildcard" + i, ResourceKey.newInstance("thing", "/"), Permission.READ)
+                    .setSubjectFor("tenant" + i, subject("dex:authz:io.beyonnex#kalo##prod:" + role))
+                    .setGrantedPermissionsFor("tenant" + i, ResourceKey.newInstance("thing", "/"), Permission.READ);
+        }
+        wideEnforcer = PolicyEnforcer.of(wideBuilder.build());
 
         event = AttributeModified.of(THING_ID, JsonPointer.of("x"), JsonValue.of(1), 2L,
                 Instant.now(), DittoHeaders.empty(), null);
@@ -152,14 +172,30 @@ public class ClassifyReadSubjectsBenchmark {
      */
     @Benchmark
     public void endToEndRenderPerEvent(final Blackhole bh) {
-        final SubjectClassification rootClassification = memoizedEnforcer.getRootResourceReadClassification();
+        bh.consume(renderPerEvent(memoizedEnforcer));
+    }
+
+    /** The new path on a production-shaped subject set -- the case the memo actually targets. */
+    @Benchmark
+    public void endToEndMemoizedWideSubjects(final Blackhole bh) {
+        bh.consume(ThingCommandEnforcement.addEffectedReadSubjectsToThingSignal(event, wideEnforcer, true));
+    }
+
+    /** The frozen baseline on the same production-shaped subject set. */
+    @Benchmark
+    public void endToEndRenderPerEventWideSubjects(final Blackhole bh) {
+        bh.consume(renderPerEvent(wideEnforcer));
+    }
+
+    private AttributeModified renderPerEvent(final PolicyEnforcer policyEnforcer) {
+        final SubjectClassification rootClassification = policyEnforcer.getRootResourceReadClassification();
         final Set<AuthorizationSubject> allReadSubjects =
-                new HashSet<>(memoizedEnforcer.classifyReadSubjects(EVENT_KEY).getUnrestricted());
+                new HashSet<>(policyEnforcer.classifyReadSubjects(EVENT_KEY).getUnrestricted());
         allReadSubjects.addAll(rootClassification.getPartialOnly());
         allReadSubjects.addAll(rootClassification.getUnrestricted());
-        bh.consume(event.setDittoHeaders(DittoHeaders.newBuilder(event.getDittoHeaders())
+        return event.setDittoHeaders(DittoHeaders.newBuilder(event.getDittoHeaders())
                 .readGrantedSubjects(allReadSubjects)
-                .build()));
+                .build());
     }
 
     private static Subject subject(final String id) {
