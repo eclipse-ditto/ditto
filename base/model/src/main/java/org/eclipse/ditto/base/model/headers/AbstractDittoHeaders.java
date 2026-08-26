@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
@@ -67,6 +68,19 @@ public abstract class AbstractDittoHeaders implements DittoHeaders {
 
     private static final String REDACTED_VALUE = "***";
     private static final Set<String> REDACTED_HEADER_KEYS = loadRedactedHeaderKeys();
+
+    /*
+     * Single derivation function shared by the "ditto-read-subjects" and "ditto-read-revoked-subjects" headers, so
+     * that the untyped memo slot of Header is only ever populated with a Set<AuthorizationSubject> for those keys.
+     * Set.copyOf is required (not Collections.unmodifiableSet): only its final fields make the result safe to
+     * publish through Header's deliberately non-volatile memo field.
+     */
+    private static final Function<JsonValue, Set<AuthorizationSubject>> AUTHORIZATION_SUBJECT_SET_DERIVATION =
+            jsonValue -> Set.copyOf(jsonValue.asArray()
+                    .stream()
+                    .map(JsonValue::asString)
+                    .map(AuthorizationSubject::newInstance)
+                    .collect(Collectors.toList()));
 
     final Map<String, Header> headers;
 
@@ -214,11 +228,11 @@ public abstract class AbstractDittoHeaders implements DittoHeaders {
     }
 
     private Set<AuthorizationSubject> getAuthorizationSubjectSet(final HeaderDefinition definition) {
-        final JsonArray jsonValueArray = getJsonArrayForDefinition(definition);
-        return jsonValueArray.stream()
-                .map(JsonValue::asString)
-                .map(AuthorizationSubject::newInstance)
-                .collect(Collectors.toSet());
+        @Nullable final Header header = headers.get(definition.getKey());
+        if (null == header) {
+            return Set.of();
+        }
+        return header.getDerivedValue(AUTHORIZATION_SUBJECT_SET_DERIVATION);
     }
 
     @Override

@@ -173,7 +173,8 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     /**
      * Returns the authorization subjects with granted "READ" permissions for the key in the map defining a pointer in
      * the Thing.
-     * Changes on the returned Set are not reflected back to this headers object.
+     * The returned Set is unmodifiable and may be a memoized instance shared by repeated invocations; changes on it
+     * are neither possible nor reflected back to this headers object.
      *
      * @return the read granted subjects for pointers in the Thing.
      * @since 1.1.0
@@ -183,7 +184,8 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     /**
      * Returns the authorization subjects with explicitly revoked "READ" permissions for the key in the map defining a
      * pointer in the Thing.
-     * Changes on the returned Set are not reflected back to this headers object.
+     * The returned Set is unmodifiable and may be a memoized instance shared by repeated invocations; changes on it
+     * are neither possible nor reflected back to this headers object.
      *
      * @return the read revoked subjects for pointers in the Thing.
      * @since 1.1.0
