@@ -91,9 +91,15 @@ public final class MongoThingsAggregationPersistence implements ThingsAggregatio
             final SearchConfig searchConfig, final LoggingAdapter log) {
         // use the dedicated operator-metrics aggregation persistence config (read preference / read concern) if
         // configured, otherwise fall back to the general query persistence config:
-        final SearchPersistenceConfig persistenceConfig = searchConfig.getOperatorMetricsConfig()
-                .getCustomAggregationMetricsPersistenceConfig()
-                .orElseGet(searchConfig::getQueryPersistenceConfig);
+        final Optional<SearchPersistenceConfig> dedicatedPersistenceConfig =
+                searchConfig.getOperatorMetricsConfig().getCustomAggregationMetricsPersistenceConfig();
+        final SearchPersistenceConfig persistenceConfig =
+                dedicatedPersistenceConfig.orElseGet(searchConfig::getQueryPersistenceConfig);
+        log.info("Aggregation metrics query readConcern=<{}> readPreference=<{}> (configured via <{}>)",
+                persistenceConfig.readConcern().getName(), persistenceConfig.readPreference().getName(),
+                dedicatedPersistenceConfig.isPresent()
+                        ? "operator-metrics.custom-aggregation-metrics-persistence"
+                        : "query.persistence");
         return new MongoThingsAggregationPersistence(mongoClient, searchConfig.getMongoHintsByNamespace(),
                 searchConfig.getSimpleFieldMappings(), persistenceConfig, log);
     }

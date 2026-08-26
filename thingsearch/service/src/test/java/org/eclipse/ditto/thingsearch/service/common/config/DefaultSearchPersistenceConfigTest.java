@@ -86,4 +86,18 @@ public final class DefaultSearchPersistenceConfigTest {
                 .isNotNull();
     }
 
+    @Test
+    public void ofScopedConfigReadsSettingsWithoutTheNestedPersistencePath() {
+        final SearchPersistenceConfig underTest = DefaultSearchPersistenceConfig.ofScopedConfig(
+                ConfigFactory.parseString("readPreference = \"nearest\""));
+
+        softly.assertThat(underTest.readPreference())
+                .as(SearchPersistenceConfig.ConfigValue.READ_PREFERENCE.getConfigPath())
+                .isEqualTo(ReadPreference.NEAREST);
+
+        softly.assertThat(underTest.readConcern())
+                .as("read concern falls back to its default")
+                .isEqualTo(ReadConcern.DEFAULT);
+    }
+
 }
