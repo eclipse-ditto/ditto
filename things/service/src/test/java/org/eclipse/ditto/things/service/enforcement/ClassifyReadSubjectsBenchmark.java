@@ -13,6 +13,8 @@
 package org.eclipse.ditto.things.service.enforcement;
 
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -28,7 +30,9 @@ import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.SubjectType;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
+import org.eclipse.ditto.policies.model.enforcers.SubjectClassification;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.AttributeModified;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -139,6 +143,23 @@ public class ClassifyReadSubjectsBenchmark {
     @Benchmark
     public void endToEndMemoized(final Blackhole bh) {
         bh.consume(ThingCommandEnforcement.addEffectedReadSubjectsToThingSignal(event, memoizedEnforcer, true));
+    }
+
+    /**
+     * Frozen baseline of {@link #endToEndMemoized}: the body the enforcement had before the rendered header value
+     * was memoized on the PolicyEnforcer — merge the classifications into a fresh HashSet and re-serialize the
+     * subject IDs into the header on every event.
+     */
+    @Benchmark
+    public void endToEndRenderPerEvent(final Blackhole bh) {
+        final SubjectClassification rootClassification = memoizedEnforcer.getRootResourceReadClassification();
+        final Set<AuthorizationSubject> allReadSubjects =
+                new HashSet<>(memoizedEnforcer.classifyReadSubjects(EVENT_KEY).getUnrestricted());
+        allReadSubjects.addAll(rootClassification.getPartialOnly());
+        allReadSubjects.addAll(rootClassification.getUnrestricted());
+        bh.consume(event.setDittoHeaders(DittoHeaders.newBuilder(event.getDittoHeaders())
+                .readGrantedSubjects(allReadSubjects)
+                .build()));
     }
 
     private static Subject subject(final String id) {

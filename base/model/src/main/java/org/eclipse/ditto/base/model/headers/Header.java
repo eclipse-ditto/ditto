@@ -64,6 +64,22 @@ final class Header implements CharSequence {
         return new Header(key, value);
     }
 
+    /**
+     * Creates a Header whose JSON memo is pre-seeded with the value the string representation was rendered from,
+     * so the first {@link #getParsedValue()} does not have to parse it back. The caller must guarantee that
+     * {@code value} is the string representation of {@code parsedValue}.
+     *
+     * @param key the header key in its original capitalization.
+     * @param value the string representation of {@code parsedValue}.
+     * @param parsedValue the already known JSON representation of {@code value}.
+     * @return the new Header.
+     */
+    static Header of(final String key, final String value, final JsonValue parsedValue) {
+        final Header result = new Header(key, value);
+        result.parsedValue = parsedValue;
+        return result;
+    }
+
     String getKey() {
         return key;
     }

@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.Set;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.model.AllowedAddition;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
@@ -192,6 +194,101 @@ public final class PolicyEnforcerTest {
 
         assertThat(classificationAgain.getUnrestricted()).isEqualTo(classificationA.getUnrestricted());
         assertThat(classificationAgain.getPartialOnly()).isEqualTo(classificationA.getPartialOnly());
+    }
+
+    @Test
+    public void getReadGrantedSubjectsHeaderValueMemoizesRepeatedCalls() {
+        final PolicyEnforcer policyEnforcer = PolicyEnforcer.of(partialGrantsPolicy());
+        final ResourceKey attributeX = PoliciesResourceType.thingResource("/attributes/x");
+
+        assertThat(policyEnforcer.getReadGrantedSubjectsHeaderValue(attributeX, true))
+                .isSameAs(policyEnforcer.getReadGrantedSubjectsHeaderValue(attributeX, true));
+        assertThat(policyEnforcer.getReadGrantedSubjectsHeaderValue(attributeX, false))
+                .isSameAs(policyEnforcer.getReadGrantedSubjectsHeaderValue(attributeX, false));
+    }
+
+    @Test
+    public void getReadGrantedSubjectsHeaderValueRendersClassificationUnion() {
+        final PolicyEnforcer policyEnforcer = PolicyEnforcer.of(partialGrantsPolicy());
+        final ResourceKey attributeX = PoliciesResourceType.thingResource("/attributes/x");
+
+        // includePartial: unrestricted(/attributes/x) = alice + bob, plus root partial readers = carol
+        assertThat(policyEnforcer.getReadGrantedSubjectsHeaderValue(attributeX, true))
+                .isEqualTo(JsonArray.of("[\"user:alice\",\"user:bob\",\"user:carol\"]"));
+        // without partial: only root-unrestricted readers
+        assertThat(policyEnforcer.getReadGrantedSubjectsHeaderValue(attributeX, false))
+                .isEqualTo(JsonArray.of("[\"user:alice\"]"));
+    }
+
+    @Test
+    public void getReadGrantedSubjectsHeaderValueIsSortedAndDeduplicated() {
+        final PolicyEnforcer policyEnforcer = PolicyEnforcer.of(partialGrantsPolicy());
+
+        // alice is both root-unrestricted and unrestricted on the resource, so she must appear exactly once;
+        // sorting makes the rendered value stable across pods and restarts.
+        final JsonArray headerValue = policyEnforcer.getReadGrantedSubjectsHeaderValue(
+                PoliciesResourceType.thingResource("/attributes/x"), true);
+
+        assertThat(headerValue.stream().map(JsonValue::asString))
+                .containsExactly("user:alice", "user:bob", "user:carol");
+    }
+
+    @Test
+    public void getReadGrantedSubjectsHeaderValueIsEmptyWithoutReadGrants() {
+        final Policy writeOnlyPolicy = Policy.newBuilder(PolicyId.of("test:policy"))
+                .setRevision(1L)
+                .setSubjectFor("alice", Subject.newInstance(SubjectId.newInstance("user:alice")))
+                .setGrantedPermissionsFor("alice", ResourceKey.newInstance("thing", "/"), Permission.WRITE)
+                .build();
+        final PolicyEnforcer policyEnforcer = PolicyEnforcer.of(writeOnlyPolicy);
+
+        assertThat(policyEnforcer.getReadGrantedSubjectsHeaderValue(
+                PoliciesResourceType.thingResource("/"), false)).isEmpty();
+        assertThat(policyEnforcer.getReadGrantedSubjectsHeaderValue(
+                PoliciesResourceType.thingResource("/"), true)).isEmpty();
+    }
+
+    @Test
+    public void getReadGrantedSubjectsHeaderValueStaysCorrectUnderBoundedCache() {
+        // Tiny bound: correctness must not depend on capacity — an evicted entry simply re-renders an equal value.
+        final PolicyEnforcer bounded = PolicyEnforcer.of(partialGrantsPolicy(), 100, 1);
+        final ResourceKey a = PoliciesResourceType.thingResource("/attributes/x");
+        final ResourceKey b = PoliciesResourceType.thingResource("/attributes/y");
+
+        final JsonArray valueA = bounded.getReadGrantedSubjectsHeaderValue(a, true);
+        bounded.getReadGrantedSubjectsHeaderValue(b, true);
+
+        assertThat(bounded.getReadGrantedSubjectsHeaderValue(a, true)).isEqualTo(valueA);
+    }
+
+    @Test
+    public void getReadGrantedSubjectsHeaderValueOfNamespaceChildIsComputedIndependently() {
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(PolicyId.of("test:policy"))
+                .set(newScopedEntry("restricted", "google:tenant-user", Arrays.asList("com.acme", "com.acme.*")))
+                .set(newScopedEntry("global", "google:global-user", Collections.emptyList()))
+                .build();
+        final PolicyEnforcer parent = PolicyEnforcer.of(policy, 100, 100);
+        final ResourceKey root = PoliciesResourceType.thingResource("/");
+
+        final JsonArray unfiltered = parent.getReadGrantedSubjectsHeaderValue(root, false);
+        final JsonArray filtered = parent.forNamespace("org.example").getReadGrantedSubjectsHeaderValue(root, false);
+
+        assertThat(unfiltered.stream().map(JsonValue::asString))
+                .containsExactly("google:global-user", "google:tenant-user");
+        assertThat(filtered.stream().map(JsonValue::asString)).containsExactly("google:global-user");
+    }
+
+    /** alice: unrestricted READ at root; bob: READ only on /attributes/x; carol: READ only on /attributes/y. */
+    private static Policy partialGrantsPolicy() {
+        return Policy.newBuilder(PolicyId.of("test:policy"))
+                .setRevision(1L)
+                .setSubjectFor("alice", Subject.newInstance(SubjectId.newInstance("user:alice")))
+                .setGrantedPermissionsFor("alice", ResourceKey.newInstance("thing", "/"), Permission.READ)
+                .setSubjectFor("bob", Subject.newInstance(SubjectId.newInstance("user:bob")))
+                .setGrantedPermissionsFor("bob", ResourceKey.newInstance("thing", "/attributes/x"), Permission.READ)
+                .setSubjectFor("carol", Subject.newInstance(SubjectId.newInstance("user:carol")))
+                .setGrantedPermissionsFor("carol", ResourceKey.newInstance("thing", "/attributes/y"), Permission.READ)
+                .build();
     }
 
     private static PolicyEntry newScopedEntry(final String label, final String subjectId, final List<String> namespaces) {

@@ -29,6 +29,7 @@ import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaderKey;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonValue;
 
 /**
@@ -85,6 +86,21 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder<B, R>, R exte
      * @since 1.1.0
      */
     B readGrantedSubjects(Collection<AuthorizationSubject> readGrantedSubjects);
+
+    /**
+     * Sets the subjects with granted READ access from an already rendered JSON array of subject IDs.
+     * Semantically equivalent to {@link #readGrantedSubjects(Collection)}, but skips re-serializing the subject IDs;
+     * intended for callers that memoize the rendered array because it only changes with the underlying policy.
+     * An empty array is set as {@code []}, exactly like an empty collection.
+     *
+     * @param readGrantedSubjectIds the rendered subject IDs to be set; every element must be a JSON string.
+     * @return this builder for Method Chaining.
+     * @throws NullPointerException if {@code readGrantedSubjectIds} is {@code null}.
+     * @throws org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException if {@code readGrantedSubjectIds}
+     * contains an element which is not a JSON string.
+     * @since 3.9.7
+     */
+    B readGrantedSubjects(JsonArray readGrantedSubjectIds);
 
     /**
      * Sets the subjects with explicitly revoked READ access.

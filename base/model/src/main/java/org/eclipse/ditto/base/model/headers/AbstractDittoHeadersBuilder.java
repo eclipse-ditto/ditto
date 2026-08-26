@@ -16,6 +16,7 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEm
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotEmpty;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -348,13 +349,43 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
 
     private void putJsonValue(final HeaderDefinition definition, final JsonValue jsonValue) {
         if (!jsonValue.isNull()) {
-            putCharSequence(definition, jsonValue.isString() ? jsonValue.asString() : jsonValue.toString());
+            if (jsonValue.isString()) {
+                putCharSequence(definition, jsonValue.asString());
+            } else {
+                // Seed the Header's JSON memo with the value we just rendered: the resulting Header is fresh per
+                // built signal, so without this the next reader (e.g. the pub/sub topic extractor on the very same
+                // node) would parse the string right back into the object we already have at hand.
+                final String stringRepresentation = jsonValue.toString();
+                checkNotEmpty(stringRepresentation, definition.getKey());
+                headers.remove(definition.getKey());
+                headers.put(definition.getKey(),
+                        Header.of(definition.getKey(), stringRepresentation, jsonValue));
+            }
         }
     }
 
     @Override
     public S readGrantedSubjects(final Collection<AuthorizationSubject> readGrantedSubjects) {
         putAuthorizationSubjectCollection(readGrantedSubjects, DittoHeaderDefinition.READ_SUBJECTS);
+        return myself;
+    }
+
+    @Override
+    public S readGrantedSubjects(final JsonArray readGrantedSubjectIds) {
+        checkNotNull(readGrantedSubjectIds, DittoHeaderDefinition.READ_SUBJECTS.getKey());
+        // The array is put verbatim, bypassing the parse-based JsonArrayValueValidator; the element type check it
+        // would have done is kept, so a caller cannot smuggle in a value that later fails on read with asString().
+        for (final JsonValue jsonValue : readGrantedSubjectIds) {
+            if (!jsonValue.isString()) {
+                final String invalidHeaderKey = DittoHeaderDefinition.READ_SUBJECTS.getKey();
+                throw DittoHeaderInvalidException.newBuilder()
+                        .withInvalidHeaderKey(invalidHeaderKey)
+                        .message(MessageFormat.format("JSON array for <{0}> contained non-string values!",
+                                invalidHeaderKey))
+                        .build();
+            }
+        }
+        putJsonValue(DittoHeaderDefinition.READ_SUBJECTS, readGrantedSubjectIds);
         return myself;
     }
 
