@@ -28,7 +28,6 @@ import org.apache.pekko.Done;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
-import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -482,25 +481,15 @@ final class ThingCommandEnforcement
         final var eventResourcePath = signal.getResourcePath();
         final var eventResourceKey = ResourceKey.newInstance(ThingConstants.ENTITY_TYPE, eventResourcePath);
 
-        // classifyReadSubjects memoizes the (single) policy-tree walk per resource on the PolicyEnforcer, so
-        // value-only telemetry updates that repeat the same resource path do not re-walk the tree per event.
-        // The result set below is identical to the previous
+        // getReadGrantedSubjectsHeaderValue memoizes both the policy-tree walk and the rendering of the resulting
+        // header value per resource on the PolicyEnforcer, so repeated events on the same resource path neither
+        // re-walk the tree nor re-serialize the (unchanged) subject list per event. The rendered set is identical
+        // to the previous
         //   getSubjectsWithUnrestrictedPermission(eventResourceKey) ∪ getSubjectsWithPartialPermission(root)
         // because getSubjectsWithPartialPermission(root, READ) == partialOnly(root) ∪ unrestricted(root).
-        final Set<AuthorizationSubject> allReadSubjects;
-        if (includePartialReadSubjects) {
-            final var rootClassification = policyEnforcer.getRootResourceReadClassification();
-            allReadSubjects = new java.util.HashSet<>(
-                    policyEnforcer.classifyReadSubjects(eventResourceKey).getUnrestricted());
-            allReadSubjects.addAll(rootClassification.getPartialOnly());
-            allReadSubjects.addAll(rootClassification.getUnrestricted());
-        } else {
-            allReadSubjects = new java.util.HashSet<>(
-                    policyEnforcer.getRootResourceReadClassification().getUnrestricted());
-        }
-
         final var newHeaders = DittoHeaders.newBuilder(signal.getDittoHeaders())
-                .readGrantedSubjects(allReadSubjects)
+                .readGrantedSubjects(
+                        policyEnforcer.getReadGrantedSubjectsHeaderValue(eventResourceKey, includePartialReadSubjects))
                 .build();
 
         return signal.setDittoHeaders(newHeaders);
