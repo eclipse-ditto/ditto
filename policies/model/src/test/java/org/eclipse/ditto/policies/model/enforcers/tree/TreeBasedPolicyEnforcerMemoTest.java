@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.lang.reflect.Field;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
@@ -196,6 +197,32 @@ public final class TreeBasedPolicyEnforcerMemoTest {
         // The genuinely-permitted subjects still resolve correctly after the cap was hit.
         assertThat(bounded.hasUnrestrictedPermissions(THING_ROOT, ctx(FULL), READ)).isTrue();
         assertThat(bounded.hasUnrestrictedPermissions(THING_ROOT, ctx(FULL), READ)).isTrue();
+    }
+
+    @Test
+    public void differentSubjectOrderingsStayCorrectDespiteOrderDependentKeys() throws Exception {
+        final TreeBasedPolicyEnforcer underTest = TreeBasedPolicyEnforcer.createInstance(policy());
+        final TreeBasedPolicyEnforcer cold = TreeBasedPolicyEnforcer.createInstance(policy());
+
+        // The memo keys on the AuthorizationContext's own memoized ID *list*, so key equality is
+        // order-dependent and these two contexts occupy separate entries. Each entry's verdict is computed
+        // from its own IDs, so both orderings must still agree with a cold enforcer.
+        final AuthorizationContext strangerFirst = AuthorizationContext.newInstance(
+                DittoAuthorizationContextType.UNSPECIFIED, STRANGER, FULL);
+        final AuthorizationContext fullFirst = AuthorizationContext.newInstance(
+                DittoAuthorizationContextType.UNSPECIFIED, FULL, STRANGER);
+
+        assertThat(underTest.hasUnrestrictedPermissions(THING_ROOT, strangerFirst, READ))
+                .isEqualTo(cold.hasUnrestrictedPermissions(THING_ROOT, strangerFirst, READ)).isTrue();
+        assertThat(underTest.hasUnrestrictedPermissions(THING_ROOT, fullFirst, READ))
+                .isEqualTo(cold.hasUnrestrictedPermissions(THING_ROOT, fullFirst, READ)).isTrue();
+
+        // Repeat calls are memo hits now; neither ordering may have been contaminated by the other.
+        assertThat(underTest.hasUnrestrictedPermissions(THING_ROOT, strangerFirst, READ)).isTrue();
+        assertThat(underTest.hasUnrestrictedPermissions(THING_ROOT, fullFirst, READ)).isTrue();
+
+        // Documented consequence of the list-based key: one entry per ordering, not one shared entry.
+        assertThat((Map<?, ?>) memoField(underTest, "permissionCheckMemo")).hasSize(2);
     }
 
     private static Object memoField(final TreeBasedPolicyEnforcer enforcer, final String fieldName)

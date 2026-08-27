@@ -95,6 +95,13 @@ public final class PolicyEnforcer {
     // the things-service hot path calls classifyReadSubjects on the namespace-filtered child, so its cache
     // must be bounded too (unlike the child's namespace cache, which stays empty).
     private final long readClassificationCacheMaxSize;
+    // The operator-configured authorization-verdict memo bound (reference.conf
+    // 'authorization-memo-cache-max-size'), kept for the same reason as readClassificationCacheMaxSize above:
+    // forNamespace children must inherit it. The things-service hot path enforces against the
+    // namespace-filtered child, so a configured bound - 0 in particular, the documented "disable the memo"
+    // escape hatch - has to reach the child's enforcer, not just this instance's. null means no configuration
+    // was supplied (transient of/embed instances), in which case PolicyEnforcers' own default applies.
+    @Nullable private final Integer authorizationMemoMaxSize;
 
     /**
      * Creates an instance with an <em>unbounded</em> namespace-filtered-enforcer cache. Used for transient
@@ -104,7 +111,7 @@ public final class PolicyEnforcer {
      * instances need a bound.
      */
     private PolicyEnforcer(@Nullable final Policy policy, final Enforcer enforcer) {
-        this(policy, enforcer, Caffeine.newBuilder().build(), 0L);
+        this(policy, enforcer, Caffeine.newBuilder().build(), 0L, null);
     }
 
     /**
@@ -114,19 +121,22 @@ public final class PolicyEnforcer {
      * (operator-configurable) cap distinct namespaces / resource paths per policy.
      */
     private PolicyEnforcer(@Nullable final Policy policy, final Enforcer enforcer,
-            final long namespaceEnforcerCacheMaxSize, final long readClassificationCacheMaxSize) {
+            final long namespaceEnforcerCacheMaxSize, final long readClassificationCacheMaxSize,
+            @Nullable final Integer authorizationMemoMaxSize) {
         this(policy, enforcer,
                 Caffeine.newBuilder().maximumSize(namespaceEnforcerCacheMaxSize).build(),
-                readClassificationCacheMaxSize);
+                readClassificationCacheMaxSize, authorizationMemoMaxSize);
     }
 
     private PolicyEnforcer(@Nullable final Policy policy, final Enforcer enforcer,
             final Cache<String, PolicyEnforcer> namespaceEnforcerCache,
-            final long readClassificationCacheMaxSize) {
+            final long readClassificationCacheMaxSize,
+            @Nullable final Integer authorizationMemoMaxSize) {
         this.policy = policy;
         this.enforcer = enforcer;
         this.namespaceEnforcerCache = namespaceEnforcerCache;
         this.readClassificationCacheMaxSize = readClassificationCacheMaxSize;
+        this.authorizationMemoMaxSize = authorizationMemoMaxSize;
         // <= 0 means unbounded (of/embed/transient instances); provider-cached and forNamespace children
         // inherit the operator-configured bound.
         this.readClassificationCache = readClassificationCacheMaxSize > 0
@@ -260,7 +270,7 @@ public final class PolicyEnforcer {
         return resolveImportsAndNamespacePolicies(policy, policyResolver, namespacePoliciesConfig)
                 .thenApply(finalPolicy ->
                         new PolicyEnforcer(finalPolicy, PolicyEnforcers.defaultEvaluator(finalPolicy),
-                                namespaceEnforcerCacheMaxSize, readClassificationCacheMaxSize));
+                                namespaceEnforcerCacheMaxSize, readClassificationCacheMaxSize, null));
     }
 
     /**
@@ -275,7 +285,9 @@ public final class PolicyEnforcer {
      * @param namespaceEnforcerCacheMaxSize the maximum size of the per-instance namespace-filtered-enforcer cache.
      * @param readClassificationCacheMaxSize the maximum size of the per-instance read-classification cache.
      * @param authorizationMemoMaxSize the per-memo upper bound for the enforcer's authorization-verdict memos;
-     * a value {@code <= 0} disables those memos (no maps allocated).
+     * a value {@code <= 0} disables those memos (no maps allocated), and values above {@link Integer#MAX_VALUE}
+     * saturate rather than wrap. The bound is retained on the returned instance so the namespace-filtered
+     * children handed out by {@link #forNamespace(String)} inherit it.
      * @return a completion stage with the fully resolved PolicyEnforcer.
      * @since 3.9.7
      */
@@ -287,11 +299,40 @@ public final class PolicyEnforcer {
             final long readClassificationCacheMaxSize,
             final long authorizationMemoMaxSize) {
 
+        final int memoMaxSize = clampAuthorizationMemoMaxSize(authorizationMemoMaxSize);
         return resolveImportsAndNamespacePolicies(policy, policyResolver, namespacePoliciesConfig)
                 .thenApply(finalPolicy ->
                         new PolicyEnforcer(finalPolicy,
-                                PolicyEnforcers.defaultEvaluator(finalPolicy, (int) authorizationMemoMaxSize),
-                                namespaceEnforcerCacheMaxSize, readClassificationCacheMaxSize));
+                                PolicyEnforcers.defaultEvaluator(finalPolicy, memoMaxSize),
+                                namespaceEnforcerCacheMaxSize, readClassificationCacheMaxSize, memoMaxSize));
+    }
+
+    /**
+     * Package-private test hook: the operator-configured authorization-verdict memo bound this instance was
+     * built with, or {@code null} if none was configured (in which case {@code PolicyEnforcers}' own default
+     * applies). Namespace-filtered children must inherit it.
+     *
+     * @return the configured bound, or {@code null}.
+     */
+    @Nullable
+    Integer getAuthorizationMemoMaxSize() {
+        return authorizationMemoMaxSize;
+    }
+
+    /**
+     * Narrows a configured authorization-memo bound to the {@code int} the enforcer factory takes. A plain cast
+     * would wrap for values above {@link Integer#MAX_VALUE} and could land on a negative number, silently
+     * <em>disabling</em> the memo when the operator asked for a very large one; saturate instead. Values
+     * {@code <= 0} keep their meaning: memoization off.
+     *
+     * @param authorizationMemoMaxSize the configured bound.
+     * @return the bound clamped to {@code [0, Integer.MAX_VALUE]}.
+     */
+    private static int clampAuthorizationMemoMaxSize(final long authorizationMemoMaxSize) {
+        if (authorizationMemoMaxSize <= 0L) {
+            return 0;
+        }
+        return (int) Math.min(authorizationMemoMaxSize, Integer.MAX_VALUE);
     }
 
     private static CompletionStage<Policy> resolveImportsAndNamespacePolicies(
@@ -400,7 +441,7 @@ public final class PolicyEnforcer {
     public static PolicyEnforcer of(final Policy policy, final long namespaceEnforcerCacheMaxSize,
             final long readClassificationCacheMaxSize) {
         return new PolicyEnforcer(policy, PolicyEnforcers.defaultEvaluator(policy),
-                namespaceEnforcerCacheMaxSize, readClassificationCacheMaxSize);
+                namespaceEnforcerCacheMaxSize, readClassificationCacheMaxSize, null);
     }
 
     /**
@@ -585,12 +626,18 @@ public final class PolicyEnforcer {
         if (!anyFiltered) {
             return this;
         }
-        final Enforcer filteredEnforcer = PolicyEnforcers.defaultEvaluator(filteredEntries);
         // The filtered child is the instance the things-service hot path enforces against, so it must inherit
-        // the parent's read-classification bound (classifyReadSubjects is called on it per signal). Its own
-        // namespace cache stays empty (forNamespace is never called on the child), so leave that unbounded.
+        // both of the parent's operator-configured bounds: the read-classification one (classifyReadSubjects is
+        // called on it per signal) and the authorization-verdict memo one (every permission check runs against
+        // this enforcer). Without the latter, 'authorization-memo-cache-max-size' - including 0 to disable -
+        // would not reach the very instance an operator is most likely tuning.
+        final Enforcer filteredEnforcer = authorizationMemoMaxSize == null
+                ? PolicyEnforcers.defaultEvaluator(filteredEntries)
+                : PolicyEnforcers.defaultEvaluator(filteredEntries, authorizationMemoMaxSize);
+        // The child's own namespace cache stays empty (forNamespace is never called on the child), so leave
+        // that unbounded.
         return new PolicyEnforcer(policy, filteredEnforcer, Caffeine.newBuilder().build(),
-                readClassificationCacheMaxSize);
+                readClassificationCacheMaxSize, authorizationMemoMaxSize);
     }
 
 }
