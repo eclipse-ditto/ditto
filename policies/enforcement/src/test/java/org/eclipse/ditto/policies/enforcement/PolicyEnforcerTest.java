@@ -13,16 +13,21 @@
 package org.eclipse.ditto.policies.enforcement;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.api.Permission;
+import org.eclipse.ditto.policies.enforcement.config.NamespacePoliciesConfig;
 import org.eclipse.ditto.policies.model.AllowedAddition;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.ImportableType;
@@ -38,6 +43,7 @@ import org.eclipse.ditto.policies.model.enforcers.SubjectClassification;
 import org.junit.Test;
 
 public final class PolicyEnforcerTest {
+
 
     @Test
     public void forNamespaceFiltersRestrictedEntriesButKeepsGlobalEntries() {
@@ -288,6 +294,74 @@ public final class PolicyEnforcerTest {
                 .setGrantedPermissionsFor("bob", ResourceKey.newInstance("thing", "/attributes/x"), Permission.READ)
                 .setSubjectFor("carol", Subject.newInstance(SubjectId.newInstance("user:carol")))
                 .setGrantedPermissionsFor("carol", ResourceKey.newInstance("thing", "/attributes/y"), Permission.READ)
+                .build();
+    }
+
+    @Test
+    public void forNamespaceChildInheritsConfiguredAuthorizationMemoBound() {
+        final PolicyEnforcer parent = providerStyleEnforcer(10_000L);
+
+        // The namespace-filtered child - the instance the things-service hot path enforces against - is built
+        // by a separate defaultEvaluator call, so it has to be handed the configured bound explicitly.
+        assertThat(parent.getAuthorizationMemoMaxSize()).isEqualTo(10_000);
+        assertThat(namespaceFilteredChild(parent).getAuthorizationMemoMaxSize()).isEqualTo(10_000);
+    }
+
+    @Test
+    public void forNamespaceChildInheritsDisabledAuthorizationMemo() {
+        final PolicyEnforcer parent = providerStyleEnforcer(0L);
+
+        // 0 is the documented escape hatch for disabling the memo entirely; it must reach the child too,
+        // otherwise an operator disabling it still gets a memoizing enforcer on the hot path.
+        assertThat(namespaceFilteredChild(parent).getAuthorizationMemoMaxSize()).isEqualTo(0);
+    }
+
+    @Test
+    public void configuredAuthorizationMemoBoundAboveIntMaxSaturatesInsteadOfWrapping() {
+        final PolicyEnforcer parent = providerStyleEnforcer(3_000_000_000L);
+
+        // A plain (int) cast wraps this to a negative number, which reads as "disabled" - the opposite of what
+        // an operator configuring a very large bound asked for. Saturate at Integer.MAX_VALUE instead.
+        assertThat(parent.getAuthorizationMemoMaxSize()).isEqualTo(Integer.MAX_VALUE);
+        assertThat(namespaceFilteredChild(parent).getAuthorizationMemoMaxSize()).isEqualTo(Integer.MAX_VALUE);
+    }
+
+    @Test
+    public void transientEnforcerHasNoConfiguredAuthorizationMemoBound() {
+        // of/embed instances carry no operator configuration, so children fall back to the library default.
+        assertThat(PolicyEnforcer.of(namespaceScopedPolicy()).getAuthorizationMemoMaxSize()).isNull();
+    }
+
+    /**
+     * Builds a {@code PolicyEnforcer} the way {@code PolicyEnforcerCacheLoader} does, i.e. through the
+     * config-carrying factory, with the given authorization-memo bound.
+     */
+    private static PolicyEnforcer providerStyleEnforcer(final long authorizationMemoMaxSize) {
+        final NamespacePoliciesConfig emptyNamespacePolicies = mock(NamespacePoliciesConfig.class);
+        when(emptyNamespacePolicies.isEmpty()).thenReturn(true);
+
+        return PolicyEnforcer.withResolvedImportsAndNamespacePolicies(namespaceScopedPolicy(),
+                        policyId -> CompletableFuture.completedFuture(Optional.empty()), emptyNamespacePolicies,
+                        100L, 100L, authorizationMemoMaxSize)
+                .toCompletableFuture()
+                .join();
+    }
+
+    /**
+     * Returns the namespace-filtered child for a namespace that excludes the scoped entry, so
+     * {@code forNamespace} genuinely builds a new child enforcer rather than returning the parent.
+     */
+    private static PolicyEnforcer namespaceFilteredChild(final PolicyEnforcer parent) {
+        final PolicyEnforcer child = parent.forNamespace("org.example");
+        assertThat(child).isNotSameAs(parent);
+        return child;
+    }
+
+    private static Policy namespaceScopedPolicy() {
+        return PoliciesModelFactory.newPolicyBuilder(PolicyId.of("test:policy"))
+                .set(newScopedEntry("restricted", "google:tenant-user",
+                        Arrays.asList("com.acme", "com.acme.*")))
+                .set(newScopedEntry("global", "google:global-user", Collections.emptyList()))
                 .build();
     }
 

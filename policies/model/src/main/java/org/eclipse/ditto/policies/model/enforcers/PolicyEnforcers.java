@@ -41,18 +41,41 @@ public final class PolicyEnforcers {
      * @throws NullPointerException if {@code policyEntries} is {@code null}.
      */
     public static Enforcer defaultEvaluator(final Iterable<PolicyEntry> policyEntries) {
-        // Skip entries that cannot contribute to access decisions: entries without subjects
-        // can't authorize anyone, entries without resources can't grant or revoke anything.
-        // This filtering is applied after all import and references resolution is complete.
-        final Iterable<PolicyEntry> effectiveEntries = StreamSupport
-                .stream(policyEntries.spliterator(), false)
-                .filter(entry -> !entry.getSubjects().isEmpty() && !entry.getResources().isEmpty())
-                .collect(Collectors.toList());
+        final Iterable<PolicyEntry> effectiveEntries = effectiveEntries(policyEntries);
         if (FeatureToggle.isPolicyEnforcementUseThroughputOptimizedEvaluatorEnabled()) {
             return throughputOptimizedEvaluator(effectiveEntries);
         } else {
             return memoryOptimizedEvaluator(effectiveEntries);
         }
+    }
+
+    /**
+     * Same as {@link #defaultEvaluator(Iterable)} but bounds the memory-optimized enforcer's authorization-verdict
+     * memos at {@code maxMemoSize} entries (a value {@code <= 0} disables memoization; see
+     * {@link TreeBasedPolicyEnforcer#createInstance(Iterable, int)}). The bound only applies to the memory-optimized
+     * evaluator; the throughput-optimized (trie-based) evaluator does not memoize and ignores it.
+     *
+     * @param policyEntries the Policy entries to initialize the evaluator with.
+     * @param maxMemoSize the per-memo best-effort upper bound; {@code <= 0} disables memoization.
+     * @return the initialized general purpose Enforcer.
+     * @throws NullPointerException if {@code policyEntries} is {@code null}.
+     */
+    public static Enforcer defaultEvaluator(final Iterable<PolicyEntry> policyEntries, final int maxMemoSize) {
+        final Iterable<PolicyEntry> effectiveEntries = effectiveEntries(policyEntries);
+        if (FeatureToggle.isPolicyEnforcementUseThroughputOptimizedEvaluatorEnabled()) {
+            return throughputOptimizedEvaluator(effectiveEntries);
+        } else {
+            return memoryOptimizedEvaluator(effectiveEntries, maxMemoSize);
+        }
+    }
+
+    // Skip entries that cannot contribute to access decisions: entries without subjects can't authorize anyone,
+    // entries without resources can't grant or revoke anything. Applied after import/reference resolution.
+    private static Iterable<PolicyEntry> effectiveEntries(final Iterable<PolicyEntry> policyEntries) {
+        return StreamSupport
+                .stream(policyEntries.spliterator(), false)
+                .filter(entry -> !entry.getSubjects().isEmpty() && !entry.getResources().isEmpty())
+                .collect(Collectors.toList());
     }
 
     /**
@@ -79,6 +102,19 @@ public final class PolicyEnforcers {
      */
     public static Enforcer memoryOptimizedEvaluator(final Iterable<PolicyEntry> policyEntries) {
         return TreeBasedPolicyEnforcer.createInstance(policyEntries);
+    }
+
+    /**
+     * Same as {@link #memoryOptimizedEvaluator(Iterable)} but bounds each authorization-verdict memo at
+     * {@code maxMemoSize} entries; a value {@code <= 0} disables memoization entirely (no maps are allocated).
+     *
+     * @param policyEntries the Policy entries to initialize the evaluator with.
+     * @param maxMemoSize the per-memo best-effort upper bound; {@code <= 0} disables memoization.
+     * @return the initialized memory optimized Enforcer.
+     * @throws NullPointerException if {@code policyEntries} is {@code null}.
+     */
+    public static Enforcer memoryOptimizedEvaluator(final Iterable<PolicyEntry> policyEntries, final int maxMemoSize) {
+        return TreeBasedPolicyEnforcer.createInstance(policyEntries, maxMemoSize);
     }
 
 }
