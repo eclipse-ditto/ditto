@@ -186,7 +186,7 @@ public final class PolicyEnforcer {
             final String target = ref.getImportedPolicyId()
                     .map(id -> id + ":" + ref.getEntryLabel())
                     .orElseGet(() -> ref.getEntryLabel().toString());
-            final String dedupKey = policyIdStr + " " + referencingEntry.getLabel() + " " + target;
+            final String dedupKey = policyIdStr + "\u0000" + referencingEntry.getLabel() + "\u0000" + target;
             if (shouldLog(dedupKey)) {
                 LOG.warn("Policy <{}>: entry <{}> has an unresolved reference to <{}> — silently skipped." +
                                 " The referenced entry may have been deleted or never existed.",
