@@ -38,7 +38,8 @@ import org.slf4j.LoggerFactory;
  * Strategy for handling the {@link org.eclipse.ditto.things.model.devops.commands.DeleteWotValidationConfig} command.
  * <p>
  * This strategy deletes a WoT validation configuration by its config ID. If the configuration exists, it is removed
- * from the distributed data store and a deletion event is emitted. If not, an error is returned.
+ * and a deletion event is emitted, which in turn clears the config from the distributed data. If not, an error is
+ * returned.
  * </p>
  * @since 3.8.0
  */
@@ -48,16 +49,13 @@ final class DeleteWotValidationConfigStrategy
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DeleteWotValidationConfigStrategy.class);
 
-    private final WotValidationConfigDData ddata;
 
     /**
      * Constructs a new {@code DeleteWotValidationConfigStrategy} object.
      *
-     * @param ddata the DData instance for WoT validation configs.
      */
-    DeleteWotValidationConfigStrategy(final WotValidationConfigDData ddata) {
+    DeleteWotValidationConfigStrategy() {
         super(DeleteWotValidationConfig.class);
-        this.ddata = ddata;
     }
 
     /**
@@ -74,7 +72,7 @@ final class DeleteWotValidationConfigStrategy
     }
 
     /**
-     * Applies the delete command to the current entity, removing it from the distributed data store.
+     * Applies the delete command to the current entity.
      *
      * @param context the command context.
      * @param entity the current WoT validation config entity, or {@code null} if not found.
@@ -107,13 +105,7 @@ final class DeleteWotValidationConfigStrategy
                 metadata
         );
 
-        LOGGER.info("Initiating DData removal for WoT validation config with ID <{}>", configId);
-
         final DeleteWotValidationConfigResponse response = DeleteWotValidationConfigResponse.of(configId, dittoHeaders);
-
-        ddata.clear().thenRun(() -> {
-            LOGGER.info("Successfully cleared DData for WoT validation config with ID <{}>", configId);
-        });
 
         return ResultFactory.newMutationResult(command, event, response, false, true);
     }

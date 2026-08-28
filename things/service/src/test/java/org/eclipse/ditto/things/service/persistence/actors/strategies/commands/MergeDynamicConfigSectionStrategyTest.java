@@ -68,7 +68,7 @@ public final class MergeDynamicConfigSectionStrategyTest {
         final WotValidationConfigId configId = WotValidationConfigId.of("ns:test-id");
         context = DefaultContext.getInstance(configId, logger, actorSystem);
 
-        underTest = new MergeDynamicConfigSectionStrategy(ddata);
+        underTest = new MergeDynamicConfigSectionStrategy();
     }
 
     @Test
