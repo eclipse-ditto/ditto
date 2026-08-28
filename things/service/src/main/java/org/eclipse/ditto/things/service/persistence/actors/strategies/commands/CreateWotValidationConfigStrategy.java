@@ -46,11 +46,9 @@ final class CreateWotValidationConfigStrategy
         extends AbstractWotValidationConfigCommandStrategy<CreateWotValidationConfig> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CreateWotValidationConfigStrategy.class);
-    private final WotValidationConfigDData ddata;
 
-    CreateWotValidationConfigStrategy(final WotValidationConfigDData ddata) {
+    CreateWotValidationConfigStrategy() {
         super(CreateWotValidationConfig.class);
-        this.ddata = ddata;
     }
 
     @Override
@@ -103,14 +101,6 @@ final class CreateWotValidationConfigStrategy
                 dittoHeaders,
                 metadata
         );
-
-        ddata.add(configWithRevision.toJson())
-                .thenRun(() -> LOGGER.info("Successfully created WoT validation config for id: {}",
-                        command.getEntityId()))
-                .exceptionally(error -> {
-                    LOGGER.error("Failed to create WoT validation config: {}", error.getMessage());
-                    return null;
-                });
 
         final DittoHeadersBuilder<?, ?> builder = dittoHeaders.toBuilder()
                 .putHeader(org.eclipse.ditto.base.model.headers.DittoHeaderDefinition.ENTITY_REVISION.getKey(),

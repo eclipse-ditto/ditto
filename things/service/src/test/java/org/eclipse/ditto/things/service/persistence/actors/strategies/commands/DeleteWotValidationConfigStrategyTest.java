@@ -80,7 +80,7 @@ public final class DeleteWotValidationConfigStrategyTest {
         // Mock ddata to return completed future for clear()
         when(ddata.clear()).thenReturn(CompletableFuture.completedFuture(null));
         
-        underTest = new DeleteWotValidationConfigStrategy(ddata);
+        underTest = new DeleteWotValidationConfigStrategy();
     }
 
     @Test

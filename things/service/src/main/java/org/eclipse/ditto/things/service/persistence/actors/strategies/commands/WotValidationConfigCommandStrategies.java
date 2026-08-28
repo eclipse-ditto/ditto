@@ -80,19 +80,18 @@ public final class WotValidationConfigCommandStrategies
     private void addStrategies(final ActorSystem system) {
         final var dittoScopedConfig = DefaultScopedConfig.dittoScoped(system.settings().config());
         final var wotConfig = DefaultWotConfig.of(dittoScopedConfig.getConfig("things"));
-        final var ddata = WotValidationConfigDData.of(system);
 
         final var staticConfig = wotConfig.getValidationConfig();
 
-        addStrategy(new ModifyWotValidationConfigStrategy(ddata));
-        addStrategy(new CreateWotValidationConfigStrategy(ddata));
-        addStrategy(new DeleteWotValidationConfigStrategy(ddata));
+        addStrategy(new ModifyWotValidationConfigStrategy());
+        addStrategy(new CreateWotValidationConfigStrategy());
+        addStrategy(new DeleteWotValidationConfigStrategy());
         addStrategy(new RetrieveWotValidationConfigStrategy());
         addStrategy(new RetrieveMergedWotValidationConfigStrategy(staticConfig));
         addStrategy(new RetrieveDynamicConfigSectionStrategy());
-        addStrategy(new DeleteDynamicConfigSectionStrategy(ddata));
+        addStrategy(new DeleteDynamicConfigSectionStrategy());
         addStrategy(new RetrieveAllDynamicConfigSectionsStrategy());
-        addStrategy(new MergeDynamicConfigSectionStrategy(ddata));
+        addStrategy(new MergeDynamicConfigSectionStrategy());
     }
 
     @Override

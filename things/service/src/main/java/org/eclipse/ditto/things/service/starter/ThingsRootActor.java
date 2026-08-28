@@ -14,6 +14,8 @@ package org.eclipse.ditto.things.service.starter;
 
 import static org.eclipse.ditto.things.api.ThingsMessagingConstants.CLUSTER_ROLE;
 
+import java.util.Comparator;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Executor;
 
@@ -52,6 +54,7 @@ import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsubthings.LiveSignalPub;
 import org.eclipse.ditto.internal.utils.pubsubthings.ThingEventPubSubFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProviderExtension;
 import org.eclipse.ditto.policies.enforcement.config.DefaultEnforcementConfig;
@@ -84,6 +87,11 @@ public final class ThingsRootActor extends DittoRootActor {
      * The name of this Actor in the ActorSystem.
      */
     public static final String ACTOR_NAME = "thingsRoot";
+
+    /**
+     * JSON field holding the revision of a WoT validation config published to the distributed data.
+     */
+    private static final String REVISION_FIELD = "_revision";
 
     private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
@@ -270,28 +278,59 @@ public final class ThingsRootActor extends DittoRootActor {
             final Set<JsonObject> newConfigs = ((ORSet<JsonObject>) event.dataValue()).getElements();
             log.debug("Processing {} config change(s). Configs: {}", newConfigs.size(), newConfigs);
             try {
-                final TmValidationConfig mergedConfig;
-                if (!newConfigs.isEmpty()) {
-                    // Get the first config and merge with static config
-                    JsonObject firstJson = newConfigs.iterator().next();
-                    var firstConfig = WotValidationConfig.fromJson(firstJson);
-                    mergedConfig = WotValidationConfigUtils.mergeConfigsToTmValidationConfig(firstConfig,
-                            staticWotConfig);
-                } else {
-                    mergedConfig = staticWotConfig;
-                }
-
-                // this returns a singleton instance of WotThingModelValidator
-                WotThingModelValidator.of(
-                        dittoWotIntegration.getWotThingModelResolver(),
-                        wotDispatcher,
-                        mergedConfig
-                ).updateConfig(mergedConfig);
+                updateWotValidatorWith(newConfigs);
                 log.debug("Updated validator with merged config");
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 log.error("Error processing config change: {}", e.getMessage(), e);
             }
         }
+    }
+
+    /**
+     * Merges the most recent of the passed {@code configs} with the statically configured WoT validation config and
+     * updates the singleton WoT ThingModel validator with the result.
+     *
+     * @param configs the WoT validation configs currently held by the distributed data.
+     */
+    private void updateWotValidatorWith(final Set<JsonObject> configs) {
+        final TmValidationConfig mergedConfig = selectMostRecent(configs)
+                .map(configJson -> {
+                    if (configs.size() > 1) {
+                        // must not happen: WotValidationConfigDData holds at most one element - if it does not, an
+                        // element written by a node which has since left the cluster would shadow the current config
+                        log.warning("Distributed WoT validation config held <{}> elements, using the one with the " +
+                                "highest revision <{}>", configs.size(),
+                                configJson.getValue(REVISION_FIELD).orElse(null));
+                    }
+                    return WotValidationConfigUtils.mergeConfigsToTmValidationConfig(
+                            WotValidationConfig.fromJson(configJson), staticWotConfig);
+                })
+                .orElse(staticWotConfig);
+
+        // this returns a singleton instance of WotThingModelValidator
+        WotThingModelValidator.of(
+                dittoWotIntegration.getWotThingModelResolver(),
+                wotDispatcher,
+                mergedConfig
+        ).updateConfig(mergedConfig);
+    }
+
+    /**
+     * Selects the config with the highest revision, so that an outdated element - e.g. one written by a node which
+     * has meanwhile left the cluster - can never shadow the current config.
+     *
+     * @param configs the WoT validation configs to select from.
+     * @return the config with the highest revision or an empty optional if {@code configs} was empty.
+     */
+    static Optional<JsonObject> selectMostRecent(final Set<JsonObject> configs) {
+        return configs.stream().max(Comparator.comparingLong(ThingsRootActor::extractRevision));
+    }
+
+    private static long extractRevision(final JsonObject configJson) {
+        return configJson.getValue(REVISION_FIELD)
+                .filter(JsonValue::isNumber)
+                .map(JsonValue::asLong)
+                .orElse(-1L);
     }
 
     private static Props getThingSupervisorActorProps(final ActorRef pubSubMediator,
@@ -324,22 +363,7 @@ public final class ThingsRootActor extends DittoRootActor {
         // Get DData instance and subscribe to config changes
         final WotValidationConfigDData ddata = WotValidationConfigDData.of(actorSystem);
         ddata.getConfigs().thenAccept(configs -> {
-            final TmValidationConfig mergedConfig;
-            if (!configs.isEmpty()) {
-                // Get the first config since we only expect one
-                final JsonObject configJson = configs.getElements().iterator().next();
-                final WotValidationConfig config = WotValidationConfig.fromJson(configJson);
-                mergedConfig = WotValidationConfigUtils.mergeConfigsToTmValidationConfig(config, staticWotConfig);
-            } else {
-                mergedConfig = staticWotConfig;
-            }
-
-            // this returns a singleton instance of WotThingModelValidator
-            WotThingModelValidator.of(
-                    dittoWotIntegration.getWotThingModelResolver(),
-                    wotDispatcher,
-                    mergedConfig
-            ).updateConfig(mergedConfig);
+            updateWotValidatorWith(configs.getElements());
             log.info("Initialized WoT validator with merged config");
         });
         log.info("Subscribed to WoT validation config changes");

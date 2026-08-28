@@ -13,10 +13,7 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CompletionException;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -33,15 +30,13 @@ import org.eclipse.ditto.things.model.devops.commands.MergeDynamicConfigSection;
 import org.eclipse.ditto.things.model.devops.commands.ModifyWotValidationConfigResponse;
 import org.eclipse.ditto.things.model.devops.events.DynamicConfigSectionMerged;
 import org.eclipse.ditto.things.model.devops.events.WotValidationConfigEvent;
-import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigNotAccessibleException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Command strategy for handling {@link MergeDynamicConfigSection} commands.
  * <p>
  * This strategy merges (creates or updates) a dynamic config section in a WoT validation config entity, ensuring only one section per scope ID exists.
- * It emits a {@link DynamicConfigSectionMerged} event and updates the config in DData.
+ * It emits a {@link DynamicConfigSectionMerged} event; the resulting entity state is published to the distributed
+ * data by the {@code WotValidationConfigPersistenceActor}.
  * </p>
  *
  * @since 3.8.0
@@ -50,13 +45,9 @@ import org.slf4j.LoggerFactory;
 final class MergeDynamicConfigSectionStrategy
         extends AbstractWotValidationConfigCommandStrategy<MergeDynamicConfigSection> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(MergeDynamicConfigSectionStrategy.class);
 
-    private final WotValidationConfigDData ddata;
-
-    MergeDynamicConfigSectionStrategy(final WotValidationConfigDData ddata) {
+    MergeDynamicConfigSectionStrategy() {
         super(MergeDynamicConfigSection.class);
-        this.ddata = ddata;
     }
 
     @Override
@@ -85,49 +76,6 @@ final class MergeDynamicConfigSectionStrategy
             @Nullable final Metadata metadata) {
         final String scopeId = command.getScopeId();
         final DynamicValidationConfig mergeSection = command.getDynamicConfigSection();
-
-        final List<DynamicValidationConfig> updatedDynamicConfig = entity.getDynamicConfigs().stream()
-                .filter(section -> !section.getScopeId().equals(scopeId))
-                .collect(Collectors.toList());
-
-        updatedDynamicConfig.add(mergeSection);
-
-        final WotValidationConfig updatedEntity = WotValidationConfig.of(
-                entity.getConfigId(),
-                entity.isEnabled().orElse(null),
-                entity.logWarningInsteadOfFailingApiCalls().orElse(null),
-                entity.getThingConfig().orElse(null),
-                entity.getFeatureConfig().orElse(null),
-                updatedDynamicConfig,
-                entity.getRevision().orElse(null),
-                entity.getCreated().orElse(null),
-                entity.getModified().orElse(null),
-                entity.isDeleted(),
-                entity.getMetadata().orElse(null)
-        );
-        try {
-            ddata.add(updatedEntity.toJson())
-                    .thenRun(() -> LOGGER.debug("Successfully {} global config with dynamic section",
-                            "updated"))
-                    .exceptionally(error -> {
-                        LOGGER.error("Failed to {} global config: {}",
-                                "update",
-                                error instanceof CompletionException ? error.getCause().getMessage() :
-                                        error.getMessage());
-                        return null;
-                    });
-        } catch (Exception e) {
-            LOGGER.error("Error while {} global config: {}",
-                    "updating", e.getMessage(), e);
-            return ResultFactory.newErrorResult(
-                    WotValidationConfigNotAccessibleException.newBuilderForScope(scopeId)
-                            .description("Failed to " + ("update") +
-                                    " WoT validation config: " + e.getMessage())
-                            .dittoHeaders(command.getDittoHeaders())
-                            .build(),
-                    command
-            );
-        }
 
         final var event = DynamicConfigSectionMerged.of(
                 command.getEntityId(),

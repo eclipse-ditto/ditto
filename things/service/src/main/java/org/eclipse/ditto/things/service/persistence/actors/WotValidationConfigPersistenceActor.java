@@ -13,6 +13,7 @@
 package org.eclipse.ditto.things.service.persistence.actors;
 
 import java.time.Instant;
+import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
@@ -204,18 +205,38 @@ public final class WotValidationConfigPersistenceActor
                 entity != null ? entity.toString() : null);
         if (entity != null) {
             log.debug("Starting DData update for recovered entity: {}", entity.getConfigId());
-            ddata.add(entity.toJson())
-                    .whenComplete((v, error) -> {
-                        if (error != null) {
-                            log.error("Failed to publish WoT validation config to DData: {}", error.getMessage(),
-                                    error);
-                        } else {
-                            log.debug("Successfully published WoT validation config to DData: {}",
-                                    entity.getConfigId());
-                        }
-                    });
+            publishToDData();
         } else {
             log.info("No WoT validation config to publish to DData after recovery.");
         }
+    }
+
+    @Override
+    protected void onEntityModified() {
+        publishToDData();
+    }
+
+    /**
+     * Publishes the current entity state to the distributed data, from where the {@code ThingsRootActor} of each
+     * node picks it up in order to update the WoT ThingModel validator with it.
+     * <p>
+     * This is invoked after an event was successfully persisted and applied, so that the published config always
+     * reflects the persisted state - including its revision and timestamps.
+     */
+    private void publishToDData() {
+        final CompletionStage<Void> published;
+        if (entity == null || entity.isDeleted()) {
+            published = ddata.clear();
+        } else {
+            published = ddata.add(entity.toJson());
+        }
+        published.whenComplete((v, error) -> {
+            if (error != null) {
+                log.error("Failed to publish WoT validation config <{}> to DData: {}", entityId, error.getMessage(),
+                        error);
+            } else {
+                log.debug("Successfully published WoT validation config to DData: {}", entityId);
+            }
+        });
     }
 }

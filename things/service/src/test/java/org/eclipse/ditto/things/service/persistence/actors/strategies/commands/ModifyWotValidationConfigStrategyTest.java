@@ -93,7 +93,7 @@ public final class ModifyWotValidationConfigStrategyTest {
         // Mock ddata to return completed future for add()
         when(ddata.add(any(JsonObject.class))).thenReturn(CompletableFuture.completedFuture(null));
         
-        underTest = new ModifyWotValidationConfigStrategy(ddata);
+        underTest = new ModifyWotValidationConfigStrategy();
     }
 
 

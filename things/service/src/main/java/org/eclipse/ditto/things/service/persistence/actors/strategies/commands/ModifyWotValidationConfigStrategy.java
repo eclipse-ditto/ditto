@@ -29,8 +29,6 @@ import org.eclipse.ditto.things.model.devops.commands.ModifyWotValidationConfig;
 import org.eclipse.ditto.things.model.devops.commands.ModifyWotValidationConfigResponse;
 import org.eclipse.ditto.things.model.devops.events.WotValidationConfigEvent;
 import org.eclipse.ditto.things.model.devops.events.WotValidationConfigModified;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Strategy for handling {@link ModifyWotValidationConfig} commands.
@@ -40,13 +38,9 @@ import org.slf4j.LoggerFactory;
 final class ModifyWotValidationConfigStrategy
         extends AbstractWotValidationConfigCommandStrategy<ModifyWotValidationConfig> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ModifyWotValidationConfigStrategy.class);
 
-    private final WotValidationConfigDData ddata;
-
-    ModifyWotValidationConfigStrategy(final WotValidationConfigDData ddata) {
+    ModifyWotValidationConfigStrategy() {
         super(ModifyWotValidationConfig.class);
-        this.ddata = ddata;
     }
 
     @Override
@@ -98,14 +92,6 @@ final class ModifyWotValidationConfigStrategy
                 command.getDittoHeaders(),
                 metadata
         );
-
-        ddata.add(configWithRevision.toJson())
-                .thenRun(() -> LOGGER.info("Successfully updated DData with merged config for <{}>",
-                        command.getEntityId()))
-                .exceptionally(error -> {
-                    LOGGER.error("Failed to update DData for <{}>: {}", command.getEntityId(), error.getMessage());
-                    return null;
-                });
 
         final ModifyWotValidationConfigResponse response = ModifyWotValidationConfigResponse.modified(
                 command.getEntityId(),

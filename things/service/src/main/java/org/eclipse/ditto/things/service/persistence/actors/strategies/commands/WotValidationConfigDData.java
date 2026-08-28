@@ -83,16 +83,18 @@ public final class WotValidationConfigDData extends DistributedData<ORSet<JsonOb
 
 
     /**
-     * Add a TmValidationConfig to ALL replicas.
-     * Replaces any existing configs with the new one in a single atomic operation.
+     * Add a TmValidationConfig to ALL replicas, replacing any config already held by the set.
+     * <p>
+     * The update function must be derived from the {@code ORSet} it is handed: the replicator merges the returned
+     * value into the locally stored one, and {@code ORSet} merge resolves per writing node. Returning a freshly
+     * built set would therefore only supersede the element written by <em>this</em> node and leave elements
+     * written by other nodes - e.g. a pod which has meanwhile left the cluster - in the set forever.
      *
      * @param config the validation config to add.
      * @return future that completes after the update propagates to all replicas.
      */
     public CompletionStage<Void> add(final JsonObject config) {
-        final ORSet<JsonObject> newSet =
-                ORSet.<JsonObject>empty().add(selfUniqueAddress, config);
-        return update(getKey(0), writeAll(), orSet -> newSet);
+        return update(getKey(0), writeAll(), orSet -> removeAll(orSet).add(selfUniqueAddress, config));
     }
 
     /**
@@ -100,19 +102,24 @@ public final class WotValidationConfigDData extends DistributedData<ORSet<JsonOb
      *
      * @return future that completes after the removal propagates to all replicas.
      */
-
     public CompletionStage<Void> clear() {
-        return getConfigs().thenCompose(configSet -> {
-            ORSet<JsonObject> temp = configSet;
-            for (JsonObject config : configSet.getElements()) {
-                LOGGER.debug(" clear() removing  config={}",
-                        config);
-                temp = temp.remove(selfUniqueAddress, config);
-            }
-            final ORSet<JsonObject> cleared = temp;
+        return update(getKey(0), writeAll(), this::removeAll);
+    }
 
-            return update(getKey(0), writeAll(), orSet -> cleared);
-        });
+    /**
+     * Removes all elements observed in the passed {@code orSet}, so that the result no longer contains configs
+     * written by any node.
+     *
+     * @param orSet the set to remove all observed elements from.
+     * @return the set without the observed elements.
+     */
+    private ORSet<JsonObject> removeAll(final ORSet<JsonObject> orSet) {
+        ORSet<JsonObject> result = orSet;
+        for (final JsonObject existing : orSet.getElements()) {
+            LOGGER.debug("Removing WoT validation config from DData: {}", existing);
+            result = result.remove(selfUniqueAddress, existing);
+        }
+        return result;
     }
     /**
      * Get the current validation configs from the local replica.
