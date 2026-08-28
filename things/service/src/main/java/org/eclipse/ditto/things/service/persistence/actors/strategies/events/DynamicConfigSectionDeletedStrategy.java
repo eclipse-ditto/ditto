@@ -60,7 +60,7 @@ final class DynamicConfigSectionDeletedStrategy
                 updatedConfigs,
                 WotValidationConfigRevision.of(revision),
                 entity.getCreated().orElse(null),
-                entity.getModified().orElse(null),
+                event.getTimestamp().orElseGet(() -> entity.getModified().orElse(null)),
                 entity.isDeleted(),
                 entity.getMetadata().orElse(null)
         );

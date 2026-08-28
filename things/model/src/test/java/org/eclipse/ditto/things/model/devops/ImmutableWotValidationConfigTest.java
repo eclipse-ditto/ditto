@@ -384,4 +384,26 @@ class ImmutableWotValidationConfigTest {
         assertFalse(config.isDeleted());
         assertTrue(config.getMetadata().isPresent());
     }
-} 
+
+    @Test
+    void createdAndModifiedAreNotSwapped() {
+        final Instant created = Instant.parse("2025-06-24T21:08:16.949342771Z");
+        final Instant modified = Instant.parse("2026-08-28T10:00:00Z");
+
+        final ImmutableWotValidationConfig config = ImmutableWotValidationConfig.of(
+                WotValidationConfigId.of("test:config"), true, false, null, null, Collections.emptyList(),
+                WotValidationConfigRevision.of(529L), created, modified, false, null
+        );
+
+        assertEquals(created, config.getCreated().orElseThrow());
+        assertEquals(modified, config.getModified().orElseThrow());
+
+        final JsonObject json = config.toJson();
+        assertEquals(created.toString(), json.getValue("_created").orElseThrow().asString());
+        assertEquals(modified.toString(), json.getValue("_modified").orElseThrow().asString());
+
+        final ImmutableWotValidationConfig parsed = ImmutableWotValidationConfig.fromJson(json);
+        assertEquals(created, parsed.getCreated().orElseThrow());
+        assertEquals(modified, parsed.getModified().orElseThrow());
+    }
+}
