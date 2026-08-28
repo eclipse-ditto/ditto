@@ -68,8 +68,8 @@ final class ImmutableWotValidationConfig implements WotValidationConfig {
     @Nullable private final FeatureValidationConfig featureConfig;
     private final List<DynamicValidationConfig> dynamicConfig;
     @Nullable private final WotValidationConfigRevision revision;
-    @Nullable private final Instant modified;
     @Nullable private final Instant created;
+    @Nullable private final Instant modified;
     @Nullable private final Boolean deleted;
     @Nullable private final Metadata metadata;
 
@@ -81,8 +81,8 @@ final class ImmutableWotValidationConfig implements WotValidationConfig {
             @Nullable final FeatureValidationConfig featureConfig,
             final List<DynamicValidationConfig> dynamicConfig,
             @Nullable final WotValidationConfigRevision revision,
-            @Nullable final Instant modified,
             @Nullable final Instant created,
+            @Nullable final Instant modified,
             @Nullable final Boolean deleted,
             @Nullable final Metadata metadata) {
         this.configId = Objects.requireNonNull(configId, "configId");
