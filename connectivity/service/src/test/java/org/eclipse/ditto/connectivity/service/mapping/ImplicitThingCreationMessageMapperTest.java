@@ -456,6 +456,57 @@ public final class ImplicitThingCreationMessageMapperTest {
     }
 
     @Test
+    public void commandHeadersDoNotLeakAcrossMessages() {
+        // A single mapper instance is pooled and reused for the whole connection lifetime. Resolving a header
+        // placeholder must not overwrite the configured template, otherwise a later message would receive an
+        // earlier message's resolved value (cross-message metadata contamination).
+        underTest.configure(connection, TestConstants.CONNECTIVITY_CONFIG,
+                createMapperConfig(THING_TEMPLATE, COMMAND_HEADERS, ALLOW_POLICY_LOCKOUT), actorSystem);
+
+        final Map<String, String> headers1 = new HashMap<>();
+        headers1.put(HEADER_HONO_DEVICE_ID, DEVICE_ID);
+        headers1.put(HEADER_HONO_GATEWAY_ID, "headerNamespace:gatewayOne");
+        final CreateThing createThing1 = (CreateThing) getFirstMappedSignal(
+                underTest.map(ExternalMessageFactory.newExternalMessageBuilder(headers1).build()));
+
+        final Map<String, String> headers2 = new HashMap<>();
+        headers2.put(HEADER_HONO_DEVICE_ID, DEVICE_ID);
+        headers2.put(HEADER_HONO_GATEWAY_ID, "headerNamespace:gatewayTwo");
+        final CreateThing createThing2 = (CreateThing) getFirstMappedSignal(
+                underTest.map(ExternalMessageFactory.newExternalMessageBuilder(headers2).build()));
+
+        // "other-test-header" is configured as "{{ header:gateway_id }}"; each message must get its own value
+        assertThat(createThing1.getDittoHeaders()).containsEntry("other-test-header", "headerNamespace:gatewayOne");
+        assertThat(createThing2.getDittoHeaders()).containsEntry("other-test-header", "headerNamespace:gatewayTwo");
+    }
+
+    @Test
+    public void resolvedRootKeyCannotIntroduceReservedCopyPolicyFrom() {
+        // A placeholder used as a root-level key must NOT be resolved into a reserved structural key such as
+        // "_copyPolicyFrom" - root keys are the mapper's structural directives and stay literal.
+        final JsonObject template = JsonObject.newBuilder()
+                .set("thingId", "ns:fixedThing")
+                .set("policyId", "ns:adminpolicy")
+                .set("{{ header:device_id }}", "attacker:sourcePolicy")
+                .build();
+
+        underTest.configure(connection, TestConstants.CONNECTIVITY_CONFIG,
+                createMapperConfig(template, COMMAND_HEADERS, ALLOW_POLICY_LOCKOUT), actorSystem);
+
+        final Map<String, String> headers = new HashMap<>();
+        headers.put(HEADER_HONO_DEVICE_ID, "_copyPolicyFrom");
+        headers.put(HEADER_HONO_GATEWAY_ID, GATEWAY_ID);
+
+        final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers).build();
+        final CreateThing createThing = (CreateThing) getFirstMappedSignal(underTest.map(externalMessage));
+
+        // the root key placeholder was not resolved, so no "_copyPolicyFrom" directive was introduced
+        assertThat(createThing.getPolicyIdOrPlaceholder()).isEmpty();
+        assertThat(createThing.getInitialPolicy()).isEmpty();
+        assertThat(createThing.getThing().getPolicyId().map(String::valueOf)).contains("ns:adminpolicy");
+    }
+
+    @Test
     public void throwErrorIfMappingConfigIsMissing() {
         final DefaultMessageMapperConfiguration invalidMapperConfig = createMapperConfig(JsonObject.empty(),
                 COMMAND_HEADERS, ALLOW_POLICY_LOCKOUT);

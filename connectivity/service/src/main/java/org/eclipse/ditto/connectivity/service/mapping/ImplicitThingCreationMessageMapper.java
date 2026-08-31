@@ -212,21 +212,24 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
 
         final JsonObject resolvedThingJson;
         if (Placeholders.containsAnyPlaceholder(thingTemplate)) {
-            // resolve placeholders per JSON key/leaf value instead of on the raw template string, so that
-            // resolved (potentially untrusted) values are set via the JSON model and cannot inject additional
+            // resolve placeholders per JSON leaf value (and nested key) instead of on the raw template string, so
+            // that resolved (potentially untrusted) values are set via the JSON model and cannot inject additional
             // JSON structure (e.g. an inline "_policy") into the template (template-injection hardening).
-            resolvedThingJson = resolvePlaceholders(thingJsonTemplate, expressionResolver);
+            resolvedThingJson = resolvePlaceholders(thingJsonTemplate, expressionResolver, false);
         } else {
             resolvedThingJson = thingJsonTemplate;
         }
 
-        commandHeaders = resolveCommandHeaders(expressionResolver, commandHeaders);
+        // resolve into a local variable: this mapper instance is pooled and reused for the whole connection
+        // lifetime, so the configured (unresolved) commandHeaders template field must not be overwritten with a
+        // single message's resolved values.
+        final Map<String, String> resolvedCommandHeaders = resolveCommandHeaders(expressionResolver, commandHeaders);
 
-        final Signal<CreateThing> createThing = getCreateThingSignal(message, resolvedThingJson);
+        final Signal<CreateThing> createThing = getCreateThingSignal(message, resolvedThingJson, resolvedCommandHeaders);
         final Adaptable adaptable = DITTO_PROTOCOL_ADAPTER.toAdaptable(createThing);
 
         // we cannot set the header on CreateThing directly because it is filtered when mapped to an adaptable
-        final DittoHeaders modifiedHeaders = DittoHeaders.of(commandHeaders).toBuilder()
+        final DittoHeaders modifiedHeaders = DittoHeaders.of(resolvedCommandHeaders).toBuilder()
                 .allowPolicyLockout(allowPolicyLockout)
                 .build();
         final Adaptable adaptableWithModifiedHeaders = adaptable.setDittoHeaders(modifiedHeaders);
@@ -259,40 +262,51 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
         );
     }
 
-    private Signal<CreateThing> getCreateThingSignal(final ExternalMessage message, final JsonObject thingJson) {
+    private Signal<CreateThing> getCreateThingSignal(final ExternalMessage message, final JsonObject thingJson,
+            final Map<String, String> resolvedCommandHeaders) {
         final Thing newThing = ThingsModelFactory.newThing(thingJson);
         final JsonObject inlinePolicyJson = createInlinePolicyJson(thingJson);
         final String copyPolicyFrom = getCopyPolicyFrom(thingJson);
         final DittoHeaders dittoHeaders = message.getInternalHeaders().toBuilder()
-                .putHeaders(commandHeaders)
+                .putHeaders(resolvedCommandHeaders)
                 .build();
         return CreateThing.of(newThing, inlinePolicyJson, copyPolicyFrom, dittoHeaders);
     }
 
     /**
-     * Recursively resolves placeholders contained in the keys and string leaf values of the given
-     * {@code jsonObject}. Resolved values (and keys) are set back via the JSON model, which is responsible for
-     * escaping them. This confines a resolved value to the single key/string value it originated from and prevents
-     * an untrusted resolved value (e.g. one containing a {@code "} character) from breaking out of its JSON string
-     * context and injecting additional JSON fields such as an inline {@code _policy}.
+     * Recursively resolves placeholders contained in the string leaf values (and, for nested objects, the keys) of
+     * the given {@code jsonObject}. Resolved values and keys are set back via the JSON model, which is responsible
+     * for escaping them. This confines a resolved value to the single key/string value it originated from and
+     * prevents an untrusted resolved value (e.g. one containing a {@code "} character) from breaking out of its JSON
+     * string context and injecting additional JSON fields such as an inline {@code _policy}.
+     * <p>
+     * The keys of the root object are intentionally <em>not</em> resolved: they are the structural directives this
+     * mapper acts on ({@code thingId}, {@code policyId}, {@code _policy}, {@code _copyPolicyFrom}, ...). Keeping them
+     * literal guarantees an untrusted (resolved) value can never introduce such a reserved key by name. Keys of
+     * nested objects (e.g. an inline policy subject id) are resolved to preserve that legitimate provisioning
+     * pattern; a resolved nested key is a single key literal and cannot introduce sibling keys either.
      *
      * @param jsonObject the (sub-)object whose keys and string leaves may contain placeholders.
      * @param expressionResolver the resolver used to resolve the placeholders.
-     * @return a new JSON object with all placeholders in keys and string leaves resolved.
+     * @param resolveKeys whether to resolve placeholders occurring in the object's keys ({@code false} at the root).
+     * @return a new JSON object with the applicable placeholders resolved.
      */
     private static JsonObject resolvePlaceholders(final JsonObject jsonObject,
-            final ExpressionResolver expressionResolver) {
+            final ExpressionResolver expressionResolver, final boolean resolveKeys) {
         final JsonObjectBuilder builder = JsonObject.newBuilder();
-        jsonObject.forEach(field ->
-                builder.set(resolvePlaceholdersInKey(field.getKey(), expressionResolver),
-                        resolvePlaceholdersInValue(field.getValue(), expressionResolver)));
+        jsonObject.forEach(field -> {
+            final JsonKey key = resolveKeys
+                    ? resolvePlaceholdersInKey(field.getKey(), expressionResolver)
+                    : field.getKey();
+            builder.set(key, resolvePlaceholdersInValue(field.getValue(), expressionResolver));
+        });
         return builder.build();
     }
 
     private static JsonKey resolvePlaceholdersInKey(final JsonKey key, final ExpressionResolver expressionResolver) {
         final String keyName = key.toString();
         if (Placeholders.containsAnyPlaceholder(keyName)) {
-            // resolve placeholders used as JSON keys (e.g. an inline policy subject id) as well; the resolved value
+            // resolve placeholders used as nested JSON keys (e.g. an inline policy subject id); the resolved value
             // is set as a single key literal via the JSON model and can never introduce additional sibling keys.
             return JsonKey.of(PlaceholderFilter.apply(keyName, expressionResolver));
         }
@@ -303,7 +317,7 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
             final ExpressionResolver expressionResolver) {
         final JsonValue result;
         if (value.isObject()) {
-            result = resolvePlaceholders(value.asObject(), expressionResolver);
+            result = resolvePlaceholders(value.asObject(), expressionResolver, true);
         } else if (value.isArray()) {
             final JsonArrayBuilder arrayBuilder = JsonArray.newBuilder();
             value.asArray().forEach(element ->
