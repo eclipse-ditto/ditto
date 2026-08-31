@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
@@ -32,6 +33,7 @@ import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
@@ -268,6 +270,189 @@ public final class ImplicitThingCreationMessageMapperTest {
                 createExpectedThing("some:validThingId!", "some:validPolicyId!", "some:validGatewayId!");
         assertThat(createThing.getThing().getEntityId()).isEqualTo(expectedThing.getEntityId());
         assertThat(createThing.getThing().getPolicyId()).isEqualTo(expectedThing.getPolicyId());
+    }
+
+    @Test
+    public void maliciousHeaderCannotInjectInlinePolicyIntoResolvedTemplate() {
+        // An admin configures a template where an attacker-controllable header is reflected into a (non-id) string
+        // value. thingId and policyId are fixed by the admin.
+        final JsonObject template = JsonObject.newBuilder()
+                .set("thingId", "ns:fixedThing")
+                .set("policyId", "ns:adminpolicy")
+                .set("attributes", JsonObject.newBuilder()
+                        .set("manufacturer", "{{ header:device_id }}")
+                        .build())
+                .build();
+
+        underTest.configure(connection, TestConstants.CONNECTIVITY_CONFIG,
+                createMapperConfig(template, COMMAND_HEADERS, ALLOW_POLICY_LOCKOUT), actorSystem);
+
+        // Attacker breaks out of the JSON string context to try to inject a top-level inline "_policy" and hijack
+        // the twin, overriding the admin-configured "ns:adminpolicy".
+        final String maliciousDeviceId =
+                "x\"}, \"_policy\": {\"policyId\": \"attacker:policy\"}, \"attributes\": {\"y\": \"z";
+        final Map<String, String> headers = new HashMap<>();
+        headers.put(HEADER_HONO_DEVICE_ID, maliciousDeviceId);
+        headers.put(HEADER_HONO_GATEWAY_ID, GATEWAY_ID);
+
+        final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers).build();
+        final List<Adaptable> mappingResult = underTest.map(externalMessage);
+
+        final Signal<?> firstMappedSignal = getFirstMappedSignal(mappingResult);
+        assertThat(firstMappedSignal).isInstanceOf(CreateThing.class);
+        final CreateThing createThing = (CreateThing) firstMappedSignal;
+
+        // no inline policy leaked in - the admin policyId is retained
+        assertThat(createThing.getInitialPolicy()).isEmpty();
+        assertThat(createThing.getThing().getPolicyId().map(String::valueOf)).contains("ns:adminpolicy");
+        assertThat(createThing.getThing().getEntityId().map(String::valueOf)).contains("ns:fixedThing");
+        // the malicious payload is confined verbatim to the single string value it was resolved into
+        assertThat(createThing.getThing()
+                .getAttributes()
+                .flatMap(attributes -> attributes.getValue("manufacturer"))
+                .map(JsonValue::asString))
+                .contains(maliciousDeviceId);
+    }
+
+    @Test
+    public void maliciousHeaderInThingIdCannotInjectInlinePolicy() {
+        // When the injection target is the thingId itself, the broken-out payload stays confined to the thingId
+        // string value and cannot introduce a structural top-level inline "_policy".
+        final JsonObject template = JsonObject.newBuilder()
+                .set("thingId", "{{ header:device_id }}")
+                .set("policyId", "ns:adminpolicy")
+                .build();
+
+        underTest.configure(connection, TestConstants.CONNECTIVITY_CONFIG,
+                createMapperConfig(template, COMMAND_HEADERS, ALLOW_POLICY_LOCKOUT), actorSystem);
+
+        final String maliciousDeviceId = "ns:evil\", \"_policy\": {\"policyId\": \"attacker:policy\"}, \"z\": \"a";
+        final Map<String, String> headers = new HashMap<>();
+        headers.put(HEADER_HONO_DEVICE_ID, maliciousDeviceId);
+        headers.put(HEADER_HONO_GATEWAY_ID, GATEWAY_ID);
+
+        final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers).build();
+        final List<Adaptable> mappingResult = underTest.map(externalMessage);
+
+        final Signal<?> firstMappedSignal = getFirstMappedSignal(mappingResult);
+        assertThat(firstMappedSignal).isInstanceOf(CreateThing.class);
+        final CreateThing createThing = (CreateThing) firstMappedSignal;
+
+        // no inline policy leaked in; the whole payload stayed inside the thingId string value
+        assertThat(createThing.getInitialPolicy()).isEmpty();
+        assertThat(createThing.getThing().getPolicyId().map(String::valueOf)).contains("ns:adminpolicy");
+        assertThat(createThing.getThing().getEntityId().map(String::valueOf)).contains(maliciousDeviceId);
+    }
+
+    @Test
+    public void maliciousHeaderInArrayElementCannotInjectInlinePolicy() {
+        // Placeholder reflected into a string element of a JSON array (exercises the array-resolution branch).
+        final JsonObject template = JsonObject.newBuilder()
+                .set("thingId", "ns:fixedThing")
+                .set("policyId", "ns:adminpolicy")
+                .set("attributes", JsonObject.newBuilder()
+                        .set("tags", JsonArray.of(JsonValue.of("{{ header:device_id }}")))
+                        .build())
+                .build();
+
+        underTest.configure(connection, TestConstants.CONNECTIVITY_CONFIG,
+                createMapperConfig(template, COMMAND_HEADERS, ALLOW_POLICY_LOCKOUT), actorSystem);
+
+        final String maliciousDeviceId =
+                "x\"], \"_policy\": {\"policyId\": \"attacker:policy\"}, \"attributes\": {\"tags\": [\"y";
+        final Map<String, String> headers = new HashMap<>();
+        headers.put(HEADER_HONO_DEVICE_ID, maliciousDeviceId);
+        headers.put(HEADER_HONO_GATEWAY_ID, GATEWAY_ID);
+
+        final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers).build();
+        final CreateThing createThing = (CreateThing) getFirstMappedSignal(underTest.map(externalMessage));
+
+        assertThat(createThing.getInitialPolicy()).isEmpty();
+        assertThat(createThing.getThing().getPolicyId().map(String::valueOf)).contains("ns:adminpolicy");
+        final Optional<JsonValue> firstTag = createThing.getThing()
+                .getAttributes()
+                .flatMap(attributes -> attributes.getValue("tags"))
+                .filter(JsonValue::isArray)
+                .map(JsonValue::asArray)
+                .flatMap(array -> array.stream().findFirst());
+        assertThat(firstTag.map(JsonValue::asString)).contains(maliciousDeviceId);
+    }
+
+    @Test
+    public void maliciousHeaderCannotInjectCopyPolicyFrom() {
+        final JsonObject template = JsonObject.newBuilder()
+                .set("thingId", "ns:fixedThing")
+                .set("policyId", "ns:adminpolicy")
+                .set("attributes", JsonObject.newBuilder()
+                        .set("manufacturer", "{{ header:device_id }}")
+                        .build())
+                .build();
+
+        underTest.configure(connection, TestConstants.CONNECTIVITY_CONFIG,
+                createMapperConfig(template, COMMAND_HEADERS, ALLOW_POLICY_LOCKOUT), actorSystem);
+
+        final Map<String, String> headers = new HashMap<>();
+        headers.put(HEADER_HONO_DEVICE_ID,
+                "x\"}, \"_copyPolicyFrom\": \"attacker:sourcePolicy\", \"attributes\": {\"y\": \"z");
+        headers.put(HEADER_HONO_GATEWAY_ID, GATEWAY_ID);
+
+        final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers).build();
+        final CreateThing createThing = (CreateThing) getFirstMappedSignal(underTest.map(externalMessage));
+
+        // no _copyPolicyFrom leaked in - the admin policyId is retained
+        assertThat(createThing.getPolicyIdOrPlaceholder()).isEmpty();
+        assertThat(createThing.getThing().getPolicyId().map(String::valueOf)).contains("ns:adminpolicy");
+    }
+
+    @Test
+    public void placeholderInInlinePolicySubjectKeyIsResolved() {
+        // A legitimate placeholder used as a JSON key (an inline policy subject id) must still resolve - this is a
+        // common way to provision a per-device/-gateway policy subject.
+        final JsonObject policyWithPlaceholderSubject = JsonObject.newBuilder()
+                .set("entries", JsonObject.newBuilder()
+                        .set("DEFAULT", JsonObject.newBuilder()
+                                .set("subjects", JsonObject.newBuilder()
+                                        .set("integration:{{ header:gateway_id }}", JsonObject.newBuilder()
+                                                .set("type", "suite-auth")
+                                                .build())
+                                        .build())
+                                .set("resources", JsonObject.newBuilder()
+                                        .set("thing:/", JsonObject.newBuilder()
+                                                .set("grant", JsonArray.of(JsonValue.of("READ"), JsonValue.of("WRITE")))
+                                                .set("revoke", JsonArray.empty())
+                                                .build())
+                                        .set("policy:/", JsonObject.newBuilder()
+                                                .set("grant", JsonArray.of(JsonValue.of("READ"), JsonValue.of("WRITE")))
+                                                .set("revoke", JsonArray.empty())
+                                                .build())
+                                        .build())
+                                .build())
+                        .build())
+                .build();
+
+        final JsonObject template = JsonObject.newBuilder()
+                .set("thingId", "{{ header:device_id }}")
+                .set("policyId", "{{ header:device_id }}")
+                .set("_policy", policyWithPlaceholderSubject)
+                .build();
+
+        underTest.configure(connection, TestConstants.CONNECTIVITY_CONFIG,
+                createMapperConfig(template, COMMAND_HEADERS, ALLOW_POLICY_LOCKOUT), actorSystem);
+
+        final ExternalMessage externalMessage =
+                ExternalMessageFactory.newExternalMessageBuilder(createValidHeaders()).build();
+        final CreateThing createThing = (CreateThing) getFirstMappedSignal(underTest.map(externalMessage));
+
+        final JsonObject initialPolicy = createThing.getInitialPolicy().orElseThrow();
+        final String subjectKey = initialPolicy.getValue("entries")
+                .map(JsonValue::asObject)
+                .flatMap(entries -> entries.getValue("DEFAULT"))
+                .map(JsonValue::asObject)
+                .flatMap(defaultEntry -> defaultEntry.getValue("subjects"))
+                .map(JsonValue::asObject)
+                .map(subjects -> subjects.stream().findFirst().orElseThrow().getKeyName())
+                .orElseThrow();
+        assertThat(subjectKey).isEqualTo("integration:" + GATEWAY_ID);
     }
 
     @Test

@@ -38,9 +38,12 @@ import org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlacehold
 import org.eclipse.ditto.edge.service.placeholders.RequestPlaceholder;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
-import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonArrayBuilder;
 import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
 import org.eclipse.ditto.placeholders.HeadersPlaceholder;
@@ -92,6 +95,7 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
     public static final EntityTagMatcher ASTERISK = EntityTagMatcher.asterisk();
 
     private String thingTemplate;
+    private JsonObject thingJsonTemplate;
     private Map<String, String> commandHeaders;
     private boolean allowPolicyLockout;
 
@@ -108,6 +112,7 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
     protected ImplicitThingCreationMessageMapper(final ImplicitThingCreationMessageMapper copyFromMapper) {
         super(copyFromMapper);
         this.thingTemplate = copyFromMapper.thingTemplate;
+        this.thingJsonTemplate = copyFromMapper.thingJsonTemplate;
         this.commandHeaders = copyFromMapper.commandHeaders;
         this.allowPolicyLockout = copyFromMapper.allowPolicyLockout;
     }
@@ -150,9 +155,9 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
                         .ifNoneMatch(EntityTagMatchers.fromList(Collections.singletonList(ASTERISK)))
                         .build());
 
-        final JsonObject thingJson = JsonObject.of(thingTemplate);
+        thingJsonTemplate = JsonObject.of(thingTemplate);
 
-        thingJson.getValue(THING_ID)
+        thingJsonTemplate.getValue(THING_ID)
                 .map(JsonValue::asString)
                 .ifPresentOrElse(ImplicitThingCreationMessageMapper::validateThingEntityId, () -> {
                     throw MessageMapperConfigurationInvalidException.newBuilder(THING_ID_CONFIGURATION_PROPERTY)
@@ -160,7 +165,7 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
                 });
 
         // PolicyId is not required in mapping config. Still needs to be valid if present.
-        thingJson.getValue(POLICY_ID)
+        thingJsonTemplate.getValue(POLICY_ID)
                 .map(JsonValue::asString)
                 .ifPresent(ImplicitThingCreationMessageMapper::validatePolicyEntityId);
 
@@ -205,16 +210,19 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
                 message.getAuthorizationContext().orElse(null)
         );
 
-        final String resolvedTemplate;
+        final JsonObject resolvedThingJson;
         if (Placeholders.containsAnyPlaceholder(thingTemplate)) {
-            resolvedTemplate = PlaceholderFilter.apply(thingTemplate, expressionResolver);
+            // resolve placeholders per JSON key/leaf value instead of on the raw template string, so that
+            // resolved (potentially untrusted) values are set via the JSON model and cannot inject additional
+            // JSON structure (e.g. an inline "_policy") into the template (template-injection hardening).
+            resolvedThingJson = resolvePlaceholders(thingJsonTemplate, expressionResolver);
         } else {
-            resolvedTemplate = thingTemplate;
+            resolvedThingJson = thingJsonTemplate;
         }
 
         commandHeaders = resolveCommandHeaders(expressionResolver, commandHeaders);
 
-        final Signal<CreateThing> createThing = getCreateThingSignal(message, resolvedTemplate);
+        final Signal<CreateThing> createThing = getCreateThingSignal(message, resolvedThingJson);
         final Adaptable adaptable = DITTO_PROTOCOL_ADAPTER.toAdaptable(createThing);
 
         // we cannot set the header on CreateThing directly because it is filtered when mapped to an adaptable
@@ -251,8 +259,7 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
         );
     }
 
-    private Signal<CreateThing> getCreateThingSignal(final ExternalMessage message, final String template) {
-        final JsonObject thingJson = wrapJsonRuntimeException(() -> JsonFactory.newObject(template));
+    private Signal<CreateThing> getCreateThingSignal(final ExternalMessage message, final JsonObject thingJson) {
         final Thing newThing = ThingsModelFactory.newThing(thingJson);
         final JsonObject inlinePolicyJson = createInlinePolicyJson(thingJson);
         final String copyPolicyFrom = getCopyPolicyFrom(thingJson);
@@ -260,6 +267,54 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
                 .putHeaders(commandHeaders)
                 .build();
         return CreateThing.of(newThing, inlinePolicyJson, copyPolicyFrom, dittoHeaders);
+    }
+
+    /**
+     * Recursively resolves placeholders contained in the keys and string leaf values of the given
+     * {@code jsonObject}. Resolved values (and keys) are set back via the JSON model, which is responsible for
+     * escaping them. This confines a resolved value to the single key/string value it originated from and prevents
+     * an untrusted resolved value (e.g. one containing a {@code "} character) from breaking out of its JSON string
+     * context and injecting additional JSON fields such as an inline {@code _policy}.
+     *
+     * @param jsonObject the (sub-)object whose keys and string leaves may contain placeholders.
+     * @param expressionResolver the resolver used to resolve the placeholders.
+     * @return a new JSON object with all placeholders in keys and string leaves resolved.
+     */
+    private static JsonObject resolvePlaceholders(final JsonObject jsonObject,
+            final ExpressionResolver expressionResolver) {
+        final JsonObjectBuilder builder = JsonObject.newBuilder();
+        jsonObject.forEach(field ->
+                builder.set(resolvePlaceholdersInKey(field.getKey(), expressionResolver),
+                        resolvePlaceholdersInValue(field.getValue(), expressionResolver)));
+        return builder.build();
+    }
+
+    private static JsonKey resolvePlaceholdersInKey(final JsonKey key, final ExpressionResolver expressionResolver) {
+        final String keyName = key.toString();
+        if (Placeholders.containsAnyPlaceholder(keyName)) {
+            // resolve placeholders used as JSON keys (e.g. an inline policy subject id) as well; the resolved value
+            // is set as a single key literal via the JSON model and can never introduce additional sibling keys.
+            return JsonKey.of(PlaceholderFilter.apply(keyName, expressionResolver));
+        }
+        return key;
+    }
+
+    private static JsonValue resolvePlaceholdersInValue(final JsonValue value,
+            final ExpressionResolver expressionResolver) {
+        final JsonValue result;
+        if (value.isObject()) {
+            result = resolvePlaceholders(value.asObject(), expressionResolver);
+        } else if (value.isArray()) {
+            final JsonArrayBuilder arrayBuilder = JsonArray.newBuilder();
+            value.asArray().forEach(element ->
+                    arrayBuilder.add(resolvePlaceholdersInValue(element, expressionResolver)));
+            result = arrayBuilder.build();
+        } else if (value.isString() && Placeholders.containsAnyPlaceholder(value.asString())) {
+            result = JsonValue.of(PlaceholderFilter.apply(value.asString(), expressionResolver));
+        } else {
+            result = value;
+        }
+        return result;
     }
 
     private static Map<String, String> resolveCommandHeaders(final ExpressionResolver resolver,
