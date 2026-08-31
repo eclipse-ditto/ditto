@@ -15,6 +15,12 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 
 ## [Unreleased]
 
+### Fixed
+- Swagger UI deployment: add the volumes and `volumeMounts` required to mount the OpenID Connect JavaScript,
+  fixing the Swagger UI OIDC login ([#2478](https://github.com/eclipse-ditto/ditto/pull/2478)). This was
+  previously listed under `4.3.0`, but the change had not actually been part of the release branch — see the
+  corrected note there
+
 ## [4.6.0]
 
 Bumped Ditto `appVersion` to `3.9.6`.
@@ -72,8 +78,12 @@ Bumped Ditto `appVersion` to `3.9.3`.
   ([#2480](https://github.com/eclipse-ditto/ditto/pull/2480))
 
 ### Fixed
-- Swagger UI deployment: add the volumes and `volumeMounts` required to mount the OpenID Connect JavaScript,
-  fixing the Swagger UI OIDC login ([#2478](https://github.com/eclipse-ditto/ditto/pull/2478))
+- ~~Swagger UI deployment: add the volumes and `volumeMounts` required to mount the OpenID Connect JavaScript,
+  fixing the Swagger UI OIDC login ([#2478](https://github.com/eclipse-ditto/ditto/pull/2478))~~
+  **Correction:** this entry was premature. [#2478](https://github.com/eclipse-ditto/ditto/pull/2478) was
+  merged to `master` before `4.3.0` was cut, but was never cherry-picked to the release branch, so the mount
+  is **not** contained in chart versions `4.3.0` through `4.6.0`. It ships with the next chart release; see
+  `[Unreleased]`
 
 ## [4.2.0]
 
