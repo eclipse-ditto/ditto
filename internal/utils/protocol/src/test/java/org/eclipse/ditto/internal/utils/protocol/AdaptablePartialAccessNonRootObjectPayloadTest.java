@@ -234,6 +234,34 @@ public final class AdaptablePartialAccessNonRootObjectPayloadTest {
                 .isEmpty();
     }
 
+    @Test
+    public void extraFieldsAreClearedWhenPayloadPathIsOutsideGrants() {
+        // Regression guard: emptying the value is not enough on this branch either. The downstream drop guards
+        // require a non-empty original value, so an event whose value was already an empty object is delivered
+        // -- and would carry the original, unfiltered extra with it.
+        final JsonObject extra = JsonFactory.newObjectBuilder()
+                .set("features", JsonFactory.newObjectBuilder()
+                        .set("grid", JsonFactory.newObjectBuilder()
+                                .set("properties", JsonFactory.newObjectBuilder()
+                                        .set("receiveTime", "2026-08-31T09:00:00Z").build())
+                                .build())
+                        .build())
+                .build();
+
+        final Adaptable adaptable = eventAdaptableWithExtra(JsonPointer.of("features/grid"),
+                JsonFactory.newObject(), extra, GRANT_ON_DEVICE_STATUS);
+
+        final Adaptable result = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+                adaptable, authContext());
+
+        assertThat(payloadObject(result))
+                .as("value outside every granted subtree must be emptied")
+                .isEmpty();
+        assertThat(result.getPayload().getExtra().orElse(JsonFactory.newObject()))
+                .as("extra must be filtered here too, not passed through unfiltered")
+                .isEmpty();
+    }
+
     // ---------- helpers ----------
 
     private static JsonObject payloadObject(final Adaptable adaptable) {

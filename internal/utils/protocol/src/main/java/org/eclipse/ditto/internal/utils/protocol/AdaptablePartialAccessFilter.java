@@ -168,7 +168,7 @@ public final class AdaptablePartialAccessFilter {
         }
         final Set<JsonPointer> payloadRelativePaths = rebaseOnEventPath(eventPath, accessiblePaths);
         if (payloadRelativePaths.isEmpty()) {
-            return createEmptyPayloadAdaptable(adaptable);
+            return filterExtraFields(createEmptyPayloadAdaptable(adaptable), accessiblePaths);
         }
         return filterAdaptablePayload(adaptable, payloadRelativePaths, accessiblePaths, eventPath.isEmpty());
     }
@@ -185,7 +185,7 @@ public final class AdaptablePartialAccessFilter {
             final Set<JsonPointer> accessiblePaths) {
 
         if (eventPath.isEmpty()) {
-            return accessiblePaths;
+            return new HashSet<>(accessiblePaths);
         }
         final Set<JsonPointer> rebased = new HashSet<>();
         for (final JsonPointer accessiblePath : accessiblePaths) {
@@ -197,8 +197,12 @@ public final class AdaptablePartialAccessFilter {
     }
 
     /**
+     * The single pointer-prefix predicate for this class: both the "is the payload wholly readable" check and the
+     * rebasing of accessible paths are expressed through it, so they cannot drift apart.
+     *
      * @return whether {@code path} is {@code base} itself or lies below it. Compared level by level rather than by
-     * string prefix, so {@code /features/foo} is not treated as lying below {@code /features/fo}.
+     * string prefix, so {@code /features/foo} is not treated as lying below {@code /features/fo}. An empty
+     * {@code base} (the thing root) is an ancestor of everything.
      */
     private static boolean isDescendantOrSelf(final JsonPointer path, final JsonPointer base) {
         final int baseLevelCount = base.getLevelCount();
@@ -302,29 +306,14 @@ public final class AdaptablePartialAccessFilter {
         payloadBuilder.withExtra(filteredExtra);
     }
 
+    /**
+     * @return whether {@code eventPath} is itself granted or lies below a granted path, in which case everything
+     * at that path is readable and no filtering of the payload value is required.
+     */
     private static boolean isPathWhollyAccessible(final JsonPointer eventPath,
             final Set<JsonPointer> accessiblePaths) {
-        if (accessiblePaths.isEmpty()) {
-            return false;
-        }
 
-        if (accessiblePaths.contains(eventPath)) {
-            return true;
-        }
-
-        if (accessiblePaths.contains(JsonPointer.empty())) {
-            return true;
-        }
-
-        final int eventLevelCount = eventPath.getLevelCount();
-        for (int i = 1; i < eventLevelCount; i++) {
-            final JsonPointer prefix = eventPath.getPrefixPointer(i).orElse(null);
-            if (prefix != null && accessiblePaths.contains(prefix)) {
-                return true;
-            }
-        }
-
-        return false;
+        return accessiblePaths.stream().anyMatch(accessiblePath -> isDescendantOrSelf(eventPath, accessiblePath));
     }
 
 }
