@@ -39,7 +39,7 @@ jobs:
     steps:
       -
         name: Harden Runner
-        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
         with:
           egress-policy: audit
       -
@@ -55,7 +55,7 @@ jobs:
       -
         name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.1.0 # setup buildx in order to do build and push multi-architecture images
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.1.0 # setup buildx in order to do build and push multi-architecture images
       -
         name: Inspect buildx builder
         run: |
@@ -66,7 +66,7 @@ jobs:
           echo "Platforms: ${{ steps.buildx.outputs.platforms }}"
       -
         name: Login to Docker Hub
-        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4.4.0
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           username: eclipsedittobot
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
@@ -91,7 +91,7 @@ jobs:
       -
         name: Set up JDK 25
         if: inputs.dittoImage != 'ditto-ui'
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:
           distribution: 'temurin'
           java-version: 25
