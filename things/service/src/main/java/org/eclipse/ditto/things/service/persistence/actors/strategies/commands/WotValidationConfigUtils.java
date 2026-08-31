@@ -221,8 +221,8 @@ public final class WotValidationConfigUtils {
                 mergedFeatureConfig,
                 Collections.unmodifiableList(mergedDynamicConfigs),
                 entity.getRevision().orElse(null),
-                entity.getModified().orElse(null),
                 entity.getCreated().orElse(null),
+                entity.getModified().orElse(null),
                 entity.isDeleted(),
                 entity.getMetadata().orElse(null)
         );

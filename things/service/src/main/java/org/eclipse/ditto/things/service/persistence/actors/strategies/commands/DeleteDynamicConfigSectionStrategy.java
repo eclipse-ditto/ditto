@@ -13,9 +13,7 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CompletionException;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -25,15 +23,12 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
-import org.eclipse.ditto.things.model.devops.DynamicValidationConfig;
 import org.eclipse.ditto.things.model.devops.WotValidationConfig;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
-import org.eclipse.ditto.things.model.devops.WotValidationConfigRevision;
 import org.eclipse.ditto.things.model.devops.commands.DeleteDynamicConfigSection;
 import org.eclipse.ditto.things.model.devops.commands.DeleteWotValidationConfigResponse;
 import org.eclipse.ditto.things.model.devops.events.DynamicConfigSectionDeleted;
 import org.eclipse.ditto.things.model.devops.events.WotValidationConfigEvent;
-import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigErrorException;
 import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigNotAccessibleException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,16 +48,13 @@ final class DeleteDynamicConfigSectionStrategy
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DeleteDynamicConfigSectionStrategy.class);
 
-    private final WotValidationConfigDData ddata;
 
     /**
      * Constructs a new {@code DeleteDynamicConfigSectionStrategy} object.
      *
-     * @param ddata the DData instance for WoT validation configs.
      */
-    DeleteDynamicConfigSectionStrategy(final WotValidationConfigDData ddata) {
+    DeleteDynamicConfigSectionStrategy() {
         super(DeleteDynamicConfigSection.class);
-        this.ddata = ddata;
     }
 
     /**
@@ -130,17 +122,6 @@ final class DeleteDynamicConfigSectionStrategy
             );
         }
 
-        final List<DynamicValidationConfig> updatedDynamicConfig = entity.getDynamicConfigs().stream()
-                .filter(section -> !section.getScopeId().equals(scopeId))
-                .toList();
-
-        final WotValidationConfig configWithMetadata = createWotValidationConfig(
-                entity,
-                updatedDynamicConfig,
-                WotValidationConfigRevision.of(nextRevision),
-                now,
-                metadata);
-
         final DynamicConfigSectionDeleted event = DynamicConfigSectionDeleted.of(
                 command.getEntityId(),
                 command.getResourcePath(),
@@ -150,29 +131,6 @@ final class DeleteDynamicConfigSectionStrategy
                 dittoHeaders,
                 metadata
         );
-
-        try {
-            ddata.add(configWithMetadata.toJson())
-                    .thenRun(() -> LOGGER.debug(
-                            "Successfully updated DData after deleting dynamic config section for scopeId={}", scopeId))
-                    .exceptionally(error -> {
-                        final String errorMessage = error instanceof CompletionException ?
-                                error.getCause().getMessage() : error.getMessage();
-                        LOGGER.warn("Failed to update DData after deleting dynamic config section for scopeId={}: {}",
-                                scopeId, errorMessage);
-                        return null;
-                    });
-        } catch (final Exception e) {
-            final String errorMessage = "Failed to update WoT validation config: " + e.getMessage();
-            LOGGER.error(errorMessage, e);
-            return ResultFactory.newErrorResult(
-                    WotValidationConfigErrorException.newBuilder()
-                            .description(errorMessage)
-                            .dittoHeaders(dittoHeaders)
-                            .build(),
-                    command
-            );
-        }
 
         final DeleteWotValidationConfigResponse response = DeleteWotValidationConfigResponse.of(command.getEntityId(),
                 dittoHeaders);
@@ -186,28 +144,5 @@ final class DeleteDynamicConfigSectionStrategy
             @Nullable final WotValidationConfig entity,
             final DeleteDynamicConfigSection command) {
         return true;
-    }
-
-    private static WotValidationConfig createWotValidationConfig(
-            final WotValidationConfig entity,
-            final List<DynamicValidationConfig> updatedDynamicConfig,
-            final WotValidationConfigRevision nextRevision,
-            final Instant now,
-            @Nullable final Metadata metadata) {
-        final WotValidationConfigId entityId = entity.getConfigId();
-
-        return WotValidationConfig.of(
-                entityId,
-                entity.isEnabled().orElse(null),
-                entity.logWarningInsteadOfFailingApiCalls().orElse(null),
-                entity.getThingConfig().orElse(null),
-                entity.getFeatureConfig().orElse(null),
-                updatedDynamicConfig,
-                nextRevision,
-                entity.getCreated().orElseThrow(() -> new IllegalStateException("Created timestamp is required")),
-                now,
-                entity.isDeleted(),
-                metadata
-        );
     }
 } 

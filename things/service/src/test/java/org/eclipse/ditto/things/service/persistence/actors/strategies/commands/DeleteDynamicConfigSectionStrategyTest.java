@@ -83,7 +83,7 @@ public final class DeleteDynamicConfigSectionStrategyTest {
         // Set up ddata mock to return a non-null CompletionStage
         when(ddata.add(any())).thenReturn(CompletableFuture.completedFuture(null));
         
-        underTest = new DeleteDynamicConfigSectionStrategy(ddata);
+        underTest = new DeleteDynamicConfigSectionStrategy();
     }
 
     @Test
