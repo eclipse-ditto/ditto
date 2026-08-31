@@ -100,7 +100,9 @@ final class PekkoHttpJsonDownloader implements JsonDownloader {
                                 .map(location -> {
                                     try {
                                         LOGGER.debug("Following redirect to location: <{}>", location);
-                                        return new URL(location.getUri().toString());
+                                        // resolve against the current URL so relative redirect targets work; the
+                                        // resolved target's host is re-validated when getJsonObjectFromUrl recurses:
+                                        return new URL(url, location.getUri().toString());
                                     } catch (final MalformedURLException e) {
                                         throw DittoRuntimeException.asDittoRuntimeException(e,
                                                 cause -> handleUnexpectedException(cause, url));

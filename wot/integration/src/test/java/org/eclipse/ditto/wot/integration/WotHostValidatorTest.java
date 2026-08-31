@@ -133,4 +133,26 @@ public final class WotHostValidatorTest {
         });
         assertThat(underTest.validateHost("does-not-resolve.invalid").isValid()).isFalse();
     }
+
+    @Test
+    public void blockedHostRegexIsCaseInsensitive() {
+        // an attacker must not be able to bypass the regex block by changing the host casing:
+        final WotHostValidator underTest = validator("blocked-host-regex = \".*\\\\.internal\"",
+                Map.of("SECRET.INTERNAL", "93.184.216.34"));
+        assertThat(underTest.validateHost("SECRET.INTERNAL").isValid()).isFalse();
+    }
+
+    @Test
+    public void allowListIsCaseInsensitive() {
+        // an allow-list entry must match regardless of the casing used in the ThingModel URL host:
+        final WotHostValidator underTest =
+                validator("allowed-hostnames = \"localhost\"", Map.of("LOCALHOST", "127.0.0.1"));
+        assertThat(underTest.validateHost("LOCALHOST").isValid()).isTrue();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void malformedBlockedSubnetFailsAtConstruction() {
+        // a misconfigured subnet must be rejected at startup, not silently on every fetch:
+        validator("blocked-subnets = \"10.0.0.0/64\"", Map.of());
+    }
 }

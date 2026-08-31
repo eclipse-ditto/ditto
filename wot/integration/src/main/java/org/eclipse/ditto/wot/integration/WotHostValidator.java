@@ -15,6 +15,7 @@ package org.eclipse.ditto.wot.integration;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Collection;
+import java.util.Locale;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -54,11 +55,26 @@ final class WotHostValidator {
             final AddressResolver resolver) {
         this.resolver = resolver;
         this.enabled = config.isEnabled();
-        this.allowedHostnames = config.getAllowedHostnames();
+        // hostnames are case-insensitive (RFC 4343), so normalize the allow-list to lower-case for comparison:
+        this.allowedHostnames = config.getAllowedHostnames().stream()
+                .map(hostname -> hostname.toLowerCase(Locale.ROOT))
+                .collect(Collectors.toUnmodifiableSet());
         this.blockedAddresses = calculateBlockedAddresses(config.getBlockedHostnames(), loggingAdapter);
         this.blockedSubnets = config.getBlockedSubnets();
+        // fail fast on a malformed blocked-subnet rather than throwing on every fetch later on:
+        this.blockedSubnets.forEach(WotHostValidator::validateBlockedSubnet);
         final String regex = config.getBlockedHostRegex();
-        this.blockedHostRegexPattern = regex.isEmpty() ? null : Pattern.compile(regex);
+        // compile the blocked-host regex case-insensitively so an attacker cannot bypass it by changing host casing:
+        this.blockedHostRegexPattern = regex.isEmpty() ? null : Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+    }
+
+    private static void validateBlockedSubnet(final String subnet) {
+        try {
+            SubnetValidator.validateCidr(subnet);
+        } catch (final RuntimeException e) {
+            throw new IllegalArgumentException("Invalid 'blocked-subnets' entry configured for WoT ThingModel " +
+                    "host validation: <" + subnet + ">: " + e.getMessage(), e);
+        }
     }
 
     /**
@@ -77,12 +93,14 @@ final class WotHostValidator {
      * @return the validation result.
      */
     HostValidationResult validateHost(final String host) {
+        // hostnames are case-insensitive; normalize before comparing against the allow-list / regex:
+        final String normalizedHost = host.toLowerCase(Locale.ROOT);
         if (!enabled) {
             return HostValidationResult.valid();
-        } else if (allowedHostnames.contains(host)) {
+        } else if (allowedHostnames.contains(normalizedHost)) {
             // the host is explicitly allowed, do not block
             return HostValidationResult.valid();
-        } else if (blockedHostRegexPattern != null && blockedHostRegexPattern.matcher(host).matches()) {
+        } else if (blockedHostRegexPattern != null && blockedHostRegexPattern.matcher(normalizedHost).matches()) {
             return HostValidationResult.blocked(host, "the host matched the configured blocked-host regex.");
         } else {
             return validateInetAddressesAndSubnets(host);

@@ -34,6 +34,18 @@ final class SubnetValidator {
      * @param input the input which is validates.
      * @return if the input address matches the matcher address.
      */
+    /**
+     * Validates that the given matcher is a parseable IP address optionally with a valid CIDR subnet mask.
+     *
+     * @param matcher the address / CIDR notation to validate.
+     * @throws IllegalArgumentException if the matcher is not a valid address or its subnet mask length is invalid.
+     * @throws NumberFormatException if the subnet mask is not a number.
+     */
+    static void validateCidr(final String matcher) {
+        final int subnetMask = getNetworkMask(matcher);
+        getMatcherAddress(matcher, subnetMask);
+    }
+
     static boolean matches(final String matcher, final String input) {
         final InetAddress inputAddress = parseAddress(input);
         final int subnetMask = getNetworkMask(matcher);

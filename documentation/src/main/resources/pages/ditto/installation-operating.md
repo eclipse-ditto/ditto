@@ -635,6 +635,13 @@ ditto.things.wot.http.security {
 Deployments that legitimately serve ThingModels from an internal host must add that host to `allowed-hostnames`.
 Setting `enabled = false` disables the validation entirely and is strongly discouraged.
 
+{% include note.html content="Host validation resolves the URL's hostname to decide whether to allow the fetch, but
+the subsequent HTTP request resolves the hostname again independently. For hostnames whose DNS is controlled by an
+attacker, the two lookups can in principle return different addresses (DNS rebinding), which the hostname-based check
+cannot fully prevent (literal-IP targets are always validated). For defense in depth against SSRF, combine this check
+with network-level egress controls (e.g. Kubernetes NetworkPolicies / firewall rules) that block the things service
+from reaching internal address ranges and the cloud metadata endpoint." %}
+
 In addition, operators can restrict *which* `definition` URLs may be used to create Things at all - and *who* may create
 them - via the [entity creation restriction](#restricting-entity-creation) `thing-definitions` allow-list.
 
