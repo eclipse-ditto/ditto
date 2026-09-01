@@ -38,6 +38,7 @@ import org.apache.pekko.event.LoggingAdapter;
 public class HostValidatorTest {
 
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder().correlationId("ditto").build();
+    private static final String BLOCKED_HOSTNAME = "dummy.org";
     private ConnectionConfig connectionConfig;
     private ConnectivityConfig connectivityConfig;
     private LoggingAdapter loggingAdapter;
@@ -133,6 +134,8 @@ public class HostValidatorTest {
         final HostValidator underTest = getHostValidatorWithBlockedRegexPattern();
 
         assertFalse(underTest.validateHost("gateway.things.svc.cluster.local").isValid());
+        // a host that does not match the regex has to pass, otherwise the assertion above would prove nothing:
+        assertValid(underTest.validateHost("gateway.things.example.com"));
     }
 
     @Test
@@ -179,7 +182,8 @@ public class HostValidatorTest {
     public void expectBlockedHostRegexIsCaseInsensitive() {
         final HostValidator underTest = getHostValidatorWithBlockedRegexPattern();
 
-        // an attacker must not be able to bypass the blocked-host regex by changing the casing of the host:
+        // an attacker must not be able to bypass the blocked-host regex by changing the casing of the host - the
+        // host resolves to a public address, so the regex is the only check that can reject it:
         assertFalse(underTest.validateHost("gateway.things.SVC.Cluster.LOCAL").isValid());
     }
 
@@ -205,9 +209,18 @@ public class HostValidatorTest {
         return new DefaultHostValidator(connectivityConfig, loggingAdapter, resolver);
     }
 
+    /**
+     * Builds a validator in which the blocked-host regex is the <em>only</em> thing that can block a host: the
+     * configured blocked hostname and every other host resolve to two distinct public addresses, and the blocked
+     * subnets are cleared. Without this, a host that simply fails to resolve comes back as {@code invalid} - which is
+     * also {@code isValid() == false} - and the assertion would hold even when the regex never matched.
+     */
     private HostValidator getHostValidatorWithBlockedRegexPattern() {
-        when(connectionConfig.getBlockedHostRegex()).thenReturn("^.*\\.svc.cluster.local$");
-        return new DefaultHostValidator(connectivityConfig, loggingAdapter);
+        when(connectionConfig.getBlockedHostnames()).thenReturn(List.of(BLOCKED_HOSTNAME));
+        when(connectionConfig.getBlockedSubnets()).thenReturn(emptyList());
+        when(connectionConfig.getBlockedHostRegex()).thenReturn("^.*\\.svc\\.cluster\\.local$");
+        return getHostValidatorWithCustomResolver(host -> resolveHost(host,
+                BLOCKED_HOSTNAME.equals(host) ? new byte[]{1, 2, 3, 4} : new byte[]{8, 8, 8, 8}));
     }
 
     private void assertValid(final HostValidationResult result) {
