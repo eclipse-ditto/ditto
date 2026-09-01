@@ -588,6 +588,68 @@ entities (things/policies) and no-one other:
 
 These system properties would have to be configured for the "things" and "policies" services.
 
+## Restricting WoT ThingModel fetching
+
+When a Thing or Feature `definition` contains an `http(s)://` URL, the Ditto **things** service fetches the referenced
+[WoT (Web of Things) ThingModel](basic-wot-integration.html) from that URL (and, transitively, any `tm:extends`,
+`tm:ref` and `tm:submodel` links it contains). Since this fetch originates from inside the cluster, an unrestricted
+fetch would allow Server-Side Request Forgery (SSRF) against internal infrastructure (e.g. cloud instance-metadata
+endpoints, internal admin UIs, the Kubernetes API).
+
+Since Ditto *3.9.7*, the things service therefore validates the target host of every ThingModel fetch (including each
+redirect target) and, by default, **blocks** hosts resolving to loopback, link-local (e.g. the cloud metadata address
+`169.254.169.254`), site-local, IPv6 unique-local (`fc00::/7`, e.g. the IPv6 metadata address `fd00:ec2::254`),
+multicast and wildcard addresses. The number of HTTP redirects to follow is bounded.
+
+Note that Java's address classification only covers the *deprecated* `fec0::/10` site-local prefix, so the IPv6
+unique-local range is checked explicitly. The carrier-grade NAT range `100.64.0.0/10` (RFC 6598) matches no address
+class at all and is therefore blocked via the `blocked-subnets` default below.
+
+This is configured in `things.conf` under `ditto.things.wot.http.security` (all settings can also be provided via the
+corresponding environment variables):
+
+```hocon
+ditto.things.wot.http.security {
+  # whether host validation is enabled (default: true)
+  enabled = true
+  enabled = ${?THINGS_WOT_THING_MODEL_HTTP_SECURITY_ENABLED}
+
+  # comma separated hostnames which are always allowed, overriding the blocked address checks - use this for
+  #  deployments that intentionally host ThingModels on internal hosts (e.g. an internal model registry)
+  allowed-hostnames = ""
+  allowed-hostnames = ${?THINGS_WOT_THING_MODEL_HTTP_SECURITY_ALLOWED_HOSTNAMES}
+
+  # comma separated additional blocked hostnames
+  blocked-hostnames = ""
+  blocked-hostnames = ${?THINGS_WOT_THING_MODEL_HTTP_SECURITY_BLOCKED_HOSTNAMES}
+
+  # comma separated blocked subnets in CIDR notation - keep the default entry when overriding this setting
+  blocked-subnets = "100.64.0.0/10"
+  blocked-subnets = ${?THINGS_WOT_THING_MODEL_HTTP_SECURITY_BLOCKED_SUBNETS}
+
+  # a regular expression blocking matching hosts (empty disables the check)
+  blocked-host-regex = ""
+  blocked-host-regex = ${?THINGS_WOT_THING_MODEL_HTTP_SECURITY_BLOCKED_HOST_REGEX}
+
+  # maximum number of HTTP redirects to follow when fetching a ThingModel
+  max-redirects = 5
+  max-redirects = ${?THINGS_WOT_THING_MODEL_HTTP_SECURITY_MAX_REDIRECTS}
+}
+```
+
+Deployments that legitimately serve ThingModels from an internal host must add that host to `allowed-hostnames`.
+Setting `enabled = false` disables the validation entirely and is strongly discouraged.
+
+{% include note.html content="Host validation resolves the URL's hostname to decide whether to allow the fetch, but
+the subsequent HTTP request resolves the hostname again independently. For hostnames whose DNS is controlled by an
+attacker, the two lookups can in principle return different addresses (DNS rebinding), which the hostname-based check
+cannot fully prevent (literal-IP targets are always validated). For defense in depth against SSRF, combine this check
+with network-level egress controls (e.g. Kubernetes NetworkPolicies / firewall rules) that block the things service
+from reaching internal address ranges and the cloud metadata endpoint." %}
+
+In addition, operators can restrict *which* `definition` URLs may be used to create Things at all - and *who* may create
+them - via the [entity creation restriction](#restricting-entity-creation) `thing-definitions` allow-list.
+
 ## Gateway namespace access control
 
 Since Ditto *3.9.0*, the Ditto **gateway** service supports restricting which namespaces a client can access based on

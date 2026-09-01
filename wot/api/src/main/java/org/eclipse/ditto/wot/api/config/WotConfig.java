@@ -36,6 +36,15 @@ public interface WotConfig {
     HttpProxyBaseConfig getHttpProxyConfig();
 
     /**
+     * Returns configuration settings restricting to which hosts WoT ThingModels may be fetched via HTTP, protecting
+     * against Server-Side Request Forgery (SSRF).
+     *
+     * @return configuration settings for WoT ThingModel fetch host validation.
+     * @since 3.9.7
+     */
+    WotHostValidationConfig getHostValidationConfig();
+
+    /**
      * Returns the cache configuration to apply for caching downloaded WoT Thing Models.
      *
      * @return the cache configuration to apply.

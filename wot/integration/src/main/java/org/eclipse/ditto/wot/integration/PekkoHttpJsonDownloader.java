@@ -16,6 +16,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.MessageFormat;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
@@ -41,6 +43,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.wot.api.config.WotConfig;
+import org.eclipse.ditto.wot.api.config.WotHostValidationConfig;
 import org.eclipse.ditto.wot.api.provider.JsonDownloader;
 import org.eclipse.ditto.wot.model.WotThingModelNotAccessibleException;
 
@@ -60,36 +63,64 @@ final class PekkoHttpJsonDownloader implements JsonDownloader {
     private final HttpClientFacade httpClient;
     private final Materializer materializer;
     private final Executor executor;
+    private static final Set<String> ALLOWED_SCHEMES = Set.of("http", "https");
+
+    private final WotHostValidator hostValidator;
+    private final int maxRedirects;
 
     PekkoHttpJsonDownloader(final ActorSystem actorSystem, final WotConfig wotConfig, final Executor executor) {
         this.executor = executor;
         this.httpClient = DefaultHttpClientFacade.getInstance(actorSystem, wotConfig.getHttpProxyConfig());
         materializer = SystemMaterializer.get(actorSystem).materializer();
+        final WotHostValidationConfig hostValidationConfig = wotConfig.getHostValidationConfig();
+        this.hostValidator = new WotHostValidator(hostValidationConfig, actorSystem.log());
+        this.maxRedirects = hostValidationConfig.getMaxRedirects();
     }
 
     @Override
     public CompletionStage<JsonObject> downloadJsonViaHttp(final URL url, final Executor executor) {
         LOGGER.debug("Loading JsonObject from URL <{}>.", url);
-        final CompletionStage<HttpResponse> responseFuture = getJsonObjectFromUrl(url);
+        final CompletionStage<HttpResponse> responseFuture = getJsonObjectFromUrl(url, maxRedirects);
         final CompletionStage<JsonObject> thingModelFuture = responseFuture.thenComposeAsync(this::mapResponseToJsonObject, executor);
         return thingModelFuture.toCompletableFuture();
     }
 
-    private CompletionStage<HttpResponse> getJsonObjectFromUrl(final URL url) {
+    private CompletionStage<HttpResponse> getJsonObjectFromUrl(final URL url, final int redirectsLeft) {
+        final String protocol = url.getProtocol().toLowerCase(Locale.ROOT);
+        if (!ALLOWED_SCHEMES.contains(protocol)) {
+            // a redirect Location may carry an arbitrary scheme - only ever follow it for http(s):
+            LOGGER.info("Blocked fetching WoT ThingModel from URL <{}>: the scheme <{}> is not supported.", url,
+                    protocol);
+            return CompletableFuture.failedFuture(WotThingModelNotAccessibleException.newBuilder(url).build());
+        }
+        final HostValidationResult validationResult = hostValidator.validateHost(url.getHost());
+        if (!validationResult.isValid()) {
+            LOGGER.info("Blocked fetching WoT ThingModel from URL <{}>: {}", url, validationResult.getReason());
+            return CompletableFuture.failedFuture(WotThingModelNotAccessibleException.newBuilder(url).build());
+        }
         return httpClient.createSingleHttpRequest(HttpRequest.GET(url.toString()).withHeaders(List.of(ACCEPT_HEADER)))
                 .thenComposeAsync(response -> {
                     if (response.status().isRedirection()) {
+                        if (redirectsLeft <= 0) {
+                            LOGGER.info("Exceeded the maximum number of redirects to follow while fetching WoT " +
+                                    "ThingModel from URL <{}>.", url);
+                            return CompletableFuture.<HttpResponse>failedFuture(
+                                    WotThingModelNotAccessibleException.newBuilder(url).build());
+                        }
                         return response.getHeader(Location.class)
                                 .map(location -> {
                                     try {
                                         LOGGER.debug("Following redirect to location: <{}>", location);
-                                        return new URL(location.getUri().toString());
+                                        // resolve against the current URL so relative redirect targets work; the
+                                        // resolved target's host is re-validated when getJsonObjectFromUrl recurses:
+                                        return new URL(url, location.getUri().toString());
                                     } catch (final MalformedURLException e) {
                                         throw DittoRuntimeException.asDittoRuntimeException(e,
                                                 cause -> handleUnexpectedException(cause, url));
                                     }
                                 })
-                                .map(this::getJsonObjectFromUrl) // recurse following the redirect
+                                // recurse following the redirect - the redirect target's host is re-validated on entry:
+                                .map(redirectUrl -> getJsonObjectFromUrl(redirectUrl, redirectsLeft - 1))
                                 .orElseGet(() -> CompletableFuture.completedFuture(response));
                     } else {
                         return CompletableFuture.completedFuture(response);

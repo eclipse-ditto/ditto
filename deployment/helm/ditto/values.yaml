@@ -1273,6 +1273,25 @@ things:
         expireAfterWrite: 2d
         # expireAfterAccess configures how long a single TM should remain cached after its last access
         expireAfterAccess: 1d
+      # hostValidation restricts to which hosts WoT ThingModels may be fetched via HTTP, protecting against
+      #  Server-Side Request Forgery (SSRF) against internal infrastructure
+      hostValidation:
+        # enabled whether host validation of WoT ThingModel URLs is enabled - when enabled (the default), fetching
+        #  ThingModels from loopback, link-local, site-local, IPv6 unique-local (fc00::/7), multicast and wildcard
+        #  addresses is blocked
+        enabled: true
+        # allowedHostnames comma separated list of hostnames which are always allowed (overriding the blocked address
+        #  checks) - add hosts here for deployments intentionally hosting ThingModels on internal hosts
+        allowedHostnames: ""
+        # blockedHostnames comma separated list of additional blocked hostnames
+        blockedHostnames: ""
+        # blockedSubnets comma separated list of blocked subnets in CIDR notation - defaults to the carrier-grade NAT
+        #  range (RFC 6598), which no address-class check covers; keep that entry when overriding this setting
+        blockedSubnets: "100.64.0.0/10"
+        # blockedHostRegex a regular expression blocking matching hosts - an empty string disables the check
+        blockedHostRegex: ""
+        # maxRedirects the maximum number of HTTP redirects to follow when fetching a ThingModel
+        maxRedirects: 5
       # tdJsonTemplate contains a json template added to generated TDs, e.g. containing security information:
       tdJsonTemplate: >-
         {
