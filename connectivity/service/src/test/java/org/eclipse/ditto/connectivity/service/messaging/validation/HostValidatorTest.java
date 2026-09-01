@@ -135,6 +135,54 @@ public class HostValidatorTest {
         assertFalse(underTest.validateHost("gateway.things.svc.cluster.local").isValid());
     }
 
+    @Test
+    public void expectLinkLocalCloudMetadataAddressIsBlocked() {
+        // 169.254.169.254 is the cloud instance-metadata endpoint and is a *link-local* address - it must be blocked
+        // by the address-class check itself, not only when an operator happens to configure the 169.254.0.0/16 subnet:
+        when(connectionConfig.getBlockedSubnets()).thenReturn(emptyList());
+
+        final HostValidator underTest = getHostValidatorWithAllowlist();
+
+        assertFalse(underTest.validateHost("169.254.169.254").isValid());
+        assertFalse(underTest.validateHost("fe80::1").isValid());
+    }
+
+    @Test
+    public void expectIpv6UniqueLocalAddressIsBlocked() {
+        // fd00:ec2::254 is the IPv6 cloud instance-metadata endpoint; unique-local addresses (fc00::/7) are not
+        // covered by InetAddress#isSiteLocalAddress, which only matches the deprecated fec0::/10 prefix:
+        when(connectionConfig.getBlockedSubnets()).thenReturn(emptyList());
+
+        final HostValidator underTest = getHostValidatorWithAllowlist();
+
+        assertFalse(underTest.validateHost("fd00:ec2::254").isValid());
+        assertFalse(underTest.validateHost("fd00::1").isValid());
+        assertFalse(underTest.validateHost("fc00::1").isValid());
+        // a public IPv6 address stays valid:
+        assertValid(underTest.validateHost("2001:db8::1"));
+    }
+
+    @Test
+    public void expectAllowListIsCaseInsensitive() throws Exception {
+        final String theHost = "My-Registry.Example";
+        final DefaultHostValidator.AddressResolver resolveToLoopback =
+                host -> resolveHost(theHost, InetAddress.getLoopbackAddress().getAddress());
+
+        // the allow-list is configured in a different casing than the host being validated:
+        final HostValidator underTest =
+                getHostValidatorWithCustomResolver(resolveToLoopback, "my-registry.example");
+
+        assertValid(underTest.validateHost(theHost));
+    }
+
+    @Test
+    public void expectBlockedHostRegexIsCaseInsensitive() {
+        final HostValidator underTest = getHostValidatorWithBlockedRegexPattern();
+
+        // an attacker must not be able to bypass the blocked-host regex by changing the casing of the host:
+        assertFalse(underTest.validateHost("gateway.things.SVC.Cluster.LOCAL").isValid());
+    }
+
     private static InetAddress[] resolveHost(final String host, byte... address) throws UnknownHostException {
         return new InetAddress[]{
                 InetAddress.getByAddress(host, address.length != 4 ? new byte[]{1, 2, 3, 4} : address)
