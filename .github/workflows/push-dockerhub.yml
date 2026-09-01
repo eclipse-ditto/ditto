@@ -14,6 +14,10 @@ on:
   push:
     tags:
       - '**'
+      # The helm-chart-<version> tags release the Helm chart, not the services. Without this
+      # exclusion they trigger a full 5-service build here and push service images tagged
+      # with the chart version (e.g. eclipse/ditto-things:helm-chart-4.6.0).
+      - '!helm-chart**'
   # Allow manually (re-)running the image build for an already-pushed release, e.g. to
   # recover a release whose artifact publishing failed. Dispatch this workflow from the
   # branch that contains the up-to-date build logic (e.g. master) and set 'dittoVersion' to
