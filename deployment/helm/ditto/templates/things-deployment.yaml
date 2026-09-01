@@ -325,6 +325,18 @@ spec:
               value: "{{ .Values.things.config.wot.cache.modelCacheSize }}"
             - name: THINGS_WOT_THING_MODEL_CACHE_EXPIRE_AFTER_ACCESS
               value: "{{ .Values.things.config.wot.cache.expireAfterAccess }}"
+            - name: THINGS_WOT_THING_MODEL_HTTP_SECURITY_ENABLED
+              value: "{{ .Values.things.config.wot.hostValidation.enabled }}"
+            - name: THINGS_WOT_THING_MODEL_HTTP_SECURITY_ALLOWED_HOSTNAMES
+              value: "{{ .Values.things.config.wot.hostValidation.allowedHostnames }}"
+            - name: THINGS_WOT_THING_MODEL_HTTP_SECURITY_BLOCKED_HOSTNAMES
+              value: "{{ .Values.things.config.wot.hostValidation.blockedHostnames }}"
+            - name: THINGS_WOT_THING_MODEL_HTTP_SECURITY_BLOCKED_SUBNETS
+              value: "{{ .Values.things.config.wot.hostValidation.blockedSubnets }}"
+            - name: THINGS_WOT_THING_MODEL_HTTP_SECURITY_BLOCKED_HOST_REGEX
+              value: "{{ .Values.things.config.wot.hostValidation.blockedHostRegex }}"
+            - name: THINGS_WOT_THING_MODEL_HTTP_SECURITY_MAX_REDIRECTS
+              value: "{{ .Values.things.config.wot.hostValidation.maxRedirects }}"
             - name: THINGS_WOT_TM_MODEL_VALIDATION_ENABLED
               value: "{{ .Values.things.config.wot.tmValidation.enabled }}"
             - name: THINGS_WOT_TM_MODEL_VALIDATION_LOG_WARNING_INSTEAD_OF_FAILING_API_CALLS
