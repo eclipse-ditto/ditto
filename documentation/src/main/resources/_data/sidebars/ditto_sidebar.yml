@@ -726,6 +726,9 @@ entries:
           - title: 3.9.0
             url: /release_notes_390.html
             output: web
+          - title: 3.8.13
+            url: /release_notes_3813.html
+            output: web
           - title: 3.8.12
             url: /release_notes_3812.html
             output: web
