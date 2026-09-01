@@ -598,7 +598,12 @@ endpoints, internal admin UIs, the Kubernetes API).
 
 Since Ditto *3.9.7*, the things service therefore validates the target host of every ThingModel fetch (including each
 redirect target) and, by default, **blocks** hosts resolving to loopback, link-local (e.g. the cloud metadata address
-`169.254.169.254`), site-local, multicast and wildcard addresses. The number of HTTP redirects to follow is bounded.
+`169.254.169.254`), site-local, IPv6 unique-local (`fc00::/7`, e.g. the IPv6 metadata address `fd00:ec2::254`),
+multicast and wildcard addresses. The number of HTTP redirects to follow is bounded.
+
+Note that Java's address classification only covers the *deprecated* `fec0::/10` site-local prefix, so the IPv6
+unique-local range is checked explicitly. The carrier-grade NAT range `100.64.0.0/10` (RFC 6598) matches no address
+class at all and is therefore blocked via the `blocked-subnets` default below.
 
 This is configured in `things.conf` under `ditto.things.wot.http.security` (all settings can also be provided via the
 corresponding environment variables):
@@ -618,8 +623,8 @@ ditto.things.wot.http.security {
   blocked-hostnames = ""
   blocked-hostnames = ${?THINGS_WOT_THING_MODEL_HTTP_SECURITY_BLOCKED_HOSTNAMES}
 
-  # comma separated blocked subnets in CIDR notation
-  blocked-subnets = ""
+  # comma separated blocked subnets in CIDR notation - keep the default entry when overriding this setting
+  blocked-subnets = "100.64.0.0/10"
   blocked-subnets = ${?THINGS_WOT_THING_MODEL_HTTP_SECURITY_BLOCKED_SUBNETS}
 
   # a regular expression blocking matching hosts (empty disables the check)

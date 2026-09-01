@@ -97,9 +97,10 @@ public interface WotHostValidationConfig {
         BLOCKED_HOSTNAMES("blocked-hostnames", ""),
 
         /**
-         * Blocked subnets in CIDR notation (comma separated).
+         * Blocked subnets in CIDR notation (comma separated). Defaults to the carrier-grade NAT range
+         * {@code 100.64.0.0/10} (RFC 6598), which is not covered by any of the built-in address-class checks.
          */
-        BLOCKED_SUBNETS("blocked-subnets", ""),
+        BLOCKED_SUBNETS("blocked-subnets", "100.64.0.0/10"),
 
         /**
          * A regular expression blocking matching hosts. Empty disables the check.

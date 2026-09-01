@@ -49,7 +49,7 @@ public final class DefaultWotHostValidationConfigTest {
         assertThat(underTest.isEnabled()).isTrue();
         assertThat(underTest.getAllowedHostnames()).isEmpty();
         assertThat(underTest.getBlockedHostnames()).isEmpty();
-        assertThat(underTest.getBlockedSubnets()).isEmpty();
+        assertThat(underTest.getBlockedSubnets()).containsExactly("100.64.0.0/10");
         assertThat(underTest.getBlockedHostRegex()).isEmpty();
         assertThat(underTest.getMaxRedirects()).isEqualTo(5);
     }

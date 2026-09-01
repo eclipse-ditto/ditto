@@ -66,6 +66,51 @@ public final class WotHostValidatorTest {
     }
 
     @Test
+    public void blocksIpv6UniqueLocalCloudMetadataAddress() {
+        // fd00:ec2::254 is the IPv6 cloud instance-metadata endpoint: it is a unique-local address (fc00::/7), which
+        // InetAddress#isSiteLocalAddress does NOT cover (that only matches the deprecated fec0::/10 prefix), so it
+        // would pass every built-in address-class check if not blocked explicitly.
+        final WotHostValidator underTest = validator("", Map.of("metadata6", "fd00:ec2::254"));
+        assertThat(underTest.validateHost("metadata6").isValid()).isFalse();
+        assertThat(underTest.validateHost("fd00:ec2::254").isValid()).isFalse();
+    }
+
+    @Test
+    public void blocksIpv6UniqueLocalAddressesAcrossTheWholePrefix() {
+        final WotHostValidator underTest = validator("", Map.of());
+        // both halves of fc00::/7 - the locally assigned fd00::/8 and the reserved fc00::/8:
+        assertThat(underTest.validateHost("fd00::1").isValid()).isFalse();
+        assertThat(underTest.validateHost("fc00::1").isValid()).isFalse();
+        // the deprecated site-local prefix stays blocked as well:
+        assertThat(underTest.validateHost("fec0::1").isValid()).isFalse();
+    }
+
+    @Test
+    public void allowsPublicIpv6Address() {
+        final WotHostValidator underTest = validator("", Map.of());
+        assertThat(underTest.validateHost("2001:db8::1").isValid()).isTrue();
+    }
+
+    @Test
+    public void blocksCarrierGradeNatAddressViaDefaultBlockedSubnet() {
+        // 100.64.0.0/10 (RFC 6598) matches no address class at all, it is covered by the blocked-subnets default:
+        final WotHostValidator underTest = validator("", Map.of("cgnat.example", "100.64.0.1"));
+        assertThat(underTest.validateHost("cgnat.example").isValid()).isFalse();
+        assertThat(underTest.validateHost("100.127.255.254").isValid()).isFalse();
+        // the addresses just outside the range stay allowed:
+        assertThat(underTest.validateHost("100.63.255.255").isValid()).isTrue();
+        assertThat(underTest.validateHost("100.128.0.0").isValid()).isTrue();
+    }
+
+    @Test
+    public void allowListOverridesUniqueLocalAndCarrierGradeNatBlocks() {
+        final WotHostValidator underTest = validator("allowed-hostnames = \"models6.internal, cgnat.example\"",
+                Map.of("models6.internal", "fd00:ec2::254", "cgnat.example", "100.64.0.1"));
+        assertThat(underTest.validateHost("models6.internal").isValid()).isTrue();
+        assertThat(underTest.validateHost("cgnat.example").isValid()).isTrue();
+    }
+
+    @Test
     public void blocksSiteLocalAddresses() {
         final WotHostValidator underTest = validator("", Map.of());
         assertThat(underTest.validateHost("10.0.0.5").isValid()).isFalse();

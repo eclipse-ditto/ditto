@@ -16,6 +16,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.MessageFormat;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
@@ -61,6 +63,8 @@ final class PekkoHttpJsonDownloader implements JsonDownloader {
     private final HttpClientFacade httpClient;
     private final Materializer materializer;
     private final Executor executor;
+    private static final Set<String> ALLOWED_SCHEMES = Set.of("http", "https");
+
     private final WotHostValidator hostValidator;
     private final int maxRedirects;
 
@@ -82,6 +86,13 @@ final class PekkoHttpJsonDownloader implements JsonDownloader {
     }
 
     private CompletionStage<HttpResponse> getJsonObjectFromUrl(final URL url, final int redirectsLeft) {
+        final String protocol = url.getProtocol().toLowerCase(Locale.ROOT);
+        if (!ALLOWED_SCHEMES.contains(protocol)) {
+            // a redirect Location may carry an arbitrary scheme - only ever follow it for http(s):
+            LOGGER.info("Blocked fetching WoT ThingModel from URL <{}>: the scheme <{}> is not supported.", url,
+                    protocol);
+            return CompletableFuture.failedFuture(WotThingModelNotAccessibleException.newBuilder(url).build());
+        }
         final HostValidationResult validationResult = hostValidator.validateHost(url.getHost());
         if (!validationResult.isValid()) {
             LOGGER.info("Blocked fetching WoT ThingModel from URL <{}>: {}", url, validationResult.getReason());
