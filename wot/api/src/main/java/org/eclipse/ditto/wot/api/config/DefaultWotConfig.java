@@ -44,6 +44,7 @@ public final class DefaultWotConfig implements WotConfig {
     private static final String CONFIG_PATH = "wot";
 
     private final HttpProxyBaseConfig httpProxyConfig;
+    private final WotHostValidationConfig hostValidationConfig;
     private final CacheConfig cacheConfig;
     private final ToThingDescriptionConfig toThingDescriptionConfig;
     private final TmBasedCreationConfig tmBasedCreationConfig;
@@ -51,6 +52,7 @@ public final class DefaultWotConfig implements WotConfig {
 
     private DefaultWotConfig(final ScopedConfig scopedConfig) {
         httpProxyConfig = DefaultHttpProxyBaseConfig.ofHttpProxy(scopedConfig);
+        hostValidationConfig = DefaultWotHostValidationConfig.of(scopedConfig);
         cacheConfig = DefaultCacheConfig.of(scopedConfig, "cache");
         toThingDescriptionConfig = DefaultToThingDescriptionConfig.of(scopedConfig);
         tmBasedCreationConfig = DefaultTmBasedCreationConfig.of(scopedConfig);
@@ -71,6 +73,11 @@ public final class DefaultWotConfig implements WotConfig {
     @Override
     public HttpProxyBaseConfig getHttpProxyConfig() {
         return httpProxyConfig;
+    }
+
+    @Override
+    public WotHostValidationConfig getHostValidationConfig() {
+        return hostValidationConfig;
     }
 
     @Override
@@ -108,6 +115,7 @@ public final class DefaultWotConfig implements WotConfig {
         }
         final DefaultWotConfig that = (DefaultWotConfig) o;
         return Objects.equals(httpProxyConfig, that.httpProxyConfig) &&
+                Objects.equals(hostValidationConfig, that.hostValidationConfig) &&
                 Objects.equals(cacheConfig, that.cacheConfig) &&
                 Objects.equals(toThingDescriptionConfig, that.toThingDescriptionConfig) &&
                 Objects.equals(tmBasedCreationConfig, that.tmBasedCreationConfig) &&
@@ -116,13 +124,15 @@ public final class DefaultWotConfig implements WotConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(httpProxyConfig, cacheConfig, toThingDescriptionConfig, tmBasedCreationConfig, tmValidationConfig);
+        return Objects.hash(httpProxyConfig, hostValidationConfig, cacheConfig, toThingDescriptionConfig,
+                tmBasedCreationConfig, tmValidationConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "httpProxyConfig=" + httpProxyConfig +
+                ", hostValidationConfig=" + hostValidationConfig +
                 ", cacheConfig=" + cacheConfig +
                 ", toThingDescriptionConfig=" + toThingDescriptionConfig +
                 ", tmBasedCreationConfig=" + tmBasedCreationConfig +
