@@ -64,10 +64,33 @@ jobs:
         run: |
           echo $IMAGE_TAG
       -
+        name: Set up JDK 25
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: 'temurin'
+          java-version: 25
+          cache: 'maven'
+      -
+        name: Build allinone jars from sources
+        # The *-allinone.jar artifacts are no longer published to a Maven repository (they
+        # exceed the repo.eclipse.org upload size limit). Build them here from the master
+        # sources so the Docker image build can consume them from the local context.
+        # The version stays at the master 'revision' default: 0-SNAPSHOT.
+        run: |
+          mvn clean install -T4 --batch-mode --errors -DskipTests -Dmaven.javadoc.skip=true \
+            -pl policies/service,things/service,gateway/service,connectivity/service,thingsearch/service -am
+      -
+        name: Stage allinone jars for the Docker build context
+        run: |
+          mkdir -p docker-libs
+          find . -path '*/service/target/*-allinone.jar' -exec cp -v {} docker-libs/ \;
+          echo "Staged allinone jars:"
+          ls -lh docker-libs
+      -
         name: Build and push ditto-policies
         uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         with:
-          context: .
+          context: docker-libs
           file: dockerfile-release
           platforms: linux/amd64,linux/arm64
           build-args: |
@@ -82,7 +105,7 @@ jobs:
         name: Build and push ditto-things
         uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         with:
-          context: .
+          context: docker-libs
           file: dockerfile-release
           platforms: linux/amd64,linux/arm64
           build-args: |
@@ -97,7 +120,7 @@ jobs:
         name: Build and push ditto-gateway
         uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         with:
-          context: .
+          context: docker-libs
           file: dockerfile-release
           platforms: linux/amd64,linux/arm64
           build-args: |
@@ -112,7 +135,7 @@ jobs:
         name: Build and push ditto-thingsearch
         uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         with:
-          context: .
+          context: docker-libs
           file: dockerfile-release
           platforms: linux/amd64,linux/arm64
           build-args: |
@@ -127,7 +150,7 @@ jobs:
         name: Build and push ditto-connectivity
         uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         with:
-          context: .
+          context: docker-libs
           file: dockerfile-release
           platforms: linux/amd64,linux/arm64
           build-args: |
