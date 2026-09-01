@@ -176,9 +176,9 @@ policy tree, although the `(resource, subjects, permissions)` tuples recur heavi
 new instance, so the memo lifetime equals the instance lifetime and needs no invalidation. Verdicts are
 identical to the non-memoized path. The memo is placed on the enforcer itself rather than on the
 `PolicyEnforcer` wrapper, so things, policies and gateway all benefit. It is bounded by the new
-`authorization-memo-max-size` (default `10000`, Helm: `authorizationMemoMaxSize`) under the policy-enforcer
-`cache` config of the `policies`, `things` and `connectivity` services; setting it to `0` disables the
-memoization entirely, in which case no maps are allocated at all.
+`authorization-memo-cache-max-size` (default `10000`, Helm: `authorizationMemoMaxSize`) under the
+`ditto.policies-enforcer-cache` config of the `policies`, `things` and `connectivity` services; setting it to
+`0` disables the memoization entirely, in which case no maps are allocated at all.
 
 #### Memoize read-subject parsing and `ditto-read-subjects` rendering
 
