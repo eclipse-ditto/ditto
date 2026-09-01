@@ -15,11 +15,40 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 
 ## [Unreleased]
 
+## [4.7.0]
+
+Bumped Ditto `appVersion` to `3.9.7`.
+
+### Added
+- New `hostValidation` block under the `wot` config of the `things` service, restricting to which hosts WoT
+  ThingModels may be fetched via HTTP. Part of the fix for the SSRF vulnerability
+  [CVE-2026-84175](https://nvd.nist.gov/vuln/detail/CVE-2026-84175) /
+  [GHSA-7f3j-xpvm-wwmg](https://github.com/eclipse-ditto/ditto/security/advisories/GHSA-7f3j-xpvm-wwmg).
+  Contains `enabled` (default `true`), `allowedHostnames`, `blockedHostnames`,
+  `blockedSubnets` (default `100.64.0.0/10`), `blockedHostRegex` and `maxRedirects` (default `5`).
+  **Action required** for deployments intentionally serving ThingModels from an internal host: add that host
+  to `allowedHostnames`
+- New `authorizationMemoMaxSize` (default `10000`) under the policy-enforcer `cache` config of the `policies`,
+  `things` and `connectivity` services, bounding the per-enforcer memo of authorization verdicts so the policy
+  tree is no longer walked on every authorization check. Set to `0` to disable the memoization entirely — no
+  maps are then allocated at all
+  ([#2514](https://github.com/eclipse-ditto/ditto/pull/2514))
+- New optional `customMetricsPersistence` and `customAggregationMetricsPersistence` blocks under the
+  `operator-metrics` config of the `things-search` service, overriding the MongoDB `readPreference` /
+  `readConcern` used by the operator metrics independently from the general `query.persistence` settings.
+  Both are only rendered when configured and fall back to `query.persistence` when absent
+  ([#2510](https://github.com/eclipse-ditto/ditto/pull/2510))
+
+### Changed
+- Bumped the bundled `nginx` image from `1.28.2` to `1.30.4` and switched its repository from
+  `public.ecr.aws/nginx/nginx` to `docker.io/nginx`; bumped the bundled `swagger-ui` image from `v5.32.6` to
+  `v5.32.8`
+
 ### Fixed
 - Swagger UI deployment: add the volumes and `volumeMounts` required to mount the OpenID Connect JavaScript,
-  fixing the Swagger UI OIDC login ([#2478](https://github.com/eclipse-ditto/ditto/pull/2478)). This was
-  previously listed under `4.3.0`, but the change had not actually been part of the release branch — see the
-  corrected note there
+  fixing the Swagger UI OIDC login ([#2478](https://github.com/eclipse-ditto/ditto/pull/2478), backported via
+  [#2533](https://github.com/eclipse-ditto/ditto/pull/2533)). This was previously listed under `4.3.0`, but
+  the change had not actually been part of that release branch — see the corrected note there
 
 ## [4.6.0]
 
