@@ -45,6 +45,7 @@ below is mostly about keeping that boundary intact.
 7. `[ ]` [Policy design](#7-policy-design) &mdash; follow least-privilege; use `importable = never` for entries that must never be shared and review `WRITE` on `policy:/`.
 8. `[ ]` [Transport security](#8-transport-security-tls) &mdash; terminate TLS at the ingress and use TLS for MongoDB and connectivity targets.
 9. `[ ]` [Rate limiting](#9-rate-limiting-and-abuse-protection) &mdash; enforce rate limiting at the proxy for `/devops`, `/status`, and the authenticated API (Ditto has no built-in brute-force protection).
+10. `[ ]` [Outbound HTTP](#10-outbound-http-requests-ssrf) &mdash; restrict which hosts the things and connectivity services may call outbound, and back it with network-level egress controls.
 
 ### 1. Trust boundary: choose one of two models
 
@@ -231,10 +232,68 @@ cap the message rate of an established stream (`ditto.gateway.websocket.throttli
 second when enabled). These protect against a single noisy client, but are not a substitute for
 proxy-level rate limiting of authentication and connection attempts.
 
+### 10. Outbound HTTP requests (SSRF)
+
+Two Ditto features cause a service to issue outbound HTTP requests to a host that is not fixed in the
+deployment's own configuration:
+
+* the **things** service fetches a [WoT ThingModel](basic-wot-integration.html) when a Thing or
+  Feature `definition` contains an `http(s)://` URL &mdash; the URL comes from the API caller, and
+  the `tm:extends`, `tm:ref` and `tm:submodel` links of the fetched model are followed as well;
+* the **connectivity** service connects to the targets of configured connections.
+
+Because these requests originate inside the cluster, an unrestricted target host would let a caller
+reach internal endpoints that are not exposed externally &mdash; cloud instance-metadata services,
+the Kubernetes API server, internal admin interfaces &mdash; which is a classic Server-Side Request
+Forgery (SSRF) exposure.
+
+Both services validate the target host before connecting, using the same configuration keys and the
+same semantics:
+
+| | things (WoT) | connectivity |
+|---|---|---|
+| Configuration path | `ditto.things.wot.http.security` | `ditto.connectivity.connection` |
+| Active by default | yes (`enabled = true`) | **no** &mdash; `blocked-hostnames` is empty, which disables validation entirely |
+| Keys | `allowed-hostnames`, `blocked-hostnames`, `blocked-subnets`, `blocked-host-regex` | same |
+
+**Understand what the allow-list does.** In both services the validation is a *block*-list: hosts
+resolving to loopback, link-local (covering the cloud metadata address `169.254.169.254`),
+site-local, IPv6 unique-local and multicast or wildcard addresses are rejected, and
+`allowed-hostnames` *overrides* those checks for deployments that intentionally serve ThingModels or
+run connection targets on an internal host. It is **not** a gate: adding entries to
+`allowed-hostnames` does not restrict anything, and any host that does not resolve into a blocked
+range remains reachable. In particular this means an internal service that lives on
+publicly-routable address space is not covered by the address-class checks.
+
+Recommended steps:
+
+* **Enable connectivity's validation.** It is inert until `blocked-hostnames` is non-empty; setting
+  it to `localhost` is enough to activate the built-in address-class checks
+  (`CONNECTIVITY_CONNECTION_BLOCKED_HOSTNAMES`).
+* **Add your own ranges.** Use `blocked-subnets` for internal networks the address classes do not
+  cover, and `blocked-host-regex` for internal DNS suffixes, e.g. `^.*\\.svc\\.cluster\\.local$`.
+* **Restrict which ThingModel URLs may be used at all.** The
+  [entity creation restriction](installation-operating.html#restricting-entity-creation) accepts
+  wildcard patterns for `thing-definitions`, which is the closest thing to a true allow-list of
+  ThingModel registries. Note that it applies to *creation* only, so it does not cover
+  `migrateDefinition` or the `definition` modification endpoints &mdash; those are governed by the
+  host validation above and by `WRITE` permission on the affected Thing.
+* **Turn the feature off if unused.** If your deployment does not use the WoT integration, disable
+  it (`DITTO_DEVOPS_FEATURE_WOT_INTEGRATION_ENABLED=false`) rather than relying on host validation.
+
+{% include note.html content="Host validation resolves the target's hostname to decide whether to
+allow the request, while the request itself resolves the hostname again independently. For hostnames
+whose DNS is attacker-controlled, the two lookups can in principle return different addresses (DNS
+rebinding), which a hostname-based check cannot fully prevent; literal-IP targets are always
+validated. Treat the checks above as one layer and combine them with network-level egress controls
+&mdash; see [Network isolation](#3-network-isolation-kubernetes) &mdash; that stop the things and
+connectivity pods from reaching internal address ranges and the metadata endpoint at all." %}
+
 ## Summary
 
 The default Docker Compose and Helm settings are tuned for getting started quickly, not for
 production. If you keep the gateway behind an authenticating, header-sanitising proxy, isolate the
-cluster network, rotate all sample credentials, restrict the DevOps endpoint, and keep token
-lifetimes short, your deployment is in good shape. Use the [checklist](#hardening-checklist) above as
+cluster network, rotate all sample credentials, restrict the DevOps endpoint, keep token lifetimes
+short, and constrain outbound requests from the things and connectivity services, your deployment is
+in good shape. Use the [checklist](#hardening-checklist) above as
 a pre-production gate.
