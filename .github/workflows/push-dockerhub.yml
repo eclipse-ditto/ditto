@@ -49,6 +49,9 @@ jobs:
           # On a tag push this resolves to the pushed tag; on manual dispatch it checks out
           # the tag given via the 'dittoVersion' input so the built sources match the version.
           ref: ${{ inputs.dittoVersion || github.ref }}
+          # full history incl. tags: needed to decide whether this release is the newest
+          # one (see "Determine image tags" below)
+          fetch-depth: 0
           persist-credentials: false
       -
         name: Set up QEMU
@@ -92,6 +95,37 @@ jobs:
           echo "Major version: $IMAGE_MAJOR_TAG"
           echo "Milestone or RC suffix: $MILESTONE_OR_RC_SUFFIX"
       -
+        name: Determine image tags
+        run: |
+          # X.Y.Z and X.Y always move with the release being built. The floating `X` and
+          # `latest` tags must NOT: a patch release of an older line (e.g. 3.8.13 published
+          # after 3.9.7) would otherwise steal them from the newer line.
+          finals() { git tag -l | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$'; }
+          NEWEST_OVERALL="$(finals | sort -V | tail -1)"
+          NEWEST_IN_MAJOR="$(finals | grep -E "^${IMAGE_MAJOR_TAG}\." | sort -V | tail -1)"
+          if [ -z "$NEWEST_OVERALL" ]; then
+            echo "::error::no release tags found - refusing to guess which tags to move"
+            exit 1
+          fi
+          echo "Newest overall: $NEWEST_OVERALL"
+          echo "Newest in major $IMAGE_MAJOR_TAG: $NEWEST_IN_MAJOR"
+          for img in ditto-policies ditto-things ditto-gateway ditto-things-search \
+                     ditto-connectivity ditto-ui; do
+            var="TAGS_$(echo "$img" | tr 'a-z-' 'A-Z_')"
+            {
+              echo "${var}<<__TAGS_EOF__"
+              echo "eclipse/${img}:${IMAGE_TAG}"
+              echo "eclipse/${img}:${IMAGE_MINOR_TAG}"
+              if [ "$IMAGE_TAG" = "$NEWEST_IN_MAJOR" ]; then
+                echo "eclipse/${img}:${IMAGE_MAJOR_TAG}"
+              fi
+              if [ "$IMAGE_TAG" = "$NEWEST_OVERALL" ]; then
+                echo "eclipse/${img}:latest"
+              fi
+              echo "__TAGS_EOF__"
+            } >> $GITHUB_ENV
+          done
+      -
         name: Set up JDK 25
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:
@@ -128,11 +162,7 @@ jobs:
             MAIN_CLASS=org.eclipse.ditto.policies.service.starter.PoliciesService
           pull: true
           push: true
-          tags: |
-            eclipse/ditto-policies:${{ env.IMAGE_TAG }}
-            eclipse/ditto-policies:${{ env.IMAGE_MINOR_TAG }}
-            eclipse/ditto-policies:${{ env.IMAGE_MAJOR_TAG }}
-            eclipse/ditto-policies:latest
+          tags: ${{ env.TAGS_DITTO_POLICIES }}
       -
         name: Build and push ditto-things
         if: env.MILESTONE_OR_RC_SUFFIX == env.IMAGE_TAG
@@ -147,11 +177,7 @@ jobs:
             MAIN_CLASS=org.eclipse.ditto.things.service.starter.ThingsService
           pull: true
           push: true
-          tags: |
-            eclipse/ditto-things:${{ env.IMAGE_TAG }}
-            eclipse/ditto-things:${{ env.IMAGE_MINOR_TAG }}
-            eclipse/ditto-things:${{ env.IMAGE_MAJOR_TAG }}
-            eclipse/ditto-things:latest
+          tags: ${{ env.TAGS_DITTO_THINGS }}
       -
         name: Build and push ditto-gateway
         if: env.MILESTONE_OR_RC_SUFFIX == env.IMAGE_TAG
@@ -166,11 +192,7 @@ jobs:
             MAIN_CLASS=org.eclipse.ditto.gateway.service.starter.GatewayService
           pull: true
           push: true
-          tags: |
-            eclipse/ditto-gateway:${{ env.IMAGE_TAG }}
-            eclipse/ditto-gateway:${{ env.IMAGE_MINOR_TAG }}
-            eclipse/ditto-gateway:${{ env.IMAGE_MAJOR_TAG }}
-            eclipse/ditto-gateway:latest
+          tags: ${{ env.TAGS_DITTO_GATEWAY }}
       -
         name: Build and push ditto-thingsearch
         if: env.MILESTONE_OR_RC_SUFFIX == env.IMAGE_TAG
@@ -185,11 +207,7 @@ jobs:
             MAIN_CLASS=org.eclipse.ditto.thingsearch.service.starter.SearchService
           pull: true
           push: true
-          tags: |
-            eclipse/ditto-things-search:${{ env.IMAGE_TAG }}
-            eclipse/ditto-things-search:${{ env.IMAGE_MINOR_TAG }}
-            eclipse/ditto-things-search:${{ env.IMAGE_MAJOR_TAG }}
-            eclipse/ditto-things-search:latest
+          tags: ${{ env.TAGS_DITTO_THINGS_SEARCH }}
       -
         name: Build and push ditto-connectivity
         if: env.MILESTONE_OR_RC_SUFFIX == env.IMAGE_TAG
@@ -205,11 +223,7 @@ jobs:
             JVM_CMD_ARGS=--add-opens java.base/java.nio=ALL-UNNAMED --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/sun.security.util=ALL-UNNAMED
           pull: true
           push: true
-          tags: |
-            eclipse/ditto-connectivity:${{ env.IMAGE_TAG }}
-            eclipse/ditto-connectivity:${{ env.IMAGE_MINOR_TAG }}
-            eclipse/ditto-connectivity:${{ env.IMAGE_MAJOR_TAG }}
-            eclipse/ditto-connectivity:latest
+          tags: ${{ env.TAGS_DITTO_CONNECTIVITY }}
       -
         name: Use Node.js 18.x
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
@@ -233,11 +247,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           pull: true
           push: true
-          tags: |
-            eclipse/ditto-ui:${{ env.IMAGE_TAG }}
-            eclipse/ditto-ui:${{ env.IMAGE_MINOR_TAG }}
-            eclipse/ditto-ui:${{ env.IMAGE_MAJOR_TAG }}
-            eclipse/ditto-ui:latest
+          tags: ${{ env.TAGS_DITTO_UI }}
       -
         name: Build and push ditto-policies milestone/RC
         if: env.MILESTONE_OR_RC_SUFFIX != env.IMAGE_TAG
