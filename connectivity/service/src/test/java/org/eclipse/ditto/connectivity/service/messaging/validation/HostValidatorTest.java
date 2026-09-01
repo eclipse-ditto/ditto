@@ -38,6 +38,7 @@ import org.apache.pekko.event.LoggingAdapter;
 public class HostValidatorTest {
 
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder().correlationId("ditto").build();
+    private static final String BLOCKED_HOSTNAME = "dummy.org";
     private ConnectionConfig connectionConfig;
     private ConnectivityConfig connectivityConfig;
     private LoggingAdapter loggingAdapter;
@@ -133,6 +134,57 @@ public class HostValidatorTest {
         final HostValidator underTest = getHostValidatorWithBlockedRegexPattern();
 
         assertFalse(underTest.validateHost("gateway.things.svc.cluster.local").isValid());
+        // a host that does not match the regex has to pass, otherwise the assertion above would prove nothing:
+        assertValid(underTest.validateHost("gateway.things.example.com"));
+    }
+
+    @Test
+    public void expectLinkLocalCloudMetadataAddressIsBlocked() {
+        // 169.254.169.254 is the cloud instance-metadata endpoint and is a *link-local* address - it must be blocked
+        // by the address-class check itself, not only when an operator happens to configure the 169.254.0.0/16 subnet:
+        when(connectionConfig.getBlockedSubnets()).thenReturn(emptyList());
+
+        final HostValidator underTest = getHostValidatorWithAllowlist();
+
+        assertFalse(underTest.validateHost("169.254.169.254").isValid());
+        assertFalse(underTest.validateHost("fe80::1").isValid());
+    }
+
+    @Test
+    public void expectIpv6UniqueLocalAddressIsBlocked() {
+        // fd00:ec2::254 is the IPv6 cloud instance-metadata endpoint; unique-local addresses (fc00::/7) are not
+        // covered by InetAddress#isSiteLocalAddress, which only matches the deprecated fec0::/10 prefix:
+        when(connectionConfig.getBlockedSubnets()).thenReturn(emptyList());
+
+        final HostValidator underTest = getHostValidatorWithAllowlist();
+
+        assertFalse(underTest.validateHost("fd00:ec2::254").isValid());
+        assertFalse(underTest.validateHost("fd00::1").isValid());
+        assertFalse(underTest.validateHost("fc00::1").isValid());
+        // a public IPv6 address stays valid:
+        assertValid(underTest.validateHost("2001:db8::1"));
+    }
+
+    @Test
+    public void expectAllowListIsCaseInsensitive() throws Exception {
+        final String theHost = "My-Registry.Example";
+        final DefaultHostValidator.AddressResolver resolveToLoopback =
+                host -> resolveHost(theHost, InetAddress.getLoopbackAddress().getAddress());
+
+        // the allow-list is configured in a different casing than the host being validated:
+        final HostValidator underTest =
+                getHostValidatorWithCustomResolver(resolveToLoopback, "my-registry.example");
+
+        assertValid(underTest.validateHost(theHost));
+    }
+
+    @Test
+    public void expectBlockedHostRegexIsCaseInsensitive() {
+        final HostValidator underTest = getHostValidatorWithBlockedRegexPattern();
+
+        // an attacker must not be able to bypass the blocked-host regex by changing the casing of the host - the
+        // host resolves to a public address, so the regex is the only check that can reject it:
+        assertFalse(underTest.validateHost("gateway.things.SVC.Cluster.LOCAL").isValid());
     }
 
     private static InetAddress[] resolveHost(final String host, byte... address) throws UnknownHostException {
@@ -157,9 +209,18 @@ public class HostValidatorTest {
         return new DefaultHostValidator(connectivityConfig, loggingAdapter, resolver);
     }
 
+    /**
+     * Builds a validator in which the blocked-host regex is the <em>only</em> thing that can block a host: the
+     * configured blocked hostname and every other host resolve to two distinct public addresses, and the blocked
+     * subnets are cleared. Without this, a host that simply fails to resolve comes back as {@code invalid} - which is
+     * also {@code isValid() == false} - and the assertion would hold even when the regex never matched.
+     */
     private HostValidator getHostValidatorWithBlockedRegexPattern() {
-        when(connectionConfig.getBlockedHostRegex()).thenReturn("^.*\\.svc.cluster.local$");
-        return new DefaultHostValidator(connectivityConfig, loggingAdapter);
+        when(connectionConfig.getBlockedHostnames()).thenReturn(List.of(BLOCKED_HOSTNAME));
+        when(connectionConfig.getBlockedSubnets()).thenReturn(emptyList());
+        when(connectionConfig.getBlockedHostRegex()).thenReturn("^.*\\.svc\\.cluster\\.local$");
+        return getHostValidatorWithCustomResolver(host -> resolveHost(host,
+                BLOCKED_HOSTNAME.equals(host) ? new byte[]{1, 2, 3, 4} : new byte[]{8, 8, 8, 8}));
     }
 
     private void assertValid(final HostValidationResult result) {
