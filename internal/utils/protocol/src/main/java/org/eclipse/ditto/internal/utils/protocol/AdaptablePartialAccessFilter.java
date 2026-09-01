@@ -152,14 +152,69 @@ public final class AdaptablePartialAccessFilter {
         final JsonPointer eventPath = JsonPointer.of(adaptable.getPayload().getPath().toString());
 
         if (!isPayloadObject) {
-            final boolean isPathAccessible = isPathAccessibleForNonObjectPayload(eventPath, accessiblePaths);
+            final boolean isPathAccessible = isPathWhollyAccessible(eventPath, accessiblePaths);
             if (!isPathAccessible) {
                 return createEmptyPayloadAdaptable(adaptable);
             }
             return filterExtraFields(adaptable, accessiblePaths);
         }
 
-        return filterAdaptablePayload(adaptable, accessiblePaths);
+        // An event payload is relative to the event's own path, whereas the accessible paths are
+        // thing-absolute. Both must be expressed in the same frame of reference before filtering,
+        // otherwise a payload below a granted path matches nothing and is wrongly emptied.
+        if (isPathWhollyAccessible(eventPath, accessiblePaths)) {
+            // The event is rooted at or below a granted path: the entire payload is readable.
+            return filterExtraFields(adaptable, accessiblePaths);
+        }
+        final Set<JsonPointer> payloadRelativePaths = rebaseOnEventPath(eventPath, accessiblePaths);
+        if (payloadRelativePaths.isEmpty()) {
+            return filterExtraFields(createEmptyPayloadAdaptable(adaptable), accessiblePaths);
+        }
+        return filterAdaptablePayload(adaptable, payloadRelativePaths, accessiblePaths, eventPath.isEmpty());
+    }
+
+    /**
+     * Re-expresses the thing-absolute {@code accessiblePaths} relative to {@code eventPath}, keeping only those
+     * which can occur at all within a payload rooted at {@code eventPath}.
+     *
+     * @param eventPath the path the payload is rooted at.
+     * @param accessiblePaths the thing-absolute accessible paths.
+     * @return the accessible paths relative to {@code eventPath}, empty if none of them lie below it.
+     */
+    private static Set<JsonPointer> rebaseOnEventPath(final JsonPointer eventPath,
+            final Set<JsonPointer> accessiblePaths) {
+
+        if (eventPath.isEmpty()) {
+            return new HashSet<>(accessiblePaths);
+        }
+        final Set<JsonPointer> rebased = new HashSet<>();
+        for (final JsonPointer accessiblePath : accessiblePaths) {
+            if (isDescendantOrSelf(accessiblePath, eventPath)) {
+                rebased.add(accessiblePath.getSubPointer(eventPath.getLevelCount()).orElse(JsonPointer.empty()));
+            }
+        }
+        return rebased;
+    }
+
+    /**
+     * The single pointer-prefix predicate for this class: both the "is the payload wholly readable" check and the
+     * rebasing of accessible paths are expressed through it, so they cannot drift apart.
+     *
+     * @return whether {@code path} is {@code base} itself or lies below it. Compared level by level rather than by
+     * string prefix, so {@code /features/foo} is not treated as lying below {@code /features/fo}. An empty
+     * {@code base} (the thing root) is an ancestor of everything.
+     */
+    private static boolean isDescendantOrSelf(final JsonPointer path, final JsonPointer base) {
+        final int baseLevelCount = base.getLevelCount();
+        if (path.getLevelCount() < baseLevelCount) {
+            return false;
+        }
+        for (int i = 0; i < baseLevelCount; i++) {
+            if (!path.get(i).equals(base.get(i))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static Adaptable createEmptyPayloadAdaptable(final Adaptable adaptable) {
@@ -170,20 +225,29 @@ public final class AdaptablePartialAccessFilter {
                 .build();
     }
 
+    /**
+     * @param payloadRelativePaths accessible paths expressed relative to the event path, for filtering the value.
+     * @param accessiblePaths thing-absolute accessible paths, for filtering the (thing-rooted) extra fields.
+     * @param payloadIsThingRooted whether the payload is the thing itself, i.e. the event path is {@code "/"}.
+     */
     private static Adaptable filterAdaptablePayload(
             final Adaptable adaptable,
-            final Set<JsonPointer> accessiblePaths) {
+            final Set<JsonPointer> payloadRelativePaths,
+            final Set<JsonPointer> accessiblePaths,
+            final boolean payloadIsThingRooted) {
 
         final JsonObject originalPayload = adaptable.getPayload().getValue()
                 .filter(JsonValue::isObject)
                 .map(JsonValue::asObject)
                 .orElse(JsonFactory.newObject());
 
-        // ThingCreated/ThingModified/ThingMerged events at path "/" carry the full thing JSON
-        // here; stripping the identity/audit fields would make the protocol message hard to use
-        // for the partial reader. For events with non-thing-rooted object payloads the allowlist
-        // pointers simply don't exist in the payload and the addition is a no-op.
-        final JsonObject filteredPayload = filterJsonByPathsWithAllowlist(originalPayload, accessiblePaths);
+        // ThingCreated/ThingModified/ThingMerged events at path "/" carry the full thing JSON here;
+        // stripping the identity/audit fields would make the protocol message hard to use for the
+        // partial reader. The allowlist is thing-rooted, so it must only be applied to a thing-rooted
+        // payload — against a payload rooted deeper it would match same-named nested fields instead.
+        final JsonObject filteredPayload = payloadIsThingRooted
+                ? filterJsonByPathsWithAllowlist(originalPayload, payloadRelativePaths)
+                : JsonPartialAccessFilter.filterJsonByPaths(originalPayload, payloadRelativePaths);
 
         final PayloadBuilder payloadBuilder = Payload.newBuilder(adaptable.getPayload())
                 .withValue(filteredPayload);
@@ -236,36 +300,20 @@ public final class AdaptablePartialAccessFilter {
         // behaviour for WebSocket extras).
         final JsonObject filteredExtra = filterJsonByPathsWithAllowlist(originalExtra.get(), accessiblePaths);
 
-        if (filteredExtra.isEmpty()) {
-            return;
-        }
-
+        // Always write the filtered result back, including when it is empty: the builder was seeded from
+        // the original payload and therefore still carries the *unfiltered* extra, which would otherwise
+        // be handed to the partial reader in full exactly when none of it is accessible.
         payloadBuilder.withExtra(filteredExtra);
     }
 
-    private static boolean isPathAccessibleForNonObjectPayload(final JsonPointer eventPath,
+    /**
+     * @return whether {@code eventPath} is itself granted or lies below a granted path, in which case everything
+     * at that path is readable and no filtering of the payload value is required.
+     */
+    private static boolean isPathWhollyAccessible(final JsonPointer eventPath,
             final Set<JsonPointer> accessiblePaths) {
-        if (accessiblePaths.isEmpty()) {
-            return false;
-        }
 
-        if (accessiblePaths.contains(eventPath)) {
-            return true;
-        }
-
-        if (accessiblePaths.contains(JsonPointer.empty())) {
-            return true;
-        }
-
-        final int eventLevelCount = eventPath.getLevelCount();
-        for (int i = 1; i < eventLevelCount; i++) {
-            final JsonPointer prefix = eventPath.getPrefixPointer(i).orElse(null);
-            if (prefix != null && accessiblePaths.contains(prefix)) {
-                return true;
-            }
-        }
-
-        return false;
+        return accessiblePaths.stream().anyMatch(accessiblePath -> isDescendantOrSelf(eventPath, accessiblePath));
     }
 
 }
