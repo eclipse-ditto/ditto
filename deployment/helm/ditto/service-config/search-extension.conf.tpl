@@ -40,11 +40,7 @@ ditto {
         {{- end }}
         ]
     {{- end }}
-    }
-
     {{- if .Values.thingsSearch.config.customIndexes }}
-    updater {
-      persistence {
         custom-indexes {
         {{- range $indexName, $fields := .Values.thingsSearch.config.customIndexes }}
           "{{$indexName}}" {
@@ -56,9 +52,8 @@ ditto {
           }
         {{- end }}
         }
-      }
-    }
     {{- end }}
+    }
 
     {{- if .Values.thingsSearch.config.indexedFieldsLimiting.enabled }}
     namespace-indexed-fields = [
