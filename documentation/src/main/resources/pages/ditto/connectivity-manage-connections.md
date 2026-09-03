@@ -38,7 +38,8 @@ for configuration details.
 
 ### Create a connection
 
-Send an HTTP `POST` request:
+Send an HTTP `POST` request. Ditto generates the connection ID. Do not put an `id` in the body
+(that returns `connectivity:id.notsettable`).
 
 ```
 POST /api/2/connections
@@ -55,6 +56,16 @@ POST /api/2/connections
 }
 ```
 
+To pick the ID yourself, use `PUT` instead:
+
+```
+PUT /api/2/connections/{connectionId}
+If-None-Match: *
+```
+
+`If-None-Match: *` makes this create-only. Without that header, the same `PUT` updates the
+connection if it already exists.
+
 The connection configuration format is described in the [Connections](basic-connections.html) section.
 For protocol-specific examples, see the relevant binding page:
 * [AMQP 0.9.1](connectivity-protocol-bindings-amqp091.html)
@@ -63,6 +74,7 @@ For protocol-specific examples, see the relevant binding page:
 * [MQTT 5](connectivity-protocol-bindings-mqtt5.html)
 * [HTTP 1.1](connectivity-protocol-bindings-http.html)
 * [Kafka 2.x](connectivity-protocol-bindings-kafka2.html)
+* [Eclipse Hono](connectivity-protocol-bindings-hono.html)
 
 #### Dry run
 
@@ -83,7 +95,8 @@ Send an HTTP `PUT` request:
 PUT /api/2/connections/{connectionId}
 ```
 
-The connection must already exist before you can modify it.
+If the connection does not exist yet, Ditto creates it. Add `If-None-Match: *` when you want
+the request to fail instead of overwriting an existing connection.
 
 ### Retrieve a connection
 
