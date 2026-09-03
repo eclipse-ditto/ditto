@@ -1,0 +1,24 @@
+{
+  "knowledge": {
+    "retriever": "hybrid",
+    "publicSource": {
+      "enabled": true
+    },
+    "localDir": {
+      "enabled": true,
+      "paths": ["/path/to/your/markdown", "/path/to/another/dir"]
+    },
+    "embedding": {
+      "model": "Xenova/bge-small-en-v1.5",
+      "dim": 384,
+      "allowRemoteModels": true,
+      "batchSize": 32
+    },
+    "store": {
+      "kind": "sqlite",
+      "sqlite": {
+        "path": "./ditto-index.db"
+      }
+    }
+  }
+}
