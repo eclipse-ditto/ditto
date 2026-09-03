@@ -15,6 +15,18 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 
 ## [Unreleased]
 
+## [4.7.1]
+
+### Fixed
+- `thingsSearch.config.customIndexes` never reached Ditto: the template rendered the block under
+  `ditto.search.updater.persistence.custom-indexes`, while `SearchConfigValue.CUSTOM_INDEXES` declares the
+  path `index-initialization.custom-indexes` (as documented in `search.conf`, where `custom-indexes` sits
+  inside the `index-initialization` block next to `activated-index-names`). Because
+  `IndexInitializer.dropUndefinedIndices()` removes every index that is neither built-in nor a *configured*
+  custom index, declaring a custom index made Ditto **drop** it on startup instead of creating and keeping
+  it. Operators who had pre-created the index manually lost it on the next things-search restart. The fix
+  is positional only — the emitted HOCON shape is unchanged
+
 ## [4.7.0]
 
 Bumped Ditto `appVersion` to `3.9.7`.
