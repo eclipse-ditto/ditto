@@ -325,6 +325,39 @@ _org.eclipse.ditto/device-123/things/live/messages/hello.world_ these placeholde
 | `topic:subject`        | _hello.world_                                                   |
 | `topic:action-subject` | _hello.world_                                                   |
 
+### Scope: Connection target topic filter
+
+In a connection's [target topic filter](basic-connections.html#filtering-with-placeholder-functions),
+a placeholder function pipeline whose last stage is [`fn:filter()`](#function-library) may be used as the
+`fn-filter` query parameter, alongside an optional [RQL expression](basic-rql.html) in the `filter` parameter
+(at most one of each; if both are given, both must match). As with
+[RQL expressions when filtering for Ditto Protocol messages](#scope-rql-expressions-when-filtering-for-ditto-protocol-messages),
+such a pipeline is a bare expression and placeholders must not be surrounded by curly braces. The pipeline may
+start with a placeholder or directly with a function, e.g.
+`header:ditto-originator|fn:filter('ne','some:subject')` or
+`fn:filter(header:ditto-originator,'ne','some:subject')`; the topic is published exactly when the pipeline
+resolves to a value, which is why the last stage must be `fn:filter()` -- the stage that yields the boolean
+publish decision; a trailing value-producing stage such as `fn:upper()` cannot add anything to that decision,
+and a trailing `fn:default('...')` even overrides it and makes the topic always publish (`fn:delete()` makes
+it never publish) -- see
+[filtering with placeholder functions](basic-connections.html#filtering-with-placeholder-functions).
+The pipeline is evaluated per outbound signal, before enrichment, so the following placeholders are available
+in general (the `thing-json` placeholder only as the leading stage of a placeholder-first pipeline, and only
+with the data carried by a thing event):
+* [entity placeholder](#entity-placeholder)
+* [thing placeholder](#thing-placeholder)
+* [thing-json placeholder](#thing-json-placeholder)
+* [feature placeholder](#feature-placeholder)
+* [header placeholder](#header-placeholder)
+* [request placeholder](#request-placeholder)
+* [resource placeholder](#resource-placeholder)
+* [topic placeholder](#topic-placeholder)
+* [time placeholder](#time-placeholder)
+* [connection placeholder](#connection-placeholder)
+
+Unlike the [Connections](#scope-connections) scope used e.g. for target addresses, these
+placeholders never see fields declared via `extraFields` enrichment, and no
+[policy placeholder](#policy-placeholder) is available.
 
 ## Function expressions
 
