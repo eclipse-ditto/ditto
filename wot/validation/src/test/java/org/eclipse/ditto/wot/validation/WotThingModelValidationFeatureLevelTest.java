@@ -680,6 +680,17 @@ public final class WotThingModelValidationFeatureLevelTest {
     }
 
     @Test
+    public void validateFeatureDeletionSucceedsForUndefinedFeature() {
+        internalCheckFail(false, sut.validateFeatureScopedDeletion(
+                Map.of(KNOWN_FEATURE_ID, KNOWN_FEATURE_LEVEL_TM),
+                KNOWN_FEATURE_LEVEL_TM,
+                "unknown-feature",
+                JsonPointer.of("features/unknown-feature"),
+                provideValidationContext()
+        ));
+    }
+
+    @Test
     public void validateFeaturePropertyDeletionFailsForFeatureContainingRequiredProperties() {
         checkValidateFeaturePropertyDeletion(
                 JsonPointer.of("features/" + KNOWN_FEATURE_ID),
