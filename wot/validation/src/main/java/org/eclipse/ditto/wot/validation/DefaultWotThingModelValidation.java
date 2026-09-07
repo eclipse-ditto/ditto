@@ -364,13 +364,9 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
             final JsonPointer resourcePath,
             final ValidationContext context
     ) {
-        if (!featureThingModels.containsKey(featureId)) {
-            // Feature is not defined in the Thing model; deleting it (or its properties) is always allowed.
-            return success();
-        }
-
         if (validationConfig.getFeatureValidationConfig().isEnforcePresenceOfModeledFeatures() &&
-                resourcePath.equals(Thing.JsonFields.FEATURES.getPointer().addLeaf(JsonKey.of(featureId)))
+                resourcePath.equals(Thing.JsonFields.FEATURES.getPointer().addLeaf(JsonKey.of(featureId))) &&
+                featureThingModels.containsKey(featureId)
         ) {
             final WotThingModelPayloadValidationException.Builder exceptionBuilder =
                     WotThingModelPayloadValidationException

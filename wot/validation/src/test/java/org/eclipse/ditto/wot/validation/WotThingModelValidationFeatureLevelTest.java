@@ -213,13 +213,14 @@ public final class WotThingModelValidationFeatureLevelTest {
 
 
     private WotThingModelValidation sut;
+    private FeatureValidationConfig featureValidationConfig;
 
     @Before
     public void setUp() {
         final TmValidationConfig validationConfig = mock(TmValidationConfig.class);
         when(validationConfig.isEnabled()).thenReturn(true);
 
-        final FeatureValidationConfig featureValidationConfig = mock(FeatureValidationConfig.class);
+        featureValidationConfig = mock(FeatureValidationConfig.class);
         when(featureValidationConfig.isEnforceFeatureDescriptionModification()).thenReturn(true);
         when(featureValidationConfig.isEnforcePresenceOfModeledFeatures()).thenReturn(true);
         when(featureValidationConfig.isForbidNonModeledFeatures()).thenReturn(true);
@@ -680,14 +681,31 @@ public final class WotThingModelValidationFeatureLevelTest {
     }
 
     @Test
-    public void validateFeatureDeletionSucceedsForUndefinedFeature() {
+    public void validateFeatureDeletionSucceedsForNonSubmodelFeatureWithOwnModel() {
         internalCheckFail(false, sut.validateFeatureScopedDeletion(
-                Map.of(KNOWN_FEATURE_ID, KNOWN_FEATURE_LEVEL_TM),
+                Map.of(),
                 KNOWN_FEATURE_LEVEL_TM,
-                "unknown-feature",
-                JsonPointer.of("features/unknown-feature"),
+                KNOWN_FEATURE_ID,
+                JsonPointer.of("features/" + KNOWN_FEATURE_ID),
                 provideValidationContext()
         ));
+    }
+
+    @Test
+    public void validateRequiredPropertyDeletionFailsForNonSubmodelFeatureWithOwnModel() {
+        internalCheckFail(true, sut.validateFeatureScopedDeletion(
+                Map.of(),
+                KNOWN_FEATURE_LEVEL_TM,
+                KNOWN_FEATURE_ID,
+                JsonPointer.of("features/" + KNOWN_FEATURE_ID + "/properties/" + CATEGORY_CONFIG),
+                provideValidationContext()
+        ));
+    }
+
+    @Test
+    public void validateModeledFeatureDeletionSucceedsWhenPresenceIsNotEnforced() {
+        when(featureValidationConfig.isEnforcePresenceOfModeledFeatures()).thenReturn(false);
+        checkValidateFeaturePropertyDeletion(JsonPointer.of("features/" + KNOWN_FEATURE_ID), false);
     }
 
     @Test
