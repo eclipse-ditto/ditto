@@ -21,11 +21,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -45,13 +45,15 @@ final class ImmutableFilteredTopic implements FilteredTopic {
     private static final String QUERY_ARG_VALUE_DELIMITER = "=";
 
     private static final String FILTER_ARG = "filter";
+    private static final String FN_FILTER_ARG = "fn-filter";
     private static final String NAMESPACES_ARG = "namespaces";
     private static final String EXTRA_FIELDS_ARG = "extraFields";
 
 
     private final Topic topic;
     private final List<String> namespaces;
-    @Nullable private final String filterString;
+    @Nullable private final String filter;
+    @Nullable private final String fnFilter;
     @Nullable private final ThingFieldSelector extraFields;
 
     private ImmutableFilteredTopic(final ImmutableFilteredTopicBuilder builder) {
@@ -60,7 +62,8 @@ final class ImmutableFilteredTopic implements FilteredTopic {
         namespaces = null != namespacesFromBuilder
                 ? Collections.unmodifiableList(new ArrayList<>(namespacesFromBuilder))
                 : Collections.emptyList();
-        filterString = Objects.toString(builder.filter, null);
+        filter = Objects.toString(builder.filter, null);
+        fnFilter = Objects.toString(builder.fnFilter, null);
         extraFields = builder.extraFields;
     }
 
@@ -102,7 +105,12 @@ final class ImmutableFilteredTopic implements FilteredTopic {
 
     @Override
     public Optional<String> getFilter() {
-        return Optional.ofNullable(filterString);
+        return Optional.ofNullable(filter);
+    }
+
+    @Override
+    public Optional<String> getFnFilter() {
+        return Optional.ofNullable(fnFilter);
     }
 
     @Override
@@ -131,8 +139,10 @@ final class ImmutableFilteredTopic implements FilteredTopic {
     }
 
     private String getQueryParametersAsString() {
-        return join(QUERY_ARG_DELIMITER, getQueryParameterString(NAMESPACES_ARG, String.join(",", namespaces)),
-                getQueryParameterString(FILTER_ARG, filterString),
+        return join(QUERY_ARG_DELIMITER,
+                getQueryParameterString(NAMESPACES_ARG, String.join(",", namespaces)),
+                getQueryParameterString(FILTER_ARG, filter),
+                getQueryParameterString(FN_FILTER_ARG, fnFilter),
                 getQueryParameterString(EXTRA_FIELDS_ARG, extraFields));
     }
 
@@ -169,13 +179,14 @@ final class ImmutableFilteredTopic implements FilteredTopic {
         final ImmutableFilteredTopic that = (ImmutableFilteredTopic) o;
         return topic == that.topic &&
                 namespaces.equals(that.namespaces) &&
-                Objects.equals(filterString, that.filterString) &&
+                Objects.equals(filter, that.filter) &&
+                Objects.equals(fnFilter, that.fnFilter) &&
                 Objects.equals(extraFields, that.extraFields);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(topic, namespaces, filterString, extraFields);
+        return Objects.hash(topic, namespaces, filter, fnFilter, extraFields);
     }
 
     /**
@@ -187,12 +198,14 @@ final class ImmutableFilteredTopic implements FilteredTopic {
         private final Topic topic;
         @Nullable private Collection<String> namespaces;
         @Nullable private CharSequence filter;
+        @Nullable private CharSequence fnFilter;
         @Nullable private ThingFieldSelector extraFields;
 
         private ImmutableFilteredTopicBuilder(final Topic topic) {
             this.topic = checkNotNull(topic, "topic");
             namespaces = null;
             filter = null;
+            fnFilter = null;
             extraFields = null;
         }
 
@@ -208,6 +221,14 @@ final class ImmutableFilteredTopic implements FilteredTopic {
         public ImmutableFilteredTopicBuilder withFilter(@Nullable final CharSequence filter) {
             if (supportsFilters()) {
                 this.filter = filter;
+            }
+            return this;
+        }
+
+        @Override
+        public ImmutableFilteredTopicBuilder withFnFilter(@Nullable final CharSequence fnFilter) {
+            if (supportsFilters()) {
+                this.fnFilter = fnFilter;
             }
             return this;
         }
@@ -261,6 +282,7 @@ final class ImmutableFilteredTopic implements FilteredTopic {
             return getBuilder(parseTopic(topicName))
                     .withNamespaces(parseNamespaces(queryParameters.get(NAMESPACES_ARG)))
                     .withFilter(queryParameters.get(FILTER_ARG))
+                    .withFnFilter(queryParameters.get(FN_FILTER_ARG))
                     .withExtraFields(parseExtraFields(queryParameters.get(EXTRA_FIELDS_ARG)))
                     .build();
         }
@@ -275,10 +297,19 @@ final class ImmutableFilteredTopic implements FilteredTopic {
             if (null == queryParamsString || queryParamsString.isEmpty()) {
                 return Collections.emptyMap();
             }
-            return Arrays.stream(queryParamsString.split(QUERY_ARG_DELIMITER))
-                    .map(paramString -> paramString.split(QUERY_ARG_VALUE_DELIMITER, 2))
-                    .filter(queryParamPair -> 2 == queryParamPair.length)
-                    .collect(Collectors.toMap(queryParamPair -> urlDecode(queryParamPair[0]), av -> urlDecode(av[1])));
+            final Map<String, String> queryParameters = new HashMap<>(4);
+            for (final String paramString : queryParamsString.split(QUERY_ARG_DELIMITER)) {
+                final String[] queryParamPair = paramString.split(QUERY_ARG_VALUE_DELIMITER, 2);
+                if (2 != queryParamPair.length) {
+                    continue;
+                }
+                final String name = urlDecode(queryParamPair[0]);
+                if (null != queryParameters.putIfAbsent(name, urlDecode(queryParamPair[1]))) {
+                    // no query parameter is repeatable - a duplicated one is rejected like before
+                    throw new IllegalStateException("Duplicate key " + name);
+                }
+            }
+            return queryParameters;
         }
 
         private static String urlDecode(final String value) {

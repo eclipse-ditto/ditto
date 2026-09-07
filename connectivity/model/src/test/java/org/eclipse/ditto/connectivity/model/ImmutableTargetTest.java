@@ -109,4 +109,21 @@ public final class ImmutableTargetTest {
         assertThat(actual).isEqualTo(MQTT_TARGET);
     }
 
+    @Test
+    public void toJsonFromJsonRoundTripsWithFilterAndFnFilterTopic() {
+        final FilteredTopic filteredTopic = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
+                .withFilter("gt(attributes/counter,42)")
+                .withFnFilter("fn:filter(header:ditto-originator,'ne','some:subject')")
+                .build();
+        final Target target = ConnectivityModelFactory.newTargetBuilder()
+                .address(ADDRESS)
+                .authorizationContext(AUTHORIZATION_CONTEXT)
+                .topics(filteredTopic)
+                .build();
+
+        final Target actual = ImmutableTarget.fromJson(target.toJson());
+
+        assertThat(actual).isEqualTo(target);
+    }
+
 }
