@@ -162,6 +162,12 @@ jobs:
             MAIN_CLASS=org.eclipse.ditto.policies.service.starter.PoliciesService
           pull: true
           push: true
+          # Supply-chain attestations, attached to the pushed manifest:
+          # an SPDX SBOM of the image contents plus max-mode SLSA provenance.
+          # Downstream consumers need these for their own CRA technical documentation;
+          # inspect with `docker buildx imagetools inspect <image> --format '{{json .SBOM}}'`.
+          sbom: true
+          provenance: mode=max
           tags: ${{ env.TAGS_DITTO_POLICIES }}
       -
         name: Build and push ditto-things
@@ -177,6 +183,8 @@ jobs:
             MAIN_CLASS=org.eclipse.ditto.things.service.starter.ThingsService
           pull: true
           push: true
+          sbom: true
+          provenance: mode=max
           tags: ${{ env.TAGS_DITTO_THINGS }}
       -
         name: Build and push ditto-gateway
@@ -192,6 +200,8 @@ jobs:
             MAIN_CLASS=org.eclipse.ditto.gateway.service.starter.GatewayService
           pull: true
           push: true
+          sbom: true
+          provenance: mode=max
           tags: ${{ env.TAGS_DITTO_GATEWAY }}
       -
         name: Build and push ditto-thingsearch
@@ -207,6 +217,8 @@ jobs:
             MAIN_CLASS=org.eclipse.ditto.thingsearch.service.starter.SearchService
           pull: true
           push: true
+          sbom: true
+          provenance: mode=max
           tags: ${{ env.TAGS_DITTO_THINGS_SEARCH }}
       -
         name: Build and push ditto-connectivity
@@ -223,6 +235,8 @@ jobs:
             JVM_CMD_ARGS=--add-opens java.base/java.nio=ALL-UNNAMED --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/sun.security.util=ALL-UNNAMED
           pull: true
           push: true
+          sbom: true
+          provenance: mode=max
           tags: ${{ env.TAGS_DITTO_CONNECTIVITY }}
       -
         name: Use Node.js 18.x
@@ -247,6 +261,8 @@ jobs:
           platforms: linux/amd64,linux/arm64
           pull: true
           push: true
+          sbom: true
+          provenance: mode=max
           tags: ${{ env.TAGS_DITTO_UI }}
       -
         name: Build and push ditto-policies milestone/RC
@@ -262,6 +278,8 @@ jobs:
             MAIN_CLASS=org.eclipse.ditto.policies.service.starter.PoliciesService
           pull: true
           push: true
+          sbom: true
+          provenance: mode=max
           tags: |
             eclipse/ditto-policies:${{ env.IMAGE_TAG }}
       -
@@ -278,6 +296,8 @@ jobs:
             MAIN_CLASS=org.eclipse.ditto.things.service.starter.ThingsService
           pull: true
           push: true
+          sbom: true
+          provenance: mode=max
           tags: |
             eclipse/ditto-things:${{ env.IMAGE_TAG }}
       -
@@ -294,6 +314,8 @@ jobs:
             MAIN_CLASS=org.eclipse.ditto.gateway.service.starter.GatewayService
           pull: true
           push: true
+          sbom: true
+          provenance: mode=max
           tags: |
             eclipse/ditto-gateway:${{ env.IMAGE_TAG }}
       -
@@ -310,6 +332,8 @@ jobs:
             MAIN_CLASS=org.eclipse.ditto.thingsearch.service.starter.SearchService
           pull: true
           push: true
+          sbom: true
+          provenance: mode=max
           tags: |
             eclipse/ditto-things-search:${{ env.IMAGE_TAG }}
       -
@@ -327,6 +351,8 @@ jobs:
             JVM_CMD_ARGS=--add-opens java.base/java.nio=ALL-UNNAMED --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/sun.security.util=ALL-UNNAMED
           pull: true
           push: true
+          sbom: true
+          provenance: mode=max
           tags: |
             eclipse/ditto-connectivity:${{ env.IMAGE_TAG }}
       -
@@ -339,5 +365,72 @@ jobs:
           platforms: linux/amd64,linux/arm64
           pull: true
           push: true
+          sbom: true
+          provenance: mode=max
           tags: |
             eclipse/ditto-ui:${{ env.IMAGE_TAG }}
+      -
+        # Scan the released images with the same CRITICAL gate the nightly build uses.
+        # These steps necessarily run AFTER the push (the images are built and pushed in
+        # one buildx step, for two platforms), so this is a detective control: a red run
+        # here does not un-publish anything, it means a fixed patch release is needed.
+        # Keep the settings in sync with docker-nightly.yml.
+        name: Run Trivy vulnerability scanner for ditto-policies
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: 'docker.io/eclipse/ditto-policies:${{ env.IMAGE_TAG }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL'
+      -
+        name: Run Trivy vulnerability scanner for ditto-things
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: 'docker.io/eclipse/ditto-things:${{ env.IMAGE_TAG }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL'
+      -
+        name: Run Trivy vulnerability scanner for ditto-gateway
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: 'docker.io/eclipse/ditto-gateway:${{ env.IMAGE_TAG }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL'
+      -
+        name: Run Trivy vulnerability scanner for ditto-things-search
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: 'docker.io/eclipse/ditto-things-search:${{ env.IMAGE_TAG }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL'
+      -
+        name: Run Trivy vulnerability scanner for ditto-connectivity
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: 'docker.io/eclipse/ditto-connectivity:${{ env.IMAGE_TAG }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL'
+      -
+        name: Run Trivy vulnerability scanner for ditto-ui
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: 'docker.io/eclipse/ditto-ui:${{ env.IMAGE_TAG }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL'

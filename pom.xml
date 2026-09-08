@@ -128,6 +128,15 @@
         <maven.build.timestamp.format>yyyy-MM-dd</maven.build.timestamp.format>
         <timestamp>${maven.build.timestamp}</timestamp>
 
+        <!-- Reproducible builds: pins the timestamp of every entry in the produced archives
+             so that building the same sources twice yields byte-identical artifacts.
+             Deliberately NOT ${maven.build.timestamp} - that would defeat the purpose.
+             The release job overrides this with the tagged commit's date:
+               mvn ... -Dproject.build.outputTimestamp=2026-09-08T10:00:00Z
+             Note: this does not affect ${maven.build.timestamp} above (verified on Maven
+             3.9.x), so the date injected into the legal docs still tracks the build date. -->
+        <project.build.outputTimestamp>2026-01-01T00:00:00Z</project.build.outputTimestamp>
+
         <release.scm.connection>scm:git:git@github.com:eclipse-ditto/ditto.git</release.scm.connection>
         <release.scm.developerConnection>scm:git:https://github.com/eclipse-ditto/ditto.git</release.scm.developerConnection>
         <release.scm.url>https://github.com/eclipse-ditto/ditto.git</release.scm.url>
