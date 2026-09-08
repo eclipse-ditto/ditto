@@ -1,76 +1,79 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Eclipse Ditto — a digital twin framework for IoT. Java 25 + Maven; five microservices
+(things, policies, gateway, connectivity, thingsearch) in one Pekko cluster. Services never
+call each other over HTTP — it is all Pekko messaging, sharded by entity ID. Entities are
+event-sourced (`AbstractPersistenceActor`), commands handled CQRS-style by `*Strategy`
+classes under each service's `persistence/actors/strategies/`.
 
-## Overview
+## Gotchas
 
-Eclipse Ditto is a digital twin framework for IoT, implementing a microservices architecture using Apache Pekko (an Akka fork maintained by the Apache Software Foundation), event sourcing, and CQRS patterns. The codebase is primarily Java 25 with Maven as the build system.
+The things that are wrong-by-default or invisible in the code:
 
-Five microservices communicate via Pekko Cluster (no HTTP between services): **Things**, **Policies**, **Gateway**, **Connectivity**, and **Things-Search**. Key patterns: Event Sourcing via `AbstractPersistenceActor`, CQRS with Strategy pattern, Pekko Cluster Sharding by entity ID.
+**Public API modules compile at Java 8** despite the Java 25 default: `json`, `json-cbor`,
+`protocol`, `placeholders`, `utils/jsr305`, `rql/*`, and every `*/model` module. No `var`,
+records, text blocks, arrow-switch, pattern matching, or `Stream.toList()` there. They are
+also published artifacts guarded by japicmp, so changes must be additive (default methods,
+new optional fields) — never alter a signature or a JSON serialization format. Use
+`-Djapicmp.skip=true` only when a break is deliberate.
 
-## Build & Test Commands
+**New public API needs a Javadoc `@since` tag — ask which version.** Don't guess it.
 
-```bash
-# Build without tests (fast)
-mvn clean install -DskipTests
+**`Optional` is for return types only.** Parameters and fields take `@Nullable` instead.
 
-# Run tests for a module (always use -T4 for parallel execution)
-mvn test -T4 -pl things/service
+**A new HOCON config key must land in four places**, or it ships unsettable in production:
+default + `${?ENV_VAR}` override in the service `.conf`,
+`deployment/helm/ditto/values.yaml`, and the Helm template (plain env var, or
+`*-extension.conf.tpl` for structured values).
 
-# Run a specific test class / method
-mvn test -T4 -Dtest=ThingPersistenceActorTest
-mvn test -T4 -Dtest=ThingPersistenceActorTest#testCreateThing
+**Any change under `deployment/helm/ditto/` needs a `version` bump in `Chart.yaml`** — CI
+Helm lint fails otherwise.
 
-# Run integration tests
-mvn verify -T4 -pl connectivity/service
+**A feature that changes existing behavior goes behind a feature toggle** so existing
+deployments can opt out: a constant + check method in
+`base/model/.../signals/FeatureToggle.java`, and the default in `ditto-devops.conf`.
 
-# Check/fix license headers
-mvn license:check
-mvn license:format
+**In actors, never `.join()`/`.get()` a `CompletableFuture`, and never read or write actor
+fields from its lambdas** — they run on other threads. Capture `getSender()` before going
+async, transform only local data in the lambda, and `Patterns.pipe()` the result back (to
+`self` when state must change).
 
-# Start local Ditto via Docker Compose
-cd deployment/docker/ && docker-compose up -d
-```
+**HTTP API paths mirror the resource's JSON structure**:
+`/things/{id}/features/{fid}/properties/temperature` *is* the JSON path. A segment that
+isn't a JSON field can collide with a user-defined field name, so new query semantics get a
+new API root (`/api/2/search/things`, `/api/2/whoami`), never a deeper path.
 
-## Key Requirements
+**Editing `documentation/src/main/resources/openapi/sources/` requires regenerating the
+bundled spec**, else `ditto-api-2.yml` goes stale:
+`cd documentation/src/main/resources/openapi/sources && npm install && npm run build`.
 
-1. **Feature toggles** for new features changing existing behavior - see [feature-toggles.md](.claude/context/feature-toggles.md)
-2. **Java 8 syntax** in public API modules (model, protocol, json, rql) - see [code-patterns.md](.claude/context/code-patterns.md)
-3. **Backward compatibility** in model modules - these are public API
-4. **Helm updates** when adding HOCON configuration - see [code-patterns.md](.claude/context/code-patterns.md)
-5. **`@since` version tag** on new public API - ask the user for the version number
-6. **Unit tests** covering happy path AND corner cases (use Pekko TestKit for actors)
-7. **License headers** on all new files (EPL 2.0, current year)
-8. **Actor concurrency** - NEVER block or modify state in CompletableFuture lambdas - see [code-patterns.md](.claude/context/code-patterns.md)
+**For WoT ThingModels, verify syntax against the W3C spec** instead of inferring it —
+`tm:submodel` / `tm:ref` are easy to get plausibly wrong.
 
-## Contribution Workflow
+## Build & test
 
-1. Create GitHub issue before starting work
-2. Create draft PR early for feedback
-3. Branch naming: `feature/<desc>`, `bugfix/<desc>`, `refactor/<desc>`
-4. Base branch: `master`
+Add `-T4` to every `mvn test` / `mvn verify`. Single module with its deps:
+`mvn compile -pl gateway/service -am -DskipTests`. Tests should cover corner cases, not
+just the happy path.
 
-See [git-workflow.md](.claude/context/git-workflow.md) for full details.
+## Contributing
 
-## Context Files
+GitHub issue first, then a draft PR early. Branch off `master` as
+`feature|bugfix|refactor/<desc>`. Eclipse ECA applies — commit with `-s`.
 
-Detailed guidance lives in `.claude/context/`:
+## Load on demand
 
-- **[architecture.md](.claude/context/architecture.md)** - Service details, inter-service communication, technology stack
-- **[code-patterns.md](.claude/context/code-patterns.md)** - Signals, persistence actors, actor concurrency, Java 8 modules, config management, WoT ThingModels, code style
-- **[modules.md](.claude/context/modules.md)** - Repository structure, module dependencies, backward compatibility
-- **[feature-toggles.md](.claude/context/feature-toggles.md)** - How to add and use feature toggles
-- **[build-and-test.md](.claude/context/build-and-test.md)** - Complete build, test, and Docker commands
-- **[git-workflow.md](.claude/context/git-workflow.md)** - ECA, commit format, PR process, branch naming
-- **[deployment.md](.claude/context/deployment.md)** - Helm, Docker Compose, Kubernetes deployment
-- **[troubleshooting.md](.claude/context/troubleshooting.md)** - Common build, test, Docker, and runtime issues
-- **[documentation-sources.md](.claude/context/documentation-sources.md)** - OpenAPI specs, JSON schemas, ADRs
+Read these only when the task calls for it, not up front:
 
-For architecture deep dives, see [.claude/deep-dives/README.md](.claude/deep-dives/README.md).
+- `.claude/context/architecture.md` — per-service responsibilities, inter-service messaging, tech stack
+- `.claude/context/code-patterns.md` — immutability, signals, persistence actors, config flow, code style, full Java 8 rules
+- `.claude/context/modules.md` — repo layout, module dependencies, public API compatibility rules
+- `.claude/context/feature-toggles.md` — how to add a toggle; the existing ones
+- `.claude/context/build-and-test.md` — full build, Docker Compose, UI, coverage commands
+- `.claude/context/git-workflow.md` — ECA, commit format, review process, `claude` branch handling
+- `.claude/context/deployment.md` — Helm, Docker Compose, Kubernetes
+- `.claude/context/troubleshooting.md` — recurring build, test, Docker, runtime failures
+- `.claude/context/documentation-sources.md` — OpenAPI specs, JSON schemas, ADRs
+- `.claude/deep-dives/README.md` — architecture deep dives
 
-## Project Resources
-
-- **Documentation**: https://www.eclipse.dev/ditto/
-- **Explorer UI**: https://eclipse-ditto.github.io/ditto/
-- **GitHub Issues**: https://github.com/eclipse-ditto/ditto/issues
-- **System Tests**: https://github.com/eclipse-ditto/ditto-testing
+Docs: https://www.eclipse.dev/ditto/ · System tests: https://github.com/eclipse-ditto/ditto-testing
