@@ -43,6 +43,14 @@ import org.eclipse.ditto.protocol.UnknownChannelException;
 import org.eclipse.ditto.protocol.UnknownSignalException;
 import org.eclipse.ditto.protocol.adapter.common.CheckPermissionsCommandAdapter;
 import org.eclipse.ditto.protocol.adapter.common.CheckPermissionsCommandResponseAdapter;
+import org.eclipse.ditto.protocol.adapter.things.TimeseriesAggregateCommandAdapter;
+import org.eclipse.ditto.protocol.adapter.things.TimeseriesAggregateCommandResponseAdapter;
+import org.eclipse.ditto.protocol.adapter.things.TimeseriesQueryCommandAdapter;
+import org.eclipse.ditto.protocol.adapter.things.TimeseriesQueryCommandResponseAdapter;
+import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveAggregatedTimeseries;
+import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveAggregatedTimeseriesResponse;
+import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveTimeseries;
+import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveTimeseriesResponse;
 import org.eclipse.ditto.protocol.adapter.connectivity.ConnectivityCommandAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.provider.AcknowledgementAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.provider.PolicyCommandAdapterProvider;
@@ -75,6 +83,10 @@ final class AdapterResolverBySignal {
     private final StreamingSubscriptionEventAdapter streamingSubscriptionEventAdapter;
     private final CheckPermissionsCommandAdapter checkPermissionsCommandAdapter;
     private final CheckPermissionsCommandResponseAdapter checkPermissionsCommandResponseAdapter;
+    private final TimeseriesQueryCommandAdapter timeseriesQueryCommandAdapter;
+    private final TimeseriesQueryCommandResponseAdapter timeseriesQueryCommandResponseAdapter;
+    private final TimeseriesAggregateCommandAdapter timeseriesAggregateCommandAdapter;
+    private final TimeseriesAggregateCommandResponseAdapter timeseriesAggregateCommandResponseAdapter;
 
     AdapterResolverBySignal(final ThingCommandAdapterProvider thingsAdapters,
             final PolicyCommandAdapterProvider policiesAdapters,
@@ -83,7 +95,11 @@ final class AdapterResolverBySignal {
             final StreamingSubscriptionCommandAdapter streamingSubscriptionCommandAdapter,
             final StreamingSubscriptionEventAdapter streamingSubscriptionEventAdapter,
             final CheckPermissionsCommandAdapter checkPermissionsCommandAdapter,
-            final CheckPermissionsCommandResponseAdapter checkPermissionsCommandResponseAdapter) {
+            final CheckPermissionsCommandResponseAdapter checkPermissionsCommandResponseAdapter,
+            final TimeseriesQueryCommandAdapter timeseriesQueryCommandAdapter,
+            final TimeseriesQueryCommandResponseAdapter timeseriesQueryCommandResponseAdapter,
+            final TimeseriesAggregateCommandAdapter timeseriesAggregateCommandAdapter,
+            final TimeseriesAggregateCommandResponseAdapter timeseriesAggregateCommandResponseAdapter) {
 
         this.thingsAdapters = thingsAdapters;
         this.policiesAdapters = policiesAdapters;
@@ -93,6 +109,10 @@ final class AdapterResolverBySignal {
         this.streamingSubscriptionEventAdapter = streamingSubscriptionEventAdapter;
         this.checkPermissionsCommandAdapter = checkPermissionsCommandAdapter;
         this.checkPermissionsCommandResponseAdapter = checkPermissionsCommandResponseAdapter;
+        this.timeseriesQueryCommandAdapter = timeseriesQueryCommandAdapter;
+        this.timeseriesQueryCommandResponseAdapter = timeseriesQueryCommandResponseAdapter;
+        this.timeseriesAggregateCommandAdapter = timeseriesAggregateCommandAdapter;
+        this.timeseriesAggregateCommandResponseAdapter = timeseriesAggregateCommandResponseAdapter;
     }
 
     @SuppressWarnings("unchecked")
@@ -194,6 +214,16 @@ final class AdapterResolverBySignal {
             return (Adapter<T>) checkPermissionsCommandResponseAdapter;
         }
 
+        if (commandResponse instanceof RetrieveTimeseriesResponse) {
+            validateChannel(channel, commandResponse, TWIN);
+            return (Adapter<T>) timeseriesQueryCommandResponseAdapter;
+        }
+
+        if (commandResponse instanceof RetrieveAggregatedTimeseriesResponse) {
+            validateChannel(channel, commandResponse, TWIN);
+            return (Adapter<T>) timeseriesAggregateCommandResponseAdapter;
+        }
+
         if (commandResponse instanceof PolicyModifyCommandResponse) {
             validateChannel(channel, commandResponse, NONE);
             return (Adapter<T>) policiesAdapters.getModifyCommandResponseAdapter();
@@ -271,6 +301,16 @@ final class AdapterResolverBySignal {
         if (command instanceof CheckPermissions) {
             validateChannel(channel, command, NONE);
             return (Adapter<T>) checkPermissionsCommandAdapter;
+        }
+
+        if (command instanceof RetrieveTimeseries) {
+            validateChannel(channel, command, TWIN);
+            return (Adapter<T>) timeseriesQueryCommandAdapter;
+        }
+
+        if (command instanceof RetrieveAggregatedTimeseries) {
+            validateChannel(channel, command, TWIN);
+            return (Adapter<T>) timeseriesAggregateCommandAdapter;
         }
 
         if (command instanceof PolicyModifyCommand) {

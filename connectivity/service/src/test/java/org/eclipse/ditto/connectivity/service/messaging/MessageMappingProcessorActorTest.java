@@ -15,6 +15,7 @@ package org.eclipse.ditto.connectivity.service.messaging;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -70,6 +71,10 @@ import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveAggregatedTimeseries;
+import org.eclipse.ditto.timeseries.model.GroupBy;
+import org.eclipse.ditto.timeseries.model.CrossThingTimeseriesQuery;
+import org.eclipse.ditto.timeseries.model.Aggregation;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttribute;
@@ -135,6 +140,46 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                             .hasValueSatisfying(desc -> assertThat(desc).contains(FAULTY_MAPPER));
                 }
         );
+    }
+
+    /**
+     * Third transport: a cross-Thing aggregation arriving over a Connectivity source.
+     * <p>
+     * {@code RetrieveAggregatedTimeseries} is deliberately not a {@code WithEntityId} command, and
+     * {@code InboundDispatchingSink} branches on the entity ID — an entity-less command falls to the
+     * generic {@code proxyActor.tell(signal, sender)} path. That path is untested for such commands,
+     * and {@code CheckPermissions} (the only other entity-less command) needed a dedicated branch, so
+     * the generic route cannot be assumed to work by inspection. This drives the real inbound
+     * pipeline: Ditto Protocol text on a source, payload mapping, protocol adapter, dispatch.
+     */
+    @Test
+    public void crossThingAggregationFromAConnectivitySourceIsDispatched() {
+        new TestKit(actorSystem) {{
+            final ActorRef outboundMappingProcessorActor = createOutboundMappingProcessorActor(this);
+            final ActorRef inboundMappingProcessorActor =
+                    createInboundMappingProcessorActor(this, outboundMappingProcessorActor);
+
+            final CrossThingTimeseriesQuery query = CrossThingTimeseriesQuery.of("org.eclipse.ditto",
+                    List.of(JsonPointer.of("/features/env/properties/flowTemperature")),
+                    Instant.parse("2026-07-01T00:00:00Z"), Instant.parse("2026-07-02T00:00:00Z"),
+                    Duration.ofHours(1), Aggregation.AVG,
+                    List.of(GroupBy.thingId()), "eq(attributes/building,'A')", null, null, null);
+            final RetrieveAggregatedTimeseries command = RetrieveAggregatedTimeseries.of(query,
+                    DittoHeaders.newBuilder().correlationId("conn-aggregate-1").build());
+
+            final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
+            inboundMappingProcessorActor.tell(
+                    new ExternalMessageWithSender(toExternalMessage(command), collectorProbe.ref()),
+                    ActorRef.noSender());
+
+            final RetrieveAggregatedTimeseries dispatched =
+                    fishForMsg(this, RetrieveAggregatedTimeseries.class);
+
+            // The whole query must survive source -> protocol adapter -> dispatch, not just the type.
+            assertThat(dispatched.getQuery()).isEqualTo(query);
+            assertThat(dispatched.getNamespace()).isEqualTo("org.eclipse.ditto");
+            assertThat(dispatched.getDittoHeaders().getCorrelationId()).contains("conn-aggregate-1");
+        }};
     }
 
     @Test

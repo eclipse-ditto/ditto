@@ -133,10 +133,11 @@
                     "type": "array",
                     "items": {
                       "type": "string",
-                      "description": "All subjects specified in this policy entry are granted read/write permission on the resources specified in the path, and all subsequent paths, except they are revoked at a subsequent policy label.",
+                      "description": "All subjects specified in this policy entry are granted the listed permissions on the resources specified in the path, and all subsequent paths, except they are revoked at a subsequent policy label. `READ_TS` (since 4.0.0) only applies to `thing:/...` resources and gates retrieval of historical timeseries data via the Timeseries API; when the Timeseries service is configured with `required-permission=READ`, a `READ` grant alone is also sufficient to read timeseries data.",
                       "enum": [
                         "READ",
-                        "WRITE"
+                        "WRITE",
+                        "READ_TS"
                       ]
                     }
                   },
@@ -144,10 +145,11 @@
                     "type": "array",
                     "items": {
                       "type": "string",
-                      "description": "All subjects specified in this policy entry are prohibited to read/write on the resources specified in the path, and all subsequent paths, except they are granted again such permission at a subsequent policy label.",
+                      "description": "All subjects specified in this policy entry are prohibited from exercising the listed permissions on the resources specified in the path, and all subsequent paths, except they are granted again such permission at a subsequent policy label. `READ_TS` (since 4.0.0) only applies to `thing:/...` resources and gates retrieval of historical timeseries data via the Timeseries API; an explicit `READ_TS` revoke takes effect only when the Timeseries service is configured with `required-permission=READ_TS` (its default).",
                       "enum": [
                         "READ",
-                        "WRITE"
+                        "WRITE",
+                        "READ_TS"
                       ]
                     }
                   }

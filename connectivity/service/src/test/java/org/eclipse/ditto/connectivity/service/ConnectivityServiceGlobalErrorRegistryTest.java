@@ -48,6 +48,7 @@ import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigNotAc
 import org.eclipse.ditto.things.model.signals.commands.exceptions.AttributePointerInvalidException;
 import org.eclipse.ditto.thingsearch.api.QueryTimeExceededException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidNamespacesException;
+import org.eclipse.ditto.timeseries.model.TimeseriesQueryInvalidException;
 import org.eclipse.ditto.wot.model.WotThingModelInvalidException;
 import org.eclipse.ditto.wot.validation.WotThingModelPayloadValidationException;
 
@@ -92,7 +93,8 @@ public final class ConnectivityServiceGlobalErrorRegistryTest extends GlobalErro
                 WotValidationConfigHistoryNotAccessibleException.class,
                 WotValidationConfigInvalidException.class,
                 WotValidationConfigNotAccessibleException.class,
-                ServiceTimeoutException.class
+                ServiceTimeoutException.class,
+                TimeseriesQueryInvalidException.class
         );
     }
 
