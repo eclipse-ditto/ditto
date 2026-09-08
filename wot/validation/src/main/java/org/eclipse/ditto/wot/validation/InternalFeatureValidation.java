@@ -368,6 +368,11 @@ final class InternalFeatureValidation {
         final JsonPointer propertiesPath =
                 resourcePath.getSubPointer(2).orElse(resourcePath); // cut /features/<featureId>
 
+        if (propertiesPath.isEmpty()) {
+            // Whole-feature deletion is governed by enforcePresenceOfModeledFeatures, not property requirements.
+            return success();
+        }
+
         final CompletableFuture<Void> firstStage;
         if (propertiesPath.getLevelCount() > 1) {
             firstStage = enforcePresenceOfRequiredPropertiesUponPropertyCategoryDeletion(featureThingModel,
