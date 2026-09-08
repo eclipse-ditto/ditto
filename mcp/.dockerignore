@@ -1,0 +1,19 @@
+# Rebuilt inside the image
+node_modules/
+dist/
+
+# Local-only / secrets / caches — never bake into image
+.cache/
+models/
+config.local.json
+*.db
+*.db-wal
+*.db-shm
+*.db.tmp
+*.log
+
+# Not needed at runtime
+.git/
+examples/
+*.test.ts
+vitest*.ts

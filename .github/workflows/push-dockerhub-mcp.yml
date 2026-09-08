@@ -1,0 +1,111 @@
+# Copyright (c) 2026 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+name: push-dockerhub-mcp
+
+# The Ditto MCP server (mcp/) is a self-contained Node image with its own
+# version (mcp/package.json) and build path — no Maven, no allinone jars, no
+# UI build. It is therefore published by its own workflow rather than bolted
+# onto the release/nightly workflows that ship the Java services + UI.
+on:
+  push:
+    tags:
+      - 'mcp-v*' # e.g. mcp-v0.1.0
+  # Manual (re-)build. Set 'mcpVersion' to override the image tag; leave empty
+  # to derive it from the pushed tag, or fall back to mcp/package.json.
+  workflow_dispatch:
+    inputs:
+      mcpVersion:
+        description: 'Image version to publish (e.g. 0.1.0). Leave empty to derive from tag / package.json.'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: github.repository == 'eclipse-ditto/ditto'
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Harden Runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+      -
+        name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
+      -
+        name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.1.0 # setup buildx in order to do build and push multi-architecture images
+      -
+        name: Inspect buildx builder
+        run: |
+          echo "Name:      ${{ steps.buildx.outputs.name }}"
+          echo "Endpoint:  ${{ steps.buildx.outputs.endpoint }}"
+          echo "Status:    ${{ steps.buildx.outputs.status }}"
+          echo "Flags:     ${{ steps.buildx.outputs.flags }}"
+          echo "Platforms: ${{ steps.buildx.outputs.platforms }}"
+      -
+        name: Login to Docker Hub
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4.4.0
+        with:
+          username: eclipsedittobot
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+      -
+        name: Resolve image tag
+        id: tag
+        env:
+          MCP_VERSION_INPUT: ${{ inputs.mcpVersion }}
+          GITHUB_REF: ${{ github.ref }}
+        run: |
+          # Precedence: manual input > pushed 'mcp-v<version>' tag > mcp/package.json.
+          if [ -n "$MCP_VERSION_INPUT" ]; then
+            TAG="$MCP_VERSION_INPUT"
+          elif [ "${GITHUB_REF#refs/tags/mcp-v}" != "$GITHUB_REF" ]; then
+            TAG="${GITHUB_REF#refs/tags/mcp-v}"
+          else
+            TAG="$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' mcp/package.json | head -1)"
+          fi
+          if [ -z "$TAG" ]; then
+            echo "Could not resolve an image tag" >&2
+            exit 1
+          fi
+          echo "IMAGE_TAG=$TAG" >> "$GITHUB_ENV"
+          echo "Publishing eclipse/ditto-mcp:$TAG (+ :latest)"
+      -
+        name: Build and push ditto-mcp
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: mcp
+          file: mcp/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          pull: true
+          push: true
+          tags: |
+            eclipse/ditto-mcp:${{ env.IMAGE_TAG }}
+            eclipse/ditto-mcp:latest
+      -
+        name: Run Trivy vulnerability scanner for ditto-mcp
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: 'docker.io/eclipse/ditto-mcp:${{ env.IMAGE_TAG }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL'
