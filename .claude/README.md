@@ -32,7 +32,8 @@ General knowledge about Ditto's architecture, patterns, and development practice
 - `modules.md` - Module structure, public API compatibility
 - `troubleshooting.md` - Common issues and solutions
 
-**When to use**: Always - these files provide foundational knowledge for working with Ditto.
+**When to use**: On demand. `CLAUDE.md` carries the gotchas that prevent mistakes; these files hold
+the detail behind them and are loaded only when a task needs it.
 
 ## 📁 concepts/
 
@@ -67,9 +68,9 @@ Quick reference guide for using git worktrees to keep CLAUDE.md on a separate br
 
 ### context/ Files
 - **General knowledge** applicable to all development
-- **Always relevant** regardless of task
+- **Loaded on demand**, not up front
 - **Foundational** understanding of Ditto
-- **Comprehensive** coverage of architecture, patterns, and workflows
+- **Comprehensive** where CLAUDE.md is deliberately terse
 
 ## Maintenance
 
@@ -100,7 +101,7 @@ git push origin claude
 
 ## Integration with Main CLAUDE.md
 
-The main `CLAUDE.md` file in the repository root serves as an index:
+The main `CLAUDE.md` file in the repository root stays lightweight:
 - Quick reference to all documentation
 - Links to `context/` files for detailed info
 - Getting started guide for new developers
