@@ -58,7 +58,7 @@
         <mongo-java-driver.version>5.6.5</mongo-java-driver.version>
 
         <!-- AWS SDK version needed for MongoDB AWS IAM authentication -->
-        <awssdk.version>2.46.15</awssdk.version>
+        <awssdk.version>2.54.9</awssdk.version>
 
         <jjwt.version>0.13.0</jjwt.version>
         <asm.version>9.10.1</asm.version>
@@ -66,7 +66,7 @@
         <pjfanning-pekko-rabbitmq.version>7.0.0</pjfanning-pekko-rabbitmq.version>
         <amqp-client.version>5.33.1</amqp-client.version>
         <reactive-streams.version>1.0.4</reactive-streams.version>
-        <netty-bom.version>4.2.15.Final</netty-bom.version>
+        <netty-bom.version>4.2.17.Final</netty-bom.version>
         <cloudevents.version>2.5.0</cloudevents.version>
 
         <slf4j.version>2.0.18</slf4j.version>
@@ -1107,4 +1107,3 @@
     </build>
 
 </project>
-
