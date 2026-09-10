@@ -44,7 +44,35 @@ updates:
     commit-message:
       prefix: ci
       include: scope
+    ignore:
+      # Ditto's own modules use Maven CI-friendly versions: every pom declares
+      # <version>${revision}</version> and the real version is supplied per build
+      # with -Drevision=<x>. Dependabot resolves that placeholder to the literal
+      # "0-SNAPSHOT", concludes the modules are behind the last release and tries
+      # to "update" them - in PR #2555 it rewrote the root project's own <version>
+      # to 3.9.7, which breaks parent resolution for all 20 modules. Ditto's
+      # internal versions are never dependency updates, so ignore them outright.
+      - dependency-name: "org.eclipse.ditto:*"
     groups:
+      # Dependabot reaches the root pom as the parent of bom/pom.xml, so its
+      # <pluginManagement> versions are in scope too. Keep the build plugins in
+      # their own PR: a japicmp or maven-compiler bump changes build and
+      # API-compatibility semantics and needs reviewing on its own, not buried in
+      # a group PR alongside library upgrades. Listed before the catch-all group
+      # below, because a dependency lands in the first group whose patterns match.
+      maven-build-plugins:
+        patterns:
+          - "org.apache.maven.plugins:*"
+          - "org.codehaus.mojo:*"
+          - "org.jacoco:*"
+          - "com.github.siom79.japicmp:*"
+          - "com.mycila:*"
+          - "org.apache.felix:*"
+          - "net.alchim31.maven:*"
+          - "org.sonatype.plugins:*"
+          - "org.sonatype.central:*"
+          - "org.eclipse.cbi.maven.plugins:*"
+          - "de.saumya.mojo:*"
       maven-dependencies:
         patterns:
           - "*"
