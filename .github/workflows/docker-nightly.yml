@@ -99,6 +99,12 @@ jobs:
             MAIN_CLASS=org.eclipse.ditto.policies.service.starter.PoliciesService
           pull: true
           push: true
+          # Supply-chain attestations, attached to the pushed manifest:
+          # an SPDX SBOM of the image contents plus max-mode SLSA provenance.
+          # Downstream consumers need these for their own CRA technical documentation;
+          # inspect with `docker buildx imagetools inspect <image> --format '{{json .SBOM}}'`.
+          sbom: true
+          provenance: mode=max
           tags: |
             eclipse/ditto-policies:${{ env.IMAGE_TAG }}
       -
@@ -114,6 +120,8 @@ jobs:
             MAIN_CLASS=org.eclipse.ditto.things.service.starter.ThingsService
           pull: true
           push: true
+          sbom: true
+          provenance: mode=max
           tags: |
             eclipse/ditto-things:${{ env.IMAGE_TAG }}
       -
@@ -129,6 +137,8 @@ jobs:
             MAIN_CLASS=org.eclipse.ditto.gateway.service.starter.GatewayService
           pull: true
           push: true
+          sbom: true
+          provenance: mode=max
           tags: |
             eclipse/ditto-gateway:${{ env.IMAGE_TAG }}
       -
@@ -144,6 +154,8 @@ jobs:
             MAIN_CLASS=org.eclipse.ditto.thingsearch.service.starter.SearchService
           pull: true
           push: true
+          sbom: true
+          provenance: mode=max
           tags: |
             eclipse/ditto-things-search:${{ env.IMAGE_TAG }}
       -
@@ -160,6 +172,8 @@ jobs:
             JVM_CMD_ARGS=--add-opens java.base/java.nio=ALL-UNNAMED --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/sun.security.util=ALL-UNNAMED
           pull: true
           push: true
+          sbom: true
+          provenance: mode=max
           tags: |
             eclipse/ditto-connectivity:${{ env.IMAGE_TAG }}
       -
@@ -184,6 +198,8 @@ jobs:
           platforms: linux/amd64,linux/arm64
           pull: true
           push: true
+          sbom: true
+          provenance: mode=max
           tags: |
             eclipse/ditto-ui:${{ env.IMAGE_TAG }}
       - 

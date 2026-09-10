@@ -9,6 +9,11 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 version: 2
+# Note on scope: Dependabot *security* updates are enabled through the repository
+# settings and already cover every ecosystem here (they need no entry in this file) -
+# that is what keeps known-vulnerable dependencies patched. The entries below add
+# *version* updates on top, to limit dependency drift between releases. They are
+# deliberately monthly and grouped so they do not bury the release-relevant PRs.
 updates:
   - package-ecosystem: github-actions
     directory: "/"
@@ -24,5 +29,73 @@ updates:
       include: scope
     groups:
       github-actions:
+        patterns:
+          - "*"
+
+  - package-ecosystem: maven
+    directory: "/bom"
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+    commit-message:
+      prefix: ci
+      include: scope
+    groups:
+      maven-dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: npm
+    directory: "/ui"
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+    commit-message:
+      prefix: ci
+      include: scope
+    groups:
+      ui-npm:
+        patterns:
+          - "*"
+
+  - package-ecosystem: npm
+    directory: "/benchmark-tool/artillery-test"
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 3
+    labels:
+      - dependencies
+    commit-message:
+      prefix: ci
+      include: scope
+    groups:
+      benchmark-npm:
+        patterns:
+          - "*"
+
+  - package-ecosystem: npm
+    directory: "/documentation/src/main/resources/openapi/sources"
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 3
+    labels:
+      - dependencies
+    commit-message:
+      prefix: ci
+      include: scope
+    groups:
+      openapi-npm:
         patterns:
           - "*"
