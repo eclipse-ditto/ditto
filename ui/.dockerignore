@@ -1,0 +1,13 @@
+# The image serves static files only: the Dockerfile copies index.html,
+# silent-callback.html and dist/, and nothing else is needed at build time.
+#
+# Without this file the whole ui/ tree is sent to the daemon as build context -
+# node_modules alone dwarfs everything the image actually contains, which makes a
+# three-COPY build take minutes.
+#
+# Allowlist rather than denylist: adding a COPY without extending this list fails
+# the build instead of silently depending on whatever happens to be lying around.
+*
+!index.html
+!silent-callback.html
+!dist
