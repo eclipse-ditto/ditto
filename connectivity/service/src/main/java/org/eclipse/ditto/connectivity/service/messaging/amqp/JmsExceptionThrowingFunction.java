@@ -15,13 +15,13 @@ package org.eclipse.ditto.connectivity.service.messaging.amqp;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
-import javax.jms.JMSException;
-import javax.jms.JMSRuntimeException;
-import javax.jms.Message;
+import jakarta.jms.JMSException;
+import jakarta.jms.JMSRuntimeException;
+import jakarta.jms.Message;
 
 /**
  * An interface similar to Function that accepts a JMS message and returns an optional string and throws a
- * {@link javax.jms.JMSException}.
+ * {@link jakarta.jms.JMSException}.
  *
  * @param <T> type of results.
  */
@@ -33,18 +33,18 @@ public interface JmsExceptionThrowingFunction<T> {
      *
      * @param message the JMS message argument.
      * @return the result.
-     * @throws javax.jms.JMSException when the underlying JMS implementation raised a JMSException
+     * @throws jakarta.jms.JMSException when the underlying JMS implementation raised a JMSException
      */
     @Nullable
     T apply(Message message) throws JMSException;
 
     /**
      * Wraps a {@link JmsExceptionThrowingFunction} returning
-     * a function by converting thrown {@link javax.jms.JMSException} to {@link javax.jms.JMSRuntimeException}.
+     * a function by converting thrown {@link jakarta.jms.JMSException} to {@link jakarta.jms.JMSRuntimeException}.
      *
-     * @param throwingFunction the JmsExceptionThrowingBiConsumer that throws {@link javax.jms.JMSException}
+     * @param throwingFunction the JmsExceptionThrowingBiConsumer that throws {@link jakarta.jms.JMSException}
      * @param <T> type of results.
-     * @return a function that throws {@link javax.jms.JMSRuntimeException}
+     * @return a function that throws {@link jakarta.jms.JMSRuntimeException}
      */
     static <T> Function<Message, T> wrap(final JmsExceptionThrowingFunction<T> throwingFunction) {
         return m -> {

@@ -14,7 +14,7 @@ package org.eclipse.ditto.connectivity.service.messaging.amqp;
 
 import java.util.Objects;
 
-import javax.jms.Destination;
+import jakarta.jms.Destination;
 
 import org.apache.qpid.jms.JmsQueue;
 import org.apache.qpid.jms.JmsTopic;
