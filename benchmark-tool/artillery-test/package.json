@@ -17,16 +17,16 @@
   ],
   "license": "EPL-2.0",
   "dependencies": {
-    "@eclipse-ditto/ditto-javascript-client-node": "^3.9.0-M1.1",
-    "artillery": "^2.0.27",
-    "defu": "^6.1.5",
+    "@eclipse-ditto/ditto-javascript-client-node": "^3.9.0",
+    "artillery": "^2.0.34",
+    "defu": "^6.1.7",
     "kafkajs": "^2.2.4",
-    "yaml": "^2.8.3"
+    "yaml": "^2.9.0"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
+    "@types/node": "^26.4.1",
     "ts-node": "^10.9.0",
-    "typescript": "^5.0.0"
+    "typescript": "^7.0.2"
   },
   "overrides": {
     "glob": "^10.0.0",
