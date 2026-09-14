@@ -373,4 +373,16 @@ public final class ImmutableFilteredTopicTest {
         assertThat(connectionAnnouncements.getFnFilter()).isEmpty();
     }
 
+    @Test
+    public void fromStringUrlDecodesFnFilterValue() {
+        // docs: topic strings are URL-decoded when parsed - a literal '+' or '|' in a compared value must be
+        // %-encoded by the user (%2B / %7C); the decoded expression is what gets stored and evaluated
+        final ImmutableFilteredTopic actual = ImmutableFilteredTopic.fromString(
+                "_/_/things/twin/events?fn-filter=fn:filter(header:x,'eq','a%2Bb%7Cc')");
+
+        assertThat(actual.getFnFilter()).contains("fn:filter(header:x,'eq','a+b|c')");
+        // toString does NOT re-encode: the round-trip string carries the decoded value
+        assertThat(actual.toString()).isEqualTo("_/_/things/twin/events?fn-filter=fn:filter(header:x,'eq','a+b|c')");
+    }
+
 }

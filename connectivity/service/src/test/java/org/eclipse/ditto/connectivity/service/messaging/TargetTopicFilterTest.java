@@ -121,6 +121,47 @@ public final class TargetTopicFilterTest {
                 "fn:filter(header:ditto-originator,'exists')", signal, CONNECTION_ID)).isFalse();
     }
 
+    @Test
+    public void matchesFnFilterAbsentHeaderLikeMatchAllPatternPublishes() {
+        // docs: like on an absent header drops "unless the pattern itself matches the empty string (e.g. '*')"
+        final Signal<?> signal = thingModifiedWithHeaders(Collections.emptyMap());
+
+        assertThat(TargetTopicFilter.matchesFnFilter(
+                "fn:filter(header:ditto-originator,'like','*')", signal, CONNECTION_ID)).isTrue();
+    }
+
+    @Test
+    public void matchesFnFilterUnknownRqlFunctionNameNeverMatches() {
+        // docs: an unrecognized rqlFunction name is not rejected at validation time, it simply never matches
+        final Signal<?> signal = thingModifiedWithHeader("ditto-originator", "some:subject");
+
+        assertThat(TargetTopicFilter.matchesFnFilter(
+                "fn:filter(header:ditto-originator,'nope','some:subject')", signal, CONNECTION_ID)).isFalse();
+        assertThat(TargetTopicFilter.matchesFnFilter(
+                "fn:filter(header:ditto-originator,'nope','other:subject')", signal, CONNECTION_ID)).isFalse();
+    }
+
+    @Test
+    public void matchesFnFilterFunctionFirstWithThingPlaceholder() {
+        // a non-header placeholder as function parameter resolves against the signal's entity
+        final Signal<?> signal = thingModifiedWithHeader("ditto-originator", "some:subject");
+
+        assertThat(TargetTopicFilter.matchesFnFilter(
+                "fn:filter(thing:id,'eq','foo:bar13')", signal, CONNECTION_ID)).isTrue();
+        assertThat(TargetTopicFilter.matchesFnFilter(
+                "fn:filter(thing:namespace,'eq','other')", signal, CONNECTION_ID)).isFalse();
+    }
+
+    @Test
+    public void matchesFnFilterLikeOnPresentHeaderUsesWildcardPattern() {
+        final Signal<?> signal = thingModifiedWithHeader("ditto-originator", "integration:solution:conn1");
+
+        assertThat(TargetTopicFilter.matchesFnFilter(
+                "fn:filter(header:ditto-originator,'like','integration:*')", signal, CONNECTION_ID)).isTrue();
+        assertThat(TargetTopicFilter.matchesFnFilter(
+                "fn:filter(header:ditto-originator,'like','nginx:*')", signal, CONNECTION_ID)).isFalse();
+    }
+
     // ===== matchesFnFilter(): chained stages (AND semantics) =====
 
     @Test
