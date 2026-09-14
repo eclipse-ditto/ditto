@@ -298,10 +298,12 @@ one `filter` parameter holding an [RQL expression](basic-rql.html) and one `fn-f
 placeholder pipeline expression (see
 [filtering with placeholder functions](#filtering-with-placeholder-functions) below). The parameter **name**
 tells the two apart -- `filter` is always RQL, `fn-filter` is always a placeholder pipeline. If both are given,
-both must match for a signal to be published (**AND** semantics). URL-encode filter values before using them:
-topic filters given in this string form are URL-decoded when parsed, so a literal `+` (decoded to a space) or
-`%xx` sequence in a compared value must itself be URL-encoded -- this applies to RQL `like` patterns and
-pipeline compared values alike:
+both must match for a signal to be published (**AND** semantics). Topic filters given in this string form are
+URL-decoded when parsed and are **not** re-encoded when the connection is stored, so `%xx` sequences are
+decoded exactly once (e.g. `%7C` becomes a literal `|` in a compared value) and a `+` is decoded to a space
+-- avoid `+` in compared values and RQL `like` patterns altogether, as it cannot be carried through the
+stored form (`%2B` is decoded to `+` on the first parse and to a space when the stored topic is parsed
+again). This applies to RQL `like` patterns and pipeline compared values alike:
 
 ```json
 {
