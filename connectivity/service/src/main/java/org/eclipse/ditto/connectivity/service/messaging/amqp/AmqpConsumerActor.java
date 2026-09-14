@@ -29,13 +29,13 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
-import javax.jms.BytesMessage;
-import javax.jms.Destination;
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.MessageConsumer;
-import javax.jms.MessageListener;
-import javax.jms.TextMessage;
+import jakarta.jms.BytesMessage;
+import jakarta.jms.Destination;
+import jakarta.jms.JMSException;
+import jakarta.jms.Message;
+import jakarta.jms.MessageConsumer;
+import jakarta.jms.MessageListener;
+import jakarta.jms.TextMessage;
 
 import org.apache.pekko.Done;
 import org.apache.pekko.actor.ActorRef;

@@ -12,14 +12,11 @@
  */
 package org.eclipse.ditto.base.service.logging;
 
-import java.io.IOException;
-
-import com.fasterxml.jackson.core.JsonGenerator;
-
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import net.logstash.logback.composite.AbstractFieldJsonProvider;
 import net.logstash.logback.composite.JsonWritingUtils;
+import tools.jackson.core.JsonGenerator;
 
 /**
  * Logstash logback provider for providing a field {@code intLevel} for each log entry with the values, depending on
@@ -44,7 +41,7 @@ import net.logstash.logback.composite.JsonWritingUtils;
 public final class IntLevelJsonProvider extends AbstractFieldJsonProvider<ILoggingEvent> {
 
     @Override
-    public void writeTo(final JsonGenerator generator, final ILoggingEvent event) throws IOException {
+    public void writeTo(final JsonGenerator generator, final ILoggingEvent event) {
         JsonWritingUtils.writeNumberField(
                 generator,
                 "intLevel",

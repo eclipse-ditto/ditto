@@ -14,8 +14,8 @@ package org.eclipse.ditto.connectivity.service.messaging.amqp;
 
 import java.util.Enumeration;
 
-import javax.jms.Destination;
-import javax.jms.JMSException;
+import jakarta.jms.Destination;
+import jakarta.jms.JMSException;
 
 import org.apache.qpid.jms.JmsAcknowledgeCallback;
 import org.apache.qpid.jms.JmsConnection;

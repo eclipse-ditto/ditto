@@ -14,7 +14,7 @@ package org.eclipse.ditto.connectivity.service.messaging.amqp.status;
 
 import java.util.Objects;
 
-import javax.jms.MessageProducer;
+import jakarta.jms.MessageProducer;
 
 /**
  * Report about closed producer.

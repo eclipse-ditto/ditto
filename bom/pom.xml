@@ -34,6 +34,9 @@
         <!-- ### Compile dependencies versions -->
         <minimal-json.version>0.9.5</minimal-json.version>
         <jackson-bom.version>2.22.2</jackson-bom.version>
+        <!-- Jackson 3 ("tools.jackson"), required by json-schema-validator 3.x and logstash-logback-encoder 9.x;
+             keep in sync with the Jackson version json-schema-validator is built against -->
+        <jackson3-bom.version>3.2.1</jackson3-bom.version>
         <json-schema-validator.version>3.0.7</json-schema-validator.version>
         <typesafe-config.version>1.4.9</typesafe-config.version>
         <ssl-config-core.version>0.7.1</ssl-config-core.version>
@@ -55,7 +58,7 @@
         <metrics4-scala.version>4.3.7</metrics4-scala.version>
 
         <!-- Keep these version consistent with pekko-persistence-mongodb.version's build.sbt -->
-        <mongo-java-driver.version>5.11.0</mongo-java-driver.version>
+        <mongo-java-driver.version>5.6.5</mongo-java-driver.version>
 
         <!-- AWS SDK version needed for MongoDB AWS IAM authentication -->
         <awssdk.version>2.54.11</awssdk.version>
@@ -133,12 +136,20 @@
             </dependency>
 
             <dependency>
+                <groupId>tools.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${jackson3-bom.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <dependency>
                 <groupId>com.networknt</groupId>
                 <artifactId>json-schema-validator</artifactId>
                 <version>${json-schema-validator.version}</version>
                 <exclusions>
                     <exclusion>
-                        <groupId>com.fasterxml.jackson.dataformat</groupId>
+                        <groupId>tools.jackson.dataformat</groupId>
                         <artifactId>jackson-dataformat-yaml</artifactId>
                     </exclusion>
                     <exclusion>

@@ -30,11 +30,11 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
-import javax.jms.ExceptionListener;
-import javax.jms.JMSException;
-import javax.jms.MessageConsumer;
-import javax.jms.MessageProducer;
-import javax.jms.Session;
+import jakarta.jms.ExceptionListener;
+import jakarta.jms.JMSException;
+import jakarta.jms.MessageConsumer;
+import jakarta.jms.MessageProducer;
+import jakarta.jms.Session;
 
 import org.apache.pekko.Done;
 import org.apache.pekko.NotUsed;
@@ -673,11 +673,11 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      */
     static final class JmsRecoverSession extends AbstractWithOrigin implements RecoverSession {
 
-        private final javax.jms.Connection connection;
+        private final jakarta.jms.Connection connection;
         @Nullable private final Session session;
 
         JmsRecoverSession(@Nullable final ActorRef origin,
-                @Nullable final javax.jms.Connection connection,
+                @Nullable final jakarta.jms.Connection connection,
                 @Nullable final Session session) {
 
             super(origin);
@@ -685,11 +685,11 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             this.session = session;
         }
 
-        Optional<javax.jms.Connection> getConnection() {
+        Optional<jakarta.jms.Connection> getConnection() {
             return Optional.ofNullable(connection);
         }
 
-        Optional<javax.jms.Session> getSession() {
+        Optional<jakarta.jms.Session> getSession() {
             return Optional.ofNullable(session);
         }
 
@@ -735,7 +735,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             this.session = session;
         }
 
-        javax.jms.Session getSession() {
+        jakarta.jms.Session getSession() {
             return session;
         }
 
@@ -773,11 +773,11 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      */
     static final class JmsDisconnect extends AbstractWithOrigin implements DisconnectClient {
 
-        @Nullable private final javax.jms.Connection connection;
+        @Nullable private final jakarta.jms.Connection connection;
         private final boolean shutdownAfterDisconnect;
 
         JmsDisconnect(@Nullable final ActorRef origin,
-                @Nullable final javax.jms.Connection connection,
+                @Nullable final jakarta.jms.Connection connection,
                 final boolean shutdownAfterDisconnect) {
 
             super(origin);
@@ -785,7 +785,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             this.shutdownAfterDisconnect = shutdownAfterDisconnect;
         }
 
-        Optional<javax.jms.Connection> getConnection() {
+        Optional<jakarta.jms.Connection> getConnection() {
             return Optional.ofNullable(connection);
         }
 

@@ -23,7 +23,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
-import javax.jms.JMSRuntimeException;
+import jakarta.jms.JMSRuntimeException;
 
 import org.apache.pekko.actor.ActorKilledException;
 import org.apache.pekko.actor.ActorRef;

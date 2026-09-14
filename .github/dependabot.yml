@@ -53,6 +53,11 @@ updates:
       # to 3.9.7, which breaks parent resolution for all 20 modules. Ditto's
       # internal versions are never dependency updates, so ignore them outright.
       - dependency-name: "org.eclipse.ditto:*"
+      # The MongoDB Java driver version is deliberately kept in lockstep with the
+      # driver version pekko-persistence-mongodb is built against (see the comment
+      # on <mongo-java-driver.version> in bom/pom.xml). It is bumped manually
+      # whenever pekko-persistence-mongodb updates, never independently.
+      - dependency-name: "org.mongodb:*"
     groups:
       # Dependabot reaches the root pom as the parent of bom/pom.xml, so its
       # <pluginManagement> versions are in scope too. Keep the build plugins in
