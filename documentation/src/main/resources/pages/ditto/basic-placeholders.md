@@ -338,8 +338,8 @@ start with a placeholder or directly with a function, e.g.
 `fn:filter(header:ditto-originator,'ne','some:subject')`; the topic is published exactly when the pipeline
 resolves to a value, which is why the last stage must be `fn:filter()` -- the stage that yields the boolean
 publish decision; a trailing value-producing stage such as `fn:upper()` cannot add anything to that decision,
-and a trailing `fn:default('...')` even overrides it and makes the topic always publish (`fn:delete()` makes
-it never publish) -- see
+and a trailing `fn:default('...')` (which would make the topic always publish) or `fn:delete()` (never
+publish) is rejected at connection creation/update time -- see
 [filtering with placeholder functions](basic-connections.html#filtering-with-placeholder-functions).
 The pipeline is evaluated per outbound signal, before enrichment, so the following placeholders are available
 in general (the `thing-json` placeholder only as the leading stage of a placeholder-first pipeline, and only

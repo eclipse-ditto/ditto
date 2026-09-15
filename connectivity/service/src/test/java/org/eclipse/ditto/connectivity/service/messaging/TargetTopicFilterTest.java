@@ -132,7 +132,8 @@ public final class TargetTopicFilterTest {
 
     @Test
     public void matchesFnFilterUnknownRqlFunctionNameNeverMatches() {
-        // docs: an unrecognized rqlFunction name is not rejected at validation time, it simply never matches
+        // the runtime fact that motivates rejecting unknown literal rqlFunction names in validateFnFilter: such a
+        // stage never matches (still reachable at runtime via a placeholder-valued rqlFunction)
         final Signal<?> signal = thingModifiedWithHeader("ditto-originator", "some:subject");
 
         assertThat(TargetTopicFilter.matchesFnFilter(
@@ -297,7 +298,8 @@ public final class TargetTopicFilterTest {
                 TargetTopicFilter.matchesFnFilter("header:|fn:filter('eq','x')", signal, CONNECTION_ID));
     }
 
-    // ===== matchesFnFilter(): the documented "last stage must be fn:filter" facts, locked =====
+    // ===== matchesFnFilter(): the runtime facts behind "last stage must be fn:filter" (validateFnFilter rejects
+    // a trailing fn:default/fn:delete because of them; matchesFnFilter itself does not validate) =====
 
     @Test
     public void matchesFnFilterTrailingDefaultStageAlwaysPublishes() {
@@ -497,6 +499,100 @@ public final class TargetTopicFilterTest {
         final String elevenStages = "header:a|" + String.join("|", Collections.nCopies(11, "fn:filter('ne','zzz')"));
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class).isThrownBy(() ->
                 TargetTopicFilter.validateFnFilter(elevenStages, DittoHeaders.empty()));
+    }
+
+    // ===== validateFnFilter(): semantically constant expressions (publish nothing or everything) =====
+
+    @Test
+    public void validateFnFilterRejectsUnknownLiteralRqlFunctionName() {
+        // an unknown rqlFunction name never matches at runtime -> the target would be permanently silent
+        for (final String expression : List.of(
+                "fn:filter(header:ditto-originator,'NE','x')",
+                "fn:filter(header:ditto-originator,'neq','x')",
+                "fn:filter(header:ditto-originator,'nope','x')",
+                "header:ditto-originator|fn:filter('NE','x')",
+                "fn:filter(header:a,'exists')|fn:filter(header:b,'NE','x')")) {
+            assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                    .as(expression)
+                    .isThrownBy(() -> TargetTopicFilter.validateFnFilter(expression, DittoHeaders.empty()))
+                    .withMessageContaining("rqlFunction");
+        }
+    }
+
+    @Test
+    public void validateFnFilterRejectsEqNeLikeWithoutComparedValue() {
+        // fn:filter(<placeholder>,'eq') has nothing to compare against and never matches at runtime
+        for (final String expression : List.of(
+                "fn:filter(header:ditto-originator,'eq')",
+                "fn:filter(header:ditto-originator,'ne')",
+                "fn:filter(header:ditto-originator,'like')")) {
+            assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                    .as(expression)
+                    .isThrownBy(() -> TargetTopicFilter.validateFnFilter(expression, DittoHeaders.empty()))
+                    .withMessageContaining("compared value");
+        }
+    }
+
+    @Test
+    public void validateFnFilterAcceptsTwoParamExistsAndRqlFunctionWithComparedValue() {
+        for (final String expression : List.of(
+                "fn:filter(header:ditto-originator,'exists')",
+                "header:ditto-originator|fn:filter('ne','x')",
+                "fn:filter(header:gateway_id, 'exists', 'false')",
+                "fn:filter(header:ditto-originator, 'like', 'integration:*')")) {
+            assertThatNoException()
+                    .as(expression)
+                    .isThrownBy(() -> TargetTopicFilter.validateFnFilter(expression, DittoHeaders.empty()));
+        }
+    }
+
+    @Test
+    public void validateFnFilterSkipsPlaceholderValuedRqlFunction() {
+        // only literal rqlFunction names can be checked at validation time
+        assertThatNoException().isThrownBy(() ->
+                TargetTopicFilter.validateFnFilter("fn:filter(header:a,header:op,'x')", DittoHeaders.empty()));
+    }
+
+    @Test
+    public void validateFnFilterRejectsTrailingDefaultStage() {
+        // a trailing fn:default resolves every unresolved pipeline -> the target would publish everything
+        for (final String expression : List.of(
+                "fn:filter(header:ditto-originator,'ne','x')|fn:default('y')",
+                "header:ditto-originator|fn:default('y')",
+                "fn:default('y')")) {
+            assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                    .as(expression)
+                    .isThrownBy(() -> TargetTopicFilter.validateFnFilter(expression, DittoHeaders.empty()))
+                    .withMessageContaining("fn:default");
+        }
+    }
+
+    @Test
+    public void validateFnFilterRejectsTrailingDeleteStage() {
+        // a trailing fn:delete deletes every resolved pipeline -> the target would publish nothing
+        for (final String expression : List.of(
+                "fn:filter(header:ditto-originator,'ne','x')|fn:delete()",
+                "header:ditto-originator|fn:delete()",
+                "fn:delete()")) {
+            assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                    .as(expression)
+                    .isThrownBy(() -> TargetTopicFilter.validateFnFilter(expression, DittoHeaders.empty()))
+                    .withMessageContaining("fn:delete");
+        }
+    }
+
+    @Test
+    public void validateFnFilterAcceptsInterveningDefaultStage() {
+        // documented: an intervening fn:default('...') supplies a value for an absent header
+        assertThatNoException().isThrownBy(() -> TargetTopicFilter.validateFnFilter(
+                "header:ditto-originator|fn:default('y')|fn:filter('ne','x')", DittoHeaders.empty()));
+    }
+
+    @Test
+    public void validateFnFilterAcceptsTrailingValueProducingStage() {
+        // pointless but harmless: fn:upper passes the fn:filter decision through unchanged
+        assertThatNoException().isThrownBy(() -> TargetTopicFilter.validateFnFilter(
+                "fn:filter(header:ditto-originator,'ne','x')|fn:upper()", DittoHeaders.empty()));
     }
 
     // ===== test helpers =====

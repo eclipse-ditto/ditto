@@ -347,10 +347,10 @@ The publish decision of an `fn-filter` is binary:
 pipeline *resolved* (publish) when its condition holds and leaves it *unresolved* (suppress) otherwise.
 A trailing value-producing stage cannot add anything to that decision and is therefore pointless --
 `fn:upper()`, `fn:lower()`, `fn:trim()` and the like pass the outcome of the preceding `fn:filter` through
-unchanged, a trailing `fn:default(...)` even overrides it and makes the topic **always** publish (it resolves
-every unresolved pipeline), and a trailing `fn:delete()` makes the topic **never** publish. A pipeline without
-any `fn:filter` stage (e.g. a bare `header:ditto-originator`) merely publishes whenever the placeholder
-resolves." additionalStyle="" %}
+unchanged. A trailing `fn:default(...)` would even override it and make the topic **always** publish (it
+resolves every unresolved pipeline), and a trailing `fn:delete()` would make the topic **never** publish --
+both are therefore **rejected** at connection creation/update time. A pipeline without any `fn:filter` stage
+(e.g. a bare `header:ditto-originator`) merely publishes whenever the placeholder resolves." additionalStyle="" %}
 
 The primary use case is suppressing events caused by a given subject, or caused by another connection. Each is
 a standalone `fn-filter` (do **not** combine them as two separate `topics` entries -- that would be an OR,
@@ -437,16 +437,20 @@ form shown above or add an `exists` stage." additionalStyle="" %}
   or with an `fn:` function call, and every further stage must be an `fn:` function call -- a bare placeholder
   cannot appear mid-pipeline. An RQL expression in `fn-filter`, or a leading placeholder without a name
   (e.g. `header:`), is rejected at connection creation/update time.
-* The last stage of an `fn-filter` must be `fn:filter(...)` (see above); this is not enforced, a pipeline that
-  ends with a value-producing stage is accepted but pointless.
+* The last stage of an `fn-filter` must be `fn:filter(...)` (see above). A trailing `fn:default(...)` or
+  `fn:delete()` stage is rejected at connection creation/update time because it would make the topic always or
+  never publish; any other trailing value-producing stage (e.g. `fn:upper()`) is accepted but pointless.
 * An `fn-filter` may contain at most **10** `fn:` stages; exceeding the limit is rejected at
   connection creation/update time.
-* Each of `filter` and `fn-filter` may be given at most **once** per topic; a repeated query parameter makes
-  the topic string unparseable.
-* An unrecognized `rqlFunction` name (i.e. anything other than the
-  [`eq`, `ne`, `like`, `exists` RQL functions](basic-placeholders.html#rql-functions)) is
-  **not** rejected at connection creation/update time -- that filter simply never matches at
-  runtime. Double-check spelling.
+* Each of `filter` and `fn-filter` may be given at most **once** per topic; a repeated query parameter is
+  rejected at connection creation/update time as an invalid topic.
+* An `fn:filter` stage that can never match is rejected at connection creation/update time: an unrecognized
+  `rqlFunction` name (i.e. anything other than the case-sensitive
+  [`eq`, `ne`, `like`, `exists` RQL functions](basic-placeholders.html#rql-functions), so `'NE'` or `'neq'`
+  are rejected), or `eq`/`ne`/`like` used without a compared value (`fn:filter(header:ditto-originator,'eq')`
+  -- the 2-parameter form with a leading placeholder is only meaningful for `exists`). Only literal
+  `rqlFunction` names can be checked; a placeholder-valued `rqlFunction` that resolves to an unknown name simply
+  never matches at runtime.
 * Pipeline placeholders never see fields added via [`extraFields`
   enrichment](#target-topics-and-enrichment) -- they only ever see the signal's own headers, topic,
   entity, and time. Unlike RQL, an `fn-filter` cannot filter on enriched, unchanged data. The
