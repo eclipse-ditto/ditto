@@ -43,6 +43,16 @@ public interface FilteredTopicBuilder {
     FilteredTopicBuilder withFilter(@Nullable CharSequence filter);
 
     /**
+     * Sets the given placeholder pipeline expression ({@code fn-filter} query parameter) to this builder.
+     *
+     * @param fnFilter the optional placeholder pipeline expression of the topic to be built, e.g.
+     * {@code fn:filter(header:ditto-originator,'ne','some:subject')}.
+     * @return this builder instance to allow method chaining.
+     * @since 3.10.0
+     */
+    FilteredTopicBuilder withFnFilter(@Nullable CharSequence fnFilter);
+
+    /**
      * Sets the selector for the extra fields and their values to enrich outgoing signals of the topic to be built with.
      *
      * @param extraFields the extra fields.

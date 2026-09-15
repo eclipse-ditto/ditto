@@ -13,6 +13,7 @@
 package org.eclipse.ditto.connectivity.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.text.MessageFormat;
 import java.util.Collections;
@@ -33,6 +34,7 @@ public final class ImmutableFilteredTopicTest {
     private static final List<String> NAMESPACES =
             Collections.unmodifiableList(Lists.list("this.is.a.namespace", "eat.that", "foo.bar"));
     private static final String FILTER_EXAMPLE = "gt(attributes/a,42)";
+    private static final String FN_FILTER_EXAMPLE = "fn:filter(header:ditto-originator,'ne','some:subject')";
     private static final ThingFieldSelector EXTRA_FIELDS =
             ThingFieldSelector.fromJsonFieldSelector(JsonFieldSelector.newInstance("attributes", "features/location"));
 
@@ -245,6 +247,146 @@ public final class ImmutableFilteredTopicTest {
         final FilteredTopic actual = ImmutableFilteredTopic.fromString(filteredTopic.toString());
 
         assertThat(actual).isEqualTo(filteredTopic);
+    }
+
+    @Test
+    public void getFnFilterReturnsEmptyOptionalIfNotSet() {
+        final ImmutableFilteredTopic underTest = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS).build();
+
+        assertThat(underTest.getFnFilter()).isEmpty();
+    }
+
+    @Test
+    public void getFnFilterReturnsExpectedIfSet() {
+        final ImmutableFilteredTopic underTest = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
+                .withFnFilter(FN_FILTER_EXAMPLE)
+                .build();
+
+        assertThat(underTest.getFnFilter()).contains(FN_FILTER_EXAMPLE);
+        assertThat(underTest.getFilter()).isEmpty();
+    }
+
+    @Test
+    public void toStringReturnsExpectedWithAllQueryParameters() {
+        final ImmutableFilteredTopic underTest = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
+                .withNamespaces(NAMESPACES)
+                .withFilter(FILTER_EXAMPLE)
+                .withFnFilter(FN_FILTER_EXAMPLE)
+                .withExtraFields(EXTRA_FIELDS)
+                .build();
+
+        assertThat(underTest.toString()).isEqualTo(
+                "_/_/things/twin/events?namespaces=" + String.join(",", NAMESPACES)
+                        + "&filter=" + FILTER_EXAMPLE
+                        + "&fn-filter=" + FN_FILTER_EXAMPLE
+                        + "&extraFields=" + EXTRA_FIELDS);
+    }
+
+    @Test
+    public void toStringReturnsExpectedWithOnlyFnFilter() {
+        final ImmutableFilteredTopic underTest = ImmutableFilteredTopic.getBuilder(Topic.LIVE_COMMANDS)
+                .withFnFilter(FN_FILTER_EXAMPLE)
+                .build();
+
+        assertThat(underTest.toString()).isEqualTo("_/_/things/live/commands?fn-filter=" + FN_FILTER_EXAMPLE);
+    }
+
+    @Test
+    public void fromStringParsesFnFilterParameter() {
+        final ImmutableFilteredTopic actual =
+                ImmutableFilteredTopic.fromString("_/_/things/twin/events?fn-filter=" + FN_FILTER_EXAMPLE);
+
+        assertThat(actual.getFnFilter()).contains(FN_FILTER_EXAMPLE);
+        assertThat(actual.getFilter()).isEmpty();
+    }
+
+    @Test
+    public void fromStringParsesPlaceholderFirstFnFilterParameter() {
+        final String placeholderFirst = "header:ditto-originator|fn:filter('ne','some:subject')";
+
+        final ImmutableFilteredTopic actual =
+                ImmutableFilteredTopic.fromString("_/_/things/twin/events?fn-filter=" + placeholderFirst);
+
+        assertThat(actual.getFnFilter()).contains(placeholderFirst);
+    }
+
+    @Test
+    public void fromStringToStringRoundTripsWithFilterAndFnFilter() {
+        final ImmutableFilteredTopic filteredTopic = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
+                .withNamespaces(NAMESPACES)
+                .withFilter(FILTER_EXAMPLE)
+                .withFnFilter(FN_FILTER_EXAMPLE)
+                .withExtraFields(EXTRA_FIELDS)
+                .build();
+
+        final ImmutableFilteredTopic actual = ImmutableFilteredTopic.fromString(filteredTopic.toString());
+
+        assertThat(actual).isEqualTo(filteredTopic);
+        assertThat(actual.toString()).isEqualTo(filteredTopic.toString());
+    }
+
+    @Test
+    public void fromStringKeepsFnPrefixedFilterValueAsFilter() {
+        // the model does not classify filter contents - rejecting an fn: expression inside "filter" (with a hint to
+        // use "fn-filter") is the job of the connectivity service's ConnectionValidator
+        final ImmutableFilteredTopic actual =
+                ImmutableFilteredTopic.fromString("_/_/things/twin/events?filter=" + FN_FILTER_EXAMPLE);
+
+        assertThat(actual.getFilter()).contains(FN_FILTER_EXAMPLE);
+        assertThat(actual.getFnFilter()).isEmpty();
+    }
+
+    @Test
+    public void fromStringRepeatedFilterParamIsRejectedAsTopicParseException() {
+        // "filter" is single-valued: like every other query parameter, repeating it is rejected with the parser's
+        // own exception type (a DittoRuntimeException mapped to HTTP 400), naming the duplicated parameter
+        assertDuplicateQueryParameterIsRejected(
+                "_/_/things/twin/events?filter=" + FILTER_EXAMPLE + "&filter=" + FN_FILTER_EXAMPLE, "filter");
+    }
+
+    @Test
+    public void fromStringRepeatedFnFilterParamIsRejectedAsTopicParseException() {
+        assertDuplicateQueryParameterIsRejected(
+                "_/_/things/twin/events?fn-filter=" + FN_FILTER_EXAMPLE + "&fn-filter=" + FN_FILTER_EXAMPLE,
+                "fn-filter");
+    }
+
+    @Test
+    public void fromStringDuplicateNamespacesParamIsRejectedAsTopicParseException() {
+        // no query parameter is repeatable: a duplicated one is rejected by the parser
+        assertDuplicateQueryParameterIsRejected("_/_/things/twin/events?namespaces=ns1&namespaces=ns2",
+                "namespaces");
+    }
+
+    private static void assertDuplicateQueryParameterIsRejected(final String topicString, final String paramName) {
+        assertThatExceptionOfType(TopicParseException.class)
+                .isThrownBy(() -> ImmutableFilteredTopic.fromString(topicString))
+                .withMessageContaining(topicString)
+                .satisfies(e -> assertThat(e.getDescription()).hasValueSatisfying(description ->
+                        assertThat(description).contains("'" + paramName + "'").contains("more than once")));
+    }
+
+    @Test
+    public void announcementTopicsDropFnFilter() {
+        final ImmutableFilteredTopic policyAnnouncements =
+                ImmutableFilteredTopic.getBuilder(Topic.POLICY_ANNOUNCEMENTS).withFnFilter(FN_FILTER_EXAMPLE).build();
+        final ImmutableFilteredTopic connectionAnnouncements =
+                ImmutableFilteredTopic.getBuilder(Topic.CONNECTION_ANNOUNCEMENTS).withFnFilter(FN_FILTER_EXAMPLE).build();
+
+        assertThat(policyAnnouncements.getFnFilter()).isEmpty();
+        assertThat(connectionAnnouncements.getFnFilter()).isEmpty();
+    }
+
+    @Test
+    public void fromStringUrlDecodesFnFilterValue() {
+        // docs: topic strings are URL-decoded when parsed - a literal '+' or '|' in a compared value must be
+        // %-encoded by the user (%2B / %7C); the decoded expression is what gets stored and evaluated
+        final ImmutableFilteredTopic actual = ImmutableFilteredTopic.fromString(
+                "_/_/things/twin/events?fn-filter=fn:filter(header:x,'eq','a%2Bb%7Cc')");
+
+        assertThat(actual.getFnFilter()).contains("fn:filter(header:x,'eq','a+b|c')");
+        // toString does NOT re-encode: the round-trip string carries the decoded value
+        assertThat(actual.toString()).isEqualTo("_/_/things/twin/events?fn-filter=fn:filter(header:x,'eq','a+b|c')");
     }
 
 }

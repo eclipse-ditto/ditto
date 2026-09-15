@@ -40,12 +40,14 @@ import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidExcept
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.Credentials;
+import org.eclipse.ditto.connectivity.model.FilteredTopic;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.mapping.MapperLimitsConfig;
+import org.eclipse.ditto.connectivity.service.messaging.TargetTopicFilter;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.SSLContextCreator;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders;
@@ -329,11 +331,33 @@ public final class ConnectionValidator {
                 final String location = String.format("Targets of connection <%s>", connection.getId());
                 throw emptyAddressesError(location, dittoHeaders);
             }
-            target.getTopics().forEach(topic -> topic.getFilter().ifPresent(filter ->
-                    // will throw an InvalidRqlExpressionException if the RQL expression was not valid:
-                    queryFilterCriteriaFactory.filterCriteria(filter, dittoHeaders)
-            ));
+            target.getTopics().forEach(topic -> validateTargetTopicFilters(topic, target, dittoHeaders));
         });
+    }
+
+    /**
+     * Validates the optional {@code filter} (RQL) and {@code fn-filter} (placeholder pipeline) query parameters of a
+     * target topic. The two are told apart by name: a placeholder pipeline placed in {@code filter} is rejected with
+     * a hint to use {@code fn-filter} before the value could reach the RQL parser.
+     */
+    private void validateTargetTopicFilters(final FilteredTopic topic, final Target target,
+            final DittoHeaders dittoHeaders) {
+        topic.getFilter().ifPresent(filter -> {
+            if (TargetTopicFilter.isFunctionExpression(filter)) {
+                throw ConnectionConfigurationInvalidException
+                        .newBuilder("The 'filter' parameter of topic '" + topic + "' of the target with address '" +
+                                target.getAddress() + "' holds a placeholder pipeline expression (starting with " +
+                                "'fn:'), but 'filter' only accepts an RQL expression.")
+                        .description("Put the placeholder pipeline expression into the 'fn-filter' query parameter " +
+                                "instead, e.g. '?fn-filter=" + filter.trim() + "'. A topic may carry both an RQL " +
+                                "'filter' and an 'fn-filter'; both must match (AND).")
+                        .dittoHeaders(dittoHeaders)
+                        .build();
+            }
+            // will throw an InvalidRqlExpressionException if the RQL expression was not valid:
+            queryFilterCriteriaFactory.filterCriteria(filter, dittoHeaders);
+        });
+        topic.getFnFilter().ifPresent(fnFilter -> TargetTopicFilter.validateFnFilter(fnFilter, dittoHeaders));
     }
 
     private void validateDeclaredAndIssuedAcknowledgements(final Connection connection) {

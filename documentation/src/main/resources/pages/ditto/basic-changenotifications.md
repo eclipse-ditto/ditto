@@ -52,6 +52,11 @@ For more granular control, use an [RQL expression](basic-rql.html) to filter bas
 {% include note.html content="The RQL filter applies to the *modified* data by default. Unchanged data is only
 considered when it has been [enriched via extraFields](basic-enrichment.html)." %}
 
+[Connections](basic-connections.html) additionally accept a placeholder function pipeline (ending with
+`fn:filter()`) in a separate `fn-filter` parameter alongside (or instead of) the RQL `filter` -- see
+[Filtering with placeholder functions](basic-connections.html#filtering-with-placeholder-functions).
+This is not available for the WebSocket API or SSE, which only support the RQL filter.
+
 ### Examples
 
 Only emit events when `count` changes to a value greater than 42:
