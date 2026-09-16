@@ -293,7 +293,7 @@ final class ImmutableFilteredTopic implements FilteredTopic {
                             "Unknown topic: " + topicName).build());
         }
 
-        private static Map<String, String> parseQueryParameters(@Nullable final String queryParamsString) {
+        private Map<String, String> parseQueryParameters(@Nullable final String queryParamsString) {
             if (null == queryParamsString || queryParamsString.isEmpty()) {
                 return Collections.emptyMap();
             }
@@ -305,8 +305,10 @@ final class ImmutableFilteredTopic implements FilteredTopic {
                 }
                 final String name = urlDecode(queryParamPair[0]);
                 if (null != queryParameters.putIfAbsent(name, urlDecode(queryParamPair[1]))) {
-                    // no query parameter is repeatable - a duplicated one is rejected like before
-                    throw new IllegalStateException("Duplicate key " + name);
+                    // no query parameter is repeatable - a duplicated one is rejected with the parser's own
+                    // exception type (mapped to HTTP 400) instead of leaking an IllegalStateException (HTTP 500)
+                    throw TopicParseException.newBuilder(filteredTopicString,
+                            "The query parameter '" + name + "' must not be given more than once").build();
                 }
             }
             return queryParameters;

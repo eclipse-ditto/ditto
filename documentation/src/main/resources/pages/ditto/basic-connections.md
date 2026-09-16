@@ -300,10 +300,11 @@ placeholder pipeline expression (see
 tells the two apart -- `filter` is always RQL, `fn-filter` is always a placeholder pipeline. If both are given,
 both must match for a signal to be published (**AND** semantics). Topic filters given in this string form are
 URL-decoded when parsed and are **not** re-encoded when the connection is stored, so `%xx` sequences are
-decoded exactly once (e.g. `%7C` becomes a literal `|` in a compared value) and a `+` is decoded to a space
--- avoid `+` in compared values and RQL `like` patterns altogether, as it cannot be carried through the
-stored form (`%2B` is decoded to `+` on the first parse and to a space when the stored topic is parsed
-again). This applies to RQL `like` patterns and pipeline compared values alike:
+decoded once per parse (e.g. `%7C` becomes a literal `|` in a compared value) and a `+` is decoded to a space
+-- avoid `+` and a literal `%` in compared values and RQL `like` patterns altogether, as neither can be
+carried through the stored form (`%2B` is decoded to `+` on the first parse and to a space when the stored
+topic is parsed again; a bare `%` in a stored value, e.g. from `%25`, fails to decode when the stored topic
+is parsed again). This applies to RQL `like` patterns and pipeline compared values alike:
 
 ```json
 {
@@ -343,14 +344,19 @@ The publish decision of an `fn-filter` is binary:
 * the pipeline stays **unresolved** (or its value is deleted) -- the target topic is **suppressed**
 
 {% include important.html content="The **last stage** of an `fn-filter` must be a filtering stage, i.e.
-`fn:filter(...)`. Think of it as the stage that returns the boolean publish decision: `fn:filter` keeps the
-pipeline *resolved* (publish) when its condition holds and leaves it *unresolved* (suppress) otherwise.
-A trailing value-producing stage cannot add anything to that decision and is therefore pointless --
-`fn:upper()`, `fn:lower()`, `fn:trim()` and the like pass the outcome of the preceding `fn:filter` through
-unchanged, a trailing `fn:default(...)` even overrides it and makes the topic **always** publish (it resolves
-every unresolved pipeline), and a trailing `fn:delete()` makes the topic **never** publish. A pipeline without
-any `fn:filter` stage (e.g. a bare `header:ditto-originator`) merely publishes whenever the placeholder
-resolves." additionalStyle="" %}
+`fn:filter(...)`; this is enforced at connection creation/update time. Think of it as the stage that returns
+the boolean publish decision: `fn:filter` keeps the pipeline *resolved* (publish) when its condition holds and
+leaves it *unresolved* (suppress) otherwise. A pipeline that ends with anything else is rejected: a bare
+placeholder such as `header:ditto-originator` does not filter anything -- to publish exactly when the header
+is present, say so explicitly with `fn:filter(header:ditto-originator,'exists')` -- and a trailing
+value-producing stage such as `fn:upper()`, `fn:lower()` or `fn:trim()` cannot add anything to the decision of
+the preceding `fn:filter`. An `fn:default(...)` **after** an
+`fn:filter` stage would even override that filter's decision -- it resolves the pipeline whenever the filter
+suppressed it -- and an `fn:delete()` anywhere would make the topic **never** publish (nothing can resolve a
+deleted pipeline again); both are rejected with a dedicated error, as is an `fn:filter` stage without any
+placeholder, which never looks at the signal (see [restrictions](#restrictions) below). Placeholders and
+`fn:` stages **before** the final `fn:filter` are fine, e.g. an `fn:default(...)` supplying a value for an
+absent header (see [absent header behavior](#absent-header-behavior))." additionalStyle="" %}
 
 The primary use case is suppressing events caused by a given subject, or caused by another connection. Each is
 a standalone `fn-filter` (do **not** combine them as two separate `topics` entries -- that would be an OR,
@@ -427,7 +433,9 @@ suppressed -- this is the opposite of what `eq` does and easy to get wrong. For 
 `fn:filter(header:ditto-originator,'ne','some:subject')` also publishes any signal that never
 carries a `ditto-originator` header at all -- because 'absent' trivially satisfies 'not equal to
 some:subject'. If only signals that actually carry the header should be affected, use the placeholder-first
-form shown above or add an `exists` stage." additionalStyle="" %}
+form shown above or put an `exists` stage in front of it, i.e. chain
+`fn:filter(header:ditto-originator,'exists')` and `fn:filter(header:ditto-originator,'ne','some:subject')`."
+additionalStyle="" %}
 
 #### Restrictions
 
@@ -437,16 +445,30 @@ form shown above or add an `exists` stage." additionalStyle="" %}
   or with an `fn:` function call, and every further stage must be an `fn:` function call -- a bare placeholder
   cannot appear mid-pipeline. An RQL expression in `fn-filter`, or a leading placeholder without a name
   (e.g. `header:`), is rejected at connection creation/update time.
-* The last stage of an `fn-filter` must be `fn:filter(...)` (see above); this is not enforced, a pipeline that
-  ends with a value-producing stage is accepted but pointless.
+* The last stage of an `fn-filter` must be `fn:filter(...)` (see above): a bare placeholder
+  (`fn-filter=header:ditto-originator`; write `fn:filter(header:ditto-originator,'exists')` instead) or a
+  pipeline ending with a value-producing stage (e.g. `fn:upper()`) is rejected at connection creation/update
+  time. An `fn:default(...)` stage after an `fn:filter` stage is
+  rejected because it discards that filter's decision, a trailing `fn:default(...)` without any preceding
+  filter because the topic would publish whenever the default's parameter resolves, and an `fn:delete()` stage
+  at any position because the topic would never publish.
 * An `fn-filter` may contain at most **10** `fn:` stages; exceeding the limit is rejected at
   connection creation/update time.
-* Each of `filter` and `fn-filter` may be given at most **once** per topic; a repeated query parameter makes
-  the topic string unparseable.
-* An unrecognized `rqlFunction` name (i.e. anything other than the
-  [`eq`, `ne`, `like`, `exists` RQL functions](basic-placeholders.html#rql-functions)) is
-  **not** rejected at connection creation/update time -- that filter simply never matches at
-  runtime. Double-check spelling.
+* Each of `filter` and `fn-filter` may be given at most **once** per topic; a repeated query parameter is
+  rejected at connection creation/update time as an invalid topic.
+* An `fn:filter` stage whose outcome cannot depend on the signal is rejected at connection creation/update
+  time: an unrecognized `rqlFunction` name (i.e. anything other than the case-sensitive
+  [`eq`, `ne`, `like`, `exists` RQL functions](basic-placeholders.html#rql-functions), so `'NE'` or `'neq'`
+  are rejected), `eq`/`ne`/`like` used without a compared value (`fn:filter(header:ditto-originator,'eq')`
+  -- the 2-parameter form with a leading placeholder is only meaningful for `exists`), or a stage without any
+  placeholder (`fn:filter('ne','some:subject')` at the start of a function-first pipeline, or after nothing but
+  `fn:filter`/`fn:default` stages, compares an internal constant, not a header -- write
+  `fn:filter(header:ditto-originator,'ne','some:subject')` or start the pipeline with the placeholder;
+  `fn:filter('a','eq','b')` compares two constants). Only literal `rqlFunction` names and placeholder-free
+  `fn:filter` stages can be detected: a placeholder-valued `rqlFunction` that resolves to an unknown name simply
+  never matches at runtime, one that does not resolve at all fails the evaluation for every signal (a warning
+  plus a connection-log failure entry each time; the signal is not published), and a constant produced by
+  another stage (e.g. `fn:upper()` applied to the internal seed) is not detected.
 * Pipeline placeholders never see fields added via [`extraFields`
   enrichment](#target-topics-and-enrichment) -- they only ever see the signal's own headers, topic,
   entity, and time. Unlike RQL, an `fn-filter` cannot filter on enriched, unchanged data. The

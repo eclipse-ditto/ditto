@@ -337,9 +337,12 @@ start with a placeholder or directly with a function, e.g.
 `header:ditto-originator|fn:filter('ne','some:subject')` or
 `fn:filter(header:ditto-originator,'ne','some:subject')`; the topic is published exactly when the pipeline
 resolves to a value, which is why the last stage must be `fn:filter()` -- the stage that yields the boolean
-publish decision; a trailing value-producing stage such as `fn:upper()` cannot add anything to that decision,
-and a trailing `fn:default('...')` even overrides it and makes the topic always publish (`fn:delete()` makes
-it never publish) -- see
+publish decision; a pipeline ending with anything else (a bare placeholder such as `header:ditto-originator`
+-- write `fn:filter(header:ditto-originator,'exists')` to publish exactly when the header is present -- or a
+trailing value-producing stage such as `fn:upper()`), an `fn:default('...')` after an `fn:filter` stage
+(which would discard that filter's decision), an `fn:delete()` anywhere (never publish) or an `fn:filter`
+stage without any placeholder (which never looks at the signal) is rejected at connection creation/update
+time -- see
 [filtering with placeholder functions](basic-connections.html#filtering-with-placeholder-functions).
 The pipeline is evaluated per outbound signal, before enrichment, so the following placeholders are available
 in general (the `thing-json` placeholder only as the leading stage of a placeholder-first pipeline, and only
@@ -408,7 +411,7 @@ The following RQL functions are available for `fn:filter`
 |-----------------------|--------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `eq`                  | `(String filterValue, 'eq', String comparedValue)`, <br/>`('eq', String comparedValue)`                            | If 3 parameters are passed in, the function filters on the first parameter being equal to the last. <br/>If 2 parameters are passed in, the function filters the previous pipeline element being equal to the last parameter.                                                                                                      |
 | `ne`                  | `(String filterValue, 'ne', String comparedValue)`, <br/>`('ne', String comparedValue)`                            | If 3 parameters are passed in, the function filters on the first parameter being not equal to the last. <br/>If 2 parameters are passed in, the function filters the previous pipeline element being not equal to the last parameter.                                                                                              |
-| `exists`              | `(String filterValue, 'exists', String true|false)`,  <br/>`('exists', String true/false)`, <br/>`('exists')`      | If 3 parameters are passed in, the function filters on the first parameter being existent/non-existent. <br/>If 2 parameters are passed in, the function filters the previous pipeline element being being existent/non-existent. <br/>If 1 parameter is passed in, the function filters the previous pipeline element being true. |
+| `exists`              | `(String filterValue, 'exists', String true|false)`, <br/>`(String filterValue, 'exists')`, <br/>`('exists', String true/false)` | If 3 parameters are passed in, the function filters on the first parameter being existent/non-existent. <br/>If 2 parameters are passed in and the second one is `'exists'`, the function filters on the first parameter being existent. <br/>If 2 parameters are passed in and the first one is `'exists'`, the function filters the previous pipeline element being existent/non-existent. |
 | `like`                | `(String filterValue, 'like', String regex)`, <br/>`('like', String regex)`                                        | If 3 parameters are passed in, the function filters on the first parameter matching the last. <br/>If 2 parameters are passed in, the function filters the previous pipeline element matching the last parameter.                                                                                                                  |
 
 The `like` function can be used with different expressions:

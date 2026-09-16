@@ -337,29 +337,33 @@ public final class ImmutableFilteredTopicTest {
     }
 
     @Test
-    public void fromStringRepeatedFilterParamThrowsLikeAnyRepeatedParam() {
-        // "filter" is single-valued again: like every other query parameter, repeating it is rejected
-        assertThatExceptionOfType(IllegalStateException.class)
-                .isThrownBy(() -> ImmutableFilteredTopic.fromString(
-                        "_/_/things/twin/events?filter=" + FILTER_EXAMPLE + "&filter=" + FN_FILTER_EXAMPLE))
-                .withMessageContaining("Duplicate key");
+    public void fromStringRepeatedFilterParamIsRejectedAsTopicParseException() {
+        // "filter" is single-valued: like every other query parameter, repeating it is rejected with the parser's
+        // own exception type (a DittoRuntimeException mapped to HTTP 400), naming the duplicated parameter
+        assertDuplicateQueryParameterIsRejected(
+                "_/_/things/twin/events?filter=" + FILTER_EXAMPLE + "&filter=" + FN_FILTER_EXAMPLE, "filter");
     }
 
     @Test
-    public void fromStringRepeatedFnFilterParamThrowsLikeAnyRepeatedParam() {
-        assertThatExceptionOfType(IllegalStateException.class)
-                .isThrownBy(() -> ImmutableFilteredTopic.fromString(
-                        "_/_/things/twin/events?fn-filter=" + FN_FILTER_EXAMPLE + "&fn-filter=" + FN_FILTER_EXAMPLE))
-                .withMessageContaining("Duplicate key");
+    public void fromStringRepeatedFnFilterParamIsRejectedAsTopicParseException() {
+        assertDuplicateQueryParameterIsRejected(
+                "_/_/things/twin/events?fn-filter=" + FN_FILTER_EXAMPLE + "&fn-filter=" + FN_FILTER_EXAMPLE,
+                "fn-filter");
     }
 
     @Test
-    public void fromStringDuplicateNamespacesParamStillThrows() {
+    public void fromStringDuplicateNamespacesParamIsRejectedAsTopicParseException() {
         // no query parameter is repeatable: a duplicated one is rejected by the parser
-        assertThatExceptionOfType(IllegalStateException.class)
-                .isThrownBy(() -> ImmutableFilteredTopic.fromString(
-                        "_/_/things/twin/events?namespaces=ns1&namespaces=ns2"))
-                .withMessageContaining("Duplicate key");
+        assertDuplicateQueryParameterIsRejected("_/_/things/twin/events?namespaces=ns1&namespaces=ns2",
+                "namespaces");
+    }
+
+    private static void assertDuplicateQueryParameterIsRejected(final String topicString, final String paramName) {
+        assertThatExceptionOfType(TopicParseException.class)
+                .isThrownBy(() -> ImmutableFilteredTopic.fromString(topicString))
+                .withMessageContaining(topicString)
+                .satisfies(e -> assertThat(e.getDescription()).hasValueSatisfying(description ->
+                        assertThat(description).contains("'" + paramName + "'").contains("more than once")));
     }
 
     @Test
@@ -375,8 +379,10 @@ public final class ImmutableFilteredTopicTest {
 
     @Test
     public void fromStringUrlDecodesFnFilterValue() {
-        // docs: topic strings are URL-decoded when parsed - a literal '+' or '|' in a compared value must be
-        // %-encoded by the user (%2B / %7C); the decoded expression is what gets stored and evaluated
+        // docs: topic strings are URL-decoded when parsed (%2B -> '+', %7C -> '|') and the decoded expression is
+        // what gets stored and evaluated. A '|' never needs encoding (the query parser only splits on '?', '&'
+        // and '='), and a '+' cannot be carried through the stored form at all: toString does not re-encode, so
+        // the '+' decodes to a space when the stored topic is parsed again (documented in basic-connections.md)
         final ImmutableFilteredTopic actual = ImmutableFilteredTopic.fromString(
                 "_/_/things/twin/events?fn-filter=fn:filter(header:x,'eq','a%2Bb%7Cc')");
 

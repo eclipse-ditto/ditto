@@ -12,7 +12,13 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -23,6 +29,7 @@ import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidExcept
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.placeholders.filter.FilterFunctions;
 
 /**
  * Evaluates and validates the placeholder pipeline expression of a connection target topic's {@code fn-filter}
@@ -35,8 +42,14 @@ import org.eclipse.ditto.placeholders.PlaceholderFactory;
  * ({@code header:ditto-originator|fn:filter('ne','x')}) or directly with a function
  * ({@code fn:filter(header:ditto-originator,'ne','x')}); further {@code fn:} stages may be chained with {@code |} -
  * a stage only runs if the previous one resolved, so chaining is AND as well. The topic is published exactly when
- * the pipeline resolves to a value, which is why the last stage should be {@code fn:filter}: a trailing
- * {@code fn:default} would make the topic always publish, a trailing {@code fn:delete} would always suppress it.
+ * the pipeline resolves to a value, which is why the last stage must be {@code fn:filter} - a pipeline ending with
+ * anything else (a bare placeholder, a value-producing stage such as {@code fn:upper()}) is rejected at validation
+ * time; publishing exactly when a placeholder resolves is written explicitly as
+ * {@code fn:filter(header:ditto-originator,'exists')}. So are an {@code fn:default} after an {@code fn:filter} stage (it would discard that filter's decision), a
+ * trailing {@code fn:default} (the topic would publish whenever its parameter resolves), an {@code fn:delete}
+ * anywhere (it would always suppress the topic) and {@code fn:filter} stages whose outcome cannot depend on the
+ * signal (an unknown literal {@code rqlFunction} name, {@code eq}/{@code ne}/{@code like} without a compared value,
+ * or a stage without any placeholder).
  * An {@code fn:} expression placed in the RQL {@code filter} parameter is rejected by {@code ConnectionValidator}
  * using {@link #isFunctionExpression(String)}; the {@code fn-filter} expression itself is validated via
  * {@link #validateFnFilter(String, DittoHeaders)}.
@@ -80,6 +93,54 @@ public final class TargetTopicFilter {
             "last stage is fn:filter(...), e.g. fn:filter(header:ditto-originator,'ne','some:subject') or " +
             "header:ditto-originator|fn:filter('ne','some:subject'); RQL expressions belong into the 'filter' " +
             "parameter.";
+
+    /**
+     * The names of the RQL functions {@code fn:filter} understands, e.g. {@code eq}, {@code ne}, {@code like},
+     * {@code exists}. Looked up case-sensitively by the pipeline function, so {@code 'NE'} or {@code 'neq'} is an
+     * unknown function that never matches - such a literal is rejected at validation time.
+     */
+    private static final Set<String> RQL_FUNCTION_NAMES = Arrays.stream(FilterFunctions.values())
+            .map(FilterFunctions::getName)
+            .collect(Collectors.toUnmodifiableSet());
+
+    private static final String EXISTS_FUNCTION_NAME = FilterFunctions.EXISTS.getName();
+
+    /**
+     * A quoted string constant as the pipeline grammar defines it (mirrors the package-private
+     * {@code PipelineFunction#SINGLE_QUOTED_STRING_CONTENT}/{@code DOUBLE_QUOTED_STRING_CONTENT}: a backslash
+     * escapes the quote), so the stage/parameter split below agrees with the grammar - the resolver has already
+     * validated the expression against it when this split runs.
+     */
+    private static final String QUOTED_CONSTANT = "'(?:\\\\'|[^'])*+'|\"(?:\\\\\"|[^\"])*+\"";
+
+    /**
+     * One pipeline stage: anything but an unquoted {@code |}, i.e. the resolver's stage pattern.
+     */
+    private static final Pattern PIPELINE_STAGE = Pattern.compile("(?:[^|'\"]++|" + QUOTED_CONSTANT + ")++");
+
+    /**
+     * One function parameter: anything but an unquoted {@code ,}.
+     */
+    private static final Pattern FUNCTION_PARAMETER = Pattern.compile("(?:[^,'\"]++|" + QUOTED_CONSTANT + ")++");
+
+    /**
+     * An {@code fn:filter(...)} stage with its parameter list (group 1, without the parentheses).
+     */
+    private static final Pattern FILTER_STAGE = Pattern.compile("^fn:filter\\((.*)\\)$", Pattern.DOTALL);
+
+    /**
+     * An {@code fn:default(...)} stage. Before the first {@code fn:filter} stage it legitimately supplies a value
+     * for an absent placeholder; after one it resolves the pipeline exactly when that filter suppressed it, i.e. it
+     * discards the filter's decision; and as the last stage of a pipeline without any filter it makes the topic
+     * publish whenever its parameter resolves.
+     */
+    private static final Pattern DEFAULT_STAGE = Pattern.compile("^fn:default\\(");
+
+    /**
+     * An {@code fn:delete()} stage, which is absorbing: no later stage can resolve a deleted pipeline again, so the
+     * topic would never publish wherever the stage sits.
+     */
+    private static final Pattern DELETE_STAGE = Pattern.compile("^fn:delete\\(");
 
     /**
      * Expression resolver used for validating pipeline expressions at connection-creation/update time.
@@ -136,13 +197,25 @@ public final class TargetTopicFilter {
      * at most 10 {@code fn:} stages). Only thrown errors are checked - the resolved result is meaningless in
      * validation mode, where every placeholder resolves to a dummy value. Additionally, a leading placeholder
      * without a name (e.g. {@code header:}) is rejected, because it passes the grammar but cannot be evaluated.
+     * <p>
+     * Beyond the grammar, the last stage must be an {@code fn:filter} stage - the stage that yields the publish
+     * decision; a bare placeholder or a trailing value-producing stage is rejected. Furthermore, expressions whose
+     * publish decision cannot depend on the signal are rejected, because they silently publish nothing (or
+     * everything): an {@code fn:filter} stage with an unknown literal
+     * {@code rqlFunction} name (e.g. {@code 'NE'}) or with {@code eq}/{@code ne}/{@code like} but no compared value
+     * never matches; an {@code fn:filter} stage without any placeholder compares constants only (in the
+     * 2-parameter form at the start of a function-first pipeline: the internal seed); an {@code fn:default(...)}
+     * after an {@code fn:filter} stage discards that filter's decision and a trailing one without any filter
+     * publishes whenever its parameter resolves; an {@code fn:delete()} anywhere never publishes. These checks only
+     * look at literals - a placeholder-valued {@code rqlFunction} is skipped.
      *
      * @param fnFilter the raw {@code fn-filter} parameter value to validate.
      * @param dittoHeaders the headers of the command which triggered the validation, stamped onto the thrown
      * exception for correlation.
      * @throws ConnectionConfigurationInvalidException if the expression is invalid, e.g. because it is empty, is an
      * RQL expression, references an unknown placeholder or function, starts with a placeholder without a name, has
-     * an invalid function signature or exceeds the maximum number of pipeline stages.
+     * an invalid function signature, exceeds the maximum number of pipeline stages, does not end with an
+     * {@code fn:filter} stage, or can only ever publish nothing or everything.
      */
     public static void validateFnFilter(final String fnFilter, final DittoHeaders dittoHeaders) {
         final String pipelineExpression = toPipelineExpression(fnFilter);
@@ -157,11 +230,137 @@ public final class TargetTopicFilter {
             final String leadingStage =
                     (pipeIndex < 0 ? pipelineExpression : pipelineExpression.substring(0, pipeIndex)).trim();
             if (PLACEHOLDER_WITHOUT_NAME.matcher(leadingStage).matches()) {
-                final DittoRuntimeException noCause = null;
                 throw invalidFnFilter(fnFilter, "The leading placeholder '" + leadingStage + "' has no name.",
-                        noCause, dittoHeaders);
+                        null, dittoHeaders);
             }
         }
+        // the grammar has been validated above, so the split into stages/parameters is guaranteed to agree with it
+        final List<String> stages = splitQuoteAware(PIPELINE_STAGE, fnFilter.trim());
+        // in a function-first pipeline the carrier value is the internal seed until a stage other than fn:filter or
+        // fn:default (neither changes a resolved carrier) may have injected signal data into it
+        boolean carrierIsSeed = isFunctionExpression(fnFilter);
+        String precedingFilterStage = null;
+        for (int i = 0; i < stages.size(); i++) {
+            final String stage = stages.get(i);
+            if (DELETE_STAGE.matcher(stage).find()) {
+                throw invalidFnFilter(fnFilter, "The stage '" + stage + "' would make the topic never publish - " +
+                        "no later stage can resolve a deleted pipeline again.", null, dittoHeaders);
+            }
+            if (DEFAULT_STAGE.matcher(stage).find()) {
+                if (null != precedingFilterStage) {
+                    throw invalidFnFilter(fnFilter, "The stage '" + stage + "' discards the decision of the " +
+                            "preceding filter stage '" + precedingFilterStage + "': it resolves the pipeline " +
+                            "whenever that filter suppressed it. An fn:default belongs before the fn:filter " +
+                            "stage it supplies a value for, e.g. header:ditto-originator|fn:default('none')" +
+                            "|fn:filter('ne','some:subject').", null, dittoHeaders);
+                }
+                if (i == stages.size() - 1) {
+                    throw invalidFnFilter(fnFilter, "The last stage '" + stage + "' would make the topic publish " +
+                            "whenever its parameter resolves (always, for a constant), regardless of what " +
+                            "precedes it - the last stage must be fn:filter(...).", null, dittoHeaders);
+                }
+                continue;
+            }
+            final Matcher filterStage = FILTER_STAGE.matcher(stage);
+            if (filterStage.matches()) {
+                validateFilterStage(fnFilter, stage, splitQuoteAware(FUNCTION_PARAMETER, filterStage.group(1)),
+                        carrierIsSeed, dittoHeaders);
+                precedingFilterStage = stage;
+            } else {
+                carrierIsSeed = false;
+            }
+        }
+        final String lastStage = stages.get(stages.size() - 1);
+        if (!FILTER_STAGE.matcher(lastStage).matches()) {
+            throw invalidFnFilter(fnFilter, "The last stage '" + lastStage + "' is not a filter stage - the last " +
+                    "stage must be fn:filter(...), the stage that yields the publish decision. A bare placeholder " +
+                    "does not filter anything: to publish exactly when it resolves, say so explicitly with " +
+                    "fn:filter(<placeholder>,'exists'), e.g. fn:filter(header:ditto-originator,'exists'); a " +
+                    "trailing value-producing stage such as fn:upper() cannot change the preceding decision.", null,
+                    dittoHeaders);
+        }
+    }
+
+    /**
+     * Rejects an {@code fn:filter} stage whose outcome cannot depend on the signal: {@code fn:filter(filterValue,
+     * rqlFunction, comparedValue)} with an unknown literal {@code rqlFunction}; the 2-parameter form
+     * {@code fn:filter(rqlFunction, comparedValue)} / {@code fn:filter(filterValue, 'exists')} that names
+     * {@code eq}/{@code ne}/{@code like} with a placeholder as first parameter, i.e. without a compared value; and a
+     * stage without any placeholder - three constants, a constant checked for existence, or (while
+     * {@code carrierIsSeed}) a constant compared against the internal seed of a function-first pipeline.
+     * Unquoted parameters are placeholders and cannot be checked at validation time.
+     */
+    private static void validateFilterStage(final String fnFilter, final String stage, final List<String> params,
+            final boolean carrierIsSeed, final DittoHeaders dittoHeaders) {
+        final boolean constantsOnly = params.stream().allMatch(TargetTopicFilter::isQuotedConstant);
+        if (params.size() == 3) {
+            if (constantsOnly) {
+                throw filterStageNeverLooksAtTheSignal(fnFilter, stage, "all three parameters are constants",
+                        dittoHeaders);
+            }
+            rejectUnknownRqlFunctionLiteral(fnFilter, stage, params.get(1), dittoHeaders);
+        } else if (params.size() == 2) {
+            final String first = params.get(0);
+            final String second = params.get(1);
+            final boolean existsForm = isQuotedConstant(second) && EXISTS_FUNCTION_NAME.equals(unquote(second));
+            if (constantsOnly && existsForm) {
+                throw filterStageNeverLooksAtTheSignal(fnFilter, stage, "it checks a constant for existence",
+                        dittoHeaders);
+            }
+            if (existsForm) {
+                return; // fn:filter(<placeholder>, 'exists')
+            }
+            if (isQuotedConstant(first)) {
+                rejectUnknownRqlFunctionLiteral(fnFilter, stage, first, dittoHeaders); // fn:filter('ne', <value>)
+                if (constantsOnly && carrierIsSeed) {
+                    throw filterStageNeverLooksAtTheSignal(fnFilter, stage, "at this point of a function-first " +
+                            "pipeline the 2-parameter form compares an internal constant, not signal data - " +
+                            "reference a placeholder, or start the pipeline with one: " +
+                            "header:ditto-originator|fn:filter('ne','some:subject')", dittoHeaders);
+                }
+            } else if (isQuotedConstant(second)) {
+                // fn:filter(<placeholder>, 'eq') - the placeholder would be taken as the rqlFunction name
+                throw invalidFnFilter(fnFilter, "The stage '" + stage + "' has no compared value: with a " +
+                        "placeholder as first parameter the 2-parameter form only supports 'exists', " +
+                        "fn:filter(<placeholder>,'exists'); 'eq', 'ne' and 'like' require a compared value, " +
+                        "e.g. fn:filter(<placeholder>,'ne','some:subject').", null, dittoHeaders);
+            }
+        }
+    }
+
+    private static ConnectionConfigurationInvalidException filterStageNeverLooksAtTheSignal(final String fnFilter,
+            final String stage, final String why, final DittoHeaders dittoHeaders) {
+        return invalidFnFilter(fnFilter, "The stage '" + stage + "' never looks at the signal (" + why + "), so " +
+                "the topic would publish either always or never - filter on a placeholder, e.g. " +
+                "fn:filter(header:ditto-originator,'ne','some:subject').", null, dittoHeaders);
+    }
+
+    private static void rejectUnknownRqlFunctionLiteral(final String fnFilter, final String stage,
+            final String rqlFunctionParam, final DittoHeaders dittoHeaders) {
+        if (isQuotedConstant(rqlFunctionParam) && !RQL_FUNCTION_NAMES.contains(unquote(rqlFunctionParam))) {
+            throw invalidFnFilter(fnFilter, "The stage '" + stage + "' uses the unknown rqlFunction " +
+                    rqlFunctionParam + " which never matches - supported (case-sensitive) rqlFunction names are " +
+                    RQL_FUNCTION_NAMES.stream().sorted().map(name -> "'" + name + "'")
+                            .collect(Collectors.joining(", ")) + ".",
+                    null, dittoHeaders);
+        }
+    }
+
+    private static List<String> splitQuoteAware(final Pattern elementPattern, final String input) {
+        final List<String> elements = new ArrayList<>();
+        final Matcher matcher = elementPattern.matcher(input);
+        while (matcher.find()) {
+            elements.add(matcher.group().trim());
+        }
+        return elements;
+    }
+
+    private static boolean isQuotedConstant(final String param) {
+        return param.startsWith("'") || param.startsWith("\"");
+    }
+
+    private static String unquote(final String quotedConstant) {
+        return quotedConstant.substring(1, quotedConstant.length() - 1);
     }
 
     private static ConnectionConfigurationInvalidException invalidFnFilter(final String fnFilter,
