@@ -462,7 +462,7 @@ public class ConnectionValidatorTest {
         final List<Target> targetWithValidFilter = singletonList(
                 ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
                         .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
-                                .withFnFilter("fn:filter(header:ditto-originator,'eq','some:subject')")
+                                .withFnFilters(List.of("header:ditto-originator|fn:filter('eq','some:subject')"))
                                 .build())
                         .build());
         final Connection connection = createConnection(CONNECTION_ID)
@@ -479,7 +479,7 @@ public class ConnectionValidatorTest {
                 ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
                         .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
                                 .withFilter("eq(attributes/a,1)")
-                                .withFnFilter("fn:filter(header:ditto-originator,'eq','some:subject')")
+                                .withFnFilters(List.of("header:ditto-originator|fn:filter('eq','some:subject')"))
                                 .build())
                         .build());
         final Connection connection = createConnection(CONNECTION_ID)
@@ -491,13 +491,13 @@ public class ConnectionValidatorTest {
     }
 
     @Test
-    public void acceptConnectionWithChainedPipelineTargetFilterParam() {
-        // several fn: stages chained with '|' inside the ONE fn-filter param are the intended way to
-        // AND several pipeline conditions
+    public void acceptConnectionWithSeveralFnFilterParams() {
+        // repeating the fn-filter param is the way to AND several pipeline conditions
         final List<Target> targetWithValidFilter = singletonList(
                 ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
                         .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
-                                .withFnFilter("fn:filter(header:a,'exists')|fn:filter(header:b,'exists')")
+                                .withFnFilters(List.of("header:a|fn:filter('exists','true')",
+                                        "header:b|fn:filter('exists','true')"))
                                 .build())
                         .build());
         final Connection connection = createConnection(CONNECTION_ID)
@@ -553,7 +553,7 @@ public class ConnectionValidatorTest {
         final List<Target> targetWithInvalidFilter = singletonList(
                 ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
                         .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
-                                .withFnFilter("fn:unknownfn('x')")
+                                .withFnFilters(List.of("header:a|fn:unknownfn('x')|fn:filter('ne','x')"))
                                 .build())
                         .build());
         final Connection connection = createConnection(CONNECTION_ID)
@@ -593,7 +593,7 @@ public class ConnectionValidatorTest {
                 ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
                         .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
                                 .withFilter("gt(attributes/x,)")
-                                .withFnFilter("fn:filter(header:ditto-originator,'eq','x')")
+                                .withFnFilters(List.of("header:ditto-originator|fn:filter('eq','x')"))
                                 .build())
                         .build());
         final Connection connection = createConnection(CONNECTION_ID)
@@ -649,7 +649,7 @@ public class ConnectionValidatorTest {
         final List<Target> targetWithMisplacedFnFilter = singletonList(
                 ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
                         .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
-                                .withFilter("fn:filter(header:ditto-originator,'eq','some:subject')")
+                                .withFilter("header:ditto-originator|fn:filter('eq','some:subject')")
                                 .build())
                         .build());
         final Connection connection = createConnection(CONNECTION_ID)
@@ -668,11 +668,70 @@ public class ConnectionValidatorTest {
     }
 
     @Test
+    public void rejectConnectionWithFunctionFirstExpressionInFilterParameterPointingToFnFilter() {
+        // an expression starting with "fn:" is no valid fn-filter either, but it clearly is no RQL: the error must
+        // still point to "fn-filter" (whose own validation then explains the placeholder-first form)
+        final List<Target> targetWithMisplacedFnFilter = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFilter("fn:filter(header:ditto-originator,'eq','some:subject')")
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithMisplacedFnFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem))
+                .withMessageContaining("'filter' only accepts an RQL expression");
+    }
+
+    @Test
+    public void rejectConnectionWithFunctionFirstFnFilter() {
+        // delegation lock for TargetTopicFilter#validateFnFilter's placeholder-first rule
+        final List<Target> targetWithFunctionFirstFnFilter = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFnFilters(List.of("fn:filter(header:ditto-originator,'ne','some:subject')"))
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithFunctionFirstFnFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem))
+                .withMessageContaining("must start with a placeholder");
+    }
+
+    @Test
+    public void rejectConnectionWhenAnyOfSeveralFnFiltersIsInvalid() {
+        // every fn-filter param of a topic is validated, not just the first one
+        final List<Target> targetWithInvalidSecondFnFilter = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFnFilters(List.of("header:ditto-originator|fn:filter('ne','some:subject')",
+                                        "header:ditto-origin|fn:filter('NE','some-connection')"))
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithInvalidSecondFnFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem))
+                .withMessageContaining("unknown rqlFunction");
+    }
+
+    @Test
     public void rejectConnectionWithLeadingWhitespaceFnExpressionInFilterParameter() {
         final List<Target> targetWithMisplacedFnFilter = singletonList(
                 ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
                         .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
-                                .withFilter("  fn:filter(header:ditto-originator,'eq','some:subject')")
+                                .withFilter("  header:ditto-originator|fn:filter('eq','some:subject')")
                                 .build())
                         .build());
         final Connection connection = createConnection(CONNECTION_ID)
@@ -690,7 +749,7 @@ public class ConnectionValidatorTest {
         final List<Target> targetWithValidFilter = singletonList(
                 ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
                         .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
-                                .withFnFilter("header:ditto-originator|fn:filter('ne','some:subject')")
+                                .withFnFilters(List.of("header:ditto-originator|fn:filter('ne','some:subject')"))
                                 .build())
                         .build());
         final Connection connection = createConnection(CONNECTION_ID)
@@ -706,7 +765,7 @@ public class ConnectionValidatorTest {
         final List<Target> targetWithMisplacedRql = singletonList(
                 ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
                         .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
-                                .withFnFilter("eq(attributes/a,1)")
+                                .withFnFilters(List.of("eq(attributes/a,1)"))
                                 .build())
                         .build());
         final Connection connection = createConnection(CONNECTION_ID)
@@ -724,7 +783,7 @@ public class ConnectionValidatorTest {
         final List<Target> targetWithEmptyFnFilter = singletonList(
                 ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
                         .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
-                                .withFnFilter("")
+                                .withFnFilters(List.of(""))
                                 .build())
                         .build());
         final Connection connection = createConnection(CONNECTION_ID)
@@ -742,7 +801,7 @@ public class ConnectionValidatorTest {
         final List<Target> targetWithNamelessPlaceholder = singletonList(
                 ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
                         .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
-                                .withFnFilter("header:|fn:filter('eq','x')")
+                                .withFnFilters(List.of("header:|fn:filter('eq','x')"))
                                 .build())
                         .build());
         final Connection connection = createConnection(CONNECTION_ID)

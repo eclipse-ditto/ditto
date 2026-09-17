@@ -20,7 +20,8 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 /**
  * A FilteredTopic wraps a {@link Topic} and optional query parameters which additionally restrict which kind of
  * Signals should be processed/filtered: an optional {@code filter} holding an {@code RQL} expression and an optional
- * {@code fn-filter} holding a placeholder pipeline expression. If both are given, both must match (AND semantics).
+ * {@code fn-filter} - which may be repeated - holding a placeholder pipeline expression. All given filters must
+ * match (AND semantics).
  */
 public interface FilteredTopic extends CharSequence {
 
@@ -40,16 +41,16 @@ public interface FilteredTopic extends CharSequence {
     Optional<String> getFilter();
 
     /**
-     * Returns the optional placeholder pipeline expression of this FilteredTopic, given via the {@code fn-filter}
-     * query parameter. The pipeline may start with a placeholder (e.g.
-     * {@code header:ditto-originator|fn:filter('ne','some:subject')}) or directly with a function (e.g.
-     * {@code fn:filter(header:ditto-originator,'ne','some:subject')}); the topic is only published for a signal if
-     * the pipeline resolves to a value, which is why its last stage should be {@code fn:filter}.
+     * Returns the placeholder pipeline expressions of this FilteredTopic, given via the repeatable {@code fn-filter}
+     * query parameter, in the order they were given. Each expression starts with the placeholder whose value is
+     * filtered and ends with its only {@code fn:filter} stage (e.g.
+     * {@code header:ditto-originator|fn:filter('ne','some:subject')}); the topic is only published for a signal if
+     * the pipeline of <em>every</em> expression resolves to a value (AND semantics).
      *
-     * @return the placeholder pipeline expression, or an empty Optional if no {@code fn-filter} is set.
+     * @return an unmodifiable list of the placeholder pipeline expressions, empty if no {@code fn-filter} is set.
      * @since 3.10.0
      */
-    Optional<String> getFnFilter();
+    List<String> getFnFilters();
 
     /**
      * Returns the selector for the extra fields and their values to enrich outgoing signals with.

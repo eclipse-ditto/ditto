@@ -14,6 +14,8 @@ package org.eclipse.ditto.connectivity.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
+
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
@@ -113,7 +115,8 @@ public final class ImmutableTargetTest {
     public void toJsonFromJsonRoundTripsWithFilterAndFnFilterTopic() {
         final FilteredTopic filteredTopic = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
                 .withFilter("gt(attributes/counter,42)")
-                .withFnFilter("fn:filter(header:ditto-originator,'ne','some:subject')")
+                .withFnFilters(List.of("header:ditto-originator|fn:filter('ne','some:subject')",
+                        "header:ditto-origin|fn:filter('ne','some-connection-id')"))
                 .build();
         final Target target = ConnectivityModelFactory.newTargetBuilder()
                 .address(ADDRESS)

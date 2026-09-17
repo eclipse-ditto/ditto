@@ -827,42 +827,46 @@ public final class OutboundMappingProcessorActor
         });
     }
 
+    /**
+     * Per the runtime failure policy, guards ONLY the fn-filter evaluation: the pipeline only ever resolves
+     * placeholders that are already known pre-enrichment (headers, topic path, entity id, resource, time,
+     * event-carried thing data), so - unlike the RQL criteria - it is evaluated first and decides a topic without
+     * RQL filter without ever needing the (possibly null, when enrichment failed) enriched thing. Any
+     * RuntimeException counts as a failure: grammar errors are DittoRuntimeExceptions, but a placeholder resolving
+     * its value may throw a plain runtime exception the validation resolver cannot detect.
+     */
+    private boolean matchesFnFilterGuarded(final String fnFilter, final OutboundSignalWithSender outboundSignal) {
+        final Signal<?> signal = outboundSignal.getSource();
+        try {
+            return TargetTopicFilter.matchesFnFilter(fnFilter, signal, connection.getId());
+        } catch (final RuntimeException e) {
+            logger.withCorrelationId(signal)
+                    .warning("Evaluating the target topic fn-filter <{}> of connection <{}> failed with <{}>: " +
+                                    "<{}> - treating as non-match.",
+                            fnFilter, connection.getId(), e.getClass().getSimpleName(), e.getMessage());
+            // an evaluation FAILURE (as opposed to an ordinary non-match, which stays silent) must be
+            // diagnosable by the connection owner - record it in the user-visible connection logs;
+            // connectionMonitorRegistry is safe to use off the actor thread (same pattern as
+            // logEnrichmentFailure, called from the exceptionally-stage of this future)
+            connectionMonitorRegistry
+                    .forOutboundFiltered(connection, outboundSignal.getTargets().getFirst().getOriginalAddress())
+                    .failure(signal,
+                            "Evaluating the target topic fn-filter <{0}> failed: {1} - the signal was dropped " +
+                                    "for this target topic.",
+                            fnFilter, e.getMessage());
+            return false;
+        }
+    }
+
     private Optional<OutboundSignalWithSender> applyFilter(final OutboundSignalWithSender outboundSignal,
             @Nullable final Thing thing, final FilteredTopic topic) {
 
         final Signal<?> signal = outboundSignal.getSource();
         final TopicPath topicPath = DITTO_PROTOCOL_ADAPTER.toTopicPath(signal);
 
-        final Optional<String> fnFilter = topic.getFnFilter();
-        if (fnFilter.isPresent()) {
-            // Per the runtime failure policy, guard ONLY the fn-filter evaluation: the pipeline only ever resolves
-            // placeholders that are already known pre-enrichment (headers, topic path, entity id, resource, time,
-            // event-carried thing data), so - unlike the RQL criteria below - it is evaluated first and decides a
-            // topic without RQL filter without ever needing the (possibly null, when enrichment failed) enriched
-            // thing. Any RuntimeException counts as a failure: grammar errors are DittoRuntimeExceptions, but a
-            // placeholder resolving its value may throw a plain runtime exception the validation resolver cannot
-            // detect.
-            final boolean fnFilterMatches;
-            try {
-                fnFilterMatches = TargetTopicFilter.matchesFnFilter(fnFilter.get(), signal, connection.getId());
-            } catch (final RuntimeException e) {
-                logger.withCorrelationId(signal)
-                        .warning("Evaluating the target topic fn-filter <{}> of connection <{}> failed with <{}>: " +
-                                        "<{}> - treating as non-match.",
-                                fnFilter.get(), connection.getId(), e.getClass().getSimpleName(), e.getMessage());
-                // an evaluation FAILURE (as opposed to an ordinary non-match, which stays silent) must be
-                // diagnosable by the connection owner - record it in the user-visible connection logs;
-                // connectionMonitorRegistry is safe to use off the actor thread (same pattern as
-                // logEnrichmentFailure, called from the exceptionally-stage of this future)
-                connectionMonitorRegistry
-                        .forOutboundFiltered(connection, outboundSignal.getTargets().getFirst().getOriginalAddress())
-                        .failure(signal,
-                                "Evaluating the target topic fn-filter <{0}> failed: {1} - the signal was dropped " +
-                                        "for this target topic.",
-                                fnFilter.get(), e.getMessage());
-                return Optional.empty();
-            }
-            if (!fnFilterMatches) {
+        // all fn-filters of the topic must match (AND); the first non-match or failure decides
+        for (final String fnFilter : topic.getFnFilters()) {
+            if (!matchesFnFilterGuarded(fnFilter, outboundSignal)) {
                 return Optional.empty();
             }
         }

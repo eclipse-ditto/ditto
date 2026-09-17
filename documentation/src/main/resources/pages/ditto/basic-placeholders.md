@@ -328,25 +328,25 @@ _org.eclipse.ditto/device-123/things/live/messages/hello.world_ these placeholde
 ### Scope: Connection target topic filter
 
 In a connection's [target topic filter](basic-connections.html#filtering-with-placeholder-functions),
-a placeholder function pipeline whose last stage is [`fn:filter()`](#function-library) may be used as the
+a placeholder function pipeline ending with [`fn:filter()`](#function-library) may be used as the repeatable
 `fn-filter` query parameter, alongside an optional [RQL expression](basic-rql.html) in the `filter` parameter
-(at most one of each; if both are given, both must match). As with
+(all given filters must match). As with
 [RQL expressions when filtering for Ditto Protocol messages](#scope-rql-expressions-when-filtering-for-ditto-protocol-messages),
-such a pipeline is a bare expression and placeholders must not be surrounded by curly braces. The pipeline may
-start with a placeholder or directly with a function, e.g.
-`header:ditto-originator|fn:filter('ne','some:subject')` or
-`fn:filter(header:ditto-originator,'ne','some:subject')`; the topic is published exactly when the pipeline
-resolves to a value, which is why the last stage must be `fn:filter()` -- the stage that yields the boolean
-publish decision; a pipeline ending with anything else (a bare placeholder such as `header:ditto-originator`
--- write `fn:filter(header:ditto-originator,'exists')` to publish exactly when the header is present -- or a
-trailing value-producing stage such as `fn:upper()`), an `fn:default('...')` after an `fn:filter` stage
-(which would discard that filter's decision), an `fn:delete()` anywhere (never publish) or an `fn:filter`
-stage without any placeholder (which never looks at the signal) is rejected at connection creation/update
-time -- see
+such a pipeline is a bare expression and placeholders must not be surrounded by curly braces. The pipeline
+has a fixed shape: it starts with the placeholder whose value is filtered, may continue with value-transforming
+stages and ends with its only `fn:filter` stage in the 2-parameter form, e.g.
+`header:ditto-originator|fn:filter('ne','some:subject')`. The topic is published exactly when the pipeline
+resolves to a value, so a placeholder which does not resolve for a signal (e.g. an absent header) always
+suppresses the topic. Everything else -- in particular the function-first form
+`fn:filter(header:ditto-originator,'ne','some:subject')`, which would filter an absent header as the empty
+value and therefore publish on `ne`, a bare placeholder such as `header:ditto-originator` (write
+`header:ditto-originator|fn:filter('exists','true')` to publish exactly when the header is present), a second
+`fn:filter` stage, a trailing value-producing stage such as `fn:upper()` or `fn:default('...')`, and an
+`fn:delete()` anywhere (never publish) -- is rejected at connection creation/update time -- see
 [filtering with placeholder functions](basic-connections.html#filtering-with-placeholder-functions).
 The pipeline is evaluated per outbound signal, before enrichment, so the following placeholders are available
-in general (the `thing-json` placeholder only as the leading stage of a placeholder-first pipeline, and only
-with the data carried by a thing event):
+in general (the `thing-json` placeholder only as the leading placeholder, and only with the data carried by a
+thing event):
 * [entity placeholder](#entity-placeholder)
 * [thing placeholder](#thing-placeholder)
 * [thing-json placeholder](#thing-json-placeholder)

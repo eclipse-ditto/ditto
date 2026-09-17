@@ -735,7 +735,7 @@ public final class OutboundMappingProcessorActorTest {
             // resource:path == /features/feature4), plus a pure-pipeline topic on "ditto-originator".
             // Neither topic matches, so the whole target is dropped.
             final FilteredTopic pipelineTopic = ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
-                    .withFnFilter("fn:filter(header:ditto-originator,'ne','x')")
+                    .withFnFilters(List.of("header:ditto-originator|fn:filter('ne','x')"))
                     .build();
             final List<Target> targets = List.of(createTestTargetMultiTopics(Set.of(topic4(), pipelineTopic)));
             final Connection connection = CONNECTION.toBuilder().setTargets(targets).build();
@@ -764,13 +764,13 @@ public final class OutboundMappingProcessorActorTest {
         new TestKit(actorSystemResource.getActorSystem()) {{
             // Same mixed target as above, but the pipeline now matches: the target must publish via the
             // pure-pipeline topic (no thing needed) without any extra fields, and without leaking anything
-            // (in particular not the internal pipeline seed, see TargetTopicFilter#FUNCTION_FIRST_SEED) onto the
+            // (in particular no value of the fn-filter pipeline) onto the
             // published signal's headers. A second, unfiltered "control" target on the very same signal
             // establishes what the mapping/dispatch pipeline normally does to headers (e.g. stripping
             // internal-only ones, adding "content-type") so the comparison isolates exactly what the pipeline
             // *filter evaluation* itself changed, rather than unrelated header bookkeeping.
             final FilteredTopic pipelineTopic = ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
-                    .withFnFilter("fn:filter(header:ditto-originator,'eq','x')")
+                    .withFnFilters(List.of("header:ditto-originator|fn:filter('eq','x')"))
                     .build();
             final Target pipelineTarget = createTestTargetMultiTopics(Set.of(topic4(), pipelineTopic));
             final Target controlTarget = ConnectivityModelFactory.newTargetBuilder(pipelineTarget)
@@ -821,7 +821,7 @@ public final class OutboundMappingProcessorActorTest {
             // pure-pipeline topic. Enrichment succeeds and both independently match; the extraFields-first
             // sort (see enrichAndFilterSignal) must make topic4 win the extraFields selection.
             final FilteredTopic pipelineTopic = ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
-                    .withFnFilter("fn:filter(header:ditto-originator,'eq','x')")
+                    .withFnFilters(List.of("header:ditto-originator|fn:filter('eq','x')"))
                     .build();
             final List<Target> targets = List.of(createTestTargetMultiTopics(Set.of(topic4(), pipelineTopic)));
             final Connection connection = CONNECTION.toBuilder().setTargets(targets).build();
@@ -856,7 +856,7 @@ public final class OutboundMappingProcessorActorTest {
             // with topic4's extraFields - a non-matching pipeline topic must not sink the whole target nor win
             // the extraFields selection (it must return empty from applyFilter).
             final FilteredTopic pipelineTopic = ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
-                    .withFnFilter("fn:filter(header:ditto-originator,'eq','y')")
+                    .withFnFilters(List.of("header:ditto-originator|fn:filter('eq','y')"))
                     .build();
             final List<Target> targets = List.of(createTestTargetMultiTopics(Set.of(topic4(), pipelineTopic)));
             final Connection connection = CONNECTION.toBuilder().setTargets(targets).build();
@@ -893,7 +893,7 @@ public final class OutboundMappingProcessorActorTest {
             // RQL "filter" (via FilteredTopic#getFilter) is evaluated against the enriched thing.
             final FilteredTopic combinedTopic = ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
                     .withFilter("exists(features/featureA)")
-                    .withFnFilter("fn:filter(header:ditto-originator,'eq','x')")
+                    .withFnFilters(List.of("header:ditto-originator|fn:filter('eq','x')"))
                     .withExtraFields(ThingFieldSelector.fromString("definition"))
                     .build();
             final List<Target> targets = List.of(createTestTargetMultiTopics(Set.of(combinedTopic)));
@@ -921,10 +921,10 @@ public final class OutboundMappingProcessorActorTest {
     @Test
     public void placeholderFirstFnFilterWithExtraFieldsPublishesEnriched() {
         new TestKit(actorSystemResource.getActorSystem()) {{
-            // fn-filter in the placeholder-first form (no internal seed) on a topic WITH extraFields: the
+            // fn-filter on a topic WITH extraFields: the
             // post-enrichment re-evaluation in applyFilter must resolve the leading header placeholder and publish
             final FilteredTopic pipelineTopic = ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
-                    .withFnFilter("header:ditto-originator|fn:filter('eq','x')")
+                    .withFnFilters(List.of("header:ditto-originator|fn:filter('eq','x')"))
                     .withExtraFields(ThingFieldSelector.fromString("definition"))
                     .build();
             final List<Target> targets = List.of(createTestTargetMultiTopics(Set.of(pipelineTopic)));
@@ -950,14 +950,13 @@ public final class OutboundMappingProcessorActorTest {
     }
 
     @Test
-    public void chainedPipelineStagesWithExtraFieldsAllMatchPublishesEnriched() {
+    public void severalFnFiltersWithExtraFieldsAllMatchPublishesEnriched() {
         new TestKit(actorSystemResource.getActorSystem()) {{
-            // A single topic with one pipeline filter param chaining TWO fn: stages (AND semantics) and
-            // extraFields: both stages match, so the signal is published with the topic's extra fields after
-            // the post-enrichment re-evaluation.
+            // A single topic with TWO fn-filter params (AND semantics) and extraFields: both match, so the signal
+            // is published with the topic's extra fields after the post-enrichment re-evaluation.
             final FilteredTopic pipelineTopic = ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
-                    .withFnFilter("fn:filter(header:ditto-originator,'eq','x')" +
-                            "|fn:filter(header:ditto-originator,'ne','y')")
+                    .withFnFilters(List.of("header:ditto-originator|fn:filter('eq','x')",
+                            "header:ditto-originator|fn:filter('ne','y')"))
                     .withExtraFields(ThingFieldSelector.fromString("definition"))
                     .build();
             final List<Target> targets = List.of(createTestTargetMultiTopics(Set.of(pipelineTopic)));
@@ -983,13 +982,46 @@ public final class OutboundMappingProcessorActorTest {
     }
 
     @Test
-    public void chainedPipelineStagesSecondStageNonMatchDropsTarget() {
+    public void orAcrossTwoMatchingFnFilterTopicsWithExtraFieldsPublishesOnce() {
         new TestKit(actorSystemResource.getActorSystem()) {{
-            // Same topic shape as above, but the SECOND chained stage does not match ("ne 'x'" with originator
-            // "x") - AND semantics must drop the whole target even though the first stage matches.
+            // OR of two fn-filter conditions = two entries of the same topic on one target. BOTH match here: the
+            // post-enrichment evaluation must pick exactly one of them, i.e. the signal is published once.
+            final FilteredTopic originatorTopic = ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                    .withFnFilters(List.of("header:ditto-originator|fn:filter('eq','x')"))
+                    .withExtraFields(ThingFieldSelector.fromString("definition"))
+                    .build();
+            final FilteredTopic otherOriginatorTopic =
+                    ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                            .withFnFilters(List.of("header:ditto-originator|fn:filter('like','x*')"))
+                            .withExtraFields(ThingFieldSelector.fromString("definition"))
+                            .build();
+            final List<Target> targets =
+                    List.of(createTestTargetMultiTopics(Set.of(originatorTopic, otherOriginatorTopic)));
+            final Connection connection = CONNECTION.toBuilder().setTargets(targets).build();
+            final ActorRef underTest = getTestActorRef(connection);
+
+            final OutboundSignal outboundSignal = withOriginator(outboundFeatureTwinEvent(THING,
+                    Feature.newBuilder().withId("unrelatedFeature").build(),
+                    List.of("multipleExtraFields"), targets, getRef()), "x");
+
+            underTest.tell(outboundSignal, getRef());
+            partialRetrieveAndResponse();
+
+            final BaseClientActor.PublishMappedMessage publish =
+                    clientActorProbe.expectMsgClass(BaseClientActor.PublishMappedMessage.class);
+            assertThat(publish.getOutboundSignal().first().getTargets()).containsExactly(targets.getFirst());
+            clientActorProbe.expectNoMessage();
+        }};
+    }
+
+    @Test
+    public void severalFnFiltersSecondNonMatchDropsTarget() {
+        new TestKit(actorSystemResource.getActorSystem()) {{
+            // Same topic shape as above, but the SECOND fn-filter does not match ("ne 'x'" with originator
+            // "x") - AND semantics must drop the whole target even though the first fn-filter matches.
             final FilteredTopic pipelineTopic = ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
-                    .withFnFilter("fn:filter(header:ditto-originator,'eq','x')" +
-                            "|fn:filter(header:ditto-originator,'ne','x')")
+                    .withFnFilters(List.of("header:ditto-originator|fn:filter('eq','x')",
+                            "header:ditto-originator|fn:filter('ne','x')"))
                     .withExtraFields(ThingFieldSelector.fromString("definition"))
                     .build();
             final List<Target> targets = List.of(createTestTargetMultiTopics(Set.of(pipelineTopic)));

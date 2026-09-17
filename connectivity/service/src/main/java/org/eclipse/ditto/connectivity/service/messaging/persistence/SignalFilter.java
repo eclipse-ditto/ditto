@@ -111,9 +111,9 @@ public final class SignalFilter {
      * Filters the passed {@code signal} by extracting those {@link Target}s which should receive the signal.
      * Fields are ignored if they occur as "extra targets" to be evaluated later after signal enrichment.
      * <p>
-     * A target topic may carry an optional RQL {@code filter} and an optional {@code fn-filter} (a placeholder
-     * pipeline, see {@link org.eclipse.ditto.connectivity.service.messaging.TargetTopicFilter}), combined with AND
-     * semantics. The {@code fn-filter} is evaluated first, before enrichment, as a deterministic hard gate; per the
+     * A target topic may carry an optional RQL {@code filter} and any number of {@code fn-filter}s (placeholder
+     * pipelines, see {@link org.eclipse.ditto.connectivity.service.messaging.TargetTopicFilter}), combined with AND
+     * semantics. The {@code fn-filter}s are evaluated first, before enrichment, as a deterministic hard gate; per the
      * runtime failure policy, any {@link RuntimeException} thrown while evaluating it is caught, logged as a warning
      * plus a failure entry in the user-visible connection logs, and treated as a non-match rather than propagated.
      * The RQL filter - if present - keeps its existing (unguarded) behavior.
@@ -181,9 +181,11 @@ public final class SignalFilter {
 
     private boolean matchesFilterBeforeEnrichment(final FilteredTopic filteredTopic, final Target target,
             final Signal<?> signal, final ConnectionId connectionId) {
-        final Optional<String> fnFilter = filteredTopic.getFnFilter();
-        if (fnFilter.isPresent() && !matchesFnFilterGuarded(fnFilter.get(), target, signal, connectionId)) {
-            return false;
+        // all fn-filters of the topic must match (AND); the first non-match or failure decides
+        for (final String fnFilter : filteredTopic.getFnFilters()) {
+            if (!matchesFnFilterGuarded(fnFilter, target, signal, connectionId)) {
+                return false;
+            }
         }
         final Optional<String> filterOptional = filteredTopic.getFilter();
         if (filterOptional.isEmpty()) {

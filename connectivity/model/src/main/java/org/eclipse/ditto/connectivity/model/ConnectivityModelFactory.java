@@ -843,9 +843,9 @@ public final class ConnectivityModelFactory {
 
     /**
      * Creates a new {@code FilteredTopic} from the passed {@code topicString} which consists of a {@code Topic} and
-     * optional query parameters: {@code ?filter=<RQL expression>} and/or {@code fn-filter=<placeholder pipeline>}
-     * (e.g. {@code fn:filter(header:ditto-originator,'ne','some:subject')}); if both are given, both must match
-     * for a signal to be processed (AND semantics).
+     * optional query parameters: {@code ?filter=<RQL expression>} and/or - repeatable -
+     * {@code fn-filter=<placeholder pipeline>} (e.g. {@code header:ditto-originator|fn:filter('ne','some:subject')});
+     * all given filters must match for a signal to be processed (AND semantics).
      *
      * @param topicString the {@code FilteredTopic} String representation
      * @return the created FilteredTopic
