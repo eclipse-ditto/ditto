@@ -38,19 +38,28 @@ import org.eclipse.ditto.internal.utils.health.StatusInfo;
 
 import com.hivemq.client.internal.mqtt.datatypes.MqttTopicFilterImpl;
 
-import org.apache.pekko.NotUsed;
+import org.apache.pekko.Done;
 import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.japi.Pair;
 import org.apache.pekko.japi.function.Predicate;
 import org.apache.pekko.stream.KillSwitch;
 import org.apache.pekko.stream.KillSwitches;
+import org.apache.pekko.stream.UniqueKillSwitch;
 import org.apache.pekko.stream.javadsl.Flow;
 import org.apache.pekko.stream.javadsl.Keep;
 import org.apache.pekko.stream.javadsl.Sink;
 import org.apache.pekko.stream.javadsl.Source;
+import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscriber;
 
 /**
  * Actor that receives a stream of subscribed MQTT Publish messages, transforms them to {@link ExternalMessage}s and
  * forwards them to {@link org.eclipse.ditto.connectivity.service.messaging.InboundMappingSink}.
+ * <p>
+ * The actor subscribes to the MQTT Publish messages within {@link #preStart()} and reports a {@link Status.Success}
+ * to its parent afterwards. As an actor processes no message before {@code preStart} completed, the parent can rely
+ * on the consumer being subscribed once it received that report.
  */
 public final class MqttConsumerActor extends BaseConsumerActor {
 
@@ -59,8 +68,8 @@ public final class MqttConsumerActor extends BaseConsumerActor {
     private final ThreadSafeDittoLoggingAdapter logger;
     private final MqttSpecificConfig mqttSpecificConfig;
 
+    private final Publisher<GenericMqttPublish> mqttPublishes;
     private KillSwitch killSwitch;
-    private Source<GenericMqttPublish, NotUsed> mqttPublishSource;
 
     @SuppressWarnings("java:S1144")
     private MqttConsumerActor(final Connection connection,
@@ -68,7 +77,7 @@ public final class MqttConsumerActor extends BaseConsumerActor {
             final org.eclipse.ditto.connectivity.model.Source source,
             final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig,
-            final Source<GenericMqttPublish, NotUsed> mqttPublishSource,
+            final Publisher<GenericMqttPublish> mqttPublishes,
             final OperationMode operationMode) {
 
         super(connection,
@@ -89,8 +98,8 @@ public final class MqttConsumerActor extends BaseConsumerActor {
 
         mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection, mqttConfig);
 
+        this.mqttPublishes = mqttPublishes;
         killSwitch = null;
-        this.mqttPublishSource = mqttPublishSource;
     }
 
     /**
@@ -103,7 +112,7 @@ public final class MqttConsumerActor extends BaseConsumerActor {
      * @param connectionSource the connection source of the consumer actor.
      * @param connectivityStatusResolver resolves occurred exceptions to a connectivity status.
      * @param connectivityConfig the config of Connectivity service with potential overwrites.
-     * @param mqttPublishSource stream of received MQTT publish messages logs and drops.
+     * @param mqttPublishes publisher of received MQTT publish messages the consumer actor logs and drops.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static Props propsDryRun(final Connection connection,
@@ -111,7 +120,7 @@ public final class MqttConsumerActor extends BaseConsumerActor {
             final org.eclipse.ditto.connectivity.model.Source connectionSource,
             final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig,
-            final Source<GenericMqttPublish, NotUsed> mqttPublishSource) {
+            final Publisher<GenericMqttPublish> mqttPublishes) {
 
         return Props.create(
                 MqttConsumerActor.class,
@@ -120,7 +129,7 @@ public final class MqttConsumerActor extends BaseConsumerActor {
                 ConditionChecker.checkNotNull(connectionSource, "connectionSource"),
                 ConditionChecker.checkNotNull(connectivityStatusResolver, "connectivityStatusResolver"),
                 ConditionChecker.checkNotNull(connectivityConfig, "connectivityConfig"),
-                ConditionChecker.checkNotNull(mqttPublishSource, "mqttPublishSource"),
+                ConditionChecker.checkNotNull(mqttPublishes, "mqttPublishes"),
                 OperationMode.DRY_RUN
         );
     }
@@ -135,7 +144,7 @@ public final class MqttConsumerActor extends BaseConsumerActor {
      * @param connectionSource the connection source of the consumer actor.
      * @param connectivityStatusResolver resolves occurred exceptions to a connectivity status.
      * @param connectivityConfig the config of Connectivity service with potential overwrites.
-     * @param mqttPublishSource stream of received MQTT publish messages the consumer actor processes.
+     * @param mqttPublishes publisher of received MQTT publish messages the consumer actor processes.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static Props propsProcessing(final Connection connection,
@@ -143,7 +152,7 @@ public final class MqttConsumerActor extends BaseConsumerActor {
             final org.eclipse.ditto.connectivity.model.Source connectionSource,
             final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig,
-            final Source<GenericMqttPublish, NotUsed> mqttPublishSource) {
+            final Publisher<GenericMqttPublish> mqttPublishes) {
 
         return Props.create(
                 MqttConsumerActor.class,
@@ -152,43 +161,62 @@ public final class MqttConsumerActor extends BaseConsumerActor {
                 ConditionChecker.checkNotNull(connectionSource, "connectionSource"),
                 ConditionChecker.checkNotNull(connectivityStatusResolver, "connectivityStatusResolver"),
                 ConditionChecker.checkNotNull(connectivityConfig, "connectivityConfig"),
-                ConditionChecker.checkNotNull(mqttPublishSource, "mqttPublishSource"),
+                ConditionChecker.checkNotNull(mqttPublishes, "mqttPublishes"),
                 OperationMode.PROCESSING
         );
     }
 
     @Override
     public void preStart() throws Exception {
-        throttleMqttPublishSourceIfThrottlingEnabled();
+        final var mqttPublishSource = getThrottledIfThrottlingEnabled(Source.<GenericMqttPublish>asSubscriber()
+                .viaMat(KillSwitches.single(), Keep.both()));
+        final Pair<Subscriber<GenericMqttPublish>, UniqueKillSwitch> materializedValues;
         if (OperationMode.DRY_RUN == operationMode) {
-            killSwitch = dropAndLogMqttPublishes();
+            materializedValues = dropAndLogMqttPublishes(mqttPublishSource);
         } else {
-            killSwitch = processMqttPublishes();
+            materializedValues = processMqttPublishes(mqttPublishSource);
         }
+        killSwitch = materializedValues.second();
+
+        // Subscribing here – instead of via Source.fromPublisher which subscribes asynchronously – guarantees that
+        // this actor consumes the MQTT publishes before it processes any message, particularly before its parent
+        // receives the readiness report below.
+        mqttPublishes.subscribe(materializedValues.first());
+        reportReadinessToParent();
     }
 
-    private void throttleMqttPublishSourceIfThrottlingEnabled() {
+    private <M> Source<GenericMqttPublish, M> getThrottledIfThrottlingEnabled(
+            final Source<GenericMqttPublish, M> mqttPublishSource
+    ) {
         final var throttlingConfig = mqttConfig.getConsumerThrottlingConfig();
         if (throttlingConfig.isEnabled()) {
-            mqttPublishSource = mqttPublishSource.throttle(throttlingConfig.getLimit(), throttlingConfig.getInterval());
+            return mqttPublishSource.throttle(throttlingConfig.getLimit(), throttlingConfig.getInterval());
+        } else {
+            return mqttPublishSource;
         }
     }
 
-    private KillSwitch dropAndLogMqttPublishes() {
-        return mqttPublishSource.viaMat(KillSwitches.single(), Keep.right())
+    private <M> M dropAndLogMqttPublishes(final Source<GenericMqttPublish, M> mqttPublishSource) {
+        return mqttPublishSource
                 .to(Sink.foreach(publish -> logger.info("Operating in 'dry-run' mode, thus dropping <{}>.", publish)))
                 .run(getContext().getSystem());
     }
 
-    private KillSwitch processMqttPublishes() {
+    private <M> M processMqttPublishes(final Source<GenericMqttPublish, M> mqttPublishSource) {
         final var mqttPublishTransformer = MqttPublishToExternalMessageTransformer.newInstance(sourceAddress, source);
 
-        return mqttPublishSource.viaMat(KillSwitches.single(), Keep.right())
+        return mqttPublishSource
                 .filter(this::messageHasRightTopicPath)
                 .map(mqttPublishTransformer::transform)
                 .divertTo(getTransformationFailureSink(), TransformationResult::isFailure)
                 .to(getTransformationSuccessSink())
                 .run(getContext().getSystem());
+    }
+
+    private void reportReadinessToParent() {
+        final var context = getContext();
+        final var parent = context.getParent();
+        parent.tell(new Status.Success(Done.getInstance()), getSelf());
     }
 
     /**

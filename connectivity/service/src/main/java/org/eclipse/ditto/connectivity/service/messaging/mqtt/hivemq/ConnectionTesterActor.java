@@ -144,7 +144,13 @@ final class ConnectionTesterActor extends AbstractActor {
         return ReceiveBuilder.create()
                 .match(TestConnection.class, this::testConnection)
                 .match(StartChildActorConflictFree.class, this::startChildActorConflictFree)
+                .match(Status.Success.class, this::ignoreReadinessReportOfConsumerActor)
                 .build();
+    }
+
+    private void ignoreReadinessReportOfConsumerActor(final Status.Success readinessReport) {
+        // consumer actors report their readiness to their parent; the health of the started child actors is
+        // retrieved explicitly instead
     }
 
     private void testConnection(final TestConnection testConnection) {
@@ -304,7 +310,7 @@ final class ConnectionTesterActor extends AbstractActor {
                                         subscribeSuccess.getConnectionSource(),
                                         connectivityStatusResolver,
                                         hiveMqttClientProperties.getConnectivityConfig(),
-                                        subscribeSuccess.getMqttPublishSourceOrThrow())
+                                        subscribeSuccess.getMqttPublishesOrThrow())
                         ),
                         ASK_TIMEOUT)
                 .thenApply(ActorRef.class::cast);
