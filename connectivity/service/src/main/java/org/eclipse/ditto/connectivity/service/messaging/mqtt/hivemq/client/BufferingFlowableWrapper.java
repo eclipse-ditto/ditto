@@ -23,6 +23,10 @@ import io.reactivex.subjects.PublishSubject;
  * Wrapper around flowable that buffers the items until it is told to stop.
  * When buffering is enabled, all subscribers get all missed items, when the
  * buffering is disabled, subscribers will get only new items.
+ * <p>
+ * Items emitted after {@link #stopBuffering()} are only delivered to subscribers which are subscribed at that time.
+ * The caller is thus responsible for stopping buffering only after all consumers of flowables obtained via
+ * {@link #toFlowable()} are subscribed.
  *
  * @param <T> type of items
  */
@@ -35,7 +39,9 @@ public final class BufferingFlowableWrapper<T> implements Disposable {
     private final Disposable originalSubscription;
     private final Flowable<T> flowable;
     private final Disposable subscription;
-    private boolean isBuffering = true;
+
+    // written by stopBuffering() and read while routing items on the emitting thread
+    private volatile boolean isBuffering = true;
 
     private BufferingFlowableWrapper(final Flowable<T> flowable) {
         this.originalFlowable = flowable;
@@ -106,11 +112,13 @@ public final class BufferingFlowableWrapper<T> implements Disposable {
             throw new IllegalStateException(DISPOSED_ERROR_MESSAGE);
         }
 
+        // The buffered subject is deliberately not completed here: the subjects are only ever called from the
+        // emitting thread of the original flowable, so an item routed to the buffered subject concurrently with
+        // this switch is still replayed to all subscribers instead of being lost.
         isBuffering = false;
-        buffered.onComplete();
     }
 
-    private boolean isDisposed = false;
+    private volatile boolean isDisposed = false;
 
     @Override
     public void dispose() {

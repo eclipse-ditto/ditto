@@ -21,8 +21,7 @@ import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.MqttS
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubscribe;
 
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.stream.javadsl.Source;
+import org.reactivestreams.Publisher;
 
 /**
  * Represents the successful subscription of an MQTT client to one or more
@@ -30,28 +29,27 @@ import org.apache.pekko.stream.javadsl.Source;
  */
 final class SubscribeSuccess extends SubscribeResult {
 
-    private final Source<GenericMqttPublish, NotUsed> mqttPublishSource;
+    private final Publisher<GenericMqttPublish> mqttPublishes;
 
     private SubscribeSuccess(final org.eclipse.ditto.connectivity.model.Source connectionSource,
-            final Source<GenericMqttPublish, NotUsed> mqttPublishSource) {
+            final Publisher<GenericMqttPublish> mqttPublishes) {
 
         super(connectionSource);
-        this.mqttPublishSource = mqttPublishSource;
+        this.mqttPublishes = mqttPublishes;
     }
 
     /**
      * Returns a new instance of {@code SubscribeSuccess} for the specified arguments.
      *
      * @param connectionSource the connection source which is associated with the returned subscribe success.
-     * @param mqttPublishSource stream of received MQTT Publish messages for the subscribed topics.
+     * @param mqttPublishes publisher of received MQTT Publish messages for the subscribed topics.
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
     static SubscribeSuccess newInstance(final org.eclipse.ditto.connectivity.model.Source connectionSource,
-            final Source<GenericMqttPublish, NotUsed> mqttPublishSource) {
+            final Publisher<GenericMqttPublish> mqttPublishes) {
 
-        return new SubscribeSuccess(connectionSource,
-                ConditionChecker.checkNotNull(mqttPublishSource, "mqttPublishSource"));
+        return new SubscribeSuccess(connectionSource, ConditionChecker.checkNotNull(mqttPublishes, "mqttPublishes"));
     }
 
     @Override
@@ -60,8 +58,8 @@ final class SubscribeSuccess extends SubscribeResult {
     }
 
     @Override
-    public org.apache.pekko.stream.javadsl.Source<GenericMqttPublish, NotUsed> getMqttPublishSourceOrThrow() {
-        return mqttPublishSource;
+    public Publisher<GenericMqttPublish> getMqttPublishesOrThrow() {
+        return mqttPublishes;
     }
 
     /**
@@ -84,12 +82,12 @@ final class SubscribeSuccess extends SubscribeResult {
             return false;
         }
         final var that = (SubscribeSuccess) o;
-        return Objects.equals(mqttPublishSource, that.mqttPublishSource);
+        return Objects.equals(mqttPublishes, that.mqttPublishes);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), mqttPublishSource);
+        return Objects.hash(super.hashCode(), mqttPublishes);
     }
 
 }
