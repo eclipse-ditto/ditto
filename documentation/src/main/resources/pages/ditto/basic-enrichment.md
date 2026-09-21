@@ -147,6 +147,10 @@ For example, only receive temperature events for Things in the kitchen:
 extraFields=attributes/location&filter=eq(attributes/location,"Kitchen")
 ```
 
+This applies to the RQL `filter` only. The
+[`fn-filter`](basic-connections.html#filtering-with-placeholder-functions) of a connection target topic is
+evaluated against the signal itself and never sees enriched fields.
+
 ## Further reading
 
 * [Change Notifications](basic-changenotifications.html) -- subscribe to events

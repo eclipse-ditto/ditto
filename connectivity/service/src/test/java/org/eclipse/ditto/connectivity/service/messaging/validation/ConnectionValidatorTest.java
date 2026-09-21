@@ -15,8 +15,10 @@ package org.eclipse.ditto.connectivity.service.messaging.validation;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.Authorization;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.Certificates;
 
@@ -27,6 +29,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -36,6 +40,8 @@ import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabelInvalidException;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabelNotUniqueException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.connectivity.model.ClientCertificateCredentials;
@@ -55,6 +61,7 @@ import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
 import org.eclipse.ditto.connectivity.service.mapping.NormalizedMessageMapper;
+import org.eclipse.ditto.connectivity.service.messaging.TargetTopicFilter;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.AmqpValidator;
 import org.eclipse.ditto.connectivity.service.messaging.httppush.HttpPushValidator;
@@ -454,6 +461,392 @@ public class ConnectionValidatorTest {
     }
 
     @Test
+    public void acceptValidConnectionWithFnFilterTargetTopic() {
+        final List<Target> targetWithValidFilter = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFnFilters(List.of("header:ditto-originator|fn:filter('eq','some:subject')"))
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithValidFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        underTest.validate(connection, DittoHeaders.empty(), actorSystem);
+    }
+
+    @Test
+    public void acceptValidConnectionWithRqlAndPipelineTargetFilterParams() {
+        final List<Target> targetWithValidFilter = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFilter("eq(attributes/a,1)")
+                                .withFnFilters(List.of("header:ditto-originator|fn:filter('eq','some:subject')"))
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithValidFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        underTest.validate(connection, DittoHeaders.empty(), actorSystem);
+    }
+
+    @Test
+    public void acceptConnectionWithSeveralFnFilterParams() {
+        // repeating the fn-filter param is the way to AND several pipeline conditions
+        final List<Target> targetWithValidFilter = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFnFilters(List.of("header:a|fn:filter('exists','true')",
+                                        "header:b|fn:filter('exists','true')"))
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithValidFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        underTest.validate(connection, DittoHeaders.empty(), actorSystem);
+    }
+
+    @Test
+    public void rejectConnectionWithFnStageAppendedToRqlFilter() {
+        // an RQL expression followed by "|fn:..." is no placeholder pipeline, so the whole value goes to the RQL
+        // parser, which rejects the tail
+        final List<Target> targetWithInvalidFilter = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFilter(
+                                        "gt(attributes/counter,42)|fn:filter(header:ditto-originator,'eq','x')")
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithInvalidFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(InvalidRqlExpressionException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+    }
+
+    @Test
+    public void acceptValidConnectionWithRqlFilterContainingUnquotedPipeInPropertyPath() {
+        // an unquoted "|" is legal in RQL property paths - the expression must not be taken for a placeholder pipeline
+        final List<Target> targetWithValidFilter = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFilter("eq(attributes/a|b,1)")
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithValidFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        underTest.validate(connection, DittoHeaders.empty(), actorSystem);
+    }
+
+    @Test
+    public void rejectConnectionWithFnFilterContainingUnknownPipelineFunction() {
+        final List<Target> targetWithInvalidFilter = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFnFilters(List.of("header:a|fn:unknownfn('x')|fn:filter('ne','x')"))
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithInvalidFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+    }
+
+    @Test
+    public void rejectConnectionWithMalformedRqlTargetFilterAsInvalidRqlExpression() {
+        // a malformed RQL filter fails with the RQL parser's InvalidRqlExpressionException, not with the
+        // ConnectionConfigurationInvalidException of the fn-filter validation
+        final List<Target> targetWithInvalidFilter = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFilter("gt(attributes/x,)")
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithInvalidFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(InvalidRqlExpressionException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+    }
+
+    @Test
+    public void rejectConnectionWithMalformedRqlFilterParamAlongsideValidFnFilterParam() {
+        // a malformed RQL "filter" fails with InvalidRqlExpressionException also when the topic carries a valid
+        // "fn-filter"
+        final List<Target> targetWithInvalidFilter = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFilter("gt(attributes/x,)")
+                                .withFnFilters(List.of("header:ditto-originator|fn:filter('eq','x')"))
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithInvalidFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(InvalidRqlExpressionException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+    }
+
+    @Test
+    public void rejectConnectionWithEmptyTargetFilterAsInvalidRqlExpression() {
+        // a present but empty "filter" (e.g. a topic ending in "?filter=") is passed to the RQL validation and
+        // rejected, not silently accepted
+        final List<Target> targetWithEmptyFilter = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFilter("")
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithEmptyFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(InvalidRqlExpressionException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+    }
+
+    @Test
+    public void rejectConnectionWithWhitespaceOnlyTargetFilterAsInvalidRqlExpression() {
+        final List<Target> targetWithBlankFilter = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFilter("   ")
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithBlankFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(InvalidRqlExpressionException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+    }
+
+    @Test
+    public void rejectConnectionWithFnExpressionInFilterParameterPointingToFnFilter() {
+        // "filter" only accepts RQL - a pipeline expression must go into "fn-filter"; the error must say so
+        // before the value ever reaches the RQL parser (which would only report a confusing parse error)
+        final List<Target> targetWithMisplacedFnFilter = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFilter("header:ditto-originator|fn:filter('eq','some:subject')")
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithMisplacedFnFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+
+        final Throwable thrown =
+                catchThrowable(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+
+        assertThat(thrown).isInstanceOf(ConnectionConfigurationInvalidException.class)
+                .hasMessageContaining("'filter' only accepts an RQL expression");
+        // the value is a valid fn-filter, so the description quotes it ready to paste
+        assertThat(((DittoRuntimeException) thrown).getDescription()).hasValueSatisfying(description ->
+                assertThat(description)
+                        .contains("'?fn-filter=header:ditto-originator|fn:filter('eq','some:subject')'")
+                        .contains("'fn-filter' parameters; all of them must match (AND)"));
+        assertFnFilterSuggestedInDescriptionIsValid(thrown);
+    }
+
+    @Test
+    public void rejectConnectionWithFunctionFirstExpressionInFilterParameterPointingToFnFilter() {
+        // an expression starting with "fn:" is no valid fn-filter either, but it clearly is no RQL: the error must
+        // still point to "fn-filter"
+        final List<Target> targetWithMisplacedFnFilter = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFilter("fn:filter(header:ditto-originator,'eq','some:subject')")
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithMisplacedFnFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+
+        final Throwable thrown =
+                catchThrowable(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+
+        assertThat(thrown).isInstanceOf(ConnectionConfigurationInvalidException.class)
+                .hasMessageContaining("'filter' only accepts an RQL expression");
+        // the value is no valid fn-filter, so the description must not suggest pasting it
+        assertThat(((DittoRuntimeException) thrown).getDescription()).hasValueSatisfying(description ->
+                assertThat(description)
+                        .doesNotContain("?fn-filter=fn:")
+                        .contains("starts with the placeholder to filter and ends with its only fn:filter stage")
+                        .contains("'?fn-filter=header:ditto-originator|fn:filter('ne','some:subject')'")
+                        .contains("'fn-filter' parameters; all of them must match (AND)"));
+        assertFnFilterSuggestedInDescriptionIsValid(thrown);
+    }
+
+    @Test
+    public void rejectConnectionWithInvalidPlaceholderFirstPipelineInFilterParameterWithoutQuotingIt() {
+        final List<Target> targetWithMisplacedFnFilter = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFilter("header:ditto-originator|fn:upper()")
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithMisplacedFnFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+
+        final Throwable thrown =
+                catchThrowable(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+
+        assertThat(thrown).isInstanceOf(ConnectionConfigurationInvalidException.class)
+                .hasMessageContaining("'filter' only accepts an RQL expression");
+        assertThat(((DittoRuntimeException) thrown).getDescription()).hasValueSatisfying(description ->
+                assertThat(description)
+                        .doesNotContain("?fn-filter=header:ditto-originator|fn:upper()")
+                        .contains("'?fn-filter=header:ditto-originator|fn:filter('ne','some:subject')'"));
+        assertFnFilterSuggestedInDescriptionIsValid(thrown);
+    }
+
+    @Test
+    public void rejectConnectionWithFunctionFirstFnFilter() {
+        // ConnectionValidator delegates to TargetTopicFilter#validateFnFilter: an expression starting with a function
+        // is rejected
+        final List<Target> targetWithFunctionFirstFnFilter = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFnFilters(List.of("fn:filter(header:ditto-originator,'ne','some:subject')"))
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithFunctionFirstFnFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem))
+                .withMessageContaining("must start with a placeholder");
+    }
+
+    @Test
+    public void rejectConnectionWhenAnyOfSeveralFnFiltersIsInvalid() {
+        // every fn-filter param of a topic is validated, not just the first one
+        final List<Target> targetWithInvalidSecondFnFilter = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFnFilters(List.of("header:ditto-originator|fn:filter('ne','some:subject')",
+                                        "header:ditto-origin|fn:filter('NE','some-connection')"))
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithInvalidSecondFnFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem))
+                .withMessageContaining("unknown rqlFunction");
+    }
+
+    @Test
+    public void rejectConnectionWithLeadingWhitespaceFnExpressionInFilterParameter() {
+        final List<Target> targetWithMisplacedFnFilter = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFilter("  header:ditto-originator|fn:filter('eq','some:subject')")
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithMisplacedFnFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+
+        final Throwable thrown =
+                catchThrowable(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+
+        assertThat(thrown).isInstanceOf(ConnectionConfigurationInvalidException.class)
+                .hasMessageContaining("'filter' only accepts an RQL expression");
+        assertThat(((DittoRuntimeException) thrown).getDescription()).hasValueSatisfying(description ->
+                assertThat(description)
+                        .contains("'?fn-filter=header:ditto-originator|fn:filter('eq','some:subject')'"));
+        assertFnFilterSuggestedInDescriptionIsValid(thrown);
+    }
+
+    @Test
+    public void rejectConnectionWithRqlExpressionInFnFilter() {
+        final List<Target> targetWithMisplacedRql = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFnFilters(List.of("eq(attributes/a,1)"))
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithMisplacedRql)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem))
+                .withMessageContaining("'fn-filter'");
+    }
+
+    @Test
+    public void rejectConnectionWithEmptyFnFilter() {
+        final List<Target> targetWithEmptyFnFilter = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFnFilters(List.of(""))
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithEmptyFnFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+    }
+
+    @Test
+    public void rejectConnectionWithFnFilterStartingWithNamelessPlaceholder() {
+        // ConnectionValidator delegates to TargetTopicFilter#validateFnFilter: a leading placeholder without a name
+        // is rejected
+        final List<Target> targetWithNamelessPlaceholder = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFnFilters(List.of("header:|fn:filter('eq','x')"))
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithNamelessPlaceholder)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem))
+                .withMessageContaining("has no name");
+    }
+
+    @Test
     public void acceptValidConnectionWithValidNumberPayloadMapping() {
         final Connection connection = createConnection(CONNECTION_ID)
                 .toBuilder()
@@ -660,6 +1053,24 @@ public class ConnectionValidatorTest {
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
                 .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem))
                 .withMessageContaining("invalid");
+    }
+
+    /**
+     * Follows the hint of a rejected {@code filter} parameter: the topic query string quoted in the description must
+     * parse to exactly one {@code fn-filter} which is valid.
+     */
+    private static void assertFnFilterSuggestedInDescriptionIsValid(final Throwable thrown) {
+        final String description = ((DittoRuntimeException) thrown).getDescription().orElseThrow();
+        final Matcher suggestedTopicQuery = Pattern.compile("'(\\?fn-filter=.+?)'\\. ").matcher(description);
+        assertThat(suggestedTopicQuery.find()).as(description).isTrue();
+
+        final List<String> fnFilters = ConnectivityModelFactory
+                .newFilteredTopic(Topic.TWIN_EVENTS.getName() + suggestedTopicQuery.group(1))
+                .getFnFilters();
+        assertThat(fnFilters).hasSize(1);
+        assertThatCode(() -> TargetTopicFilter.validateFnFilter(fnFilters.get(0), DittoHeaders.empty()))
+                .as(fnFilters.get(0))
+                .doesNotThrowAnyException();
     }
 
     private ConnectionValidator getConnectionValidator() {
