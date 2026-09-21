@@ -35,6 +35,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 import org.apache.pekko.Done;
@@ -533,6 +534,34 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
                 .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
 
         assertThat(receivedTopicsCounts).containsExactlyInAnyOrderEntriesOf(relevantTopicsCounts);
+    }
+
+    @Test
+    public void bufferingOfPublishesIsStoppedOnlyAfterConsumerActorsAndUnsolicitedPublishesAckAreSubscribed() {
+        final var publishesSubscriptions = new AtomicInteger();
+        final var publishesSubscriptionsWhenBufferingStopped = new AtomicInteger(-1);
+        when(genericMqttClient.consumeSubscribedPublishesWithManualAcknowledgement())
+                .thenReturn(Flowable.<GenericMqttPublish>never()
+                        .doOnSubscribe(subscription -> publishesSubscriptions.incrementAndGet()));
+        doAnswer(invocation -> {
+            publishesSubscriptionsWhenBufferingStopped.set(publishesSubscriptions.get());
+            return null;
+        }).when(genericMqttClient).stopBufferingPublishes();
+        final var underTest = actorSystemResource.getActorSystem().actorOf(
+                createClientActor(commandForwarder.ref(),
+                        ConnectivityModelFactory.newConnectionBuilder(getConnection(false))
+                                .connectionStatus(ConnectivityStatus.CLOSED)
+                                .build()));
+        final var testKit = actorSystemResource.newTestKit();
+
+        underTest.tell(OpenConnection.of(CONNECTION_ID, getDittoHeadersWithCorrelationId()), testKit.getRef());
+
+        testKit.expectMsg(Duration.ofSeconds(10L), CONNECTED_SUCCESS);
+
+        // one consumer actor for the single connection source + the subscription acknowledging unsolicited publishes
+        assertThat(publishesSubscriptionsWhenBufferingStopped)
+                .as("subscriptions of publishes when buffering was stopped")
+                .hasValue(2);
     }
 
     @Test

@@ -71,6 +71,8 @@ import org.apache.pekko.actor.Status;
 import org.apache.pekko.pattern.AskTimeoutException;
 import org.apache.pekko.testkit.TestActorRef;
 
+import io.reactivex.Flowable;
+
 /**
  * Unit test for {@link ConnectionTesterActor}.
  */
@@ -228,7 +230,7 @@ public final class ConnectionTesterActorTest {
     private static SubscribeResult getSourceSubscribeSuccess(final Source connectionSource) {
         final var result = Mockito.mock(SubscribeResult.class);
         Mockito.when(result.isSuccess()).thenReturn(true);
-        Mockito.when(result.getMqttPublishSourceOrThrow()).thenReturn(org.apache.pekko.stream.javadsl.Source.empty());
+        Mockito.when(result.getMqttPublishesOrThrow()).thenReturn(Flowable.empty());
         Mockito.when(result.getConnectionSource()).thenReturn(connectionSource);
         return result;
     }
@@ -287,7 +289,7 @@ public final class ConnectionTesterActorTest {
 
         final var result = Mockito.mock(SubscribeResult.class);
         Mockito.when(result.isSuccess()).thenReturn(false);
-        Mockito.when(result.getMqttPublishSourceOrThrow()).thenThrow(new IllegalStateException("yo"));
+        Mockito.when(result.getMqttPublishesOrThrow()).thenThrow(new IllegalStateException("yo"));
         Mockito.when(result.getErrorOrThrow()).thenReturn(mqttSubscribeException);
         Mockito.when(result.getConnectionSource()).thenReturn(connectionSource);
         return result;

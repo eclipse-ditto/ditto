@@ -15,7 +15,9 @@ package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
@@ -25,16 +27,13 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
-import org.apache.pekko.NotUsed;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.PoisonPill;
 import org.apache.pekko.actor.Props;
 import org.apache.pekko.actor.Status;
 import org.apache.pekko.japi.pf.FSMStateFunctionBuilder;
 import org.apache.pekko.pattern.Patterns;
-import org.apache.pekko.stream.javadsl.Keep;
 import org.apache.pekko.stream.javadsl.Sink;
-import org.apache.pekko.stream.javadsl.Source;
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
@@ -91,6 +90,8 @@ public final class MqttClientActor extends BaseClientActor {
     private final RetryTimeoutStrategy retryTimeoutStrategy;
     @Nullable private ActorRef publishingActorRef;
     private final List<ActorRef> mqttConsumerActorRefs;
+    private final Set<ActorRef> consumerActorsPendingReadinessReport;
+    @Nullable private CompletableFuture<Status.Status> consumerActorsReadyFuture;
     @Nullable private Disposable unsolicitedPublishesAutoAckSubscription;
 
     @SuppressWarnings("java:S1144") // called by reflection
@@ -130,6 +131,8 @@ public final class MqttClientActor extends BaseClientActor {
         automaticReconnect = new AtomicBoolean(true);
         publishingActorRef = null;
         mqttConsumerActorRefs = new ArrayList<>();
+        consumerActorsPendingReadinessReport = new HashSet<>();
+        consumerActorsReadyFuture = null;
     }
 
     /**
@@ -187,13 +190,14 @@ public final class MqttClientActor extends BaseClientActor {
 
     @Override
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectingState() {
-        final FSMStateFunctionBuilder<BaseClientState, BaseClientData> result;
+        final var result = super.inConnectingState()
+                .event(SubscribeResults.class, this::startConsumerActorsForSubscribeResults)
+                .event(Status.Status.class,
+                        (status, data) -> isConsumerActorsStartStatus(getSender()),
+                        this::handleConsumerActorsStartStatus);
         if (isReconnectForRedelivery()) {
-            result = super.inConnectingState()
-                    .event(ReconnectConsumerClient.class, this::scheduleConsumerClientReconnect)
+            result.event(ReconnectConsumerClient.class, this::scheduleConsumerClientReconnect)
                     .eventEquals(Control.RECONNECT_CONSUMER_CLIENT, this::reconnectConsumerClient);
-        } else {
-            result = super.inConnectingState();
         }
         return result;
     }
@@ -297,6 +301,8 @@ public final class MqttClientActor extends BaseClientActor {
         genericMqttClient = null;
         publishingActorRef = null;
         mqttConsumerActorRefs.clear();
+        consumerActorsPendingReadinessReport.clear();
+        consumerActorsReadyFuture = null;
     }
 
     private void disableAutomaticReconnect() {
@@ -488,36 +494,111 @@ public final class MqttClientActor extends BaseClientActor {
         return result;
     }
 
+    /**
+     * Subscribes for the connection sources and starts a consumer actor for each successfully subscribed source.
+     * The returned stage completes once all consumer actors reported their readiness, i.e. once they consume the
+     * MQTT publishes.
+     * <p>
+     * The subscribe results are processed as message of this actor because starting consumer actors and keeping
+     * track of them mutates actor state which must only happen as part of message handling.
+     */
     @Override
     protected CompletionStage<Status.Status> startConsumerActors(@Nullable final ClientConnected clientConnected) {
-        return subscribe()
-                .thenCompose(this::handleSourceSubscribeResults)
-                .thenApply(actors -> {
-                    if (null != genericMqttClient) {
-                        subscribeToAcknowledgeUnsolicitedPublishes();
-                        genericMqttClient.stopBufferingPublishes();
-                    }
-                    return actors;
-                })
-                .thenApply(actorRefs -> {
-                    mqttConsumerActorRefs.addAll(actorRefs);
-                    return DONE;
-                });
-    }
-
-    private CompletionStage<Source<SubscribeResult, NotUsed>> subscribe() {
-        final CompletionStage<Source<SubscribeResult, NotUsed>> result;
-        if (null != genericMqttClient) {
-            final var subscriber = MqttSubscriber.newInstance(genericMqttClient);
-            result = CompletableFuture.completedFuture(
-                    subscriber.subscribeForConnectionSources(connection().getSources())
-            );
-        } else {
-            result = CompletableFuture.failedFuture(new IllegalStateException(
+        if (null == genericMqttClient) {
+            return CompletableFuture.failedFuture(new IllegalStateException(
                     "Cannot subscribe for connection sources as generic MQTT client is not yet initialised."
             ));
         }
-        return result;
+        final var consumerActorsReady = new CompletableFuture<Status.Status>();
+        consumerActorsReadyFuture = consumerActorsReady;
+
+        final var mqttSubscriber = MqttSubscriber.newInstance(genericMqttClient);
+        Patterns.pipe(
+                mqttSubscriber.subscribeForConnectionSources(connection().getSources())
+                        .runWith(Sink.seq(), getContext().getSystem())
+                        .thenApply(SubscribeResults::new),
+                getContextDispatcher()
+        ).to(getSelf(), getSelf());
+
+        return consumerActorsReady;
+    }
+
+    private State<BaseClientState, BaseClientData> startConsumerActorsForSubscribeResults(
+            final SubscribeResults subscribeResults,
+            final BaseClientData baseClientData
+    ) {
+        try {
+            for (final var subscribeResult : subscribeResults.results()) {
+                final var mqttConsumerActorRef = startMqttConsumerActorOrThrow(subscribeResult);
+                mqttConsumerActorRefs.add(mqttConsumerActorRef);
+                consumerActorsPendingReadinessReport.add(mqttConsumerActorRef);
+            }
+            completeConsumerActorsStartIfAllConsumerActorsReady();
+        } catch (final RuntimeException e) {
+            failConsumerActorsStart(e);
+        }
+        return stay();
+    }
+
+    private ActorRef startMqttConsumerActorOrThrow(final SubscribeResult subscribeResult) {
+        if (subscribeResult.isSuccess()) {
+            return startChildActorConflictFree(
+                    MqttConsumerActor.class.getSimpleName(),
+                    MqttConsumerActor.propsProcessing(connection(),
+                            getInboundMappingSink(),
+                            subscribeResult.getConnectionSource(),
+                            connectivityStatusResolver,
+                            connectivityConfig(),
+                            subscribeResult.getMqttPublishesOrThrow())
+            );
+        } else {
+            throw subscribeResult.getErrorOrThrow();
+        }
+    }
+
+    private boolean isConsumerActorsStartStatus(final ActorRef sender) {
+        return consumerActorsPendingReadinessReport.contains(sender) ||
+                (null != consumerActorsReadyFuture && getSelf().equals(sender));
+    }
+
+    /*
+     * Consumer actors report a Status.Success to this actor as soon as they consume the MQTT publishes.
+     * A Status.Failure originates from this actor itself if subscribing for the connection sources failed.
+     */
+    private State<BaseClientState, BaseClientData> handleConsumerActorsStartStatus(final Status.Status status,
+            final BaseClientData baseClientData) {
+
+        if (status instanceof Status.Failure failure) {
+            failConsumerActorsStart(failure.cause());
+        } else {
+            consumerActorsPendingReadinessReport.remove(getSender());
+            completeConsumerActorsStartIfAllConsumerActorsReady();
+        }
+        return stay();
+    }
+
+    private void completeConsumerActorsStartIfAllConsumerActorsReady() {
+        if (consumerActorsPendingReadinessReport.isEmpty() && null != consumerActorsReadyFuture) {
+            if (null != genericMqttClient) {
+
+                /*
+                 * All consumer actors consume the MQTT publishes by now, thus buffering of publishes can be
+                 * stopped without losing publishes which are received from now on.
+                 */
+                subscribeToAcknowledgeUnsolicitedPublishes();
+                genericMqttClient.stopBufferingPublishes();
+            }
+            consumerActorsReadyFuture.complete(DONE);
+            consumerActorsReadyFuture = null;
+        }
+    }
+
+    private void failConsumerActorsStart(final Throwable error) {
+        consumerActorsPendingReadinessReport.clear();
+        if (null != consumerActorsReadyFuture) {
+            consumerActorsReadyFuture.completeExceptionally(error);
+            consumerActorsReadyFuture = null;
+        }
     }
 
     private void subscribeToAcknowledgeUnsolicitedPublishes() {
@@ -555,30 +636,6 @@ public final class MqttClientActor extends BaseClientActor {
                     "Manual acknowledgement of unsolicited incoming message at topic <{0}> failed: {1}",
                     mqttPublish.getTopic(),
                     e.getMessage());
-        }
-    }
-
-    private CompletionStage<List<ActorRef>> handleSourceSubscribeResults(
-            final Source<SubscribeResult, NotUsed> sourceSubscribeResults
-    ) {
-        return sourceSubscribeResults.map(this::startMqttConsumerActorOrThrow)
-                .toMat(Sink.seq(), Keep.right())
-                .run(getContext().getSystem());
-    }
-
-    private ActorRef startMqttConsumerActorOrThrow(final SubscribeResult subscribeResult) {
-        if (subscribeResult.isSuccess()) {
-            return startChildActorConflictFree(
-                    MqttConsumerActor.class.getSimpleName(),
-                    MqttConsumerActor.propsProcessing(connection(),
-                            getInboundMappingSink(),
-                            subscribeResult.getConnectionSource(),
-                            connectivityStatusResolver,
-                            connectivityConfig(),
-                            subscribeResult.getMqttPublishSourceOrThrow())
-            );
-        } else {
-            throw subscribeResult.getErrorOrThrow();
         }
     }
 
@@ -623,5 +680,11 @@ public final class MqttClientActor extends BaseClientActor {
         RECONNECT_CONSUMER_CLIENT
 
     }
+
+    /**
+     * Results of subscribing for the connection sources, sent to self to start the consumer actors as part of
+     * message handling.
+     */
+    private record SubscribeResults(List<SubscribeResult> results) {}
 
 }
