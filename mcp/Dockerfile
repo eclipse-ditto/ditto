@@ -21,9 +21,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       python3 make g++ ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Install with full lockfile first (better layer caching).
-COPY package.json package-lock.json ./
-RUN npm ci
+# Install deps first (better layer caching). No lockfile is committed here,
+# so the default path is a plain resolve against the ranges in package.json.
+# The trailing '*' makes the lockfile optional: downstream builds that keep
+# their own package-lock.json get a reproducible 'npm ci' for free.
+COPY package.json package-lock.json* ./
+RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
 # Build TypeScript -> dist/
 COPY tsconfig.json ./

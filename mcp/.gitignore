@@ -2,6 +2,12 @@ node_modules/
 dist/
 *.log
 
+# Not committed: the Eclipse Foundation does not host dependency lockfiles.
+# Dependency versions are declared in package.json; anyone who needs
+# byte-reproducible builds should generate and keep a lockfile in their own
+# fork / CI (the Dockerfile picks one up automatically if present).
+package-lock.json
+
 # Built knowledge index (SQLite) — DO NOT commit
 *.db
 *.db-wal
