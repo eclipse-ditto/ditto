@@ -28,7 +28,7 @@
     <properties>
         <scala.version>2.13</scala.version> <!-- for scala libraries the scala version is used in their artifactId -->
         <scala.full.version>2.13.18</scala.full.version>
-        <scala-parser-combinators.version>2.4.0</scala-parser-combinators.version>
+        <scala-parser-combinators.version>2.5.0</scala-parser-combinators.version>
         <scala-java8-compat.version>1.0.2</scala-java8-compat.version>
 
         <!-- ### Compile dependencies versions -->
@@ -36,7 +36,7 @@
         <jackson-bom.version>2.22.2</jackson-bom.version>
         <!-- Jackson 3 ("tools.jackson"), required by json-schema-validator 3.x and logstash-logback-encoder 9.x;
              keep in sync with the Jackson version json-schema-validator is built against -->
-        <jackson3-bom.version>3.2.1</jackson3-bom.version>
+        <jackson3-bom.version>3.2.2</jackson3-bom.version>
         <json-schema-validator.version>3.0.7</json-schema-validator.version>
         <typesafe-config.version>1.4.9</typesafe-config.version>
         <ssl-config-core.version>0.7.1</ssl-config-core.version>
@@ -44,7 +44,7 @@
         <hivemq-mqtt-client.version>1.4.0</hivemq-mqtt-client.version>
         <sshd.version>2.19.0</sshd.version>
         <eddsa.version>0.3.0</eddsa.version>
-        <lz4-java.version>1.11.2</lz4-java.version>
+        <lz4-java.version>1.11.3</lz4-java.version>
 
         <pekko-bom.version>1.7.0</pekko-bom.version>
         <pekko-http-bom.version>1.4.0</pekko-http-bom.version>
@@ -58,10 +58,10 @@
         <metrics4-scala.version>4.3.7</metrics4-scala.version>
 
         <!-- Keep these version consistent with pekko-persistence-mongodb.version's build.sbt -->
-        <mongo-java-driver.version>5.6.5</mongo-java-driver.version>
+        <mongo-java-driver.version>5.11.1</mongo-java-driver.version>
 
         <!-- AWS SDK version needed for MongoDB AWS IAM authentication -->
-        <awssdk.version>2.54.11</awssdk.version>
+        <awssdk.version>2.54.17</awssdk.version>
 
         <jjwt.version>0.13.0</jjwt.version>
         <asm.version>9.10.1</asm.version>
@@ -69,10 +69,10 @@
         <pjfanning-pekko-rabbitmq.version>7.0.0</pjfanning-pekko-rabbitmq.version>
         <amqp-client.version>5.35.0</amqp-client.version>
         <reactive-streams.version>1.0.4</reactive-streams.version>
-        <netty-bom.version>4.2.17.Final</netty-bom.version>
+        <netty-bom.version>4.2.18.Final</netty-bom.version>
         <cloudevents.version>5.0.0</cloudevents.version>
 
-        <slf4j.version>2.0.18</slf4j.version>
+        <slf4j.version>2.0.19</slf4j.version>
         <logback.version>1.6.3</logback.version>
         <logstash-logback-encoder.version>9.0</logstash-logback-encoder.version>
         <fluency.version>2.7.4</fluency.version>
@@ -953,7 +953,7 @@
             <dependency>
                 <groupId>io.github.classgraph</groupId>
                 <artifactId>classgraph</artifactId>
-                <version>4.8.194</version>
+                <version>4.8.195</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
