@@ -20,9 +20,10 @@
     "eslint-plugin-n": "^18.3.0",
     "eslint-plugin-promise": "^7.3.0",
     "jest": "^30.5.1",
+    "jest-util": "^30.5.1",
     "ts-jest": "^29.4.12",
     "ts-node": "^10.9.2",
-    "typescript": "^7.0.2"
+    "typescript": "^6.0.3"
   },
   "dependencies": {
     "@popperjs/core": "^2.11.8",
