@@ -24,8 +24,8 @@ import static org.mockito.Mockito.when;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import javax.jms.JMSException;
-import javax.jms.Session;
+import jakarta.jms.JMSException;
+import jakarta.jms.Session;
 
 import org.apache.qpid.jms.JmsConnection;
 import org.apache.qpid.jms.JmsSession;

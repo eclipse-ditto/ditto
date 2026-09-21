@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.amqp;
 
-import javax.jms.ExceptionListener;
-import javax.jms.JMSException;
+import jakarta.jms.ExceptionListener;
+import jakarta.jms.JMSException;
 import javax.naming.NamingException;
 
 import org.apache.qpid.jms.JmsConnection;
@@ -21,7 +21,7 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 
 /**
- * Creates a new {@link javax.jms.Connection}.
+ * Creates a new {@link jakarta.jms.Connection}.
  */
 public interface JmsConnectionFactory {
 
@@ -33,7 +33,7 @@ public interface JmsConnectionFactory {
      * @param connectionLogger used to log failures during certificate validation.
      * @param clientId the client ID.
      * @return the JMS Connection.
-     * @throws javax.jms.JMSException if the context could not be created.
+     * @throws jakarta.jms.JMSException if the context could not be created.
      * @throws javax.naming.NamingException if the identifier of {@code connection} could not be found in the Context.
      */
     JmsConnection createConnection(Connection connection, ExceptionListener exceptionListener,

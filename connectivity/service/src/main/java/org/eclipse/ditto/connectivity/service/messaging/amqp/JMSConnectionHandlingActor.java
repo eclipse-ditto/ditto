@@ -23,12 +23,12 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import javax.annotation.Nullable;
-import javax.jms.Destination;
-import javax.jms.ExceptionListener;
-import javax.jms.JMSException;
-import javax.jms.JMSSecurityException;
-import javax.jms.MessageConsumer;
-import javax.jms.Session;
+import jakarta.jms.Destination;
+import jakarta.jms.ExceptionListener;
+import jakarta.jms.JMSException;
+import jakarta.jms.JMSSecurityException;
+import jakarta.jms.MessageConsumer;
+import jakarta.jms.Session;
 import javax.naming.NamingException;
 
 import org.apache.qpid.jms.JmsConnection;
@@ -203,7 +203,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
             }
         });
 
-        final Optional<javax.jms.Connection> connectionOptional = recoverSession.getConnection();
+        final Optional<jakarta.jms.Connection> connectionOptional = recoverSession.getConnection();
 
         if (connectionOptional.isPresent()) {
             final JmsConnection jmsConnection = (JmsConnection) connectionOptional.get();
@@ -238,7 +238,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
     }
 
     private void handleDisconnect(final AmqpClientActor.JmsDisconnect disconnect) {
-        final Optional<javax.jms.Connection> connectionOpt = disconnect.getConnection();
+        final Optional<jakarta.jms.Connection> connectionOpt = disconnect.getConnection();
         if (connectionOpt.isPresent()) {
             disconnectAndTell(connectionOpt.get(), disconnect.getOrigin().orElse(null),
                     disconnect.isShutdownAfterDisconnect());
@@ -412,7 +412,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
                 .build();
     }
 
-    private void terminateConnection(@Nullable final javax.jms.Connection jmsConnection) {
+    private void terminateConnection(@Nullable final jakarta.jms.Connection jmsConnection) {
         if (jmsConnection != null) {
             try {
                 jmsConnection.stop();
@@ -429,7 +429,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
         }
     }
 
-    private void disconnectAndTell(final javax.jms.Connection connection, @Nullable final ActorRef origin,
+    private void disconnectAndTell(final jakarta.jms.Connection connection, @Nullable final ActorRef origin,
             final boolean shutdownAfterDisconnect) {
         log.debug("Closing JMS connection {}", this.connection.getId());
         terminateConnection(connection);

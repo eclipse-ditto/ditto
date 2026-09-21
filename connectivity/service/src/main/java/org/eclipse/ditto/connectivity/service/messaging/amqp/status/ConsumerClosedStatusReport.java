@@ -14,7 +14,7 @@ package org.eclipse.ditto.connectivity.service.messaging.amqp.status;
 
 import java.util.Objects;
 
-import javax.jms.MessageConsumer;
+import jakarta.jms.MessageConsumer;
 
 /**
  * Report about closed consumer.

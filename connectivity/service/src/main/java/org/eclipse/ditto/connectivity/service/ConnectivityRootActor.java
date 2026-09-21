@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service;
 
-import javax.jms.JMSRuntimeException;
+import jakarta.jms.JMSRuntimeException;
 import javax.naming.NamingException;
 
 import org.apache.pekko.actor.ActorRef;
