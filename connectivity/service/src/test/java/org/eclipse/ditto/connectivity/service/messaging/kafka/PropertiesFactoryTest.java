@@ -33,9 +33,15 @@ import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.service.config.KafkaConfig;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.apache.kafka.common.serialization.ByteBufferDeserializer;
+import org.apache.kafka.common.serialization.ByteBufferSerializer;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.typesafe.config.ConfigFactory;
 
 import org.apache.pekko.kafka.ConsumerSettings;
 import org.apache.pekko.kafka.ProducerSettings;
@@ -122,6 +128,45 @@ public final class PropertiesFactoryTest {
                 .containsEntry("enable.auto.commit", "true")
                 .containsEntry("retries", "0")
                 .containsEntry("request.timeout.ms", "10000");
+    }
+
+    @Test
+    public void productionDefaultsAllowConstructingAKafkaProducer() {
+        // regression test: constructing the producer validates config invariants the settings alone do not,
+        // e.g. kafka-clients 4.0 raising the linger.ms default to 5 broke
+        // "delivery.timeout.ms >= linger.ms + request.timeout.ms" for the connectivity.conf defaults, failing
+        // every publish at runtime while all unit tests (which mock the producer) stayed green
+        final com.typesafe.config.Config productionProducerConfig = ConfigFactory.parseResources("connectivity.conf")
+                // normally provided by the service launcher:
+                .withFallback(ConfigFactory.parseString("ditto.version=test"))
+                .withFallback(ConfigFactory.load())
+                .resolve()
+                .getConfig("ditto.connectivity.connection.kafka.producer.pekko-connectors");
+        final ProducerSettings<String, ByteBuffer> producerSettings =
+                ProducerSettings.apply(productionProducerConfig, new StringSerializer(), new ByteBufferSerializer())
+                        .withBootstrapServers("localhost:9092");
+
+        try (final var producer = producerSettings.createKafkaProducer()) {
+            assertThat(producer).isNotNull();
+        }
+    }
+
+    @Test
+    public void productionDefaultsAllowConstructingAKafkaConsumer() {
+        final com.typesafe.config.Config productionConsumerConfig = ConfigFactory.parseResources("connectivity.conf")
+                // normally provided by the service launcher:
+                .withFallback(ConfigFactory.parseString("ditto.version=test"))
+                .withFallback(ConfigFactory.load())
+                .resolve()
+                .getConfig("ditto.connectivity.connection.kafka.consumer.pekko-connectors");
+        final ConsumerSettings<String, ByteBuffer> consumerSettings =
+                ConsumerSettings.apply(productionConsumerConfig, new StringDeserializer(), new ByteBufferDeserializer())
+                        .withBootstrapServers("localhost:9092")
+                        .withGroupId("test-group");
+
+        try (final var consumer = consumerSettings.createKafkaConsumer()) {
+            assertThat(consumer).isNotNull();
+        }
     }
 
 }
