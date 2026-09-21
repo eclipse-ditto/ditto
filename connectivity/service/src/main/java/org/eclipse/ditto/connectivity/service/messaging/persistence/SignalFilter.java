@@ -112,11 +112,10 @@ public final class SignalFilter {
      * Fields are ignored if they occur as "extra targets" to be evaluated later after signal enrichment.
      * <p>
      * A target topic may carry an optional RQL {@code filter} and any number of {@code fn-filter}s (placeholder
-     * pipelines, see {@link org.eclipse.ditto.connectivity.service.messaging.TargetTopicFilter}), combined with AND
-     * semantics. The {@code fn-filter}s are evaluated first, before enrichment, as a deterministic hard gate; per the
-     * runtime failure policy, any {@link RuntimeException} thrown while evaluating it is caught, logged as a warning
-     * plus a failure entry in the user-visible connection logs, and treated as a non-match rather than propagated.
-     * The RQL filter - if present - keeps its existing (unguarded) behavior.
+     * pipelines, see {@link org.eclipse.ditto.connectivity.service.messaging.TargetTopicFilter}); all of them must
+     * match. The {@code fn-filter}s are evaluated first. A {@link RuntimeException} thrown while evaluating one of
+     * them is logged, recorded as failure in the connection logs and treated as a non-match, whereas the exception
+     * of an invalid RQL filter is propagated.
      *
      * @param signal the signal to filter / determine the {@link org.eclipse.ditto.connectivity.model.Target}s for
      * @return the determined Targets for the passed in {@code signal}
@@ -230,16 +229,10 @@ public final class SignalFilter {
     }
 
     /**
-     * The fn-filter is a deterministic hard gate evaluated BEFORE enrichment: unlike the RQL criteria - which need
-     * a thing snapshot reconstructed from the event and are therefore only meaningfully evaluable for ThingEvents -
-     * a pipeline only ever resolves placeholders that are already fully known pre-enrichment (headers, topic path,
-     * entity id, resource, time, event-carried thing data), for ANY filterable signal type. Its outcome can never
-     * change once/if enrichment happens, so a non-match short-circuits the whole target, and - for a topic without
-     * RQL filter - a match makes the target eligible without touching the RQL path. Per the runtime failure policy
-     * an evaluation FAILURE of any kind (pipeline grammar errors are Ditto runtime exceptions, but a placeholder
-     * resolving its value may throw a plain RuntimeException the validation resolver cannot detect) is logged,
-     * recorded in the user-visible connection logs and treated as a non-match - it must never escape into the
-     * OutboundDispatchingActor.
+     * Evaluates an fn-filter, which only resolves placeholders that do not depend on signal enrichment and thus
+     * works for every signal type. Any RuntimeException - the pipeline grammar throws DittoRuntimeExceptions, a
+     * placeholder resolving its value may throw others - is logged, recorded in the connection logs and treated as
+     * a non-match, so that it cannot fail the OutboundDispatchingActor.
      */
     private boolean matchesFnFilterGuarded(final String fnFilter, final Target target, final Signal<?> signal,
             final ConnectionId connectionId) {
@@ -250,8 +243,7 @@ public final class SignalFilter {
                     .warn("Evaluating the target topic fn-filter <{}> of connection <{}> failed with <{}>: <{}> - " +
                             "treating as non-match.", fnFilter, connectionId, e.getClass().getSimpleName(),
                             e.getMessage());
-            // an evaluation FAILURE (as opposed to an ordinary non-match, which stays silent) must be
-            // diagnosable by the connection owner - record it in the user-visible connection logs
+            // unlike a non-match, a failure is recorded in the connection logs
             connectionMonitorRegistry.forOutboundFiltered(connection, target.getAddress())
                     .failure(signal,
                             "Evaluating the target topic fn-filter <{0}> failed: {1} - the signal was dropped " +

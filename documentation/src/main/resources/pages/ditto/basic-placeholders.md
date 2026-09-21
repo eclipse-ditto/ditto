@@ -328,22 +328,33 @@ _org.eclipse.ditto/device-123/things/live/messages/hello.world_ these placeholde
 ### Scope: Connection target topic filter
 
 In a connection's [target topic filter](basic-connections.html#filtering-with-placeholder-functions),
-a placeholder function pipeline ending with [`fn:filter()`](#function-library) may be used as the repeatable
+a placeholder pipeline ending with [`fn:filter()`](#function-library) may be used as the repeatable
 `fn-filter` query parameter, alongside an optional [RQL expression](basic-rql.html) in the `filter` parameter
 (all given filters must match). As with
 [RQL expressions when filtering for Ditto Protocol messages](#scope-rql-expressions-when-filtering-for-ditto-protocol-messages),
 such a pipeline is a bare expression and placeholders must not be surrounded by curly braces. The pipeline
 has a fixed shape: it starts with the placeholder whose value is filtered, may continue with value-transforming
 stages and ends with its only `fn:filter` stage in the 2-parameter form, e.g.
-`header:ditto-originator|fn:filter('ne','some:subject')`. The topic is published exactly when the pipeline
-resolves to a value, so a placeholder which does not resolve for a signal (e.g. an absent header) always
-suppresses the topic. Everything else -- in particular the function-first form
-`fn:filter(header:ditto-originator,'ne','some:subject')`, which would filter an absent header as the empty
-value and therefore publish on `ne`, a bare placeholder such as `header:ditto-originator` (write
-`header:ditto-originator|fn:filter('exists','true')` to publish exactly when the header is present), a second
-`fn:filter` stage, a trailing value-producing stage such as `fn:upper()` or `fn:default('...')`, and an
-`fn:delete()` anywhere (never publish) -- is rejected at connection creation/update time -- see
-[filtering with placeholder functions](basic-connections.html#filtering-with-placeholder-functions).
+`topic:action|fn:filter('ne','deleted')` or
+`header:content-type|fn:lower()|fn:filter('like','application/json*')`.
+
+The topic is published exactly when the pipeline resolves to a value, so a placeholder which does not resolve
+for a signal (e.g. an absent header) suppresses the topic -- whatever the `rqlFunction`, also for `ne`. To
+publish on an absent value, opt in explicitly with an `fn:default(...)` stage before the `fn:filter`, e.g.
+`header:ditto-originator|fn:default('none')|fn:filter('ne','some:subject')`.
+
+Everything else is rejected at connection creation/update time -- see
+[filtering with placeholder functions](basic-connections.html#filtering-with-placeholder-functions) -- in
+particular:
+* the function-first form, e.g. `fn:filter(header:qos,'ne','0')` (write `header:qos|fn:filter('ne','0')`):
+  a leading `fn:filter` has no value to filter and never resolves
+* a value to filter which is passed to `fn:filter` as a parameter (its 3-parameter form): a placeholder passed
+  that way would be filtered as the empty value when it does not resolve and therefore match on `ne`
+* a bare placeholder such as `header:ditto-originator` (write
+  `header:ditto-originator|fn:filter('exists','true')` to publish when the header is present and not empty)
+* a second `fn:filter` stage, a trailing value-producing stage such as `fn:upper()` or `fn:default('...')`,
+  and an `fn:delete()` anywhere (the topic would never publish)
+
 The pipeline is evaluated per outbound signal, before enrichment, so the following placeholders are available
 in general (the `thing-json` placeholder only as the leading placeholder, and only with the data carried by a
 thing event):
@@ -358,9 +369,10 @@ thing event):
 * [time placeholder](#time-placeholder)
 * [connection placeholder](#connection-placeholder)
 
-Unlike the [Connections](#scope-connections) scope used e.g. for target addresses, these
-placeholders never see fields declared via `extraFields` enrichment, and no
-[policy placeholder](#policy-placeholder) is available.
+These are the same placeholders as for target addresses and header mappings, with one difference: an
+`fn-filter` never sees fields declared via `extraFields` enrichment. The
+[policy placeholder](#policy-placeholder) listed in the general [Connections](#scope-connections) scope is
+only available in source enforcement filters, not here.
 
 ## Function expressions
 
@@ -411,8 +423,12 @@ The following RQL functions are available for `fn:filter`
 |-----------------------|--------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `eq`                  | `(String filterValue, 'eq', String comparedValue)`, <br/>`('eq', String comparedValue)`                            | If 3 parameters are passed in, the function filters on the first parameter being equal to the last. <br/>If 2 parameters are passed in, the function filters the previous pipeline element being equal to the last parameter.                                                                                                      |
 | `ne`                  | `(String filterValue, 'ne', String comparedValue)`, <br/>`('ne', String comparedValue)`                            | If 3 parameters are passed in, the function filters on the first parameter being not equal to the last. <br/>If 2 parameters are passed in, the function filters the previous pipeline element being not equal to the last parameter.                                                                                              |
-| `exists`              | `(String filterValue, 'exists', String true|false)`, <br/>`(String filterValue, 'exists')`, <br/>`('exists', String true/false)` | If 3 parameters are passed in, the function filters on the first parameter being existent/non-existent. <br/>If 2 parameters are passed in and the second one is `'exists'`, the function filters on the first parameter being existent. <br/>If 2 parameters are passed in and the first one is `'exists'`, the function filters the previous pipeline element being existent/non-existent. |
+| `exists`              | `(String filterValue, 'exists', String true|false)`, <br/>`(String filterValue, 'exists')`, <br/>`('exists', String true/false)` | If 3 parameters are passed in, the function filters on the first parameter being existent/non-existent. <br/>If 2 parameters are passed in and the second one is `'exists'`, the function filters on the first parameter being existent. <br/>If 2 parameters are passed in and the first one is `'exists'`, the function filters the previous pipeline element being existent/non-existent (with `'false'` only a previous element which resolved to the empty string is kept -- an unresolved one stays unresolved). |
 | `like`                | `(String filterValue, 'like', String regex)`, <br/>`('like', String regex)`                                        | If 3 parameters are passed in, the function filters on the first parameter matching the last. <br/>If 2 parameters are passed in, the function filters the previous pipeline element matching the last parameter.                                                                                                                  |
+
+In the [`fn-filter` of a connection target topic](#scope-connection-target-topic-filter) only the 2-parameter
+forms `('<rqlFunction>', comparedValue)` are accepted, and the `fn:filter` must be the last stage of a pipeline
+which starts with a placeholder; the 3-parameter forms and `(filterValue, 'exists')` are rejected there.
 
 The `like` function can be used with different expressions:
 * `*` : One or more arbitrary characters

@@ -400,7 +400,7 @@ public final class ImmutableFilteredTopicTest {
     @Test
     public void fromStringRepeatedFilterParamIsRejectedAsTopicParseException() {
         // "filter" is single-valued: like every other query parameter but "fn-filter", repeating it is rejected with
-        // the parser's own exception type (a DittoRuntimeException mapped to HTTP 400), naming the duplicated parameter
+        // a TopicParseException naming the duplicated parameter
         assertDuplicateQueryParameterIsRejected(
                 "_/_/things/twin/events?filter=" + FILTER_EXAMPLE + "&filter=" + FN_FILTER_EXAMPLE, "filter");
     }
@@ -442,15 +442,14 @@ public final class ImmutableFilteredTopicTest {
 
     @Test
     public void fromStringUrlDecodesFnFilterValue() {
-        // docs: topic strings are URL-decoded when parsed (%2B -> '+', %7C -> '|') and the decoded expression is
-        // what gets stored and evaluated. A '|' never needs encoding (the query parser only splits on '?', '&'
-        // and '='), and a '+' cannot be carried through the stored form at all: toString does not re-encode, so
-        // the '+' decodes to a space when the stored topic is parsed again (documented in basic-connections.md)
+        // topic strings are URL-decoded when parsed (%2B -> '+', %7C -> '|') and the decoded expression is what gets
+        // stored and evaluated. A '|' never needs encoding (the query parser only splits on '?', '&' and '='); a '+'
+        // does not survive the stored form: toString does not re-encode, so it decodes to a space on the next parse
         final ImmutableFilteredTopic actual = ImmutableFilteredTopic.fromString(
                 "_/_/things/twin/events?fn-filter=header:x%7Cfn:filter('eq','a%2Bb%7Cc')");
 
         assertThat(actual.getFnFilters()).containsExactly("header:x|fn:filter('eq','a+b|c')");
-        // toString does NOT re-encode: the round-trip string carries the decoded value
+        // toString does not re-encode: the string carries the decoded value
         assertThat(actual.toString()).isEqualTo("_/_/things/twin/events?fn-filter=header:x|fn:filter('eq','a+b|c')");
     }
 

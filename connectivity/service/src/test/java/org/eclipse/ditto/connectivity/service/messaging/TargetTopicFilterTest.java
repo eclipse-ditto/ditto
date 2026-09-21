@@ -18,15 +18,20 @@ import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Thing;
@@ -42,7 +47,36 @@ public final class TargetTopicFilterTest {
     private static final ConnectionId CONNECTION_ID = ConnectionId.generateRandom();
     private static final ThingId THING_ID = ThingId.of("foo:bar13");
 
-    // ===== isFunctionExpression(): classification of a raw parameter value =====
+    /**
+     * The closing sentence of a rejection message which suggests a complete replacement expression (group 1).
+     */
+    private static final Pattern SUGGESTED_REWRITE =
+            Pattern.compile(" (?:Write|To publish when \\S+ does not resolve write) (.+) instead\\.$");
+
+    /**
+     * The closing part of a rejection message which suggests a replacement (group 1) for the stage it rejects.
+     */
+    private static final Pattern SUGGESTED_STAGE = Pattern.compile(", here '(.+)'\\.$");
+
+    /**
+     * The stage which a rejection message names as the rejected one (group 1).
+     */
+    private static final Pattern REJECTED_STAGE =
+            Pattern.compile("The (?:stage|last stage|leading placeholder) '(.+?)' (?=[a-z])");
+
+    /**
+     * A placeholder-first pipeline expression quoted as an example in a rejection message or description, either
+     * concrete ({@code header:x|fn:...}) or as a template ({@code <placeholder>|fn:...}).
+     */
+    private static final Pattern EXAMPLE_EXPRESSION = Pattern.compile(
+            "(?:<placeholder>|[\\w-]+:[\\w/-]+)(?:\\|fn:[\\w-]+\\((?:[^()']|'[^']*')*\\))+");
+
+    /**
+     * A complete topic query string quoted as an example in a rejection message.
+     */
+    private static final Pattern EXAMPLE_TOPIC_QUERY = Pattern.compile("\\?fn-filter=\\S+\\)");
+
+    // ===== isFunctionExpression() / isPipelineExpression(): classification of a raw parameter value =====
 
     @Test
     public void isFunctionExpressionDetectsLeadingFnPrefixOnly() {
@@ -61,7 +95,7 @@ public final class TargetTopicFilterTest {
         assertThat(TargetTopicFilter.isPipelineExpression("header:a|fn:filter('ne','x')")).isTrue();
         assertThat(TargetTopicFilter.isPipelineExpression(
                 "  thing-json:attributes/a | fn:lower()|fn:filter('ne','x')")).isTrue();
-        // RQL - also with an unquoted '|' in a property path, a quoted "|fn:" or the retired "<rql>|fn:..." syntax
+        // RQL expressions - also with an unquoted '|' in a property path, a quoted "|fn:" or a trailing "|fn:..." stage
         assertThat(TargetTopicFilter.isPipelineExpression("gt(attributes/x,5)")).isFalse();
         assertThat(TargetTopicFilter.isPipelineExpression("eq(attributes/a|b,1)")).isFalse();
         assertThat(TargetTopicFilter.isPipelineExpression("like(attributes/a,'*|fn:x*')")).isFalse();
@@ -113,13 +147,38 @@ public final class TargetTopicFilterTest {
     }
 
     @Test
-    public void matchesFnFilterExistsTruePublishesExactlyWhenThePlaceholderResolves() {
+    public void matchesFnFilterExistsTrueMatchesPresentAndDropsAbsentHeader() {
         final String fnFilter = "header:ditto-originator|fn:filter('exists','true')";
 
         assertThat(TargetTopicFilter.matchesFnFilter(fnFilter,
                 thingModifiedWithHeader("ditto-originator", "some:subject"), CONNECTION_ID)).isTrue();
         assertThat(TargetTopicFilter.matchesFnFilter(fnFilter,
                 thingModifiedWithHeaders(Collections.emptyMap()), CONNECTION_ID)).isFalse();
+    }
+
+    @Test
+    public void matchesFnFilterExistsTestsTheResolvedValueForBeingNonEmpty() {
+        // a present but empty header resolves to the empty value: 'exists','true' suppresses it, and it is the only
+        // value 'exists','false' could match - an absent header never reaches the stage, which is why
+        // validateFnFilter rejects 'exists','false' and points to fn:default for publishing on an absent header
+        final Signal<?> emptyHeader = thingModifiedWithHeader("x", "");
+        final Signal<?> blankHeader = thingModifiedWithHeader("x", " ");
+        final Signal<?> absentHeader = thingModifiedWithHeaders(Collections.emptyMap());
+        final Signal<?> presentHeader = thingModifiedWithHeader("x", "v");
+
+        final String existsTrue = "header:x|fn:filter('exists','true')";
+        assertThat(TargetTopicFilter.matchesFnFilter(existsTrue, emptyHeader, CONNECTION_ID)).isFalse();
+        assertThat(TargetTopicFilter.matchesFnFilter(existsTrue, blankHeader, CONNECTION_ID)).isTrue();
+        assertThat(TargetTopicFilter.matchesFnFilter(existsTrue, presentHeader, CONNECTION_ID)).isTrue();
+
+        final String existsFalse = "header:x|fn:filter('exists','false')";
+        assertThat(TargetTopicFilter.matchesFnFilter(existsFalse, emptyHeader, CONNECTION_ID)).isTrue();
+        assertThat(TargetTopicFilter.matchesFnFilter(existsFalse, absentHeader, CONNECTION_ID)).isFalse();
+        assertThat(TargetTopicFilter.matchesFnFilter(existsFalse, presentHeader, CONNECTION_ID)).isFalse();
+
+        final String publishWhenUnresolved = "header:x|fn:default('<none>')|fn:filter('eq','<none>')";
+        assertThat(TargetTopicFilter.matchesFnFilter(publishWhenUnresolved, absentHeader, CONNECTION_ID)).isTrue();
+        assertThat(TargetTopicFilter.matchesFnFilter(publishWhenUnresolved, presentHeader, CONNECTION_ID)).isFalse();
     }
 
     @Test
@@ -136,7 +195,7 @@ public final class TargetTopicFilterTest {
 
     @Test
     public void matchesFnFilterAbsentComparedPlaceholderDrops() {
-        // no trap on the compared side either: an absent compared value drops for every rqlFunction
+        // a compared placeholder which does not resolve drops the signal for every rqlFunction, also for 'ne'
         final Signal<?> signal = thingModifiedWithHeader("ditto-originator", "some:subject");
 
         assertThat(TargetTopicFilter.matchesFnFilter(
@@ -147,7 +206,7 @@ public final class TargetTopicFilterTest {
 
     @Test
     public void matchesFnFilterUnknownRqlFunctionNameNeverMatches() {
-        // the runtime fact that motivates rejecting unknown literal rqlFunction names in validateFnFilter
+        // fn:filter never matches for an unknown rqlFunction name, which is why validateFnFilter rejects such literals
         final Signal<?> signal = thingModifiedWithHeader("ditto-originator", "some:subject");
 
         assertThat(TargetTopicFilter.matchesFnFilter(
@@ -157,18 +216,43 @@ public final class TargetTopicFilterTest {
     }
 
     @Test
+    public void matchesFnFilterStageWithoutFnPrefixNeverMatches() {
+        // the function lookup accepts a name without the "fn:" prefix, but no function is applied and the stage
+        // yields an unresolved value, which is why validateFnFilter rejects such a stage
+        final Signal<?> signal = thingModifiedWithHeader("ditto-originator", "Some:Subject");
+
+        assertThat(TargetTopicFilter.matchesFnFilter(
+                "header:ditto-originator|lower()|fn:filter('eq','some:subject')", signal, CONNECTION_ID)).isFalse();
+        assertThat(TargetTopicFilter.matchesFnFilter(
+                "header:ditto-originator|fn:lower()|filter('eq','some:subject')", signal, CONNECTION_ID)).isFalse();
+    }
+
+    @Test
+    public void matchesFnFilterExistsWithComparedPlaceholderResolvingToFalseNeverMatches() {
+        // a compared placeholder resolving to "false" makes the stage fn:filter('exists','false'), which is why
+        // validateFnFilter rejects a placeholder as compared value of 'exists'
+        final String fnFilter = "header:ditto-originator|fn:filter('exists',header:flag)";
+
+        assertThat(TargetTopicFilter.matchesFnFilter(fnFilter,
+                thingModifiedWithHeaders(Map.of("ditto-originator", "some:subject", "flag", "false")),
+                CONNECTION_ID)).isFalse();
+        assertThat(TargetTopicFilter.matchesFnFilter(fnFilter,
+                thingModifiedWithHeader("flag", "false"), CONNECTION_ID)).isFalse();
+    }
+
+    @Test
     public void matchesFnFilterLiteralComparedValueExistsIsTakenAsTheExistsForm() {
-        // the runtime fact that motivates rejecting the literal compared value 'exists' in validateFnFilter:
         // fn:filter('ne','exists') is parsed as fn:filter(<filterValue>,'exists') with the constant 'ne' as filter
-        // value, i.e. it matches for EVERY resolved carrier - even one that equals 'exists'
+        // value: it matches every resolved pipeline value, even 'exists' itself - which is why validateFnFilter
+        // rejects the literal compared value 'exists'
         assertThat(TargetTopicFilter.matchesFnFilter("header:ditto-originator|fn:filter('ne','exists')",
                 thingModifiedWithHeader("ditto-originator", "exists"), CONNECTION_ID)).isTrue();
     }
 
     @Test
-    public void matchesFnFilterFunctionFirstNeverMatches() {
-        // validateFnFilter rejects the function-first form; should such an expression reach the runtime anyway, it
-        // fails closed: without a leading placeholder there is no resolved carrier value an fn:filter could keep
+    public void matchesFnFilterLeadingFilterFunctionNeverMatches() {
+        // an expression starting with a function is rejected by validateFnFilter; evaluated anyway, a leading
+        // fn:filter never matches, as there is no leading placeholder whose value it could keep
         final Signal<?> signal = thingModifiedWithHeader("ditto-originator", "some:subject");
 
         assertThat(TargetTopicFilter.matchesFnFilter(
@@ -297,14 +381,28 @@ public final class TargetTopicFilterTest {
 
     @Test
     public void matchesFnFilterLeadingPlaceholderWithoutNameThrowsNonDittoException() {
-        // documents the placeholder-library behavior that motivates (a) the name check in validateFnFilter and
-        // (b) the runtime guards catching RuntimeException rather than DittoRuntimeException only:
-        // "header:" is accepted by the grammar (ImmutableHeadersPlaceholder#supports is true for any name) but
-        // resolving its value throws an IllegalArgumentException (ConditionChecker#argumentNotEmpty)
+        // "header:" passes the grammar (the headers placeholder supports any name) but resolving its value throws an
+        // IllegalArgumentException - hence the name check in validateFnFilter and the callers catching
+        // RuntimeException
         final Signal<?> signal = thingModifiedWithHeader("ditto-originator", "some:subject");
 
         assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
                 TargetTopicFilter.matchesFnFilter("header:|fn:filter('eq','x')", signal, CONNECTION_ID));
+    }
+
+    @Test
+    public void matchesFnFilterLeadingHeaderWithWhitespaceNextToItsColonNeverMatches() {
+        // whitespace next to the colon is not dropped when the header is looked up, so the header is never found -
+        // which is why validateFnFilter rejects such a leading placeholder
+        final Signal<?> signal = thingModifiedWithHeader("x", "other");
+
+        assertThat(TargetTopicFilter.matchesFnFilter("header:x|fn:filter('ne','v')", signal, CONNECTION_ID)).isTrue();
+        for (final String fnFilter : List.of(
+                "header :x|fn:filter('ne','v')",
+                "header: x|fn:filter('ne','v')",
+                "header : x|fn:filter('ne','v')")) {
+            assertThat(TargetTopicFilter.matchesFnFilter(fnFilter, signal, CONNECTION_ID)).as(fnFilter).isFalse();
+        }
     }
 
     // ===== validateFnFilter(): accepted expressions =====
@@ -354,7 +452,10 @@ public final class TargetTopicFilterTest {
                 "header:x|fn:filter(\"ne\",\"y\")",
                 "header:x|fn:filter('eq','')",
                 "header:x|fn:filter( 'ne' , 'y' )",
-                "header:x|fn:default('a|fn:filter(b)')|fn:filter('ne','y')")) {
+                "header:x|fn:default('a|fn:filter(b)')|fn:filter('ne','y')",
+                "header:x|fn:filter('eq','a|lower()')",
+                "header:x|fn:default('a|lower()')|fn:filter('ne','y')",
+                "header:x|fn:default(\"a|lower()|b\")|fn:filter('ne','y')")) {
             assertThatNoException()
                     .as(expression)
                     .isThrownBy(() -> TargetTopicFilter.validateFnFilter(expression, DittoHeaders.empty()));
@@ -401,21 +502,15 @@ public final class TargetTopicFilterTest {
 
     @Test
     public void validateFnFilterRejectsTrailingPipe() {
-        // rejected by the resolver's pipeline grammar (empty trailing stage), no custom scan involved
+        // the resolver's pipeline grammar rejects the empty trailing stage
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class).isThrownBy(() ->
                 TargetTopicFilter.validateFnFilter("header:a|fn:filter('ne','x')|", DittoHeaders.empty()));
     }
 
     @Test
-    public void validateFnFilterTrailingBackslashDoesNotThrowUnexpectedly() {
-        // a trailing backslash must never escape the documented exception contract; the resolver validation may
-        // still reject the expression, but only ever with the documented exception type
-        final Throwable throwable = catchThrowable(() ->
+    public void validateFnFilterRejectsTrailingBackslash() {
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class).isThrownBy(() ->
                 TargetTopicFilter.validateFnFilter("header:a|fn:filter('ne','x')\\", DittoHeaders.empty()));
-
-        if (throwable != null) {
-            assertThat(throwable).isInstanceOf(ConnectionConfigurationInvalidException.class);
-        }
     }
 
     @Test
@@ -427,7 +522,7 @@ public final class TargetTopicFilterTest {
                 .hasMessageContaining("'fn-filter'")
                 .hasMessageContaining("The placeholder 'eq(attributes/x,1)' could not be resolved.");
         assertThat(((DittoRuntimeException) thrown).getDescription()).hasValueSatisfying(description ->
-                assertThat(description).contains("RQL expressions belong into the 'filter' parameter"));
+                assertThat(description).contains("RQL expressions belong in the 'filter' parameter"));
     }
 
     @Test
@@ -440,11 +535,9 @@ public final class TargetTopicFilterTest {
 
     @Test
     public void validateFnFilterRejectsLeadingPlaceholderWithoutName() {
-        // "header:" and "thing-json:" accept ANY name at grammar level and the validation resolver never resolves
-        // placeholder values, so without a dedicated check these would pass validation and throw an
-        // IllegalArgumentException per signal at runtime (see matchesFnFilterLeadingPlaceholderWithoutNameThrows...).
-        // "header :" (whitespace before the colon) passes the grammar with the bogus name ":" and would silently
-        // never match - rejected by the same check.
+        // "header:" and "thing-json:" accept any name at grammar level and validation never resolves placeholder
+        // values: without the name check "header:" would throw per signal at runtime and "header :" (parsed with the
+        // name ":") would never match
         for (final String expression : List.of("header:|fn:filter('eq','x')", "header:", "  header: |fn:upper()",
                 "header :|fn:filter('eq','x')", "thing-json:|fn:filter('ne','x')")) {
             assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
@@ -453,13 +546,61 @@ public final class TargetTopicFilterTest {
         }
     }
 
+    @Test
+    public void validateFnFilterRejectsLeadingPlaceholderWithWhitespaceNextToItsColon() {
+        // "header" and "thing-json" accept any name at grammar level, so the grammar lets the whitespace pass (see
+        // matchesFnFilterLeadingHeaderWithWhitespaceNextToItsColonNeverMatches)
+        final Map<String, String> expectedLeadingPlaceholders = Map.of(
+                "header :x|fn:filter('ne','v')", "header:x",
+                "header: x|fn:filter('ne','v')", "header:x",
+                "header : x|fn:filter('ne','v')", "header:x",
+                "  header:\tditto-originator | fn:lower() | fn:filter('ne','v')  ", "header:ditto-originator",
+                "thing-json: attributes/x|fn:filter('eq','v')", "thing-json:attributes/x",
+                "thing-json :attributes/x|fn:filter('eq','v')", "thing-json:attributes/x");
+
+        expectedLeadingPlaceholders.forEach((expression, expectedLeadingPlaceholder) ->
+                assertThat(rejectionOf(expression).getMessage())
+                        .as(expression)
+                        .contains("The leading placeholder '")
+                        .contains("whitespace next to its ':'")
+                        .endsWith(", here '" + expectedLeadingPlaceholder + "'."));
+        // placeholders with a fixed set of names are rejected by the grammar already
+        for (final String expression : List.of(
+                "topic: action|fn:filter('ne','deleted')",
+                "topic :action|fn:filter('ne','deleted')",
+                "time: now|fn:filter('exists','true')")) {
+            assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                    .as(expression)
+                    .isThrownBy(() -> TargetTopicFilter.validateFnFilter(expression, DittoHeaders.empty()));
+        }
+    }
+
+    @Test
+    public void validateFnFilterAcceptsWhitespaceAroundTheExpressionAndAroundItsStages() {
+        for (final String expression : List.of(
+                "header:x|fn:filter('ne','v')",
+                "time:now|fn:filter('exists','true')",
+                "thing-json:attributes/x|fn:filter('eq','v')",
+                "topic:action|fn:filter('ne','deleted')",
+                "  header:x|fn:filter('ne','v')  ",
+                "\theader:x|fn:filter('ne','v')\n",
+                "header:x | fn:lower() | fn:filter('ne','v')",
+                " thing-json:attributes/x | fn:filter( 'eq' , 'v' ) ",
+                // only whitespace next to the colon of the leading placeholder counts
+                "header:x|fn:filter('ne','a : b')",
+                "header:x|fn:default('a: b')|fn:filter('ne','v')")) {
+            assertThatNoException()
+                    .as(expression)
+                    .isThrownBy(() -> TargetTopicFilter.validateFnFilter(expression, DittoHeaders.empty()));
+        }
+    }
+
     // ===== validateFnFilter(): the pipeline shape - placeholder first, exactly one fn:filter, as the last stage =====
 
     @Test
     public void validateFnFilterRejectsFunctionFirstExpression() {
-        // with the placeholder INSIDE the function an absent header is filtered as the empty value, so
-        // fn:filter(header:x,'ne','v') would publish every signal lacking the header - the filtered value must be
-        // the leading placeholder, which drops the signal when it does not resolve
+        // the filtered value must be the leading placeholder, which drops the signal when it does not resolve; an
+        // expression starting with a function has no value to filter
         for (final String expression : List.of(
                 "fn:filter(header:ditto-originator,'ne','x')",
                 " fn:filter(header:ditto-originator,'exists')",
@@ -472,20 +613,101 @@ public final class TargetTopicFilterTest {
             assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
                     .as(expression)
                     .isThrownBy(() -> TargetTopicFilter.validateFnFilter(expression, DittoHeaders.empty()))
-                    .withMessageContaining("must start with a placeholder");
+                    .withMessageContaining("must start with a placeholder")
+                    .withMessageContaining("without a leading placeholder the pipeline has no value to filter");
+        }
+    }
+
+    @Test
+    public void validateFnFilterExplainsTheLeadingFilterStageOnlyForExpressionsStartingWithIt() {
+        // only a leading fn:filter never resolves (see matchesFnFilterLeadingFilterFunctionNeverMatches)
+        for (final String expression : List.of(
+                "fn:filter(header:ditto-originator,'ne','x')",
+                " fn:filter(header:ditto-originator,'exists')",
+                "fn:filter('ne','x')")) {
+            assertThat(rejectionOf(expression).getMessage())
+                    .as(expression)
+                    .contains("A leading fn:filter(...) stage never resolves");
+        }
+        for (final String expression : List.of(
+                "fn:default(header:a)|fn:filter('ne','x')",
+                "fn:upper()",
+                "fn:delete()")) {
+            assertThat(rejectionOf(expression).getMessage())
+                    .as(expression)
+                    .doesNotContain("A leading fn:filter(...)");
         }
     }
 
     @Test
     public void validateFnFilterSuggestsThePlaceholderFirstRewriteOfASimpleFunctionFirstFilter() {
-        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
-                .isThrownBy(() -> TargetTopicFilter.validateFnFilter(
-                        "fn:filter(header:ditto-originator, 'ne', 'some:subject')", DittoHeaders.empty()))
-                .withMessageContaining("header:ditto-originator|fn:filter('ne','some:subject')");
-        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
-                .isThrownBy(() -> TargetTopicFilter.validateFnFilter(
-                        "fn:filter(header:ditto-originator,'exists')", DittoHeaders.empty()))
-                .withMessageContaining("header:ditto-originator|fn:filter('exists','true')");
+        final Map<String, String> expectedRewrites = Map.of(
+                "fn:filter(header:ditto-originator, 'ne', 'some:subject')",
+                "header:ditto-originator|fn:filter('ne','some:subject')",
+                "fn:filter(header:ditto-originator,'exists')",
+                "header:ditto-originator|fn:filter('exists','true')",
+                "fn:filter(header:ditto-originator,\"exists\")",
+                "header:ditto-originator|fn:filter(\"exists\",'true')",
+                "fn:filter(header:ditto-originator,'exists','true')",
+                "header:ditto-originator|fn:filter('exists','true')",
+                "fn:filter(header:x,'like','a|b,c')",
+                "header:x|fn:filter('like','a|b,c')",
+                "fn:filter(thing-json:attributes/a,'eq',header:expected)",
+                "thing-json:attributes/a|fn:filter('eq',header:expected)");
+
+        expectedRewrites.forEach((expression, expectedRewrite) -> {
+            assertThat(suggestedRewriteOf(expression)).as(expression).contains(expectedRewrite);
+            assertSuggestedRewriteIsAbsentOrValid(expression);
+        });
+    }
+
+    @Test
+    public void validateFnFilterSuggestsTheDefaultRecipeForAFunctionFirstExistsFalseFilter() {
+        // <placeholder>|fn:filter('exists','false') is rejected itself, so the rewrite is the recipe its rejection
+        // message gives
+        for (final String expression : List.of(
+                "fn:filter(header:x,'exists','false')",
+                "fn:filter(header:x, 'exists', \"FALSE\")",
+                "fn:filter(header:x,'exists','yes')")) {
+            assertThat(suggestedRewriteOf(expression))
+                    .as(expression)
+                    .contains("header:x|fn:default('<none>')|fn:filter('eq','<none>')");
+            assertSuggestedRewriteIsAbsentOrValid(expression);
+            assertThat(rejectionOf(expression).getMessage())
+                    .as(expression)
+                    .contains("To publish when header:x does not resolve write header:x|fn:default(");
+        }
+    }
+
+    @Test
+    public void validateFnFilterSuggestsNoRewriteWhichIsRejectedOrInventsAComparedValue() {
+        for (final String expression : List.of(
+                // the rewrite would be rejected: unknown rqlFunction, compared value 'exists', placeholder without
+                // a name, unknown placeholder, unquoted compared value, compared placeholder for 'exists'
+                "fn:filter(header:ditto-originator,'NE','excluded:subject')",
+                "fn:filter(header:ditto-originator,'neq','excluded:subject')",
+                "fn:filter(header:x,'ne','exists')",
+                "fn:filter(header:,'ne','v')",
+                "fn:filter(header:,'exists','false')",
+                "fn:filter(bogus:x,'ne','v')",
+                "fn:filter(header:qos,'ne',0)",
+                "fn:filter(header:x,'exists',header:flag)",
+                // no compared value is given: none is made up
+                "fn:filter(header:ditto-originator,'ne')",
+                "fn:filter(header:ditto-originator,'eq')",
+                // not one of the simple forms
+                "fn:filter(header:x,'ne','a','b')",
+                "fn:filter(header:x,'exists','false','b')",
+                "fn:filter('a','ne','b')",
+                "fn:filter(header:x,header:op,'v')",
+                "fn:filter(fn:upper(),'ne','v')",
+                "fn:filter('ne','x')",
+                "fn:filter(header:a,'eq','x')|fn:filter(header:b,'eq','y')",
+                "fn:filter(header:a,'eq','x')|fn:default('y')",
+                "fn:default(header:a)|fn:filter('ne','x')",
+                "fn:upper()")) {
+            assertThat(suggestedRewriteOf(expression)).as(expression).isEmpty();
+        }
     }
 
     @Test
@@ -511,8 +733,8 @@ public final class TargetTopicFilterTest {
 
     @Test
     public void validateFnFilterRejectsMoreThanOneFilterStage() {
-        // a second fn:filter can only test another value by taking a placeholder as its filter value - the
-        // absent-header trap again; several conditions are ANDed by repeating the fn-filter parameter instead
+        // a second fn:filter can only test another value by taking a placeholder as its filter value, which is
+        // filtered as the empty value when absent; several conditions are ANDed by repeating the fn-filter parameter
         for (final String expression : List.of(
                 "header:a|fn:filter('ne','x')|fn:filter('ne','y')",
                 "header:a|fn:filter('ne','x')|fn:filter(header:b,'ne','y')",
@@ -522,7 +744,9 @@ public final class TargetTopicFilterTest {
                     .as(expression)
                     .isThrownBy(() -> TargetTopicFilter.validateFnFilter(expression, DittoHeaders.empty()))
                     .withMessageContaining("only one fn:filter")
-                    .withMessageContaining("repeat the 'fn-filter' parameter");
+                    .withMessageContaining("repeat the 'fn-filter' parameter")
+                    .withMessageContaining("?fn-filter=header:ditto-originator|fn:filter('ne','some:subject')" +
+                            "&fn-filter=topic:action|fn:filter('ne','deleted')");
         }
     }
 
@@ -537,8 +761,41 @@ public final class TargetTopicFilterTest {
             assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
                     .as(expression)
                     .isThrownBy(() -> TargetTopicFilter.validateFnFilter(expression, DittoHeaders.empty()))
-                    .withMessageContaining("no later stage can resolve");
+                    .withMessageContaining("no later stage can resolve")
+                    .withMessageContaining("remove the stage");
         }
+    }
+
+    @Test
+    public void validateFnFilterRejectsStageWithoutFnPrefix() {
+        // the function lookup of the placeholders library takes the "fn:" prefix as optional, but applies no
+        // function without it: such a stage passes the grammar and never resolves (see
+        // matchesFnFilterStageWithoutFnPrefixNeverMatches)
+        for (final String expression : List.of(
+                "header:a|lower()|fn:filter('eq','x')",
+                "header:a| lower() |fn:filter('eq','x')",
+                "header:a|default('y')|fn:filter('eq','x')",
+                "header:a|delete()|fn:filter('eq','x')",
+                "header:a|fn:lower()|filter('eq','x')",
+                "header:a|filter('eq','x')",
+                "header:a|lower()")) {
+            assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                    .as(expression)
+                    .isThrownBy(() -> TargetTopicFilter.validateFnFilter(expression, DittoHeaders.empty()))
+                    .withMessageContaining("lacks the 'fn:' prefix")
+                    .withMessageContaining("must be a function call starting with 'fn:'");
+        }
+        assertThat(rejectionOf("header:a|lower()|fn:filter('eq','x')").getMessage())
+                .contains("The stage 'lower()'")
+                .contains("'fn:lower()'");
+        assertThat(rejectionOf("header:a|fn:lower()|filter('eq','x')").getMessage())
+                .contains("The stage 'filter('eq','x')'")
+                .contains("'fn:filter('eq','x')'");
+        // an fn:delete() stage is rejected itself, so it is not suggested
+        assertThat(rejectionOf("header:a|delete()|fn:filter('eq','x')").getMessage())
+                .contains("The stage 'delete()'")
+                .contains("remove the stage")
+                .doesNotContain("'fn:delete()'");
     }
 
     // ===== validateFnFilter(): the fn:filter stage - fn:filter('<rqlFunction>', <comparedValue>) only =====
@@ -546,8 +803,8 @@ public final class TargetTopicFilterTest {
     @Test
     public void validateFnFilterRejectsFilterStageTakingItsFilterValueAsParameter() {
         // only the 2-parameter form filtering the pipeline's own value is accepted: a filter value passed as
-        // parameter is either a placeholder (absent-header trap) or a constant (never looks at the signal), and a
-        // placeholder-valued rqlFunction cannot be told apart from a filter value
+        // parameter is either a placeholder (filtered as the empty value when it does not resolve) or a constant
+        // (never looks at the signal), and a placeholder-valued rqlFunction cannot be told apart from a filter value
         for (final String expression : List.of(
                 "header:a|fn:filter(header:b,'ne','x')",
                 "header:a|fn:filter(header:b,'exists','false')",
@@ -564,7 +821,7 @@ public final class TargetTopicFilterTest {
 
     @Test
     public void validateFnFilterRejectsUnknownLiteralRqlFunctionName() {
-        // an unknown rqlFunction name never matches at runtime -> the target would be permanently silent
+        // an unknown rqlFunction name never matches at runtime -> the topic would never publish
         for (final String expression : List.of(
                 "header:ditto-originator|fn:filter('NE','x')",
                 "header:ditto-originator|fn:filter('neq','x')",
@@ -579,14 +836,31 @@ public final class TargetTopicFilterTest {
 
     @Test
     public void validateFnFilterRejectsExistsFalse() {
-        // the filtered value is the pipeline's own, resolved value - it always exists, so 'exists','false' would
-        // silence the topic (see matchesFnFilterAbsentHeaderAlwaysDrops); "publish when absent" needs an fn:default
+        // the filtered value is the pipeline's own, resolved value, so 'exists','false' could only match an empty
+        // value, never an absent one (see matchesFnFilterAbsentHeaderAlwaysDrops); "publish when absent" needs an
+        // fn:default
         for (final String expression : List.of(
                 "header:ditto-originator|fn:filter('exists','false')",
                 "header:ditto-originator|fn:filter('exists',\"FALSE\")")) {
             assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
                     .as(expression)
                     .isThrownBy(() -> TargetTopicFilter.validateFnFilter(expression, DittoHeaders.empty()))
+                    .withMessageContaining("fn:default('<none>')|fn:filter('eq','<none>')");
+        }
+    }
+
+    @Test
+    public void validateFnFilterRejectsExistsWithPlaceholderAsComparedValue() {
+        // 'exists' with a compared placeholder resolving to anything but "true" behaves like 'exists','false' (see
+        // matchesFnFilterExistsWithComparedPlaceholderResolvingToFalseNeverMatches)
+        for (final String expression : List.of(
+                "header:ditto-originator|fn:filter('exists',header:flag)",
+                "header:ditto-originator|fn:filter(\"exists\", topic:action )",
+                "header:ditto-originator|fn:default('none')|fn:filter('exists',thing:name)")) {
+            assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                    .as(expression)
+                    .isThrownBy(() -> TargetTopicFilter.validateFnFilter(expression, DittoHeaders.empty()))
+                    .withMessageContaining("the compared value of 'exists' must be the constant 'true'")
                     .withMessageContaining("fn:default('<none>')|fn:filter('eq','<none>')");
         }
     }
@@ -606,7 +880,135 @@ public final class TargetTopicFilterTest {
         }
     }
 
+    // ===== validateFnFilter(): expressions and stages suggested in the rejection texts =====
+
+    @Test
+    public void everyExpressionAndStageSuggestedInARejectionTextIsAccepted() {
+        final List<String> quotedExpressions = new ArrayList<>();
+        final List<String> quotedTopicQueries = new ArrayList<>();
+        final List<String> suggestedStages = new ArrayList<>();
+        final List<String> expressionsWithTheSuggestedStage = new ArrayList<>();
+        for (final String expression : List.of(
+                "fn:filter(header:ditto-originator,'ne','some:subject')",
+                "fn:filter(header:x,'exists','false')",
+                "fn:upper()",
+                "eq(attributes/x,1)",
+                "header:|fn:filter('eq','x')",
+                "header : a|fn:filter('eq','x')",
+                "thing-json: attributes/a|fn:filter('eq','x')",
+                "header:a|lower()|fn:filter('eq','x')",
+                "header:a|default('y')|fn:filter('eq','x')",
+                "header:a|delete()|fn:filter('eq','x')",
+                "header:a|fn:lower()|filter('eq','x')",
+                "header:a|fn:delete()|fn:filter('ne','x')",
+                "header:a",
+                "header:a|fn:upper()",
+                "header:a|fn:filter('ne','x')|fn:filter('ne','y')",
+                "header:a|fn:filter(header:b,'ne','x')",
+                "header:a|fn:filter('NE','x')",
+                "header:a|fn:filter('ne','exists')",
+                "header:a|fn:filter('exists','false')",
+                "header:a|fn:filter('exists',header:flag)")) {
+            final ConnectionConfigurationInvalidException rejection = rejectionOf(expression);
+            // the message starts by quoting the rejected expression, which is no example
+            final String text = rejection.getMessage().replace("'" + expression + "'", "") + " " +
+                    rejection.getDescription().orElseThrow();
+            final Matcher exampleExpression = EXAMPLE_EXPRESSION.matcher(text);
+            while (exampleExpression.find()) {
+                quotedExpressions.add(exampleExpression.group());
+            }
+            final Matcher exampleTopicQuery = EXAMPLE_TOPIC_QUERY.matcher(text);
+            while (exampleTopicQuery.find()) {
+                quotedTopicQueries.add(exampleTopicQuery.group());
+            }
+            final Matcher suggestedStage = SUGGESTED_STAGE.matcher(rejection.getMessage());
+            if (suggestedStage.find()) {
+                suggestedStages.add(suggestedStage.group(1));
+                expressionsWithTheSuggestedStage.add(
+                        withRejectedStageReplaced(expression, rejection, suggestedStage.group(1)));
+            }
+        }
+
+        assertThat(quotedExpressions).contains(
+                "header:ditto-originator|fn:filter('ne','some:subject')",
+                "header:ditto-originator|fn:filter('exists','true')",
+                "<placeholder>|fn:filter('exists','true')",
+                "<placeholder>|fn:default('<none>')|fn:filter('eq','<none>')",
+                "header:x|fn:default('<none>')|fn:filter('eq','<none>')",
+                "topic:action|fn:filter('ne','deleted')");
+        // a signal caused via the HTTP API carries ditto-originator, but e.g. no ditto-origin: an example which
+        // needs any other header would suppress all of those signals
+        final Signal<?> signalCausedViaHttp = thingModifiedWithHeader("ditto-originator", "other:subject");
+        for (final String quotedExpression : quotedExpressions) {
+            final String fnFilter = quotedExpression.replace("<placeholder>", "header:ditto-originator");
+            assertThatNoException()
+                    .as(quotedExpression)
+                    .isThrownBy(() -> TargetTopicFilter.validateFnFilter(fnFilter, DittoHeaders.empty()));
+            if (!quotedExpression.contains("<none>")) {
+                assertThat(TargetTopicFilter.matchesFnFilter(fnFilter, signalCausedViaHttp, CONNECTION_ID))
+                        .as(quotedExpression)
+                        .isTrue();
+            }
+        }
+
+        // a stage suggested in place of the rejected one must make the expression a valid fn-filter
+        for (final String expressionWithTheSuggestedStage : expressionsWithTheSuggestedStage) {
+            assertThatNoException()
+                    .as(expressionWithTheSuggestedStage)
+                    .isThrownBy(() -> TargetTopicFilter.validateFnFilter(expressionWithTheSuggestedStage,
+                            DittoHeaders.empty()));
+        }
+        assertThat(suggestedStages).containsExactlyInAnyOrder("header:a", "thing-json:attributes/a", "fn:lower()",
+                "fn:default('y')", "fn:filter('eq','x')");
+
+        assertThat(quotedTopicQueries).containsOnly("?fn-filter=header:ditto-originator|fn:filter('ne'," +
+                "'some:subject')&fn-filter=topic:action|fn:filter('ne','deleted')");
+        for (final String quotedTopicQuery : quotedTopicQueries) {
+            final List<String> fnFilters =
+                    ConnectivityModelFactory.newFilteredTopic("_/_/things/twin/events" + quotedTopicQuery)
+                            .getFnFilters();
+            assertThat(fnFilters).as(quotedTopicQuery).hasSize(2);
+            for (final String fnFilter : fnFilters) {
+                assertThatNoException()
+                        .as(fnFilter)
+                        .isThrownBy(() -> TargetTopicFilter.validateFnFilter(fnFilter, DittoHeaders.empty()));
+            }
+        }
+    }
+
     // ===== test helpers =====
+
+    private static ConnectionConfigurationInvalidException rejectionOf(final String fnFilter) {
+        final Throwable thrown =
+                catchThrowable(() -> TargetTopicFilter.validateFnFilter(fnFilter, DittoHeaders.empty()));
+
+        assertThat(thrown).as(fnFilter).isInstanceOf(ConnectionConfigurationInvalidException.class);
+        return (ConnectionConfigurationInvalidException) thrown;
+    }
+
+    private static String withRejectedStageReplaced(final String fnFilter,
+            final ConnectionConfigurationInvalidException rejection, final String replacement) {
+        final Matcher rejectedStage = REJECTED_STAGE.matcher(rejection.getMessage());
+        assertThat(rejectedStage.find()).as(rejection.getMessage()).isTrue();
+        final String stage = rejectedStage.group(1);
+        final String replaced = fnFilter.startsWith(stage)
+                ? replacement + fnFilter.substring(stage.length())
+                : fnFilter.replace("|" + stage, "|" + replacement);
+
+        assertThat(replaced).as("stage '%s' of %s", stage, fnFilter).isNotEqualTo(fnFilter);
+        return replaced;
+    }
+
+    private static Optional<String> suggestedRewriteOf(final String fnFilter) {
+        final Matcher suggestedRewrite = SUGGESTED_REWRITE.matcher(rejectionOf(fnFilter).getMessage());
+        return suggestedRewrite.find() ? Optional.of(suggestedRewrite.group(1)) : Optional.empty();
+    }
+
+    private static void assertSuggestedRewriteIsAbsentOrValid(final String fnFilter) {
+        suggestedRewriteOf(fnFilter).ifPresent(suggestedRewrite -> assertThatNoException()
+                .as("rewrite suggested for " + fnFilter)
+                .isThrownBy(() -> TargetTopicFilter.validateFnFilter(suggestedRewrite, DittoHeaders.empty())));
+    }
 
     private static Signal<?> thingModifiedWithHeader(final String key, final String value) {
         return thingModifiedWithHeaders(Map.of(key, value));

@@ -91,6 +91,8 @@ final class ImmutableFilteredTopic implements FilteredTopic {
      * @throws NullPointerException if {@code filteredTopicString} is {@code null}.
      * @throws org.eclipse.ditto.things.model.InvalidThingFieldSelectionException when the given
      * {@code filteredTopicString} contained a field selector with invalid fields.
+     * @throws TopicParseException if the topic is unknown or a query parameter other than {@code fn-filter} is given
+     * more than once.
      */
     public static ImmutableFilteredTopic fromString(final String filteredTopicString) {
         checkNotNull(filteredTopicString, "filteredTopicString");
@@ -315,8 +317,7 @@ final class ImmutableFilteredTopic implements FilteredTopic {
                 final String name = urlDecode(queryParamPair[0]);
                 final List<String> values = queryParameters.computeIfAbsent(name, k -> new ArrayList<>(1));
                 if (!values.isEmpty() && !FN_FILTER_ARG.equals(name)) {
-                    // only 'fn-filter' is repeatable - any other duplicated query parameter is rejected with the
-                    // parser's own exception type (mapped to HTTP 400)
+                    // only 'fn-filter' is repeatable
                     throw TopicParseException.newBuilder(filteredTopicString,
                             "The query parameter '" + name + "' must not be given more than once").build();
                 }

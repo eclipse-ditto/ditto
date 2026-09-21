@@ -298,13 +298,24 @@ one `filter` parameter holding an [RQL expression](basic-rql.html) and any numbe
 each holding a placeholder pipeline expression (see
 [filtering with placeholder functions](#filtering-with-placeholder-functions) below). The parameter **name**
 tells the two apart -- `filter` is always RQL, `fn-filter` is always a placeholder pipeline. **All** given
-filters must match for a signal to be published (**AND** semantics). Topic filters given in this string form are
-URL-decoded when parsed and are **not** re-encoded when the connection is stored, so `%xx` sequences are
-decoded once per parse (e.g. `%7C` becomes a literal `|` in a compared value) and a `+` is decoded to a space
--- avoid `+` and a literal `%` in compared values and RQL `like` patterns altogether, as neither can be
-carried through the stored form (`%2B` is decoded to `+` on the first parse and to a space when the stored
-topic is parsed again; a bare `%` in a stored value, e.g. from `%25`, fails to decode when the stored topic
-is parsed again). This applies to RQL `like` patterns and pipeline compared values alike:
+filters must match for a signal to be published (**AND** semantics).
+
+Write the filter expressions as shown in the examples: `|`, `'`, `"`, `,`, `(`, `)`, `:`, `*`, `?` and `=` need
+no URL-encoding. Parameter values are URL-decoded every time a topic string is parsed (e.g. `%7C` becomes a
+literal `|`), but they are **not** re-encoded when the connection is stored, so a stored topic is decoded once
+more whenever the connection is loaded again. Three characters can therefore not be used at all in the filter
+values of a connection target topic -- neither in an RQL value or `like` pattern nor in the compared value of
+an `fn-filter`:
+
+* `&` -- a raw `&` ends the parameter. `%26` is decoded to `&` on the first parse, so the connection is
+  accepted, but that `&` cuts the expression off when the stored topic is parsed again; an `fn-filter`
+  truncated that way suppresses every signal. (For WebSocket and SSE filters, which are not stored, `%26`
+  works.)
+* `+` -- is decoded to a space. `%2B` is decoded to `+` on the first parse and to a space on the next one.
+* `%` -- `%25` is decoded to `%` on the first parse. When the stored topic is parsed again, that `%` either
+  fails to decode or is silently decoded together with the two characters following it.
+
+Example:
 
 ```json
 {
@@ -313,7 +324,7 @@ is parsed again). This applies to RQL `like` patterns and pipeline compared valu
     "_/_/things/twin/events?namespaces=org.eclipse.ditto&filter=gt(attributes/counter,42)",
     "_/_/things/twin/events?extraFields=attributes/placement&filter=gt(attributes/placement,'Kitchen')",
     "_/_/things/live/messages?namespaces=org.eclipse.ditto",
-    "_/_/things/live/commands?fn-filter=header:ditto-originator|fn:filter('ne','some:excluded-subject')"
+    "_/_/things/live/commands?fn-filter=resource:path|fn:filter('like','/attributes/*')"
   ],
   "authorizationContext": ["ditto:outbound-auth-subject"]
 }
@@ -321,23 +332,28 @@ is parsed again). This applies to RQL `like` patterns and pipeline compared valu
 
 If a target's `topics` array lists several topic entries, they are evaluated independently and
 combined with **OR** semantics -- a signal is published (once) as soon as it matches *any one* listed
-topic (each with its own namespace/RQL/pipeline filters).
+topic (each with its own `namespaces`, `filter` and `fn-filter` parameters).
 
 ### Filtering with placeholder functions
 
-In addition to (or instead of) the RQL `filter` parameter, a target topic may carry `fn-filter` parameters,
-each holding a placeholder pipeline from the [function library](basic-placeholders.html#function-library)
-which ends with [`fn:filter()`](basic-placeholders.html#function-library). Such a pipeline is evaluated per
-outbound signal against that signal's headers, topic, entity, and time -- see
+Since Ditto 4.0.0, a target topic may carry `fn-filter` parameters in addition to (or instead of) the RQL
+`filter` parameter, each holding a placeholder pipeline: a placeholder, optionally passed through
+value-transforming functions of
+the [function library](basic-placeholders.html#function-library), whose value is finally tested by an
+[`fn:filter()`](basic-placeholders.html#function-library) stage. An `fn-filter` is a generic filter on **any**
+placeholder which is available for an outbound signal -- `header:...`, `topic:...`, `thing:...`, `entity:...`,
+`feature:...`, `resource:...`, `request:...`, `time:...`, `connection:id` and, for thing events,
+`thing-json:...` -- see
 [connection target topic filter placeholders](basic-placeholders.html#scope-connection-target-topic-filter)
-for the full list -- instead of against thing/event *data*. Because of that, an `fn-filter` also works for
-topics for which an RQL filter cannot meaningfully match, such as `_/_/things/live/commands` (marked &#10060; for
-"RQL `filter`" in the table above).
+for the full list.
 
-The two parameters are told apart by their **name**, never by their content: `filter` always holds an RQL
-expression and `fn-filter` always holds a placeholder pipeline. A pipeline placed in `filter` is rejected at
-connection creation/update time with an error pointing to `fn-filter`; an RQL expression placed in `fn-filter`
-is rejected as an invalid pipeline.
+Such a pipeline is evaluated per outbound signal against what the signal itself carries -- its headers, topic,
+entity ID, resource, time and, for thing events, the event's own data -- and never against enriched
+(`extraFields`) data. An RQL `filter` matches against thing data plus the `topic:`, `resource:` and `time:`
+placeholders; an `fn-filter` needs no thing data and therefore works the same for every signal type a target
+topic can carry -- twin events, live events, live messages and live commands --, also for
+`_/_/things/live/commands`, for which an RQL filter is not supported (marked &#10060; for "RQL `filter`" in the
+table above).
 
 #### The shape of an fn-filter
 
@@ -349,16 +365,25 @@ value-transforming `fn:` stages, and exactly one **`fn:filter`** as the last sta
 ```
 
 ```text
-fn-filter=header:ditto-originator|fn:filter('ne','some:subject')
-fn-filter=header:ditto-originator|fn:filter('like','integration:*')
-fn-filter=header:ditto-originator|fn:lower()|fn:filter('eq','some:subject')
+fn-filter=topic:action|fn:filter('ne','deleted')
+fn-filter=resource:path|fn:filter('like','/features/*')
+fn-filter=thing:name|fn:substring-before('-')|fn:filter('eq','sensor')
+fn-filter=header:content-type|fn:lower()|fn:filter('like','application/json*')
 fn-filter=header:ditto-originator|fn:filter('exists','true')
 ```
+
+From top to bottom, these publish: everything but deletions; only signals whose resource path starts with
+`/features/`; only signals of things whose name starts with `sensor-`; only signals whose `content-type`
+header starts with `application/json`, in whatever case it is written; only signals which carry a
+`ditto-originator` header.
 
 * `<rqlFunction>` is one of the [RQL functions](basic-placeholders.html#rql-functions) `eq`, `ne`, `like` and
   `exists`, given as a quoted constant.
 * `<comparedValue>` is a quoted constant or another placeholder (e.g. `fn:filter('eq',header:expected)`); for
-  `exists` it is `'true'`.
+  `exists` it must be the constant `'true'`.
+* A quoted constant may be given in single or double quotes and may contain `|` and `,`. To compare with a
+  value containing a single quote, use double quotes (`header:x|fn:filter("ne","it's")`) and vice versa -- a
+  backslash-escaped quote is accepted, but the backslash stays part of the compared value.
 * `fn:filter` always filters the value of the pipeline in front of it -- the value to filter is never passed to
   `fn:filter` as a parameter.
 
@@ -370,30 +395,48 @@ Think of `fn:filter` as the stage that returns the boolean publish decision: it 
 (publish) when its condition holds and leaves it *unresolved* (suppress) otherwise.
 
 {% include important.html content="An `fn-filter` must **start with the placeholder** to filter. The
-function-first form known from other placeholder scopes, `fn:filter(header:ditto-originator,'ne','some:subject')`,
-is rejected at connection creation/update time: with the placeholder *inside* the function, a header which is
-absent for a signal is filtered as the empty value, so `ne` would be satisfied and the topic would publish
-every signal lacking the header. With the placeholder in front, an absent header always suppresses the topic
-(see [absent header behavior](#absent-header-behavior))." additionalStyle="" %}
+function-first form known from other placeholder scopes, e.g. `fn:filter(header:qos,'ne','0')` of the
+[source acknowledgement requests](#source-acknowledgement-requests), is rejected at connection creation/update
+time (write `header:qos|fn:filter('ne','0')`): a leading `fn:filter(...)` has no value to filter, so it would
+never resolve and the topic would never be published. Passing the value to filter as a *parameter*
+of an `fn:filter` stage behind a placeholder is rejected as well: a placeholder passed that way which does not
+resolve for a signal, e.g. an absent header, is filtered as the empty value, so `ne` would be satisfied and the
+topic would publish every signal lacking the header. With the placeholder in front, a placeholder which does
+not resolve always suppresses the topic (see
+[absent header behavior](#absent-header-behavior))." additionalStyle="" %}
 
-The primary use case is suppressing events caused by a given subject, or caused by another connection:
+Each topic of a target can filter on what is relevant for its signal type:
 
 ```json
 {
   "address": "<target-address>",
   "topics": [
-    "_/_/things/twin/events?fn-filter=header:ditto-originator|fn:filter('ne','some:excluded-subject')"
+    "_/_/things/twin/events?fn-filter=topic:action|fn:filter('ne','deleted')",
+    "_/_/things/live/messages?fn-filter=topic:subject|fn:filter('like','alarm.*')",
+    "_/_/things/live/commands?fn-filter=header:ditto-originator|fn:filter('ne','some:excluded-subject')"
   ],
   "authorizationContext": ["ditto:outbound-auth-subject"]
 }
 ```
 
+* The twin events are published unless they are deletions: `topic:action` resolves to `deleted` for e.g. a
+  deleted thing or attribute.
+* Of the live messages only those are published whose subject starts with `alarm.`.
+* The live commands are published unless they were caused by `some:excluded-subject` -- commands without a
+  `ditto-originator` header are suppressed as well, see [absent header behavior](#absent-header-behavior) for
+  how to keep them.
+
+Two headers which Ditto sets itself tell what caused a signal:
+
 * `header:ditto-originator` resolves to the first authorization subject of the request that caused
   the signal.
-* `header:ditto-origin` resolves to the ID of the connection that originally caused the signal, e.g.
-  `fn-filter=header:ditto-origin|fn:filter('ne','some-other-connection-id')`.
-  Ditto already suppresses signals a connection caused itself by default; filtering on
-  `ditto-origin` is only needed to additionally exclude signals caused by *other* connections.
+* `header:ditto-origin` resolves to the ID of the connection -- or of the WebSocket session -- through which
+  the causing request entered Ditto. It is **absent** for signals caused via the HTTP API or by Ditto itself,
+  so that a plain `ne` comparison would suppress all of those signals, too. To exclude only the signals caused
+  via one connection, supply a value for the absent case:
+  `fn-filter=header:ditto-origin|fn:default('none')|fn:filter('ne','some-other-connection-id')`.
+  Ditto never publishes a signal to the connection which caused it, so no filter is needed for that;
+  filtering on `ditto-origin` is only of use to exclude signals caused via *other* connections.
 
 #### Combining conditions with AND
 
@@ -401,14 +444,17 @@ An `fn-filter` tests one value with one `fn:filter`. To require several conditio
 parameter** -- every expression must match for the topic to be published:
 
 ```text
-fn-filter=header:ditto-originator|fn:filter('ne','some:subject')&fn-filter=header:ditto-origin|fn:filter('ne','some-connection-id')
+fn-filter=topic:action|fn:filter('ne','deleted')&fn-filter=header:ditto-originator|fn:filter('ne','some:subject')
 ```
+
+Keep in mind that *each* expression suppresses the topic when its placeholder does not resolve for a signal
+(see [absent header behavior](#absent-header-behavior)).
 
 An RQL `filter` can be combined with `fn-filter` parameters on one topic, again with **AND** semantics -- the
 RQL expression and every pipeline must match:
 
 ```text
-filter=gt(attributes/counter,42)&fn-filter=header:ditto-originator|fn:filter('ne','some:subject')
+filter=gt(attributes/counter,42)&fn-filter=topic:action|fn:filter('ne','deleted')&fn-filter=header:ditto-originator|fn:filter('ne','some:subject')
 ```
 
 `filter` may be given at most **once** per topic -- combine several RQL conditions into a single expression
@@ -434,11 +480,14 @@ with its own filters. A signal is published -- **once** -- as soon as it matches
   "address": "<target-address>",
   "topics": [
     "_/_/things/twin/events?fn-filter=header:ditto-originator|fn:filter('eq','some:subject')",
-    "_/_/things/twin/events?fn-filter=header:ditto-origin|fn:filter('like','integration-*')"
+    "_/_/things/twin/events?fn-filter=resource:path|fn:filter('like','/features/*')"
   ],
   "authorizationContext": ["ditto:outbound-auth-subject"]
 }
 ```
+
+This target publishes the events which were caused by `some:subject` **or** whose resource path starts with
+`/features/`.
 
 If such entries define different [`extraFields`](#target-topics-and-enrichment) and several of them match, the
 signal is enriched with the `extraFields` of one matching entry only -- use the same `extraFields` on all
@@ -446,14 +495,18 @@ entries of an OR.
 
 #### Absent header behavior
 
-Since the pipeline evaluates per signal, the filtered header may be absent for a given signal (for
-example, `ditto-originator` is absent for signals with no authenticated causing subject, such as
-those from Ditto's own internal processing paths). An absent header always **suppresses** the topic, regardless
-of the `rqlFunction`: the leading placeholder does not resolve, so the `fn:filter` never matches -- also for
-`ne`. The same holds for a placeholder used as `<comparedValue>` which does not resolve.
+Since the pipeline is evaluated per signal, its leading placeholder may not resolve for a given signal. An
+absent header is the common case -- `ditto-originator` is absent for signals with no authenticated causing
+subject, `ditto-origin` for all signals which were not caused via a connection or a WebSocket session -- but
+the same goes for any other placeholder: `topic:subject` only resolves for messages, `feature:id` only for
+signals related to a feature, and `thing-json:...` only for thing events.
 
-To publish on an absent header, opt in explicitly by supplying a value for that case with an `fn:default(...)`
-stage before the `fn:filter`:
+A placeholder which does not resolve always **suppresses** the topic, regardless of the `rqlFunction`: there
+is no value to filter, so the `fn:filter` never matches -- also for `ne`. The same holds for a placeholder used
+as `<comparedValue>` which does not resolve.
+
+To publish in that case, opt in explicitly by supplying a value for it with an `fn:default(...)` stage before
+the `fn:filter`:
 
 ```text
 fn-filter=header:ditto-originator|fn:default('none')|fn:filter('ne','some:subject')
@@ -465,13 +518,20 @@ without an originator (pick a default value which cannot occur as a real value).
 
 #### Restrictions
 
-All of the following is checked at connection creation/update time.
+All of the following is checked at connection creation/update time and rejected with HTTP status `400`: an
+invalid `fn-filter`, or a placeholder pipeline placed in `filter`, with error
+`connectivity:connection.configuration.invalid`; a malformed RQL `filter` with error `rql.expression.invalid`;
+a repeated `filter`, `namespaces` or `extraFields` parameter with error `connectivity:topic.invalid`. The
+message names the offending expression or topic; for a malformed RQL `filter` it is the message of the RQL
+parser.
 
 * `filter` only accepts an RQL expression -- a placeholder pipeline is rejected with an error pointing to
   `fn-filter`.
 * `fn-filter` must start with a placeholder (`header:...`, `topic:...`, `thing-json:...`, ...) and every
   further stage must be an `fn:` function call. An expression starting with `fn:`, an RQL expression, or a
-  leading placeholder without a name (e.g. `header:`) is rejected.
+  leading placeholder without a name (e.g. `header:`) or with whitespace next to its colon (e.g. `header: x`)
+  is rejected, as is everything else the placeholder grammar does not accept: an unknown placeholder or
+  function, malformed function parameters, or an empty `fn-filter=`.
 * An `fn-filter` contains exactly one `fn:filter(...)` stage, as its last stage: a bare placeholder
   (`fn-filter=header:ditto-originator`; write `header:ditto-originator|fn:filter('exists','true')` instead), a
   pipeline ending with a value-producing stage (e.g. `fn:upper()`) or with an `fn:default(...)` (which would
@@ -483,31 +543,41 @@ All of the following is checked at connection creation/update time.
   placeholder used as `rqlFunction`. The `rqlFunction` name must be one of the case-sensitive
   [`eq`, `ne`, `like`, `exists` RQL functions](basic-placeholders.html#rql-functions) (so `'NE'` or `'neq'` are
   rejected). The constant compared value `'exists'` cannot be used (`fn:filter` would take it for its
-  `fn:filter(<value>,'exists')` form), and neither can `fn:filter('exists','false')`, which would never match
-  because the filtered value always exists -- see [absent header behavior](#absent-header-behavior) for how to
-  publish on an absent value.
-* An `fn-filter` may contain at most **10** `fn:` stages; the number of `fn-filter` parameters is not limited.
+  `fn:filter(<value>,'exists')` form). With the `rqlFunction` `'exists'` the compared value must be the
+  constant `'true'` (in upper or lower case): a placeholder and any other constant are rejected --
+  `fn:filter('exists','false')` could only match an empty value, never an absent one, because the filtered
+  value is always a resolved one; see
+  [absent header behavior](#absent-header-behavior) for how to publish on an absent value.
+* An `fn-filter` may contain at most **10** `fn:` stages, the final `fn:filter` included; the number of
+  `fn-filter` parameters is not limited.
 * `filter`, `namespaces` and `extraFields` may be given at most **once** per topic; repeating one of them is
   rejected as an invalid topic. Only `fn-filter` is repeatable.
-* Pipeline placeholders never see fields added via [`extraFields`
-  enrichment](#target-topics-and-enrichment) -- they only ever see the signal's own headers, topic,
-  entity, and time. Unlike RQL, an `fn-filter` cannot filter on enriched, unchanged data. The
+* The [`thing-json` placeholder](basic-placeholders.html#thing-json-placeholder) can only be used as the
+  leading placeholder (`thing-json:attributes/x|fn:filter('eq','y')`), not as `<comparedValue>` or inside
+  `fn:default(...)`, because a function parameter's placeholder prefix must not contain a dash.
+
+Further behavior to be aware of, which is not validated:
+
+* The placeholders of an `fn-filter` never see fields added via [`extraFields`
+  enrichment](#target-topics-and-enrichment) -- they only ever see what the signal itself carries. Unlike
+  RQL, an `fn-filter` cannot filter on enriched, unchanged data. The
   [`thing-json` placeholder](basic-placeholders.html#thing-json-placeholder) sees only the data carried by
-  the event itself (for live commands and messages it never resolves) and -- because a function parameter's
-  placeholder prefix must not contain a dash -- can only be used as the leading placeholder
-  (`thing-json:attributes/x|fn:filter('eq','y')`), not as `<comparedValue>` or inside `fn:default(...)`.
+  the event itself; for live commands and messages it never resolves.
+* A placeholder used as `<comparedValue>` of `eq`, `ne` or `like` must never resolve to the string `exists`:
+  `fn:filter` would take it for its `fn:filter(<value>,'exists')` form and match every value.
 * An `fn-filter` should only reference headers that are stable for the signal's lifetime (such as
   `ditto-originator` or `ditto-origin`): internal bookkeeping headers such as `requested-acks` are
   mutated while the signal is processed and are not reliable filter inputs.
 * As with RQL, neither `filter` nor `fn-filter` can be set on `_/_/policies/announcements` or
   `_/_/connections/announcements` (see the table above); both are silently ignored if present.
-* A filter-suppressed signal produces no user-visible log entry, the same as with a pure RQL filter.
-  Only when evaluating an `fn-filter` *fails* (rather than simply not matching) is a failure entry recorded
-  in the [connection logs](connectivity-manage-connections.html#connection-logs).
+* A signal suppressed by a filter is not logged as suppressed, the same as with an RQL filter: the
+  [connection logs](connectivity-manage-connections.html#connection-logs) merely lack the `filtered` entry
+  for that target. Only when evaluating an `fn-filter` *fails* (rather than simply not matching) is a failure
+  entry recorded there; the signal is then treated as not matching that topic.
 
 {% include warning.html content="Only start using `fn-filter` once **all** instances of your connectivity
-service run a Ditto version that supports it. Older instances do not know the parameter and silently
-**ignore** it: such an instance publishes the topic without applying the pipeline filter at all. (Placing the
+service run Ditto 4.0.0 or later. Older instances do not know the parameter and silently
+**ignore** it: such an instance publishes the topic without applying the `fn-filter` at all. (Placing the
 expression in `filter` instead is no fallback either -- older instances reject a pipeline there as an
 invalid RQL expression.)" %}
 

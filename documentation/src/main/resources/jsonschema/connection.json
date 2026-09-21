@@ -520,7 +520,7 @@
                 "title": "Filter expression whether to include acknowledgements at all",
                 "description": "Optional filter to be applied to the requested acknowledgements - takes an `fn:filter()` function expression",
                 "examples": [
-                  "fn:filter(header:qos,'ne',0)"
+                  "fn:filter(header:qos,'ne','0')"
                 ]
               }
             },
@@ -656,14 +656,15 @@
             "items": {
               "type": "string",
               "title": "Subscribed topics.",
-              "description": "Contains the type of messages that are delivered to this target. You can receive\n * Thing events: `_/_/things/twin/events` (notification about twin change) \n * Live events: `_/_/things/live/events`\n * Live commands: `_/_/things/live/commands`\n * Live messages: `_/_/things/live/messages`\n\nYou can specify an additional namespace and/or event filter (URL encoded). `filter` holds an RQL expression, `fn-filter` a placeholder pipeline expression which starts with the placeholder to filter and ends with its only `fn:filter(...)` stage (e.g. `header:ditto-originator|fn:filter('ne','some:subject')`); `fn-filter` may be repeated and all given filters must match (AND)",
+              "description": "Contains the type of messages that are delivered to this target. You can receive\n * Thing events: `_/_/things/twin/events` (notification about twin change) \n * Live events: `_/_/things/live/events`\n * Live commands: `_/_/things/live/commands`\n * Live messages: `_/_/things/live/messages`\n\nYou can specify an additional namespace and/or event filter. `filter` holds an RQL expression, `fn-filter` a placeholder pipeline expression which starts with the placeholder to filter and ends with its only `fn:filter(...)` stage (e.g. `topic:action|fn:filter('ne','deleted')`); `fn-filter` may be repeated and all given filters must match (AND). Any connectivity placeholder may be filtered (e.g. `topic:action`, `resource:path`, `thing:name`, `header:<name>`); a placeholder which does not resolve for a signal suppresses the topic unless an `fn:default(...)` stage supplies a value.",
               "examples": [
                 "_/_/things/twin/events",
                 "_/_/things/twin/events?namespaces=org.eclipse.ditto.one,org.eclipse.foo",
                 "_/_/things/twin/events?namespaces=org.eclipse.ditto&filter=eq(attributes/counter,42)",
-                "_/_/things/twin/events?fn-filter=header:ditto-originator|fn:filter('ne','some:excluded-subject')",
-                "_/_/things/twin/events?filter=gt(attributes/counter,42)&fn-filter=header:ditto-originator|fn:filter('ne','some:excluded-subject')",
-                "_/_/things/live/commands?fn-filter=header:ditto-originator|fn:filter('ne','some:subject')&fn-filter=header:ditto-origin|fn:filter('ne','some-connection-id')",
+                "_/_/things/twin/events?fn-filter=topic:action|fn:filter('ne','deleted')",
+                "_/_/things/twin/events?filter=gt(attributes/counter,42)&fn-filter=topic:action|fn:filter('ne','deleted')&fn-filter=header:ditto-originator|fn:filter('ne','some:subject')",
+                "_/_/things/live/commands?fn-filter=resource:path|fn:filter('like','/attributes/*')",
+                "_/_/things/live/messages?fn-filter=topic:subject|fn:filter('like','alarm.*')",
                 "_/_/things/twin/events?extraFields=attributes",
                 "_/_/things/twin/events?extraFields=attributes&filter=eq(attributes/counter,42)",
                 "_/_/things/live/commands",

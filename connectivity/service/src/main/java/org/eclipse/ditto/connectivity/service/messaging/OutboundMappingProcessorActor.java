@@ -456,9 +456,8 @@ public final class OutboundMappingProcessorActor
             // Pre-filtering already did the job
             return CompletableFuture.completedFuture(Collections.singletonList(outboundSignal));
         }
-        // A topic needs no enriched thing to be decided if it has no RQL filter: an fn-filter only ever resolves
-        // placeholders that are already known before enrichment (see TargetTopicFilter#matchesFnFilter), so
-        // applyFilter can decide such a topic even when signal enrichment failed and enrichedThing below ends up null.
+        // a topic without RQL filter needs no enriched thing: its fn-filters only resolve placeholders which do not
+        // depend on signal enrichment
         final boolean topicWithoutThingFilterExists = topics.stream().anyMatch(topic -> topic.getFilter().isEmpty());
 
         final Target target = outboundSignal.getTargets().getFirst();
@@ -828,12 +827,10 @@ public final class OutboundMappingProcessorActor
     }
 
     /**
-     * Per the runtime failure policy, guards ONLY the fn-filter evaluation: the pipeline only ever resolves
-     * placeholders that are already known pre-enrichment (headers, topic path, entity id, resource, time,
-     * event-carried thing data), so - unlike the RQL criteria - it is evaluated first and decides a topic without
-     * RQL filter without ever needing the (possibly null, when enrichment failed) enriched thing. Any
-     * RuntimeException counts as a failure: grammar errors are DittoRuntimeExceptions, but a placeholder resolving
-     * its value may throw a plain runtime exception the validation resolver cannot detect.
+     * Evaluates an fn-filter, which only resolves placeholders that do not depend on signal enrichment and
+     * therefore needs no enriched thing. Any RuntimeException - the pipeline grammar throws DittoRuntimeExceptions,
+     * a placeholder resolving its value may throw others - is logged, recorded in the connection logs and treated
+     * as a non-match.
      */
     private boolean matchesFnFilterGuarded(final String fnFilter, final OutboundSignalWithSender outboundSignal) {
         final Signal<?> signal = outboundSignal.getSource();
@@ -844,10 +841,8 @@ public final class OutboundMappingProcessorActor
                     .warning("Evaluating the target topic fn-filter <{}> of connection <{}> failed with <{}>: " +
                                     "<{}> - treating as non-match.",
                             fnFilter, connection.getId(), e.getClass().getSimpleName(), e.getMessage());
-            // an evaluation FAILURE (as opposed to an ordinary non-match, which stays silent) must be
-            // diagnosable by the connection owner - record it in the user-visible connection logs;
-            // connectionMonitorRegistry is safe to use off the actor thread (same pattern as
-            // logEnrichmentFailure, called from the exceptionally-stage of this future)
+            // unlike a non-match, a failure is recorded in the connection logs; the registry may be used off the
+            // actor thread, as in logEnrichmentFailure
             connectionMonitorRegistry
                     .forOutboundFiltered(connection, outboundSignal.getTargets().getFirst().getOriginalAddress())
                     .failure(signal,
@@ -873,7 +868,7 @@ public final class OutboundMappingProcessorActor
 
         final Optional<String> filter = topic.getFilter();
         if (filter.isEmpty()) {
-            // no RQL filter: either decided by the fn-filter alone, or - without any filter - already filtered in
+            // no RQL filter: either decided by its fn-filters alone, or - without any filter - already filtered in
             // SignalFilter since there is no ignored field; no thing needed
             return Optional.of(outboundSignal);
         }

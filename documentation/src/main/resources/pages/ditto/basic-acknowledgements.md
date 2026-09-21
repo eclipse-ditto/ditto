@@ -234,13 +234,14 @@ external subscriber processed the resulting event or live command. The subscribe
 
 ## Weak Acknowledgements (WACKs)
 
-When a subscriber has an RQL filter that excludes an event, or when a policy prevents delivery,
-Ditto cannot obtain a real acknowledgement. To prevent commands from failing due to missing acks
-in these cases, Ditto issues **weak acknowledgements** automatically.
+When a subscriber has a filter (namespace, RQL or a connection's `fn-filter`) that excludes an event,
+or when a policy prevents delivery, Ditto cannot obtain a real acknowledgement. To prevent commands
+from failing due to missing acks in these cases, Ditto issues **weak acknowledgements** automatically.
 
 Weak acknowledgements are issued when a subscriber that declared one or more of the requested
-acknowledgement labels filters out the event or message (e.g., via an RQL filter on a connection
-target or a policy restriction).
+acknowledgement labels filters out the event or message (e.g., via an RQL `filter` or an
+[`fn-filter`](basic-connections.html#filtering-with-placeholder-functions) on a connection target or a
+policy restriction).
 
 Identify weak acknowledgements by checking the `ditto-weak-ack` header:
 

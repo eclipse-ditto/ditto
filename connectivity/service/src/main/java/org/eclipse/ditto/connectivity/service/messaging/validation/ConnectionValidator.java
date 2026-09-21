@@ -337,8 +337,9 @@ public final class ConnectionValidator {
 
     /**
      * Validates the optional {@code filter} (RQL) and the {@code fn-filter} (placeholder pipeline, repeatable) query
-     * parameters of a target topic. The two are told apart by name: a placeholder pipeline placed in {@code filter} is rejected with
-     * a hint to use {@code fn-filter} before the value could reach the RQL parser.
+     * parameters of a target topic. The two are told apart by name: a placeholder pipeline placed in {@code filter}
+     * is rejected with a hint to use {@code fn-filter} before the value could reach the RQL parser. The hint quotes
+     * the value only if it is a valid {@code fn-filter}.
      */
     private void validateTargetTopicFilters(final FilteredTopic topic, final Target target,
             final DittoHeaders dittoHeaders) {
@@ -349,8 +350,13 @@ public final class ConnectionValidator {
                                 target.getAddress() + "' holds a placeholder pipeline expression, but 'filter' " +
                                 "only accepts an RQL expression.")
                         .description("Put the placeholder pipeline expression into the 'fn-filter' query parameter " +
-                                "instead, e.g. '?fn-filter=" + filter.trim() + "'. A topic may carry both an RQL " +
-                                "'filter' and 'fn-filter' parameters; all of them must match (AND).")
+                                "instead" + (TargetTopicFilter.isValidFnFilter(filter)
+                                ? ", e.g. '?fn-filter=" + filter.trim() + "'."
+                                : ": an 'fn-filter' starts with the placeholder to filter and ends with its only " +
+                                "fn:filter stage, e.g. '?fn-filter=header:ditto-originator|fn:filter('ne'," +
+                                "'some:subject')'.") +
+                                " A topic may carry one RQL 'filter' parameter and any number of 'fn-filter' " +
+                                "parameters; all of them must match (AND).")
                         .dittoHeaders(dittoHeaders)
                         .build();
             }

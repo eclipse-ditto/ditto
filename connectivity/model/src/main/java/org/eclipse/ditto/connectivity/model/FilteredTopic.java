@@ -42,13 +42,14 @@ public interface FilteredTopic extends CharSequence {
 
     /**
      * Returns the placeholder pipeline expressions of this FilteredTopic, given via the repeatable {@code fn-filter}
-     * query parameter, in the order they were given. Each expression starts with the placeholder whose value is
-     * filtered and ends with its only {@code fn:filter} stage (e.g.
-     * {@code header:ditto-originator|fn:filter('ne','some:subject')}); the topic is only published for a signal if
-     * the pipeline of <em>every</em> expression resolves to a value (AND semantics).
+     * query parameter, in the order they were given. Each expression is expected to start with the placeholder whose
+     * value is filtered and to end with its only {@code fn:filter} stage (e.g.
+     * {@code header:ditto-originator|fn:filter('ne','some:subject')}), which is validated by the connectivity
+     * service and not by this model; the topic is only published for a signal if the pipeline of <em>every</em>
+     * expression resolves to a value (AND semantics).
      *
      * @return an unmodifiable list of the placeholder pipeline expressions, empty if no {@code fn-filter} is set.
-     * @since 3.10.0
+     * @since 4.0.0
      */
     List<String> getFnFilters();
 

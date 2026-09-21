@@ -100,6 +100,14 @@ namespaces=org.eclipse.ditto.one,org.eclipse.ditto.two
 * `topic:subject` -- filter by message subject
 * `resource:path` -- filter by the affected resource path
 
+**By placeholder pipeline (connections only):** Connection targets additionally accept `fn-filter`
+parameters, which filter on any placeholder available for the message -- see
+[Filtering with placeholder functions](basic-connections.html#filtering-with-placeholder-functions):
+
+```text
+fn-filter=topic:subject|fn:filter('like','alarm.*')
+```
+
 ## Responding to messages
 
 Messages are stateless, so there is no built-in request-response mechanism. To route a response

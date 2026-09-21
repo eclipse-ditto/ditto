@@ -348,10 +348,10 @@ public final class SignalFilterWithFilterTest {
         Assertions.assertThat(filteredTargets).hasSize(1).contains(target);
     }
 
-    // ===== pure pipeline (fn:) target topic filter =====
+    // ===== fn-filter only =====
 
     @Test
-    public void applySignalFilterWithPurePipelineFilterMatchesAndNonMatchesOnDittoOriginator() {
+    public void applySignalFilterWithFnFilterMatchesAndNonMatchesOnDittoOriginator() {
         final String filter = "header:ditto-originator|fn:filter('eq','some:subject')";
         final Target target = ConnectivityModelFactory.newTargetBuilder()
                 .address("twin/a")
@@ -391,7 +391,7 @@ public final class SignalFilterWithFilterTest {
     }
 
     @Test
-    public void applySignalFilterWithPurePipelineFilterAbsentHeaderDropsEvenForNegation() {
+    public void applySignalFilterWithFnFilterAbsentHeaderDropsEvenForNegation() {
         // the filtered placeholder does not resolve => the topic is suppressed, even for "ne"
         final String filter = "header:ditto-originator|fn:filter('ne','some:subject')";
         final Target target = ConnectivityModelFactory.newTargetBuilder()
@@ -422,10 +422,48 @@ public final class SignalFilterWithFilterTest {
         assertThat(signalFilter.filter(thingModified)).isEmpty();
     }
 
-    // ===== RQL and pipeline filter params on one topic (AND semantics) =====
+    @Test
+    public void applySignalFilterWithFnFilterNegationOnDittoOriginator() {
+        final Target target = ConnectivityModelFactory.newTargetBuilder()
+                .address("twin/a")
+                .authorizationContext(newAuthContext(DittoAuthorizationContextType.UNSPECIFIED, AUTHORIZED))
+                .headerMapping(HEADER_MAPPING)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withFnFilters(List.of("header:ditto-originator|fn:filter('ne','excluded:subject')"))
+                        .build())
+                .build();
+        final Connection connection = ConnectivityModelFactory
+                .newConnectionBuilder(CONNECTION_ID, ConnectionType.AMQP_10, ConnectivityStatus.OPEN, URI)
+                .targets(List.of(target))
+                .build();
+        final Thing thing = Thing.newBuilder().setId(THING_ID).build();
+        final SignalFilter signalFilter = new SignalFilter(connection, connectionMonitorRegistry);
+
+        final DittoHeaders otherOriginator = DittoHeaders.newBuilder()
+                .readGrantedSubjects(Collections.singletonList(AUTHORIZED))
+                .putHeader("ditto-originator", "other:subject")
+                .build();
+        assertThat(signalFilter.filter(ThingModified.of(thing, 3L, Instant.now(), otherOriginator, null)))
+                .containsOnly(target);
+
+        final DittoHeaders excludedOriginator = otherOriginator.toBuilder()
+                .putHeader("ditto-originator", "excluded:subject")
+                .build();
+        assertThat(signalFilter.filter(ThingModified.of(thing, 3L, Instant.now(), excludedOriginator, null)))
+                .isEmpty();
+
+        // an absent header never resolves the leading placeholder => suppressed, also for 'ne'
+        final DittoHeaders noOriginator = DittoHeaders.newBuilder()
+                .readGrantedSubjects(Collections.singletonList(AUTHORIZED))
+                .build();
+        assertThat(signalFilter.filter(ThingModified.of(thing, 3L, Instant.now(), noOriginator, null)))
+                .isEmpty();
+    }
+
+    // ===== RQL filter and fn-filter params on one topic (AND semantics) =====
 
     @Test
-    public void applySignalFilterWithRqlAndPipelineFilterParams() {
+    public void applySignalFilterWithRqlAndFnFilterParams() {
         final Target target = ConnectivityModelFactory.newTargetBuilder()
                 .address("twin/a")
                 .authorizationContext(newAuthContext(DittoAuthorizationContextType.UNSPECIFIED, AUTHORIZED))
@@ -477,10 +515,10 @@ public final class SignalFilterWithFilterTest {
         assertThat(signalFilter.filter(rqlNonMatchPipelineMatch)).isEmpty();
     }
 
-    // ===== T-I2: pure pipeline filter for LIVE_MESSAGES (primary echo-suppression use case) =====
+    // ===== fn-filter on LIVE_MESSAGES =====
 
     @Test
-    public void applySignalFilterForLiveMessagesWithPurePipelineFilter() {
+    public void applySignalFilterForLiveMessagesWithFnFilter() {
         final String filter = "header:ditto-originator|fn:filter('eq','some:subject')";
         final Target target = ConnectivityModelFactory.newTargetBuilder()
                 .address("message/a")
@@ -521,14 +559,14 @@ public final class SignalFilterWithFilterTest {
         assertThat(signalFilter.filter(nonMatchingMessage)).isEmpty();
     }
 
-    // ===== T-I3: OR across two FilteredTopics (same base Topic, different filter) on ONE target =====
+    // ===== OR: two entries of the same topic with different filters on one target =====
 
     @Test
     public void applySignalFilterOrAcrossTwoFilteredTopicsOnOneTarget() {
         // topic A: non-matching RQL filter
         final String rqlFilter = "eq(attributes/test,999)";
-        // topic B: matching pipeline filter
-        final String pipelineFilter = "header:ditto-originator|fn:filter('eq','some:subject')";
+        // topic B: matching fn-filter
+        final String fnFilter = "header:ditto-originator|fn:filter('eq','some:subject')";
 
         final Target target = ConnectivityModelFactory.newTargetBuilder()
                 .address("twin/a")
@@ -536,7 +574,7 @@ public final class SignalFilterWithFilterTest {
                 .headerMapping(HEADER_MAPPING)
                 .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS).withFilter(rqlFilter).build(),
                         ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
-                                .withFnFilters(List.of(pipelineFilter))
+                                .withFnFilters(List.of(fnFilter))
                                 .build())
                 .build();
 
@@ -620,17 +658,17 @@ public final class SignalFilterWithFilterTest {
                 .isEmpty();
     }
 
-    // ===== T-I4: mix of a pure-pipeline target and a pure-RQL target on one connection =====
+    // ===== a target with an fn-filter and a target with an RQL filter on one connection =====
 
     @Test
     public void applySignalFilterWithMixOfPipelineTargetAndRqlTarget() {
-        final String pipelineFilter = "header:ditto-originator|fn:filter('eq','some:subject')";
+        final String fnFilter = "header:ditto-originator|fn:filter('eq','some:subject')";
         final Target targetA = ConnectivityModelFactory.newTargetBuilder()
                 .address("twin/a")
                 .authorizationContext(newAuthContext(DittoAuthorizationContextType.UNSPECIFIED, AUTHORIZED))
                 .headerMapping(HEADER_MAPPING)
                 .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
-                        .withFnFilters(List.of(pipelineFilter))
+                        .withFnFilters(List.of(fnFilter))
                         .build())
                 .build();
 
@@ -660,11 +698,11 @@ public final class SignalFilterWithFilterTest {
 
         final DittoHeaders matchingOriginatorHeaders = DittoHeaders.newBuilder()
                 .readGrantedSubjects(Collections.singletonList(AUTHORIZED))
-                .putHeader("ditto-originator", "some:subject") // matches targetA's pipeline filter
+                .putHeader("ditto-originator", "some:subject") // matches targetA's fn-filter
                 .build();
         final DittoHeaders nonMatchingOriginatorHeaders = DittoHeaders.newBuilder()
                 .readGrantedSubjects(Collections.singletonList(AUTHORIZED))
-                .putHeader("ditto-originator", "other:subject") // does not match targetA's pipeline filter
+                .putHeader("ditto-originator", "other:subject") // does not match targetA's fn-filter
                 .build();
 
         final SignalFilter signalFilter = new SignalFilter(connection, connectionMonitorRegistry);
@@ -690,7 +728,7 @@ public final class SignalFilterWithFilterTest {
                 .isEmpty();
     }
 
-    // ===== T-M5: regression - pure RQL filter with a literal "|" in a quoted attribute value =====
+    // ===== RQL filter with a literal "|" in a quoted value =====
 
     @Test
     public void applySignalFilterWithRqlFilterContainingLiteralPipeInAttributeValue() {
@@ -723,12 +761,12 @@ public final class SignalFilterWithFilterTest {
         assertThat(signalFilter.filter(thingModified)).containsOnly(target);
     }
 
-    // ===== runtime failure policy: pipeline evaluation failure drops the target AND records a connection-log entry =====
+    // ===== a failing fn-filter evaluation is a non-match and records a connection-log failure =====
 
     @Test
-    public void applySignalFilterWithFailingPipelineFilterDropsTargetAndRecordsConnectionLogFailure() {
-        // parses fine as a pure pipeline filter but throws a DittoRuntimeException at evaluation time
-        // (unknown pipeline function)
+    public void applySignalFilterWithFailingFnFilterDropsTargetAndRecordsConnectionLogFailure() {
+        // accepted by the model, which does not validate fn-filters, but throws a DittoRuntimeException when
+        // evaluated (unknown pipeline function)
         final String filter = "header:ditto-originator|fn:unknownfn('x')";
         final Target target = ConnectivityModelFactory.newTargetBuilder()
                 .address("twin/a")
@@ -766,7 +804,7 @@ public final class SignalFilterWithFilterTest {
 
         // THEN: the evaluation failure is treated as a non-match ...
         assertThat(signalFilter.filter(thingModified)).isEmpty();
-        // ... AND recorded as a FAILURE entry in the target's user-visible connection log
+        // ... and recorded as a failure entry in the target's connection log
         Mockito.verify(filteredMonitor).failure(Mockito.eq(thingModified), Mockito.anyString(),
                 Mockito.eq(filter), Mockito.anyString());
     }
@@ -936,53 +974,13 @@ public final class SignalFilterWithFilterTest {
                 Mockito.eq(failingFilter), Mockito.anyString());
     }
 
-    // ===== placeholder-first fn-filter and the widened RuntimeException guard =====
-
-    @Test
-    public void applySignalFilterWithPlaceholderFirstFnFilter() {
-        final Target target = ConnectivityModelFactory.newTargetBuilder()
-                .address("twin/a")
-                .authorizationContext(newAuthContext(DittoAuthorizationContextType.UNSPECIFIED, AUTHORIZED))
-                .headerMapping(HEADER_MAPPING)
-                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
-                        .withFnFilters(List.of("header:ditto-originator|fn:filter('ne','excluded:subject')"))
-                        .build())
-                .build();
-        final Connection connection = ConnectivityModelFactory
-                .newConnectionBuilder(CONNECTION_ID, ConnectionType.AMQP_10, ConnectivityStatus.OPEN, URI)
-                .targets(List.of(target))
-                .build();
-        final Thing thing = Thing.newBuilder().setId(THING_ID).build();
-        final SignalFilter signalFilter = new SignalFilter(connection, connectionMonitorRegistry);
-
-        final DittoHeaders otherOriginator = DittoHeaders.newBuilder()
-                .readGrantedSubjects(Collections.singletonList(AUTHORIZED))
-                .putHeader("ditto-originator", "other:subject")
-                .build();
-        assertThat(signalFilter.filter(ThingModified.of(thing, 3L, Instant.now(), otherOriginator, null)))
-                .containsOnly(target);
-
-        final DittoHeaders excludedOriginator = otherOriginator.toBuilder()
-                .putHeader("ditto-originator", "excluded:subject")
-                .build();
-        assertThat(signalFilter.filter(ThingModified.of(thing, 3L, Instant.now(), excludedOriginator, null)))
-                .isEmpty();
-
-        // placeholder-first: an ABSENT header never resolves the leading placeholder -> suppressed even for 'ne'
-        final DittoHeaders noOriginator = DittoHeaders.newBuilder()
-                .readGrantedSubjects(Collections.singletonList(AUTHORIZED))
-                .build();
-        assertThat(signalFilter.filter(ThingModified.of(thing, 3L, Instant.now(), noOriginator, null)))
-                .isEmpty();
-    }
+    // ===== an fn-filter throwing a non-Ditto RuntimeException =====
 
     @Test
     public void applySignalFilterWithFnFilterThrowingNonDittoExceptionDropsTargetAndRecordsFailure() {
-        // a leading placeholder without a name passes the pipeline GRAMMAR (the validation resolver never resolves
-        // placeholder values); built via the model it bypasses ConnectionValidator's dedicated name check and makes
-        // the headers placeholder throw an IllegalArgumentException per signal. The runtime guard must catch ANY
-        // RuntimeException - not only DittoRuntimeExceptions - or the exception would escape SignalFilter#filter
-        // and fail the OutboundDispatchingActor's message handling.
+        // a leading placeholder without a name is only rejected by ConnectionValidator; built via the model it makes
+        // the headers placeholder throw an IllegalArgumentException per signal, which must not escape
+        // SignalFilter#filter into the OutboundDispatchingActor
         final String fnFilter = "header:|fn:filter('eq','x')";
         final Target target = ConnectivityModelFactory.newTargetBuilder()
                 .address("twin/a")

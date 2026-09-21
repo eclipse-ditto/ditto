@@ -726,13 +726,13 @@ public final class OutboundMappingProcessorActorTest {
         }};
     }
 
-    // --- target topic pipeline (fn:) filter tests (Task 4) ---
+    // --- target topic fn-filter ---
 
     @Test
-    public void mixedTopicsTargetPurePipelineNonMatchDropsEntireTarget() {
+    public void mixedTopicsTargetFnFilterNonMatchDropsEntireTarget() {
         new TestKit(actorSystemResource.getActorSystem()) {{
             // Target with an RQL+extraFields topic that cannot match this signal (topic4 requires
-            // resource:path == /features/feature4), plus a pure-pipeline topic on "ditto-originator".
+            // resource:path == /features/feature4), plus a topic with only an fn-filter on "ditto-originator".
             // Neither topic matches, so the whole target is dropped.
             final FilteredTopic pipelineTopic = ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
                     .withFnFilters(List.of("header:ditto-originator|fn:filter('ne','x')"))
@@ -760,15 +760,11 @@ public final class OutboundMappingProcessorActorTest {
     }
 
     @Test
-    public void mixedTopicsTargetPurePipelineMatchPublishesWithoutExtraFieldsAndHeadersUnchanged() {
+    public void mixedTopicsTargetFnFilterMatchPublishesWithoutExtraFieldsAndHeadersUnchanged() {
         new TestKit(actorSystemResource.getActorSystem()) {{
-            // Same mixed target as above, but the pipeline now matches: the target must publish via the
-            // pure-pipeline topic (no thing needed) without any extra fields, and without leaking anything
-            // (in particular no value of the fn-filter pipeline) onto the
-            // published signal's headers. A second, unfiltered "control" target on the very same signal
-            // establishes what the mapping/dispatch pipeline normally does to headers (e.g. stripping
-            // internal-only ones, adding "content-type") so the comparison isolates exactly what the pipeline
-            // *filter evaluation* itself changed, rather than unrelated header bookkeeping.
+            // Same target as above, but the fn-filter matches: the target publishes via the fn-filter topic (no thing
+            // needed) without extra fields. Evaluating the fn-filter must not alter the published headers, which is
+            // checked against an unfiltered control target on the same signal.
             final FilteredTopic pipelineTopic = ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
                     .withFnFilters(List.of("header:ditto-originator|fn:filter('eq','x')"))
                     .build();
@@ -795,14 +791,12 @@ public final class OutboundMappingProcessorActorTest {
             assertThat(publish.getOutboundSignal().getMappedOutboundSignals()).hasSize(2);
             assertThat(publish.getOutboundSignal().first().getTargets()).contains(pipelineTarget);
 
-            // Verify no extra fields: the winning topic is the pure-pipeline one, which carries none
+            // Verify no extra fields: the selected topic is the one with only an fn-filter, which carries none
             assertThat(publish.getOutboundSignal().first().getAdaptable().getPayload().getExtra())
-                    .as("Outbound signal must not contain any extra field: the pure-pipeline topic won selection.")
+                    .as("Outbound signal must not contain any extra field: the topic without extraFields was selected.")
                     .isEmpty();
 
-            // Verify no leak: the "ditto-originator" header survives untouched, and the header key set is
-            // identical to the control target's - i.e. the pipeline evaluation (in particular the internal
-            // boolean seed) added/removed nothing beyond what plain unfiltered mapping already does.
+            // the "ditto-originator" header is untouched and the header key set equals the control target's
             final DittoHeaders pipelineHeaders = publish.getOutboundSignal().first().getAdaptable().getDittoHeaders();
             final DittoHeaders controlHeaders =
                     publish.getOutboundSignal().getMappedOutboundSignals().get(1).getAdaptable().getDittoHeaders();
@@ -817,9 +811,9 @@ public final class OutboundMappingProcessorActorTest {
     @Test
     public void mixedTopicsTargetEnrichmentSucceedsPipelineMatchesPublishesWithRqlTopicExtraFields() {
         new TestKit(actorSystemResource.getActorSystem()) {{
-            // T-C1 scenario 1: a single target carries both an RQL+extraFields topic (topic4) and a
-            // pure-pipeline topic. Enrichment succeeds and both independently match; the extraFields-first
-            // sort (see enrichAndFilterSignal) must make topic4 win the extraFields selection.
+            // One target with an RQL+extraFields topic (topic4) and an fn-filter topic. Enrichment succeeds and both
+            // match; the extraFields-first sort in enrichAndFilterSignal makes topic4 win, so its extra fields are
+            // published.
             final FilteredTopic pipelineTopic = ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
                     .withFnFilters(List.of("header:ditto-originator|fn:filter('eq','x')"))
                     .build();
@@ -851,10 +845,9 @@ public final class OutboundMappingProcessorActorTest {
     @Test
     public void mixedTopicsTargetEnrichmentSucceedsPipelineNonMatchRqlMatchesPublishesWithExtraFields() {
         new TestKit(actorSystemResource.getActorSystem()) {{
-            // T-C1 scenario 2: same mixed target, but the pipeline does NOT match this time (originator "x" !=
-            // required "y"). topic4's RQL matches independently on feature4, so the target must still publish
-            // with topic4's extraFields - a non-matching pipeline topic must not sink the whole target nor win
-            // the extraFields selection (it must return empty from applyFilter).
+            // Same target, but the fn-filter does not match (originator "x", required "y") while topic4's RQL filter
+            // matches: the target still publishes with topic4's extraFields - a non-matching fn-filter topic neither
+            // drops the target nor is selected.
             final FilteredTopic pipelineTopic = ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
                     .withFnFilters(List.of("header:ditto-originator|fn:filter('eq','y')"))
                     .build();
@@ -885,18 +878,18 @@ public final class OutboundMappingProcessorActorTest {
     }
 
     @Test
-    public void rqlAndPipelineFilterParamsEvaluateRqlAgainstEnrichedThing() {
+    public void rqlAndFnFilterParamsEvaluateRqlAgainstEnrichedThing() {
         new TestKit(actorSystemResource.getActorSystem()) {{
             // A single topic with an RQL "filter", an "fn-filter" (AND semantics) and extraFields.
             // The RQL filter references "features/featureA", which is absent from the signal-derived (raw) thing
-            // and only appears once partialRetrieveAndResponse's extra data is merged in - so a match proves the
-            // RQL "filter" (via FilteredTopic#getFilter) is evaluated against the enriched thing.
-            final FilteredTopic combinedTopic = ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+            // and only appears once partialRetrieveAndResponse's extra data is merged in - a match therefore
+            // requires the RQL "filter" to be evaluated against the enriched thing.
+            final FilteredTopic rqlFnFilterTopic = ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
                     .withFilter("exists(features/featureA)")
                     .withFnFilters(List.of("header:ditto-originator|fn:filter('eq','x')"))
                     .withExtraFields(ThingFieldSelector.fromString("definition"))
                     .build();
-            final List<Target> targets = List.of(createTestTargetMultiTopics(Set.of(combinedTopic)));
+            final List<Target> targets = List.of(createTestTargetMultiTopics(Set.of(rqlFnFilterTopic)));
             final Connection connection = CONNECTION.toBuilder().setTargets(targets).build();
             final ActorRef underTest = getTestActorRef(connection);
 
@@ -919,10 +912,10 @@ public final class OutboundMappingProcessorActorTest {
     }
 
     @Test
-    public void placeholderFirstFnFilterWithExtraFieldsPublishesEnriched() {
+    public void fnFilterWithExtraFieldsPublishesEnriched() {
         new TestKit(actorSystemResource.getActorSystem()) {{
-            // fn-filter on a topic WITH extraFields: the
-            // post-enrichment re-evaluation in applyFilter must resolve the leading header placeholder and publish
+            // an fn-filter on a topic with extraFields is evaluated again after enrichment (applyFilter) and
+            // publishes the enriched signal
             final FilteredTopic pipelineTopic = ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
                     .withFnFilters(List.of("header:ditto-originator|fn:filter('eq','x')"))
                     .withExtraFields(ThingFieldSelector.fromString("definition"))
@@ -952,7 +945,7 @@ public final class OutboundMappingProcessorActorTest {
     @Test
     public void severalFnFiltersWithExtraFieldsAllMatchPublishesEnriched() {
         new TestKit(actorSystemResource.getActorSystem()) {{
-            // A single topic with TWO fn-filter params (AND semantics) and extraFields: both match, so the signal
+            // A single topic with two fn-filter params (AND semantics) and extraFields: both match, so the signal
             // is published with the topic's extra fields after the post-enrichment re-evaluation.
             final FilteredTopic pipelineTopic = ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
                     .withFnFilters(List.of("header:ditto-originator|fn:filter('eq','x')",
@@ -984,7 +977,7 @@ public final class OutboundMappingProcessorActorTest {
     @Test
     public void orAcrossTwoMatchingFnFilterTopicsWithExtraFieldsPublishesOnce() {
         new TestKit(actorSystemResource.getActorSystem()) {{
-            // OR of two fn-filter conditions = two entries of the same topic on one target. BOTH match here: the
+            // OR of two fn-filter conditions = two entries of the same topic on one target. Both match here: the
             // post-enrichment evaluation must pick exactly one of them, i.e. the signal is published once.
             final FilteredTopic originatorTopic = ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
                     .withFnFilters(List.of("header:ditto-originator|fn:filter('eq','x')"))
@@ -1017,7 +1010,7 @@ public final class OutboundMappingProcessorActorTest {
     @Test
     public void severalFnFiltersSecondNonMatchDropsTarget() {
         new TestKit(actorSystemResource.getActorSystem()) {{
-            // Same topic shape as above, but the SECOND fn-filter does not match ("ne 'x'" with originator
+            // Same topic shape as above, but the second fn-filter does not match ("ne 'x'" with originator
             // "x") - AND semantics must drop the whole target even though the first fn-filter matches.
             final FilteredTopic pipelineTopic = ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
                     .withFnFilters(List.of("header:ditto-originator|fn:filter('eq','x')",
@@ -1047,16 +1040,11 @@ public final class OutboundMappingProcessorActorTest {
     }
 
     @Test
-    public void rqlExtraFieldsOnlyTargetStillDroppedWhenEnrichmentFails() {
+    public void rqlExtraFieldsOnlyTargetIsDroppedWhenEnrichmentFails() {
         new TestKit(actorSystemResource.getActorSystem()) {{
-            // Regression guard for T-C1 scenario 4: a target with only an RQL+extraFields topic (no pipeline
-            // topic) must still be dropped when signal enrichment genuinely fails - the widened :459/:498
-            // predicate must not change this pre-existing behavior. Enrichment failure is simulated exactly
-            // like the existing eventsWithFailedEnrichmentIssueFailedAcks test: never reply to the
-            // RetrieveThing, so the underlying ask-with-retry ultimately fails. That failure is intercepted by
-            // OutboundMappingProcessorActor's own recovery path (recoverFromEnrichmentError) before
-            // enrichAndFilterSignal's topics-selection code ever runs, so it proves the observable
-            // "still dropped" contract end-to-end.
+            // A target with only an RQL+extraFields topic is dropped when signal enrichment fails: the RetrieveThing
+            // is never answered (as in eventsWithFailedEnrichmentIssueFailedAcks), so recoverFromEnrichmentError
+            // issues a failed acknowledgement.
             final List<Target> targets = List.of(createTestTargetMultiTopics(Set.of(topic4())));
             final Connection connection = CONNECTION.toBuilder().setTargets(targets).build();
             final ActorRef underTest = getTestActorRef(connection);
@@ -1163,7 +1151,7 @@ public final class OutboundMappingProcessorActorTest {
 
     /**
      * Returns a copy of {@code outboundSignal} whose source signal carries an explicit {@code ditto-originator}
-     * header, as required by any target topic pipeline filter relying on {@code header:ditto-originator}.
+     * header, as required by any target topic {@code fn-filter} relying on {@code header:ditto-originator}.
      */
     private static OutboundSignal withOriginator(final OutboundSignal outboundSignal, final String originator) {
         return OutboundSignalFactory.newOutboundSignal(
