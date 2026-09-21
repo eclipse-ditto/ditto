@@ -11,12 +11,17 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
+import { createRequire } from "node:module";
 import { describe, it, expect } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { AppConfigSchema } from "../config/schema.js";
 import { registerTools } from "../tools/index.js";
 import { buildServer } from "./build-server.js";
+
+const pkg = createRequire(import.meta.url)("../../package.json") as {
+  version: string;
+};
 
 async function connectedClient() {
   // knowledge disabled to keep this transport test hermetic; knowledge covered in knowledge tests.
@@ -36,6 +41,12 @@ describe("buildServer + ping (in-memory e2e)", () => {
     const client = await connectedClient();
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name)).toContain("ping");
+    await client.close();
+  });
+
+  it("reports the package.json version in the handshake", async () => {
+    const client = await connectedClient();
+    expect(client.getServerVersion()?.version).toBe(pkg.version);
     await client.close();
   });
 

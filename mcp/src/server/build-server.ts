@@ -11,16 +11,31 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
+import { createRequire } from "node:module";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ToolRegistry } from "../registry/tool-registry.js";
 import type { AppConfig } from "../config/schema.js";
 import { buildCtx } from "./request-ctx.js";
 
+// The version reported to clients in the MCP initialize handshake. Read from
+// package.json so it has exactly one place to be bumped.
+//
+// createRequire rather than `import ... with { type: "json" }`: package.json
+// lives outside tsconfig's rootDir ("src"), which a static import would
+// violate. The relative path resolves identically from src/server/*.ts (vitest)
+// and dist/server/*.js (built image) because both sit two levels below it.
+const { version: SERVER_VERSION } = createRequire(import.meta.url)(
+  "../../package.json",
+) as { version: string };
+
 export function buildServer(
   registry: ToolRegistry,
   config: AppConfig,
 ): McpServer {
-  const server = new McpServer({ name: config.server.name, version: "0.1.0" });
+  const server = new McpServer({
+    name: config.server.name,
+    version: SERVER_VERSION,
+  });
 
   // Initialize tool handlers even when registry is empty
   // by registering and immediately disabling a placeholder.
