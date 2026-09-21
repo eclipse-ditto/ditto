@@ -1,11 +1,17 @@
 {
   "compilerOptions": {
     "outDir": "./dist",
-    "target": "ES2019",
+    // ES2020 for Promise.allSettled (type-check only - esbuild emits the actual JS)
+    "target": "ES2020",
     "module": "ESNext",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    // TypeScript 6.0 flipped the default to true; the codebase was written un-strict.
+    // Remove this (and fix the ~1500 strictness findings) in a dedicated effort.
+    "strict": false,
+    // TypeScript 6.0 no longer auto-includes all of node_modules/@types
+    "types": ["jest"]
   },
   "include": ["main.ts", "./custom.d.ts", "./modules/**/*", "__tests__/utils"]
 }

@@ -94,6 +94,12 @@ updates:
     commit-message:
       prefix: ci
       include: scope
+    ignore:
+      # TypeScript 7 is the Go-native compiler rewrite; ts-jest only supports
+      # typescript ">=4.3 <7" as a peer, so a bump to 7.x fails npm install
+      # (see PR #2553). Lift this once ts-jest gained TypeScript 7 support.
+      - dependency-name: "typescript"
+        versions: [">=7"]
     groups:
       ui-npm:
         patterns:
