@@ -27,6 +27,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import org.eclipse.ditto.base.model.common.BinaryValidationResult;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.gateway.api.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.gateway.service.util.config.security.DefaultOAuthConfig;
 import org.eclipse.ditto.gateway.service.util.config.security.OAuthConfig;
 import org.eclipse.ditto.internal.utils.jwt.JjwtDeserializer;
@@ -154,6 +156,34 @@ public final class JwtValidatorTest {
 
         assertThat(jwtValidationResult.isValid()).isFalse();
         assertThat(jwtValidationResult.getReasonForInvalidity()).isInstanceOf(ExpiredJwtException.class);
+    }
+
+    @Test
+    public void validateFailsWith401WhenMandatoryClaimsAreMissing()
+            throws ExecutionException, InterruptedException {
+
+        // A token whose header lacks "kid" and whose body lacks "iss": reading these mandatory claims throws a
+        // JsonMissingFieldException. This must surface as an invalid result carrying a 401
+        // GatewayAuthenticationFailedException - it must not bubble up as a raw exception that the surrounding
+        // authentication layer would otherwise map to a misleading HTTP 503 "provider unavailable".
+        final String header = base64Url("{\"alg\":\"RS256\"}");
+        final String body = base64Url("{\"sub\":\"x\"}");
+        final JsonWebToken tokenWithoutMandatoryClaims =
+                ImmutableJsonWebToken.fromToken(header + "." + body + "." + base64Url("signature"));
+
+        final JwtValidator underTest = DefaultJwtValidator.of(publicKeyProvider);
+
+        final BinaryValidationResult jwtValidationResult = underTest.validate(tokenWithoutMandatoryClaims).get();
+
+        assertThat(jwtValidationResult.isValid()).isFalse();
+        assertThat(jwtValidationResult.getReasonForInvalidity())
+                .isInstanceOf(GatewayAuthenticationFailedException.class);
+        assertThat(((GatewayAuthenticationFailedException) jwtValidationResult.getReasonForInvalidity())
+                .getHttpStatus()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    private static String base64Url(final String value) {
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(value.getBytes(StandardCharsets.UTF_8));
     }
 
     private static final class JsonWebTokenWithoutSignature implements JsonWebToken {
