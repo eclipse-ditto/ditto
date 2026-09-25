@@ -35,11 +35,11 @@ jobs:
           persist-credentials: false
       -
         name: Set up QEMU
-        uses: docker/setup-qemu-action@1f40c72289eff860ee54a304f1438e3cff362e0a # v4.3.0
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
       -
         name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.1.0 # setup buildx in order to do build and push multi-architecture images
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.1.0 # setup buildx in order to do build and push multi-architecture images
       -
         name: Inspect buildx builder
         run: |
@@ -88,7 +88,7 @@ jobs:
           ls -lh docker-libs
       -
         name: Build and push ditto-policies
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: docker-libs
           file: dockerfile-release
@@ -109,7 +109,7 @@ jobs:
             eclipse/ditto-policies:${{ env.IMAGE_TAG }}
       -
         name: Build and push ditto-things
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: docker-libs
           file: dockerfile-release
@@ -126,7 +126,7 @@ jobs:
             eclipse/ditto-things:${{ env.IMAGE_TAG }}
       -
         name: Build and push ditto-gateway
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: docker-libs
           file: dockerfile-release
@@ -143,7 +143,7 @@ jobs:
             eclipse/ditto-gateway:${{ env.IMAGE_TAG }}
       -
         name: Build and push ditto-thingsearch
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: docker-libs
           file: dockerfile-release
@@ -160,7 +160,7 @@ jobs:
             eclipse/ditto-things-search:${{ env.IMAGE_TAG }}
       -
         name: Build and push ditto-connectivity
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: docker-libs
           file: dockerfile-release
@@ -191,7 +191,7 @@ jobs:
         working-directory: ./ui
       -
         name: Build and push ditto-ui image
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: ./ui
           file: ui/Dockerfile
