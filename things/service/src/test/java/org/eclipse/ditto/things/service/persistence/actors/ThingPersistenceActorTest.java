@@ -1540,6 +1540,131 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     }
 
     @Test
+    public void modifyFeatureMetadataRepeatedDoesNotNest() {
+        final var thing = createThingV2WithRandomId();
+        final var firstHeaders = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "2")
+                .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(),
+                        "[{\"key\":\"/_modified\",\"value\":11}]")
+                .build();
+        final var secondHeaders = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "3")
+                .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(),
+                        "[{\"key\":\"/_modified\",\"value\":12}]")
+                .build();
+
+        final var modifyFeatureFirst = ModifyFeature.of(getIdOrThrow(thing), THING_FEATURE, firstHeaders);
+        final var modifyFeatureSecond = ModifyFeature.of(getIdOrThrow(thing), THING_FEATURE, secondHeaders);
+
+        new TestKit(actorSystem) {{
+            final ActorRef underTest = createPersistenceActorFor(thing);
+
+            // create thing
+            final JsonObject commandJson = getJsonCommand(thing);
+            final CreateThing createThing = CreateThing.fromJson(commandJson, dittoHeadersV2);
+            underTest.tell(createThing, getRef());
+            expectMsgClass(CreateThingResponse.class);
+
+            // first modify with metadata
+            underTest.tell(modifyFeatureFirst, getRef());
+            expectMsgEquals(ETagTestUtils.modifyFeatureResponse(getIdOrThrow(thing), THING_FEATURE, firstHeaders, false));
+
+            // second modify with metadata, same key, different value
+            underTest.tell(modifyFeatureSecond, getRef());
+            expectMsgEquals(ETagTestUtils.modifyFeatureResponse(getIdOrThrow(thing), THING_FEATURE, secondHeaders, false));
+
+            // assert that metadata for _modified is a scalar (not a nested object)
+            final Metadata expectedMetadata = Metadata.newBuilder()
+                    .set("/features/featureId/_modified", JsonValue.of(12))
+                    .build();
+            assertMetadataAsExpected(this, underTest, getIdOrThrow(thing), expectedMetadata);
+        }};
+    }
+
+    @Test
+    public void mergeFeatureMetadataRepeatedDoesNotNest() {
+        final var thing = createThingV2WithRandomId();
+        final var firstHeaders = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "2")
+                .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(),
+                        "[{\"key\":\"/_modified\",\"value\":11}]")
+                .build();
+        final var secondHeaders = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "3")
+                .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(),
+                        "[{\"key\":\"/_modified\",\"value\":12}]")
+                .build();
+
+        final var mergeFeatureFirst = MergeThing.withFeature(getIdOrThrow(thing), THING_FEATURE, firstHeaders);
+        final var mergeFeatureSecond = MergeThing.withFeature(getIdOrThrow(thing), THING_FEATURE, secondHeaders);
+
+        new TestKit(actorSystem) {{
+            final ActorRef underTest = createPersistenceActorFor(thing);
+
+            // create thing
+            final JsonObject commandJson = getJsonCommand(thing);
+            final CreateThing createThing = CreateThing.fromJson(commandJson, dittoHeadersV2);
+            underTest.tell(createThing, getRef());
+            expectMsgClass(CreateThingResponse.class);
+
+            // first merge with metadata
+            underTest.tell(mergeFeatureFirst, getRef());
+            expectMsgClass(MergeThingResponse.class);
+
+            // second merge with metadata, same key, different value
+            underTest.tell(mergeFeatureSecond, getRef());
+            expectMsgClass(MergeThingResponse.class);
+
+            // assert that metadata for _modified is a scalar (not a nested object)
+            final Metadata expectedMetadata = Metadata.newBuilder()
+                    .set("/features/featureId/_modified", JsonValue.of(12))
+                    .build();
+            assertMetadataAsExpected(this, underTest, getIdOrThrow(thing), expectedMetadata);
+        }};
+    }
+
+    @Test
+    public void mergeThingRootWithWildcardMetadataOnlyAffectsPatchedFields() {
+        final var thing = createThingV2WithRandomId();
+        final var headers = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.ENTITY_REVISION.getKey(), "2")
+                .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(),
+                        "[{\"key\":\"*/createdAt\",\"value\":\"now!\"}]")
+                .build();
+
+        final JsonObject patchPayload = JsonObject.newBuilder()
+                .set("attributes", JsonObject.newBuilder()
+                        .set("only-one", 2)
+                        .build())
+                .build();
+        final var mergePatch = MergeThing.of(getIdOrThrow(thing), JsonPointer.empty(), patchPayload, headers);
+
+        new TestKit(actorSystem) {{
+            final ActorRef underTest = createPersistenceActorFor(thing);
+
+            // create thing
+            final JsonObject commandJson = getJsonCommand(thing);
+            final CreateThing createThing = CreateThing.fromJson(commandJson, dittoHeadersV2);
+            underTest.tell(createThing, getRef());
+            expectMsgClass(CreateThingResponse.class);
+
+            // PATCH-like merge with partial payload + wildcard metadata
+            underTest.tell(mergePatch, getRef());
+            expectMsgClass(MergeThingResponse.class);
+
+            // wildcard should only resolve against the patched payload fields,
+            // not against pre-existing thing fields (thingId, policyId, other attributes, features)
+            final var createdAtMetadata = JsonObject.newBuilder()
+                    .set("createdAt", "now!")
+                    .build();
+            final Metadata expectedMetadata = Metadata.newBuilder()
+                    .set("/attributes/only-one", createdAtMetadata)
+                    .build();
+            assertMetadataAsExpected(this, underTest, getIdOrThrow(thing), expectedMetadata);
+        }};
+    }
+
+    @Test
     public void modifyThingWithWildcardInMetadata() {
         final var thing = createThingV2WithRandomId();
         final var headers = DittoHeaders.newBuilder()
