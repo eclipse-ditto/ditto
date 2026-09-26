@@ -308,7 +308,14 @@ public interface TopicPath {
          *
          * @since 3.2.0
          */
-        STREAMING("streaming");
+        STREAMING("streaming"),
+
+        /**
+         * Criterion for timeseries-API commands and responses.
+         *
+         * @since 4.0.0
+         */
+        TIMESERIES("timeseries");
 
         private final String name;
 
@@ -429,7 +436,14 @@ public interface TopicPath {
          *
          * @since 3.9.0
          */
-        CHECK_PERMISSIONS("checkPermissions");
+        CHECK_PERMISSIONS("checkPermissions"),
+
+        /**
+         * Action for aggregating timeseries data across many entities.
+         *
+         * @since 4.0.0
+         */
+        AGGREGATE("aggregate");
 
         private final String name;
 

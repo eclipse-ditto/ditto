@@ -62,6 +62,7 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.stats.StatsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.status.OverallStatusRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.thingsearch.ThingSearchRoute;
+import org.eclipse.ditto.gateway.service.endpoints.routes.timeseries.TimeseriesRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.websocket.WebSocketRouteBuilder;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.wot.WotDiscoveryThingDirectoryRoute;
@@ -94,6 +95,7 @@ public final class RootRoute extends AllDirectives {
     private final PoliciesRoute policiesRoute;
     private final SseRouteBuilder sseThingsRouteBuilder;
     private final ThingsRoute thingsRoute;
+    private final TimeseriesRoute timeseriesRoute;
     private final ThingSearchRoute thingSearchRoute;
     private final ConnectionsRoute connectionsRoute;
     private final WebSocketRouteBuilder websocketRouteBuilder;
@@ -129,6 +131,7 @@ public final class RootRoute extends AllDirectives {
         policiesRoute = builder.policiesRoute;
         sseThingsRouteBuilder = builder.sseThingsRouteBuilder;
         thingsRoute = builder.thingsRoute;
+        timeseriesRoute = builder.timeseriesRoute;
         thingSearchRoute = builder.thingSearchRoute;
         connectionsRoute = builder.connectionsRoute;
         websocketRouteBuilder = builder.websocketRouteBuilder;
@@ -363,6 +366,8 @@ public final class RootRoute extends AllDirectives {
                 buildSseThingsRoute(ctx, dittoHeaders),
                 // /api/{apiVersion}/things
                 thingsRoute.buildThingsRoute(ctx, dittoHeaders),
+                // /api/{apiVersion}/timeseries
+                timeseriesRoute.buildTimeseriesRoute(ctx, dittoHeaders),
                 // /api/{apiVersion}/search/things
                 thingSearchRoute.buildSearchRoute(ctx, dittoHeaders),
                 // /api/{apiVersion}/whoami
@@ -480,6 +485,7 @@ public final class RootRoute extends AllDirectives {
         private PoliciesRoute policiesRoute;
         private SseRouteBuilder sseThingsRouteBuilder;
         private ThingsRoute thingsRoute;
+        private TimeseriesRoute timeseriesRoute;
         private ThingSearchRoute thingSearchRoute;
         private ConnectionsRoute connectionsRoute;
         private WebSocketRouteBuilder websocketRouteBuilder;
@@ -557,6 +563,12 @@ public final class RootRoute extends AllDirectives {
         @Override
         public RootRouteBuilder thingsRoute(final ThingsRoute route) {
             thingsRoute = route;
+            return this;
+        }
+
+        @Override
+        public RootRouteBuilder timeseriesRoute(final TimeseriesRoute route) {
+            timeseriesRoute = route;
             return this;
         }
 

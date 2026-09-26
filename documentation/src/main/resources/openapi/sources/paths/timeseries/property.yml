@@ -1,0 +1,209 @@
+# Copyright (c) 2026 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+get:
+  summary: Retrieve historical timeseries data for one feature property
+  description: |-
+    Returns the chronological sequence of values that were observed for one feature
+    property within the specified time range.
+
+    The property must be annotated with `ditto:timeseries.ingest = "ALL"` in the
+    WoT ThingModel referenced by the thing's `definition`; properties without the
+    annotation (or with `ingest = "NONE"`) are not ingested and the response will
+    have `count = 0`.
+
+    Authorization is enforced via the Timeseries service's configured permission —
+    `READ_TS` by default. A subject without the configured permission on the
+    requested resource path receives a `404` (per Ditto's "404-not-403" discipline:
+    a `403` would leak existence).
+
+    When `step` and `agg` are supplied the points are downsampled into `step`-sized
+    buckets and aggregated per bucket; otherwise the raw points are returned. Cross-thing
+    aggregation queries use a separate endpoint and are not exposed here.
+  tags:
+    - Timeseries
+  parameters:
+    - $ref: '../../parameters/thingIdPathParam.yml'
+    - $ref: '../../parameters/featureIdPathPathParam.yml'
+    - $ref: '../../parameters/propertyPathPathParam.yml'
+    - name: from
+      in: query
+      description: |-
+        Inclusive lower bound of the queried time range. Either an ISO-8601 instant or a
+        relative expression (`now`, `now-24h`, `now-30m`, `now-7d`).
+      required: true
+      schema:
+        type: string
+        example: 'now-24h'
+    - name: to
+      in: query
+      description: |-
+        Exclusive upper bound of the queried time range. ISO-8601 instant or relative
+        expression (e.g. `now`).
+      required: true
+      schema:
+        type: string
+        example: 'now'
+    - name: step
+      in: query
+      description: |-
+        Downsampling interval. Short form (`30s`, `5m`, `1h`, `1d`) or ISO-8601 duration
+        (`PT1H`). Required for the per-bucket aggregations (`avg`, `min`, `max`, `sum`,
+        `count`, `first`, `last`, `stddev`); optional for the window functions.
+      required: false
+      schema:
+        type: string
+        example: '1h'
+    - name: agg
+      in: query
+      description: |-
+        Aggregation function applied per `step` bucket (or, for the window functions,
+        over the fetched points).
+      required: false
+      schema:
+        type: string
+        enum: [avg, min, max, sum, count, first, last, stddev, derivative, rate, integral, percentile]
+        example: avg
+    - name: percentile
+      in: query
+      description: 'Percentile in `[0, 100]`. Required when `agg=percentile`.'
+      required: false
+      schema:
+        type: number
+        minimum: 0
+        maximum: 100
+        example: 95
+    - name: fill
+      in: query
+      description: |-
+        Gap-fill strategy for empty buckets when downsampling. `null` emits a gap marker,
+        `previous` carries the last value forward, `zero` fills with 0, and `linear` linearly
+        interpolates between the surrounding non-empty buckets (numeric series only; non-numeric
+        neighbours fall back to a `null` gap).
+      required: false
+      schema:
+        type: string
+        enum: [null, previous, zero, linear]
+        example: previous
+    - name: tz
+      in: query
+      description: IANA time-zone ID used to align `step` bucket boundaries (default UTC).
+      required: false
+      schema:
+        type: string
+        example: 'Europe/Berlin'
+    - name: limit
+      in: query
+      description: |-
+        Page size for raw queries — the maximum number of data points to return. When omitted, the
+        server-side ceiling is used. If more points match than are returned, the response's
+        `meta.nextCursor` carries an opaque cursor for the next page (see `cursor`).
+      required: false
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+        example: 1000
+    - name: cursor
+      in: query
+      description: |-
+        Opaque pagination cursor for raw queries. Pass back the `meta.nextCursor` value from a
+        previous response (unchanged) to fetch the next page; omit it for the first page. Keep
+        `from`/`to` identical across pages. Pagination is keyset-based over the `(timestamp, revision)`
+        order, so it is stable while new points are appended. Cursors are only valid for a
+        single-property raw read — combining `cursor` with `step`, `agg` or `fill` is rejected with
+        `400`.
+      required: false
+      schema:
+        type: string
+        example: 'eyJ0IjoiMjAyNi0wMS0xNFQxMDowMTowMFoiLCJyIjo0Mn0'
+    - name: order
+      in: query
+      description: |-
+        Chronological order of a raw read: `asc` (default, oldest first) or `desc` (newest first,
+        convenient for "scroll back into the past" UIs paged with `cursor`). `desc` is only supported
+        for raw reads — combining it with `step`, `agg` or `fill` is rejected with `400`. Keep `order`
+        consistent across pages of a cursor walk.
+      required: false
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: asc
+        example: desc
+    - name: tagFilter
+      in: query
+      description: |-
+        Restrict the result to points whose resolved tags match every given `key:value` pair
+        (comma-separated, logical AND) — e.g. `building:A,floor:2`. Tags are declared on the WoT
+        property's `ditto:timeseries` annotation and resolved at ingestion time. Applies to raw and
+        aggregated reads.
+      required: false
+      schema:
+        type: string
+        example: 'building:A,floor:2'
+    - name: timeFormat
+      in: query
+      description: |-
+        How timestamps are rendered in the response `data` array: `iso` (default, ISO-8601 string)
+        or `ms` (epoch milliseconds, compact and convenient for charting libraries).
+      required: false
+      schema:
+        type: string
+        enum: [iso, ms]
+        default: iso
+        example: ms
+  responses:
+    '200':
+      description: Timeseries data points for the requested path.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/timeseries/timeseriesQueryResult.yml'
+    '400':
+      description: |-
+        The request could not be completed (`timeseries:query.invalid`). Possible reasons:
+          * the `thingId` does not conform to the namespaced entity ID notation.
+          * `from`/`to` is not a valid ISO-8601 instant or relative expression.
+          * `step` is not a valid duration, or `agg`/`fill` is not a recognised value.
+          * a per-bucket aggregation was requested without a `step`.
+          * `agg=percentile` without a `percentile`, or `percentile` outside `[0, 100]`.
+          * `limit` is not a valid integer.
+          * `cursor` is malformed, or combined with `step`, `agg` or `fill`.
+          * `order` is not `asc`/`desc`, or `order=desc` combined with `step`, `agg` or `fill`.
+          * `tagFilter` is not a comma-separated list of `key:value` pairs.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. Either the thing with the given ID was
+        not found, or the requesting subject lacks the configured
+        `READ_TS`/`READ` permission on the requested resource path. The two cases
+        return the same error to avoid leaking the existence of resources the
+        caller cannot access.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '5XX':
+      description: |-
+        The Timeseries service is temporarily unavailable or the underlying
+        timeseries database is degraded.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
