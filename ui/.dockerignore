@@ -11,3 +11,7 @@
 !index.html
 !silent-callback.html
 !dist
+
+# Source maps are only produced by `npm start` (esbuild serve); keep stale ones left in a
+# local dist/ out of locally built images.
+dist/**/*.map

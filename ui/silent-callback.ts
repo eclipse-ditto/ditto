@@ -19,8 +19,12 @@ import { UserManager, UserManagerSettings } from 'oidc-client-ts';
  * The page's only job is to hand the response URL back to the parent frame;
  * `signinSilentCallback()` delegates to IFrameNavigator.callback(), which reads nothing from
  * the settings except the optional `iframeNotifyParentOrigin` (defaulting to this page's own
- * origin). Hence the placeholder settings below: `authority` and `client_id` are required by
- * UserManagerSettings but are never touched on this path.
+ * origin). Hence the placeholder settings below: `authority`, `client_id` and `redirect_uri` are
+ * required by UserManagerSettings but are never touched on this path.
+ *
+ * Because the settings are hard-coded, a provider's configured `iframeNotifyParentOrigin` is not
+ * applied here, so this page only works when served from the same origin as the UI itself (as
+ * the Docker image does). A `silent_redirect_uri` on a different origin is not supported.
  *
  * Passing an object at all is what matters - `new UserManager()` throws, because
  * UserManagerSettingsStore dereferences `args.redirect_uri` before any defaulting.
@@ -28,6 +32,7 @@ import { UserManager, UserManagerSettings } from 'oidc-client-ts';
 const callbackOnlySettings: UserManagerSettings = {
   authority: '',
   client_id: '',
+  redirect_uri: '',
 };
 
 new UserManager(callbackOnlySettings)
