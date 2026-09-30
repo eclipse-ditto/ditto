@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.amqp.status;
 
-import javax.jms.Session;
+import jakarta.jms.Session;
 
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 

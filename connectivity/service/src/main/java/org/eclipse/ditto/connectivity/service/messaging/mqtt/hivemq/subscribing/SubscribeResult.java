@@ -22,7 +22,7 @@ import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.MqttS
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubscribe;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
 
-import org.apache.pekko.NotUsed;
+import org.reactivestreams.Publisher;
 
 /**
  * Represents the result of subscribing a client with a Subscribe message ({@link GenericMqttSubscribe}).
@@ -69,13 +69,13 @@ public abstract class SubscribeResult {
     }
 
     /**
-     * Returns the stream of received MQTT Publish messages for subscribed topics if this result is a success.
+     * Returns the publisher of received MQTT Publish messages for subscribed topics if this result is a success.
      *
-     * @return the stream of received MQTT Publish messages for subscribed topics.
+     * @return the publisher of received MQTT Publish messages for subscribed topics.
      * @throws IllegalStateException if this result is a failure.
      * @see #isSuccess()
      */
-    public abstract org.apache.pekko.stream.javadsl.Source<GenericMqttPublish, NotUsed> getMqttPublishSourceOrThrow();
+    public abstract Publisher<GenericMqttPublish> getMqttPublishesOrThrow();
 
     /**
      * Returns the error that caused subscribing to fail if this result is a failure.

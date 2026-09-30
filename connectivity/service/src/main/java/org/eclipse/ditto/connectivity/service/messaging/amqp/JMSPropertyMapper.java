@@ -25,9 +25,9 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
-import javax.jms.Destination;
-import javax.jms.JMSRuntimeException;
-import javax.jms.Message;
+import jakarta.jms.Destination;
+import jakarta.jms.JMSRuntimeException;
+import jakarta.jms.Message;
 
 import org.apache.qpid.jms.message.JmsMessage;
 import org.apache.qpid.jms.message.facade.JmsMessageFacade;

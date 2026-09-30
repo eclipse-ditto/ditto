@@ -20,8 +20,8 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 import javax.annotation.concurrent.NotThreadSafe;
-import javax.jms.ExceptionListener;
-import javax.jms.JMSException;
+import jakarta.jms.ExceptionListener;
+import jakarta.jms.JMSException;
 import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
 import org.apache.pekko.actor.ActorSystem;
 
 /**
- * Factory for creating a {@link javax.jms.Connection} based on a {@link Connection}.
+ * Factory for creating a {@link jakarta.jms.Connection} based on a {@link Connection}.
  */
 @NotThreadSafe
 public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionFactory {

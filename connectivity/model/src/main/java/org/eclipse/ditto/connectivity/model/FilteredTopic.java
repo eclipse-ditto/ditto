@@ -18,8 +18,10 @@ import java.util.Optional;
 import org.eclipse.ditto.json.JsonFieldSelector;
 
 /**
- * A FilteredTopic wraps a {@link Topic} and an optional {@code filter} String which additionally restricts which
- * kind of Signals should be processed/filtered based on an {@code RQL} query.
+ * A FilteredTopic wraps a {@link Topic} and optional query parameters which additionally restrict which kind of
+ * Signals should be processed/filtered: an optional {@code filter} holding an {@code RQL} expression and an optional
+ * {@code fn-filter} - which may be repeated - holding a placeholder pipeline expression. All given filters must
+ * match (AND semantics).
  */
 public interface FilteredTopic extends CharSequence {
 
@@ -37,6 +39,19 @@ public interface FilteredTopic extends CharSequence {
      * @return the optional filter string as RQL query
      */
     Optional<String> getFilter();
+
+    /**
+     * Returns the placeholder pipeline expressions of this FilteredTopic, given via the repeatable {@code fn-filter}
+     * query parameter, in the order they were given. Each expression is expected to start with the placeholder whose
+     * value is filtered and to end with its only {@code fn:filter} stage (e.g.
+     * {@code header:ditto-originator|fn:filter('ne','some:subject')}), which is validated by the connectivity
+     * service and not by this model; the topic is only published for a signal if the pipeline of <em>every</em>
+     * expression resolves to a value (AND semantics).
+     *
+     * @return an unmodifiable list of the placeholder pipeline expressions, empty if no {@code fn-filter} is set.
+     * @since 4.0.0
+     */
+    List<String> getFnFilters();
 
     /**
      * Returns the selector for the extra fields and their values to enrich outgoing signals with.

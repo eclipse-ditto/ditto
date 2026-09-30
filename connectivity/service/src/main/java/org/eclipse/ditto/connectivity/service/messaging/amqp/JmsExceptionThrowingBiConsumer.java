@@ -14,9 +14,9 @@ package org.eclipse.ditto.connectivity.service.messaging.amqp;
 
 import java.util.function.BiConsumer;
 
-import javax.jms.JMSException;
-import javax.jms.JMSRuntimeException;
-import javax.jms.Message;
+import jakarta.jms.JMSException;
+import jakarta.jms.JMSRuntimeException;
+import jakarta.jms.Message;
 
 /**
  * An interface similar to BiConsumer that accepts a JMS Message and a String and throws {@link JMSException}s.

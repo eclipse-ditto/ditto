@@ -842,11 +842,16 @@ public final class ConnectivityModelFactory {
     }
 
     /**
-     * Creates a new {@code FilteredTopic} from the passed {@code topicString} which consists of a {@code Topic} and an
-     * optional filter string supplied with {@code ?filter=...}.
+     * Creates a new {@code FilteredTopic} from the passed {@code topicString} which consists of a {@code Topic} and
+     * the optional query parameters {@code namespaces}, {@code extraFields}, {@code filter=<RQL expression>} and the
+     * repeatable {@code fn-filter=<placeholder pipeline>} (e.g.
+     * {@code header:ditto-originator|fn:filter('ne','some:subject')}); all given filters must match for a signal to
+     * be processed (AND semantics).
      *
      * @param topicString the {@code FilteredTopic} String representation
      * @return the created FilteredTopic
+     * @throws TopicParseException if the topic is unknown or a query parameter other than {@code fn-filter} is given
+     * more than once.
      */
     public static FilteredTopic newFilteredTopic(final String topicString) {
         return ImmutableFilteredTopic.fromString(topicString);

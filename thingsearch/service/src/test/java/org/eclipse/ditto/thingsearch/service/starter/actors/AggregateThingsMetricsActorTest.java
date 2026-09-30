@@ -64,7 +64,7 @@ import de.flapdoodle.embed.mongo.commands.ServerAddress;
 import de.flapdoodle.embed.mongo.distribution.Version;
 import de.flapdoodle.embed.mongo.transitions.Mongod;
 import de.flapdoodle.embed.mongo.transitions.RunningMongodProcess;
-import de.flapdoodle.reverse.TransitionWalker;
+import de.flapdoodle.commons.reverse.TransitionWalker;
 
 @RunWith(Parameterized.class)
 public class AggregateThingsMetricsActorTest {

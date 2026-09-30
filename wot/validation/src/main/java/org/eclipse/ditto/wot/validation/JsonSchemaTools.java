@@ -37,11 +37,6 @@ import org.eclipse.ditto.wot.model.ObjectSchema;
 import org.eclipse.ditto.wot.model.SingleDataSchema;
 import org.eclipse.ditto.wot.model.WotInternalErrorException;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.util.ByteBufferBackedInputStream;
-import com.fasterxml.jackson.dataformat.cbor.databind.CBORMapper;
 import com.networknt.schema.OutputFormat;
 import com.networknt.schema.Schema;
 import com.networknt.schema.SchemaRegistry;
@@ -53,6 +48,13 @@ import com.networknt.schema.keyword.NonValidationKeyword;
 import com.networknt.schema.output.OutputUnit;
 import com.networknt.schema.path.NodePath;
 import com.networknt.schema.path.PathType;
+
+import tools.jackson.core.exc.JacksonIOException;
+import tools.jackson.core.exc.StreamReadException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.util.ByteBufferBackedInputStream;
+import tools.jackson.dataformat.cbor.CBORMapper;
 
 /**
  * Contains tools around the used JsonSchema library and validating Ditto JSON, including mapping to Jackson.
@@ -92,14 +94,14 @@ final class JsonSchemaTools {
             }
             final ByteBufferBackedInputStream bbis = new ByteBufferBackedInputStream(cborFactory.toByteBuffer(dataSchemaJson));
             jsonNode = jacksonCborMapper.reader().readTree(bbis);
-        } catch (final JsonParseException e) {
+        } catch (final StreamReadException e) {
             throw DittoRuntimeException.asDittoRuntimeException(e, t -> WotInternalErrorException.newBuilder()
                             .message("Error during parsing input JSON")
                             .cause(t)
                             .dittoHeaders(dittoHeaders)
                             .build())
                     .setDittoHeaders(dittoHeaders);
-        } catch (final IOException e) {
+        } catch (final IOException | JacksonIOException e) {
             throw WotInternalErrorException.newBuilder()
                     .cause(e)
                     .dittoHeaders(dittoHeaders)
@@ -224,14 +226,14 @@ final class JsonSchemaTools {
         try {
             final ByteBufferBackedInputStream bbis = new ByteBufferBackedInputStream(cborFactory.toByteBuffer(jsonValue));
             jsonNode = jacksonCborMapper.reader().readTree(bbis);
-        } catch (final JsonParseException e) {
+        } catch (final StreamReadException e) {
             throw DittoRuntimeException.asDittoRuntimeException(e, t -> WotInternalErrorException.newBuilder()
                             .message("Error during parsing input JSON")
                             .cause(t)
                             .dittoHeaders(dittoHeaders)
                             .build())
                     .setDittoHeaders(dittoHeaders);
-        } catch (final IOException e) {
+        } catch (final IOException | JacksonIOException e) {
             throw WotInternalErrorException.newBuilder()
                     .cause(e)
                     .dittoHeaders(dittoHeaders)

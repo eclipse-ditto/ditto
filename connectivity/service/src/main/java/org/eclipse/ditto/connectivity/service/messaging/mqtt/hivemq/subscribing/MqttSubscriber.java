@@ -126,8 +126,8 @@ public final class MqttSubscriber {
         final List<MqttTopicFilter> topicFilters =
                 connectionSource.getAddresses().stream().map(MqttTopicFilter::of).toList();
         return SubscribeSuccess.newInstance(connectionSource,
-                Source.fromPublisher(subscribingClient.consumeSubscribedPublishesWithManualAcknowledgement()
-                        .filter(publish -> messageHasRightTopicPath(publish, topicFilters))));
+                subscribingClient.consumeSubscribedPublishesWithManualAcknowledgement()
+                        .filter(publish -> messageHasRightTopicPath(publish, topicFilters)));
     }
 
     /**

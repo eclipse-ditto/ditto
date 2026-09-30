@@ -66,10 +66,14 @@ import com.hivemq.client.mqtt.datatypes.MqttTopic;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 import com.typesafe.config.ConfigFactory;
 
+import org.apache.pekko.Done;
 import org.apache.pekko.NotUsed;
 import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Status;
 import org.apache.pekko.stream.javadsl.Sink;
-import org.apache.pekko.stream.javadsl.Source;
+
+import io.reactivex.Flowable;
+import io.reactivex.processors.PublishProcessor;
 
 /**
  * Unit test for {@link MqttConsumerActor}.
@@ -133,7 +137,7 @@ public final class MqttConsumerActorTest {
                         connectionSource,
                         connectivityStatusResolver,
                         TestConstants.CONNECTIVITY_CONFIG,
-                        Mockito.mock(org.apache.pekko.stream.javadsl.Source.class)))
+                        Flowable.<GenericMqttPublish>never()))
                 .withMessage("The connection must not be null!")
                 .withNoCause();
     }
@@ -146,7 +150,7 @@ public final class MqttConsumerActorTest {
                         connectionSource,
                         connectivityStatusResolver,
                         TestConstants.CONNECTIVITY_CONFIG,
-                        Mockito.mock(org.apache.pekko.stream.javadsl.Source.class)))
+                        Flowable.<GenericMqttPublish>never()))
                 .withMessage("The inboundMappingSink must not be null!")
                 .withNoCause();
     }
@@ -159,7 +163,7 @@ public final class MqttConsumerActorTest {
                         null,
                         connectivityStatusResolver,
                         TestConstants.CONNECTIVITY_CONFIG,
-                        Mockito.mock(org.apache.pekko.stream.javadsl.Source.class)))
+                        Flowable.<GenericMqttPublish>never()))
                 .withMessage("The connectionSource must not be null!")
                 .withNoCause();
     }
@@ -172,7 +176,7 @@ public final class MqttConsumerActorTest {
                         connectionSource,
                         null,
                         TestConstants.CONNECTIVITY_CONFIG,
-                        Mockito.mock(org.apache.pekko.stream.javadsl.Source.class)))
+                        Flowable.<GenericMqttPublish>never()))
                 .withMessage("The connectivityStatusResolver must not be null!")
                 .withNoCause();
     }
@@ -185,13 +189,13 @@ public final class MqttConsumerActorTest {
                         connectionSource,
                         connectivityStatusResolver,
                         null,
-                        Mockito.mock(org.apache.pekko.stream.javadsl.Source.class)))
+                        Flowable.<GenericMqttPublish>never()))
                 .withMessage("The connectivityConfig must not be null!")
                 .withNoCause();
     }
 
     @Test
-    public void propsProcessingWithNullMqttPublishSourceThrowsException() {
+    public void propsProcessingWithNullMqttPublishesThrowsException() {
         assertThatNullPointerException()
                 .isThrownBy(() -> MqttConsumerActor.propsProcessing(connection,
                         inboundMappingSink,
@@ -199,7 +203,7 @@ public final class MqttConsumerActorTest {
                         connectivityStatusResolver,
                         TestConstants.CONNECTIVITY_CONFIG,
                         null))
-                .withMessage("The mqttPublishSource must not be null!")
+                .withMessage("The mqttPublishes must not be null!")
                 .withNoCause();
     }
 
@@ -211,7 +215,7 @@ public final class MqttConsumerActorTest {
                         connectionSource,
                         connectivityStatusResolver,
                         TestConstants.CONNECTIVITY_CONFIG,
-                        Source.repeat(GenericMqttPublish.ofMqtt5Publish(MQTT_5_PUBLISH))),
+                        Flowable.just(GenericMqttPublish.ofMqtt5Publish(MQTT_5_PUBLISH)).repeat()),
                 testName.getMethodName()
         );
 
@@ -236,6 +240,31 @@ public final class MqttConsumerActorTest {
     }
 
     @Test
+    public void consumesMqttPublishesBeforeReportingReadinessToParent() {
+        final var mqttPublishes = PublishProcessor.<GenericMqttPublish>create();
+        final var inboundMappingSinkElementReceiver = ACTOR_SYSTEM_RESOURCE.newTestKit();
+        final var fakeMqttClientActor = ACTOR_SYSTEM_RESOURCE.newTestKit();
+
+        fakeMqttClientActor.childActorOf(
+                MqttConsumerActor.propsProcessing(connection,
+                        Sink.actorRef(inboundMappingSinkElementReceiver.getRef(), new Object()),
+                        connectionSource,
+                        connectivityStatusResolver,
+                        TestConstants.CONNECTIVITY_CONFIG,
+                        mqttPublishes.onBackpressureBuffer()), // like BufferingFlowableWrapper's flowable
+                testName.getMethodName()
+        );
+
+        // Once the parent received the readiness report, the consumer actor must already be subscribed, i.e. a
+        // publish emitted right after must not be lost.
+        fakeMqttClientActor.expectMsg(new Status.Success(Done.getInstance()));
+        assertThat(mqttPublishes.hasSubscribers()).isTrue();
+        mqttPublishes.onNext(GenericMqttPublish.ofMqtt5Publish(MQTT_5_PUBLISH));
+
+        inboundMappingSinkElementReceiver.expectMsgClass(ExternalMessageWithSender.class);
+    }
+
+    @Test
     public void sendGracefulStopShutsDownProcessingMqttConsumerActor() {
         final var underTestWatcher = ACTOR_SYSTEM_RESOURCE.newTestKit();
         final var underTest = underTestWatcher.watch(ACTOR_SYSTEM_RESOURCE.newActor(
@@ -244,40 +273,13 @@ public final class MqttConsumerActorTest {
                         connectionSource,
                         connectivityStatusResolver,
                         TestConstants.CONNECTIVITY_CONFIG,
-                        Source.repeat(GenericMqttPublish.ofMqtt5Publish(MQTT_5_PUBLISH))),
+                        Flowable.just(GenericMqttPublish.ofMqtt5Publish(MQTT_5_PUBLISH)).repeat()),
                 testName.getMethodName()
         ));
 
         underTest.tell(GracefulStop.INSTANCE, ActorRef.noSender());
 
         underTestWatcher.expectTerminated(underTest);
-    }
-
-    @SuppressWarnings("unchecked")
-    @Test
-    public void mqttPublishSourceGetsThrottledIfThrottlingIsEnabled() {
-        final var throttlingConfig = Mockito.mock(ThrottlingConfig.class);
-        Mockito.when(throttlingConfig.isEnabled()).thenReturn(true);
-        Mockito.when(throttlingConfig.getLimit()).thenReturn(5);
-        Mockito.when(throttlingConfig.getInterval()).thenReturn(Duration.ofMillis(500));
-        final var connectivityConfig = getConnectivityConfigWithCustomThrottlingConfig(throttlingConfig);
-
-        final var mqttPublishSource = Mockito.mock(Source.class);
-        Mockito.when(mqttPublishSource.throttle(Mockito.anyInt(), Mockito.any(Duration.class)))
-                .thenReturn(Source.empty());
-
-        ACTOR_SYSTEM_RESOURCE.newActor(
-                MqttConsumerActor.propsProcessing(connection,
-                        Sink.onComplete(doneTry -> {}),
-                        connectionSource,
-                        connectivityStatusResolver,
-                        connectivityConfig,
-                        mqttPublishSource),
-                testName.getMethodName()
-        );
-
-        Mockito.verify(mqttPublishSource, Mockito.after(500L))
-                .throttle(throttlingConfig.getLimit(), throttlingConfig.getInterval());
     }
 
     private static ConnectivityConfig getConnectivityConfigWithCustomThrottlingConfig(
@@ -320,7 +322,7 @@ public final class MqttConsumerActorTest {
                         connectionSource,
                         connectivityStatusResolver,
                         connectivityConfig,
-                        Source.repeat(GenericMqttPublish.ofMqtt5Publish(MQTT_5_PUBLISH))),
+                        Flowable.just(GenericMqttPublish.ofMqtt5Publish(MQTT_5_PUBLISH)).repeat()),
                 testName.getMethodName()
         );
 
@@ -342,7 +344,7 @@ public final class MqttConsumerActorTest {
                         connectionSource,
                         connectivityStatusResolver,
                         TestConstants.CONNECTIVITY_CONFIG,
-                        Source.repeat(Mockito.mock(GenericMqttPublish.class)).take(100)),
+                        Flowable.just(Mockito.mock(GenericMqttPublish.class)).repeat(100)),
                 testName.getMethodName()
         );
 
@@ -375,7 +377,7 @@ public final class MqttConsumerActorTest {
                         connectionSource,
                         connectivityStatusResolver,
                         TestConstants.CONNECTIVITY_CONFIG,
-                        Source.repeat(genericMqttPublish).take(amountMqttPublishes)),
+                        Flowable.just(genericMqttPublish).repeat(amountMqttPublishes)),
                 testName.getMethodName()
         );
 
@@ -402,7 +404,7 @@ public final class MqttConsumerActorTest {
                         connectionSource,
                         connectivityStatusResolver,
                         TestConstants.CONNECTIVITY_CONFIG,
-                        Source.single(GenericMqttPublish.ofMqtt5Publish(mqtt5Publish))),
+                        Flowable.just(GenericMqttPublish.ofMqtt5Publish(mqtt5Publish))),
                 testName.getMethodName()
         );
 
@@ -439,7 +441,7 @@ public final class MqttConsumerActorTest {
                         connectionSource,
                         connectivityStatusResolver,
                         TestConstants.CONNECTIVITY_CONFIG,
-                        Source.single(GenericMqttPublish.ofMqtt5Publish(mqtt5Publish))),
+                        Flowable.just(GenericMqttPublish.ofMqtt5Publish(mqtt5Publish))),
                 testName.getMethodName()
         );
 
@@ -456,6 +458,7 @@ public final class MqttConsumerActorTest {
                 ActorRef.noSender()
         );
 
+        fakeMqttClientActor.expectMsg(new Status.Success(Done.getInstance()));
         fakeMqttClientActor.expectMsgClass(ReconnectConsumerClient.class);
         inboundMappingSinkElementReceiver.expectMsg(onCompleteMessage);
         Mockito.verify(mqtt5Publish, Mockito.never()).acknowledge();
@@ -482,7 +485,7 @@ public final class MqttConsumerActorTest {
                         connectionSource,
                         connectivityStatusResolver,
                         connectivityConfig,
-                        Source.single(GenericMqttPublish.ofMqtt5Publish(mqtt5Publish))),
+                        Flowable.just(GenericMqttPublish.ofMqtt5Publish(mqtt5Publish))),
                 testName.getMethodName()
         );
 
@@ -499,6 +502,7 @@ public final class MqttConsumerActorTest {
                 ActorRef.noSender()
         );
 
+        fakeMqttClientActor.expectMsg(new Status.Success(Done.getInstance()));
         fakeMqttClientActor.expectNoMessage();
         inboundMappingSinkElementReceiver.expectMsg(onCompleteMessage);
         Mockito.verify(mqtt5Publish).acknowledge();
@@ -519,7 +523,7 @@ public final class MqttConsumerActorTest {
                         connectionSource,
                         connectivityStatusResolver,
                         TestConstants.CONNECTIVITY_CONFIG,
-                        Source.single(GenericMqttPublish.ofMqtt5Publish(mqtt5Publish))),
+                        Flowable.just(GenericMqttPublish.ofMqtt5Publish(mqtt5Publish))),
                 testName.getMethodName()
         );
 
@@ -536,6 +540,7 @@ public final class MqttConsumerActorTest {
                 ActorRef.noSender()
         );
 
+        fakeMqttClientActor.expectMsg(new Status.Success(Done.getInstance()));
         fakeMqttClientActor.expectNoMessage();
         inboundMappingSinkElementReceiver.expectMsg(onCompleteMessage);
         Mockito.verify(mqtt5Publish).acknowledge();
@@ -556,7 +561,7 @@ public final class MqttConsumerActorTest {
                         connectionSource,
                         connectivityStatusResolver,
                         TestConstants.CONNECTIVITY_CONFIG,
-                        Source.single(GenericMqttPublish.ofMqtt5Publish(mqtt5Publish))),
+                        Flowable.just(GenericMqttPublish.ofMqtt5Publish(mqtt5Publish))),
                 testName.getMethodName()
         );
 
@@ -572,6 +577,7 @@ public final class MqttConsumerActorTest {
                 ActorRef.noSender()
         );
 
+        fakeMqttClientActor.expectMsg(new Status.Success(Done.getInstance()));
         fakeMqttClientActor.expectNoMessage();
         inboundMappingSinkElementReceiver.expectMsg(onCompleteMessage);
         Mockito.verify(mqtt5Publish).acknowledge();

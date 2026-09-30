@@ -25,7 +25,7 @@ jobs:
     steps:
       -
         name: Harden Runner
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
       -
@@ -35,11 +35,11 @@ jobs:
           persist-credentials: false
       -
         name: Set up QEMU
-        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
       -
         name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.1.0 # setup buildx in order to do build and push multi-architecture images
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.1.0 # setup buildx in order to do build and push multi-architecture images
       -
         name: Inspect buildx builder
         run: |
@@ -65,7 +65,7 @@ jobs:
           echo $IMAGE_TAG
       -
         name: Set up JDK 25
-        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: 'temurin'
           java-version: 25
@@ -88,7 +88,7 @@ jobs:
           ls -lh docker-libs
       -
         name: Build and push ditto-policies
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: docker-libs
           file: dockerfile-release
@@ -99,11 +99,17 @@ jobs:
             MAIN_CLASS=org.eclipse.ditto.policies.service.starter.PoliciesService
           pull: true
           push: true
+          # Supply-chain attestations, attached to the pushed manifest:
+          # an SPDX SBOM of the image contents plus max-mode SLSA provenance.
+          # Downstream consumers need these for their own CRA technical documentation;
+          # inspect with `docker buildx imagetools inspect <image> --format '{{json .SBOM}}'`.
+          sbom: true
+          provenance: mode=max
           tags: |
             eclipse/ditto-policies:${{ env.IMAGE_TAG }}
       -
         name: Build and push ditto-things
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: docker-libs
           file: dockerfile-release
@@ -114,11 +120,13 @@ jobs:
             MAIN_CLASS=org.eclipse.ditto.things.service.starter.ThingsService
           pull: true
           push: true
+          sbom: true
+          provenance: mode=max
           tags: |
             eclipse/ditto-things:${{ env.IMAGE_TAG }}
       -
         name: Build and push ditto-gateway
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: docker-libs
           file: dockerfile-release
@@ -129,11 +137,13 @@ jobs:
             MAIN_CLASS=org.eclipse.ditto.gateway.service.starter.GatewayService
           pull: true
           push: true
+          sbom: true
+          provenance: mode=max
           tags: |
             eclipse/ditto-gateway:${{ env.IMAGE_TAG }}
       -
         name: Build and push ditto-thingsearch
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: docker-libs
           file: dockerfile-release
@@ -144,11 +154,13 @@ jobs:
             MAIN_CLASS=org.eclipse.ditto.thingsearch.service.starter.SearchService
           pull: true
           push: true
+          sbom: true
+          provenance: mode=max
           tags: |
             eclipse/ditto-things-search:${{ env.IMAGE_TAG }}
       -
         name: Build and push ditto-connectivity
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: docker-libs
           file: dockerfile-release
@@ -160,6 +172,8 @@ jobs:
             JVM_CMD_ARGS=--add-opens java.base/java.nio=ALL-UNNAMED --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/sun.security.util=ALL-UNNAMED
           pull: true
           push: true
+          sbom: true
+          provenance: mode=max
           tags: |
             eclipse/ditto-connectivity:${{ env.IMAGE_TAG }}
       -
@@ -177,13 +191,15 @@ jobs:
         working-directory: ./ui
       -
         name: Build and push ditto-ui image
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: ./ui
           file: ui/Dockerfile
           platforms: linux/amd64,linux/arm64
           pull: true
           push: true
+          sbom: true
+          provenance: mode=max
           tags: |
             eclipse/ditto-ui:${{ env.IMAGE_TAG }}
       - 

@@ -44,7 +44,6 @@ import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandSizeValidator;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
-import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 
 /**
  * Creates or extends/modifies Metadata of an entity based on {@link MetadataHeader}s of a {@link Command}'s
@@ -91,16 +90,12 @@ final class MetadataFromCommand implements Supplier<Metadata> {
             final var mergedThing = withOptionalEntity.getEntity()
                     .map(entity -> {
                         final var resourcePath = command.getResourcePath();
-                        if (command instanceof MergeThing && !resourcePath.isEmpty()) {
+                        if (!resourcePath.isEmpty()) {
                             return ThingsModelFactory.newThing(
                                     JsonObject.newBuilder().set(resourcePath, entity).build()
                             );
-                        } else if (resourcePath.isEmpty() && entity.isObject()) {
+                        } else if (entity.isObject()) {
                             return ThingsModelFactory.newThing(entity.asObject());
-                        } else if (!resourcePath.isEmpty()) {
-                            return ThingsModelFactory.newThing(
-                                    JsonObject.newBuilder().set(resourcePath, entity).build()
-                            );
                         } else {
                             return Thing.newBuilder().build();
                         }
@@ -139,7 +134,7 @@ final class MetadataFromCommand implements Supplier<Metadata> {
                 final var expandedMetadataHeaders = metadataHeaders.stream()
                         .flatMap(this::expandWildcards)
                         .map(mh -> {
-                            if (command instanceof MergeThing && !command.getResourcePath().isEmpty()) {
+                            if (!command.getResourcePath().isEmpty()) {
                                 return MetadataHeader.of(
                                         MetadataHeaderKey.of(command.getResourcePath().append(mh.getKey().getPath())),
                                         mh.getValue()
@@ -151,17 +146,13 @@ final class MetadataFromCommand implements Supplier<Metadata> {
                         .collect(Collectors.toCollection(LinkedHashSet::new));
 
                 final Metadata metadata;
-                if (command instanceof MergeThing) {
-                    if (command.getResourcePath().isEmpty()) {
-                        metadata = buildMetadata(expandedMetadataHeaders);
-                    } else {
-                        metadata = Metadata.newMetadata(buildMetadata(expandedMetadataHeaders)
-                                .getValue(command.getResourcePath())
-                                .map(JsonValue::asObject)
-                                .orElseGet(JsonObject::empty));
-                    }
-                } else {
+                if (command.getResourcePath().isEmpty()) {
                     metadata = buildMetadata(expandedMetadataHeaders);
+                } else {
+                    metadata = Metadata.newMetadata(buildMetadata(expandedMetadataHeaders)
+                            .getValue(command.getResourcePath())
+                            .map(JsonValue::asObject)
+                            .orElseGet(JsonObject::empty));
                 }
 
                 final var thingJsonObject = mergedThing.toBuilder()

@@ -43,6 +43,18 @@ public interface FilteredTopicBuilder {
     FilteredTopicBuilder withFilter(@Nullable CharSequence filter);
 
     /**
+     * Sets the given placeholder pipeline expressions (one repeatable {@code fn-filter} query parameter each) to
+     * this builder. All of them must match for the topic to be published (AND semantics). Ignored for topics which
+     * do not support filters (policy and connection announcements).
+     *
+     * @param fnFilters the placeholder pipeline expressions of the topic to be built, e.g.
+     * {@code header:ditto-originator|fn:filter('ne','some:subject')}; {@code null} or empty for none.
+     * @return this builder instance to allow method chaining.
+     * @since 4.0.0
+     */
+    FilteredTopicBuilder withFnFilters(@Nullable Collection<? extends CharSequence> fnFilters);
+
+    /**
      * Sets the selector for the extra fields and their values to enrich outgoing signals of the topic to be built with.
      *
      * @param extraFields the extra fields.

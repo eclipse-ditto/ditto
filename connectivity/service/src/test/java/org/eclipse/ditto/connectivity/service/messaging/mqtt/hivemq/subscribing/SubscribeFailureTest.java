@@ -78,12 +78,12 @@ public final class SubscribeFailureTest {
     }
 
     @Test
-    public void getMqttPublishSourceThrowsException() {
+    public void getMqttPublishesThrowsException() {
         final var underTest = SubscribeFailure.newInstance(connectionSource, new MqttSubscribeException());
 
         assertThatIllegalStateException()
-                .isThrownBy(underTest::getMqttPublishSourceOrThrow)
-                .withMessage("Failure cannot provide a MQTT Publish Source.")
+                .isThrownBy(underTest::getMqttPublishesOrThrow)
+                .withMessage("Failure cannot provide MQTT Publishes.")
                 .withNoCause();
     }
 

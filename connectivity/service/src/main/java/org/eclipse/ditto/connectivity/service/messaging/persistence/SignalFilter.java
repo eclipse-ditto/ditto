@@ -34,15 +34,19 @@ import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.FilteredTopic;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.model.signals.announcements.ConnectivityAnnouncement;
+import org.eclipse.ditto.connectivity.service.messaging.TargetTopicFilter;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.edge.service.placeholders.EntityIdPlaceholder;
 import org.eclipse.ditto.edge.service.placeholders.FeaturePlaceholder;
 import org.eclipse.ditto.edge.service.placeholders.ThingPlaceholder;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLogger;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
@@ -71,6 +75,8 @@ import org.eclipse.ditto.things.model.signals.events.ThingEventToThingConverter;
  * </ul>
  */
 public final class SignalFilter {
+
+    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(SignalFilter.class);
 
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
     private static final TopicPathPlaceholder TOPIC_PATH_PLACEHOLDER = TopicPathPlaceholder.getInstance();
@@ -104,14 +110,21 @@ public final class SignalFilter {
     /**
      * Filters the passed {@code signal} by extracting those {@link Target}s which should receive the signal.
      * Fields are ignored if they occur as "extra targets" to be evaluated later after signal enrichment.
+     * <p>
+     * A target topic may carry an optional RQL {@code filter} and any number of {@code fn-filter}s (placeholder
+     * pipelines, see {@link org.eclipse.ditto.connectivity.service.messaging.TargetTopicFilter}); all of them must
+     * match. The {@code fn-filter}s are evaluated first. A {@link RuntimeException} thrown while evaluating one of
+     * them is logged, recorded as failure in the connection logs and treated as a non-match, whereas the exception
+     * of an invalid RQL filter is propagated.
      *
      * @param signal the signal to filter / determine the {@link org.eclipse.ditto.connectivity.model.Target}s for
      * @return the determined Targets for the passed in {@code signal}
-     * @throws org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException if the optional filter string of a
-     * Target cannot be mapped to a valid criterion
+     * @throws org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException if the optional RQL filter of a
+     * Target's topic cannot be mapped to a valid criterion
      */
     @SuppressWarnings("squid:S3864")
     public List<Target> filter(final Signal<?> signal) {
+        final ConnectionId connectionId = connection.getId();
         return connection.getTargets().stream()
                 .filter(t -> isTargetAuthorized(t, signal)) // this is cheaper, so check this first
                 .filter(t -> isTargetSubscribedForTopicGenerally(t, signal))
@@ -119,7 +132,7 @@ public final class SignalFilter {
                 .peek(authorizedTarget -> connectionMonitorRegistry.forOutboundDispatched(connection,
                         authorizedTarget.getAddress())
                         .success(signal))
-                .filter(t -> isTargetSubscribedForTopicWithFiltering(t, signal))
+                .filter(t -> isTargetSubscribedForTopicWithFiltering(t, signal, connectionId))
                 // count authorized + filtered targets
                 .peek(filteredTarget -> connectionMonitorRegistry.forOutboundFiltered(connection,
                         filteredTarget.getAddress())
@@ -143,11 +156,12 @@ public final class SignalFilter {
                 .anyMatch(applyTopicFilter(signal));
     }
 
-    private static boolean isTargetSubscribedForTopicWithFiltering(final Target target, final Signal<?> signal) {
+    private boolean isTargetSubscribedForTopicWithFiltering(final Target target, final Signal<?> signal,
+            final ConnectionId connectionId) {
         return target.getTopics().stream()
                 .filter(applyTopicFilter(signal))
                 .filter(applyNamespaceFilter(signal))
-                .anyMatch(filteredTopic -> matchesFilterBeforeEnrichment(filteredTopic, signal));
+                .anyMatch(filteredTopic -> matchesFilterBeforeEnrichment(filteredTopic, target, signal, connectionId));
     }
 
     private static Predicate<FilteredTopic> applyTopicFilter(final Signal<?> signal) {
@@ -164,46 +178,78 @@ public final class SignalFilter {
         return NamespaceReader.fromEntityId(withEntityId.getEntityId()).orElse(null);
     }
 
-    private static boolean matchesFilterBeforeEnrichment(final FilteredTopic filteredTopic, final Signal<?> signal) {
-        final Optional<String> filterOptional = filteredTopic.getFilter();
-        if (filterOptional.isPresent()) {
-            // match filter ignoring "extraFields"
-
-            final TopicPath topicPath = DITTO_PROTOCOL_ADAPTER.toTopicPath(signal);
-            final PlaceholderResolver<TopicPath> topicPathPlaceholderResolver =
-                    PlaceholderFactory.newPlaceholderResolver(TOPIC_PATH_PLACEHOLDER, topicPath);
-            final PlaceholderResolver<EntityId> entityIdPlaceholderResolver = PlaceholderFactory
-                    .newPlaceholderResolver(ENTITY_ID_PLACEHOLDER,
-                            (signal instanceof WithEntityId withEntityId) ? withEntityId.getEntityId() : null);
-            final PlaceholderResolver<EntityId> thingPlaceholderResolver = PlaceholderFactory
-                    .newPlaceholderResolver(THING_PLACEHOLDER,
-                            (signal instanceof WithEntityId withEntityId) ? withEntityId.getEntityId() : null);
-            final PlaceholderResolver<Signal<?>> featurePlaceholderResolver = PlaceholderFactory
-                    .newPlaceholderResolver(FEATURE_PLACEHOLDER, signal);
-            final PlaceholderResolver<WithResource> resourcePlaceholderResolver = PlaceholderFactory
-                    .newPlaceholderResolver(RESOURCE_PLACEHOLDER, signal);
-            final PlaceholderResolver<Object> timePlaceholderResolver = PlaceholderFactory
-                    .newPlaceholderResolver(TIME_PLACEHOLDER, new Object());
-            final Criteria criteria = parseCriteria(filterOptional.get(), signal.getDittoHeaders(),
-                    topicPathPlaceholderResolver, entityIdPlaceholderResolver, thingPlaceholderResolver,
-                    featurePlaceholderResolver, resourcePlaceholderResolver, timePlaceholderResolver);
-            final Set<JsonPointer> extraFields = filteredTopic.getExtraFields()
-                    .map(JsonFieldSelector::getPointers)
-                    .orElse(Collections.emptySet());
-            if (signal instanceof ThingEvent) {
-                return ThingEventToThingConverter.thingEventToThing((ThingEvent<?>) signal)
-                        .filter(thing -> Thing3ValuePredicateVisitor.couldBeTrue(criteria, extraFields, thing,
-                                topicPathPlaceholderResolver, entityIdPlaceholderResolver, thingPlaceholderResolver,
-                                featurePlaceholderResolver, resourcePlaceholderResolver, timePlaceholderResolver))
-                        .isPresent();
-            } else {
-                final Thing emptyThing = Thing.newBuilder().build();
-                return Thing3ValuePredicateVisitor.couldBeTrue(criteria, extraFields, emptyThing,
-                        topicPathPlaceholderResolver, entityIdPlaceholderResolver, thingPlaceholderResolver,
-                        featurePlaceholderResolver, resourcePlaceholderResolver, timePlaceholderResolver);
+    private boolean matchesFilterBeforeEnrichment(final FilteredTopic filteredTopic, final Target target,
+            final Signal<?> signal, final ConnectionId connectionId) {
+        // all fn-filters of the topic must match (AND); the first non-match or failure decides
+        for (final String fnFilter : filteredTopic.getFnFilters()) {
+            if (!matchesFnFilterGuarded(fnFilter, target, signal, connectionId)) {
+                return false;
             }
-        } else {
+        }
+        final Optional<String> filterOptional = filteredTopic.getFilter();
+        if (filterOptional.isEmpty()) {
             return true;
+        }
+
+        // match the RQL filter ignoring "extraFields"
+        final TopicPath topicPath = DITTO_PROTOCOL_ADAPTER.toTopicPath(signal);
+        final PlaceholderResolver<TopicPath> topicPathPlaceholderResolver =
+                PlaceholderFactory.newPlaceholderResolver(TOPIC_PATH_PLACEHOLDER, topicPath);
+        final PlaceholderResolver<EntityId> entityIdPlaceholderResolver = PlaceholderFactory
+                .newPlaceholderResolver(ENTITY_ID_PLACEHOLDER,
+                        (signal instanceof WithEntityId withEntityId) ? withEntityId.getEntityId() : null);
+        final PlaceholderResolver<EntityId> thingPlaceholderResolver = PlaceholderFactory
+                .newPlaceholderResolver(THING_PLACEHOLDER,
+                        (signal instanceof WithEntityId withEntityId) ? withEntityId.getEntityId() : null);
+        final PlaceholderResolver<Signal<?>> featurePlaceholderResolver = PlaceholderFactory
+                .newPlaceholderResolver(FEATURE_PLACEHOLDER, signal);
+        final PlaceholderResolver<WithResource> resourcePlaceholderResolver = PlaceholderFactory
+                .newPlaceholderResolver(RESOURCE_PLACEHOLDER, signal);
+        final PlaceholderResolver<Object> timePlaceholderResolver = PlaceholderFactory
+                .newPlaceholderResolver(TIME_PLACEHOLDER, new Object());
+        final Set<JsonPointer> extraFields = filteredTopic.getExtraFields()
+                .map(JsonFieldSelector::getPointers)
+                .orElse(Collections.emptySet());
+        final Thing thingToMatch;
+        if (signal instanceof ThingEvent) {
+            final Optional<Thing> thingFromEvent = ThingEventToThingConverter.thingEventToThing((ThingEvent<?>) signal);
+            if (thingFromEvent.isEmpty()) {
+                return false;
+            }
+            thingToMatch = thingFromEvent.get();
+        } else {
+            thingToMatch = Thing.newBuilder().build();
+        }
+        final Criteria criteria = parseCriteria(filterOptional.get(), signal.getDittoHeaders(),
+                topicPathPlaceholderResolver, entityIdPlaceholderResolver, thingPlaceholderResolver,
+                featurePlaceholderResolver, resourcePlaceholderResolver, timePlaceholderResolver);
+        return Thing3ValuePredicateVisitor.couldBeTrue(criteria, extraFields, thingToMatch,
+                topicPathPlaceholderResolver, entityIdPlaceholderResolver, thingPlaceholderResolver,
+                featurePlaceholderResolver, resourcePlaceholderResolver, timePlaceholderResolver);
+    }
+
+    /**
+     * Evaluates an fn-filter, which only resolves placeholders that do not depend on signal enrichment and thus
+     * works for every signal type. Any RuntimeException - the pipeline grammar throws DittoRuntimeExceptions, a
+     * placeholder resolving its value may throw others - is logged, recorded in the connection logs and treated as
+     * a non-match, so that it cannot fail the OutboundDispatchingActor.
+     */
+    private boolean matchesFnFilterGuarded(final String fnFilter, final Target target, final Signal<?> signal,
+            final ConnectionId connectionId) {
+        try {
+            return TargetTopicFilter.matchesFnFilter(fnFilter, signal, connectionId);
+        } catch (final RuntimeException e) {
+            LOGGER.withCorrelationId(signal)
+                    .warn("Evaluating the target topic fn-filter <{}> of connection <{}> failed with <{}>: <{}> - " +
+                            "treating as non-match.", fnFilter, connectionId, e.getClass().getSimpleName(),
+                            e.getMessage());
+            // unlike a non-match, a failure is recorded in the connection logs
+            connectionMonitorRegistry.forOutboundFiltered(connection, target.getAddress())
+                    .failure(signal,
+                            "Evaluating the target topic fn-filter <{0}> failed: {1} - the signal was dropped " +
+                                    "for this target topic.",
+                            fnFilter, e.getMessage());
+            return false;
         }
     }
 

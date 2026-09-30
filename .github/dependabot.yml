@@ -9,6 +9,11 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 version: 2
+# Note on scope: Dependabot *security* updates are enabled through the repository
+# settings and already cover every ecosystem here (they need no entry in this file) -
+# that is what keeps known-vulnerable dependencies patched. The entries below add
+# *version* updates on top, to limit dependency drift between releases. They are
+# deliberately monthly and grouped so they do not bury the release-relevant PRs.
 updates:
   - package-ecosystem: github-actions
     directory: "/"
@@ -24,5 +29,112 @@ updates:
       include: scope
     groups:
       github-actions:
+        patterns:
+          - "*"
+
+  - package-ecosystem: maven
+    directory: "/bom"
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+    commit-message:
+      prefix: ci
+      include: scope
+    ignore:
+      # Ditto's own modules use Maven CI-friendly versions: every pom declares
+      # <version>${revision}</version> and the real version is supplied per build
+      # with -Drevision=<x>. Dependabot resolves that placeholder to the literal
+      # "0-SNAPSHOT", concludes the modules are behind the last release and tries
+      # to "update" them - in PR #2555 it rewrote the root project's own <version>
+      # to 3.9.7, which breaks parent resolution for all 20 modules. Ditto's
+      # internal versions are never dependency updates, so ignore them outright.
+      - dependency-name: "org.eclipse.ditto:*"
+      # The MongoDB Java driver version is deliberately kept in lockstep with the
+      # driver version pekko-persistence-mongodb is built against (see the comment
+      # on <mongo-java-driver.version> in bom/pom.xml). It is bumped manually
+      # whenever pekko-persistence-mongodb updates, never independently.
+      - dependency-name: "org.mongodb:*"
+    groups:
+      # Dependabot reaches the root pom as the parent of bom/pom.xml, so its
+      # <pluginManagement> versions are in scope too. Keep the build plugins in
+      # their own PR: a japicmp or maven-compiler bump changes build and
+      # API-compatibility semantics and needs reviewing on its own, not buried in
+      # a group PR alongside library upgrades. Listed before the catch-all group
+      # below, because a dependency lands in the first group whose patterns match.
+      maven-build-plugins:
+        patterns:
+          - "org.apache.maven.plugins:*"
+          - "org.codehaus.mojo:*"
+          - "org.jacoco:*"
+          - "com.github.siom79.japicmp:*"
+          - "com.mycila:*"
+          - "org.apache.felix:*"
+          - "net.alchim31.maven:*"
+          - "org.sonatype.plugins:*"
+          - "org.sonatype.central:*"
+          - "org.eclipse.cbi.maven.plugins:*"
+          - "de.saumya.mojo:*"
+      maven-dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: npm
+    directory: "/ui"
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+    commit-message:
+      prefix: ci
+      include: scope
+    ignore:
+      # TypeScript 7 is the Go-native compiler rewrite; ts-jest only supports
+      # typescript ">=4.3 <7" as a peer, so a bump to 7.x fails npm install
+      # (see PR #2553). Lift this once ts-jest gained TypeScript 7 support.
+      - dependency-name: "typescript"
+        versions: [">=7"]
+    groups:
+      ui-npm:
+        patterns:
+          - "*"
+
+  - package-ecosystem: npm
+    directory: "/benchmark-tool/artillery-test"
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 3
+    labels:
+      - dependencies
+    commit-message:
+      prefix: ci
+      include: scope
+    groups:
+      benchmark-npm:
+        patterns:
+          - "*"
+
+  - package-ecosystem: npm
+    directory: "/documentation/src/main/resources/openapi/sources"
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 3
+    labels:
+      - dependencies
+    commit-message:
+      prefix: ci
+      include: scope
+    groups:
+      openapi-npm:
         patterns:
           - "*"

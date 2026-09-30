@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -45,13 +46,15 @@ final class ImmutableFilteredTopic implements FilteredTopic {
     private static final String QUERY_ARG_VALUE_DELIMITER = "=";
 
     private static final String FILTER_ARG = "filter";
+    private static final String FN_FILTER_ARG = "fn-filter";
     private static final String NAMESPACES_ARG = "namespaces";
     private static final String EXTRA_FIELDS_ARG = "extraFields";
 
 
     private final Topic topic;
     private final List<String> namespaces;
-    @Nullable private final String filterString;
+    @Nullable private final String filter;
+    private final List<String> fnFilters;
     @Nullable private final ThingFieldSelector extraFields;
 
     private ImmutableFilteredTopic(final ImmutableFilteredTopicBuilder builder) {
@@ -60,7 +63,12 @@ final class ImmutableFilteredTopic implements FilteredTopic {
         namespaces = null != namespacesFromBuilder
                 ? Collections.unmodifiableList(new ArrayList<>(namespacesFromBuilder))
                 : Collections.emptyList();
-        filterString = Objects.toString(builder.filter, null);
+        filter = Objects.toString(builder.filter, null);
+        final Collection<? extends CharSequence> fnFiltersFromBuilder = builder.fnFilters;
+        fnFilters = null != fnFiltersFromBuilder
+                ? Collections.unmodifiableList(
+                        fnFiltersFromBuilder.stream().map(CharSequence::toString).collect(Collectors.toList()))
+                : Collections.emptyList();
         extraFields = builder.extraFields;
     }
 
@@ -83,6 +91,8 @@ final class ImmutableFilteredTopic implements FilteredTopic {
      * @throws NullPointerException if {@code filteredTopicString} is {@code null}.
      * @throws org.eclipse.ditto.things.model.InvalidThingFieldSelectionException when the given
      * {@code filteredTopicString} contained a field selector with invalid fields.
+     * @throws TopicParseException if the topic is unknown or a query parameter other than {@code fn-filter} is given
+     * more than once.
      */
     public static ImmutableFilteredTopic fromString(final String filteredTopicString) {
         checkNotNull(filteredTopicString, "filteredTopicString");
@@ -102,7 +112,12 @@ final class ImmutableFilteredTopic implements FilteredTopic {
 
     @Override
     public Optional<String> getFilter() {
-        return Optional.ofNullable(filterString);
+        return Optional.ofNullable(filter);
+    }
+
+    @Override
+    public List<String> getFnFilters() {
+        return fnFilters;
     }
 
     @Override
@@ -131,8 +146,13 @@ final class ImmutableFilteredTopic implements FilteredTopic {
     }
 
     private String getQueryParametersAsString() {
-        return join(QUERY_ARG_DELIMITER, getQueryParameterString(NAMESPACES_ARG, String.join(",", namespaces)),
-                getQueryParameterString(FILTER_ARG, filterString),
+        return join(QUERY_ARG_DELIMITER,
+                getQueryParameterString(NAMESPACES_ARG, String.join(",", namespaces)),
+                getQueryParameterString(FILTER_ARG, filter),
+                // one 'fn-filter' query parameter per expression
+                join(QUERY_ARG_DELIMITER, fnFilters.stream()
+                        .map(fnFilter -> getQueryParameterString(FN_FILTER_ARG, fnFilter))
+                        .toArray(String[]::new)),
                 getQueryParameterString(EXTRA_FIELDS_ARG, extraFields));
     }
 
@@ -169,13 +189,14 @@ final class ImmutableFilteredTopic implements FilteredTopic {
         final ImmutableFilteredTopic that = (ImmutableFilteredTopic) o;
         return topic == that.topic &&
                 namespaces.equals(that.namespaces) &&
-                Objects.equals(filterString, that.filterString) &&
+                Objects.equals(filter, that.filter) &&
+                Objects.equals(fnFilters, that.fnFilters) &&
                 Objects.equals(extraFields, that.extraFields);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(topic, namespaces, filterString, extraFields);
+        return Objects.hash(topic, namespaces, filter, fnFilters, extraFields);
     }
 
     /**
@@ -187,12 +208,14 @@ final class ImmutableFilteredTopic implements FilteredTopic {
         private final Topic topic;
         @Nullable private Collection<String> namespaces;
         @Nullable private CharSequence filter;
+        @Nullable private Collection<? extends CharSequence> fnFilters;
         @Nullable private ThingFieldSelector extraFields;
 
         private ImmutableFilteredTopicBuilder(final Topic topic) {
             this.topic = checkNotNull(topic, "topic");
             namespaces = null;
             filter = null;
+            fnFilters = null;
             extraFields = null;
         }
 
@@ -208,6 +231,15 @@ final class ImmutableFilteredTopic implements FilteredTopic {
         public ImmutableFilteredTopicBuilder withFilter(@Nullable final CharSequence filter) {
             if (supportsFilters()) {
                 this.filter = filter;
+            }
+            return this;
+        }
+
+        @Override
+        public ImmutableFilteredTopicBuilder withFnFilters(
+                @Nullable final Collection<? extends CharSequence> fnFilters) {
+            if (supportsFilters()) {
+                this.fnFilters = null != fnFilters ? new ArrayList<>(fnFilters) : null;
             }
             return this;
         }
@@ -256,12 +288,13 @@ final class ImmutableFilteredTopic implements FilteredTopic {
                 topicName = splitString[0];
                 queryParamsString = splitString[1];
             }
-            final Map<String, String> queryParameters = parseQueryParameters(queryParamsString);
+            final Map<String, List<String>> queryParameters = parseQueryParameters(queryParamsString);
 
             return getBuilder(parseTopic(topicName))
-                    .withNamespaces(parseNamespaces(queryParameters.get(NAMESPACES_ARG)))
-                    .withFilter(queryParameters.get(FILTER_ARG))
-                    .withExtraFields(parseExtraFields(queryParameters.get(EXTRA_FIELDS_ARG)))
+                    .withNamespaces(parseNamespaces(getSingleValue(queryParameters, NAMESPACES_ARG)))
+                    .withFilter(getSingleValue(queryParameters, FILTER_ARG))
+                    .withFnFilters(queryParameters.get(FN_FILTER_ARG))
+                    .withExtraFields(parseExtraFields(getSingleValue(queryParameters, EXTRA_FIELDS_ARG)))
                     .build();
         }
 
@@ -271,14 +304,32 @@ final class ImmutableFilteredTopic implements FilteredTopic {
                             "Unknown topic: " + topicName).build());
         }
 
-        private static Map<String, String> parseQueryParameters(@Nullable final String queryParamsString) {
+        private Map<String, List<String>> parseQueryParameters(@Nullable final String queryParamsString) {
             if (null == queryParamsString || queryParamsString.isEmpty()) {
                 return Collections.emptyMap();
             }
-            return Arrays.stream(queryParamsString.split(QUERY_ARG_DELIMITER))
-                    .map(paramString -> paramString.split(QUERY_ARG_VALUE_DELIMITER, 2))
-                    .filter(queryParamPair -> 2 == queryParamPair.length)
-                    .collect(Collectors.toMap(queryParamPair -> urlDecode(queryParamPair[0]), av -> urlDecode(av[1])));
+            final Map<String, List<String>> queryParameters = new HashMap<>(4);
+            for (final String paramString : queryParamsString.split(QUERY_ARG_DELIMITER)) {
+                final String[] queryParamPair = paramString.split(QUERY_ARG_VALUE_DELIMITER, 2);
+                if (2 != queryParamPair.length) {
+                    continue;
+                }
+                final String name = urlDecode(queryParamPair[0]);
+                final List<String> values = queryParameters.computeIfAbsent(name, k -> new ArrayList<>(1));
+                if (!values.isEmpty() && !FN_FILTER_ARG.equals(name)) {
+                    // only 'fn-filter' is repeatable
+                    throw TopicParseException.newBuilder(filteredTopicString,
+                            "The query parameter '" + name + "' must not be given more than once").build();
+                }
+                values.add(urlDecode(queryParamPair[1]));
+            }
+            return queryParameters;
+        }
+
+        @Nullable
+        private static String getSingleValue(final Map<String, List<String>> queryParameters, final String name) {
+            final List<String> values = queryParameters.get(name);
+            return null != values ? values.get(0) : null;
         }
 
         private static String urlDecode(final String value) {

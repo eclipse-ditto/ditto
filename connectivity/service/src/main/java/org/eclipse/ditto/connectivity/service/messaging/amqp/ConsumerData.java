@@ -14,7 +14,7 @@ package org.eclipse.ditto.connectivity.service.messaging.amqp;
 
 import java.util.Objects;
 
-import javax.jms.MessageConsumer;
+import jakarta.jms.MessageConsumer;
 
 import org.eclipse.ditto.connectivity.model.Source;
 

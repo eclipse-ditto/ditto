@@ -57,7 +57,7 @@ final class JavaScriptMessageMapperRhino extends AbstractMessageMapper {
     private static final String WEBJARS_PATH = "/META-INF/resources/webjars";
 
     private static final String WEBJARS_BYTEBUFFER = WEBJARS_PATH + "/bytebuffer/5.0.1/dist/bytebuffer.js";
-    private static final String WEBJARS_LONG = WEBJARS_PATH + "/long/3.2.0/dist/long.min.js";
+    private static final String WEBJARS_LONG = WEBJARS_PATH + "/long/5.3.2/umd/index.js";
 
     static final String DITTO_SCOPE_SCRIPT = "/javascript/ditto-scope.js";
     static final String INCOMING_SCRIPT = "/javascript/incoming-mapping.js";

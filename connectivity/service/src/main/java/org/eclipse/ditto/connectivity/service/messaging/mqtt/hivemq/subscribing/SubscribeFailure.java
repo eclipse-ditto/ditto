@@ -22,7 +22,7 @@ import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.MqttS
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubscribe;
 
-import org.apache.pekko.NotUsed;
+import org.reactivestreams.Publisher;
 
 /**
  * Represents failed subscribing for at least one MQTT topic via one particular
@@ -61,8 +61,8 @@ final class SubscribeFailure extends SubscribeResult {
      * Throws always an IllegalStateException.
      */
     @Override
-    public org.apache.pekko.stream.javadsl.Source<GenericMqttPublish, NotUsed> getMqttPublishSourceOrThrow() {
-        throw new IllegalStateException("Failure cannot provide a MQTT Publish Source.");
+    public Publisher<GenericMqttPublish> getMqttPublishesOrThrow() {
+        throw new IllegalStateException("Failure cannot provide MQTT Publishes.");
     }
 
     @Override

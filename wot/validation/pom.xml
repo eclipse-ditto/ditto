@@ -64,6 +64,12 @@
             <groupId>com.networknt</groupId>
             <artifactId>json-schema-validator</artifactId>
         </dependency>
+        <dependency>
+            <!-- Jackson 3 CBOR dataformat, used to bridge Ditto JSON to the Jackson 3 based
+                 json-schema-validator via CBOR bytes -->
+            <groupId>tools.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-cbor</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>ch.qos.logback</groupId>
