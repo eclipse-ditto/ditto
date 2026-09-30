@@ -7,5 +7,5 @@
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true
   },
-  "include": ["main.ts", "./custom.d.ts", "./modules/**/*", "__tests__/utils"]
+  "include": ["main.ts", "silent-callback.ts", "./custom.d.ts", "./modules/**/*", "__tests__/utils"]
 }
