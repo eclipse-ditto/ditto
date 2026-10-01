@@ -1,0 +1,18 @@
+{
+  "knowledge": {
+    "enabled": true,
+    "retriever": "fts"
+  },
+  "ditto": {
+    "enabled": true,
+    "baseUrl": "http://localhost:8080",
+    "credential": {
+      "kind": "basic",
+      "username": "ditto",
+      "password": "REPLACE_ME"
+    },
+    "policy": {
+      "allowMethods": ["GET"]
+    }
+  }
+}

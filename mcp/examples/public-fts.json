@@ -1,0 +1,14 @@
+{
+  "knowledge": {
+    "retriever": "fts",
+    "publicSource": {
+      "enabled": true
+    },
+    "store": {
+      "kind": "sqlite",
+      "sqlite": {
+        "path": "./ditto-index.db"
+      }
+    }
+  }
+}

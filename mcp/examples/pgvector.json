@@ -1,0 +1,16 @@
+{
+  "knowledge": {
+    "retriever": "hybrid",
+    "embedding": {
+      "model": "Xenova/bge-small-en-v1.5",
+      "dim": 384
+    },
+    "store": {
+      "kind": "pgvector",
+      "pgvector": {
+        "connectionString": "postgres://USER:PASSWORD@HOST:5432/ditto",
+        "table": "ditto_kn"
+      }
+    }
+  }
+}
