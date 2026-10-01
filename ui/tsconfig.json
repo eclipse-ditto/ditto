@@ -13,5 +13,5 @@
     // TypeScript 6.0 no longer auto-includes all of node_modules/@types
     "types": ["jest"]
   },
-  "include": ["main.ts", "./custom.d.ts", "./modules/**/*", "__tests__/utils"]
+  "include": ["main.ts", "silent-callback.ts", "./custom.d.ts", "./modules/**/*", "__tests__/utils"]
 }
