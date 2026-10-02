@@ -101,7 +101,7 @@ Since Ditto 3.1.0, you can encrypt sensitive fields in [connections](basic-conne
 Ditto uses 256-bit AES with AES/GCM/NoPadding. You can generate a key with:
 
 ```bash
-openssl rand -base64 32
+openssl rand 32 | basenc --base64url -w0
 ```
 
 or using the Java standard library:
