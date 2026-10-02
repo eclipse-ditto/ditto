@@ -265,7 +265,7 @@ Encryption is done using a 256-bit AES symmetrical key and the AES/GCM/NoPadding
 To generate it you can run in terminal:
 
 ```shell
-$ openssl rand -base64 32
+$ openssl rand 32 | basenc --base64url -w0
 ```
 or you can use the java standard library
 
