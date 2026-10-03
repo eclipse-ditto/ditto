@@ -216,7 +216,7 @@ public final class ConnectionIdsRetrievalActor extends AbstractActor {
                     .exceptionally(throwable -> buildErrorResponse(throwable, cmd.getDittoHeaders()));
             Patterns.pipe(retrieveAllConnectionIdsResponse, getContext().dispatcher()).to(getSender());
         } catch (final Exception e) {
-            log.info("Failed to load persistence ids from journal/snapshots.", e);
+            log.warning(e, "Failed to load persistence ids from journal/snapshots.");
             getSender().tell(buildErrorResponse(e, cmd.getDittoHeaders()), getSelf());
         }
     }

@@ -173,7 +173,7 @@ public final class EncryptionMigrationActor extends AbstractActor {
         final boolean dryRun = completed.dryRun;
 
         if (completed.error != null && !wasAborted) {
-            log.error("Encryption migration failed", completed.error);
+            log.error(completed.error, "Encryption migration failed");
         } else {
             final String finalPhase = wasAborted
                     ? MigrationPhase.getAbortedPrefix() + (progress != null ? progress.phase().getValue() : "unknown")
@@ -337,7 +337,7 @@ public final class EncryptionMigrationActor extends AbstractActor {
             try {
                 self.tell(new MigrationCompleted(progress, error, dryRun), ActorRef.noSender());
             } catch (final Exception e) {
-                log.error("Failed to send MigrationCompleted message, forcing cleanup", e);
+                log.error(e, "Failed to send MigrationCompleted message, forcing cleanup");
                 self.tell(new MigrationCompleted(null, e, dryRun), ActorRef.noSender());
             }
         });

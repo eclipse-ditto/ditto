@@ -728,7 +728,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
         } else {
             connectionLogger.exception(InfoProviderFactory.forHeaders(jsonifiableAdaptable.getDittoHeaders()),
-                    "Expected <{}> to be of type <{}> but was of type <{}>.", jsonObject,
+                    "Expected <{0}> to be of type <{1}> but was of type <{2}>.", jsonObject,
                     CommandResponse.class.getSimpleName(), signal.getClass().getSimpleName());
             return null;
         }
