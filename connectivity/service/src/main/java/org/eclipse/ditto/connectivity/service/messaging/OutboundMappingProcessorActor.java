@@ -375,7 +375,7 @@ public final class OutboundMappingProcessorActor
             );
         } else if (result instanceof final QueueOfferResult.Failure failure) {
             monitorsForOutboundSignal.forEach(monitor ->
-                    monitor.failure(message.getSource(), "Enqueue failed! - failure: {}", failure.cause())
+                    monitor.failure(message.getSource(), "Enqueue failed! - failure: {0}", failure.cause())
             );
         } else {
             monitorsForOutboundSignal.forEach(monitor ->
