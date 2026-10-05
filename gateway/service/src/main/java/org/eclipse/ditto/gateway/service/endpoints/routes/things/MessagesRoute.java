@@ -21,6 +21,7 @@ import java.util.OptionalLong;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Pattern;
 
+import org.eclipse.ditto.base.model.common.DittoDuration;
 import org.eclipse.ditto.base.model.exceptions.TimeoutInvalidException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
@@ -132,7 +133,7 @@ final class MessagesRoute extends AbstractRoute {
                 rawPathPrefixSegment(PATH_CLAIM, () -> // /inbox/claim
                         post(() ->
                                 pathEndOrSingleSlash(() ->
-                                        withCustomRequestTimeout(dittoHeaders.getTimeout().orElse(null),
+                                        withCustomRequestTimeout(getTimeoutHeader(dittoHeaders),
                                                 this::checkClaimTimeout,
                                                 timeout ->
                                                         extractDataBytes(payloadSource ->
@@ -166,7 +167,7 @@ final class MessagesRoute extends AbstractRoute {
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment(PATH_MESSAGES).slash()),
                 () -> // /messages
                         extractUnmatchedPath(msgSubject -> // <msgSubject/with/slashes>
-                                withCustomRequestTimeout(dittoHeaders.getTimeout().orElse(null),
+                                withCustomRequestTimeout(getTimeoutHeader(dittoHeaders),
                                         this::checkMessageTimeout,
                                         timeout ->
                                                 extractDataBytes(payloadSource ->
@@ -206,7 +207,7 @@ final class MessagesRoute extends AbstractRoute {
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment(PATH_MESSAGES).slash()),
                 () -> // /messages
                         extractUnmatchedPath(msgSubject -> // /messages/<msgSubject/with/slashes>
-                                withCustomRequestTimeout(dittoHeaders.getTimeout().orElse(null),
+                                withCustomRequestTimeout(getTimeoutHeader(dittoHeaders),
                                         this::checkMessageTimeout,
                                         timeout ->
                                                 extractDataBytes(payloadSource ->
@@ -375,17 +376,19 @@ final class MessagesRoute extends AbstractRoute {
         return completeWithFuture(preprocessResponse(httpResponseFuture));
     }
 
-    private Duration checkMessageTimeout(final Duration timeout) {
+    private DittoDuration checkMessageTimeout(final DittoDuration timeout) {
+        final Duration duration = timeout.getDuration();
         // check if the timeout is smaller than the maximum possible message-timeout and > 0:
-        if (timeout.isNegative() || timeout.getSeconds() > maxMessageTimeout.getSeconds()) {
+        if (duration.isNegative() || duration.getSeconds() > maxMessageTimeout.getSeconds()) {
             throw TimeoutInvalidException.newBuilder(timeout, maxMessageTimeout).build();
         }
         return timeout;
     }
 
-    private Duration checkClaimTimeout(final Duration timeout) {
+    private DittoDuration checkClaimTimeout(final DittoDuration timeout) {
+        final Duration duration = timeout.getDuration();
         // check if the timeout is smaller than the maximum possible claim-timeout and > 0:
-        if (timeout.isNegative() || timeout.getSeconds() > maxClaimTimeout.getSeconds()) {
+        if (duration.isNegative() || duration.getSeconds() > maxClaimTimeout.getSeconds()) {
             throw TimeoutInvalidException.newBuilder(timeout, maxClaimTimeout).build();
         }
 

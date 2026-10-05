@@ -15,11 +15,14 @@ package org.eclipse.ditto.gateway.api;
 import java.net.URI;
 import java.text.MessageFormat;
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.base.model.common.DittoDuration;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
@@ -44,6 +47,9 @@ public final class GatewayTimeoutInvalidException extends DittoRuntimeException 
 
     private static final String DEFAULT_MESSAGE = "The timeout <{0}ms> is not inside its allowed bounds <0ms - {1}ms>";
 
+    private static final String MESSAGE_WITH_UNIT =
+            "The timeout <{0}{1}> is not inside its allowed bounds <0{1} - {2}{1}>";
+
     private static final String DEFAULT_DESCRIPTION = "Choose a timeout inside the bounds.";
 
     private static final long serialVersionUID = 4432789435789590723L;
@@ -66,6 +72,46 @@ public final class GatewayTimeoutInvalidException extends DittoRuntimeException 
      */
     public static Builder newBuilder(final Duration timeout, final Duration maxTimeout) {
         return new Builder(timeout, maxTimeout);
+    }
+
+    /**
+     * A mutable builder for a {@code GatewayTimeoutInvalidException} whose message uses the time unit the timeout
+     * was specified in, e.g. {@code <90s>} instead of {@code <90000ms>}.
+     *
+     * @param timeout the applied timeout, as specified in the request.
+     * @param maxTimeout the configured max timeout.
+     * @return the builder.
+     * @since 4.0.0
+     */
+    public static Builder newBuilder(final DittoDuration timeout, final Duration maxTimeout) {
+        return new Builder(formatMessageWithUnit(timeout, maxTimeout));
+    }
+
+    /**
+     * Formats both the timeout and the max timeout in the unit the timeout was specified in. Falls back to
+     * milliseconds if the max timeout cannot be expressed in that unit without a remainder.
+     */
+    private static String formatMessageWithUnit(final DittoDuration timeout, final Duration maxTimeout) {
+        final long unitMillis = timeout.getChronoUnit().getDuration().toMillis();
+        final long timeoutMillis = timeout.getDuration().toMillis();
+        final long maxTimeoutMillis = maxTimeout.toMillis();
+        final Optional<String> suffix = getSuffix(timeout);
+        if (suffix.isPresent() && unitMillis > 0 && timeoutMillis % unitMillis == 0 &&
+                maxTimeoutMillis % unitMillis == 0) {
+            return MessageFormat.format(MESSAGE_WITH_UNIT, String.valueOf(timeoutMillis / unitMillis), suffix.get(),
+                    String.valueOf(maxTimeoutMillis / unitMillis));
+        }
+        return MessageFormat.format(MESSAGE_WITH_UNIT, String.valueOf(timeoutMillis), "ms",
+                String.valueOf(maxTimeoutMillis));
+    }
+
+    private static Optional<String> getSuffix(final DittoDuration dittoDuration) {
+        // a timeout given without unit is interpreted as seconds, render it with the explicit "s" suffix
+        return Arrays.stream(DittoDuration.DittoTimeUnit.values())
+                .filter(unit -> dittoDuration.getChronoUnit() == unit.getChronoUnit())
+                .map(DittoDuration.DittoTimeUnit::getSuffix)
+                .filter(unitSuffix -> !unitSuffix.isEmpty())
+                .findFirst();
     }
 
     /**
@@ -123,6 +169,11 @@ public final class GatewayTimeoutInvalidException extends DittoRuntimeException 
 
         private Builder(final Duration timeout, final Duration maxTimeout) {
             message(MessageFormat.format(DEFAULT_MESSAGE, timeout.toMillis(), maxTimeout.toMillis()));
+            description(DEFAULT_DESCRIPTION);
+        }
+
+        private Builder(final String message) {
+            message(message);
             description(DEFAULT_DESCRIPTION);
         }
 

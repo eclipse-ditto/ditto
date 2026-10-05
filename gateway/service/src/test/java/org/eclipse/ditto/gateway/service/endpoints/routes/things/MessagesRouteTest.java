@@ -348,6 +348,34 @@ public final class MessagesRouteTest extends EndpointTestBase {
         );
     }
 
+    @Test
+    public void postThingsInboxMessageWithTimeoutExceedingMaxReportsBoundsInRequestedUnit() {
+        final var headersWithTimeout = dittoHeaders.toBuilder().timeout("90s").build();
+        final var messagesRoute = getMessagesRoute(getSendThingMessageCommandEchoActor());
+        final var underTest = testRoute(handleExceptions(() -> extractRequestContext(ctx ->
+                messagesRoute.buildThingsInboxOutboxRoute(ctx, headersWithTimeout, KNOWN_THING_ID))));
+
+        final var result = underTest.run(HttpRequest.POST(INBOX_MESSAGES_SUBJECT_PATH).withEntity(MESSAGE_PAYLOAD));
+
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+        assertThat(result.entityString())
+                .contains("The timeout <90s> is not inside its allowed bounds <0s - 60s>");
+    }
+
+    @Test
+    public void postThingsClaimMessageWithTimeoutExceedingMaxReportsBoundsInRequestedUnit() {
+        final var headersWithTimeout = dittoHeaders.toBuilder().timeout("11m").build();
+        final var messagesRoute = getMessagesRoute(getClaimMessageCommandEchoActor());
+        final var underTest = testRoute(handleExceptions(() -> extractRequestContext(ctx ->
+                messagesRoute.buildThingsInboxOutboxRoute(ctx, headersWithTimeout, KNOWN_THING_ID))));
+
+        final var result = underTest.run(HttpRequest.POST(INBOX_CLAIM_PATH).withEntity(MESSAGE_PAYLOAD));
+
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+        assertThat(result.entityString())
+                .contains("The timeout <11m> is not inside its allowed bounds <0m - 10m>");
+    }
+
     private static void assertMessageCommandHasPayload(final TestRouteResult routeResult,
             final String expectedPayload) {
 

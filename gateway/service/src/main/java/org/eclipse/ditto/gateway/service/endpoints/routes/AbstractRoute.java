@@ -54,6 +54,8 @@ import org.apache.pekko.stream.javadsl.Source;
 import org.apache.pekko.stream.javadsl.StreamConverters;
 import org.apache.pekko.util.ByteString;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.common.DittoDuration;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.Command;
@@ -224,7 +226,7 @@ public abstract class AbstractRoute extends AllDirectives {
             final Function<String, Command<?>> requestStringToCommandFunction,
             @Nullable final BiFunction<JsonValue, HttpResponse, HttpResponse> responseTransformFunction) {
 
-        return withCustomRequestTimeout(dittoHeaders.getTimeout().orElse(null),
+        return withCustomRequestTimeout(getTimeoutHeader(dittoHeaders),
                 this::validateCommandTimeout,
                 timeout -> doHandlePerRequest(ctx, dittoHeaders.toBuilder().timeout(timeout).build(), payloadSource,
                         requestStringToCommandFunction, responseTransformFunction));
@@ -384,16 +386,29 @@ public abstract class AbstractRoute extends AllDirectives {
      * @param inner the inner Route to wrap.
      * @return the wrapped route - potentially with custom timeout adjusted.
      */
-    protected Route withCustomRequestTimeout(@Nullable final Duration optionalTimeout,
-            final UnaryOperator<Duration> checkTimeoutFunction,
+    protected Route withCustomRequestTimeout(@Nullable final DittoDuration optionalTimeout,
+            final UnaryOperator<DittoDuration> checkTimeoutFunction,
             final java.util.function.Function<Duration, Route> inner) {
 
         Duration customRequestTimeout = routeBaseProperties.getGatewayConfig().getHttpConfig().getRequestTimeout();
         if (null != optionalTimeout) {
-            customRequestTimeout = checkTimeoutFunction.apply(optionalTimeout);
+            customRequestTimeout = checkTimeoutFunction.apply(optionalTimeout).getDuration();
         }
 
         return increaseHttpRequestTimeout(inner, customRequestTimeout);
+    }
+
+    /**
+     * Returns the {@code timeout} header of the passed {@code dittoHeaders} as specified in the request, i.e.
+     * including the time unit it was given in.
+     *
+     * @param dittoHeaders the headers to read the timeout from.
+     * @return the timeout or {@code null} if no timeout header was present.
+     */
+    @Nullable
+    protected static DittoDuration getTimeoutHeader(final DittoHeaders dittoHeaders) {
+        final String timeout = dittoHeaders.get(DittoHeaderDefinition.TIMEOUT.getKey());
+        return null != timeout ? DittoDuration.parseDuration(timeout) : null;
     }
 
     private CompletionStage<HttpResponse> toStrict(final HttpResponse response) {
@@ -421,12 +436,13 @@ public abstract class AbstractRoute extends AllDirectives {
      * @return the passed in timeout if it was valid.
      * @throws GatewayTimeoutInvalidException if the passed {@code timeout} was not within its bounds.
      */
-    protected Duration validateCommandTimeout(final Duration timeout) {
+    protected DittoDuration validateCommandTimeout(final DittoDuration timeout) {
         final var commandConfig = routeBaseProperties.getGatewayConfig().getCommandConfig();
         final var maxTimeout = commandConfig.getMaxTimeout();
+        final var duration = timeout.getDuration();
 
         // check if the timeout is smaller than the maximum possible timeout and > 0:
-        if (timeout.isNegative() || timeout.compareTo(maxTimeout) > 0) {
+        if (duration.isNegative() || duration.compareTo(maxTimeout) > 0) {
             throw GatewayTimeoutInvalidException.newBuilder(timeout, maxTimeout).build();
         }
         return timeout;
