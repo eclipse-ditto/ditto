@@ -227,6 +227,19 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
     }
 
     @Test
+    public void logWarningWithCausePassesCauseToPlainLoggingAdapter() {
+        final IllegalStateException cause = new IllegalStateException("connection unavailable");
+        final String logMessage = "The connection is closed!";
+        Mockito.when(plainLoggingAdapter.isWarningEnabled()).thenReturn(true);
+
+        final DefaultDittoDiagnosticLoggingAdapter underTest =
+                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter, LOGGER_NAME);
+        underTest.warning(cause, logMessage);
+
+        Mockito.verify(plainLoggingAdapter).notifyWarning(cause, logMessage);
+    }
+
+    @Test
     public void logMoreThan4LoggingArgsError() {
         final String template = "one: {}, two: {}, three: {}, four: {}, five: {}, six: {}";
         Mockito.when(plainLoggingAdapter.isErrorEnabled()).thenReturn(true);

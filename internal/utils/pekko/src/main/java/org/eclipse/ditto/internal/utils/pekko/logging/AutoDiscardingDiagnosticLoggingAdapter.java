@@ -84,6 +84,15 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
     }
 
     @Override
+    public void notifyWarning(final Throwable cause, final String message) {
+        try {
+            loggingAdapter.notifyWarning(cause, message);
+        } finally {
+            discardMdcEntries();
+        }
+    }
+
+    @Override
     public void notifyInfo(final String message) {
         try {
             loggingAdapter.notifyInfo(message);

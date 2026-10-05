@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
@@ -164,6 +165,13 @@ public final class EncryptionMigrationActor extends AbstractActor {
         migrationInProgress = update.progress.phase() != MigrationPhase.COMPLETED;
     }
 
+    private static Throwable unwrapCompletionException(final Throwable error) {
+        if (error instanceof CompletionException && error.getCause() != null) {
+            return error.getCause();
+        }
+        return error;
+    }
+
     private void handleMigrationCompleted(final MigrationCompleted completed) {
         migrationInProgress = false;
         activeKillSwitch = null;
@@ -171,10 +179,14 @@ public final class EncryptionMigrationActor extends AbstractActor {
         abortRequested = false;
         final MigrationProgress progress = completed.progress;
         final boolean dryRun = completed.dryRun;
+        final Throwable error = completed.error != null ? unwrapCompletionException(completed.error) : null;
 
-        if (completed.error != null && !wasAborted) {
-            log.error("Encryption migration failed", completed.error);
+        if (error != null && !wasAborted) {
+            log.error(error, "Encryption migration failed");
         } else {
+            if (error != null) {
+                log.error(error, "Encryption migration stream failed while abort was requested");
+            }
             final String finalPhase = wasAborted
                     ? MigrationPhase.getAbortedPrefix() + (progress != null ? progress.phase().getValue() : "unknown")
                     : (progress != null ? progress.phase().getValue() : "unknown");
@@ -194,8 +206,8 @@ public final class EncryptionMigrationActor extends AbstractActor {
                     progressTracker.saveProgressWithRetry(progress, 2)
                             .whenComplete((v, saveErr) -> {
                                 if (saveErr != null) {
-                                    log.error("Failed to save abort progress after retries: {}",
-                                            saveErr.getMessage());
+                                    log.error(unwrapCompletionException(saveErr),
+                                            "Failed to save abort progress after retries");
                                 } else {
                                     log.info("Abort progress saved successfully: phase={}",
                                             finalPhase);
@@ -337,7 +349,7 @@ public final class EncryptionMigrationActor extends AbstractActor {
             try {
                 self.tell(new MigrationCompleted(progress, error, dryRun), ActorRef.noSender());
             } catch (final Exception e) {
-                log.error("Failed to send MigrationCompleted message, forcing cleanup", e);
+                log.error(e, "Failed to send MigrationCompleted message, forcing cleanup");
                 self.tell(new MigrationCompleted(null, e, dryRun), ActorRef.noSender());
             }
         });

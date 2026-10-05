@@ -610,7 +610,8 @@ public final class MqttClientActor extends BaseClientActor {
         unsolicitedPublishesAutoAckSubscription = genericMqttClient.consumeSubscribedPublishesWithManualAcknowledgement()
                 .filter(p -> messageHasNoMatchingSubscription(p, subscribedTopics))
                 .subscribe(this::tryToAcknowledgePublish,
-                    p -> logger.info("Failed to read unsolicited publish: <{}>", p));
+                    p -> logger.warning(p,
+                            "Failed to read unsolicited publish, stopped acknowledging unsolicited publishes."));
     }
 
     private boolean messageHasNoMatchingSubscription(final GenericMqttPublish genericMqttPublish,
@@ -623,17 +624,17 @@ public final class MqttClientActor extends BaseClientActor {
             mqttPublish.acknowledge();
         } catch (final ManualAcknowledgementDisabledException e) {
             logger.warning("""
-                    Manual acknowledgement of unsolicited incoming message at topic <{0}> failed because manual acknowledgement \
+                    Manual acknowledgement of unsolicited incoming message at topic <{}> failed because manual acknowledgement \
                     is disabled.\
                     """, mqttPublish.getTopic());
         } catch (final MessageAlreadyAcknowledgedException e) {
             logger.warning("""
-                    Acknowledgement of unsolicited incoming message at topic <{0}> failed because it was acknowledged already by \
+                    Acknowledgement of unsolicited incoming message at topic <{}> failed because it was acknowledged already by \
                     another source.\
                     """, mqttPublish.getTopic());
         } catch (final AcknowledgementUnsupportedException e) {
             logger.warning(
-                    "Manual acknowledgement of unsolicited incoming message at topic <{0}> failed: {1}",
+                    "Manual acknowledgement of unsolicited incoming message at topic <{}> failed: {}",
                     mqttPublish.getTopic(),
                     e.getMessage());
         }

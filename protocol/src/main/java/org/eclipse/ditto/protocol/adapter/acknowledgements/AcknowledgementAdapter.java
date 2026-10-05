@@ -69,7 +69,7 @@ final class AcknowledgementAdapter implements Adapter<Acknowledgement> {
         } else if (TopicPath.Channel.LIVE == channel) {
             topicPathBuilder.live();
         } else {
-            throw new IllegalArgumentException(MessageFormat.format("Unknown channel <{}>", channel));
+            throw new IllegalArgumentException(MessageFormat.format("Unknown channel <{0}>", channel));
         }
         return topicPathBuilder.acks();
     }

@@ -433,7 +433,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
         return (queueOfferResult, error) -> {
             if (error != null) {
-                logger.warning("Source queue failure: {}", error);
+                logger.warning(error, "Source queue failure");
                 resultFuture.completeExceptionally(error);
                 escalate(error, "Source queue failure");
             } else if (Objects.equals(queueOfferResult, QueueOfferResult.dropped())) {
@@ -728,8 +728,9 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
         } else {
             connectionLogger.exception(InfoProviderFactory.forHeaders(jsonifiableAdaptable.getDittoHeaders()),
-                    "Expected <{}> to be of type <{}> but was of type <{}>.", jsonObject,
-                    CommandResponse.class.getSimpleName(), signal.getClass().getSimpleName());
+                    "Expected a <{0}> but got a <{1}> for topic path <{2}>.",
+                    CommandResponse.class.getSimpleName(), signal.getClass().getSimpleName(),
+                    jsonifiableAdaptable.getTopicPath().getPath());
             return null;
         }
     }

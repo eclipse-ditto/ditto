@@ -105,6 +105,22 @@ public final class DefaultDiagnosticLoggingAdapterTest {
     }
 
     @Test
+    public void logWarningWithCausePassesCauseAndMdc() {
+        final String correlationId = getCorrelationId();
+        final IllegalStateException cause = new IllegalStateException("connection unavailable");
+        final String logMessage = "The connection is closed!";
+        Mockito.when(plainLoggingAdapter.isWarningEnabled()).thenReturn(true);
+
+        final DefaultDiagnosticLoggingAdapter underTest =
+                DefaultDiagnosticLoggingAdapter.of(plainLoggingAdapter, LOGGER_NAME);
+        underTest.putMdcEntry(CORRELATION_ID_KEY, correlationId);
+        underTest.warning(cause, logMessage);
+
+        Mockito.verify(plainLoggingAdapter).notifyWarning(cause, logMessage);
+        Mockito.verify(plainLoggingAdapter).setMDC(Map.of(CORRELATION_ID_KEY, correlationId));
+    }
+
+    @Test
     public void removeMdcEntryViaKey() {
         Mockito.when(plainLoggingAdapter.isDebugEnabled()).thenReturn(true);
         final String correlationId = getCorrelationId();
