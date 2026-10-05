@@ -610,7 +610,8 @@ public final class MqttClientActor extends BaseClientActor {
         unsolicitedPublishesAutoAckSubscription = genericMqttClient.consumeSubscribedPublishesWithManualAcknowledgement()
                 .filter(p -> messageHasNoMatchingSubscription(p, subscribedTopics))
                 .subscribe(this::tryToAcknowledgePublish,
-                    p -> logger.info("Failed to read unsolicited publish: <{}>", p));
+                    p -> logger.warning(p,
+                            "Failed to read unsolicited publish, stopped acknowledging unsolicited publishes."));
     }
 
     private boolean messageHasNoMatchingSubscription(final GenericMqttPublish genericMqttPublish,
