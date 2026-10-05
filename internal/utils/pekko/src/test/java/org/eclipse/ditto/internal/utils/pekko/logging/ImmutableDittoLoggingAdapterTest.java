@@ -202,6 +202,31 @@ public final class ImmutableDittoLoggingAdapterTest {
     }
 
     @Test
+    public void withTwoMdcEntriesLogWarningWithCause() {
+        final String correlationId = getCorrelationId();
+        final Map<String, Object> mdcWithTwoEntries =
+                Map.of(CORRELATION_ID_KEY, correlationId, CONNECTION_ID_KEY, CONNECTION_ID_VALUE);
+        final IllegalStateException illegalStateException = new IllegalStateException("connection unavailable");
+        final String logMessage = "The connection is closed!";
+        Mockito.when(diagnosticLoggingAdapterFactory.get())
+                .thenReturn(loggingAdapterWithEmptyMdc)
+                .thenReturn(loggingAdapterWithNonEmptyMdc);
+        Mockito.when(loggingAdapterWithNonEmptyMdc.isWarningEnabled()).thenReturn(true);
+        Mockito.when(loggingAdapterWithNonEmptyMdc.getMDC()).thenReturn(new HashMap<>(mdcWithTwoEntries));
+
+        final ImmutableDittoLoggingAdapter initialLogger =
+                ImmutableDittoLoggingAdapter.of(diagnosticLoggingAdapterFactory);
+        final ImmutableDittoLoggingAdapter underTest =
+                initialLogger.withMdcEntry(MdcEntry.of(CORRELATION_ID_KEY, correlationId),
+                        MdcEntry.of(CONNECTION_ID_KEY, CONNECTION_ID_VALUE));
+
+        underTest.warning(illegalStateException, logMessage);
+
+        Mockito.verify(loggingAdapterWithNonEmptyMdc).setMDC(mdcWithTwoEntries);
+        Mockito.verify(loggingAdapterWithNonEmptyMdc).notifyWarning(illegalStateException, logMessage);
+    }
+
+    @Test
     public void removeCorrelationIdViaNullValue() {
         final String correlationId = getCorrelationId();
         final Map<String, Object> mdcOfLoggerWithTwoMdcEntries =

@@ -122,6 +122,12 @@ final class DefaultDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAda
     }
 
     @Override
+    public void notifyWarning(final Throwable cause, final String message) {
+        tryToPutLocalMdcToActualMdc();
+        loggingAdapter.notifyWarning(cause, message);
+    }
+
+    @Override
     public void notifyInfo(final String message) {
         tryToPutLocalMdcToActualMdc();
         loggingAdapter.notifyInfo(message);

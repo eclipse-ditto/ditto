@@ -213,6 +213,11 @@ final class DefaultDittoDiagnosticLoggingAdapter extends DittoDiagnosticLoggingA
     }
 
     @Override
+    public void notifyWarning(final Throwable cause, final String message) {
+        loggingAdapter.notifyWarning(cause, message);
+    }
+
+    @Override
     public void notifyInfo(final String message) {
         loggingAdapter.notifyInfo(message);
     }
