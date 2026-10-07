@@ -38,6 +38,7 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
       annotations:
+        checksum/ui-config: {{ include (print $.Template.BasePath "/ui-config.yaml") . | sha256sum }}
         {{- with .Values.dittoui.additionalAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -94,8 +95,14 @@ spec:
             - name: dittoui-nginx-conf
               mountPath: /etc/nginx/nginx.conf
               subPath: nginx.conf
+            - name: ui-config
+              mountPath: /usr/share/nginx/html/ui-config.json
+              subPath: ui-config.json
       volumes:
         - name: dittoui-nginx-conf
           configMap:
             name: {{ .Release.Name }}-dittoui-config-nginx-conf
+        - name: ui-config
+          configMap:
+            name: {{ .Release.Name }}-ui-config
 {{- end }}

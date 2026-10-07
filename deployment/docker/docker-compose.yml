@@ -217,6 +217,10 @@ services:
         limits:
           memory: 32m
     restart: always
+    # optionally provide a "ui-config.json" to allow loading environments via "environmentsURL" from other origins,
+    # e.g. {"environmentsURL": {"allowedOrigins": ["https://config.example.com"]}} - see Ditto UI documentation
+    # volumes:
+    #   - ./ui-config.json:/usr/share/nginx/html/ui-config.json:ro
     logging:
       options:
         max-size: 10m

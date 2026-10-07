@@ -68,6 +68,37 @@ pre-select choosing environment name `dev` (being part of the `ui-environments.j
 https://<ditto-hostname>/ui/?environmentsURL=/ui-environments.json&primaryEnvironmentName=dev
 ```
 
+#### Restrictions for `environmentsURL`
+
+Environments contain the Ditto API URI and the OIDC (SSO) provider configuration. Whoever controls the loaded file
+therefore controls where the UI sends the user's credentials and tokens. To prevent crafted links from taking over
+users' sessions, the UI only loads environments via `environmentsURL`:
+
+* from the **same origin** the UI is served from (e.g. `/ui-environments.json`), and
+* never from paths containing `/api/` or `/ws/`, as the Ditto API serves JSON written by its users there,
+* only via `http` or `https` (e.g. no `data:` URLs).
+
+Environments may additionally be loaded from other origins listed in an optional `ui-config.json` file, served next to
+the UI's `index.html` (e.g. `https://<ditto-hostname>/ui/ui-config.json`):
+
+```json
+{
+  "environmentsURL": {
+    "allowedOrigins": ["https://config.example.com"]
+  }
+}
+```
+
+{% include warning.html content="Only add origins whose content you fully trust: anyone who can place a file on an
+allowed origin can take over the sessions of users opening a crafted UI link. `*` accepts environments from any
+origin and makes the UI vulnerable to exactly that." %}
+
+When deploying with the Helm chart, configure the allowed origins via `dittoui.environmentsURL.allowedOrigins`.
+
+If you opened a UI link containing an `environmentsURL` from an untrusted source with an earlier Ditto version, remove
+the environments stored in your browser (in the UI's "Environments" tab, or by clearing the site data of the UI)
+and log out from your identity provider.
+
 ### Available environment configuration
 
 A single "Environment" is defined as (Typescript type - from which the resulting JSON can be simply inferred):

@@ -21,6 +21,28 @@ pre-select choosing environment name `dev` (being part of the `ui-environments.j
 https://<ditto-hostname>/ui/?environmentsURL=/ui-environments.json&primaryEnvironmentName=dev
 ```
 
+#### Restrictions for `environmentsURL`
+
+Environments contain the Ditto API URI and the OIDC provider configuration, so whoever controls the loaded file controls
+where the UI sends the user's credentials and tokens. Therefore, environments are only loaded via `environmentsURL`
+from the **same origin** the UI is served from, never from paths containing `/api/` or `/ws/`, and only via
+`http`/`https`.
+
+Additional origins can be allowed in an optional `ui-config.json` served next to the UI's `index.html`:
+```json
+{
+  "environmentsURL": {
+    "allowedOrigins": ["https://config.example.com"]
+  }
+}
+```
+
+**Security:** only add origins whose content is fully trusted - anyone able to place a file there can take over the
+sessions of users opening a crafted UI link. `"*"` accepts any origin and makes the UI vulnerable to exactly that.
+
+The Helm chart renders this file from `dittoui.environmentsURL.allowedOrigins`. The validation is implemented in
+`modules/environments/environmentsUrl.ts`.
+
 ### Available environment configuration
 
 A single "Environment" is defined as (Typescript type - from which the resulting JSON can be simply inferred):

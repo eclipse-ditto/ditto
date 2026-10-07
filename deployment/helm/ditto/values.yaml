@@ -2568,6 +2568,15 @@ dittoui:
     # tag: 3.3.0
     # pullPolicy for the Ditto UI docker image
     pullPolicy: IfNotPresent
+  # environmentsURL configures from where the Ditto UI may load environments via the
+  #  "environmentsURL" query parameter. Environments contain the Ditto API URI and the OIDC provider configuration, so
+  #  whoever controls the loaded file can redirect the users' logins and receive their tokens and credentials.
+  #  By default, only files served from the UI's own origin are accepted (paths containing "/api/" or "/ws/" never).
+  environmentsURL:
+    # allowedOrigins additional origins (e.g. "https://config.example.com") to accept environments from.
+    #  SECURITY: only add origins whose content is fully trusted - anyone able to place a file there can take over the
+    #  sessions of users opening a crafted UI link. "*" accepts any origin and makes the UI vulnerable to that attack.
+    allowedOrigins: []
   # extraEnv to add arbitrary environment variable to Ditto UI container
   extraEnv: []
   # resources configures the resources available/to use for the Ditto UI container
