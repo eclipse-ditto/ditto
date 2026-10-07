@@ -140,6 +140,15 @@ You can combine filtering with enrichment:
 START-SEND-EVENTS?extraFields=attributes&filter=gt(attributes/counter,42)
 ```
 
+The `filter` then also sees the enriched fields. To filter on what was actually changed while still receiving
+the extra fields, use the [`change-filter`](basic-changenotifications.html#filter-by-change) parameter, which is
+evaluated against the modified data only and before the extra fields are retrieved. It is supported for
+`START-SEND-EVENTS` and `START-SEND-LIVE-EVENTS`:
+
+```
+START-SEND-EVENTS?extraFields=features/temperature&change-filter=exists(features/temperature)
+```
+
 ## Further reading
 
 * [Ditto Protocol overview](protocol-overview.html) -- message format specification

@@ -35,6 +35,7 @@ public final class ImmutableFilteredTopicTest {
     private static final List<String> NAMESPACES =
             Collections.unmodifiableList(Lists.list("this.is.a.namespace", "eat.that", "foo.bar"));
     private static final String FILTER_EXAMPLE = "gt(attributes/a,42)";
+    private static final String CHANGE_FILTER_EXAMPLE = "exists(features/temperature)";
     private static final String FN_FILTER_EXAMPLE = "header:ditto-originator|fn:filter('ne','some:subject')";
     private static final String OTHER_FN_FILTER_EXAMPLE = "header:ditto-origin|fn:filter('ne','some-connection-id')";
     private static final ThingFieldSelector EXTRA_FIELDS =
@@ -415,6 +416,91 @@ public final class ImmutableFilteredTopicTest {
     public void fromStringDuplicateExtraFieldsParamIsRejectedAsTopicParseException() {
         assertDuplicateQueryParameterIsRejected(
                 "_/_/things/twin/events?extraFields=attributes&extraFields=features", "extraFields");
+    }
+
+    @Test
+    public void getChangeFilterReturnsEmptyOptionalIfNotSet() {
+        final ImmutableFilteredTopic underTest = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS).build();
+
+        assertThat(underTest.getChangeFilter()).isEmpty();
+    }
+
+    @Test
+    public void getChangeFilterReturnsExpectedIfSet() {
+        final ImmutableFilteredTopic underTest = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
+                .withChangeFilter(CHANGE_FILTER_EXAMPLE)
+                .build();
+
+        assertThat(underTest.getChangeFilter()).contains(CHANGE_FILTER_EXAMPLE);
+        assertThat(underTest.getFilter()).isEmpty();
+    }
+
+    @Test
+    public void announcementsDoNotSupportChangeFilter() {
+        assertThat(ImmutableFilteredTopic.getBuilder(Topic.POLICY_ANNOUNCEMENTS)
+                .withChangeFilter(CHANGE_FILTER_EXAMPLE)
+                .build()
+                .getChangeFilter()).isEmpty();
+        assertThat(ImmutableFilteredTopic.getBuilder(Topic.CONNECTION_ANNOUNCEMENTS)
+                .withChangeFilter(CHANGE_FILTER_EXAMPLE)
+                .build()
+                .getChangeFilter()).isEmpty();
+    }
+
+    @Test
+    public void toStringReturnsExpectedWithChangeFilterAndAllOtherQueryParameters() {
+        final ImmutableFilteredTopic underTest = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
+                .withNamespaces(NAMESPACES)
+                .withFilter(FILTER_EXAMPLE)
+                .withChangeFilter(CHANGE_FILTER_EXAMPLE)
+                .withFnFilters(List.of(FN_FILTER_EXAMPLE))
+                .withExtraFields(EXTRA_FIELDS)
+                .build();
+
+        assertThat(underTest.toString()).isEqualTo(
+                "_/_/things/twin/events?namespaces=" + String.join(",", NAMESPACES)
+                        + "&filter=" + FILTER_EXAMPLE
+                        + "&change-filter=" + CHANGE_FILTER_EXAMPLE
+                        + "&fn-filter=" + FN_FILTER_EXAMPLE
+                        + "&extraFields=" + EXTRA_FIELDS);
+    }
+
+    @Test
+    public void fromStringParsesChangeFilterParameter() {
+        final ImmutableFilteredTopic actual = ImmutableFilteredTopic.fromString(
+                "_/_/things/twin/events?change-filter=" + CHANGE_FILTER_EXAMPLE + "&extraFields=" + EXTRA_FIELDS);
+
+        assertThat(actual.getChangeFilter()).contains(CHANGE_FILTER_EXAMPLE);
+        assertThat(actual.getFilter()).isEmpty();
+        assertThat(actual.getExtraFields()).contains(EXTRA_FIELDS);
+    }
+
+    @Test
+    public void fromStringToStringRoundTripsWithChangeFilter() {
+        final ImmutableFilteredTopic filteredTopic = ImmutableFilteredTopic.getBuilder(Topic.LIVE_EVENTS)
+                .withFilter(FILTER_EXAMPLE)
+                .withChangeFilter(CHANGE_FILTER_EXAMPLE)
+                .withExtraFields(EXTRA_FIELDS)
+                .build();
+
+        final ImmutableFilteredTopic actual = ImmutableFilteredTopic.fromString(filteredTopic.toString());
+
+        assertThat(actual).isEqualTo(filteredTopic);
+        assertThat(actual.toString()).isEqualTo(filteredTopic.toString());
+    }
+
+    @Test
+    public void topicsDifferingOnlyInChangeFilterAreNotEqual() {
+        assertThat(ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS).withFilter(FILTER_EXAMPLE).build())
+                .isNotEqualTo(ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
+                        .withChangeFilter(FILTER_EXAMPLE)
+                        .build());
+    }
+
+    @Test
+    public void fromStringDuplicateChangeFilterParamIsRejectedAsTopicParseException() {
+        assertDuplicateQueryParameterIsRejected("_/_/things/twin/events?change-filter=" + CHANGE_FILTER_EXAMPLE +
+                "&change-filter=" + FILTER_EXAMPLE, "change-filter");
     }
 
     private static void assertDuplicateQueryParameterIsRejected(final String topicString, final String paramName) {

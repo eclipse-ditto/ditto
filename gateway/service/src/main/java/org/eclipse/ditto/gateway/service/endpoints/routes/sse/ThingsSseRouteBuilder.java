@@ -147,6 +147,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
     private static final String LAST_EVENT_ID_HEADER = "Last-Event-ID";
 
     private static final String PARAM_FILTER = "filter";
+    private static final String PARAM_CHANGE_FILTER = "change-filter";
     private static final String PARAM_FIELDS = ThingsParameter.FIELDS.toString();
     private static final String PARAM_OPTION = "option";
     private static final String PARAM_NAMESPACES = "namespaces";
@@ -374,6 +375,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
             final Map<String, String> parameters) {
 
         @Nullable final var filterString = parameters.get(PARAM_FILTER);
+        @Nullable final var changeFilterString = parameters.get(PARAM_CHANGE_FILTER);
         final List<String> namespaces = getNamespaces(parameters.get(PARAM_NAMESPACES));
         final List<ThingId> targetThingIds = getThingIds(parameters.get(ThingsParameter.IDS.toString()));
         @Nullable final ThingFieldSelector fields = getFieldSelector(parameters.get(PARAM_FIELDS));
@@ -409,6 +411,12 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                             // will throw an InvalidRqlExpressionException if the RQL expression was not valid:
                             queryFilterCriteriaFactory.filterCriteria(filterString, dittoHeaders);
                         }
+                        if (changeFilterString != null) {
+                            queryFilterCriteriaFactory.filterCriteria(changeFilterString, dittoHeaders);
+                        }
+                        // historical events are never enriched, so both filters see the same data
+                        @Nullable final String historicalFilterString =
+                                andFilters(filterString, changeFilterString);
 
                         final String connectionCorrelationId = dittoHeaders.getCorrelationId()
                                 .orElseThrow(() -> new IllegalStateException(
@@ -422,7 +430,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                     fieldPointer,
                                     fromHistoricalRevision,
                                     null != toHistoricalRevision ? toHistoricalRevision : Long.MAX_VALUE,
-                                    filterString,
+                                    historicalFilterString,
                                     dittoHeaders);
                         } else if (null != fromHistoricalTimestamp) {
                             FeatureToggle
@@ -431,7 +439,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                     fieldPointer,
                                     fromHistoricalTimestamp,
                                     toHistoricalTimestamp,
-                                    filterString,
+                                    historicalFilterString,
                                     dittoHeaders);
                         } else {
                             startStreaming =
@@ -439,6 +447,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                                     authorizationContext)
                                             .withNamespaces(namespaces)
                                             .withFilter(filterString)
+                                            .withChangeFilter(changeFilterString)
                                             .withExtraFields(extraFields)
                                             .build();
                         }
@@ -702,6 +711,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
             if (!isLiveEvent && namespaceMatches(event, namespaces) &&
                     targetThingIdMatches(event, targetThingIds)) {
                 return jsonifiable.getSession()
+                        .filter(session -> session.matchesChangeFilter(event))
                         .map(session -> {
                             final AuthorizationContext subscriberAuthContext = jsonifiable.getSessionAuthorizationContext()
                                     .orElse(null);
@@ -731,6 +741,14 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
             }
         }
         return emptySupplier.get();
+    }
+
+    @Nullable
+    private static String andFilters(@Nullable final String filter, @Nullable final String changeFilter) {
+        if (filter == null) {
+            return changeFilter;
+        }
+        return changeFilter == null ? filter : "and(" + filter + "," + changeFilter + ")";
     }
 
     private <P, M extends MessageCommand<P, ?>> CompletionStage<List<Message<P>>> postprocessMessages(

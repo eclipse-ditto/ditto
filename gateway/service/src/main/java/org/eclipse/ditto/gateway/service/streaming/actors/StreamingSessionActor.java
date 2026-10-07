@@ -49,6 +49,7 @@ import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
@@ -406,6 +407,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                                     List.of(nsEid.getNamespace()) : List.of(),
                             null,
                             null,
+                            null,
                             getSelf(),
                             logger);
                     streamingSessions.put(StreamingType.EVENTS, session);
@@ -440,13 +442,18 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 .match(StartStreaming.class, startStreaming -> {
                     authorizationContext = startStreaming.getAuthorizationContext();
                     namespaces = startStreaming.getNamespaces();
-                    Criteria criteria;
+                    final Criteria criteria;
+                    final Criteria changeCriteria;
                     try {
+                        final DittoHeaders criteriaHeaders = DittoHeaders.newBuilder()
+                                .correlationId(startStreaming.getCorrelationId()
+                                        .orElse(startStreaming.getConnectionCorrelationId()))
+                                .build();
                         criteria = startStreaming.getFilter()
-                                .map(f -> parseCriteria(f, DittoHeaders.newBuilder()
-                                        .correlationId(startStreaming.getCorrelationId()
-                                                .orElse(startStreaming.getConnectionCorrelationId()))
-                                        .build()))
+                                .map(f -> parseCriteria(f, criteriaHeaders))
+                                .orElse(null);
+                        changeCriteria = startStreaming.getChangeFilter()
+                                .map(f -> parseChangeCriteria(f, startStreaming.getStreamingType(), criteriaHeaders))
                                 .orElse(null);
                     } catch (final DittoRuntimeException e) {
                         logger.info("Got 'DittoRuntimeException' <{}> session during 'StartStreaming' processing:" +
@@ -455,7 +462,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                         return;
                     }
                     final var session = StreamingSession.of(startStreaming.getNamespaces(), criteria,
-                            startStreaming.getExtraFields().orElse(null), getSelf(), logger);
+                            changeCriteria, startStreaming.getExtraFields().orElse(null), getSelf(), logger);
                     streamingSessions.put(startStreaming.getStreamingType(), session);
 
                     logger.debug("Got 'StartStreaming' message in <{}> session, subscribing for <{}> in Cluster ...",
@@ -879,6 +886,19 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         return WithEntityId.getEntityId(signal)
                 .flatMap(NamespaceReader::fromEntityId)
                 .orElse(null);
+    }
+
+    private static Criteria parseChangeCriteria(final String changeFilter, final StreamingType streamingType,
+            final DittoHeaders dittoHeaders) {
+        if (streamingType != StreamingType.EVENTS && streamingType != StreamingType.LIVE_EVENTS) {
+            throw InvalidRqlExpressionException.newBuilder()
+                    .message("The 'change-filter' parameter is not supported for <" + streamingType + ">.")
+                    .description("Messages and live commands carry no thing data to filter on - use 'filter' " +
+                            "instead. 'change-filter' is supported for twin and live events.")
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+        return parseCriteria(changeFilter, dittoHeaders);
     }
 
     private static Criteria parseCriteria(final String filter, final DittoHeaders dittoHeaders) {

@@ -336,6 +336,22 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
     }
 
     @Test
+    public void getWithAcceptHeaderAndChangeFilterParameterOpensSseConnection() {
+        final String changeFilter = "exists(features/location)";
+        final ThingFieldSelector extraFields = ThingFieldSelector.fromString("features/location");
+
+        final String requestUrl = THINGS_ROUTE + "?change-filter=" + changeFilter + "&extraFields=" + extraFields;
+
+        executeThingsRouteTest(HttpRequest.GET(requestUrl).addHeader(acceptHeader),
+                StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
+                                AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                                        Collections.emptySet()))
+                        .withChangeFilter(changeFilter)
+                        .withExtraFields(extraFields)
+                        .build());
+    }
+
+    @Test
     public void filterJsonByPartialAccessPathsFiltersCorrectlyForPartialReader() throws Exception {
         final Thing thing = Thing.newBuilder()
                 .setId(ThingId.of("test:thing"))
