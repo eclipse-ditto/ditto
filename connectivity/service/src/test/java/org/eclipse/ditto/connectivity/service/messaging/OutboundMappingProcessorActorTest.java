@@ -1065,6 +1065,94 @@ public final class OutboundMappingProcessorActorTest {
         }};
     }
 
+    @Test
+    public void changeFilterIsEvaluatedAgainstTheChangeNotTheEnrichedThing() {
+        new TestKit(actorSystemResource.getActorSystem()) {{
+            // features/featureA is part of the enriched thing, but not of the change
+            final FilteredTopic changeFilterTopic = ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                    .withChangeFilter("exists(features/featureA)")
+                    .withExtraFields(ThingFieldSelector.fromString("features/featureA"))
+                    .build();
+            final List<Target> targets = List.of(createTestTargetMultiTopics(Set.of(changeFilterTopic)));
+            final Connection connection = CONNECTION.toBuilder().setTargets(targets).build();
+            final ActorRef underTest = getTestActorRef(connection);
+
+            final OutboundSignal outboundSignal = outboundFeatureTwinEvent(THING,
+                    Feature.newBuilder().withId("unrelatedFeature").build(),
+                    List.of("source1", "multipleExtraFields"), targets, getRef());
+
+            underTest.tell(outboundSignal, getRef());
+            partialRetrieveAndResponse();
+
+            final Acknowledgements acks = expectMsgClass(Acknowledgements.class);
+            assertThat(acks.getSuccessfulAcknowledgements()
+                    .stream()
+                    .map(ack -> ack.getLabel().toString())
+                    .toList()).containsExactlyInAnyOrder("source1", "multipleExtraFields");
+            acks.forEach(ack -> assertThat(ack.isWeak()).describedAs("Expect weak ack, got: " + ack).isTrue());
+        }};
+    }
+
+    @Test
+    public void changeFilterMatchPublishesWithExtraFields() {
+        new TestKit(actorSystemResource.getActorSystem()) {{
+            final FilteredTopic changeFilterTopic = ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                    .withChangeFilter("exists(features/featureA)")
+                    .withExtraFields(ThingFieldSelector.fromString("features/featureA"))
+                    .build();
+            final List<Target> targets = List.of(createTestTargetMultiTopics(Set.of(changeFilterTopic)));
+            final Connection connection = CONNECTION.toBuilder().setTargets(targets).build();
+            final ActorRef underTest = getTestActorRef(connection);
+
+            final OutboundSignal outboundSignal = outboundFeatureTwinEvent(THING,
+                    Feature.newBuilder().withId("featureA")
+                            .build().setProperties(FeatureProperties.newBuilder().set("size", "large").build()),
+                    List.of("multipleExtraFields"), targets, getRef());
+
+            underTest.tell(outboundSignal, getRef());
+            partialRetrieveAndResponse();
+
+            final BaseClientActor.PublishMappedMessage publish =
+                    clientActorProbe.expectMsgClass(BaseClientActor.PublishMappedMessage.class);
+            assertThat(publish.getOutboundSignal().first().getAdaptable().getPayload().getExtra())
+                    .hasValueSatisfying(extra -> assertThat(extra.getValue(JsonPointer.of("features/featureA")))
+                            .isPresent());
+        }};
+    }
+
+    @Test
+    public void changeFilterNonMatchingTopicIsNotSelectedForAnotherMatchingTopicOfTheTarget() {
+        new TestKit(actorSystemResource.getActorSystem()) {{
+            // both topics would pass without the change-filter; the change-filter topic sorts first
+            final FilteredTopic changeFilterTopic = ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                    .withChangeFilter("exists(features/featureA)")
+                    .withExtraFields(ThingFieldSelector.fromString("features/featureA"))
+                    .build();
+            final FilteredTopic otherTopic = ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                    .withExtraFields(ThingFieldSelector.fromString("features/featureB"))
+                    .build();
+            final List<Target> targets =
+                    List.of(createTestTargetMultiTopics(Set.of(changeFilterTopic, otherTopic)));
+            final Connection connection = CONNECTION.toBuilder().setTargets(targets).build();
+            final ActorRef underTest = getTestActorRef(connection);
+
+            final OutboundSignal outboundSignal = outboundFeatureTwinEvent(THING,
+                    Feature.newBuilder().withId("unrelatedFeature").build(),
+                    List.of("multipleExtraFields"), targets, getRef());
+
+            underTest.tell(outboundSignal, getRef());
+            partialRetrieveAndResponse();
+
+            final BaseClientActor.PublishMappedMessage publish =
+                    clientActorProbe.expectMsgClass(BaseClientActor.PublishMappedMessage.class);
+            assertThat(publish.getOutboundSignal().first().getAdaptable().getPayload().getExtra())
+                    .hasValueSatisfying(extra -> {
+                        assertThat(extra.getValue(JsonPointer.of("features/featureB"))).isPresent();
+                        assertThat(extra.getValue(JsonPointer.of("features/featureA"))).isEmpty();
+                    });
+        }};
+    }
+
     private void partialRetrieveAndResponse() {
         // Expect enrichment request for all fields in all topics
         final RetrieveThing retrieveEnrichedThing = proxyActorProbe.expectMsgClass(RetrieveThing.class);
