@@ -58,7 +58,7 @@ public final class StreamingSessionTest {
 
     @Test
     public void changeFilterMatchesWhenTheChangeContainsThePath() {
-        final StreamingSession underTest = session(criteria("exists(features/specificFeature)"), null);
+        final StreamingSession underTest = session(null, criteria("exists(features/specificFeature)"));
 
         assertThat(underTest.matchesChangeFilter(featurePropertyModified("specificFeature"))).isTrue();
         assertThat(underTest.matchesChangeFilter(featurePropertyModified("otherFeature"))).isFalse();
@@ -66,10 +66,20 @@ public final class StreamingSessionTest {
 
     @Test
     public void changeFilterMatchesThingMergedAtRootByItsPayload() {
-        final StreamingSession underTest = session(criteria("exists(features/specificFeature)"), null);
+        final StreamingSession underTest = session(null, criteria("exists(features/specificFeature)"));
 
         assertThat(underTest.matchesChangeFilter(thingMergedAtRoot("specificFeature"))).isTrue();
         assertThat(underTest.matchesChangeFilter(thingMergedAtRoot("otherFeature"))).isFalse();
+    }
+
+    @Test
+    public void filterAndChangeFilterAreEvaluatedIndependently() {
+        final StreamingSession underTest = session(criteria("exists(features/specificFeature/properties/unit)"),
+                criteria("exists(features/otherFeature)"));
+        final FeaturePropertyModified event = featurePropertyModified("otherFeature");
+
+        assertThat(underTest.matchesChangeFilter(event)).isTrue();
+        assertThat(underTest.matchesFilter(underTest.mergeThingWithExtra(event, EXTRA), event)).isTrue();
     }
 
     @Test
@@ -77,8 +87,8 @@ public final class StreamingSessionTest {
         assertThat(session(null, null).matchesChangeFilter(featurePropertyModified("otherFeature"))).isTrue();
     }
 
-    private static StreamingSession session(@Nullable final Criteria changeFilter,
-            @Nullable final Criteria filter) {
+    private static StreamingSession session(@Nullable final Criteria filter,
+            @Nullable final Criteria changeFilter) {
         return StreamingSession.of(List.of(), filter, changeFilter, EXTRA_FIELDS, ActorRef.noSender(),
                 Mockito.mock(ThreadSafeDittoLoggingAdapter.class));
     }
