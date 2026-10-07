@@ -436,8 +436,8 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 .match(StartStreaming.class, startStreaming -> {
                     authorizationContext = startStreaming.getAuthorizationContext();
                     namespaces = startStreaming.getNamespaces();
-                    final Criteria criteria;
-                    final Criteria changeCriteria;
+                    @Nullable final Criteria criteria;
+                    @Nullable final Criteria changeCriteria;
                     try {
                         final DittoHeaders criteriaHeaders = DittoHeaders.newBuilder()
                                 .correlationId(startStreaming.getCorrelationId()
@@ -915,7 +915,8 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
             final DittoHeaders dittoHeaders) {
         if (streamingType != StreamingType.EVENTS && streamingType != StreamingType.LIVE_EVENTS) {
             throw InvalidRqlExpressionException.newBuilder()
-                    .message("The 'change-filter' parameter is not supported for <" + streamingType + ">.")
+                    .message("The 'change-filter' parameter is not supported when subscribing for messages " +
+                            "or live commands.")
                     .description("Messages and live commands carry no thing data to filter on - use 'filter' " +
                             "instead. 'change-filter' is supported for twin and live events.")
                     .dittoHeaders(dittoHeaders)

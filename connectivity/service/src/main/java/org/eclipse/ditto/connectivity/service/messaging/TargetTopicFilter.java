@@ -35,8 +35,8 @@ import org.eclipse.ditto.placeholders.filter.FilterFunctions;
  * Evaluates and validates the placeholder pipeline expressions of a connection target topic's {@code fn-filter}
  * query parameters.
  * <p>
- * A target topic may carry an RQL {@code filter} parameter, which is evaluated by the callers of this class, and any
- * number of {@code fn-filter} parameters, each holding a placeholder pipeline expression which is evaluated per
+ * A target topic may carry the RQL {@code filter} and {@code change-filter} parameters, which are evaluated by the
+ * callers of this class, and any number of {@code fn-filter} parameters, each holding a placeholder pipeline expression which is evaluated per
  * signal with the placeholders of {@link Resolvers#forSignal(Signal, ConnectionId)}; {@code thing-json} only sees
  * the thing data carried by the signal itself, not the enriched {@code extraFields}. All of them are combined with
  * AND semantics: an {@code fn-filter} matches when its pipeline resolves to a value. An expression has a fixed
