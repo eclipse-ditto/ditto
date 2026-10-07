@@ -17,6 +17,8 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 
 ## [4.8.0]
 
+Bumped Ditto `appVersion` to `3.9.8`. Also contains the fix planned for the never released chart version `4.7.1`.
+
 ### Added
 - New `dittoui.environmentsURL.allowedOrigins` (default `[]`), rendered into a new `<release>-ui-config` ConfigMap
   which is mounted as `ui-config.json` into the Ditto UI and the Swagger UI. It lists additional origins from which
@@ -28,9 +30,9 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
   origin (or the configured `dittoui.environmentsURL.allowedOrigins`), and never from paths containing `/api/` or
   `/ws/`. Previously, a crafted link could load environments with an attacker-controlled OIDC provider or Ditto API
   URI, leaking the user's tokens and credentials.
-  Part of the fix for [GHSA-8767-g5qv-9jcf](https://github.com/eclipse-ditto/ditto/security/advisories/GHSA-8767-g5qv-9jcf).
-
-## [4.7.1]
+  Part of the fix for the vulnerability
+  [CVE-2026-107503](https://nvd.nist.gov/vuln/detail/CVE-2026-107503) /
+  [GHSA-8767-g5qv-9jcf](https://github.com/eclipse-ditto/ditto/security/advisories/GHSA-8767-g5qv-9jcf).
 
 ### Fixed
 - `thingsSearch.config.customIndexes` never reached Ditto: the template rendered the block under
