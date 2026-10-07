@@ -38,6 +38,7 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
       annotations:
+        checksum/ui-config: {{ include (print $.Template.BasePath "/ui-config.yaml") . | sha256sum }}
         {{- with .Values.swaggerui.additionalAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -133,6 +134,9 @@ spec:
             - name: swaggerui-oidc
               mountPath: /usr/share/nginx/html/swagger-oidc.js
               subPath: swagger-oidc.js
+            - name: ui-config
+              mountPath: /usr/share/nginx/html/ui-config.json
+              subPath: ui-config.json
       volumes:
         - name: swagger-ui-init-config
           emptyDir: {}
@@ -142,4 +146,7 @@ spec:
         - name: swaggerui-oidc
           configMap:
             name: {{ .Release.Name }}-swaggerui-config-swagger-oidc-js
+        - name: ui-config
+          configMap:
+            name: {{ .Release.Name }}-ui-config
 {{- end }}

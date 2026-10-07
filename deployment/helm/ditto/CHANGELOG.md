@@ -15,6 +15,21 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 
 ## [Unreleased]
 
+## [4.8.0]
+
+### Added
+- New `dittoui.environmentsURL.allowedOrigins` (default `[]`), rendered into a new `<release>-ui-config` ConfigMap
+  which is mounted as `ui-config.json` into the Ditto UI and the Swagger UI. It lists additional origins from which
+  the UIs may load environments via the `environmentsURL` query parameter. Only add fully trusted origins - `"*"`
+  accepts any origin and makes the UIs vulnerable to session takeover via crafted links.
+
+### Security
+- The Ditto UI and the Swagger UI only load environments via the `environmentsURL` query parameter from their own
+  origin (or the configured `dittoui.environmentsURL.allowedOrigins`), and never from paths containing `/api/` or
+  `/ws/`. Previously, a crafted link could load environments with an attacker-controlled OIDC provider or Ditto API
+  URI, leaking the user's tokens and credentials.
+  Part of the fix for [GHSA-8767-g5qv-9jcf](https://github.com/eclipse-ditto/ditto/security/advisories/GHSA-8767-g5qv-9jcf).
+
 ## [4.7.1]
 
 ### Fixed
