@@ -15,11 +15,14 @@ package org.eclipse.ditto.base.model.exceptions;
 import java.net.URI;
 import java.text.MessageFormat;
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.base.model.common.DittoDuration;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
@@ -66,6 +69,48 @@ public final class TimeoutInvalidException extends DittoRuntimeException impleme
         return (Builder) new Builder()
                 .message(MessageFormat.format(DEFAULT_MESSAGE, timeout.toMillis(), maxTimeout.toMillis(), "ms"))
                 .description(DEFAULT_DESCRIPTION);
+    }
+
+    /**
+     * A mutable builder for {@code TimeoutInvalidException} whose message uses the time unit the timeout was
+     * specified in, e.g. {@code <90s>} instead of {@code <90000ms>}.
+     *
+     * @param timeout the received timeout, as specified in the request.
+     * @param maxTimeout the maximum allowed timeout.
+     * @return a mutable builder.
+     * @since 4.0.0
+     */
+    public static Builder newBuilder(final DittoDuration timeout, final Duration maxTimeout) {
+        return (Builder) new Builder()
+                .message(formatMessageWithUnit(timeout, maxTimeout))
+                .description(DEFAULT_DESCRIPTION);
+    }
+
+    /**
+     * Formats both the timeout and the max timeout in the unit the timeout was specified in. Falls back to
+     * milliseconds if the max timeout cannot be expressed in that unit without a remainder.
+     */
+    private static String formatMessageWithUnit(final DittoDuration timeout, final Duration maxTimeout) {
+        final long unitMillis = timeout.getChronoUnit().getDuration().toMillis();
+        final long timeoutMillis = timeout.getDuration().toMillis();
+        final long maxTimeoutMillis = maxTimeout.toMillis();
+        final Optional<String> suffix = getSuffix(timeout);
+        if (suffix.isPresent() && unitMillis > 0 && timeoutMillis % unitMillis == 0 &&
+                maxTimeoutMillis % unitMillis == 0) {
+            return MessageFormat.format(DEFAULT_MESSAGE, String.valueOf(timeoutMillis / unitMillis),
+                    String.valueOf(maxTimeoutMillis / unitMillis), suffix.get());
+        }
+        return MessageFormat.format(DEFAULT_MESSAGE, String.valueOf(timeoutMillis), String.valueOf(maxTimeoutMillis),
+                "ms");
+    }
+
+    private static Optional<String> getSuffix(final DittoDuration dittoDuration) {
+        // a timeout given without unit is interpreted as seconds, render it with the explicit "s" suffix
+        return Arrays.stream(DittoDuration.DittoTimeUnit.values())
+                .filter(unit -> dittoDuration.getChronoUnit() == unit.getChronoUnit())
+                .map(DittoDuration.DittoTimeUnit::getSuffix)
+                .filter(unitSuffix -> !unitSuffix.isEmpty())
+                .findFirst();
     }
 
     /**
