@@ -104,15 +104,16 @@ change-filter=exists(features/temperature)&filter=eq(attributes/location,"Kitche
 With `filter=exists(features/temperature)` instead, every event of a Thing which has a "temperature" feature
 would be delivered, because the enriched feature always exists.
 
-`change-filter` is supported for twin and live events by the WebSocket API, SSE and connection target topics,
-and resolves the same placeholders as `filter`. Without `extraFields` it behaves like `filter`. It is rejected
+`change-filter` is supported for twin events by the WebSocket API, SSE and connection target topics, and for
+live events by the WebSocket API and connection target topics. It resolves the same placeholders as `filter`. Without `extraFields` it behaves like `filter`. It is rejected
 for messages and live commands, which carry no Thing data -- use `filter` there.
 Events of `PATCH` requests (`merged`) are matched by the merged payload, so
 `change-filter=exists(features/temperature)` also works where `resource:path` is just `/`.
 
-{% include note.html content="A deletion carries no Thing data: neither a `deleted` event (e.g. of a feature or a
-property) nor a property set to `null` by a merge is visible to data terms such as `exists(...)`. To also be
-notified when the part is deleted, add a placeholder term for it, e.g.
+{% include note.html content="A deletion carries no Thing data: a `deleted` event (e.g. of a feature or a property)
+is not visible to data terms such as `exists(...)`, and a property set to `null` by a merge is not visible on its own
+path (`exists(features/temperature/properties/value)`), only its parent objects are. Changes of a feature's
+definition carry no Thing data either. To also be notified about those, add a placeholder term, e.g.
 `change-filter=or(exists(features/temperature),and(eq(topic:action,'deleted'),like(resource:path,'/features/temperature*')))`." %}
 
 ### Filter by placeholder pipeline (connections only)

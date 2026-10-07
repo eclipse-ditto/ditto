@@ -130,6 +130,10 @@ curl --http2 -u ditto:ditto -H 'Accept:text/event-stream' -N \
   http://localhost:8080/api/2/things/org.eclipse.ditto:thing-2?from-historical-timestamp=2022-10-24T11:44:36Z&to-historical-timestamp=2022-10-24T11:44:37Z&fields=thingId,attributes,features,_revision,_modified&filter=gt(features/temperature/properties/value,50)
 ```
 
+A [`change-filter`](basic-changenotifications.html#filter-by-change) may be given as well; historical events are not
+enriched, so it is combined with `filter` (AND). Both only support terms on Thing data here -- a term on a
+placeholder such as `topic:action` or `resource:path` matches no historical event.
+
 ### Streaming via Ditto Protocol
 
 Use the [streaming subscription protocol](protocol-specification-streaming-subscription.html) to stream historical events via WebSocket or connections.

@@ -189,10 +189,15 @@ public final class SignalFilter {
             }
         }
         final Optional<String> changeFilterOptional = filteredTopic.getChangeFilter();
-        if (changeFilterOptional.isPresent() && !matchesChangeFilter(changeFilterOptional.get(), signal)) {
+        final Optional<String> filterOptional = filteredTopic.getFilter();
+        if (changeFilterOptional.isEmpty() && filterOptional.isEmpty()) {
+            return true;
+        }
+        final List<PlaceholderResolver<?>> placeholderResolvers = getPlaceholderResolvers(signal);
+        if (changeFilterOptional.isPresent() &&
+                !matchesChangeFilter(changeFilterOptional.get(), signal, placeholderResolvers)) {
             return false;
         }
-        final Optional<String> filterOptional = filteredTopic.getFilter();
         if (filterOptional.isEmpty()) {
             return true;
         }
@@ -202,7 +207,6 @@ public final class SignalFilter {
         if (thingToMatch.isEmpty()) {
             return false;
         }
-        final List<PlaceholderResolver<?>> placeholderResolvers = getPlaceholderResolvers(signal);
         final Set<JsonPointer> extraFields = filteredTopic.getExtraFields()
                 .map(JsonFieldSelector::getPointers)
                 .orElse(Collections.emptySet());
@@ -213,18 +217,23 @@ public final class SignalFilter {
 
     /**
      * Evaluates an RQL {@code change-filter} against the thing data carried by the signal only, never against
-     * {@code extraFields}.
+     * {@code extraFields}. A signal without convertible thing data is evaluated against an empty thing, so that
+     * terms on placeholders still apply.
      *
+     * @param changeFilter the RQL expression of the change filter.
+     * @param signal the signal to evaluate the change filter for.
+     * @return whether the signal matches the change filter.
      * @throws org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException if the change filter is invalid
      */
     public static boolean matchesChangeFilter(final String changeFilter, final Signal<?> signal) {
-        final Optional<Thing> thingToMatch = thingFromSignal(signal);
-        if (thingToMatch.isEmpty()) {
-            return false;
-        }
-        final List<PlaceholderResolver<?>> placeholderResolvers = getPlaceholderResolvers(signal);
+        return matchesChangeFilter(changeFilter, signal, getPlaceholderResolvers(signal));
+    }
+
+    private static boolean matchesChangeFilter(final String changeFilter, final Signal<?> signal,
+            final List<PlaceholderResolver<?>> placeholderResolvers) {
+        final Thing thingToMatch = thingFromSignal(signal).orElseGet(() -> Thing.newBuilder().build());
         final Criteria criteria = parseCriteria(changeFilter, signal.getDittoHeaders(), placeholderResolvers);
-        return ThingPredicateVisitor.apply(criteria, placeholderResolvers).test(thingToMatch.get());
+        return ThingPredicateVisitor.apply(criteria, placeholderResolvers).test(thingToMatch);
     }
 
     private static Optional<Thing> thingFromSignal(final Signal<?> signal) {

@@ -50,7 +50,7 @@ public final class StreamingSession {
 
     private final List<String> namespaces;
     private final BiPredicate<Thing, Signal<?>> thingPredicate;
-    private final BiPredicate<Thing, Signal<?>> changePredicate;
+    @Nullable private final BiPredicate<Thing, Signal<?>> changePredicate;
     @Nullable private final ThingFieldSelector extraFields;
     private final ActorRef streamingSessionActor;
     private final ThreadSafeDittoLoggingAdapter logger;
@@ -60,7 +60,7 @@ public final class StreamingSession {
             final ActorRef streamingSessionActor, final ThreadSafeDittoLoggingAdapter logger) {
         this.namespaces = namespaces;
         thingPredicate = toThingPredicate(filterCriteria);
-        changePredicate = toThingPredicate(changeFilterCriteria);
+        changePredicate = changeFilterCriteria == null ? null : toThingPredicate(changeFilterCriteria);
         this.extraFields = extraFields;
         this.streamingSessionActor = streamingSessionActor;
         this.logger = logger;
@@ -135,6 +135,9 @@ public final class StreamingSession {
      * @return whether the signal passes the change filter.
      */
     public boolean matchesChangeFilter(final Signal<?> signal) {
+        if (changePredicate == null) {
+            return true;
+        }
         final Thing thing = ThingEventToThingConverter.mergeThingWithExtraFields(signal, null, JsonObject.empty())
                 .orElseGet(() -> Thing.newBuilder().build());
         return changePredicate.test(thing, signal);

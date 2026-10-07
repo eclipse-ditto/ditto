@@ -48,9 +48,11 @@ import org.eclipse.ditto.messages.model.MessageDirection;
 import org.eclipse.ditto.messages.model.MessageHeaders;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
 import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.things.model.FeatureDefinition;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.signals.events.FeatureDefinitionCreated;
 import org.eclipse.ditto.things.model.signals.events.FeatureDeleted;
 import org.eclipse.ditto.things.model.signals.events.FeaturePropertyModified;
 import org.eclipse.ditto.things.model.signals.events.ThingMerged;
@@ -1090,6 +1092,25 @@ public final class SignalFilterWithFilterTest {
                 authorizedHeaders(), null))).containsOnly(deletionAwareTarget);
         assertThat(signalFilter.filter(FeatureDeleted.of(THING_ID, "otherFeature", 3L, Instant.now(),
                 authorizedHeaders(), null))).isEmpty();
+    }
+
+    @Test
+    public void applySignalFilterWithChangeFilterOnEventWithoutConvertibleThingData() {
+        // a feature definition event is not converted into a thing, so only placeholder terms can match
+        final Target placeholderTarget = newTwinEventsTarget("twin/placeholder",
+                ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withChangeFilter("like(resource:path,'/features/specificFeature*')")
+                        .build());
+        final Target existsTarget = newTwinEventsTarget("twin/exists",
+                ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withChangeFilter("exists(features/specificFeature)")
+                        .build());
+        final SignalFilter signalFilter =
+                new SignalFilter(newConnection(placeholderTarget, existsTarget), connectionMonitorRegistry);
+
+        assertThat(signalFilter.filter(FeatureDefinitionCreated.of(THING_ID, "specificFeature",
+                FeatureDefinition.fromIdentifier("org.acme:temp:1.0.0"), 3L, Instant.now(), authorizedHeaders(),
+                null))).containsOnly(placeholderTarget);
     }
 
     private static Target newTwinEventsTarget(final String address, final FilteredTopic topic) {
