@@ -24,20 +24,13 @@
         </filter>
     </appender>
 
-    <if condition='isDefined("DITTO_LOGGING_DISABLE_SYSOUT_LOG")'>
+    <condition class="ch.qos.logback.core.boolex.PropertyEqualityCondition">
+        <key>DITTO_LOGGING_DISABLE_SYSOUT_LOG</key>
+        <value>true</value>
+    </condition>
+    <if>
         <then>
-            <if condition='property("DITTO_LOGGING_DISABLE_SYSOUT_LOG").equals("true")'>
-                <then>
-                    <appender name="STDOUT" class="ch.qos.logback.core.helpers.NOPAppender"/>
-                </then>
-                <else>
-                    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-                        <encoder>
-                            <pattern>%date{ISO8601} %-5level [%X{correlation-id}][%X{traceparent-trace-id}] %logger{20} %X{pekkoSource} - %msg%n</pattern>
-                        </encoder>
-                    </appender>
-                </else>
-            </if>
+            <appender name="STDOUT" class="ch.qos.logback.core.helpers.NOPAppender"/>
         </then>
         <else>
             <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
@@ -48,7 +41,10 @@
         </else>
     </if>
 
-    <if condition='isDefined("DITTO_LOGGING_LOGSTASH_SERVER")'>
+    <condition class="ch.qos.logback.core.boolex.IsPropertyDefinedCondition">
+        <key>DITTO_LOGGING_LOGSTASH_SERVER</key>
+    </condition>
+    <if>
         <then>
             <appender name="stash" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
                 <destination>${DITTO_LOGGING_LOGSTASH_SERVER}</destination>
@@ -67,7 +63,11 @@
         </else>
     </if>
 
-    <if condition='property("DITTO_LOGGING_FILE_APPENDER").equals("true")'>
+    <condition class="ch.qos.logback.core.boolex.PropertyEqualityCondition">
+        <key>DITTO_LOGGING_FILE_APPENDER</key>
+        <value>true</value>
+    </condition>
+    <if>
         <then>
             <appender name="file" class="ch.qos.logback.core.rolling.RollingFileAppender">
                 <filter class="ch.qos.logback.classic.filter.ThresholdFilter">

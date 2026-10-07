@@ -148,12 +148,6 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
             <artifactId>classindex</artifactId>
         </dependency>
 
-        <!-- logstash appender logging -->
-        <dependency>
-            <groupId>org.codehaus.janino</groupId>
-            <artifactId>janino</artifactId>
-        </dependency>
-
         <!-- fluency for logging connection logs into fluentd / fluentbit -->
         <dependency>
             <groupId>org.komamitsu</groupId>
