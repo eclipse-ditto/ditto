@@ -68,6 +68,7 @@ import org.eclipse.ditto.connectivity.service.messaging.httppush.HttpPushValidat
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -488,6 +489,100 @@ public class ConnectionValidatorTest {
         final Connection connection = createConnection(CONNECTION_ID)
                 .toBuilder()
                 .setTargets(targetWithValidFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        underTest.validate(connection, DittoHeaders.empty(), actorSystem);
+    }
+
+    @Test
+    public void acceptValidConnectionWithChangeFilterAlongsideAllOtherFilterParams() {
+        final List<Target> targetWithValidFilter = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withChangeFilter("exists(features/temperature)")
+                                .withFilter("eq(attributes/location,'Kitchen')")
+                                .withFnFilters(List.of("header:ditto-originator|fn:filter('ne','some:subject')"))
+                                .withExtraFields(ThingFieldSelector.fromString("features/temperature"))
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithValidFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        underTest.validate(connection, DittoHeaders.empty(), actorSystem);
+    }
+
+    @Test
+    public void rejectConnectionWithMalformedChangeFilterAsInvalidRqlExpression() {
+        final List<Target> targetWithInvalidFilter = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withChangeFilter("gt(attributes/x,)")
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithInvalidFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(InvalidRqlExpressionException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+    }
+
+    @Test
+    public void rejectConnectionWithFnExpressionInChangeFilterParameterPointingToFnFilter() {
+        final List<Target> targetWithMisplacedFnFilter = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withChangeFilter("header:ditto-originator|fn:filter('eq','some:subject')")
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithMisplacedFnFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+
+        final Throwable thrown =
+                catchThrowable(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+
+        assertThat(thrown).isInstanceOf(ConnectionConfigurationInvalidException.class)
+                .hasMessageContaining("'change-filter' only accepts an RQL expression");
+        assertThat(((DittoRuntimeException) thrown).getDescription()).hasValueSatisfying(description ->
+                assertThat(description)
+                        .contains("'?fn-filter=header:ditto-originator|fn:filter('eq','some:subject')'"));
+    }
+
+    @Test
+    public void rejectConnectionWithChangeFilterOnLiveMessagesAndLiveCommands() {
+        for (final Topic topic : List.of(Topic.LIVE_MESSAGES, Topic.LIVE_COMMANDS)) {
+            final Target target = ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                    .topics(ConnectivityModelFactory.newFilteredTopicBuilder(topic)
+                            .withChangeFilter("eq(resource:path,'/inbox/messages/subject')")
+                            .build())
+                    .build();
+            final Connection connection =
+                    createConnection(CONNECTION_ID).toBuilder().setTargets(singletonList(target)).build();
+            final ConnectionValidator underTest = getConnectionValidator();
+
+            assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                    .as(topic.getName())
+                    .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem))
+                    .withMessageContaining("'change-filter'")
+                    .withMessageContaining("not supported for messages and live commands");
+        }
+    }
+
+    @Test
+    public void acceptValidConnectionWithChangeFilterOnLiveEvents() {
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(singletonList(ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.LIVE_EVENTS)
+                                .withChangeFilter("exists(features/temperature)")
+                                .build())
+                        .build()))
                 .build();
         final ConnectionValidator underTest = getConnectionValidator();
         underTest.validate(connection, DittoHeaders.empty(), actorSystem);

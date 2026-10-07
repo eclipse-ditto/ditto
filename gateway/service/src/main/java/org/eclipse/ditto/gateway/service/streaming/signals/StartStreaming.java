@@ -47,6 +47,7 @@ public final class StartStreaming implements StreamControlMessage {
     private final AuthorizationContext authorizationContext;
     private final List<String> namespaces;
     @Nullable private final String filter;
+    @Nullable private final String changeFilter;
     @Nullable private final ThingFieldSelector extraFields;
     @Nullable private final CharSequence correlationId;
 
@@ -57,6 +58,7 @@ public final class StartStreaming implements StreamControlMessage {
         @Nullable final Collection<String> namespacesFromBuilder = builder.namespaces;
         namespaces = null != namespacesFromBuilder ? List.copyOf(namespacesFromBuilder) : Collections.emptyList();
         filter = Objects.toString(builder.filter, null);
+        changeFilter = Objects.toString(builder.changeFilter, null);
         extraFields = validateExtraFields(builder.extraFields);
         correlationId = builder.correlationId;
     }
@@ -131,6 +133,13 @@ public final class StartStreaming implements StreamControlMessage {
     }
 
     /**
+     * @return the optional RQL filter to apply to the thing data of the event only, without extra fields
+     */
+    public Optional<String> getChangeFilter() {
+        return Optional.ofNullable(changeFilter);
+    }
+
+    /**
      * Returns the selector for the extra fields and their values to enrich outgoing signals with.
      *
      * @return the selector or an empty Optional if signals should not be enriched.
@@ -153,13 +162,14 @@ public final class StartStreaming implements StreamControlMessage {
                 Objects.equals(authorizationContext, that.authorizationContext) &&
                 Objects.equals(namespaces, that.namespaces) &&
                 Objects.equals(filter, that.filter) &&
+                Objects.equals(changeFilter, that.changeFilter) &&
                 Objects.equals(extraFields, that.extraFields);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(streamingType, connectionCorrelationId, authorizationContext, namespaces, filter,
-                extraFields);
+                changeFilter, extraFields);
     }
 
     @Override
@@ -170,6 +180,7 @@ public final class StartStreaming implements StreamControlMessage {
                 ", authorizationContext=" + authorizationContext +
                 ", namespaces=" + namespaces +
                 ", filter=" + filter +
+                ", changeFilter=" + changeFilter +
                 ", extraFields=" + extraFields +
                 "]";
     }
@@ -186,6 +197,7 @@ public final class StartStreaming implements StreamControlMessage {
 
         @Nullable private Collection<String> namespaces;
         @Nullable private CharSequence filter;
+        @Nullable private CharSequence changeFilter;
         @Nullable private ThingFieldSelector extraFields;
         @Nullable private CharSequence correlationId;
 
@@ -198,6 +210,7 @@ public final class StartStreaming implements StreamControlMessage {
             this.authorizationContext = checkNotNull(authorizationContext, "authorizationContext");
             namespaces = null;
             filter = null;
+            changeFilter = null;
             extraFields = null;
         }
 
@@ -223,6 +236,20 @@ public final class StartStreaming implements StreamControlMessage {
             // policy announcements do not support filter.
             if (streamingType != StreamingType.POLICY_ANNOUNCEMENTS) {
                 this.filter = filter;
+            }
+            return this;
+        }
+
+        /**
+         * Sets the RQL filter to be applied to the thing data of events only, without extra fields.
+         *
+         * @param changeFilter the RQL filter string or {@code null} if none should be applied.
+         * @return this builder instance to allow method chaining.
+         */
+        public StartStreamingBuilder withChangeFilter(@Nullable final CharSequence changeFilter) {
+            // policy announcements do not support filter.
+            if (streamingType != StreamingType.POLICY_ANNOUNCEMENTS) {
+                this.changeFilter = changeFilter;
             }
             return this;
         }

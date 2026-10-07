@@ -71,25 +71,28 @@ public final class StreamingSession {
 
     private final List<String> namespaces;
     private final BiPredicate<Thing, Signal<?>> thingPredicate;
+    private final BiPredicate<Thing, Signal<?>> changePredicate;
     @Nullable private final ThingFieldSelector extraFields;
     private final ActorRef streamingSessionActor;
     private final ThreadSafeDittoLoggingAdapter logger;
 
     private StreamingSession(final List<String> namespaces, @Nullable final Criteria filterCriteria,
-            @Nullable final ThingFieldSelector extraFields, final ActorRef streamingSessionActor,
-            final ThreadSafeDittoLoggingAdapter logger) {
+            @Nullable final Criteria changeFilterCriteria, @Nullable final ThingFieldSelector extraFields,
+            final ActorRef streamingSessionActor, final ThreadSafeDittoLoggingAdapter logger) {
         this.namespaces = namespaces;
         thingPredicate = toThingPredicate(filterCriteria);
+        changePredicate = toThingPredicate(changeFilterCriteria);
         this.extraFields = extraFields;
         this.streamingSessionActor = streamingSessionActor;
         this.logger = logger;
     }
 
     static StreamingSession of(final List<String> namespaces, @Nullable final Criteria filterCriteria,
-            @Nullable final ThingFieldSelector extraFields, final ActorRef streamingSessionActor,
-            final ThreadSafeDittoLoggingAdapter logger) {
+            @Nullable final Criteria changeFilterCriteria, @Nullable final ThingFieldSelector extraFields,
+            final ActorRef streamingSessionActor, final ThreadSafeDittoLoggingAdapter logger) {
 
-        return new StreamingSession(namespaces, filterCriteria, extraFields, streamingSessionActor, logger);
+        return new StreamingSession(namespaces, filterCriteria, changeFilterCriteria, extraFields,
+                streamingSessionActor, logger);
     }
 
     /**
@@ -157,6 +160,19 @@ public final class StreamingSession {
      */
     public boolean matchesFilter(final Thing thing, final Signal<?> signal) {
         return thingPredicate.test(thing, signal);
+    }
+
+    /**
+     * Test whether the thing data carried by the signal itself, without extra fields, matches the change filter
+     * defined in this session. Evaluated before signal enrichment, so non-matching signals are not enriched.
+     *
+     * @param signal the signal.
+     * @return whether the signal passes the change filter.
+     */
+    public boolean matchesChangeFilter(final Signal<?> signal) {
+        final Thing thing = ThingEventToThingConverter.mergeThingWithExtraFields(signal, null, JsonObject.empty())
+                .orElseGet(() -> Thing.newBuilder().build());
+        return changePredicate.test(thing, signal);
     }
 
     public ActorRef getStreamingSessionActor() {

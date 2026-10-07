@@ -876,11 +876,16 @@ public final class OutboundMappingProcessorActor
                 return Optional.empty();
             }
         }
+        // a target passes SignalFilter if any of its topics matches, so the change-filter is re-evaluated per topic
+        final Optional<String> changeFilter = topic.getChangeFilter();
+        if (changeFilter.isPresent() && !SignalFilter.matchesChangeFilter(changeFilter.get(), signal)) {
+            return Optional.empty();
+        }
 
         final Optional<String> filter = topic.getFilter();
         if (filter.isEmpty()) {
-            // no RQL filter: either decided by its fn-filters alone, or - without any filter - already filtered in
-            // SignalFilter since there is no ignored field; no thing needed
+            // no RQL filter: either decided by its fn-filters and change-filter alone, or - without any filter -
+            // already filtered in SignalFilter since there is no ignored field; no thing needed
             return Optional.of(outboundSignal);
         }
         if (thing == null) {

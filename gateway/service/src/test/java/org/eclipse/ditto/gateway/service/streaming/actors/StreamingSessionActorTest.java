@@ -618,6 +618,34 @@ public final class StreamingSessionActorTest {
     }
 
     @Test
+    public void changeFilterIsRejectedForMessagesAndLiveCommands() {
+        onDeclareAckLabels(CompletableFuture.completedFuture(null));
+        setUpMockForTwinEventsSubscription();
+        final var underTest = actorSystemResource.newActor(getProps());
+        final var authorizationContext =
+                AuthorizationContext.newInstance(DittoAuthorizationContextType.PRE_AUTHENTICATED_HTTP,
+                        AuthorizationSubject.newInstance("ditto:ditto"));
+
+        for (final StreamingType streamingType : List.of(StreamingType.MESSAGES, StreamingType.LIVE_COMMANDS)) {
+            underTest.tell(StartStreaming.getBuilder(streamingType, testName.getMethodName(), authorizationContext)
+                    .withChangeFilter("eq(resource:path,'/inbox/messages/subject')")
+                    .build(), ActorRef.noSender());
+
+            assertThat(sinkProbe.requestNext().getJsonifiable())
+                    .as(streamingType.name())
+                    .isInstanceOf(InvalidRqlExpressionException.class);
+        }
+
+        underTest.tell(StartStreaming.getBuilder(StreamingType.LIVE_EVENTS, testName.getMethodName(),
+                        authorizationContext)
+                .withChangeFilter("exists(features/temperature)")
+                .build(), ActorRef.noSender());
+
+        assertThat(sinkProbe.requestNext().getJsonifiable())
+                .isEqualTo(new StreamingAck(StreamingType.LIVE_EVENTS, true));
+    }
+
+    @Test
     public void filterWithThingAndFeaturePlaceholdersIsResolved() {
         setUpMockForTwinEventsSubscription();
         final var underTest = actorSystemResource.newActor(getProps());
