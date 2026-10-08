@@ -7,7 +7,7 @@ permalink: httpapi-sse.html
 
 You use Server-Sent Events (SSE) to receive real-time change notifications for digital twins and to stream search results -- all through a simple, unidirectional HTTP connection.
 
-{% include callout.html content="**TL;DR**: Open an SSE connection to `/api/2/things` with `Accept: text/event-stream` to stream change notifications, or to `/api/2/search/things` to stream search results. Filter with `namespaces`, `filter`, `fields`, and `extraFields` parameters." type="primary" %}
+{% include callout.html content="**TL;DR**: Open an SSE connection to `/api/2/things` with `Accept: text/event-stream` to stream change notifications, or to `/api/2/search/things` to stream search results. Filter with `namespaces`, `filter`, `change-filter`, `fields`, and `extraFields` parameters." type="primary" %}
 
 ## Overview
 
@@ -79,6 +79,13 @@ Combine with RQL filtering to filter on enriched fields:
 
 ```
 http://localhost:8080/api/2/things?extraFields=attributes/location&filter=eq(attributes/location,"kitchen")
+```
+
+The `filter` then matches whenever the enriched field exists. To filter on what was actually changed, use the
+[`change-filter`](basic-changenotifications.html#filter-by-change) parameter, which never sees enriched fields:
+
+```
+http://localhost:8080/api/2/things?extraFields=features/temperature&change-filter=exists(features/temperature)
 ```
 
 When using both `fields` and `extraFields`, include the extra fields in the `fields` list if you want them in the response:

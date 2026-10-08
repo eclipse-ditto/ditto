@@ -19,7 +19,8 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 
 /**
  * A FilteredTopic wraps a {@link Topic} and optional query parameters which additionally restrict which kind of
- * Signals should be processed/filtered: an optional {@code filter} holding an {@code RQL} expression and an optional
+ * Signals should be processed/filtered: an optional {@code filter} holding an {@code RQL} expression, an optional
+ * {@code change-filter} holding an {@code RQL} expression evaluated against the change only and an optional
  * {@code fn-filter} - which may be repeated - holding a placeholder pipeline expression. All given filters must
  * match (AND semantics).
  */
@@ -39,6 +40,16 @@ public interface FilteredTopic extends CharSequence {
      * @return the optional filter string as RQL query
      */
     Optional<String> getFilter();
+
+    /**
+     * Returns the optional RQL expression of the {@code change-filter} query parameter. Unlike {@link #getFilter()},
+     * it is always evaluated against the thing data carried by the signal itself and never sees the enriched
+     * {@code extraFields}.
+     *
+     * @return the optional change filter string as RQL query.
+     * @since 4.0.0
+     */
+    Optional<String> getChangeFilter();
 
     /**
      * Returns the placeholder pipeline expressions of this FilteredTopic, given via the repeatable {@code fn-filter}
