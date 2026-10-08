@@ -17,6 +17,7 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -83,6 +84,7 @@ final class ImmutableFilteredTopic implements FilteredTopic {
      * @throws NullPointerException if {@code filteredTopicString} is {@code null}.
      * @throws org.eclipse.ditto.things.model.InvalidThingFieldSelectionException when the given
      * {@code filteredTopicString} contained a field selector with invalid fields.
+     * @throws TopicParseException if the topic is unknown or a query parameter is not correctly URL-encoded.
      */
     public static ImmutableFilteredTopic fromString(final String filteredTopicString) {
         checkNotNull(filteredTopicString, "filteredTopicString");
@@ -278,14 +280,24 @@ final class ImmutableFilteredTopic implements FilteredTopic {
             return Arrays.stream(queryParamsString.split(QUERY_ARG_DELIMITER))
                     .map(paramString -> paramString.split(QUERY_ARG_VALUE_DELIMITER, 2))
                     .filter(queryParamPair -> 2 == queryParamPair.length)
-                    .collect(Collectors.toMap(queryParamPair -> urlDecode(queryParamPair[0]), av -> urlDecode(av[1])));
+                    .map(queryParamPair -> {
+                        final String name = urlDecode(queryParamPair[0], queryParamPair[0]);
+                        return new AbstractMap.SimpleImmutableEntry<>(name, urlDecode(name, queryParamPair[1]));
+                    })
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         }
 
-        private static String urlDecode(final String value) {
+        private String urlDecode(final String parameterName, final String value) {
             try {
                 return URLDecoder.decode(value, StandardCharsets.UTF_8.name());
             } catch (final UnsupportedEncodingException e) {
                 return URLDecoder.decode(value);
+            } catch (final IllegalArgumentException e) {
+                throw TopicParseException.newBuilder(filteredTopicString,
+                                "The query parameter '" + parameterName + "' is not correctly URL-encoded: " +
+                                        e.getMessage())
+                        .cause(e)
+                        .build();
             }
         }
 

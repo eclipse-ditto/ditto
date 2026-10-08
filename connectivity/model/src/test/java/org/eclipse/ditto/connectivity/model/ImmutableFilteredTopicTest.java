@@ -247,4 +247,24 @@ public final class ImmutableFilteredTopicTest {
         assertThat(actual).isEqualTo(filteredTopic);
     }
 
+    @Test
+    public void fromStringRejectsFilterValueWithInvalidUrlEncoding() {
+        // a literal '%' that is not followed by two hex digits cannot be URL-decoded
+        assertInvalidUrlEncodingIsRejected("_/_/things/twin/events?filter=like(attributes/a,\"100%\")", "filter");
+    }
+
+    @Test
+    public void fromStringRejectsFilterValueWithIncompleteTrailingEscape() {
+        assertInvalidUrlEncodingIsRejected("_/_/things/twin/events?filter=like(attributes/a,\"100%2", "filter");
+    }
+
+    private static void assertInvalidUrlEncodingIsRejected(final String topicString, final String paramName) {
+        assertThatExceptionOfType(TopicParseException.class)
+                .isThrownBy(() -> ImmutableFilteredTopic.fromString(topicString))
+                .withMessageContaining(topicString)
+                .withCauseInstanceOf(IllegalArgumentException.class)
+                .satisfies(e -> assertThat(e.getDescription()).hasValueSatisfying(description ->
+                        assertThat(description).contains("'" + paramName + "'").contains("not correctly URL-encoded")));
+    }
+
 }

@@ -847,6 +847,7 @@ public final class ConnectivityModelFactory {
      *
      * @param topicString the {@code FilteredTopic} String representation
      * @return the created FilteredTopic
+     * @throws TopicParseException if the topic is unknown or a query parameter is not correctly URL-encoded.
      */
     public static FilteredTopic newFilteredTopic(final String topicString) {
         return ImmutableFilteredTopic.fromString(topicString);
