@@ -312,8 +312,9 @@ an `fn-filter`:
   truncated that way suppresses every signal. (For WebSocket and SSE filters, which are not stored, `%26`
   works.)
 * `+` -- is decoded to a space. `%2B` is decoded to `+` on the first parse and to a space on the next one.
-* `%` -- `%25` is decoded to `%` on the first parse. When the stored topic is parsed again, that `%` either
-  fails to decode or is silently decoded together with the two characters following it.
+* `%` -- `%25` is decoded to `%` on the first parse. When the stored topic is parsed again, that `%` is either
+  rejected as not correctly URL-encoded (a `connectivity:topic.invalid` error) or is silently decoded together
+  with the two characters following it.
 
 Example:
 
