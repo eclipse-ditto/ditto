@@ -113,7 +113,7 @@ jobs:
             ditto-connectivity)  MODULE=connectivity/service ;;
             *) echo "No Maven build needed for $DITTO_IMAGE"; exit 1 ;;
           esac
-          mvn clean install -T4 --batch-mode --errors -DskipTests -Dmaven.javadoc.skip=true \
+          mvn clean install -T4 --batch-mode --errors -DskipTests -DskipITs -Dmaven.javadoc.skip=true \
             -Drevision=$IMAGE_TAG -pl "$MODULE" -am
       -
         name: Stage allinone jar for the Docker build context
